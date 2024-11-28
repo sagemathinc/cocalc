@@ -2,6 +2,7 @@ import getPool from "@cocalc/database/pool";
 import { NUM_MESSAGES } from "@cocalc/util/db-schema/messages";
 
 export async function updateUnreadMessageCount({ account_id }) {
+  return;
   const pool = getPool();
 
   // have to use a subquery because we want to restrict only to the most recent NUM_MESSAGES messages, since that's

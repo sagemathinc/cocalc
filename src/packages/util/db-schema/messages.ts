@@ -49,7 +49,7 @@ export interface Message {
   subject: string;
   body: string;
   read?: Date;
-  saved?: boolean;
+  saved?: string;
   deleted?: boolean;
   expire?: Date;
   // used for replies
@@ -92,8 +92,9 @@ Table({
       desc: "when the message was read by the user, set this to the time when they read it.",
     },
     saved: {
-      type: "boolean",
-      desc: "If user saved this message for later.",
+      type: "string",
+      pg_type: "bit varying",
+      desc: "Users that saved this message for later (so no longer in inbox)",
     },
     to_deleted: {
       type: "boolean",

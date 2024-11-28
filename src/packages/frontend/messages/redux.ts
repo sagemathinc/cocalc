@@ -10,7 +10,13 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { getThreadId, replySubject, getNotExpired, getThreads } from "./util";
+import {
+  getThreadId,
+  replySubject,
+  getNotExpired,
+  getThreads,
+  setBitField,
+} from "./util";
 import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 
@@ -76,7 +82,12 @@ export class MessagesActions extends Actions<MessagesState> {
       let changed_table = false;
       let changed_sent_table = false;
       for (const id of ids) {
-        if (table.get_one(`${id}`) != null) {
+        let message = table.get_one(`${id}`);
+        if (message != null) {
+          if (saved != null) {
+            message = setBitField(message, "saved", saved);
+            saved = message.get("saved");
+          }
           table.set({
             id,
             read: read === null ? 0 : read,
@@ -86,7 +97,8 @@ export class MessagesActions extends Actions<MessagesState> {
           });
           changed_table = true;
         }
-        if (sent_table.get_one(`${id}`) != null) {
+        message = sent_table.get_one(`${id}`);
+        if (message != null) {
           sent_table.set({
             id,
             from_deleted: deleted,

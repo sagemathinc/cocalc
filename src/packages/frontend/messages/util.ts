@@ -408,3 +408,91 @@ export function get(message: Mesg | undefined, field: string) {
     return m[field];
   }
 }
+
+function set<T extends Mesg | undefined>(message: T, field: string, value): T {
+  if (message == null) {
+    return message;
+  }
+  if (!FIELDS.has(field)) {
+    throw Error(`attempt to access invalid field ${field}`);
+  }
+  if (iMap.isMap(message)) {
+    const m = message as unknown as T;
+    // @ts-ignore
+    return m.set(field, value);
+  } else {
+    const m = message as unknown as T;
+    // not a deep copy -- some danger.
+    return { ...m, [field]: value };
+  }
+}
+
+export function setBitField(
+  message: Mesg,
+  field: string,
+  value: boolean,
+  account_id?: string,
+): Mesg {
+  const bits = getBitSet({
+    current: get(message, field),
+    value,
+    to_ids: get(message, "to_ids"),
+    from_id: get(message, "from_id"),
+    account_id,
+  });
+  return set(message, field, bits);
+}
+
+export function getBitField(
+  message: Mesg,
+  field: string,
+  account_id?: string,
+): boolean {
+  const pos = getBitPosition({
+    account_id,
+    to_ids: get(message, "to_ids"),
+    from_id: get(message, "from_id"),
+  });
+  return get(message, field)[pos] == "1";
+}
+
+function getBitPosition({
+  account_id = webapp_client.account_id!,
+  to_ids,
+  from_id,
+}: {
+  account_id?: string;
+  to_ids;
+  from_id: string;
+}): number {
+  if (account_id == from_id) {
+    return 0;
+  } else {
+    return to_ids.indexOf(account_id) + 1;
+  }
+}
+
+function getBitSet({
+  current = "",
+  value,
+  to_ids,
+  from_id,
+  account_id = webapp_client.account_id!,
+}: {
+  current?: string;
+  value: boolean;
+  to_ids;
+  from_id: string;
+  account_id?: string;
+}): string {
+  const pos = getBitPosition({ to_ids, from_id, account_id });
+  if (pos == -1) {
+    console.warn("getBitSet -- uknown id");
+    return current;
+  }
+  // "current[pos] = value", where current is a string of 0's and 1's, hopefully.
+  while (current.length <= pos) {
+    current += "0";
+  }
+  return current.slice(0, pos) + (value ? "1" : "0") + current.slice(pos + 1);
+}

@@ -7,7 +7,7 @@ import type { Message } from "./types";
 interface ReplyButtonProps extends ButtonProps {
   label?;
   replyTo: Message;
-  replyAll?: boolean;
+  replyAll?: boolean | string[];
 }
 
 export default function ReplyButton({

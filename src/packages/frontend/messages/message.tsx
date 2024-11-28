@@ -27,8 +27,9 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 
 const LEFT_OFFSET = "46px";
 
+declare var DEBUG: boolean;
 // useful for debugging!
-const SHOW_ID = false;
+const SHOW_ID = !!DEBUG;
 
 interface Props {
   message: MessageType;
@@ -488,11 +489,12 @@ made, or you are chatting with support (say), which is just
 one entity.
 */
 
-function rootMessage({ message, threads }) {
+// NOTE: returns message if threads aren't fully known/loaded yet.
+function rootMessage({ message, threads }): MessageType {
   if (message.thread_id && threads != null) {
     // right now participants in a thread can shrink when you do not "reply all",
     // so we always show the root. people can't be added to an existing thread.
-    return threads.get(message.thread_id).first().toJS();
+    return threads.get(message.thread_id)?.first().toJS() ?? message;
   }
   return message;
 }
