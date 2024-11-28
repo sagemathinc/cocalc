@@ -80,15 +80,14 @@ export async function sendAllEmailSummaries() {
     // and having a message that was **RECENTLY RECEIVED** (i.e., the sent field is recent),
     // we send them a message.
     const pool = getPool();
-    const query = `SELECT DISTINCT a.account_id, a.first_name, a.last_name, a.unread_message_count, a.email_address_verified, a.email_address  
+    const query = `SELECT DISTINCT a.account_id, a.first_name, a.last_name, a.unread_message_count, a.email_address_verified, a.email_address
         FROM accounts a
         JOIN messages m ON a.account_id = m.to_id
-        WHERE a.unread_message_count > 0 
-          AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds') 
+        WHERE a.unread_message_count > 0
+          AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds')
           ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
           AND a.email_address IS NOT NULL
-          AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'
-          AND m.to_type = 'account'`;
+          AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'`;
     const { rows } = await pool.query(query);
     log.debug(
       "sendAllEmailSummaries: got ",
@@ -171,7 +170,7 @@ Hello ${name},
 <br/>
 <br/>
 You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
-message center</a> after <a href="${signIn}">signing in to ${siteName}</a>. 
+message center</a> after <a href="${signIn}">signing in to ${siteName}</a>.
 <br/>
 <br/>
  - ${siteName}
@@ -184,7 +183,7 @@ You have ${subject}.  To read them, visit the message center at
 
 ${url}
 
-after signing in to ${siteName} at 
+after signing in to ${siteName} at
 
 ${signIn}
 

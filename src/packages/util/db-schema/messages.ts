@@ -169,7 +169,7 @@ Table({
               // user is allowed to change messages *to* them only, and then
               // only limited fields.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -250,7 +250,7 @@ Table({
               }
               // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET to_id=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE AND from_id=$1 AND id=$2";
+                "UPDATE messages SET to_id=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -291,7 +291,7 @@ Table({
               }
               const { rows } = await client.query(
                 `INSERT INTO messages(from_id,to_id,subject,body,thread_id,sent)
-                 VALUES($1,$2,$3,$4,$5) RETURNING *
+                 VALUES($1,$2,$3,$4,$5,$6) RETURNING *
                 `,
                 [
                   account_id,
