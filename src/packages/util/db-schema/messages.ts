@@ -44,7 +44,7 @@ export interface Message {
   id: number;
   sent: Date;
   from_id: string; // a uuid
-  to_id: string; // a uuid
+  to_ids: string[]; // array of uuid's
   subject: string;
   body: string;
   read?: Date;
@@ -69,11 +69,12 @@ Table({
       not_null: true,
       render: { type: "account" },
     },
-    to_id: {
-      type: "uuid",
-      desc: "uuid of account that the message is being sent to",
+    to_ids: {
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "array of uuid's of account that the message is being sent to",
       not_null: true,
-      render: { type: "account" },
+      render: { type: "accounts" },
     },
     subject: {
       type: "string",
@@ -116,12 +117,12 @@ Table({
   },
   rules: {
     primary_key: "id",
-    changefeed_keys: ["to_id", "sent"],
-    pg_indexes: ["to_id"],
+    changefeed_keys: ["to_ids", "sent"],
+    pg_indexes: ["USING GIN (to_ids)"],
     user_query: {
       get: {
         pg_where: [
-          { "to_id = $::UUID": "account_id" },
+          { "$::UUID = ANY(to_ids)": "account_id" },
           { "sent IS NOT $": null },
         ],
         options: [{ order_by: "-id" }, { limit: NUM_MESSAGES }],
@@ -129,7 +130,7 @@ Table({
           id: null,
           sent: null,
           from_id: null,
-          to_id: null,
+          to_ids: null,
           subject: null,
           body: null,
           read: null,
@@ -169,7 +170,7 @@ Table({
               // user is allowed to change messages *to* them only, and then
               // only limited fields.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE $1=ANY(to_ids) AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -215,7 +216,7 @@ Table({
       set: {
         fields: {
           id: true,
-          to_id: true,
+          to_ids: true,
           subject: true,
           body: true,
           sent: true,
@@ -250,11 +251,11 @@ Table({
               }
               // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET to_id=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE from_id=$1 AND id=$2";
+                "UPDATE messages SET to_ids=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
-                new_val.to_id ?? old_val.to_id,
+                new_val.to_ids ?? old_val.to_ids,
                 new_val.subject ?? old_val.subject,
                 new_val.body ?? old_val.body,
                 new_val.sent ?? old_val.sent,
@@ -265,9 +266,9 @@ Table({
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
               await client.query(query, params);
-              if (new_val.to_id ?? old_val.to_id) {
+              if (new_val.to_ids ?? old_val.to_ids) {
                 await database.updateUnreadMessageCount({
-                  account_id: new_val.to_id ?? old_val.to_id,
+                  account_id: new_val.to_ids ?? old_val.to_ids,
                 });
               }
               cb();
@@ -281,21 +282,30 @@ Table({
                 endpoint: "user_query-messages",
                 account_id,
               });
-              const { rows: counts } = await client.query(
-                "SELECT COUNT(*) AS count FROM accounts WHERE account_id=$1",
-                [new_val.to_id],
+              const to_ids = Array.from(new Set(new_val.to_ids));
+              const { rows: rows0 } = await client.query(
+                "SELECT account_id FROM accounts WHERE account_id=ANY($1)",
+                [to_ids],
               );
-              if (counts[0].count == 0) {
-                cb(`to account_id ${new_val.to_id} does not exist`);
+              if (rows0.length != to_ids.length) {
+                const exist = new Set(
+                  rows0.map(({ account_id }) => account_id),
+                );
+                const missing = to_ids.filter(
+                  (account_id) => !exist.has(account_id),
+                );
+                cb(
+                  `every target account_id must exist -- these accounts do not exist: ${JSON.stringify(missing)}`,
+                );
                 return;
               }
               const { rows } = await client.query(
-                `INSERT INTO messages(from_id,to_id,subject,body,thread_id,sent)
-                 VALUES($1,$2,$3,$4,$5,$6) RETURNING *
+                `INSERT INTO messages(from_id,to_ids,subject,body,thread_id,sent)
+                 VALUES($1::UUID,$2::UUID[],$3,$4,$5,$6) RETURNING *
                 `,
                 [
                   account_id,
-                  new_val.to_id,
+                  to_ids,
                   new_val.subject,
                   new_val.body,
                   new_val.thread_id,
@@ -303,9 +313,11 @@ Table({
                 ],
               );
               if (new_val.sent) {
-                await database.updateUnreadMessageCount({
-                  account_id: new_val.to_id,
-                });
+                for (const account_id of to_ids) {
+                  await database.updateUnreadMessageCount({
+                    account_id,
+                  });
+                }
               }
               cb(undefined, rows[0]);
             } catch (err) {

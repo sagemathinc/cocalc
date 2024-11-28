@@ -26,6 +26,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
 import Zoom from "./zoom";
+import { isEqual } from "lodash";
 
 export default function Compose({
   onCancel,
@@ -44,11 +45,11 @@ export default function Compose({
   const fontSize = useTypedRedux("messages", "fontSize");
   const draftId = useRef<number | null>(message?.id ?? null);
 
-  const [to_id, setToId] = useState<string>(() => {
-    if (message?.to_id) {
-      return message.to_id;
+  const [to_ids, setToIds] = useState<string[]>(() => {
+    if (message?.to_ids) {
+      return message.to_ids;
     }
-    return "";
+    return [];
   });
   const [subject, setSubject] = useState<string>(message?.subject ?? "");
   const [body, setBody] = useState<string>(message?.body ?? "");
@@ -79,10 +80,10 @@ export default function Compose({
   }, []);
 
   const [draft, setDraft] = useState<{
-    to_id: string;
+    to_ids: string[];
     subject: string;
     body: string;
-  }>({ to_id, subject, body });
+  }>({ to_ids, subject, body });
 
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<"compose" | "saving" | "sending" | "sent">(
@@ -116,8 +117,8 @@ export default function Compose({
     if (
       state == "sending" ||
       state == "sent" ||
-      !to_id ||
-      (draft.to_id == to_id &&
+      to_ids.length == 0 ||
+      (isEqual(draft.to_ids, to_ids) &&
         draft.subject == subject &&
         draft.body == body)
     ) {
@@ -130,7 +131,7 @@ export default function Compose({
       if (draftId.current == null) {
         draftId.current = 0;
         const id = await actions.createDraft({
-          to_id,
+          to_ids,
           thread_id,
           subject,
           body,
@@ -139,7 +140,7 @@ export default function Compose({
         if (saveQueueRef.current != null) {
           actions.updateDraft({
             id,
-            to_id,
+            to_ids,
             thread_id,
             subject: saveQueueRef.current.subject,
             body: saveQueueRef.current.body,
@@ -150,14 +151,14 @@ export default function Compose({
       } else {
         actions.updateDraft({
           id: draftId.current,
-          to_id,
+          to_ids,
           thread_id,
           subject,
           body,
           debounceSave: true,
         });
       }
-      setDraft({ to_id, subject, body });
+      setDraft({ to_ids, subject, body });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -177,7 +178,7 @@ export default function Compose({
       if (draftId.current) {
         actions.updateDraft({
           id: draftId.current,
-          to_id,
+          to_ids,
           thread_id,
           subject,
           body: body0 ?? body,
@@ -185,7 +186,7 @@ export default function Compose({
         });
       } else {
         await actions.send({
-          to_id,
+          to_ids,
           subject,
           body: body0 ?? body,
           thread_id,
@@ -215,7 +216,7 @@ export default function Compose({
             autoFocus
             disabled={state != "compose"}
             placeholder="To (search by name or email)..."
-            onChange={setToId}
+            onChange={(account_id) => setToIds([account_id])}
           />
         </div>
       )}
@@ -360,7 +361,10 @@ export default function Compose({
           <Button
             size="large"
             disabled={
-              !subject.trim() || !to_id || state == "sending" || state == "sent"
+              !subject.trim() ||
+              to_ids.length == 0 ||
+              state == "sending" ||
+              state == "sent"
             }
             type="primary"
             onClick={() => send()}
@@ -385,7 +389,7 @@ export default function Compose({
             disabled={
               onCancel == null &&
               (state != "compose" ||
-                (subject == "" && to_id == "" && body == ""))
+                (subject == "" && to_ids.length == 0 && body == ""))
             }
             onClick={() => {
               discardDraft();

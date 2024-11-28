@@ -174,12 +174,12 @@ function MessageInList({
             title={
               isRead({ message, folder }) && !isNullDate(message.read) ? (
                 <>
-                  <User id={message.to_id} /> read{" "}
+                  <User id={message.to_ids} /> read{" "}
                   <TimeAgo date={message.read} />
                 </>
               ) : (
                 <>
-                  <User id={message.to_id} /> has not read
+                  <User id={message.to_ids} /> has not read
                 </>
               )
             }
@@ -360,7 +360,7 @@ function MessageFull({
             "to me"
           ) : (
             <>
-              to <User id={message.to_id} />
+              to <User id={message.to_ids} />
             </>
           )}{" "}
           {isRead({ message, folder }) && !isNullDate(message.read) ? (
@@ -455,15 +455,15 @@ function getTag({ message, threads, folder }) {
   return <>{v}</>;
 }
 
-/* 
+/*
 Figure out who should be displayed in a top level thread.
 In all cases, this is the entity that isn't us in the thread,
-unless we are writing to ourself.  
+unless we are writing to ourself.
 
 A key thing is that in cocalc messaging, messages go between
-at most two entities.  This is NOT group chat in a single thread! 
+at most two entities.  This is NOT group chat in a single thread!
 To have messages between three people, copies of the message are
-made, or you are chatting with support (say), which is just 
+made, or you are chatting with support (say), which is just
 one entity.
 */
 
@@ -476,7 +476,7 @@ function getDisplayedUser({ message, inThread }) {
   // isn't us.  We don't need to look at the other messages in the thread
   // since every message is between us and them.
   if (isFromMe(message)) {
-    return { id: message.to_id };
+    return { id: message.to_ids };
   } else {
     return { id: message.from_id };
   }

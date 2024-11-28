@@ -112,12 +112,12 @@ export class MessagesActions extends Actions<MessagesState> {
   };
 
   send = async ({
-    to_id,
+    to_ids,
     subject,
     body,
     thread_id,
   }: {
-    to_id: string;
+    to_ids: string[];
     subject: string;
     body: string;
     thread_id?: number;
@@ -128,7 +128,7 @@ export class MessagesActions extends Actions<MessagesState> {
           sent: webapp_client.server_time(),
           subject,
           body,
-          to_id,
+          to_ids,
           thread_id,
         },
       },
@@ -151,7 +151,7 @@ export class MessagesActions extends Actions<MessagesState> {
   updateDraft = async (obj: {
     id: number;
     thread_id?: number;
-    to_id?: string;
+    to_ids?: string[];
     subject?: string;
     body?: string;
     sent?: Date;
@@ -197,12 +197,12 @@ export class MessagesActions extends Actions<MessagesState> {
   );
 
   createDraft = async ({
-    to_id,
+    to_ids,
     subject = "",
     body = "",
     thread_id,
   }: {
-    to_id: string;
+    to_ids: string[];
     subject?: string;
     body?: string;
     thread_id?: number;
@@ -216,7 +216,7 @@ export class MessagesActions extends Actions<MessagesState> {
         sent_messages: {
           subject: uniqueSubject,
           body,
-          to_id,
+          to_ids,
           thread_id,
         },
       },
@@ -244,15 +244,15 @@ export class MessagesActions extends Actions<MessagesState> {
   };
 
   createReply = async (message: Message) => {
-    let to_id;
+    let to_ids;
     if (isFromMe(message)) {
-      to_id = message.to_id;
+      to_ids = message.to_ids;
     } else {
-      to_id = message.from_id;
+      to_ids = message.from_id;
     }
     const subject = replySubject(message.subject);
     await this.createDraft({
-      to_id,
+      to_ids,
       thread_id: getThreadId(message),
       subject,
       body: "",
@@ -293,7 +293,7 @@ export class MessagesActions extends Actions<MessagesState> {
         const s = `
 From: ${getName(message.get("from_id"))}
 
-To: ${getName(message.get("to_id"))}
+To: ${getName(message.get("to_ids"))}
 
 Subject: ${message.get("subject")}
 
@@ -384,7 +384,7 @@ class MessagesTable extends Table {
           id: null,
           sent: null,
           from_id: null,
-          to_id: null,
+          to_ids: null,
           subject: null,
           body: null,
           read: null,
@@ -424,7 +424,7 @@ class SentMessagesTable extends Table {
           id: null,
           sent: null,
           from_id: null,
-          to_id: null,
+          to_ids: null,
           subject: null,
           body: null,
           read: null,

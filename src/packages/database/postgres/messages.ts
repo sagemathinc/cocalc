@@ -13,7 +13,7 @@ export async function updateUnreadMessageCount({ account_id }) {
 FROM (
     SELECT read, COALESCE(saved, false) AS saved, COALESCE(to_deleted, false) AS deleted
     FROM messages
-    WHERE to_id=$1 AND sent IS NOT NULL
+    WHERE $1=ANY(to_ids) AND sent IS NOT NULL
     ORDER BY id DESC
     LIMIT ${NUM_MESSAGES}
 ) AS subquery

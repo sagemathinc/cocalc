@@ -13,7 +13,7 @@ register({
         id: null,
         created: null,
         from_id: null,
-        to_id: null,
+        to_ids: null,
         subject: null,
         body: null,
         read: null,

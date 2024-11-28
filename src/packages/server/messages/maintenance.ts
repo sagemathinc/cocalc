@@ -82,7 +82,7 @@ export async function sendAllEmailSummaries() {
     const pool = getPool();
     const query = `SELECT DISTINCT a.account_id, a.first_name, a.last_name, a.unread_message_count, a.email_address_verified, a.email_address
         FROM accounts a
-        JOIN messages m ON a.account_id = m.to_id
+        JOIN messages m ON a.account_id = ANY(m.to_ids)
         WHERE a.unread_message_count > 0
           AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds')
           ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
