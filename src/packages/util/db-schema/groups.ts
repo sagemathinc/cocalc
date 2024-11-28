@@ -114,7 +114,7 @@ Table({
 //   {group_id:null, owner_account_ids:...}
 // and the group_id gets filled in with your new record's id.
 Table({
-  name: "create_groups",
+  name: "create_group",
   rules: {
     virtual: "groups",
     primary_key: "group_id",

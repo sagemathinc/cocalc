@@ -5,7 +5,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import User from "./user";
 import { throttle } from "lodash";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { search_match, search_split } from "@cocalc/util/misc";
+import { cmp, search_match, search_split } from "@cocalc/util/misc";
 
 const AVATAR_SIZE = 28;
 
@@ -54,18 +54,22 @@ const handleSearch = throttle(
     // todo -- worry about sort order
     const terms = search_split(query?.toLowerCase() ?? "");
 
-    const v: { value: string; label }[] = [];
+    const v: { value: string; label; last_active?: Date }[] = [];
+    const store = redux.getStore("users");
+    const user_map = store.get("user_map");
     for (const account_id of knownUsers) {
-      const name = redux.getStore("users").get_name(account_id) ?? "";
+      const name = store.get_name(account_id) ?? "";
       if (!name || search_match(name.toLowerCase(), terms)) {
         v.push({
           value: account_id,
           label: <UserLabel account_id={account_id} knownUsers={knownUsers} />,
+          last_active: user_map.getIn([account_id, "last_active"]),
         });
       }
     }
 
     if (!query?.trim()) {
+      sortLastActive(v);
       setData(v);
       return;
     }
@@ -81,13 +85,22 @@ const handleSearch = throttle(
           label: (
             <UserLabel account_id={user.account_id} knownUsers={knownUsers} />
           ),
+          last_active: user_map.getIn([user.account_id, "last_active"]),
         };
       });
-
-    setData(v.concat(found));
+    const w = v.concat(found);
+    sortLastActive(w);
+    setData(w);
   },
   1000,
 );
+
+function sortLastActive(v) {
+  v.sort(
+    (a, b) =>
+      -cmp(a.last_active?.valueOf() ?? 0, b.last_active?.valueOf() ?? 0),
+  );
+}
 
 export default function SelectUser({
   placeholder,

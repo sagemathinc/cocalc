@@ -34,7 +34,8 @@ to particular files/directories/projects.  Again, use links in the message for t
 import { Table } from "./types";
 import { ID } from "./crm";
 import throttle from "@cocalc/util/api/throttle";
-import { SCHEMA as schema } from "./index";
+import { SCHEMA } from "./index";
+import { isEqual } from "lodash";
 
 // make this a bit big initially -- we'll add a feature to "load more", hopefully before
 // this limit is a problem
@@ -203,14 +204,14 @@ Table({
 
 Table({
   name: "sent_messages",
-  fields: schema.messages.fields,
+  fields: SCHEMA.messages.fields,
   rules: {
-    primary_key: schema.messages.primary_key,
+    primary_key: SCHEMA.messages.primary_key,
     changefeed_keys: ["from_id"],
     virtual: "messages",
     user_query: {
       get: {
-        ...schema.messages.user_query?.get!,
+        ...SCHEMA.messages.user_query?.get!,
         pg_where: [{ "from_id = $::UUID": "account_id" }],
       },
       set: {
@@ -249,6 +250,12 @@ Table({
                 // TODO: we do plan to have a notion of editing messages after they are sent, but this will
                 // be by adding one or more patches, so the edit history is clear.
               }
+              if (
+                new_val.to_ids != null &&
+                !isEqual(new_val.to_ids, old_val.to_ids)
+              ) {
+                await assertToIdsAreValid({ client, to_ids: new_val.to_ids });
+              }
               // user is allowed to change a lot about messages *from* them only.
               const query =
                 "UPDATE messages SET to_ids=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE from_id=$1 AND id=$2";
@@ -266,10 +273,13 @@ Table({
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
               await client.query(query, params);
-              if (new_val.to_ids ?? old_val.to_ids) {
-                await database.updateUnreadMessageCount({
-                  account_id: new_val.to_ids ?? old_val.to_ids,
-                });
+              const to_ids = new_val.to_ids ?? old_val.to_ids;
+              if (to_ids && (new_val.sent ?? old_val.sent)) {
+                for (const account_id of to_ids) {
+                  await database.updateUnreadMessageCount({
+                    account_id,
+                  });
+                }
               }
               cb();
             } catch (err) {
@@ -277,57 +287,84 @@ Table({
             }
           } else {
             // create a new message:
-            try {
-              throttle({
-                endpoint: "user_query-messages",
-                account_id,
-              });
-              const to_ids = Array.from(new Set(new_val.to_ids));
-              const { rows: rows0 } = await client.query(
-                "SELECT account_id FROM accounts WHERE account_id=ANY($1)",
-                [to_ids],
-              );
-              if (rows0.length != to_ids.length) {
-                const exist = new Set(
-                  rows0.map(({ account_id }) => account_id),
-                );
-                const missing = to_ids.filter(
-                  (account_id) => !exist.has(account_id),
-                );
-                cb(
-                  `every target account_id must exist -- these accounts do not exist: ${JSON.stringify(missing)}`,
-                );
-                return;
-              }
-              const { rows } = await client.query(
-                `INSERT INTO messages(from_id,to_ids,subject,body,thread_id,sent)
-                 VALUES($1::UUID,$2::UUID[],$3,$4,$5,$6) RETURNING *
-                `,
-                [
-                  account_id,
-                  to_ids,
-                  new_val.subject,
-                  new_val.body,
-                  new_val.thread_id,
-                  new_val.sent,
-                ],
-              );
-              if (new_val.sent) {
-                for (const account_id of to_ids) {
-                  await database.updateUnreadMessageCount({
-                    account_id,
-                  });
-                }
-              }
-              cb(undefined, rows[0]);
-            } catch (err) {
-              cb(`${err}`);
-            }
+            cb("use the create_message virtual table to create messages");
           }
         },
       },
     },
   },
+});
+
+async function assertToIdsAreValid({ client, to_ids }) {
+  const { rows } = await client.query(
+    "SELECT account_id FROM accounts WHERE account_id=ANY($1)",
+    [to_ids],
+  );
+  if (rows.length != to_ids.length) {
+    const exist = new Set(rows.map(({ account_id }) => account_id));
+    const missing = to_ids.filter((account_id) => !exist.has(account_id));
+    throw Error(
+      `every target account_id must exist -- these accounts do not exist: ${JSON.stringify(missing)}`,
+    );
+  }
+}
+
+// See comment in groups -- for create_groups.
+Table({
+  name: "create_message",
+  rules: {
+    virtual: "messages",
+    primary_key: "id",
+    user_query: {
+      get: {
+        fields: {
+          id: null,
+          to_ids: null,
+          subject: null,
+          body: null,
+          sent: null,
+          thread_id: null,
+        },
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            const { account_id } = opts;
+            throttle({
+              endpoint: "user_query-create_message",
+              account_id,
+            });
+            const client = database._client();
+            const query = opts.query ?? {};
+            const to_ids = Array.from(new Set(query.to_ids));
+            await assertToIdsAreValid({ client, to_ids });
+            const { rows } = await client.query(
+              `INSERT INTO messages(from_id,to_ids,subject,body,thread_id,sent)
+                 VALUES($1::UUID,$2::UUID[],$3,$4,$5,$6) RETURNING *
+                `,
+              [
+                account_id,
+                to_ids,
+                opts.query.subject,
+                opts.query.body,
+                opts.query.thread_id,
+                opts.query.sent,
+              ],
+            );
+            if (opts.query.sent) {
+              for (const account_id of to_ids) {
+                await database.updateUnreadMessageCount({
+                  account_id,
+                });
+              }
+            }
+            cb(undefined, rows[0]);
+          } catch (err) {
+            cb(`${err}`);
+          }
+        },
+      },
+    },
+  },
+  fields: SCHEMA.groups.fields,
 });
 
 Table({
@@ -338,9 +375,9 @@ Table({
     user_query: {
       get: {
         admin: true, // only admins can do get queries on this table
-        fields: schema.messages.user_query?.get?.fields ?? {},
+        fields: SCHEMA.messages.user_query?.get?.fields ?? {},
       },
     },
   },
-  fields: schema.messages.fields,
+  fields: SCHEMA.messages.fields,
 });

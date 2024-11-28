@@ -47,7 +47,7 @@ export class GroupsActions extends Actions<GroupsState> {
     color?: string;
   }) => {
     const query = {
-      create_groups: {
+      create_group: {
         group_id: null,
         owner_account_ids,
         member_account_ids,
@@ -56,7 +56,7 @@ export class GroupsActions extends Actions<GroupsState> {
       },
     };
     const x = await webapp_client.async_query({ query });
-    return x.query.create_groups.group_pid;
+    return x.query.create_group.group_pid;
   };
 
   getMemberAccountIds = (group_id) => {

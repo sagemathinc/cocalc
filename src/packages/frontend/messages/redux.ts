@@ -7,8 +7,7 @@ import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { iMessagesMap, iThreads, Message } from "./types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { search_split, uuid } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
+import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
@@ -201,46 +200,27 @@ export class MessagesActions extends Actions<MessagesState> {
     subject = "",
     body = "",
     thread_id,
+    sent,
   }: {
     to_ids: string[];
     subject?: string;
     body?: string;
     thread_id?: number;
+    sent?: Date;
   }) => {
-    // trick -- we use a sentinel subject for a moment, since async_query
-    // doesn't return the created primary key.  We'll implement that at some
-    // point, but for now this will have to do.
-    const uniqueSubject = `${subject}-${uuid()}`;
-    await webapp_client.async_query({
+    const { query } = await webapp_client.async_query({
       query: {
-        sent_messages: {
-          subject: uniqueSubject,
+        create_message: {
+          id: null,
+          subject,
           body,
           to_ids,
           thread_id,
+          sent,
         },
       },
     });
-    const table = this.redux.getTable("sent_messages")._table;
-    let t0 = Date.now();
-    while (Date.now() - t0 <= 30000) {
-      await once(table, "change", 10000);
-      for (const [_, message] of table.get()) {
-        if (message.get("subject") == uniqueSubject) {
-          const id = message.get("id");
-          // set the subject to actual one
-          // debounceSave:true is critical here, since if we also launch
-          // a backend save, then immediately call updateDraft due to
-          // new changes, they get missed. (TODO: This is a weird and worrisome
-          // aspect of SyncTable -- they can miss out on a write if it
-          // happens exactly when doing a save. Try changing the debounceSave
-          // to false below, click "Compose", type a subject quickly then
-          // immediately close the modal.)
-          await this.updateDraft({ id, subject, debounceSave: true });
-          return id;
-        }
-      }
-    }
+    return query.create_message.id;
   };
 
   createReply = async (message: Message) => {
