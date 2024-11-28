@@ -580,7 +580,7 @@ function Hello({ customize }) {
         </Paragraph>
         <Paragraph>
           <Image
-            alt={"Screenshot of CoCalc running a SageMath Jupyter notebook"}
+            alt={t('screenshot')}
             src={SAGEMATH_JUPYTER}
             shadow={true}
           />
