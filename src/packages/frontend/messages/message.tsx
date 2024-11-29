@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import Read from "./read";
 
 const LEFT_OFFSET = "46px";
 
@@ -176,17 +177,9 @@ function MessageInList({
         >
           <Tooltip
             placement="left"
-            title={
-              isRead(message) ? (
-                <>
-                  <User id={message.to_ids} /> read messsage
-                </>
-              ) : (
-                <>
-                  <User id={message.to_ids} /> has not read
-                </>
-              )
-            }
+            title={() => {
+              return <Read message={message} />;
+            }}
           >
             &nbsp;
             <TimeAgo
