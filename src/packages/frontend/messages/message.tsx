@@ -505,6 +505,10 @@ function displayedParticipants({ message, inThread, threads }): string[] {
           ids.add(account_id);
         }
       }
+      const from_id = get(m, "from_id");
+      if (from_id != webapp_client.account_id) {
+        ids.add(from_id);
+      }
     }
     displayed = Array.from(ids);
   } else {

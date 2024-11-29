@@ -45,8 +45,16 @@ export async function deleteExpiredMessages() {
   log.debug("maintainDeleteExpiredMessages: checking...");
   try {
     const pool = getPool();
+    // this gets every message where the sender and all recipients have elected to permanently
+    // delete the message.  In that case, we delete it.
+    // There's one other case, which is a draft message (hence sent is null), in which case
+    // we only require the author to expire the message.
     const result = await pool.query(
-      "DELETE FROM messages WHERE to_expire <= NOW() AND from_expire <= NOW()",
+      `
+      DELETE FROM messages WHERE
+               expire = REPEAT('1', array_length(to_ids, 1) + 1)::bit varying
+           OR (sent IS NULL AND substring(expire,1,1) = '1'::bit(1))
+      `,
     );
     const deletedCount = result.rowCount;
     log.debug(

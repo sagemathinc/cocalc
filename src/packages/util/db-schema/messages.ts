@@ -36,6 +36,7 @@ import { ID } from "./crm";
 import throttle from "@cocalc/util/api/throttle";
 import { SCHEMA } from "./index";
 import { isEqual } from "lodash";
+import { isValidUUID } from "@cocalc/util/misc";
 
 // make this a bit big initially -- we'll add a feature to "load more", hopefully before
 // this limit is a problem
@@ -435,3 +436,16 @@ Table({
   },
   fields: SCHEMA.messages.fields,
 });
+
+// Helper function for database queries.
+
+export function pgBitField(field: BitSetField, account_id: string) {
+  // be extra careful due to possibility of SQL injection.
+  if (!isBitSetField(field)) {
+    throw Error(`field ${field} must be a bitset field`);
+  }
+  if (!isValidUUID(account_id)) {
+    throw Error("account_id must be valid");
+  }
+  return `coalesce(substring(${field},array_position(to_ids,'${account_id}')+1,1),'0'::bit(1)) = '1'::bit(1) AS ${field}`;
+}

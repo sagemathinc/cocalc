@@ -239,36 +239,33 @@ function Actions({
           <Icon name="eye-slash" /> Unread
         </Button>
       )}
-      {folder != "trash" &&
-        folder != "search" &&
-        folder != "sent" &&
-        folder != "search" && (
-          <Button
-            type="text"
-            disabled={
-              !enableMoveToInbox({
-                folder,
-                checkedMessageIds,
-                messages,
+      {folder != "trash" && folder != "search" && folder != "sent" && (
+        <Button
+          type="text"
+          disabled={
+            !enableMoveToInbox({
+              folder,
+              checkedMessageIds,
+              messages,
+              threads,
+            })
+          }
+          onClick={() => {
+            redux.getActions("messages").mark({
+              ids: expandToThreads({
+                ids: checkedMessageIds,
                 threads,
-              })
-            }
-            onClick={() => {
-              redux.getActions("messages").mark({
-                ids: expandToThreads({
-                  ids: checkedMessageIds,
-                  threads,
-                  messages,
-                }),
-                saved: false,
-                deleted: false,
-              });
-              setShowThread(null);
-            }}
-          >
-            <Icon name="container" /> To Inbox
-          </Button>
-        )}
+                messages,
+              }),
+              saved: false,
+              deleted: false,
+            });
+            setShowThread(null);
+          }}
+        >
+          <Icon name="container" /> To Inbox
+        </Button>
+      )}
       {(folder == "trash" || folder == "search") && (
         <Button
           type="text"
