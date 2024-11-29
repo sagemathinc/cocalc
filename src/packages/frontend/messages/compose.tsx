@@ -95,13 +95,17 @@ export default function Compose({
       return;
     }
     try {
-      actions.updateDraft({
-        id: draftId.current,
-        deleted: true,
+      const id = draftId.current;
+      draftId.current = null;
+      await actions.updateDraft({
+        id,
         // break it from the current thread
         thread_id: 0,
       });
-      draftId.current = null;
+      await actions.mark({
+        id,
+        deleted: true,
+      });
     } catch (_err) {}
   };
 

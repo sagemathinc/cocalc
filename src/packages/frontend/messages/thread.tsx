@@ -7,7 +7,6 @@ import { plural } from "@cocalc/util/misc";
 import { isFromMe, isToMe, isRead } from "./util";
 import User from "./user";
 import { redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   thread_id?: number;
@@ -43,7 +42,7 @@ export default function Thread({
         // expand each message *to me* that is not read:
         const ids = new Set<number>();
         for (const id of thread
-          .filter((message) => isToMe(message) && !isRead({ message, folder }))
+          .filter((message) => isToMe(message) && !isRead(message))
           .map(({ id }) => id)) {
           ids.add(id);
           expanded.add(id);
@@ -53,7 +52,7 @@ export default function Thread({
           // actually mark them read in a different event loop, since this
           // mutates state.
           const actions = redux.getActions("messages");
-          actions.mark({ ids, read: webapp_client.server_time() });
+          actions.mark({ ids, read: true });
         }, 0);
       }
     }

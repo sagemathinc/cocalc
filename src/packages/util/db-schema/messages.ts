@@ -48,13 +48,17 @@ export interface Message {
   to_ids: string[]; // array of uuid's
   subject: string;
   body: string;
-  read?: Date;
-  saved?: string;
-  deleted?: boolean;
-  expire?: Date;
   // used for replies
   thread_id?: number;
+  read?: string;
+  saved?: string;
+  deleted?: string;
+  expire?: string;
 }
+
+export const BITSET_FIELDS = ["read", "saved", "deleted", "expire"] as const;
+
+type BitSetField = (typeof BITSET_FIELDS)[number];
 
 Table({
   name: "messages",
@@ -87,34 +91,31 @@ Table({
       desc: "Body of the message (should be formatted as markdown).",
       not_null: true,
     },
+    thread_id: {
+      type: "number",
+      desc: "If this message is in a thread, this is the id of the root message.",
+    },
+    // The rest are status bitsets, with bit 0 corresponds to from_id, and bits 1 to n corresponding
+    // the users receiving the message, according to the ids in to_ids.
     read: {
-      type: "timestamp",
-      desc: "when the message was read by the user, set this to the time when they read it.",
+      type: "string",
+      pg_type: "bit varying",
+      desc: "User read this message.",
     },
     saved: {
       type: "string",
       pg_type: "bit varying",
       desc: "Users that saved this message for later (so no longer in inbox)",
     },
-    to_deleted: {
-      type: "boolean",
-      desc: "If recipient deleted this message.",
+    deleted: {
+      type: "string",
+      pg_type: "bit varying",
+      desc: "If user deleted this message (so in the trash).",
     },
-    from_deleted: {
-      type: "boolean",
-      desc: "If sender deleted this message.",
-    },
-    to_expire: {
-      type: "timestamp",
-      desc: "Recipient requested to permanently delete this message.   The message is permanently deleted by a maintenance process when to_expire and from_expire are both set and in the past. (One exception -- if from_expire is set and the message wasn't sent then it also gets permanently deleted.)",
-    },
-    from_expire: {
-      type: "timestamp",
-      desc: "Sender requested to permanently delete this message. ",
-    },
-    thread_id: {
-      type: "number",
-      desc: "If this message is in a thread, this is the id of the root message.",
+    expire: {
+      type: "string",
+      pg_type: "bit varying",
+      desc: "User permanently deleted this message. ",
     },
   },
   rules: {
@@ -135,23 +136,20 @@ Table({
           to_ids: null,
           subject: null,
           body: null,
+          thread_id: null,
           read: null,
           saved: null,
-          thread_id: null,
-          from_deleted: null,
-          from_expire: null,
-          to_deleted: null,
-          to_expire: null,
+          deleted: null,
+          expire: null,
         },
       },
       set: {
         fields: {
           id: true,
-          // use read:0 to mark not read
           read: true,
           saved: true,
-          to_deleted: true,
-          to_expire: true,
+          deleted: true,
+          expire: true,
         },
         async instead_of_change(
           database,
@@ -167,27 +165,58 @@ Table({
           }
           if (old_val != null) {
             // const dbg = database._dbg("messages:instead_of_change");
-            // setting saved or read
+
+            // It took me a long time to figure out that this is the way to flip bits without changing what is there, which
+            // we need to do in order avoid a race condition, where two users say both mark a message read at almost the
+            // same time, and they both write out 01 and 10 for the read bitset... with last write wins, the database would
+            // end up with either 01 or 10, and one person's value is lost.  That's sill. With just directly changing *only*
+            // the user's bit, we always end up with 11.  And this code illustrates how to change one bit.  Here "20" is
+            // the number of users (so number of recipients + 1), and 3 is the position to flip (+1 since it is 1-indexed in postgres),
+            // and it's `'x'::bit(1),3+1` to set the bit to x (=0 or 1), i.e., 0 in this example:
+            //
+            // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20),'0'::bit(1),3+1) where id=61; select saved from messages where id=61;
+
+            const ids = [old_val.from_id].concat(
+              new_val.to_ids ?? old_val.to_ids ?? [],
+            );
+            const numUsers = ids.length;
+            let userIndex = -1;
+            const setBit = (field: BitSetField, value: string) => {
+              if (userIndex == -1) {
+                // compute it first time, if needed
+                const n = ids.indexOf(account_id);
+                if (n == -1) {
+                  throw Error(
+                    "you do not have permission to edit this message",
+                  );
+                }
+                userIndex = n + 1; // +1 because of from_id.
+              }
+              // ignore everything in value except the userIndex position.
+              const bit = value[userIndex] ?? "0";
+              if (bit != "0" && bit != "1") {
+                // be especially careful to avoid sql injection attack.
+                throw Error(`invalid bit '${bit}'`);
+              }
+              return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),${userIndex}+1)`;
+            };
+
+            const v: string[] = [];
+            for (const field of BITSET_FIELDS) {
+              if (new_val[field] != null && new_val[field] != old_val[field]) {
+                v.push(setBit(field, new_val[field]));
+              }
+            }
+
+            if (v.length == 0) {
+              // nothing changed
+              cb();
+              return;
+            }
+
             try {
-              // user is allowed to change messages *to* them only, and then
-              // only limited fields.
-              const query =
-                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE $1=ANY(to_ids) AND id=$2";
-              const params = [
-                account_id,
-                parseInt(old_val.id),
-                new_val.read ?? old_val.read,
-                new_val.saved ?? old_val.saved,
-                new_val.to_deleted ?? old_val.to_deleted,
-                // todo -- if set to 0, becomes null, so not to_deleted, but doesn't
-                // get sync'd out either since sync doesn't support setting to null yet.
-                new_val.to_expire === 0 ||
-                new Date(new_val.to_expire).valueOf() == 0
-                  ? null
-                  : (new_val.to_expire ?? old_val.to_expire),
-              ];
-              // putting from_id in the query specifically as an extra security measure, so user can't change
-              // message with id they don't own.
+              const query = `UPDATE messages SET ${v.join(",")}  WHERE $1=ANY(to_ids) AND id=$2`;
+              const params = [account_id, parseInt(old_val.id)];
               await client.query(query, params);
               await database.updateUnreadMessageCount({ account_id });
               cb();
@@ -223,8 +252,10 @@ Table({
           body: true,
           sent: true,
           thread_id: true,
-          from_deleted: true,
-          from_expire: true,
+          saved: true,
+          read: true,
+          deleted: true,
+          expire: true,
         },
         async instead_of_change(
           database,
@@ -257,9 +288,31 @@ Table({
               ) {
                 await assertToIdsAreValid({ client, to_ids: new_val.to_ids });
               }
+
+              const setBit = (field: BitSetField, value: string) => {
+                const numUsers =
+                  1 + (new_val.to_ids ?? old_val.to_ids ?? []).length;
+                const bit = value[0] ?? "0";
+                if (bit != "0" && bit != "1") {
+                  throw Error(`invalid bit '${bit}'`);
+                }
+                return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),1)`;
+              };
+              const v: string[] = [];
+              for (const field of BITSET_FIELDS) {
+                if (
+                  new_val[field] != null &&
+                  new_val[field] != old_val[field]
+                ) {
+                  v.push(setBit(field, new_val[field]));
+                }
+              }
+              const bitsets = v.length == 0 ? "" : "," + v.join(",");
+
               // user is allowed to change a lot about messages *from* them only.
-              const query =
-                "UPDATE messages SET to_ids=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE from_id=$1 AND id=$2";
+              // putting from_id in the query specifically as an extra security measure, so user can't change
+              // message with id they don't own.
+              const query = `UPDATE messages SET to_ids=$3,subject=$4,body=$5,sent=$6,thread_id=$7 ${bitsets} WHERE from_id=$1 AND id=$2`;
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -267,12 +320,8 @@ Table({
                 new_val.subject ?? old_val.subject,
                 new_val.body ?? old_val.body,
                 new_val.sent ?? old_val.sent,
-                new_val.from_deleted ?? old_val.from_deleted,
-                new_val.from_expire ?? old_val.from_expire,
                 new_val.thread_id ?? old_val.thread_id,
               ];
-              // putting from_id in the query specifically as an extra security measure, so user can't change
-              // message with id they don't own.
               await client.query(query, params);
               const to_ids = new_val.to_ids ?? old_val.to_ids;
               if (to_ids && (new_val.sent ?? old_val.sent)) {

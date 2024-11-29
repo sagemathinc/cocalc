@@ -19,6 +19,7 @@ import {
 } from "./util";
 import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
+import { BITSET_FIELDS } from "@cocalc/util/db-schema/messages";
 
 const DEFAULT_FONT_SIZE = 14;
 
@@ -52,21 +53,15 @@ export class MessagesActions extends Actions<MessagesState> {
     this.setState({ error });
   };
 
-  mark = async ({
-    id,
-    ids,
-    read,
-    saved,
-    deleted,
-    expire,
-  }: {
+  mark = async (obj: {
     id?: number;
     ids?: Set<number>;
-    read?: Date | null;
+    read?: boolean;
     saved?: boolean;
     deleted?: boolean;
-    expire?: Date;
+    expire?: boolean;
   }) => {
+    let { id, ids } = obj;
     const table = this.redux.getTable("messages")._table;
     const sent_table = this.redux.getTable("sent_messages")._table;
     if (id != null) {
@@ -84,26 +79,26 @@ export class MessagesActions extends Actions<MessagesState> {
       for (const id of ids) {
         let message = table.get_one(`${id}`);
         if (message != null) {
-          if (saved != null) {
-            message = setBitField(message, "saved", saved);
-            saved = message.get("saved");
+          const x: any = { id };
+          for (const field of BITSET_FIELDS) {
+            if (obj[field] != null) {
+              message = setBitField(message, field, obj[field]);
+              x[field] = message.get(field);
+            }
           }
-          table.set({
-            id,
-            read: read === null ? 0 : read,
-            saved,
-            to_deleted: deleted,
-            to_expire: expire,
-          });
+          table.set(x);
           changed_table = true;
         }
         message = sent_table.get_one(`${id}`);
         if (message != null) {
-          sent_table.set({
-            id,
-            from_deleted: deleted,
-            from_expire: expire,
-          });
+          const x: any = { id };
+          for (const field of BITSET_FIELDS) {
+            if (obj[field] != null) {
+              message = setBitField(message, field, obj[field], 0);
+              x[field] = message.get(field);
+            }
+          }
+          sent_table.set(x);
           changed_sent_table = true;
         }
       }
@@ -160,8 +155,6 @@ export class MessagesActions extends Actions<MessagesState> {
     subject?: string;
     body?: string;
     sent?: Date;
-    deleted?: boolean;
-    expire?: Date;
     debounceSave?: boolean;
   }) => {
     const table = this.redux.getTable("sent_messages")._table;
@@ -169,10 +162,6 @@ export class MessagesActions extends Actions<MessagesState> {
     //     if (current == null) {
     //       throw Error("message does not exist in sent_messages table");
     //     }
-    for (const field of ["expire", "deleted"]) {
-      obj[`from_${field}`] = obj[field];
-      delete obj[field];
-    }
     const debounceSave = obj.debounceSave;
     delete obj.debounceSave;
     // sets it in the local table so it's there when you come back.
@@ -391,11 +380,11 @@ class MessagesTable extends Table {
           to_ids: null,
           subject: null,
           body: null,
+          thread_id: null,
           read: null,
           saved: null,
-          thread_id: null,
-          to_deleted: null,
-          to_expire: null,
+          deleted: null,
+          expire: null,
         },
       ],
     };
@@ -431,11 +420,11 @@ class SentMessagesTable extends Table {
           to_ids: null,
           subject: null,
           body: null,
+          thread_id: null,
           read: null,
           saved: null,
-          thread_id: null,
-          from_expire: null,
-          from_deleted: null,
+          deleted: null,
+          expire: null,
         },
       ],
     };

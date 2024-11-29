@@ -185,7 +185,7 @@ function Actions({
                 threads,
                 messages,
               }),
-              expire: new Date(),
+              expire: true,
             });
             setShowThread(null);
           }}
@@ -214,7 +214,7 @@ function Actions({
                 threads,
                 messages,
               }),
-              read: new Date(),
+              read: true,
             });
           }}
         >
@@ -232,7 +232,7 @@ function Actions({
                 threads,
                 messages,
               }),
-              read: null,
+              read: false,
             });
           }}
         >
@@ -567,7 +567,7 @@ function hasUnread({ checkedMessageIds, messages, threads, folder }) {
     return false;
   }
   for (const id of checkedMessageIds) {
-    if (!isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
+    if (!isThreadRead({ threads, message: messages.get(id) })) {
       return true;
     }
   }
@@ -579,7 +579,7 @@ function hasRead({ checkedMessageIds, messages, threads, folder }) {
     return false;
   }
   for (const id of checkedMessageIds) {
-    if (isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
+    if (isThreadRead({ threads, message: messages.get(id) })) {
       return true;
     }
   }

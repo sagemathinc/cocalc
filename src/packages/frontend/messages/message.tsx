@@ -1,7 +1,6 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import ReplyButton from "./reply-button";
@@ -9,7 +8,6 @@ import {
   isDraft,
   isDeleted,
   isFromMe,
-  isNullDate,
   isToMe,
   isThreadRead,
   isRead,
@@ -64,10 +62,7 @@ function MessageInList({
 }: Props) {
   const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
-  const read = inThread
-    ? isRead({ message, folder })
-    : isThreadRead({ message, threads, folder });
-
+  const read = inThread ? isRead(message) : isThreadRead({ message, threads });
   const id = getDisplayedUser({ message, inThread, threads });
 
   let user = (
@@ -81,10 +76,10 @@ function MessageInList({
 
   const show = setShowThread
     ? () => {
-        if (!isRead({ message, folder })) {
+        if (!isRead(message)) {
           redux.getActions("messages").mark({
             id: message.id,
-            read: webapp_client.server_time(),
+            read: true,
           });
         }
         setShowThread?.(message.id);
@@ -159,7 +154,6 @@ function MessageInList({
             <Subject
               message={message}
               threads={threads}
-              folder={folder}
               searchWords={searchWords}
             />
           </div>
@@ -181,7 +175,7 @@ function MessageInList({
           <Tooltip
             placement="left"
             title={
-              isRead({ message, folder }) && !isNullDate(message.read) ? (
+              isRead(message) ? (
                 <>
                   <User id={message.to_ids} /> read{" "}
                   <TimeAgo date={message.read} />
@@ -234,8 +228,8 @@ function MessageInList({
   );
 }
 
-function Subject({ message, folder, threads, searchWords }) {
-  const read = isThreadRead({ message, threads, folder });
+function Subject({ message, threads, searchWords }) {
+  const read = isThreadRead({ message, threads });
   let body;
   if (searchWords.size > 0) {
     body = <HighlightText text={message.subject} searchWords={searchWords} />;
@@ -268,7 +262,7 @@ function MessageFull({
   setShowThread,
   showThread,
 }: Props) {
-  const read = isRead({ message, folder });
+  const read = isRead(message);
   const searchWords = useTypedRedux("messages", "searchWords");
   const fontSize = useTypedRedux("messages", "fontSize");
 
@@ -326,13 +320,7 @@ function MessageFull({
                 to <User id={message.to_ids} />
               </>
             )}{" "}
-            {isRead({ message, folder }) && !isNullDate(message.read) ? (
-              <>
-                (read <TimeAgo date={message.read} />)
-              </>
-            ) : (
-              <>(has not read)</>
-            )}
+            {isRead(message) ? <>(read)</> : <>(has not read)</>}
           </div>
         </div>
         <div

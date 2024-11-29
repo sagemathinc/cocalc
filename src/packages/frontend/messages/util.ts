@@ -79,29 +79,11 @@ export function isInFolderThreaded({
 }
 
 export function isExpired(message: Mesg) {
-  const from = isFromMe(message);
-  const to = isToMe(message);
-  if (from && to) {
-    return !!get(message, "to_expire") || !!get(message, "from_expire");
-  }
-  if (from) {
-    return !!get(message, "from_expire");
-  } else {
-    return !!get(message, "to_expire");
-  }
+  return getBitField(message, "expire");
 }
 
 export function isDeleted(message: Mesg) {
-  const from = isFromMe(message);
-  const to = isToMe(message);
-  if (from && to) {
-    return !!get(message, "to_deleted") || !!get(message, "from_deleted");
-  }
-  if (from) {
-    return !!get(message, "from_deleted");
-  } else {
-    return !!get(message, "to_deleted");
-  }
+  return getBitField(message, "deleted");
 }
 
 function isInFolderNotThreaded({
@@ -161,50 +143,24 @@ function isInFolderNotThreaded({
   return false;
 }
 
-// If the folder is anything but "sent", then the
-// message is read if *we* have read it, where any
-// message we have sent we have automatically read, and any
-// message we receive is read if we mark it read.
-// (except sending message to ourselves)
-// If the folder is sent then things are switched: we
-// care if the other person read it -- if they sent it,
-// then of course they read it.  If we sent it, then they
-// read it if it is marked read.
-// Also note that we message.read can bew new Date(0) rather
-// than null!
-export function isRead({ message, folder }: { message: Mesg; folder: Folder }) {
-  if (folder != "sent") {
-    if (isFromMe(message)) {
-      if (isToMe(message)) {
-        return !isNullDate(get(message, "read"));
-      }
-      return true;
-    }
-    return !isNullDate(get(message, "read"));
-  } else {
-    if (isFromMe(message)) {
-      return !isNullDate(get(message, "read"));
-    }
-    return true;
-  }
+export function isRead(message: Mesg) {
+  return getBitField(message, "read");
 }
 
 // true if every single message in the thread is read
 export function isThreadRead({
   message,
   threads,
-  folder,
 }: {
   message: Mesg;
-  folder: Folder;
   threads?: iThreads;
 }) {
   const thread_id = get(message, "thread_id");
   if (threads == null || !thread_id) {
-    return isRead({ message, folder });
+    return isRead(message);
   }
   for (const message1 of threads.get(thread_id) ?? []) {
-    if (!isRead({ message: message1, folder })) {
+    if (!isRead(message1)) {
       return false;
     }
   }
@@ -338,8 +294,6 @@ export function replySubject(subject) {
 
 export function getNotExpired(messages) {
   // filter out messages that are set to expire from our perspective.
-  //  - if we are sender, then from_expire is set
-  //  - if we are recipient, if to_expire is set.
   return messages.filter((message) => !isExpired(message));
 }
 
@@ -391,12 +345,6 @@ export function get(message: Mesg | undefined, field: string) {
   if (message == null) {
     return;
   }
-  if (field == "deleted") {
-    field = isFromMe(message) ? "from_deleted" : "to_deleted";
-  }
-  if (field == "expire") {
-    field = isFromMe(message) ? "from_expire" : "to_expire";
-  }
   if (!FIELDS.has(field)) {
     throw Error(`attempt to access invalid field ${field}`);
   }
@@ -431,7 +379,7 @@ export function setBitField(
   message: Mesg,
   field: string,
   value: boolean,
-  account_id?: string,
+  account_id?: string | number,
 ): Mesg {
   const bits = getBitSet({
     current: get(message, field),
@@ -446,7 +394,7 @@ export function setBitField(
 export function getBitField(
   message: Mesg,
   field: string,
-  account_id?: string,
+  account_id?: string | number,
 ): boolean {
   const pos = getBitPosition({
     account_id,
@@ -461,14 +409,23 @@ function getBitPosition({
   to_ids,
   from_id,
 }: {
-  account_id?: string;
+  account_id?: string | number;
   to_ids;
   from_id: string;
 }): number {
-  if (account_id == from_id) {
-    return 0;
+  if (typeof account_id == "number") {
+    return account_id;
   } else {
-    return to_ids.indexOf(account_id) + 1;
+    const i = to_ids.indexOf(account_id);
+    if (i != -1) {
+      return i + 1;
+    }
+    if (account_id == from_id) {
+      return 0;
+    }
+    throw Error(
+      `invalid user -- ${account_id}, to_ids=${JSON.stringify(to_ids)}, from_id=${from_id}`,
+    );
   }
 }
 
@@ -483,7 +440,7 @@ function getBitSet({
   value: boolean;
   to_ids;
   from_id: string;
-  account_id?: string;
+  account_id?: string | number;
 }): string {
   const pos = getBitPosition({ to_ids, from_id, account_id });
   if (pos == -1) {
