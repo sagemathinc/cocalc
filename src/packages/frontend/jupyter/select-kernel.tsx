@@ -19,6 +19,7 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   CSS,
   React,
@@ -27,9 +28,11 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import {
   A,
   Icon,
+  isIconName,
   Markdown,
   Paragraph,
   Text,
@@ -42,7 +45,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useAppContext } from "../app/context";
 import { KernelStar } from "../components/run-button/kernel-star";
 import { useProjectContext } from "../project/context";
 import { FIXED_PROJECT_TABS } from "../project/page/file-tab";
@@ -679,8 +681,13 @@ function ComputeServerInfo() {
 
     const label = (
       <div style={{ ...ALL_LANGS_LABEL_STYLE, textAlign: "center" }}>
-        <Icon name={image.icon} style={{ fontSize: "24pt" }} />
-        <br /> {image.label}
+        {isIconName(image.icon) && (
+          <>
+            <Icon name={image.icon} style={{ fontSize: "24pt" }} />
+            <br />
+          </>
+        )}{" "}
+        {image.label}
       </div>
     );
 

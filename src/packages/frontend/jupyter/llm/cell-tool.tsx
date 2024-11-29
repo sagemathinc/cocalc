@@ -24,7 +24,7 @@ import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
@@ -101,7 +101,7 @@ type PromptGen = ({
 }) => string;
 
 interface LLMTool {
-  icon: string;
+  icon: IconName;
   label: IntlMessage;
   descr: IntlMessage;
   prompt: PromptGen;
