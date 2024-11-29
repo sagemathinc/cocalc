@@ -214,13 +214,20 @@ export default function Compose({
         style={{ marginTop: "15px" }}
       />
       {message == null && (
-        <div style={{ paddingRight: "20px" }}>
+        <div
+          style={{
+            paddingRight: "20px",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ width: "40px" }}>To:</div>{" "}
           <SelectUsers
             style={{ width: "100%" }}
             autoOpen={250}
             autoFocus
             disabled={state != "compose"}
-            placeholder="To (search by name or email)..."
+            placeholder="To (search by name or email address)..."
             onChange={(account_ids) => setToIds(account_ids)}
           />
         </div>

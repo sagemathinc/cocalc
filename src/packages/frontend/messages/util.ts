@@ -396,6 +396,9 @@ export function getBitField(
   field: string,
   account_id?: string | number,
 ): boolean {
+  if (message == null) {
+    return true;
+  }
   const pos = getBitPosition({
     account_id,
     to_ids: get(message, "to_ids"),

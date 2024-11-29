@@ -272,14 +272,14 @@ Table({
           if (old_val != null) {
             try {
               if (old_val.sent) {
-                // once a message is sent, the ONLY thing you can change is from_deleted and from_expire.
-                // frontend client enforces this, but we also enforce it here by only whitelisting those
-                // two properties.
-                new_val = {
-                  from_deleted: new_val.from_deleted,
-                  from_expire: new_val.from_expire,
-                };
-                // TODO: we do plan to have a notion of editing messages after they are sent, but this will
+                // once a message is sent, the ONLY thing you can change are BITSET_FIELDS.
+                for (const field in new_val) {
+                  // @ts-ignore
+                  if (!BITSET_FIELDS.includes(field)) {
+                    delete new_val[field];
+                  }
+                }
+                // TODO: we might later have a notion of editing messages after they are sent, but this will
                 // be by adding one or more patches, so the edit history is clear.
               }
               if (
