@@ -223,7 +223,10 @@ export class MessagesActions extends Actions<MessagesState> {
         .filter((account_id) => account_id != webapp_client.account_id)
         .concat([message.from_id]);
     } else {
-      to_ids = [message.from_id];
+      to_ids =
+        message.from_id == webapp_client.account_id
+          ? message.to_ids
+          : [message.from_id];
     }
 
     const subject = replySubject(message.subject);

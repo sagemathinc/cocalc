@@ -7,12 +7,12 @@ import ReplyButton from "./reply-button";
 import {
   isDraft,
   isDeleted,
-  isFromMe,
   isToMe,
   isThreadRead,
   isRead,
   isInFolderThreaded,
   setFragment,
+  get,
 } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
@@ -23,6 +23,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Read from "./read";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const LEFT_OFFSET = "46px";
 
@@ -64,12 +65,12 @@ function MessageInList({
   const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
   const read = inThread ? isRead(message) : isThreadRead({ message, threads });
-  const id = getDisplayedUser({ message, inThread, threads });
+  const ids = displayedParticipants({ message, inThread, threads });
 
   let user = (
     <User
       style={!read ? { fontWeight: "bold" } : undefined}
-      id={id}
+      id={ids}
       show_avatar
       avatarSize={20}
     />
@@ -113,11 +114,15 @@ function MessageInList({
         <div
           style={{
             flex: 1,
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "pre",
             marginRight: "10px",
             fontSize,
+            ...(!inThread
+              ? {
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "pre",
+                }
+              : undefined),
           }}
         >
           {folder == "sent" && !inThread && (
@@ -162,9 +167,7 @@ function MessageInList({
           </div>
         )}
         {inThread && (
-          <div style={{ flex: 1 }}>
-            {isDraft(message) && <Tag color="red">Draft</Tag>}
-          </div>
+          <div>{isDraft(message) && <Tag color="red">Draft</Tag>}</div>
         )}
         <div
           onClick={(e) => e.stopPropagation()}
@@ -301,21 +304,27 @@ function MessageFull({
       <Flex>
         <div style={{ flex: 1 }} onClick={() => setShowThread?.(null)}>
           {user}
-          <div
-            style={{
-              marginLeft: LEFT_OFFSET,
-              color: "#666",
+          <Tooltip
+            placement="left"
+            title={() => {
+              return <Read message={message} />;
             }}
           >
-            {isToMe(message) && message.to_ids.length == 1 ? (
-              "to me"
-            ) : (
-              <>
-                to <User id={message.to_ids} />
-              </>
-            )}{" "}
-            {isRead(message) ? <>(read)</> : <>(has not read)</>}
-          </div>
+            <div
+              style={{
+                marginLeft: LEFT_OFFSET,
+                color: "#666",
+              }}
+            >
+              {isToMe(message) && message.to_ids.length == 1 ? (
+                "to me"
+              ) : (
+                <>
+                  to <User id={message.to_ids} />
+                </>
+              )}
+            </div>
+          </Tooltip>
         </div>
         <div
           style={{
@@ -482,20 +491,29 @@ function rootMessage({ message, threads }): MessageType {
   return message;
 }
 
-function getDisplayedUser({ message, inThread, threads }) {
-  // right now participants in a thread can shrink when you do not "reply all",
-  // so we always show the root. people can't be added to an existing thread.
-  message = rootMessage({ message, threads });
-  if (inThread) {
-    // in thread display always show who wrote the message
-    return message.from_id;
-  }
-  // top level showing an overall thread -- always show the user that
-  // isn't us.  We don't need to look at the other messages in the thread
-  // since every message is between us and them.
-  if (isFromMe(message)) {
-    return message.to_ids;
+function displayedParticipants({ message, inThread, threads }): string[] {
+  // participants in a thread can change from one message to the next, so we
+  // must walk the entire thread
+  let displayed;
+  if (!inThread && message.thread_id && threads != null) {
+    const ids = new Set<string>();
+    // right now participants in a thread can shrink when you do not "reply all",
+    // so we always show the root. people can't be added to an existing thread.
+    for (const m of threads.get(message.thread_id) ?? [message]) {
+      for (const account_id of get(m, "to_ids")) {
+        if (account_id != webapp_client.account_id) {
+          ids.add(account_id);
+        }
+      }
+    }
+    displayed = Array.from(ids);
   } else {
-    return message.from_id;
+    displayed = message.to_ids
+      .concat([message.from_id])
+      .filter((account_id) => account_id != webapp_client.account_id);
   }
+  if (displayed.length == 0) {
+    displayed = [webapp_client.account_id]; // e.g., sending message to self.
+  }
+  return displayed;
 }
