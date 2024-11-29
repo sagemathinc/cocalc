@@ -58,7 +58,11 @@ export interface Message {
 
 export const BITSET_FIELDS = ["read", "saved", "deleted", "expire"] as const;
 
-type BitSetField = (typeof BITSET_FIELDS)[number];
+export type BitSetField = (typeof BITSET_FIELDS)[number];
+
+export function isBitSetField(x): x is BitSetField {
+  return typeof x == "string" && BITSET_FIELDS.includes(x as any);
+}
 
 Table({
   name: "messages",
