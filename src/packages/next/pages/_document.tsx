@@ -15,22 +15,32 @@ See also the discussion at https://github.com/ant-design/ant-design/issues/39891
 */
 
 import type { DocumentContext, DocumentInitialProps } from "next/document";
-import Document, { Html, Head, Main, NextScript } from "next/document";
+import Document, { Head, Html, Main, NextScript } from "next/document";
+
 import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 
+import { Locale } from "@cocalc/util/i18n";
+
+import { query2locale } from "locales/misc";
+
 export default class MyDocument extends Document {
-  static async getInitialProps(
-    ctx: DocumentContext
-  ): Promise<DocumentInitialProps> {
+  static async getInitialProps(ctx: DocumentContext): Promise<
+    DocumentInitialProps & {
+      locale: Locale;
+    }
+  > {
+    const locale = query2locale(ctx.query);
+
     const cache = createCache();
     const originalRenderPage = ctx.renderPage;
 
+    // The IntlProvider is only for english and all components with translations in the frontend
     ctx.renderPage = () =>
       originalRenderPage({
         enhanceApp: (App) => (props) =>
           (
             <StyleProvider cache={cache}>
-              <App {...props} />
+              <App {...props} {...{ locale }} />
             </StyleProvider>
           ),
       });
@@ -39,6 +49,7 @@ export default class MyDocument extends Document {
 
     return {
       ...initialProps,
+      locale,
       styles: (
         <>
           {initialProps.styles}
@@ -52,9 +63,13 @@ export default class MyDocument extends Document {
       ),
     };
   }
+
+  // TODO: this "lang={...}" is only working for the very first page that's being loaded
+  // next's dynamic page updates to not have an impact on this. So, to really fix this, we
+  // probably have to get rid of this _document customization and update to version 15 properly.
   render() {
     return (
-      <Html>
+      <Html lang={this.props.locale}>
         <Head />
         <body>
           <Main />

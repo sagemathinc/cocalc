@@ -173,7 +173,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // check that user has enough credit on account to make a MINIMAL purchase
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: opts.account_id,
-    service: "compute-server",
+    service: "compute-server-storage",
     cost: CREATE_CLOUD_FILESYSTEM_AMOUNT,
   });
   if (!allowed) {

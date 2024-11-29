@@ -595,7 +595,9 @@ export class StudentProjectsActions {
         this.configure_project_title(student_project_id, student_id),
         this.configure_project_description(student_project_id),
         this.configure_project_compute_image(student_project_id),
+        this.configure_project_envvars(student_project_id),
         this.configure_project_license(student_project_id, license_id),
+        this.configure_project_envvars(student_project_id),
       ]);
     }
   };
@@ -609,6 +611,22 @@ export class StudentProjectsActions {
     const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(student_project_id);
     await actions.set_compute_image(img_id);
+  };
+
+  private configure_project_envvars = async (
+    student_project_id: string,
+  ): Promise<void> => {
+    const store = this.get_store();
+    if (!store?.get_envvars()?.inherit) {
+      return;
+    }
+    const env =
+      redux
+        .getStore("projects")
+        .getIn(["project_map", store.get("course_project_id"), "env"])
+        ?.toJS() ?? {};
+    const actions = redux.getProjectActions(student_project_id);
+    await actions.set_environment(env);
   };
 
   private delete_student_project = async (
