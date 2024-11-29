@@ -36,7 +36,7 @@ interface Props {
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   innerRef?;
-  icons?: { icon: string | JSX.Element; title?: string; link?: string }[];
+  icons?: { icon: IconName | JSX.Element; title?: string; link?: string }[];
 }
 
 export default function Info({

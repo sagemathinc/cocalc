@@ -5,9 +5,10 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
+
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -109,7 +110,7 @@ export default function SelectServer({
           }}
         >
           <div style={{ width: "100%", display: "flex" }}>
-            {icon && (
+            {icon && isIconName(icon) && (
               <Tooltip title={capitalize(state)}>
                 <div>
                   <Icon name={icon} style={{ marginRight: "5px" }} />
