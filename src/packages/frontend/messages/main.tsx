@@ -201,7 +201,7 @@ function Actions({
           </Button>
         </Popconfirm>
       )}
-      {folder != "trash" && folder != "sent" && folder != "search" && (
+      {folder != "trash" && (
         <Button
           type="text"
           disabled={
@@ -221,7 +221,7 @@ function Actions({
           <Icon name="eye" /> Read
         </Button>
       )}
-      {folder != "trash" && folder != "sent" && folder != "search" && (
+      {folder != "trash" && (
         <Button
           type="text"
           disabled={!hasRead({ checkedMessageIds, messages, threads, folder })}

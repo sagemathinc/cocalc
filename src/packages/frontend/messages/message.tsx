@@ -177,8 +177,7 @@ function MessageInList({
             title={
               isRead(message) ? (
                 <>
-                  <User id={message.to_ids} /> read{" "}
-                  <TimeAgo date={message.read} />
+                  <User id={message.to_ids} /> read messsage
                 </>
               ) : (
                 <>
