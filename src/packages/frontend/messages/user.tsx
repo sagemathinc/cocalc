@@ -7,7 +7,7 @@ export default function User({ id, ...props }) {
     return <UserAccount account_id={id} {...props} />;
   } else if (is_array(id)) {
     return r_join(
-      id.map((account_id) => (
+      Array.from(new Set(id)).map((account_id) => (
         <UserAccount key={account_id} account_id={account_id} {...props} />
       )),
       ", ",

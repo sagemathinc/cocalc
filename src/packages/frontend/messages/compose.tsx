@@ -472,9 +472,11 @@ function getThreadId({ message, subject }): number | undefined {
   }
   const threadSubject = redux
     .getStore("messages")
-    .getIn(["messages", thread_id, "subject"]);
+    .getIn(["threads", thread_id])
+    ?.first()
+    ?.get("subject");
 
-  if (subject.trim() == replySubject(threadSubject)) {
+  if (threadSubject == null || subject.trim() == replySubject(threadSubject)) {
     return thread_id;
   }
   // changed the subject, so start a new thread.

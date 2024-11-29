@@ -301,18 +301,10 @@ export function getThreads(messages): iThreads {
   let threads: iThreads = iMap();
 
   const process = (message) => {
-    const thread_id = message.get("thread_id");
-    if (!thread_id) {
-      return;
-    }
-    const root = messages.get(thread_id);
-    if (root == null) {
-      // messages is incomplete, e.g., maybe sent aren't loaded yet.
-      return;
-    }
+    const thread_id = message.get("thread_id") ?? message.get("id");
     const thread = threads.get(thread_id);
     if (thread == null) {
-      threads = threads.set(thread_id, iList([root, message]));
+      threads = threads.set(thread_id, iList([message]));
     } else {
       threads = threads.set(thread_id, thread.push(message));
     }

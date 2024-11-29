@@ -134,7 +134,6 @@ export class MessagesActions extends Actions<MessagesState> {
     sent?: Date;
     debounceSave?: boolean;
   }) => {
-    console.log("updateDraft", { subject: obj.subject });
     const table = this.redux.getTable("sent_messages")._table;
     //     const current = table.get_one(`${obj.id}`);
     //     if (current == null) {
