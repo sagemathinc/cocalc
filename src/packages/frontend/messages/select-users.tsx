@@ -146,7 +146,21 @@ export default function SelectUser({
   );
 
   useEffect(() => {
-    handleSearch({ query: defaultValue, setData, knownUsers });
+    if (defaultValue != null) {
+      setData(
+        defaultValue.map((account_id) => {
+          return {
+            value: account_id,
+            label: (
+              <UserLabel account_id={account_id} knownUsers={knownUsers} />
+            ),
+          };
+        }),
+      );
+    } else {
+      console.log("initial seach");
+      handleSearch({ query: "", setData, knownUsers });
+    }
     if (ref.current && autoFocus) {
       ref.current.focus();
     }
@@ -161,6 +175,9 @@ export default function SelectUser({
   const handleChange = (account_ids: string[]) => {
     setValue(account_ids);
     onChange?.(account_ids);
+    // change behavior from antd default to be like gmail, i.e., once you select the dropdown goes away
+    // until you type more.
+    setOpen(false);
   };
 
   return (

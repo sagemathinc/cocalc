@@ -20,6 +20,7 @@ import {
 import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 import { BITSET_FIELDS } from "@cocalc/util/db-schema/messages";
+import { once } from "@cocalc/util/async-utils";
 
 const DEFAULT_FONT_SIZE = 14;
 
@@ -111,30 +112,6 @@ export class MessagesActions extends Actions<MessagesState> {
     }
   };
 
-  send = async ({
-    to_ids,
-    subject,
-    body,
-    thread_id,
-  }: {
-    to_ids: string[];
-    subject: string;
-    body: string;
-    thread_id?: number;
-  }) => {
-    await webapp_client.async_query({
-      query: {
-        sent_messages: {
-          sent: webapp_client.server_time(),
-          subject,
-          body,
-          to_ids,
-          thread_id,
-        },
-      },
-    });
-  };
-
   handleTableUpdate = (updatedMessages) => {
     const store = this.getStore();
     let messages = store.get("messages");
@@ -157,6 +134,7 @@ export class MessagesActions extends Actions<MessagesState> {
     sent?: Date;
     debounceSave?: boolean;
   }) => {
+    console.log("updateDraft", { subject: obj.subject });
     const table = this.redux.getTable("sent_messages")._table;
     //     const current = table.get_one(`${obj.id}`);
     //     if (current == null) {
@@ -215,7 +193,21 @@ export class MessagesActions extends Actions<MessagesState> {
         },
       },
     });
-    return query.create_message.id;
+    const id = query.create_message.id;
+    // We could make sure this new message is immediately also in our local table
+    // (instead of having to wait a second for it to come back via changefeed)
+    // as follows, but that introduces a race condition if the user creates
+    // a draft and stops editing it 1-2 seconds later, then comes back, since
+    // their last keystroke will get overwritten when the initially created
+    // draft comes back from the database.
+    //     const sent_table = this.redux.getTable("sent_messages")._table;
+    //     sent_table.set({ id, subject, body, to_ids, thread_id, sent });
+    // wait for the message to exist locally in our table.
+    const store = this.getStore();
+    while (store.get("messages")?.get(id) == null) {
+      await once(store, "change");
+    }
+    return id;
   };
 
   createReply = async ({

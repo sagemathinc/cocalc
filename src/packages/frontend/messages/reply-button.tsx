@@ -43,7 +43,7 @@ export default function ReplyButton({
           <Icon name="reply" style={{ marginLeft: "-15px" }} />
         ) : undefined}
         {label ?? `Reply ${replyAll ? "All" : ""}`}
-        {creating && <Spin delay={1500} style={{ marginLeft: "15px" }} />}
+        {creating && <Spin delay={1000} style={{ marginLeft: "15px" }} />}
       </Button>
     </Tooltip>
   );

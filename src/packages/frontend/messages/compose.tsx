@@ -99,6 +99,7 @@ export default function Compose({
       draftId.current = null;
       await actions.updateDraft({
         id,
+        to_ids,
         // break it from the current thread
         thread_id: 0,
       });
@@ -179,23 +180,19 @@ export default function Compose({
     try {
       setError("");
       setState("sending");
-      if (draftId.current) {
-        actions.updateDraft({
-          id: draftId.current,
-          to_ids,
-          thread_id,
-          subject,
-          body: body0 ?? body,
-          sent: webapp_client.server_time(),
-        });
-      } else {
-        await actions.send({
-          to_ids,
-          subject,
-          body: body0 ?? body,
-          thread_id,
-        });
+      if (!draftId.current) {
+        throw Error("no draft message to send");
       }
+      actions.updateDraft({
+        id: draftId.current,
+        to_ids,
+        thread_id,
+        subject,
+        body: body0 ?? body,
+        sent: webapp_client.server_time(),
+      });
+      // we have obviously read a message we wrote.
+      await actions.mark({ id: draftId.current, read: true });
       setState("sent");
       onSend?.();
     } catch (err) {
@@ -213,47 +210,49 @@ export default function Compose({
         setError={setError}
         style={{ marginTop: "15px" }}
       />
-      {message == null && (
-        <div
-          style={{
-            paddingRight: "20px",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ width: "40px" }}>To:</div>{" "}
-          <SelectUsers
-            style={{ width: "100%" }}
-            autoOpen={250}
-            autoFocus
-            disabled={state != "compose"}
-            placeholder="To (search by name or email address)..."
-            onChange={(account_ids) => setToIds(account_ids)}
-          />
-        </div>
-      )}
-      <Flex>
-        <Input
-          onFocus={() => {
-            setBodyIsFocused(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key == "Tab") {
-              // yes I designed a really weird way to focus the markdown editor...
-              setTimeout(() => setBodyIsFocused(true), 1);
-            }
-          }}
-          style={{ flex: 1, fontSize }}
-          disabled={state == "sending" || state == "sent"}
-          placeholder="Subject..."
-          status={!subject?.trim() && body.trim() ? "error" : undefined}
-          value={subject}
-          onChange={(e) => {
-            const subject = e.target.value;
-            setSubject(subject);
-            saveDraft({ body, subject });
-          }}
+      <div
+        style={{
+          paddingRight: "20px",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ width: "82px", fontSize: "12pt" }}>To:</div>
+        <SelectUsers
+          style={{ width: "100%" }}
+          autoOpen={draftId.current ? undefined : 250}
+          autoFocus={!draftId.current}
+          disabled={state != "compose"}
+          placeholder="Add one or more users by name or email address..."
+          onChange={(account_ids) => setToIds(account_ids)}
+          defaultValue={draftId.current ? to_ids : undefined}
         />
+      </div>
+      <Flex>
+        <Flex style={{ alignItems: "center", flex: 1 }}>
+          <div style={{ width: "75px", fontSize: "12pt" }}>Subject:</div>
+          <Input
+            onFocus={() => {
+              setBodyIsFocused(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key == "Tab") {
+                // yes I designed a really weird way to focus the markdown editor...
+                setTimeout(() => setBodyIsFocused(true), 1);
+              }
+            }}
+            style={{ flex: 1, fontSize: "12pt" }}
+            disabled={state == "sending" || state == "sent"}
+            placeholder="Subject..."
+            status={!subject?.trim() && body.trim() ? "error" : undefined}
+            value={subject}
+            onChange={(e) => {
+              const subject = e.target.value;
+              setSubject(subject);
+              saveDraft({ body, subject });
+            }}
+          />
+        </Flex>
         {version != null && versions != null && versions.length >= 2 && (
           <div style={{ flex: 1, margin: "0 10px" }}>
             <Slider

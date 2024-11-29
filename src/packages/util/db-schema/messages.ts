@@ -351,9 +351,11 @@ async function assertToIdsAreValid({ client, to_ids }) {
   if (rows.length != to_ids.length) {
     const exist = new Set(rows.map(({ account_id }) => account_id));
     const missing = to_ids.filter((account_id) => !exist.has(account_id));
-    throw Error(
-      `every target account_id must exist -- these accounts do not exist: ${JSON.stringify(missing)}`,
-    );
+    if (missing.length > 0) {
+      throw Error(
+        `every target account_id must exist -- these accounts do not exist: ${JSON.stringify(missing)}`,
+      );
+    }
   }
 }
 

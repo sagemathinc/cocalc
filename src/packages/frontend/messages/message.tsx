@@ -142,6 +142,8 @@ function MessageInList({
         {!inThread && (
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
               flex: 1,
               textOverflow: "ellipsis",
               overflow: "hidden",
@@ -416,8 +418,9 @@ function getTag({ message, threads, folder }) {
   // which helps when undeleting.
   const v: JSX.Element[] = [];
   if (
+    isDraft(message) ||
     isInFolderThreaded({
-      message: { ...message, to_deleted: false, from_deleted: false },
+      message,
       threads,
       folder: "drafts",
     })
