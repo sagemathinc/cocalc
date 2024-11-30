@@ -229,6 +229,7 @@ export type SiteSettingsExtrasKeys =
   | "zendesk_token"
   | "zendesk_username"
   | "zendesk_uri"
+  | "support_account_id"
   | "github_heading"
   | "github_project_id"
   | "github_username"
@@ -477,7 +478,7 @@ export const EXTRAS: SettingsExtras = {
     desc: "",
     default: "",
     type: "header",
-    tags: ["Zendesk"],
+    tags: ["Zendesk", "Support"],
   },
   zendesk_token: {
     name: "Zendesk Token",
@@ -485,21 +486,28 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: () => true,
-    tags: ["Zendesk"],
+    tags: ["Zendesk", "Support"],
   },
   zendesk_username: {
     name: "Zendesk Username",
     desc: "This is the username for Zendesk.  E.g., for `cocalc.com` it is `support-agent@cocalc.com`",
     default: "",
     show: () => true,
-    tags: ["Zendesk"],
+    tags: ["Zendesk", "Support"],
   },
   zendesk_uri: {
     name: "Zendesk Subdomain",
     desc: "This is the Subdomain of your Zendesk server.  E.g., for `cocalc.com` it is `sagemathcloud`",
     default: "",
     show: () => true,
-    tags: ["Zendesk"],
+    tags: ["Zendesk", "Support"],
+  },
+  support_account_id: {
+    name: "Support CoCalc Account ID",
+    desc: "The account_id of a special account that will be used for systemwide support messages in CoCalc.  E.g., when users receive an internal message about billing, this is the account the message will come from.",
+    default: "",
+    valid: isValidUUID,
+    tags: ["Support"],
   },
   github_heading: {
     name: "GitHub API Configuration",

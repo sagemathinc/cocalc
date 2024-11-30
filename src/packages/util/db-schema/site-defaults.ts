@@ -42,6 +42,7 @@ export const TAGS = [
   "On-Prem",
   "I18N",
   "Security",
+  "Support",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -399,7 +400,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
-    tags: ["Theme", "Email"],
+    tags: ["Theme", "Email", "Support"],
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
