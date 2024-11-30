@@ -111,11 +111,20 @@ export default function Compose({
   };
 
   const saveQueueRef = useRef<{ subject: string; body: string } | null>(null);
-  const saveDraft = async ({ subject, body }) => {
+  const saveDraft = async (y: {
+    subject?: string;
+    body?: string;
+    to_ids?: string[];
+  }) => {
+    const x = {
+      subject: y.subject ?? subject,
+      body: y.body ?? body,
+      to_ids: y.to_ids ?? to_ids,
+    };
     if (draftId.current === 0) {
       // it's very important not to just discard this, in case user
       // quickly closes their draft
-      saveQueueRef.current = { subject, body };
+      saveQueueRef.current = x;
       // currently creating draft
       return;
     }
@@ -123,9 +132,9 @@ export default function Compose({
       state == "sending" ||
       state == "sent" ||
       to_ids.length == 0 ||
-      (isEqual(draft.to_ids, to_ids) &&
-        draft.subject == subject &&
-        draft.body == body)
+      (isEqual(draft.to_ids, x.to_ids) &&
+        draft.subject == x.subject &&
+        draft.body == x.body)
     ) {
       return;
     }
@@ -136,19 +145,15 @@ export default function Compose({
       if (draftId.current == null) {
         draftId.current = 0;
         const id = await actions.createDraft({
-          to_ids,
           thread_id,
-          subject,
-          body,
+          ...x,
         });
         draftId.current = id;
         if (saveQueueRef.current != null) {
           actions.updateDraft({
             id,
-            to_ids,
             thread_id,
-            subject: saveQueueRef.current.subject,
-            body: saveQueueRef.current.body,
+            ...saveQueueRef.current,
             debounceSave: true,
           });
           saveQueueRef.current = null;
@@ -156,14 +161,12 @@ export default function Compose({
       } else {
         actions.updateDraft({
           id: draftId.current,
-          to_ids,
-          thread_id,
-          subject,
-          body,
           debounceSave: true,
+          thread_id,
+          ...x,
         });
       }
-      setDraft({ to_ids, subject, body });
+      setDraft(x);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -224,7 +227,10 @@ export default function Compose({
           autoFocus={!draftId.current}
           disabled={state != "compose"}
           placeholder="Add one or more users by name or email address..."
-          onChange={(account_ids) => setToIds(account_ids)}
+          onChange={(account_ids) => {
+            setToIds(account_ids);
+            saveDraft({ to_ids: account_ids });
+          }}
           defaultValue={draftId.current ? to_ids : undefined}
         />
       </div>

@@ -1135,7 +1135,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         subs = {}
         for x in pg_where
             if misc.is_object(x)
-                for key, value of x
+                for _, value of x
                     subs[value] = value
 
         sub_value = (value, cb) =>

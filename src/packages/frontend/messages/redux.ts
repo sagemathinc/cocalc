@@ -142,7 +142,7 @@ export class MessagesActions extends Actions<MessagesState> {
     const debounceSave = obj.debounceSave;
     delete obj.debounceSave;
     // sets it in the local table so it's there when you come back.
-    table.set(obj);
+    table.set(obj, "shallow");
     if (debounceSave) {
       this.debounceSaveSentMessagesTable();
     } else {

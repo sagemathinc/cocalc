@@ -131,7 +131,7 @@ Table({
       get: {
         pg_where: [
           { "$::UUID = ANY(to_ids)": "account_id" },
-          { "sent IS NOT $": null },
+          "sent IS NOT null",
         ],
         options: [{ order_by: "-id" }, { limit: NUM_MESSAGES }],
         fields: {
@@ -236,6 +236,7 @@ Table({
 });
 
 Table({
+  // this should be called "messages_from_me" because it also includes drafts that have not been sent yet
   name: "sent_messages",
   fields: SCHEMA.messages.fields,
   rules: {
