@@ -42,6 +42,13 @@ const THROTTLE = {
     minute: 6,
     hour: 100,
   },
+
+  // pretty limiting for now -- this only applies to sending messages via the api
+  "send-message": {
+    second: 1,
+    minute: 5,
+    hour: 60,
+  },
 } as const;
 
 const DEFAULTS = {
