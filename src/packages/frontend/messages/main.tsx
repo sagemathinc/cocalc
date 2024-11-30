@@ -419,15 +419,14 @@ function ShowOneThread({
     // It might just be that there is a newer message in this thread.
     // Alternatively, the thread we are currently viewing no longer exists in the given folder,
     // so change state to viewing threads instead... soon.
+    // (Always stay in a search view though!)
     const message = messages.get(showThread);
-    if (
-      message != null &&
-      isInFolderThreaded({
-        threads,
-        message,
-        folder,
-      })
-    ) {
+    const inFolder = folder=='search' || isInFolderThreaded({
+      threads,
+      message,
+      folder,
+    });
+    if (message != null && inFolder) {
       // Maybe thread exists, but has a newer HEAD, so change to that.
       const thread_id = getThreadId(message);
       const m = threads.get(thread_id)?.last();
