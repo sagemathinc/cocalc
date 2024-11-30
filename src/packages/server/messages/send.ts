@@ -1,0 +1,76 @@
+/*
+Send an internal message via cocalc's internal messaging system.
+*/
+
+import isValidAccount from "@cocalc/server/accounts/is-valid-account";
+import getPool from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
+
+export default async function send({
+  to_ids,
+  from_id,
+  subject,
+  body,
+  reply_to,
+}: {
+  // account_id's of user (or users) to send the message to.
+  to_ids: string[];
+  // message comes from this -- if not set, then the support_account_id in server settings is used.  If that's not setup, then its an error.
+  from_id?: string;
+  // short plain text formatted subject
+  subject: string;
+  // longer markdown formatted body
+  body: string;
+  // optional message id to reply to.  We do NOT enforce any consistency on the subject
+  // being the same as what is being replied to, to avoid subtle security model issues.
+  reply_to?: number;
+}) {
+  if (to_ids?.length == 0) {
+    // nothing to do
+    return;
+  }
+  for (const account_id of to_ids) {
+    // validate targets
+    if (!(await isValidAccount(account_id))) {
+      throw Error(`invalid account_id -- ${account_id}`);
+    }
+  }
+  // validate sender
+  if (!from_id) {
+    from_id = (await getServerSettings()).support_account_id;
+  }
+  if (!from_id) {
+    throw Error(
+      "no valid from_id and no support account configured in admin settings",
+    );
+  }
+  if (!(await isValidAccount(from_id))) {
+    throw Error(`invalid from_id account_id -- ${from_id}`);
+  }
+
+  const pool = getPool();
+  let thread_id;
+  if (reply_to) {
+    const { rows: replyRows } = await pool.query(
+      "SELECT thread_id FROM messages WHERE id=$1",
+      [reply_to],
+    );
+    if (replyRows.length == 0) {
+      // no-op: message no longer exists; maybe deleted
+      thread_id = null;
+    } else {
+      thread_id = replyRows[0].thread_id ?? reply_to;
+    }
+  }
+
+  // create the message
+  const { rows } = await pool.query(
+    "INSERT INTO messages(from_id,to_ids,subject,body,sent,thread_id) VALUES($1,$2,$3,$4,NOW(),$5) RETURNING id",
+    [from_id, to_ids, subject, body, thread_id],
+  );
+  for (const account_id of to_ids) {
+    await updateUnreadMessageCount({ account_id });
+  }
+  return rows[0].id;
+}
