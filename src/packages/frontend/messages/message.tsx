@@ -13,8 +13,9 @@ import {
   isInFolderThreaded,
   setFragment,
   participantsInThread,
-  excludeSelfUnlessAlone,
   excludeSelf,
+  sendersInThread,
+  recipientsInThread,
 } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
@@ -66,10 +67,11 @@ function MessageInList({
   const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
   const read = inThread ? isRead(message) : isThreadRead({ message, threads });
-  const ids = displayedParticipants({ message, inThread, threads });
+  const ids = displayedParticipants({ message, inThread, threads, folder });
 
   let user = (
     <User
+      message={null}
       style={!read ? { fontWeight: "bold" } : undefined}
       id={ids}
       show_avatar
@@ -102,15 +104,34 @@ function MessageInList({
     >
       <Flex>
         {setChecked != null && (
-          <Checkbox
-            onClick={(e) => e.stopPropagation()}
-            style={{ marginRight: "15px" }}
-            checked={!!checked}
-            onChange={(e) => {
+          <div
+            style={
+              {
+                width: "40px",
+                paddingLeft: "10px",
+                marginLeft: "-10px",
+                marginTop: "2px",
+              } /* This div is because for some reason it is easy to slightly miss
+               the checkbox when clicking and open the thread, which is just
+               annoying. So we make clicking next to the checkbox a little also work
+               to toggle it. */
+            }
+            onClick={(e) => {
               const shiftKey = e.nativeEvent.shiftKey;
-              setChecked({ checked: e.target.checked, shiftKey });
+              e.stopPropagation();
+              setChecked({ checked: !checked, shiftKey });
             }}
-          />
+          >
+            <Checkbox
+              onClick={(e) => e.stopPropagation()}
+              style={{ marginRight: "15px" }}
+              checked={!!checked}
+              onChange={(e) => {
+                const shiftKey = e.nativeEvent.shiftKey;
+                setChecked({ checked: e.target.checked, shiftKey });
+              }}
+            />
+          </div>
         )}
         <div
           style={{
@@ -279,6 +300,7 @@ function MessageFull({
       id={message.from_id}
       show_avatar
       avatarSize={42}
+      message={message}
     />
   );
 
@@ -323,7 +345,7 @@ function MessageFull({
                 "to me"
               ) : (
                 <>
-                  to <User id={message.to_ids} />
+                  to <User id={message.to_ids} message={message} />
                 </>
               )}
             </div>
@@ -352,15 +374,23 @@ function MessageFull({
             justifyContent: "center",
           }}
         >
-          <TimeAgo
-            date={message.sent}
-            style={{
-              whiteSpace: "pre",
-              textAlign: "right",
-              fontWeight: read ? undefined : "bold",
-              fontSize,
+          <Tooltip
+            placement="left"
+            title={() => {
+              return <Read message={message} />;
             }}
-          />
+          >
+            &nbsp;
+            <TimeAgo
+              date={message.sent}
+              style={{
+                whiteSpace: "pre",
+                textAlign: "right",
+                fontWeight: read ? undefined : "bold",
+                fontSize,
+              }}
+            />
+          </Tooltip>
         </div>
         {SHOW_ID && (
           <div
@@ -467,26 +497,33 @@ function getTag({ message, threads, folder }) {
 
 /*
 Figure out who should be displayed in a top level thread.
-In all cases, this is the entity that isn't us in the thread,
-unless we are writing to ourself.
 
-A key thing is that in cocalc messaging, messages go between
-at most two entities.  This is NOT group chat in a single thread!
-To have messages between three people, copies of the message are
-made, or you are chatting with support (say), which is just
-one entity.
+When showing lists of distinct threads:
+
+  In sent messages folder this is:
+     - all recipients of message (possibly including us)
+
+  In all other folders this is:
+     - all people who sent a message to the thread -- i.e., everybody that actually wrote something
+
+When showing messages in a thread:
+
+   Just show the unqiue sender.
+
 */
 
-function displayedParticipants({ message, inThread, threads }): string[] {
-  // participants in a thread can change from one message to the next, so we
-  // must walk the entire thread
-  let displayed;
-  if (!inThread) {
-    displayed = participantsInThread({ message, threads });
-  } else {
-    displayed = message.to_ids.concat([message.from_id]);
+function displayedParticipants({
+  message,
+  inThread,
+  threads,
+  folder,
+}): string[] {
+  if (inThread) {
+    // when displaying messages in a thread, always display the sender
+    return [message.from_id];
   }
-  // filter ourselves out except when we are the only one, since obviously we
-  // are involved in the thread, so it is redundant
-  return excludeSelfUnlessAlone(displayed);
+  if (folder != "sent") {
+    return sendersInThread({ message, threads });
+  }
+  return recipientsInThread({ message, threads });
 }

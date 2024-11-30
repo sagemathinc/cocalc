@@ -507,3 +507,47 @@ export function excludeSelfUnlessAlone(account_ids: string[]): string[] {
   }
   return account_ids;
 }
+
+export function sendersInThread({
+  message,
+  threads,
+}: {
+  message: Mesg;
+  threads: iThreads;
+}): string[] {
+  let ids;
+  const thread_id = get(message, "thread_id") ?? get(message, "id");
+  const thread = threads?.get(thread_id);
+  if (thread != null) {
+    ids = new Set<string>();
+    for (const m of thread) {
+      ids.add(get(m, "from_id"));
+    }
+    return Array.from(ids);
+  } else {
+    return [get(message, "from_id")];
+  }
+}
+
+export function recipientsInThread({
+  message,
+  threads,
+}: {
+  message: Mesg;
+  threads: iThreads;
+}): string[] {
+  let ids;
+  const thread_id = get(message, "thread_id") ?? get(message, "id");
+  const thread = threads?.get(thread_id);
+  if (thread != null) {
+    ids = new Set<string>();
+    for (const m of thread) {
+      for (const account_id of get(m, "to_ids")) {
+        ids.add(account_id);
+      }
+    }
+    return Array.from(ids);
+  } else {
+    return get(message, "to_ids");
+  }
+}

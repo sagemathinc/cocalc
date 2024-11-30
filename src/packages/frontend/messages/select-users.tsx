@@ -19,6 +19,7 @@ function UserLabel({ account_id, knownUsers }) {
       }}
     >
       <User
+        message={null}
         id={account_id}
         trunc={24}
         type="account"
@@ -158,7 +159,6 @@ export default function SelectUser({
         }),
       );
     } else {
-      console.log("initial seach");
       handleSearch({ query: "", setData, knownUsers });
     }
     if (ref.current && autoFocus) {

@@ -134,7 +134,7 @@ export function ThreadCount({
         } else {
           return (
             <>
-              {tip} and {from_other} from <User id={other_id} />.
+              {tip} and {from_other} from <User id={other_id} message={null} />.
             </>
           );
         }

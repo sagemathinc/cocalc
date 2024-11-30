@@ -29,12 +29,12 @@ export default function Read({ message, style }: { message: Message; style? }) {
       <ul>
         {notRead.length > 0 && (
           <li style={{ marginBottom: "10px" }}>
-            Not read by <User id={notRead} />.
+            Not read by <User id={notRead} message={null} />.
           </li>
         )}
         {hasRead.length > 0 && (
           <li>
-            Read by <User id={hasRead} />.{" "}
+            Read by <User id={hasRead} message={null} />.{" "}
           </li>
         )}
       </ul>
