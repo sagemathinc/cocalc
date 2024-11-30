@@ -182,7 +182,7 @@ Table({
             // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20),'0'::bit(1),3+1) where id=61; select saved from messages where id=61;
 
             const ids = new_val.to_ids ?? old_val.to_ids ?? [];
-            const numUsers = ids.length;
+            const numUsers = ids.length + 1;
             let userIndex = -1;
             const setBit = (field: BitSetField, value: string) => {
               if (userIndex == -1) {

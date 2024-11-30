@@ -236,7 +236,7 @@ export default function Compose({
               setBodyIsFocused(false);
             }}
             onKeyDown={(e) => {
-              if (e.key == "Tab") {
+              if (e.key == "Tab" || e.key == "ArrowDown") {
                 // yes I designed a really weird way to focus the markdown editor...
                 setTimeout(() => setBodyIsFocused(true), 1);
               }

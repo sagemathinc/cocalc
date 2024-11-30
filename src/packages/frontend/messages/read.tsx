@@ -26,16 +26,18 @@ export default function Read({ message, style }: { message: Message; style? }) {
 
   return (
     <div style={style}>
-      {notRead.length > 0 && (
-        <div>
-          Not read by <User id={notRead} />.
-        </div>
-      )}
-      {hasRead.length > 0 && (
-        <div>
-          Read by <User id={hasRead} />.{" "}
-        </div>
-      )}
+      <ul>
+        {notRead.length > 0 && (
+          <li style={{ marginBottom: "10px" }}>
+            Not read by <User id={notRead} />.
+          </li>
+        )}
+        {hasRead.length > 0 && (
+          <li>
+            Read by <User id={hasRead} />.{" "}
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

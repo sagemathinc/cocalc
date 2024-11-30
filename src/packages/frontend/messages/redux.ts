@@ -80,26 +80,24 @@ export class MessagesActions extends Actions<MessagesState> {
       for (const id of ids) {
         let message = table.get_one(`${id}`);
         if (message != null) {
-          const x: any = { id };
-          for (const field of BITSET_FIELDS) {
-            if (obj[field] != null) {
-              message = setBitField(message, field, obj[field]);
-              x[field] = message.get(field);
-            }
-          }
-          table.set(x);
+          table.set(setMessage({ message, obj }));
           changed_table = true;
         }
+
         message = sent_table.get_one(`${id}`);
         if (message != null) {
-          const x: any = { id };
-          for (const field of BITSET_FIELDS) {
-            if (obj[field] != null) {
-              message = setBitField(message, field, obj[field], 0);
-              x[field] = message.get(field);
-            }
+          sent_table.set(setMessage({ message, obj, account_id: 0 }));
+          if (
+            !message.get("sent") &&
+            message.get("to_ids")?.includes(webapp_client.account_id)
+          ) {
+            // annoying special case -- marking a message that has not been sent yet,
+            // which includes me as a recipient. Because it isn't sent yet it does
+            // not appear in the first table above, so only gets half marked.
+            await webapp_client.async_query({
+              query: { messages: setMessage({ message, obj }) },
+            });
           }
-          sent_table.set(x);
           changed_sent_table = true;
         }
       }
@@ -462,4 +460,23 @@ function loadFontSize() {
   } catch {
     return DEFAULT_FONT_SIZE;
   }
+}
+
+function setMessage({
+  message,
+  obj,
+  account_id,
+}: {
+  message;
+  obj;
+  account_id?;
+}) {
+  const x: any = { id: message.get("id") };
+  for (const field of BITSET_FIELDS) {
+    if (obj[field] != null) {
+      message = setBitField(message, field, obj[field], account_id);
+      x[field] = message.get(field);
+    }
+  }
+  return x;
 }

@@ -454,5 +454,7 @@ function getBitSet({
   while (current.length <= pos) {
     current += "0";
   }
-  return current.slice(0, pos) + (value ? "1" : "0") + current.slice(pos + 1);
+  const newValue =
+    current.slice(0, pos) + (value ? "1" : "0") + current.slice(pos + 1);
+  return newValue;
 }

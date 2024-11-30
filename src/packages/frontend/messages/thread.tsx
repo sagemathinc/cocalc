@@ -109,7 +109,7 @@ export function ThreadCount({
   }
   const thread = threads.get(thread_id);
   const count = thread?.size;
-  if (!count) {
+  if (!count || count == 1) {
     return null;
   }
   return (

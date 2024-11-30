@@ -416,7 +416,6 @@ function ShowOneThread({
     if (i != -1) {
       return i;
     }
-    // return i;
     // It might just be that there is a newer message in this thread.
     // Alternatively, the thread we are currently viewing no longer exists in the given folder,
     // so change state to viewing threads instead... soon.
@@ -445,11 +444,11 @@ function ShowOneThread({
       }
     }
 
-    setTimeout(() => {
-      // Thread no longer exists, e.g., archiving a thread in the inbox,
-      // so just close the thread view.
-      setShowThread(null);
-    }, 0);
+    //     setTimeout(() => {
+    //       // Thread no longer exists, e.g., archiving a thread in the inbox,
+    //       // so just close the thread view.
+    //       setShowThread(null);
+    //     }, 0);
 
     return -1;
   }, [showThread, filteredMessages, threads, messages]);

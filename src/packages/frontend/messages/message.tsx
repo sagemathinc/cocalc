@@ -243,7 +243,9 @@ interface InThreadProps extends Props {
 }
 
 export function MessageInThread(props: InThreadProps) {
-  const setShowThread = (id) => props.setShowBody?.(id != null);
+  const setShowThread = (id) => {
+    props.setShowBody?.(id != null);
+  };
   if (props.showBody) {
     return <MessageFull {...props} setShowThread={setShowThread} inThread />;
   } else {
