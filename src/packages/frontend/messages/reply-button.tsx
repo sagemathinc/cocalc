@@ -7,7 +7,7 @@ import type { Message } from "./types";
 interface ReplyButtonProps extends ButtonProps {
   label?;
   replyTo: Message;
-  replyAll?: boolean | string[];
+  replyAll?: boolean;
 }
 
 export default function ReplyButton({
@@ -35,7 +35,7 @@ export default function ReplyButton({
 
   return (
     <Tooltip
-      title={`Send a reply to the sender ${replyAll ? "and all recipients in this thread" : ""}`}
+      title={`Draft a reply to the sender ${replyAll ? "everybody in this thread" : ""}`}
     >
       <Button {...props} onClick={() => createReply()} disabled={creating}>
         <Icon name="reply" />

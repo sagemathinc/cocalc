@@ -78,6 +78,7 @@ export default function Thread({
         <List.Item>
           <MessageInThread
             message={message}
+            threads={threads}
             folder={folder}
             showBody={expanded.has(message.id)}
             setShowBody={(add) => {

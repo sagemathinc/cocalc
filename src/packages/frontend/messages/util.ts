@@ -458,3 +458,50 @@ function getBitSet({
     current.slice(0, pos) + (value ? "1" : "0") + current.slice(pos + 1);
   return newValue;
 }
+
+// Returns *all* accounts involved in a giving thread, without duplicates,
+// as an array of account_id's.
+export function participantsInThread({
+  message,
+  threads,
+}: {
+  message: Mesg;
+  threads: iThreads;
+}): string[] {
+  // participants in a thread can change from one message to the next, so we
+  // must walk the entire thread
+  let ids;
+  const thread_id = get(message, "thread_id") ?? get(message, "id");
+  const thread = threads?.get(thread_id);
+  if (thread != null) {
+    ids = new Set<string>();
+    // right now participants in a thread can shrink when you do not "reply all",
+    // so we always show the root. people can't be added to an existing thread.
+    for (const m of thread) {
+      for (const account_id of get(m, "to_ids")) {
+        ids.add(account_id);
+      }
+      const from_id = get(m, "from_id");
+      ids.add(from_id);
+    }
+  } else {
+    ids = new Set(get(message, "to_ids").concat([get(message, "from_id")]));
+  }
+  return Array.from(ids);
+}
+
+export function excludeSelf(account_ids: string[]): string[] {
+  return account_ids.filter(
+    (account_id) => account_id != webapp_client.account_id,
+  );
+}
+
+export function excludeSelfUnlessAlone(account_ids: string[]): string[] {
+  account_ids = account_ids.filter(
+    (account_id) => account_id != webapp_client.account_id,
+  );
+  if (account_ids.length == 0) {
+    account_ids = [webapp_client.account_id!]; // e.g., sending message to self.
+  }
+  return account_ids;
+}

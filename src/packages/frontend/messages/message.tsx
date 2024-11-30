@@ -12,7 +12,9 @@ import {
   isRead,
   isInFolderThreaded,
   setFragment,
-  get,
+  participantsInThread,
+  excludeSelfUnlessAlone,
+  excludeSelf,
 } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
@@ -23,7 +25,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Read from "./read";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const LEFT_OFFSET = "46px";
 
@@ -40,7 +41,7 @@ interface Props {
   showThread?: number;
   setShowThread?;
   style?;
-  threads?: iThreads;
+  threads: iThreads;
   inThread?: boolean;
 }
 
@@ -137,7 +138,7 @@ function MessageInList({
             marginRight: "10px",
           }}
         >
-          {message.thread_id != null && threads != null && (
+          {message.thread_id != null && threads != null && !inThread && (
             <ThreadCount
               thread_id={message.thread_id}
               threads={threads}
@@ -337,13 +338,9 @@ function MessageFull({
           }}
         >
           <Space>
-            {rootMessage({ message, threads }).to_ids.length > 1 && (
-              <ReplyButton
-                type="text"
-                replyTo={message}
-                replyAll={rootMessage({ message, threads }).to_ids}
-                label=""
-              />
+            {excludeSelf(participantsInThread({ message, threads })).length >
+              1 && (
+              <ReplyButton type="text" replyTo={message} replyAll label="" />
             )}
             <ReplyButton type="text" replyTo={message} label="" />
           </Space>
@@ -399,12 +396,9 @@ function MessageFull({
             {!inThread && !isDeleted(message) && (
               <div>
                 <Space>
-                  {rootMessage({ message, threads }).to_ids.length > 1 && (
-                    <ReplyButton
-                      size="large"
-                      replyTo={message}
-                      replyAll={rootMessage({ message, threads }).to_ids}
-                    />
+                  {excludeSelf(participantsInThread({ message, threads }))
+                    .length > 1 && (
+                    <ReplyButton size="large" replyTo={message} replyAll />
                   )}
                   <ReplyButton size="large" replyTo={message} />
                 </Space>
@@ -483,43 +477,16 @@ made, or you are chatting with support (say), which is just
 one entity.
 */
 
-// NOTE: returns message if threads aren't fully known/loaded yet.
-function rootMessage({ message, threads }): MessageType {
-  if (message.thread_id && threads != null) {
-    // right now participants in a thread can shrink when you do not "reply all",
-    // so we always show the root. people can't be added to an existing thread.
-    return threads.get(message.thread_id)?.first().toJS() ?? message;
-  }
-  return message;
-}
-
 function displayedParticipants({ message, inThread, threads }): string[] {
   // participants in a thread can change from one message to the next, so we
   // must walk the entire thread
   let displayed;
-  if (!inThread && message.thread_id && threads != null) {
-    const ids = new Set<string>();
-    // right now participants in a thread can shrink when you do not "reply all",
-    // so we always show the root. people can't be added to an existing thread.
-    for (const m of threads.get(message.thread_id) ?? [message]) {
-      for (const account_id of get(m, "to_ids")) {
-        if (account_id != webapp_client.account_id) {
-          ids.add(account_id);
-        }
-      }
-      const from_id = get(m, "from_id");
-      if (from_id != webapp_client.account_id) {
-        ids.add(from_id);
-      }
-    }
-    displayed = Array.from(ids);
+  if (!inThread) {
+    displayed = participantsInThread({ message, threads });
   } else {
-    displayed = message.to_ids
-      .concat([message.from_id])
-      .filter((account_id) => account_id != webapp_client.account_id);
+    displayed = message.to_ids.concat([message.from_id]);
   }
-  if (displayed.length == 0) {
-    displayed = [webapp_client.account_id]; // e.g., sending message to self.
-  }
-  return displayed;
+  // filter ourselves out except when we are the only one, since obviously we
+  // are involved in the thread, so it is redundant
+  return excludeSelfUnlessAlone(displayed);
 }

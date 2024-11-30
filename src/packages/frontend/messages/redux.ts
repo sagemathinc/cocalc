@@ -16,6 +16,8 @@ import {
   getNotExpired,
   getThreads,
   setBitField,
+  participantsInThread,
+  excludeSelfUnlessAlone,
 } from "./util";
 import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
@@ -212,17 +214,19 @@ export class MessagesActions extends Actions<MessagesState> {
     replyAll,
   }: {
     message: Message;
-    replyAll?: boolean | string[];
+    replyAll?: boolean;
   }) => {
-    let to_ids;
+    let to_ids: string[];
     if (replyAll) {
-      to_ids = (typeof replyAll != "boolean" ? replyAll : message.to_ids)
-        .filter((account_id) => account_id != webapp_client.account_id)
-        .concat([message.from_id]);
+      const store = this.getStore();
+      const threads = store.get("threads");
+      to_ids = excludeSelfUnlessAlone(
+        participantsInThread({ message, threads }),
+      );
     } else {
       to_ids =
         message.from_id == webapp_client.account_id
-          ? message.to_ids
+          ? [message.to_ids[0]]
           : [message.from_id];
     }
 
