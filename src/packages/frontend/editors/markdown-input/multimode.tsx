@@ -45,6 +45,9 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
 // editor uses slate.  TODO: this should be "text", not "editor".  Oops.
+// UI equivalent:
+// editor = "Text" = Slate/wysiwyg
+// markdown = "Markdown"
 const Modes = ["markdown", "editor"] as const;
 export type Mode = (typeof Modes)[number];
 

@@ -301,7 +301,9 @@ export function getThreads(messages): iThreads {
   let threads: iThreads = iMap();
 
   const process = (message) => {
-    const thread_id = message.get("thread_id") ?? message.get("id");
+    // note that we use t = 0 or null for "root of a thread".
+    const t = message.get("thread_id");
+    const thread_id = t ? t : message.get("id");
     const thread = threads.get(thread_id);
     if (thread == null) {
       threads = threads.set(thread_id, iList([message]));
