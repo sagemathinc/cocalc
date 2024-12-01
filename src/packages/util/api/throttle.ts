@@ -44,7 +44,7 @@ const THROTTLE = {
   },
 
   // pretty limiting for now -- this only applies to sending messages via the api
-  "send-message": {
+  "messages/send": {
     second: 1,
     minute: 5,
     hour: 60,

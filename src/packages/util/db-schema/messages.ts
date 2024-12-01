@@ -42,7 +42,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 // this limit is a problem
 export const NUM_MESSAGES = 1000;
 
-export interface Message {
+interface Message0 {
   id: number;
   sent: Date;
   from_id: string; // a uuid
@@ -51,11 +51,33 @@ export interface Message {
   body: string;
   // used for replies
   thread_id?: number;
+}
+
+export const NON_BITSET_FIELDS = [
+  "id",
+  "subject",
+  "body",
+  "from_id",
+  "to_ids",
+  "sent",
+  "thread_id",
+];
+
+export interface Message extends Message0 {
   read?: string;
   saved?: string;
   deleted?: string;
   expire?: string;
 }
+
+export interface MessageMe extends Message0 {
+  read?: boolean;
+  saved?: boolean;
+  deleted?: boolean;
+  expire?: boolean;
+}
+
+export const MAX_LIMIT = 500;
 
 export const BITSET_FIELDS = ["read", "saved", "deleted", "expire"] as const;
 
@@ -63,6 +85,38 @@ export type BitSetField = (typeof BITSET_FIELDS)[number];
 
 export function isBitSetField(x): x is BitSetField {
   return typeof x == "string" && BITSET_FIELDS.includes(x as any);
+}
+
+export interface ApiMessagesGet {
+  account_id: string;
+  limit?: number;
+  offset?: number;
+  // received = all messages to you (the default)
+  // sent = all messages you sent
+  // new = to you and not read or saved -- these are what the counter counts
+  type?: "received" | "sent" | "new";
+  cutoff?: Date;
+}
+
+export function getBitPosition({
+  account_id,
+  to_ids,
+  from_id,
+}: {
+  account_id: string;
+  to_ids;
+  from_id: string;
+}): number {
+  const i = to_ids.indexOf(account_id);
+  if (i != -1) {
+    return i + 1;
+  }
+  if (account_id == from_id) {
+    return 0;
+  }
+  throw Error(
+    `invalid user -- ${account_id}, to_ids=${JSON.stringify(to_ids)}, from_id=${from_id}`,
+  );
 }
 
 Table({
@@ -440,7 +494,11 @@ Table({
 
 // Helper function for database queries.
 
-export function pgBitField(field: BitSetField, account_id: string) {
+export function pgBitField(
+  field: BitSetField,
+  account_id: string,
+  as?: string,
+) {
   // be extra careful due to possibility of SQL injection.
   if (!isBitSetField(field)) {
     throw Error(`field ${field} must be a bitset field`);
@@ -448,5 +506,23 @@ export function pgBitField(field: BitSetField, account_id: string) {
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be valid");
   }
-  return `coalesce(substring(${field},array_position(to_ids,'${account_id}')+1,1),'0'::bit(1)) = '1'::bit(1) AS ${field}`;
+  if (as == null) {
+    as = ` AS ${field}`;
+  } else if (as) {
+    as = ` AS ${as}`;
+  }
+  return `coalesce(substring(${field},array_position(to_ids,'${account_id}')+1,1),'0'::bit(1)) = '1'::bit(1) ${as}`;
+}
+
+export function pgBitFieldSelf(field: BitSetField, as?: string) {
+  // be extra careful due to possibility of SQL injection.
+  if (!isBitSetField(field)) {
+    throw Error(`field ${field} must be a bitset field`);
+  }
+  if (as == null) {
+    as = ` AS ${field}`;
+  } else if (as) {
+    as = ` AS ${as}`;
+  }
+  return `coalesce(substring(${field},1,1),'0'::bit(1)) = '1'::bit(1) ${as}`;
 }

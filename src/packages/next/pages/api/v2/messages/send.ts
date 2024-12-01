@@ -27,7 +27,7 @@ async function get(req) {
 
   throttle({
     account_id: from_id,
-    endpoint: "send-message",
+    endpoint: "messages/send",
   });
   const { to_ids, subject, body, reply_to } = getParams(req);
   return await send({ to_ids, from_id, subject, body, reply_to });

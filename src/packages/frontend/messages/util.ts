@@ -1,4 +1,7 @@
-import type { Message } from "@cocalc/util/db-schema/messages";
+import {
+  getBitPosition as getBitPosition0,
+  type Message,
+} from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
 import { cmp } from "@cocalc/util/misc";
@@ -421,16 +424,7 @@ function getBitPosition({
   if (typeof account_id == "number") {
     return account_id;
   } else {
-    const i = to_ids.indexOf(account_id);
-    if (i != -1) {
-      return i + 1;
-    }
-    if (account_id == from_id) {
-      return 0;
-    }
-    throw Error(
-      `invalid user -- ${account_id}, to_ids=${JSON.stringify(to_ids)}, from_id=${from_id}`,
-    );
+    return getBitPosition0({ account_id, to_ids, from_id });
   }
 }
 
