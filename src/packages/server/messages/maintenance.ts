@@ -5,6 +5,8 @@ import { getServerSettings } from "@cocalc/database/settings";
 import { plural } from "@cocalc/util/misc";
 import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
+import markdownit from "markdown-it";
+import { getNames } from "@cocalc/server/accounts/get-name";
 
 const log = getLogger("server:messages:maintenance");
 
@@ -17,12 +19,11 @@ const DELETE_EXPIRED_MESSAGES_INTERVAL_MS = 0.9 * HOUR;
 // Periodically we send email summaries to users
 // with new unread messages, for which we have NOT
 // sent a summary too recently.
-const SEND_EMAIL_SUMMARY_INTERVAL_MS = 1.1 * HOUR;
+const SEND_EMAIL_SUMMARY_INTERVAL_MS = 31 * HOUR;
 
-// for now, we'll try once every 4 hours.  This means that ONLY if you get a
-// new message in the last 4 hours, you get notified.  Also, it means you have to
-// wait up to 4 hours to get an email notification of a new message.
-const MIN_INTERVAL_BETWEEN_SUMMARIES_MS = 4 * HOUR;
+// For now, we'll try once every hours.  It means you have to
+// wait up to one hour to get an email notification of a new message.
+const MIN_INTERVAL_BETWEEN_SUMMARIES_MS = HOUR;
 
 export default async function initMaintenance() {
   log.debug("initMaintenance", {
@@ -88,14 +89,26 @@ export async function sendAllEmailSummaries() {
     // and having a message that was **RECENTLY RECEIVED** (i.e., the sent field is recent),
     // we send them a message.
     const pool = getPool();
-    const query = `SELECT DISTINCT a.account_id, a.first_name, a.last_name, a.unread_message_count, a.email_address_verified, a.email_address
-        FROM accounts a
-        JOIN messages m ON a.account_id = ANY(m.to_ids)
-        WHERE a.unread_message_count > 0
-          AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds')
-          ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
-          AND a.email_address IS NOT NULL
-          AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'`;
+    const query = `
+SELECT a.account_id, a.first_name, a.last_name, a.unread_message_count,
+       a.email_address_verified, a.email_address,
+       ARRAY_AGG(m.id) AS message_ids,
+       ARRAY_AGG(m.from_id) AS message_from_ids,
+       ARRAY_AGG(m.subject) AS message_subjects,
+       ARRAY_AGG(m.body) AS message_bodies
+FROM accounts a
+JOIN messages m ON a.account_id = ANY(m.to_ids)
+WHERE a.unread_message_count > 0
+AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds') ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
+AND a.email_address IS NOT NULL
+AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'
+GROUP BY a.account_id,
+         a.first_name,
+         a.last_name,
+         a.unread_message_count,
+         a.email_address_verified,
+         a.email_address`;
+
     const { rows } = await pool.query(query);
     log.debug(
       "sendAllEmailSummaries: got ",
@@ -113,6 +126,10 @@ export async function sendAllEmailSummaries() {
       unread_message_count,
       email_address_verified,
       email_address,
+      message_ids,
+      message_from_ids,
+      message_subjects,
+      message_bodies,
     } of rows) {
       const email = getEmailAddress({
         email_address_verified,
@@ -124,12 +141,27 @@ export async function sendAllEmailSummaries() {
         );
         continue;
       }
+      const messages: {
+        id: number;
+        subject: string;
+        body: string;
+        from_id: string;
+      }[] = [];
+      let i = 0;
+      for (const id of message_ids) {
+        const subject = message_subjects[i];
+        const body = message_bodies[i];
+        const from_id = message_from_ids[i];
+        messages.push({ id, subject, body, from_id });
+        i += 1;
+      }
       await sendEmailSummary({
         account_id,
         first_name,
         last_name,
         unread_message_count,
         email,
+        messages,
       });
     }
 
@@ -155,6 +187,7 @@ export async function sendEmailSummary({
   last_name,
   email,
   unread_message_count,
+  messages,
 }) {
   try {
     log.debug(
@@ -173,21 +206,32 @@ export async function sendEmailSummary({
 
     const subject = `${unread_message_count} unread ${siteName} ${plural(unread_message_count, "message")}`;
 
+    const names0 = await getNames(messages.map(({ from_id }) => from_id));
+    const names: { [account_id: string]: string } = {};
+    for (const account_id in names0) {
+      const { first_name, last_name } = names0[account_id];
+      names[account_id] = `${first_name} ${last_name}`;
+    }
+
     const html = `
 Hello ${name},
 <br/>
 <br/>
 You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
-message center</a> after <a href="${signIn}">signing in to ${siteName}</a>.
+message center</a> after <a href="${signIn}">signing in to ${siteName}</a>,
+or read them below.
 <br/>
 <br/>
  - ${siteName}
+<br/>
+<br/>
+${messages.map((message) => messageToHtml(message, url, names)).join("<br/><hr/></br>")}
 `;
 
     const text = `
 Hello ${name},
 
-You have ${subject}.  To read them, visit the message center at
+You have ${subject}.  To read and respond to them, visit the message center at
 
 ${url}
 
@@ -195,8 +239,13 @@ after signing in to ${siteName} at
 
 ${signIn}
 
+or read them below.
 
  - ${siteName}
+
+ ${messages.map((message) => messageToText(message, url, names)).join("\n\n---\n\n")}
+
+
 `;
 
     console.log(text);
@@ -204,4 +253,24 @@ ${signIn}
   } catch (err) {
     log.debug(`sendEmailSummary: error -- ${err}`);
   }
+}
+
+function messageToHtml({ from_id, subject, body, id }, url, names) {
+  const md = markdownit();
+  return `
+<a href="${url}&id=${id}">From: ${names[from_id]}<br/>
+Subject: ${subject}</a><br/>
+
+${md.render(body)}
+  `;
+}
+
+function messageToText({ from_id, subject, body, id }, url, names) {
+  return `
+URL: ${url}&id=${id}
+From: ${names[from_id]}
+Subject: ${subject}
+
+${body}
+  `;
 }
