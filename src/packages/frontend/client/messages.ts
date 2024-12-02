@@ -30,7 +30,7 @@ import type { ApiMessagesGet, Message } from "@cocalc/util/db-schema/messages";
 
 export class Messages {
   // Send a message to the given accounts.  Returns the id number of the message, which can be used
-  // via reply_to to send followup messages in the same thread.
+  // via reply_id to send followup messages in the same thread.
   send = async (opts): Promise<number> => {
     return await send(opts);
   };
@@ -44,18 +44,18 @@ export async function send({
   to_ids,
   subject,
   body,
-  reply_to,
+  reply_id,
 }: {
   to_ids: string[];
   subject: string;
   body: string;
-  reply_to?: number;
+  reply_id?: number;
 }): Promise<number> {
   const { id } = await api("/messages/send", {
     to_ids,
     subject,
     body,
-    reply_to,
+    reply_id,
   });
   return id;
 }

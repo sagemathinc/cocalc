@@ -7,6 +7,7 @@ import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
 import markdownit from "markdown-it";
 import { getNames } from "@cocalc/server/accounts/get-name";
+import get from "./get";
 
 const log = getLogger("server:messages:maintenance");
 
@@ -93,11 +94,7 @@ export async function sendAllEmailSummaries() {
     const pool = getPool();
     const query = `
 SELECT a.account_id, a.first_name, a.last_name, a.unread_message_count,
-       a.email_address_verified, a.email_address,
-       ARRAY_AGG(m.id) AS message_ids,
-       ARRAY_AGG(m.from_id) AS message_from_ids,
-       ARRAY_AGG(m.subject) AS message_subjects,
-       ARRAY_AGG(m.body) AS message_bodies
+       a.email_address_verified, a.email_address
 FROM accounts a
 JOIN messages m ON a.account_id = ANY(m.to_ids)
 WHERE a.unread_message_count > 0
@@ -129,10 +126,6 @@ GROUP BY a.account_id,
       unread_message_count,
       email_address_verified,
       email_address,
-      message_ids,
-      message_from_ids,
-      message_subjects,
-      message_bodies,
     } of rows) {
       const email = getEmailAddress({
         email_address_verified,
@@ -144,20 +137,9 @@ GROUP BY a.account_id,
         );
         continue;
       }
-      const messages: {
-        id: number;
-        subject: string;
-        body: string;
-        from_id: string;
-      }[] = [];
-      let i = 0;
-      for (const id of message_ids) {
-        const subject = message_subjects[i];
-        const body = message_bodies[i];
-        const from_id = message_from_ids[i];
-        messages.push({ id, subject, body, from_id });
-        i += 1;
-      }
+
+      const messages = await get({ account_id, type: "new" });
+
       await sendEmailSummary({
         account_id,
         first_name,
@@ -264,10 +246,16 @@ ${settings}
 }
 
 function messageToHtml({ from_id, subject, body, id }, url, names) {
-  const md = markdownit();
+  const md = markdownit({
+    html: true,
+    breaks: true,
+    linkify: true,
+    typographer: true,
+  });
   return `
-<a href="${url}&id=${id}">From: ${names[from_id]}<br/>
-Subject: ${subject}</a><br/>
+<h2><a href="${url}&id=${id}">Subject: ${subject}</a></h2>
+From: ${names[from_id]}<br/>
+<br/>
 
 ${md.render(body)}
   `;
@@ -276,8 +264,8 @@ ${md.render(body)}
 function messageToText({ from_id, subject, body, id }, url, names) {
   return `
 URL: ${url}&id=${id}
-From: ${names[from_id]}
 Subject: ${subject}
+From: ${names[from_id]}
 
 ${body}
   `;

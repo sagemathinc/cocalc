@@ -56,7 +56,7 @@ export default function SmartAnchorTag({
         {children}
       </CoCalcURL>
     );
-  } else if (href?.includes("://")) {
+  } else if (href?.includes("://") || href?.startsWith("mailto:")) {
     body = (
       <NonCoCalcURL href={href} title={title}>
         {children}

@@ -12,7 +12,7 @@ export default async function send({
   from_id,
   subject,
   body,
-  reply_to,
+  reply_id,
 }: {
   // account_id's of user (or users) to send the message to.
   to_ids: string[];
@@ -24,7 +24,7 @@ export default async function send({
   body: string;
   // optional message id to reply to.  We do NOT enforce any consistency on the subject
   // being the same as what is being replied to, to avoid subtle security model issues.
-  reply_to?: number;
+  reply_id?: number;
 }) {
   if (to_ids?.length == 0) {
     // nothing to do
@@ -51,16 +51,16 @@ export default async function send({
 
   const pool = getPool();
   let thread_id;
-  if (reply_to) {
+  if (reply_id) {
     const { rows: replyRows } = await pool.query(
       "SELECT thread_id FROM messages WHERE id=$1",
-      [reply_to],
+      [reply_id],
     );
     if (replyRows.length == 0) {
       // no-op: message no longer exists; maybe deleted
       thread_id = null;
     } else {
-      thread_id = replyRows[0].thread_id ?? reply_to;
+      thread_id = replyRows[0].thread_id ?? reply_id;
     }
   }
 

@@ -1,3 +1,77 @@
+/*
+UPCOMING NOTIFICATIONS:
+  For each subscription that has status not 'canceled' and current_period_end
+  is within the next 7 days, send a message that the subscription will be renewed.
+  Include a link to pay now for the renewal using the method of your choice, or
+  to pause or edit the subscription.
+
+CREATE PAYMENTS:
+  For each subscription that has status not 'canceled' and current_period_end
+  is within the next 48 hours, and there isn't already a renewal process happening
+  for that subscription, we do the following:
+
+  - Create a payment intent for the amount to renew the subscription for the next
+    period. The metadata says exactly what this payment is for and what should happen
+    when payment is processed:
+      - When processed, add a 'subscription-credit' line item saying
+        "this is for renewal of this subscription". Then create a
+        "subscription-payment" service line item taking that money back.
+      - Extend the expire date on the license (so it keeps working), and save the
+        payment intent id with the license.
+      - The frontend UI should also clearly surface this payment state, e.g., the
+        displayed license, the subscription, and the payment display in the frontend
+        UI should all reflect this status.  In particular, the UI should clearly show
+        the grace period status to avoid confusion.
+      - Users can have an account setting to apply any balance on their account
+        first toward subscriptions.
+
+  - Also, when making the payment intent, extend the license expire date for 3 days,
+    as a sort of automatic grace period, since payments can take a while to complete.
+
+  - Send email notification about subscription renewal payment.  Including invoice payment link
+    from stripe in that email.
+      - This email will say the license stops working at the expire date, but user
+        can still use projects in a degraded way (e.g., browse and download their files
+        for up to 1 year).
+
+
+PAYMENT FOLLOW-UP:
+
+  - If the payment intent is not actually paid, then the license expire date doesn't
+    get updated and the license stops working. This doesn't require anybody doing anything
+    and it just happens.  Thus there is never any danger about somebody using a big
+    license and not paying for it.  At the same time, users have a 3 day grace period
+    in case they are slow to complete their payment.
+
+  - In particular, if a user doesn't pay their monthly subscription for 90 days (say),
+    then their license would have not worked during the last 90 days and we didn't
+    try to charge them during the second two periods, and moreover their payment
+    got cancelled/expired.   At this point, if they click "pay manually", then
+    they can pay for the *next month* as usually and their subscription/license
+    starts working again.  Policy: They must pay for a full subscription period
+    at this point, and the billing day for this subscription changes to the day
+    of reactivation.
+
+MANUAL PAYMENTS:
+
+- User can manually pay for the next period of a subscription at
+  any point in time by clicking a button.  This will make developing the above
+  functionality easier, but also give users more clarity into what to
+  expect and make it easier for them to plan.  This is also closely related to what
+  is linked to in the reminder emails.     This button will also allow paying
+  for the next period of a subscription manually using positive balance.
+
+SHIFT SUBSCRIPTION PERIOD:
+
+- Similarly, provide a tool so a user can manually shift their subscription period.
+  When they do this, they have to pay the prorated difference to make the shift,
+  using our standard methods (min payment size, credit can be used).
+
+There's another maintenance task -- cancelAllPendingSubscriptions below --
+to actually cancel and refund the subscription if the user doesn't pay.
+*/
+
+import send from "@cocalc/server/messages/send";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -6,10 +80,109 @@ import cancelSubscription from "./cancel-subscription";
 import sendSubscriptionRenewalEmails from "./subscription-renewal-emails";
 import { isEmailConfigured } from "@cocalc/server/email/send-email";
 import { getPendingBalance } from "./get-balance";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import basePath from "@cocalc/backend/base-path";
+import { join } from "path";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
 export default async function maintainSubscriptions() {
+  logger.debug("maintaining subscriptions");
+  try {
+    await sendUpcomingRenewalNotifications();
+  } catch (err) {
+    logger.debug("nonfatal ERROR in sendUpcomingRenewalNotifications- ", err);
+  }
+}
+
+export async function sendUpcomingRenewalNotifications() {
+  logger.debug("sendUpcomingRenewalNotifications");
+  const {
+    support_account_id: from_id,
+    site_name,
+    dns,
+    help_email,
+  } = await getServerSettings();
+  if (from_id == null) {
+    throw Error("configure the support account_id in admin settings.");
+  }
+
+  // Find each subscription that has status not 'canceled' and current_period_end
+  // is within the next 7 days.
+
+  const pool = getPool();
+  const cutoff = "1 week";
+  const query = `
+    SELECT id, cost, interval, metadata, account_id
+    FROM subscriptions
+    WHERE
+      status != 'canceled' AND
+      current_period_end > NOW() AND
+      current_period_end <= NOW() + INTERVAL '${cutoff}' AND
+      (renewal_email IS NULL OR renewal_email < NOW() - INTERVAL '${cutoff}')
+  `;
+  const { rows } = await pool.query(query);
+  logger.debug(
+    "sendUpcomingRenewalNotifications -- ",
+    rows.length,
+    "subscriptions",
+  );
+
+  for (const { id, cost, interval, metadata, account_id } of rows) {
+    const subject = `Upcoming ${site_name} Subscription Renewal - Id ${id}`;
+    const { name } = await getUser(account_id);
+    const body = `
+Hello ${name},
+
+You have a ${interval}ly subscription that will **automatically renew** in ${cutoff}.
+If you do nothing you will be automatically billed and may continue using your subscription.  You can also make a payment right now, pay in a different way,
+cancel, change or pause your subscription or modify the renewal date:
+
+https://${dns}${join(basePath, "subscriptions", `${id}`)}
+
+Thank you for using and supporting ${site_name}!  If you have questions, reply to this message,
+email us at [${help_email}](mailto:${help_email}), or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).
+
+---
+
+### Details
+
+- ${interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
+      id
+    }) for ${currency(cost)}/${interval}
+- ${await describeLicense(metadata?.license_id)}
+`;
+
+    logger.debug("sendUpcomingRenewalNotifications to ", name);
+    console.log(subject, "\n", body);
+    await send({ to_ids: [account_id], from_id, subject, body });
+    await pool.query(
+      "UPDATE subscriptions SET renewal_email=NOW() WHERE id=$1",
+      [id],
+    );
+  }
+}
+
+async function describeLicense(license_id?: string): Promise<string> {
+  if (!license_id) {
+    return "";
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "select info->'purchased' as purchased from site_licenses where id=$1",
+    [license_id],
+  );
+  if (rows.length == 0) {
+    return "";
+  }
+  return describeQuotaFromInfo(rows[0].purchased);
+}
+
+// Everything below here was from the OLD VERSION
+
+export async function maintainSubscriptions0() {
   logger.debug("maintaining subscriptions");
   try {
     await renewSubscriptions();
@@ -35,67 +208,6 @@ export default async function maintainSubscriptions() {
   }
 }
 
-/*
-For each subscription that has status not 'canceled' and current_period_end
-is within the next 7 days, send a message that the subscription will be renewed.
-Include a link to pay now for the renewal using the method of your choice, or
-to pause or edit the subscription.  Send another reminder at 3 days.
-
-For each subscription that has status not 'canceled' and current_period_end
-is within the next 48 hours, and there isn't already a renewal process happening
-for that subscription, we do the following:
-
-  - Create a payment intent for the amount to renew the subscription for the next
-    period. The metadata says exactly what this payment is for and what should happen
-    when payment is processed:
-      - When processed, add a 'subscription-credit' line item saying
-        "this is for renewal of this subscription". Then create a
-        "subscription-payment" service line item taking that money back.
-      - Extend the expire date on the license (so it keeps working), and save the
-        payment intent id with the license.
-      - The frontend UI should also clearly surface this payment state, e.g., the
-        displayed license, the subscription, and the payment display in the frontend
-        UI should all reflect this status.  In particular, the UI should clearly show
-        the grace period status to avoid confusion.
-
-  - Also, when making the payment intent, extend the license expire date for 3 days,
-    as a sort of automatic grace period, since payments can take a while to complete.
-
-  - Send email notification about subscription renewal payment.  Including invoice payment link
-    from stripe in that email.
-      - This email will say the license stops working at the expire date, but user
-        can still use projects in a degraded way (e.g., browse and download their files
-        for up to 1 year).
-
-  - If the payment intent is not actually paid, then the license expire date doesn't
-    get updated and the license stops working. This doesn't require anybody doing anything
-    and it just happens.  Thus there is never any danger about somebody using a big
-    license and not paying for it.  At the same time, users have a 3 day grace period
-    in case they are slow to complete their payment.
-
-  - In particular, if a user doesn't pay their monthly subscription for 90 days (say),
-    then their license would have not worked during the last 90 days and we didn't
-    try to charge them during the second two periods, and moreover their payment
-    got cancelled/expired.   At this point, if they click "pay manually", then
-    they can pay for the *next month* as usually and their subscription/license
-    starts working again.  Policy: They must pay for a full subscription period
-    at this point, and the billing day for this subscription changes to the day
-    of reactivation.
-
-- User can manually pay for the next period of a subscription at
-  any point in time by clicking a button.  This will make developing the above
-  functionality easier, but also give users more clarity into what to
-  expect and make it easier for them to plan.  This is also closely related to what
-  is linked to in the reminder emails.     This button will also allow paying
-  for the next period of a subscription manually using positive balance.
-
-- Similarly, provide a tool so a user can manually shift their subscription period.
-  When they do this, they have to pay the prorated difference to make the shift,
-  using our standard methods (min payment size, credit can be used).
-
-There's another maintenance task -- cancelAllPendingSubscriptions below --
-to actually cancel and refund the subscription if the user doesn't pay.
-*/
 async function renewSubscriptions() {
   logger.debug("renewSubscriptions");
   const pool = getPool();
