@@ -25,7 +25,7 @@ export default function Messages() {
           type="link"
           style={{ fontSize: "16px", marginLeft: "-15px" }}
         >
-          <Icon name="mail" /> Messaging Settings
+          <Icon name="mail" /> Message Settings
         </Button>
       }
     >

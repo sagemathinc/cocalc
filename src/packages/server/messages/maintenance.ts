@@ -204,6 +204,7 @@ export async function sendEmailSummary({
       site_name: siteName,
       dns,
     } = await getServerSettings();
+    const settings = `https://${dns}${join(basePath, "settings", "account")}`;
     const url = `https://${dns}${join(basePath, "notifications#page=messages-inbox")}`;
     const signIn = `https://${dns}${join(basePath, "auth", "sign-in")}`;
 
@@ -222,8 +223,8 @@ Hello ${name},
 <br/>
 You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
 message center</a> after <a href="${signIn}">signing in to ${siteName}</a>,
-or read them below.    You can disable these email alerts under Messaging Settings
-in your <a href="${url}/settings/account">account settings</a>.
+or read them below.    You can disable these email alerts under Message Settings
+in your <a href="${settings}">account settings</a>.
 <br/>
 <br/>
  - ${siteName}
@@ -243,8 +244,10 @@ after signing in to ${siteName} at
 
 ${signIn}
 
-or read them below.  You can disable these email alerts under Messaging Settings
-at ${url}/settings/account
+or read them below.  You can disable these email alerts under Message Settings at
+
+${settings}
+
 
  - ${siteName}
 
