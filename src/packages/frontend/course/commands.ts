@@ -5,6 +5,7 @@
 
 import { defineMessage } from "react-intl";
 
+import { IconName } from "@cocalc/frontend/components";
 import type { CourseEditorActions } from "@cocalc/frontend/frame-editors/course-editor/actions";
 import { course, IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
@@ -15,7 +16,7 @@ type Command = {
   title: string | IntlMessage;
   label: string | IntlMessage;
   onClick: (arg: { props: { actions: CourseEditorActions } }) => void;
-  icon: string;
+  icon: IconName;
   button: string | IntlMessage;
 };
 
@@ -122,10 +123,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "collaborator-policy": {
     icon: "mail",
-    label: defineMessage({
-      id: "course.commands.collaborator-policy.label",
-      defaultMessage: "Collaborator Policy",
-    }),
+    label: course.collaborator_policy,
     button: defineMessage({
       id: "course.commands.collaborator-policy.button",
       defaultMessage: "Collab",
@@ -143,10 +141,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "restrict-student-projects": {
     icon: "lock",
-    label: defineMessage({
-      id: "course.commands.restrict-student-projects.label",
-      defaultMessage: "Restrict Student Projects",
-    }),
+    label: course.restrict_student_projects,
     button: labels.restrict,
     title: defineMessage({
       id: "course.commands.restrict-student-projects.toolteip",

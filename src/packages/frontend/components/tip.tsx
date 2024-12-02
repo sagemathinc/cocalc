@@ -3,17 +3,18 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Popover, Tooltip } from "antd";
+import { TooltipPlacement } from "antd/lib/tooltip";
 import React, { CSSProperties as CSS } from "react";
-import { Icon, IconName } from "./icon";
+
 import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
-import { Tooltip, Popover } from "antd";
-import { TooltipPlacement } from "antd/lib/tooltip";
+import { Icon, IconName } from "./icon";
 
 const TIP_STYLE: CSS = {
   wordWrap: "break-word",
   maxWidth: "250px",
-};
+} as const;
 
 type Size = "xsmall" | "small" | "medium" | "large";
 

@@ -208,7 +208,7 @@ export default function NewFilePage(props: Props) {
               setExtensionWarning(false);
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
         </Space>
       </Alert>

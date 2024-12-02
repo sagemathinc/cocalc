@@ -6,6 +6,7 @@
 import { Layout, Tooltip } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
+
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
@@ -15,6 +16,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { NewsBanner } from "components/landing/news-banner";
+import { Tagline } from "components/landing/tagline";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
@@ -24,7 +26,6 @@ import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import { Tagline } from "components/landing/tagline";
 
 const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 

@@ -6,8 +6,10 @@
 import { Button, Space, Typography } from "antd";
 import jsonic from "jsonic";
 import React, { useState } from "react";
+import { useIntl } from "react-intl";
 
 import { CSS } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 
 const { Paragraph } = Typography;
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export const JsonEditor: React.FC<Props> = (props: Props) => {
+  const intl = useIntl();
   const { value, onSave, rows = 3, readonly = false } = props;
   const [error, setError] = useState<string>("");
   const [focused, setFocused] = useState<boolean>(false);
@@ -119,7 +122,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
           Commit
         </Button>
         <Button size="small" disabled={!focused} onClick={doCancel}>
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>
       </Space>
     );

@@ -8,19 +8,24 @@ import {
   Space,
   Spin,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
-import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
-import { currency } from "@cocalc/util/misc";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import dayjs from "dayjs";
 import { isEqual } from "lodash";
+import { useEffect, useMemo, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { currency } from "@cocalc/util/misc";
 
 export default function StudentPay({ actions, settings }) {
+  const intl = useIntl();
+
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
@@ -110,7 +115,7 @@ export default function StudentPay({ actions, settings }) {
           reset();
         }}
       >
-        Cancel
+        {intl.formatMessage(labels.cancel)}
       </Button>
       <Button
         disabled={
@@ -123,7 +128,7 @@ export default function StudentPay({ actions, settings }) {
           setShowStudentPay(false);
         }}
       >
-        Save Changes
+        {intl.formatMessage(labels.save_changes)}
       </Button>
     </Space>
   ) : undefined;
@@ -133,7 +138,11 @@ export default function StudentPay({ actions, settings }) {
       style={!paySelected ? { background: "#fcf8e3" } : undefined}
       title={
         <>
-          <Icon name="dashboard" /> Require Students to Upgrade (Students Pay)
+          <Icon name="dashboard" />{" "}
+          <FormattedMessage
+            id="course.student-pay.title"
+            defaultMessage={"Require Students to Upgrade (Students Pay)"}
+          />
         </>
       }
     >
@@ -157,7 +166,10 @@ export default function StudentPay({ actions, settings }) {
           }
         }}
       >
-        Students pay directly
+        <FormattedMessage
+          id="course.student-pay.checkbox.students-pay"
+          defaultMessage={"Students pay directly"}
+        />
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>

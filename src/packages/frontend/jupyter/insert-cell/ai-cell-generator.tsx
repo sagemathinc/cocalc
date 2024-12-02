@@ -15,6 +15,7 @@ import {
 } from "antd";
 import { debounce, throttle } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -37,6 +38,7 @@ import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-q
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
@@ -118,6 +120,7 @@ export function AIGenerateCodeCell({
   showAICellGen,
   llmTools,
 }: AIGenerateCodeCellProps) {
+  const intl = useIntl();
   const { actions: project_actions } = useProjectContext();
   const { project_id, path } = useFrameContext();
   const cancel = useRef<boolean>(false);
@@ -570,7 +573,7 @@ export function AIGenerateCodeCell({
                 setQuerying(false);
               }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
             <Button
               size="large"
@@ -626,9 +629,7 @@ export function AIGenerateCodeCell({
     const empty = prompt.trim() == "";
     return (
       <>
-        <Paragraph>
-          What do you want the new cell to do?
-        </Paragraph>
+        <Paragraph>What do you want the new cell to do?</Paragraph>
         <Paragraph>
           <Input.TextArea
             ref={promptRef}

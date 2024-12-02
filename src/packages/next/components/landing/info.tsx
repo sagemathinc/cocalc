@@ -5,21 +5,16 @@
 
 import { Col, Row, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { TitleProps } from "antd/es/typography/Title";
 import { CSS, Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import Image, { StaticImageData } from "./image";
-import { MediaURL } from "./util";
-import { capitalize } from "@cocalc/util/misc";
-import A from "components/misc/A";
-
-const showcase: CSSProperties = {
-  width: "100%",
-  boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
-  borderRadius: "3px",
-} as const;
+import { MediaURL, SHADOW } from "./util";
 
 interface Props {
   alt?: string;
@@ -41,7 +36,7 @@ interface Props {
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   innerRef?;
-  icons?: { icon: string; title?: string; link?: string }[];
+  icons?: { icon: IconName | JSX.Element; title?: string; link?: string }[];
 }
 
 export default function Info({
@@ -73,16 +68,24 @@ export default function Info({
     return (
       <div style={{ margin: "auto" }}>
         <Space size={"large"}>
-          {icons.map(({ icon, title, link }) => {
+          {icons.map(({ icon, title, link }, idx) => {
             const elt = (
               <div style={{ textAlign: "center", color: "#333" }}>
-                <Icon name={icon} style={{ fontSize: "28pt" }} key={icon} />
+                {typeof icon === "string" ? (
+                  <Icon name={icon} style={{ fontSize: "28pt" }} key={icon} />
+                ) : (
+                  icon
+                )}
                 <br />
-                {title ?? capitalize(icon)}
+                {title ?? capitalize(typeof icon === "string" ? icon : "")}
               </div>
             );
             if (link) {
-              return <A href={link}>{elt}</A>;
+              return (
+                <A key={idx} href={link}>
+                  {elt}
+                </A>
+              );
             }
             return elt;
           })}
@@ -147,13 +150,13 @@ export default function Info({
   };
 
   if (image != null) {
-    graphic = <Image style={showcase} src={image} alt={alt ?? ""} />;
+    graphic = <Image shadow src={image} alt={alt ?? ""} />;
   } else if (video != null) {
     const videoSrcs = typeof video == "string" ? [video] : video;
     verifyHasMp4(videoSrcs);
     graphic = (
       <div style={{ position: "relative", width: "100%" }}>
-        <video style={showcase} loop controls>
+        <video style={{ width: "100%", ...SHADOW }} loop controls>
           {sources(videoSrcs)}
         </video>
       </div>
@@ -190,6 +193,8 @@ export default function Info({
       Object.assign(noGraphicTextStyle, textStyleExtra);
     }
 
+    const icons = renderIcons();
+
     return (
       <div
         style={{
@@ -206,6 +211,11 @@ export default function Info({
             >
               {children}
             </div>
+            {icons && (
+              <div style={{ marginTop: "20px", textAlign: "center" }}>
+                {icons}
+              </div>
+            )}
             {below && <div style={{ marginTop: "20px" }}>{below}</div>}
           </div>
         </div>

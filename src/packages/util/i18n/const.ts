@@ -10,6 +10,7 @@ import { IntlMessage } from "./types";
 // ATTN: these languages have to match the frontend/package.json script "i18n:download",
 //       be valid for Antd (<AntdConfigProvider localize.../>),
 //       and also harmonize with localize::loadLocaleData
+//       They also have to match next.js, which is on-par with the languages.
 export const LOCALE = [
   "en", // that's the default, i.e. user never explicitly selected a language
   "es",
@@ -31,6 +32,11 @@ export const LOCALE = [
 ] as const;
 
 export type Locale = (typeof LOCALE)[number];
+
+export function isLocale(val: unknown): val is Locale {
+  if (typeof val !== "string") return false;
+  return LOCALE.includes(val as any);
+}
 
 export const DEFAULT_LOCALE: Locale = "en";
 

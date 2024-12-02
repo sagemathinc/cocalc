@@ -12,7 +12,7 @@ import { MarkdownWidgetStoreState, MarkdownWidgetStore } from "./store";
 
 export class MarkdownWidgetActions extends Actions<MarkdownWidgetStoreState> {
   get_store(): MarkdownWidgetStore {
-    return redux.getStore(info.name) as any;
+    return redux.getStore(info.REDUX_NAME) as any;
   }
 
   clear = (id) => {

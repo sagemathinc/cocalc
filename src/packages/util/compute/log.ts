@@ -1,4 +1,7 @@
-import type { State } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  State,
+  AutomaticShutdown,
+} from "@cocalc/util/db-schema/compute-servers";
 
 interface Event {
   event: "compute-server";
@@ -15,15 +18,26 @@ interface ConfigurationChange {
   changes: { [param: string]: { from: any; to: any } };
 }
 
+export interface AutomaticShutdownEntry {
+  action: "automatic-shutdown";
+  automatic_shutdown: AutomaticShutdown;
+}
+
 interface Error {
   action: "error";
   error: string;
 }
 
-export type ComputeServerEvent = (ConfigurationChange | StateChange | Error) &
+export type ComputeServerEvent = (
+  | ConfigurationChange
+  | StateChange
+  | Error
+  | AutomaticShutdownEntry
+) &
   Event;
 
 export type ComputeServerEventLogEntry =
   | ConfigurationChange
   | StateChange
+  | AutomaticShutdownEntry
   | Error;

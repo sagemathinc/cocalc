@@ -6,7 +6,8 @@ import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
-import { getIntl, jupyter, labels } from "@cocalc/frontend/i18n";
+import { jupyter, labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { close, path_split } from "@cocalc/util/misc";
 
 import { JupyterActions } from "../browser-actions";

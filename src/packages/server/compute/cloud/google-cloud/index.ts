@@ -113,7 +113,7 @@ export async function start(server: ComputeServer) {
     name,
     zone: configuration.zone,
     id: server.id,
-    maxTime: 2 * 60 * 1000,
+    maxTime: 10 * 60 * 1000,
   });
 }
 
@@ -122,16 +122,20 @@ async function waitForIp({ name, zone, id, maxTime }) {
   let d = 3000;
   const end = Date.now() + maxTime;
   while (Date.now() < end) {
-    const instance = await getInstance({ name, zone });
-    const externalIp = instance?.externalIp;
-    logger.debug("waitForIp: waiting for ip address: got", externalIp);
-    await setData({
-      id,
-      data: instance,
-      cloud: "google-cloud",
-    });
-    if (externalIp) {
-      return;
+    try {
+      const instance = await getInstance({ name, zone });
+      const externalIp = instance?.externalIp;
+      logger.debug("waitForIp: waiting for ip address: got", externalIp);
+      await setData({
+        id,
+        data: instance,
+        cloud: "google-cloud",
+      });
+      if (externalIp) {
+        return;
+      }
+    } catch (err) {
+      logger.debug(`waitForIp: error making api call: ${err}`);
     }
     d = Math.min(30000, d * 1.3);
     await delay(d);

@@ -1,9 +1,11 @@
 import { Button, InputNumber, Modal, Spin } from "antd";
 import { useState } from "react";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { MIN_PORT, MAX_PORT } from "@cocalc/util/db-schema/cloud-filesystems";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
+import { MAX_PORT, MIN_PORT } from "@cocalc/util/db-schema/cloud-filesystems";
 import { editCloudFilesystem } from "./api";
 import { MountAndKeyDBOptions } from "./create";
 import { editModalStyle } from "./util";
@@ -76,7 +78,7 @@ export default function EditMountOptions({
       onCancel={() => setOpen(false)}
       footer={[
         <Button key="cancel" onClick={() => setOpen(false)}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           key="ok"

@@ -11,7 +11,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { Available } from "@cocalc/comm/project-configuration";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import { labels } from "@cocalc/frontend/i18n";
@@ -227,7 +227,7 @@ export function FileTypeSelector({
                 delayShow={DELAY_SHOW_MS}
                 title={"Create a Compute Server"}
                 placement="left"
-                icon={"cloud-server"}
+                icon={"cloud"}
                 tip={"Affordable GPUs and high-end dedicated virtual machines."}
               >
                 <NewFileButton
@@ -715,7 +715,7 @@ function Section({
       }}
     >
       <Tag
-        icon={<Icon name={icon} />}
+        icon={isIconName(icon) && <Icon name={icon} />}
         color={color}
         style={{ fontSize: "11pt" }}
       >

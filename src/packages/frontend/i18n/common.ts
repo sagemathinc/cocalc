@@ -22,9 +22,19 @@ export const labels = defineMessages({
     defaultMessage: "Reset",
     description: "A 'Reset' button on a small confirmation modal dialog",
   },
+  edit: {
+    id: "labels.edit",
+    defaultMessage: "Edit",
+    description: "Short label on a button to edit a text field.",
+  },
   other: {
     id: "labels.other",
     defaultMessage: "Other",
+  },
+  on: {
+    id: "labels.on",
+    defaultMessage: "on",
+    description: "single word, somthing 'on' something else",
   },
   project: {
     id: "labels.project",
@@ -37,11 +47,23 @@ export const labels = defineMessages({
     description:
       "Label for a collection of projects, label on a button, title, etc.",
   },
+  create: {
+    id: "labels.create",
+    defaultMessage: "create",
+  },
   create_project: {
     id: "labels.create_project",
     defaultMessage: "Create Project...",
     description:
       "Label on buttons to open dialog to create a project, with 3 dots",
+  },
+  relative: {
+    id: "labels.relative",
+    defaultMessage: "Relative",
+  },
+  absolute: {
+    id: "labels.absolute",
+    defaultMessage: "Absolute",
   },
   account: {
     id: "labels.account",
@@ -193,11 +215,21 @@ export const labels = defineMessages({
     defaultMessage: "Save",
     description: "In the context of saving files, in a menu or on a button",
   },
+  save_changes: {
+    id: "labels.save_changes",
+    defaultMessage: "Save changes",
+    description: "A short label on a button to save changes made to a setting",
+  },
   save_title: {
     id: "labels.save_title",
     defaultMessage: "Save this file to disk",
     description:
       "In the context of saving files, this is the tooltip on a menu item or on a button",
+  },
+  not_implemented: {
+    id: "labels.not_implemented",
+    defaultMessage: "not implemented",
+    description: "A feature has not been implemented yet.",
   },
   split_frame_vertically_title: {
     id: "labels.split_frame_vertically.title",
@@ -625,6 +657,10 @@ export const labels = defineMessages({
     id: "labels.restrict",
     defaultMessage: "Restrict",
   },
+  change: {
+    id: "labels.change",
+    defaultMessage: "Change",
+  },
   nbgrader: {
     id: "labels.nbgrader",
     defaultMessage: "NBgrader",
@@ -687,6 +723,11 @@ export const labels = defineMessages({
   open: {
     id: "labels.open",
     defaultMessage: "Open",
+  },
+  item_plural: {
+    id: "labels.item_plural",
+    defaultMessage: `{total, plural, one {item} other {items}}`,
+    description: "e.g. zero, one, or more items in a listing",
   },
 });
 
@@ -1605,5 +1646,17 @@ export const course = defineMessages({
   due_date: {
     id: "course.due_date",
     defaultMessage: "Due Date",
+  },
+  distribute: {
+    id: "course.distribute",
+    defaultMessage: "Distribute",
+  },
+  collaborator_policy: {
+    id: "course.commands.collaborator-policy.label",
+    defaultMessage: "Collaborator Policy",
+  },
+  restrict_student_projects: {
+    id: "course.commands.restrict-student-projects.label",
+    defaultMessage: "Restrict Student Projects",
   },
 });

@@ -38,7 +38,8 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
   const [unknown, setUnknown] = useState<boolean>(false);
   const divRef = useRef<any>(null);
   // We *ONLY* render widgets when they are visible.  Why?
-  //  (1) some widgets -- k3d labels!! -- assume they are visible, and just totally crash if not, due to bad code
+  //  (1) some widgets -- k3d labels!! -- assume they are visible, and just totally crash if
+  //      not, due to bad code  [no idea if this is true anymore, given that we switched to upstream k3d.]
   //  (2) efficiency.
   const { isVisible } = useFrameContext();
 
@@ -108,25 +109,55 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
   );
 }
 
+function katex(div) {
+  const elt = $(div) as any;
+  elt.find(".widget-label").katex?.({ preProcess: true });
+  elt.find(".widget-htmlmath").katex?.({ preProcess: true });
+}
+
+// Initialize a MutationObserver to observe changes to the content of the div
+function observeDiv(div) {
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      // Check if the mutation affects the child list or subtree (for deeper changes)
+      // @ts-ignore
+      if (mutation.type === "childList" || mutation.type === "subtree") {
+        // Run KaTeX processing here
+        katex(div);
+      }
+    });
+  });
+
+  // Define what to watch - child nodes and subtree changes
+  const config = { childList: true, subtree: true };
+
+  // Start observing
+  observer.observe(div, config);
+
+  // Return observer if you need to disconnect later
+  return observer;
+}
+
+// Inside the render function, after the widget is rendered, observe the div
 async function render({ manager, id, div }) {
   try {
     await manager.render(id, div);
 
+    // Observe div for changes -- see https://github.com/sagemathinc/cocalc/issues/8042
+    observeDiv(div);
+
     // HACK: because upstream ipywidgets only checks for  MathJax.Hub to be defined then
     // crashes on load -- they don't see this bug because user has to explicitly re-evaluate
     // code to see anything on page refresh, due to all state being on the frontend.
+    // CoCalc doesn't use Mathjax anymore, so this should just be a no-op for us.  However,
+    // we leave it in some some random widget might set it...
     // @ts-ignore
     if (window.MathJax != null && window.MathJax.Hub == null) {
       // @ts-ignore
       MathJax.Hub.Queue = () => {};
     }
-    setTimeout(() => {
-      // @ts-ignore
-      const elt = $(div) as any;
-      // Run mathjax on labels:   widgets.HBox([widgets.Label(value="The $m$ in $E=mc^2$:"), widgets.FloatSlider()])
-      elt.find(".widget-label").katex?.({ preProcess: true });
-      elt.find(".widget-htmlmath").katex?.({ preProcess: true });
-    }, 0);
+
+    setTimeout(() => katex(div), 0);
   } catch (err) {
     console.error("Error Rendering Widget:", err);
   }

@@ -1,7 +1,8 @@
-import { FormattedMessage } from "react-intl";
+import { useIntl } from "react-intl";
 
 import { labels } from "./common";
 
 export function CancelText() {
-  return <FormattedMessage {...labels.cancel} />;
+  const intl = useIntl();
+  return intl.formatMessage(labels.cancel);
 }

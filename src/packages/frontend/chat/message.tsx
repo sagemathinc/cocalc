@@ -4,8 +4,10 @@
  */
 
 import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
-import { Map } from "immutable";
+import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
+import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -16,10 +18,12 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { User } from "@cocalc/frontend/users";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -35,11 +39,11 @@ import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode, SubmitMentionsFn } from "./types";
 import {
+  getThreadRootDate,
   is_editing,
   message_colors,
   newest_content,
   sender_is_viewer,
-  getThreadRootDate,
 } from "./utils";
 
 const DELETE_BUTTON = false;
@@ -148,6 +152,8 @@ export default function Message({
   selected,
   numChildren,
 }: Props) {
+  const intl = useIntl();
+
   const showAISummarize = redux
     .getStore("projects")
     .hasLanguageModelEnabled(project_id, "chat-summarize");
@@ -246,11 +252,9 @@ export default function Message({
 
   function editing_status(is_editing: boolean) {
     let text;
-    const other_editors = message
-      .get("editing")
-      .remove(account_id)
-      // @ts-ignore – not sure why this error shows up
-      .keySeq();
+
+    let other_editors = // @ts-ignore -- keySeq *is* a method of TypedMap
+      message.get("editing")?.remove(account_id).keySeq() ?? List();
     if (is_editing) {
       if (other_editors.size === 1) {
         // This user and someone else is also editing
@@ -723,7 +727,7 @@ export default function Message({
               actions?.deleteDraft(date);
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
           <Button type="primary" onClick={saveEditedMessage}>
             <Icon name="save" /> Save Edited Message
@@ -804,7 +808,7 @@ export default function Message({
               actions?.deleteDraft(replyDate);
             }}
           >
-            Cancel
+            <CancelText />
           </Button>
           <Button
             onClick={() => {
@@ -990,7 +994,11 @@ export default function Message({
                   <>
                     Unfold this thread{" "}
                     {numChildren
-                      ? ` to show ${numChildren} ${plural(numChildren, "reply", "replies")}`
+                      ? ` to show ${numChildren} ${plural(
+                          numChildren,
+                          "reply",
+                          "replies",
+                        )}`
                       : ""}
                   </>
                 ) : (

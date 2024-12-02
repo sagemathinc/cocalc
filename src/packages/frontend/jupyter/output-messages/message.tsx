@@ -23,6 +23,10 @@ import { Stdout } from "./stdout";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
 import { Traceback } from "./traceback";
 
+function Blank({}) {
+  return null;
+}
+
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
     return MoreOutput;
@@ -46,6 +50,16 @@ function messageComponent(message: Map<string, any>): any {
   if (message.get("traceback") != null) {
     return Traceback;
   }
+  if (message.get("transient") != null) {
+    // none of the above match and it's a transient message, should not render anything.
+    // E.g., {"transient": {"display_id": "b522bc679b384e39a52feaade4117916"}}},
+    return Blank;
+  }
+  if (message.get("output_type") == "display_data") {
+    // matches nothing we know how to render and it just a message about the output_type
+    return Blank;
+  }
+  // Final fallback -- render an error looking message...  maybe this should be blank too, not sure.
   return NotImplemented;
 }
 

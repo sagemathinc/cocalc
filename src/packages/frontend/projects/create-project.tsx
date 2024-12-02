@@ -425,7 +425,7 @@ export const NewProjectCreator: React.FC<Props> = ({
               onClick={cancel_editing}
               style={{ marginRight: "8px" }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
             <Button
               disabled={isDisabled()}

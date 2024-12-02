@@ -403,17 +403,23 @@ export class ConfigurationActions {
 
   set_datastore = (datastore: Datastore): void => {
     this.set({ datastore, table: "settings" });
-    this.configure_all_projects_shared_and_nbgrader();
+    setTimeout(() => {
+      this.configure_all_projects_shared_and_nbgrader();
+    }, 1);
   };
 
   set_envvars = (inherit: boolean): void => {
     this.set({ envvars: { inherit }, table: "settings" });
-    this.configure_all_projects_shared_and_nbgrader();
+    setTimeout(() => {
+      this.configure_all_projects_shared_and_nbgrader();
+    }, 1);
   };
 
   set_license_upgrade_host_project = (upgrade: boolean): void => {
     this.set({ license_upgrade_host_project: upgrade, table: "settings" });
-    this.configure_host_project();
+    setTimeout(() => {
+      this.configure_host_project();
+    }, 1);
   };
 
   private configure_all_projects_shared_and_nbgrader = () => {

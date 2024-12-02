@@ -1,30 +1,33 @@
 import { Button, Modal, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  createServer,
-  computeServerAction,
-  getTemplate,
-  setServerConfiguration,
-} from "./api";
+import { delay } from "awaiting";
+import { cloneDeep } from "lodash";
 import { useEffect, useState } from "react";
-import { availableClouds } from "./config";
+
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import PublicTemplates from "@cocalc/frontend/compute/public-templates";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { randomPetName } from "@cocalc/frontend/project/utils";
+import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
-import { randomPetName } from "@cocalc/frontend/project/utils";
-import ShowError from "@cocalc/frontend/components/error";
-import ComputeServer from "./compute-server";
-import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
+import {
+  computeServerAction,
+  createServer,
+  getTemplate,
+  setServerConfiguration,
+} from "./api";
 import { randomColor } from "./color";
-import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
-import costPerHour from "./cost";
+import ComputeServer from "./compute-server";
 import { Docs } from "./compute-servers";
-import PublicTemplates from "@cocalc/frontend/compute/public-templates";
-import { delay } from "awaiting";
-import { cloneDeep } from "lodash";
+import { availableClouds } from "./config";
+import costPerHour from "./cost";
+
 export const DEFAULT_FAST_LOCAL = "scratch";
 
 function defaultTitle() {
@@ -194,7 +197,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         onClick={() => setEditing(false)}
         style={{ marginRight: "5px" }}
       >
-        Cancel
+        <CancelText />
       </Button>
       {cloud != "onprem" && (
         <Button
