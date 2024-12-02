@@ -501,6 +501,7 @@ Table({
             hide_button_tooltips: false,
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
+            no_email_new_messages: false,
           },
           name: null,
           first_name: "",

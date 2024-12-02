@@ -6,7 +6,6 @@
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
@@ -37,9 +36,10 @@ import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
-import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+import Tours from "./tours";
+import Messages from "./messages";
 
 // See https://github.com/sagemathinc/cocalc/issues/5620
 // There are weird bugs with relying only on mathjax, whereas our
@@ -664,6 +664,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         {render_standby_timeout()}
         <div style={{ height: "10px" }} />
         <Tours />
+        <Messages />
       </Panel>
     </>
   );

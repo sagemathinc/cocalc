@@ -219,7 +219,8 @@ Hello ${name},
 <br/>
 You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
 message center</a> after <a href="${signIn}">signing in to ${siteName}</a>,
-or read them below.
+or read them below.    You can disable these email alerts under Messaging Settings
+in your <a href="${url}/settings/account">account settings</a>.
 <br/>
 <br/>
  - ${siteName}
@@ -239,7 +240,8 @@ after signing in to ${siteName} at
 
 ${signIn}
 
-or read them below.
+or read them below.  You can disable these email alerts under Messaging Settings
+at ${url}/settings/account
 
  - ${siteName}
 

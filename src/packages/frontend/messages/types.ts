@@ -8,10 +8,10 @@ export type iMessagesMap = Map<number, TypedMap<Message>>;
 export type iThreads = Map<number, List<TypedMap<Message>>>;
 
 export type Filter =
+  | "messages-inbox"
   | "messages-sent"
-  | "messages-saved"
-  | "messages-unread"
   | "messages-all"
+  | "messages-trash"
   | "messages-search"
   | "messages-drafts";
 
