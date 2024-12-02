@@ -46,9 +46,12 @@ function Messages0({ filter, style }: Props) {
   const messages = useTypedRedux("messages", "messages");
   const search = useTypedRedux("messages", "search");
   const error = useTypedRedux("messages", "error");
+  const jupyter_api_enabled = useTypedRedux("customize", "jupyter_api_enabled");
 
   return (
-    <FileContext.Provider value={{ AnchorTagComponent }}>
+    <FileContext.Provider
+      value={{ AnchorTagComponent, jupyterApiEnabled: jupyter_api_enabled }}
+    >
       <ConfigProvider renderEmpty={() => <Empty description={"No messages"} />}>
         <div
           style={{
