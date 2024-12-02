@@ -313,9 +313,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function renderStarred(): JSX.Element | undefined {
     if (isStarred == null) return;
 
+    const icon: IconName = isStarred ? "star-filled" : "star";
+
     return (
       <Icon
-        name={isStarred ? "star-filled" : "star-o"}
+        name={icon}
         style={{
           ...ICON_STYLE,
           color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,

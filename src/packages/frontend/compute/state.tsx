@@ -1,17 +1,20 @@
-import { A, Icon, TimeAgo } from "@cocalc/frontend/components";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import type {
-  State,
-  Configuration,
-} from "@cocalc/util/db-schema/compute-servers";
 import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
-import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useEffect, useState } from "react";
-import { getNetworkUsage, getServerState } from "./api";
-import { useInterval } from "react-interval-hook";
-import { currency, human_readable_size } from "@cocalc/util/misc";
+
+import { A, Icon, isIconName, TimeAgo } from "@cocalc/frontend/components";
 import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
-import { GOOGLE_COST_LAG_MS } from "@cocalc/util/db-schema/compute-servers";
+import { User } from "@cocalc/frontend/users";
+import type {
+  Configuration,
+  State,
+} from "@cocalc/util/db-schema/compute-servers";
+import {
+  GOOGLE_COST_LAG_MS,
+  STATE_INFO,
+} from "@cocalc/util/db-schema/compute-servers";
+import { currency, human_readable_size } from "@cocalc/util/misc";
+import { useInterval } from "react-interval-hook";
+import { getNetworkUsage, getServerState } from "./api";
 
 interface Props {
   style?: CSSProperties;
@@ -68,7 +71,7 @@ export default function State({
       mouseEnterDelay={0.5}
       title={
         <>
-          <Icon name={icon} /> {label}
+          {isIconName(icon) && <Icon name={icon} />} {label}
         </>
       }
       content={() => {
@@ -95,7 +98,7 @@ export default function State({
         onClick={handleRefresh}
       >
         <span style={{ color }}>
-          <Icon name={icon} /> {label}
+          {isIconName(icon) && <Icon name={icon} />} {label}
         </span>
         {!stable && (
           <>

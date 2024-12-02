@@ -12,7 +12,7 @@ import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, isIconName } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { jupyter } from "@cocalc/frontend/i18n";
@@ -146,7 +146,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
           >
             <Tooltip placement="top" title={tooltip}>
               <span style={CODE_BAR_BTN_STYLE}>
-                <Icon name={icon} /> {label}
+                {isIconName(icon) && <Icon name={icon} />} {label}
               </span>
             </Tooltip>
           </Dropdown.Button>

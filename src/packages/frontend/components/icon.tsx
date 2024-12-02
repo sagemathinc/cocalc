@@ -230,7 +230,7 @@ import {
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
 // compiler will serialize. An explicit type annotation is needed."
-const IconSpec: { [name: string]: any } = {
+const IconSpec = {
   "address-card": IdcardOutlined,
   aim: AimOutlined,
   "align-left": AlignLeftOutlined,
@@ -629,7 +629,7 @@ const IconSpec: { [name: string]: any } = {
   "down-square-outlined": DownSquareOutlined,
   "merge-cells-outlined": MergeCellsOutlined,
   "fork-outlined": ForkOutlined,
-};
+} as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
@@ -680,15 +680,15 @@ try {
   console.log(`IconFont not available -- ${err}`);
 }
 
-// This was nice but unfortunately it exceeds typescript limits.
-//export type IconName = keyof typeof IconSpec;
-export type IconName = string;
+// This used to exceed TypeScript limits, but apparently it is ok now…
+export type IconName = keyof typeof IconSpec;
 export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
-export function isIconName(name?: string): name is IconName {
+export function isIconName(name?: unknown): name is IconName {
   if (name == null) return false;
+  if (typeof name !== "string") return false;
   return IconSpec[name] != null;
 }
 
