@@ -87,7 +87,9 @@ export async function sendAllEmailSummaries() {
     // For each user with verified email and at least 1 unread message and
     // who we haven't contacted since MIN_INTERVAL_BETWEEN_SUMMARIES_MS,
     // and having a message that was **RECENTLY RECEIVED** (i.e., the sent field is recent),
-    // we send them a message.
+    // we send them a message... unless they have other_settings.no_email_new_messages
+    // set to true (i.e., they disabled messages).  We also only email users with
+    // verified email accounts, assuming verification is setup.
     const pool = getPool();
     const query = `
 SELECT a.account_id, a.first_name, a.last_name, a.unread_message_count,
@@ -102,6 +104,7 @@ WHERE a.unread_message_count > 0
 AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds') ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
 AND a.email_address IS NOT NULL
 AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'
+AND coalesce((a.other_settings#>'{no_email_new_messages}')::boolean, false) = false
 GROUP BY a.account_id,
          a.first_name,
          a.last_name,
