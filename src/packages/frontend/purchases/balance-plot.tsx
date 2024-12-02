@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Card, Spin, Tooltip } from "antd";
+import { Card, Tooltip } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
 import { round2down } from "@cocalc/util/misc";
-import { useAsyncEffect } from "use-async-effect";
+import Plot from "@cocalc/frontend/components/plotly";
 
 interface Props {
   title?;
@@ -44,20 +44,7 @@ export default function BalancePlot({
     ];
   }, [data]);
 
-  const [Plot, setPlot] = useState<any>(null);
-  useAsyncEffect(async () => {
-    // load only when actually used, since this involves dynamic load over the internet,
-    // and we don't want loading cocalc in an airgapped network to have hung network requests,
-    // and this Plot functionality is only used for billing.
-    const Plot = (await import("@cocalc/frontend/components/plotly")).default;
-    setPlot(Plot);
-  }, []);
-
   const currency = " (US Dollars)";
-
-  if (Plot == null) {
-    return <Spin />;
-  }
 
   return (
     <Card
