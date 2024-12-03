@@ -191,7 +191,7 @@ export async function sendEmailSummary({
     const signIn = `https://${dns}${join(basePath, "auth", "sign-in")}`;
 
     const num = unread_message_count <= 1 ? "" : ` (${unread_message_count})`;
-    const subject = `Unread ${siteName} ${plural(unread_message_count, "message")}${unread}`;
+    const subject = `Unread ${siteName} ${plural(unread_message_count, "message")}${num}`;
 
     const names0 = await getNames(messages.map(({ from_id }) => from_id));
     const names: { [account_id: string]: string } = {};
