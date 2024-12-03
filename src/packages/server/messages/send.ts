@@ -42,20 +42,8 @@ export default async function send({
   // validate sender -- if not given, assumed internal and tries to send
   // from support or an admin
   if (!from_id) {
-    const { support_account_id, help_email, dns, site_name } =
-      await getServerSettings();
+    const { support_account_id } = await getServerSettings();
     from_id = support_account_id ? support_account_id : (await getAdmins())[0];
-    const help = help_email
-      ? ` email us at [${help_email}](mailto:${help_email}), `
-      : "";
-    const support = `\n\n---\n\nThank you for using and supporting ${site_name}! If you have questions, reply to this message, ${help}
-or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).\n\n---\n\n`;
-    const i = body.indexOf("{support}");
-    if (i != -1) {
-      body = body.slice(0, i) + support + body.slice(i + "{support}".length);
-    } else {
-      body += support;
-    }
   }
   if (!from_id) {
     throw Error(
@@ -90,4 +78,13 @@ or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).
     await updateUnreadMessageCount({ account_id });
   }
   return rows[0].id;
+}
+
+export async function support() {
+  const { help_email, dns, site_name } = await getServerSettings();
+  const help = help_email
+    ? ` email us at [${help_email}](mailto:${help_email}), `
+    : "";
+  return `\n\n---\n\nThank you for using and supporting ${site_name}! If you have questions, reply to this message, ${help}
+or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).\n\n---\n\n`;
 }

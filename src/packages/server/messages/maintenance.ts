@@ -206,11 +206,10 @@ Hello ${name},
 <br/>
 You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
 message center</a> after <a href="${signIn}">signing in to ${siteName}</a>,
-or read them below.    You can disable these email alerts under Message Settings
-in your <a href="${settings}">account settings</a>.
+or read them below.
 <br/>
 <br/>
- - ${siteName}
+ - ${siteName} (you can disable email alerts in <a href="${settings}">account settings</a>)
 <br/>
 <br/>
 ${messages.map((message) => messageToHtml(message, url, names)).join("<br/><hr/></br>")}

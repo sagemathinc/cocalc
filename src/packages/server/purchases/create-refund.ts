@@ -8,10 +8,9 @@ import getConn from "@cocalc/server/stripe/connection";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
-import sendEmail from "@cocalc/server/email/send-email";
 import { getServerSettings } from "@cocalc/database/settings";
-import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { currency } from "@cocalc/util/misc";
+import send, { support } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -124,31 +123,28 @@ export default async function createRefund(opts: {
       id,
       description,
     ]);
-    // send an email
+    // send confirmation message
     try {
-      const to = await getEmailAddress(customer_account_id);
-      if (to) {
-        const { help_email: from, site_name: siteName } =
-          await getServerSettings();
-        const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
-          Math.abs(cost),
-        )} + tax`;
-        const html = `${siteName} has refunded your credit of ${currency(
-          Math.abs(cost),
-        )} + tax from transaction ${purchase_id}.
-        This refund will appear immediately in your ${siteName} account,
-        and should post on your credit card or bank statement within 5-10 days.
+      const { site_name: siteName } = await getServerSettings();
+      const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
+        Math.abs(cost),
+      )} + tax`;
+      const body = `
+${siteName} has refunded your credit of ${currency(
+        Math.abs(cost),
+      )} + tax from transaction ${purchase_id}.
+This refund will appear immediately in [your ${siteName} account](/settings/purchases),
+and should post on your credit card or bank statement within 5-10 days.
 
-        <hr/>
+---
 
-        <br/><br/>
-        REASON: ${reason}
+- REASON: ${reason}
 
-        <br/><br/>
-        NOTES: ${notes}`;
-        const mesg = { from, to, subject, html, text: html };
-        await sendEmail(mesg);
-      }
+- NOTES: ${notes}
+
+${await support()}
+`;
+      await send({ to_ids: [customer_account_id], subject, body });
     } catch (err) {
       logger.debug("WARNING -- issue sending email", err);
     }

@@ -10,7 +10,7 @@ import getBalance from "./get-balance";
 import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments";
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
 import { AUTOBALANCE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
-import sendEmail from "@cocalc/server/email/send-email";
+import send, { support } from "@cocalc/server/messages/send";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { join } from "path";
@@ -258,18 +258,13 @@ async function update({
 }
 
 async function sendAutoBalanceAlert({ account_id, description }) {
-  const { name, email_address: to } = await getUser(account_id);
-  if (!to) {
-    return;
-  }
-
   const { site_name: siteName, dns } = await getServerSettings();
   const url = `https://${dns}${join(basePath, "settings/payments")}`;
-
+  const { name } = await getUser(account_id);
   const subject = `${siteName}: Automatic Low Balance Deposit`;
 
-  const text = `
-Hello ${name},
+  const body = `
+Dear ${name},
 
 You have automatic deposits setup, which just did the following:
 ${description}
@@ -277,24 +272,9 @@ ${description}
 ${url}
 
  -- ${siteName}
+
+${await support()}
 `;
 
-  const html = `
-Hello ${name},
-
-<br/><br/>
-
-You have automatic deposits setup, which just did the following:
-<br/>
-${description}
-
-<br/><br/>
-
-${url}
-
-<br/><br/>
-
- -- ${siteName}
-`;
-  await sendEmail({ to, subject, text, html });
+  await send({ to_ids: [account_id], subject, body });
 }

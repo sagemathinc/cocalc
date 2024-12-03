@@ -15,7 +15,7 @@ import siteURL from "@cocalc/database/settings/site-url";
 import { disableDailyStatements } from "@cocalc/server/token-actions/create";
 import { getTotalBalance } from "../get-balance";
 import getLogger from "@cocalc/backend/logger";
-import send from "@cocalc/server/messages/send";
+import send, { support } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -88,7 +88,7 @@ ${pay}
 
 <br/>
 
-{support}
+${await support()}
 
 <br/>
 
