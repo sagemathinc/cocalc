@@ -11,15 +11,15 @@ register({
     crm_messages: [
       {
         id: null,
-        created: null,
         from_id: null,
         to_ids: null,
         subject: null,
         body: null,
         read: null,
         saved: null,
-        deleted: null,
         thread_id: null,
+        deleted: null,
+        expire: null,
       },
     ],
   },

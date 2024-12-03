@@ -6,6 +6,7 @@ import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
+import getAdmins from "@cocalc/server/accounts/admins";
 
 export default async function send({
   to_ids,
@@ -36,9 +37,11 @@ export default async function send({
       throw Error(`invalid account_id -- ${account_id}`);
     }
   }
-  // validate sender
+  // validate sender -- if not given, assumed internal and tries to send
+  // from support or an admin
   if (!from_id) {
-    from_id = (await getServerSettings()).support_account_id;
+    from_id =
+      (await getServerSettings()).support_account_id ?? (await getAdmins())[0];
   }
   if (!from_id) {
     throw Error(

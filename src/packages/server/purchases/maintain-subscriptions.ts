@@ -12,27 +12,30 @@ CREATE PAYMENTS:
 
   - Create a payment intent for the amount to renew the subscription for the next
     period. The metadata says exactly what this payment is for and what should happen
-    when payment is processed:
-      - When processed, add a 'subscription-credit' line item saying
-        "this is for renewal of this subscription". Then create a
-        "subscription-payment" service line item taking that money back.
-      - Extend the expire date on the license (so it keeps working), and save the
-        payment intent id with the license.
-      - The frontend UI should also clearly surface this payment state, e.g., the
-        displayed license, the subscription, and the payment display in the frontend
-        UI should all reflect this status.  In particular, the UI should clearly show
-        the grace period status to avoid confusion.
-      - Users can have an account setting to apply any balance on their account
-        first toward subscriptions.
+    when payment is processed.
 
   - Also, when making the payment intent, extend the license expire date for 3 days,
-    as a sort of automatic grace period, since payments can take a while to complete.
+    as a free automatic grace period, since payments can take a while to complete.
 
-  - Send email notification about subscription renewal payment.  Including invoice payment link
-    from stripe in that email.
-      - This email will say the license stops working at the expire date, but user
-        can still use projects in a degraded way (e.g., browse and download their files
-        for up to 1 year).
+  - Send message about subscription renewal payment.  Including invoice
+    payment link from stripe in that message.
+
+      - This email will say the license stops working at the expire date, but users
+        can still use projects in a degraded way.
+
+
+PROCESS PAYMENT:
+  - When processed, add a 'subscription-credit' line item saying
+    "this is for renewal of this subscription". Then create a
+    "subscription-payment" service line item taking that money back.
+  - Extend the expire date on the license (so it keeps working), and save the
+    payment intent id with the license.
+  - The frontend UI should also clearly surface this payment state, e.g., the
+    displayed license, the subscription, and the payment display in the frontend
+    UI should all reflect this status.  In particular, the UI should clearly show
+    the grace period status to avoid confusion.
+  - Users can have an account setting to apply any balance on their account
+    first toward subscriptions.
 
 
 PAYMENT FOLLOW-UP:
@@ -71,7 +74,9 @@ There's another maintenance task -- cancelAllPendingSubscriptions below --
 to actually cancel and refund the subscription if the user doesn't pay.
 */
 
+import createSubscriptionPayment from "./stripe/create-subscription-payment";
 import send from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -94,8 +99,23 @@ export default async function maintainSubscriptions() {
     await sendUpcomingRenewalNotifications();
   } catch (err) {
     logger.debug("nonfatal ERROR in sendUpcomingRenewalNotifications- ", err);
+    adminAlert({
+      subject: `ERROR in sendUpcomingRenewalNotifications`,
+      body: err,
+    });
+  }
+  try {
+    await createPayments();
+  } catch (err) {
+    logger.debug("nonfatal ERROR in createPayments - ", err);
+    adminAlert({
+      subject: `nonfatal ERROR in createPayments`,
+      body: err,
+    });
   }
 }
+
+// UPCOMING NOTIFICATIONS (see above)
 
 export async function sendUpcomingRenewalNotifications() {
   logger.debug("sendUpcomingRenewalNotifications");
@@ -156,7 +176,7 @@ email us at [${help_email}](mailto:${help_email}), or [create a support ticket](
 `;
 
     logger.debug("sendUpcomingRenewalNotifications to ", name);
-    console.log(subject, "\n", body);
+    //console.log(subject, "\n", body);
     await send({ to_ids: [account_id], from_id, subject, body });
     await pool.query(
       "UPDATE subscriptions SET renewal_email=NOW() WHERE id=$1",
@@ -180,7 +200,49 @@ async function describeLicense(license_id?: string): Promise<string> {
   return describeQuotaFromInfo(rows[0].purchased);
 }
 
-// Everything below here was from the OLD VERSION
+// CREATE PAYMENTS (see above)
+
+export async function createPayments() {
+  logger.debug(
+    "createPayments -- checking for subscriptions with payment due now...",
+  );
+  // Do a query for each subscription that:
+  //    - has status not 'canceled', and
+  //    - current_period_end is within the next 48 hours, and
+  //    - there isn't already an outstanding payment for this subscription
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `
+  SELECT id as subscription_id, account_id FROM subscriptions WHERE
+      status != 'canceled' AND
+      current_period_end <= NOW() + interval '48 hours' AND
+      payment#>>'{status}' != 'active'
+  `,
+  );
+  logger.debug(
+    `createPayments -- got ${rows.length} unbilled subscriptions due now`,
+  );
+  for (const { subscription_id, account_id } of rows) {
+    try {
+      await createSubscriptionPayment({ subscription_id, account_id });
+      logger.debug(
+        `createPayments -- successfully billed subscription id ${subscription_id}`,
+      );
+    } catch (err) {
+      adminAlert({
+        subject: `ERROR billing subscription id ${subscription_id}`,
+        body: err,
+      });
+      logger.debug(
+        `createPayments -- ERROR billing subscription id ${subscription_id} -- ${err}`,
+      );
+    }
+  }
+}
+
+//////////////////////////////////
+
+// DEPRCATED Everything below here was from the OLD VERSION
 
 export async function maintainSubscriptions0() {
   logger.debug("maintaining subscriptions");

@@ -8,6 +8,7 @@ import { ALLOWED_SLACK } from "@cocalc/server/purchases/shopping-cart-checkout";
 import editLicense from "@cocalc/server/purchases/edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import createPaymentIntent from "./create-payment-intent";
+import send from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:stripe:create-subscription-payment");
 
@@ -71,16 +72,17 @@ export default async function createSubscriptionPayment({
   const lineItems = [
     { description: `Renew subscription Id=${subscription_id}`, amount },
   ];
-  const payment_intent_id = await createPaymentIntent({
-    account_id,
-    purpose: SUBSCRIPTION_RENEWAL,
-    description: "Renew a subscription",
-    lineItems,
-    return_url,
-    metadata: {
-      subscription_id: `${subscription_id}`,
-    },
-  });
+  const { payment_intent: payment_intent_id, hosted_invoice_url } =
+    await createPaymentIntent({
+      account_id,
+      purpose: SUBSCRIPTION_RENEWAL,
+      description: "Renew a subscription",
+      lineItems,
+      return_url,
+      metadata: {
+        subscription_id: `${subscription_id}`,
+      },
+    });
 
   const payment1 = {
     payment_intent_id,
@@ -95,6 +97,24 @@ export default async function createSubscriptionPayment({
     payment1,
     subscription_id,
   ]);
+
+  await sendSubscriptionPaymentMessage({
+    account_id,
+    hosted_invoice_url,
+    subscription_id,
+  });
+}
+
+async function sendSubscriptionPaymentMessage({
+  account_id,
+  subscription_id,
+  hosted_invoice_url,
+}) {
+  await send({
+    to_ids: [account_id],
+    subject: `Subscription Renewal: Id ${subscription_id}`,
+    body: `Invoice: ${hosted_invoice_url}`,
+  });
 }
 
 export async function processSubscriptionRenewal({
