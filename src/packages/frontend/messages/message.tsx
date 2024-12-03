@@ -79,17 +79,7 @@ function MessageInList({
     />
   );
 
-  const show = setShowThread
-    ? () => {
-        if (!isRead(message)) {
-          redux.getActions("messages").mark({
-            id: message.id,
-            read: true,
-          });
-        }
-        setShowThread?.(message.id);
-      }
-    : undefined;
+  const show = setShowThread ? () => setShowThread?.(message.id) : undefined;
 
   return (
     <div
@@ -290,6 +280,15 @@ function MessageFull({
   useEffect(() => {
     setFragment({ folder, id: message.id });
   }, [folder, message.id]);
+
+  useEffect(() => {
+    if (!read) {
+      redux.getActions("messages").mark({
+        id: message.id,
+        read: true,
+      });
+    }
+  }, [read]);
 
   const user = (
     <User

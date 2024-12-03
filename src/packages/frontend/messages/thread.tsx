@@ -47,13 +47,6 @@ export default function Thread({
           ids.add(id);
           expanded.add(id);
         }
-
-        setTimeout(() => {
-          // actually mark them read in a different event loop, since this
-          // mutates state.
-          const actions = redux.getActions("messages");
-          actions.mark({ ids, read: true });
-        }, 0);
       }
     }
     return expanded;

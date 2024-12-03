@@ -11,6 +11,8 @@ import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
+  isDeleted,
+  isDraft,
   getThreadId,
   replySubject,
   getNotExpired,
@@ -280,6 +282,9 @@ export class MessagesActions extends Actions<MessagesState> {
         // todo -- adapt for non-accounts
 
         const s = `
+${isDeleted(message) ? "trash" : ""}
+${isDraft(message) ? "draft" : ""}
+
 From: ${getName([message.get("from_id")])}
 
 To: ${getName(message.get("to_ids")?.toJS())}
@@ -288,7 +293,6 @@ Subject: ${message.get("subject")}
 
 Body: ${message.get("body")}
 `;
-
         return s;
       };
       const filter = await searchFilter<number>({
