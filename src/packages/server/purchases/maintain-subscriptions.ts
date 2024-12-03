@@ -123,7 +123,6 @@ export async function sendUpcomingRenewalNotifications() {
     support_account_id: from_id,
     site_name,
     dns,
-    help_email,
   } = await getServerSettings();
   if (from_id == null) {
     throw Error("configure the support account_id in admin settings.");
@@ -161,11 +160,6 @@ If you do nothing you will be automatically billed and may continue using your s
 cancel, change or pause your subscription or modify the renewal date:
 
 https://${dns}${join(basePath, "subscriptions", `${id}`)}
-
-Thank you for using and supporting ${site_name}!  If you have questions, reply to this message,
-email us at [${help_email}](mailto:${help_email}), or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).
-
----
 
 ### Details
 

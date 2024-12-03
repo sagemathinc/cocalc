@@ -190,7 +190,8 @@ export async function sendEmailSummary({
     const url = `https://${dns}${join(basePath, "notifications#page=messages-inbox")}`;
     const signIn = `https://${dns}${join(basePath, "auth", "sign-in")}`;
 
-    const subject = `${unread_message_count} unread ${siteName} ${plural(unread_message_count, "message")}`;
+    const num = unread_message_count <= 1 ? "" : ` (${unread_message_count})`;
+    const subject = `Unread ${siteName} ${plural(unread_message_count, "message")}${unread}`;
 
     const names0 = await getNames(messages.map(({ from_id }) => from_id));
     const names: { [account_id: string]: string } = {};
@@ -248,7 +249,6 @@ ${settings}
 function messageToHtml({ from_id, subject, body, id }, url, names) {
   const md = markdownit({
     html: true,
-    breaks: true,
     linkify: true,
     typographer: true,
   });

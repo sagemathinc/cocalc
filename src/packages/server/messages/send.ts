@@ -7,6 +7,8 @@ import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
 import getAdmins from "@cocalc/server/accounts/admins";
+import basePath from "@cocalc/backend/base-path";
+import { join } from "path";
 
 export default async function send({
   to_ids,
@@ -40,8 +42,20 @@ export default async function send({
   // validate sender -- if not given, assumed internal and tries to send
   // from support or an admin
   if (!from_id) {
-    from_id =
-      (await getServerSettings()).support_account_id ?? (await getAdmins())[0];
+    const { support_account_id, help_email, dns, site_name } =
+      await getServerSettings();
+    from_id = support_account_id ? support_account_id : (await getAdmins())[0];
+    const help = help_email
+      ? ` email us at [${help_email}](mailto:${help_email}), `
+      : "";
+    const support = `\n\n---\n\nThank you for using and supporting ${site_name}! If you have questions, reply to this message, ${help}
+or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).\n\n---\n\n`;
+    const i = body.indexOf("{support}");
+    if (i != -1) {
+      body = body.slice(0, i) + support + body.slice(i + "{support}".length);
+    } else {
+      body += support;
+    }
   }
   if (!from_id) {
     throw Error(
