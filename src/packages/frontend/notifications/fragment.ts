@@ -6,11 +6,11 @@
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { NotificationFilter, isNotificationFilter } from "./mentions/types";
 
-export function getNotificationFilterFromFragment(): {
+export function getNotificationFilterFromFragment(hash?): {
   filter: NotificationFilter;
   id?: number;
 } {
-  const fragmentId = Fragment.get();
+  const fragmentId = hash ? Fragment.decode(hash) : Fragment.get();
   if (fragmentId == null) {
     return { filter: "messages-inbox" as NotificationFilter };
   }

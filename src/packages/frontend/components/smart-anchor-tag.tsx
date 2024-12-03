@@ -27,6 +27,7 @@ import {
 } from "@cocalc/util/misc";
 import { TITLE as SERVERS_TITLE } from "../project/servers";
 import { alert_message } from "@cocalc/frontend/alerts";
+import { load_target as globalLoadTarget } from "@cocalc/frontend/history";
 
 interface Options {
   project_id: string;
@@ -349,6 +350,16 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (!project_id) {
+          // link is being opened outside of any specific project, e.g.,
+          // opening /settings outside of a project will open cocalc-wide
+          // settings for the user, not project settings.  E.g.,
+          // this could happen in the messages panel.
+          globalLoadTarget(href);
+          return;
+        }
+
         const dir = containingPath(path);
         const url = new URL("http://dummy/" + join(dir, href));
         const fragmentId = Fragment.decode(url.hash);

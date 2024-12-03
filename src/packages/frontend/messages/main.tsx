@@ -421,11 +421,13 @@ function ShowOneThread({
     // so change state to viewing threads instead... soon.
     // (Always stay in a search view though!)
     const message = messages.get(showThread);
-    const inFolder = folder=='search' || isInFolderThreaded({
-      threads,
-      message,
-      folder,
-    });
+    const inFolder =
+      folder == "search" ||
+      isInFolderThreaded({
+        threads,
+        message,
+        folder,
+      });
     if (message != null && inFolder) {
       // Maybe thread exists, but has a newer HEAD, so change to that.
       const thread_id = getThreadId(message);

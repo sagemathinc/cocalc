@@ -331,7 +331,7 @@ Body: ${message.get("body")}
     async (query: string) => {
       if (!query.trim()) {
         // easy special case
-        this.setState({ search: new Set() });
+        this.setState({ search: new Set(), searchWords: new Set() });
         return;
       }
       // used for highlighting

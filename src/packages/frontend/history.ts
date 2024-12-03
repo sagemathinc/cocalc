@@ -106,15 +106,32 @@ export function load_target(
   ignore_kiosk: boolean = false,
   change_history: boolean = true,
 ) {
+  if (target?.[0] == "/") {
+    target = target.slice(1);
+  }
+  let hash;
+  const i = target.lastIndexOf("#");
+  if (i != -1) {
+    hash = target.slice(i + 1);
+    target = target.slice(0, i);
+  } else {
+    hash = "";
+  }
   if (!target) {
     return;
   }
-  const logged_in = redux.getStore("account").get("is_logged_in");
+  if (!redux.getStore("account").get("is_logged_in")) {
+    // this will redirect to the sign in page after a brief pause
+    redux.getActions("page").set_active_tab("account", false);
+    return;
+  }
+
   const segments = target.split("/");
   switch (segments[0]) {
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
       break;
+
     case "projects":
       if (segments.length > 1) {
         redux
@@ -130,10 +147,8 @@ export function load_target(
         redux.getActions("page").set_active_tab("projects", change_history);
       }
       break;
+
     case "settings":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab("account", false);
 
       if (segments[1] === "billing") {
@@ -154,11 +169,8 @@ export function load_target(
       break;
 
     case "notifications":
-      if (!logged_in) return;
-      const { filter, id } = getNotificationFilterFromFragment();
-      if (filter) {
-        redux.getActions("mentions").set_filter(filter, id);
-      }
+      const { filter, id } = getNotificationFilterFromFragment(hash);
+      redux.getActions("mentions").set_filter(filter, id);
       redux.getActions("page").set_active_tab("notifications", change_history);
       break;
 
@@ -166,9 +178,6 @@ export function load_target(
       // not implemented
       break;
     case "admin":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab(segments[0], change_history);
       break;
   }
