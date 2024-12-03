@@ -2,7 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { deprovision, stop } from "@cocalc/server/compute/control";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { setError } from "@cocalc/server/compute/util";
-import sendEmail from "@cocalc/server/email/send-email";
+import send, { support } from "@cocalc/server/messages/send";
 import siteURL from "@cocalc/database/settings/site-url";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -10,7 +10,7 @@ import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import TTLCache from "@isaacs/ttlcache";
 
 // turn VM off if you don't have at least this much left.
-const COST_THRESH_DOLLARS = 2;
+const COST_THRESH_DOLLARS = 0.5;
 
 // If can't buy -- even if you increase all quotas and balance by
 // this amount -- then delete.  This is to avoid bad situations, e.g.,
@@ -19,7 +19,9 @@ const COST_THRESH_DOLLARS = 2;
 // say $10 from a stolen credit card and then quickly spending as much
 // as possible.  And they might do this with a large number of different
 // accounts at once.  So we don't want this margin to be too large.
-const DELETE_THRESH_MARGIN = 10;
+// Still we make it reasonably large since we really don't want to
+// delete data for non-abuse users.
+const DELETE_THRESH_MARGIN = 150;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
@@ -129,49 +131,13 @@ async function notifyUser({ server, service, action, callToAction }) {
       );
     }
     const projectTitle = await getProjectTitle(server.project_id);
-    const { help_email: from, site_name: siteName } = await getServerSettings();
-    const subject = `Low Balance - ${action}`;
-    const html = `
-Hello ${name},
-
-<br/>
-<br/>
-
-Your Compute Server '${server.title}' (Id: ${server.id}) is
-hitting your ${service} quota, or you are too low on funds.
-<br/>
-<br/>
-Action: ${action}
-<br/>
-<br/>
-<b>${callToAction}</b>
-<br/>
-<br/>
-
-
-<ul>
-<li>
-<a href="${await siteURL()}/settings/purchases">Add credit to your account
-and see all of your purchases</a>
-</li>
-<li>
-<a href="${await siteURL()}/projects/${server.project_id}/servers">Compute
-  Servers in your project ${projectTitle}</a>
-</li>
-</ul>
-
-If you have any questions, reply to this email to create a support request.
-<br/>
-<br/>
-
-  -- ${siteName}
-`;
-
-    const text = `
+    const { site_name: siteName } = await getServerSettings();
+    const subject = `${siteName}: Low Balance - ${action}`;
+    const body = `
 Hello ${name},
 
 Your Compute Server '${server.title}' (Id: ${server.id}) is
-hitting your ${service} quota, or you are too low on funds.
+hitting your ${service} quota, or you are very low on funds.
 
 Action Taken: ${action}
 
@@ -185,12 +151,10 @@ Compute Servers in your project ${projectTitle}
 
 ${await siteURL()}/projects/${server.project_id}/servers
 
-If you have any questions, reply to this email to create a support request.
-
-  -- ${siteName}
+${await support()}
 `;
 
-    await sendEmail({ from, to, subject, html, text });
+    await send({ to_ids: [server.account_id], subject, body });
   } catch (err) {
     logger.debug("updatePurchase: WARNING -- error notifying user -- ", err);
   }

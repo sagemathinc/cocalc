@@ -816,7 +816,7 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Compute Servers", "Hyperstack"],
   },
   hyperstack_balance_alert_emails: {
-    name: "Compute Servers: Hyperstack - Balance Email Addresses",
+    name: "(DEPRECATED) Compute Servers: Hyperstack - Balance Email Addresses",
     desc: "If your credit balance goes below your configured threshold, then these email addresses will get an alert message.  Separate addresses by commas.",
     default: "",
     show: compute_servers_hyperstack_enabled,
