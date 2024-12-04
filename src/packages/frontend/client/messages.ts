@@ -46,7 +46,9 @@ export async function send({
   body,
   reply_id,
 }: {
-  to_ids: string[];
+  // if to_ids is not given, then message is sent *to the user* themselves.  This can be useful
+  // for various sort of alerts that can get backed by batched emails (e.g., my computation is done).
+  to_ids?: string[];
   subject: string;
   body: string;
   reply_id?: number;

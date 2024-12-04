@@ -5,6 +5,7 @@ Some of these are only used by the nextjs app!
 */
 
 import api0 from "@cocalc/frontend/client/api";
+import { send } from "@cocalc/frontend/client/messages";
 import type {
   Purchase,
   Reason,
@@ -114,6 +115,7 @@ export async function setQuota(
   return await api("purchases/set-quota", { service, value });
 }
 
+let lastPurchaseAlert = 0;
 export async function isPurchaseAllowed(
   service: Service,
   cost?: number,
@@ -123,7 +125,22 @@ export async function isPurchaseAllowed(
   reason?: string;
   chargeAmount?: number;
 }> {
-  return await api("purchases/is-purchase-allowed", { service, cost });
+  const result = await api("purchases/is-purchase-allowed", { service, cost });
+  if (result.allowed && result.discouraged) {
+    if (Date.now() - lastPurchaseAlert >= 3000) {
+      lastPurchaseAlert = Date.now();
+      try {
+        // fire off a warning to the user so they know they are hitting a budget.
+        await send({
+          subject: "Pay as You Go Budget Alert",
+          body: `You recently made a purchase.  ${result.reason} \n\n [View and edit your Pay As You Go budgets](/settings/payg) or [browse all your purchases](/settings/purchases).`,
+        });
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+  }
+  return result;
 }
 
 interface PurchasesOptions {

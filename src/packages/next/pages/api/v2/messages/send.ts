@@ -30,5 +30,11 @@ async function get(req) {
     endpoint: "messages/send",
   });
   const { to_ids, subject, body, reply_id } = getParams(req);
-  return await send({ to_ids, from_id, subject, body, reply_id });
+  return await send({
+    to_ids: to_ids ?? [from_id],
+    from_id,
+    subject,
+    body,
+    reply_id,
+  });
 }
