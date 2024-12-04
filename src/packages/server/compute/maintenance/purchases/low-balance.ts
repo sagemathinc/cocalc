@@ -8,9 +8,11 @@ import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import TTLCache from "@isaacs/ttlcache";
+import getMinBalance from "@cocalc/server/purchases/get-min-balance";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 // turn VM off if you don't have at least this much left.
-const COST_THRESH_DOLLARS = 0.5;
+const COST_THRESH_DOLLARS = 1;
 
 // If can't buy -- even if you increase all quotas and balance by
 // this amount -- then delete.  This is to avoid bad situations, e.g.,
@@ -21,7 +23,12 @@ const COST_THRESH_DOLLARS = 0.5;
 // accounts at once.  So we don't want this margin to be too large.
 // Still we make it reasonably large since we really don't want to
 // delete data for non-abuse users.
-const DELETE_THRESH_MARGIN = 150;
+//
+// NOTE: we never automatically delete anything for a user with a negative balance, as
+// that indicates some trust.
+//
+const DELETE_THRESH_MARGIN_DEFAULT = 20;
+const DELETE_THRESH_MARGIN_NEGATIVE_BALANCE = 250;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
@@ -54,12 +61,18 @@ async function checkAllowed(service, server) {
     // normal purchase is allowed - we're good
     return true;
   }
+  const minBalance = await getMinBalance(server.account_id);
+  const margin =
+    minBalance < 0
+      ? DELETE_THRESH_MARGIN_NEGATIVE_BALANCE
+      : DELETE_THRESH_MARGIN_DEFAULT;
+
   // is it just bad, or REALLY bad?
   const x = await isPurchaseAllowed({
     account_id: server.account_id,
     service,
     cost: COST_THRESH_DOLLARS,
-    margin: DELETE_THRESH_MARGIN,
+    margin,
   });
   if (!x.allowed) {
     // REALLY BAD!
@@ -86,9 +99,17 @@ async function checkAllowed(service, server) {
   if (alsoDelete) {
     action = "Computer Server Deprovisioned (Disk Deleted)";
     callToAction = `Add credit to your account, to prevent other compute servers from being deleted.`;
+    adminAlert({
+      subject: "CRITICAL -- investigate low balance situation!!",
+      body: `- Account id: ${server.account_id}\n\n- Server id: ${server.id}\n\n`,
+    });
   } else {
     action = "Computer Server Turned Off";
     callToAction = `Add credit to your account, so your compute server isn't deleted.`;
+    adminAlert({
+      subject: "WARNING -- low balance situation",
+      body: `- Account id: ${server.account_id}\n\n- Server id: ${server.id}\n\n\nServer automatically stopped, but not deleted.`,
+    });
   }
 
   notifyUser({
