@@ -502,6 +502,7 @@ Table({
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
             no_email_new_messages: false,
+            use_balance_toward_subscriptions: false,
           },
           name: null,
           first_name: "",

@@ -665,7 +665,28 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         <div style={{ height: "10px" }} />
         <Tours />
         <Messages />
+        <UseBalance style={{ marginTop: "10px" }} />
       </Panel>
     </>
+  );
+}
+
+import UseBalanceTowardSubscriptions from "./balance-toward-subs";
+
+function UseBalance({ style }) {
+  const use_balance_toward_subscriptions = useTypedRedux(
+    "account",
+    "other_settings",
+  )?.get("use_balance_toward_subscriptions");
+  
+  return (
+    <UseBalanceTowardSubscriptions
+      style={style}
+      use_balance_toward_subscriptions={use_balance_toward_subscriptions}
+      set_use_balance_toward_subscriptions={(value) => {
+        const actions = redux.getActions("account");
+        actions.set_other_settings("use_balance_toward_subscriptions", value);
+      }}
+    />
   );
 }

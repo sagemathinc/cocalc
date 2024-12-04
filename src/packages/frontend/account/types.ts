@@ -53,6 +53,8 @@ export interface AccountState {
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;
     [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
+    no_email_new_messages?:boolean;
+    use_balance_toward_subscriptions?: boolean;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
