@@ -3,7 +3,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { isInFolderThreaded, isStarred, get, getThread } from "./util";
 import type { iThreads } from "./types";
 import { redux } from "@cocalc/frontend/app-framework";
-//import { useEffect, useState } from "react";
 
 interface Props {
   message: MessageType;
@@ -41,12 +40,6 @@ async function markThread({ message, threads, starred }) {
 }
 
 export default function Star({ message, threads, inThread, style }: Props) {
-  //   const [starred, setStarred] = useState<boolean>(
-  //     showAsStarred({ message, threads, inThread }),
-  //   );
-  //   useEffect(() => {
-  //     setStarred(showAsStarred({ message, threads, inThread }));
-  //   }, [message]);
   const starred = showAsStarred({ message, threads, inThread });
   return (
     <Icon
