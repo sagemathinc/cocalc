@@ -134,7 +134,7 @@ function MessageInList({
         )}
         <div
           style={{
-            flex: 1,
+            flex: inThread ? 1 : 0.5,
             marginRight: "10px",
             fontSize,
             ...(!inThread

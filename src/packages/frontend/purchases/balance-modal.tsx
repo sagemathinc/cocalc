@@ -56,7 +56,7 @@ export default function BalanceModal({
 
   return (
     <Modal
-      width={700}
+      width={800}
       title={
         <Flex style={{ paddingRight: "30px" }}>
           <div style={{ fontSize: "14pt" }}>

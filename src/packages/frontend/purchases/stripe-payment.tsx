@@ -490,7 +490,11 @@ export function ConfirmButton({
             {success && <>Purchase Successfully Completed!</>}
           </Button>
           {showAddress && (
-            <AddressButton size="large" style={{ height: "44px" }} />
+            <AddressButton
+              disabled={disabled || isSubmitting}
+              size="large"
+              style={{ height: "44px" }}
+            />
           )}
         </Space>
       </div>

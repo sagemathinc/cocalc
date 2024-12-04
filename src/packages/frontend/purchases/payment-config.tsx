@@ -119,6 +119,8 @@ export default function PaymentConfig({
           </div>
         )}
         <InputNumber
+          style={{ maxWidth: "200px" }}
+          size="large"
           min={Math.max(minAmount, minPayment)}
           max={MAX_COST}
           precision={2} // for two decimal places

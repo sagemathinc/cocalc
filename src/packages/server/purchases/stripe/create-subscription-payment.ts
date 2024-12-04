@@ -1,14 +1,24 @@
 import getLogger from "@cocalc/backend/logger";
 import { getStripeCustomerId } from "./util";
-import getPool from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { SUBSCRIPTION_RENEWAL } from "@cocalc/util/db-schema/purchases";
-import { isValidUUID } from "@cocalc/util/misc";
+import { currency, isValidUUID, round2down } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 import { ALLOWED_SLACK } from "@cocalc/server/purchases/shopping-cart-checkout";
 import editLicense from "@cocalc/server/purchases/edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import createPaymentIntent from "./create-payment-intent";
+import {
+  USE_BALANCE_TOWARD_SUBSCRIPTIONS,
+  USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
+} from "@cocalc/util/db-schema/accounts";
+import getBalance from "@cocalc/server/purchases/get-balance";
 import send from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+
+// nothing should ever be this small, but just in case:
+const MIN_SUBSCRIPTION_AMOUNT = 1;
 
 const logger = getLogger("purchases:stripe:create-subscription-payment");
 
@@ -29,8 +39,8 @@ export default async function createSubscriptionPayment({
   }
 
   logger.debug("createSubscriptionPayment -- ", { customer });
-  const client = getPool();
-  const { rows: subscriptions } = await client.query(
+  const pool = getPool();
+  const { rows: subscriptions } = await pool.query(
     "SELECT payment, cost, metadata, interval FROM subscriptions WHERE account_id=$1 AND id=$2",
     [account_id, subscription_id],
   );
@@ -53,7 +63,7 @@ export default async function createSubscriptionPayment({
     throw Error("subscription must be for a license");
   }
   const { license_id } = metadata ?? {};
-  const { rows: licenses } = await client.query(
+  const { rows: licenses } = await pool.query(
     "SELECT expires FROM site_licenses WHERE id=$1",
     [license_id],
   );
@@ -72,6 +82,70 @@ export default async function createSubscriptionPayment({
   const lineItems = [
     { description: `Renew subscription Id=${subscription_id}`, amount },
   ];
+
+  let payNow = false;
+  if (amount <= MIN_SUBSCRIPTION_AMOUNT) {
+    payNow = true;
+  } else if (await useBalanceTowardSubscriptions(account_id)) {
+    // The user has "Use Balance Toward Subscriptions" enabled.
+    const balance = await getBalance({ account_id });
+    if (balance >= amount) {
+      payNow = true;
+    }
+  }
+
+  const { site_name } = await getServerSettings();
+
+  if (payNow) {
+    // Instead of trying to charge their credit card (etc.), we just
+    // directly extend their subscription for another period using credit
+    // on their account, possibly going negative (in case of MIN_SUBSCRIPTION_AMOUNT).
+    // If that happens, they will get billed some other way, or be required to fix
+    // that in order to make future purchases.
+    // completely pay with credit -- we just process the renewal assuming money is there already.
+
+    const payment = {
+      subscription_id,
+      amount,
+      created: Date.now(),
+      status: "active",
+      new_expires_ms,
+    };
+    // we use one transaction so if anything goes awry, it is ALL rolled back.
+    const client = await getTransactionClient();
+    try {
+      await client.query("UPDATE subscriptions SET payment=$1 WHERE id=$2", [
+        payment,
+        subscription_id,
+      ]);
+      await processSubscriptionRenewal({
+        account_id,
+        paymentIntent: { metadata: { subscription_id } },
+        amount,
+        client,
+      });
+      // it worked -- so commit it
+      client.query("COMMIT");
+    } catch (err) {
+      logger.debug("error renewing subscription", err);
+      await client.query("ROLLBACK");
+      adminAlert({
+        subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
+        body: `Something that should not happen has gone wrong renewing subscription id=${subscription_id} for account account_id=${account_id}.  CoCalc tried to pay for the subscription renewal entirely out of the user's balance, but something crashed.  Please look into this ASAP, so their service is not inerrupted. \n\n${err}`,
+      });
+      throw err;
+    } finally {
+      client.release();
+    }
+    // It worked! Tell the user.
+    await send({
+      to_ids: [account_id],
+      subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
+      body: `Your ${site_name} subscription (id=${subscription_id}) has been renewed for ${currency(amount)} using credit on your account.  Your subscription is now fully paid through ${new Date(new_expires_ms)}. \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))}`,
+    });
+    return;
+  }
+
   const { payment_intent: payment_intent_id, hosted_invoice_url } =
     await createPaymentIntent({
       account_id,
@@ -93,27 +167,15 @@ export default async function createSubscriptionPayment({
     new_expires_ms,
   };
 
-  await client.query("UPDATE subscriptions SET payment=$1 WHERE id=$2", [
+  await pool.query("UPDATE subscriptions SET payment=$1 WHERE id=$2", [
     payment1,
     subscription_id,
   ]);
-
-  await sendSubscriptionPaymentMessage({
-    account_id,
-    hosted_invoice_url,
-    subscription_id,
-  });
-}
-
-async function sendSubscriptionPaymentMessage({
-  account_id,
-  subscription_id,
-  hosted_invoice_url,
-}) {
   await send({
     to_ids: [account_id],
-    subject: `Subscription Renewal: Id ${subscription_id}`,
-    body: `Invoice: ${hosted_invoice_url}`,
+    subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
+    body: `${site_name} has started renewing your subscription (id=${subscription_id}).\n\n
+Invoice: ${hosted_invoice_url}`,
   });
 }
 
@@ -121,6 +183,12 @@ export async function processSubscriptionRenewal({
   account_id,
   paymentIntent,
   amount,
+  client,
+}: {
+  account_id: string;
+  paymentIntent: { metadata: { subscription_id: number | string } };
+  amount: number;
+  client?;
 }) {
   const { subscription_id } = paymentIntent?.metadata ?? {};
   logger.debug("processSubscriptionRenewal", {
@@ -128,10 +196,15 @@ export async function processSubscriptionRenewal({
     amount,
     subscription_id,
   });
-  const client = getPool();
+  client = client ?? getPool();
   const { rows: subscriptions } = await client.query(
     "SELECT payment, cost, metadata, interval FROM subscriptions WHERE account_id=$1 AND id=$2",
-    [account_id, parseInt(subscription_id)],
+    [
+      account_id,
+      typeof subscription_id != "number"
+        ? parseInt(subscription_id)
+        : subscription_id,
+    ],
   );
   if (subscriptions.length == 0) {
     throw Error(`You do not have a subscription with id ${subscription_id}.`);
@@ -165,6 +238,7 @@ export async function processSubscriptionRenewal({
     note: "This is a subscription with a fixed cost per period.",
     isSubscriptionRenewal: true,
     force: true,
+    client,
   });
 
   logger.debug(
@@ -181,6 +255,7 @@ export async function processSubscriptionRenewal({
       payment,
     ],
   );
+
   await client.query(
     "UPDATE subscriptions SET payment=$5, status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",
     [
@@ -208,4 +283,22 @@ function subtractInterval(expires: Date, interval: "month" | "year"): Date {
   }
   let newExpires = dayjs(expires);
   return newExpires.subtract(1, interval).toDate();
+}
+
+export async function useBalanceTowardSubscriptions(
+  account_id: string,
+): Promise<boolean> {
+  const pool = getPool("long");
+  const { rows } = await pool.query(
+    `SELECT other_settings#>>'{${USE_BALANCE_TOWARD_SUBSCRIPTIONS}}' as use_balance FROM accounts WHERE account_id=$1`,
+    [account_id],
+  );
+  switch (rows[0]?.use_balance) {
+    case "true":
+      return true;
+    case "false":
+      return false;
+    default:
+      return USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT;
+  }
 }

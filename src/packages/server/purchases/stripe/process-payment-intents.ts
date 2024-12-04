@@ -13,6 +13,11 @@ import {
   SUBSCRIPTION_RENEWAL,
 } from "@cocalc/util/db-schema/purchases";
 import { processSubscriptionRenewal } from "./create-subscription-payment";
+import send, { support } from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
+import { currency, round2down } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import getBalance from "@cocalc/server/purchases/get-balance";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -97,94 +102,131 @@ export function isReadyToProcess(paymentIntent) {
 // The credit thus gets created at most once, and no items are created except by the
 // thread that created the credit.
 
-export async function processPaymentIntent(
-  paymentIntent,
-): Promise<number | undefined> {
-  let account_id = paymentIntent.metadata.account_id;
-  logger.debug("processPaymentIntent", { id: paymentIntent.id, account_id });
-  if (!account_id) {
-    // this should never happen, but in case it does, we lookup the account_id
-    // in our database, based on the customer id.
-    account_id = await getAccountIdFromStripeCustomerId(paymentIntent.customer);
-    if (!account_id) {
-      // no possible way to process this.
-      // This will happen in *test mode* since I use the exact same test credentials with
-      // many unrelated cocalc dev servers and they might all try to process the same payments.
-      logger.debug(
-        "processPaymentIntent: unknown stripe customer",
-        paymentIntent.customer,
-      );
+// reuseInFlight since this function is called pretty aggressively, and we want to avoid calling it twice
+// on the same input at the same time.  That doesn't result in a double transaction, but sends multiple
+// messages out to the user, which is confusing.
+export const processPaymentIntent = reuseInFlight(
+  async (paymentIntent): Promise<number | undefined> => {
+    if (paymentIntent.metadata.processed == "true") {
+      // already done.
       return;
     }
-  }
+    let account_id = paymentIntent.metadata.account_id;
+    logger.debug("processPaymentIntent", { id: paymentIntent.id, account_id });
+    if (!account_id) {
+      // this should never happen, but in case it does, we lookup the account_id
+      // in our database, based on the customer id.
+      account_id = await getAccountIdFromStripeCustomerId(
+        paymentIntent.customer,
+      );
+      if (!account_id) {
+        // no possible way to process this.
+        // This will happen in *test mode* since I use the exact same test credentials with
+        // many unrelated cocalc dev servers and they might all try to process the same payments.
+        logger.debug(
+          "processPaymentIntent: unknown stripe customer",
+          paymentIntent.customer,
+        );
+        return;
+      }
+    }
 
-  // IMPORTANT: There is just no way in general to know directly from the payment intent
-  // and invoice exactly what we were trying to charge the customer!  The problem is that
-  // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
-  // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
-  // this metadata, and we depend on it for how much the invoice is worth to us.
-  const total_excluding_tax_usd =
-    paymentIntent.metadata.total_excluding_tax_usd;
-  if (total_excluding_tax_usd == null) {
-    // cannot be processed further.
-    return;
-  }
-  const amount = stripeToDecimal(parseInt(total_excluding_tax_usd));
+    // IMPORTANT: There is just no way in general to know directly from the payment intent
+    // and invoice exactly what we were trying to charge the customer!  The problem is that
+    // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
+    // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
+    // this metadata, and we depend on it for how much the invoice is worth to us.
+    const total_excluding_tax_usd =
+      paymentIntent.metadata.total_excluding_tax_usd;
+    if (total_excluding_tax_usd == null) {
+      // cannot be processed further.
+      return;
+    }
+    const amount = stripeToDecimal(parseInt(total_excluding_tax_usd));
 
-  const stripe = await getConn();
-  const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
+    const stripe = await getConn();
+    const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
 
-  // credit the account.  If the account was already credited for this (e.g.,
-  // by another process doing this at the same time), that should be detected
-  // and is a no-op, due to the invoice_id being unique amount purchases records
-  // for this account (MAKE SURE!).
-  const credit_id = await createCredit({
-    account_id,
-    invoice_id: paymentIntent.id,
-    amount,
-    description: {
-      line_items: getInvoiceLineItems(invoice),
-      description: paymentIntent.description,
-      purpose: paymentIntent.metadata.purpose,
-    },
-    service:
-      paymentIntent.metadata.purpose == AUTO_CREDIT ? "auto-credit" : "credit",
-  });
-
-  // make metadata so we won't consider this payment intent ever again
-  // NOTE: we are mutating this on purpose so that the paymentIntent
-  // that gets returned, e.g., by getPayments is already up to date with the credit_id!
-  paymentIntent.metadata.processed = "true";
-  paymentIntent.metadata.credit_id = credit_id;
-  await stripe.paymentIntents.update(paymentIntent.id, {
-    metadata: paymentIntent.metadata,
-  });
-
-  if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
-    // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
-    // to provision each of those items.
-    await shoppingCartCheckout({
+    // credit the account.  If the account was already credited for this (e.g.,
+    // by another process doing this at the same time), that should be detected
+    // and is a no-op, due to the invoice_id being unique amount purchases records
+    // for this account (MAKE SURE!).
+    const credit_id = await createCredit({
       account_id,
-      payment_intent: paymentIntent.id,
+      invoice_id: paymentIntent.id,
       amount,
-      cart_ids:
-        paymentIntent.metadata.cart_ids != null
-          ? JSON.parse(paymentIntent.metadata.cart_ids)
-          : undefined,
+      description: {
+        line_items: getInvoiceLineItems(invoice),
+        description: paymentIntent.description,
+        purpose: paymentIntent.metadata.purpose,
+      },
+      service:
+        paymentIntent.metadata.purpose == AUTO_CREDIT
+          ? "auto-credit"
+          : "credit",
     });
-  } else if (paymentIntent.metadata.purpose == STUDENT_PAY) {
-    // Student pay for a course
-    await studentPay({
-      account_id,
-      project_id: paymentIntent.metadata.project_id,
-      amount,
-    });
-  } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
-    await processSubscriptionRenewal({ account_id, paymentIntent, amount });
-  }
 
-  return credit_id;
-}
+    // make metadata so we won't consider this payment intent ever again
+    // NOTE: we are mutating this on purpose so that the paymentIntent
+    // that gets returned, e.g., by getPayments is already up to date with the credit_id!
+    paymentIntent.metadata.processed = "true";
+    paymentIntent.metadata.credit_id = credit_id;
+    await stripe.paymentIntents.update(paymentIntent.id, {
+      metadata: paymentIntent.metadata,
+    });
+
+    let reason = "add credit to your account";
+    try {
+      if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
+        reason = "purchase items in your shopping cart";
+        // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
+        // to provision each of those items.
+        await shoppingCartCheckout({
+          account_id,
+          payment_intent: paymentIntent.id,
+          amount,
+          cart_ids:
+            paymentIntent.metadata.cart_ids != null
+              ? JSON.parse(paymentIntent.metadata.cart_ids)
+              : undefined,
+        });
+      } else if (paymentIntent.metadata.purpose == STUDENT_PAY) {
+        reason = `pay for a course (project_id=${paymentIntent.metadata.project_id})`;
+        // Student pay for a course
+        await studentPay({
+          account_id,
+          project_id: paymentIntent.metadata.project_id,
+          amount,
+        });
+      } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
+        reason = `renew a subscription (id=${paymentIntent.metadata.subscription_id})`;
+        await processSubscriptionRenewal({ account_id, paymentIntent, amount });
+      }
+      send({
+        to_ids: [account_id],
+        subject: `Successfully Processed ${currency(amount)} Payment (Credit id: ${credit_id})`,
+        body: `You successfully made a payment of ${currency(amount)}, which was used to ${reason}.  Thank you!\n\n- Payment id: ${paymentIntent.id}\n- Credit id: ${credit_id}\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} ${await support()}`,
+      });
+    } catch (err) {
+      // There basically should never be a case where any of the above fails.  But multiple
+      // transactions happening at once, or bugs, etc. could maybe lead to a case where
+      // cocalc refuses to fully process the transaction.  Communicate this.
+      const body = `You made a payment of ${currency(amount)}, which has been successfully processed by our payment processor, and a credit of ${currency(amount)} has been added to your account (purchase id=${credit_id}).  You made this payment to ${reason}.   Please retry that purchase instead using the credit that is now on your account.  \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} \n\nERROR: ${err}${await support()}`;
+      send({
+        to_ids: [account_id],
+        subject: `Possible Issue Processing ${currency(amount)} Payment`,
+        body,
+      });
+      adminAlert({
+        subject: "Issue Processing a User Payment",
+        body: `There was an error processing payment intent id ${paymentIntent.id} for the user with account_id=${account_id}.\n\n## Message sent to user:\n\n${body}`,
+      });
+      throw err;
+    }
+
+    return credit_id;
+  },
+);
 
 // This allows for a periodic check that we have processed all recent payment
 // intents across all users.  It should be called periodically.

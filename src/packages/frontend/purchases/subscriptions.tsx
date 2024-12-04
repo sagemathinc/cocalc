@@ -467,12 +467,11 @@ export default function Subscriptions() {
 
       {
         width: "15%",
-        title: "Current Period",
+        title: "Paid Through",
         key: "period",
         render: (_, record) => {
           return (
             <>
-              <TimeAgo date={record.current_period_start} /> to{" "}
               <TimeAgo date={record.current_period_end} />
             </>
           );

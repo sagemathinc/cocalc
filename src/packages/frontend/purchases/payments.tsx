@@ -403,9 +403,9 @@ function PaymentDetails({ paymentIntent, account_id, onFinished }) {
               <div
                 style={{
                   margin: "auto",
-                  maxWidth: "600px",
+                  maxWidth: "800px",
                   background: "white",
-                  padding: "30px",
+                  padding: "30px 0",
                 }}
               >
                 <FinishStripePayment

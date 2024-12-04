@@ -17,15 +17,15 @@ export default function UseBalanceTowardSubscriptions({
         </>
       }
     >
-      <Tooltip title="Enable this if you do not need to maintain a positive balance for pay as you go purchases.  If you are using compute servers you probably do not want to enable this, but if you just put credit on your account to pay for subscriptions, enable it.">
+      <Tooltip title="Enable this if you do not need to maintain a positive balance for pay as you go purchases.  If you are using compute servers you probably do not want to enable this. However, if you primarily put credit on your account to pay for subscriptions, consider enabling this.  The entire amount for the subscription renewal must be available.">
         <Checkbox
           checked={use_balance_toward_subscriptions}
           onChange={(e) => {
             set_use_balance_toward_subscriptions(e.target.checked);
           }}
         >
-          Use Balance - first apply any credit on your account toward any
-          subscriptions payments, before charging my credit card.
+          Use Balance - pay subscription using balance on your account, if
+          possible
         </Checkbox>
       </Tooltip>
     </Card>

@@ -54,7 +54,7 @@ function ManageSubscriptionModal({ onClose, subscription_id }) {
     <Modal
       width="600px"
       open
-      title={<>Manage Subscription</>}
+      title={<>Manage Subscription (Id = {subscription_id})</>}
       onCancel={onClose}
       onOk={onClose}
     >
@@ -182,7 +182,7 @@ function PaymentStatus({ license, subscription }) {
     return (
       <div>
         <b>
-          Your subscription is fully paid through <TimeAgo date={expires} />.
+          Your subscription is fully paid until <TimeAgo date={expires} />.
         </b>
       </div>
     );

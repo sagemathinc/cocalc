@@ -64,9 +64,9 @@ export default function Payment({ balance, update, cost }: Props) {
               <div
                 style={{
                   margin: "auto",
-                  maxWidth: "600px",
+                  maxWidth: "800px",
                   background: "white",
-                  padding: "30px",
+                  padding: "30px 0",
                 }}
               >
                 <StripePayment

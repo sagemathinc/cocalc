@@ -38,7 +38,7 @@ purchases:
 
 import type { Statement } from "@cocalc/util/db-schema/statements";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2down } from "@cocalc/util/misc";
 import { plural } from "@cocalc/util/misc";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
@@ -56,7 +56,7 @@ export function statementToMarkdown(
   return `
 ## Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement (Id = ${statement.id})
 - ${toISODay(statement.time)}
-- Previous Account Balance: ${currency(previousStatement?.balance ?? 0)}
+- Previous Account Balance: ${currency(round2down(previousStatement?.balance ?? 0))}
 - ${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
     -statement.total_charges,
   )}

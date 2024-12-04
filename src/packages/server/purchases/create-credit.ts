@@ -12,6 +12,7 @@ import type { Credit } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import updatePendingPurchases from "./update-pending-purchases";
+import getBalance from "./get-balance";
 
 const logger = getLogger("purchases:create-credit");
 
@@ -73,6 +74,9 @@ export default async function createCredit({
     ],
   );
   await updatePending(account_id, client);
+
+  // call getbalance to trigger update of the balance field in the accounts table.
+  await getBalance({ account_id });
 
   return rows[0].id;
 }

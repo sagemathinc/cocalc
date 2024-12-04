@@ -199,7 +199,9 @@ export default async function editLicense(
       );
     }
 
-    await client.query("COMMIT");
+    if (opts.client == null) {
+      await client.query("COMMIT");
+    }
   } catch (err) {
     if (opts.client == null) {
       logger.debug("editLicense -- error -- reverting transaction", err);

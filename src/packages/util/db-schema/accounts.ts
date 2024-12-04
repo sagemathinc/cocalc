@@ -20,6 +20,10 @@ import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
 export const USER_SEARCH_LIMIT = 250;
 export const ADMIN_SEARCH_LIMIT = 2500;
 
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS =
+  "use_balance_toward_subscriptions";
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT = false;
+
 // AutoBalance: Every parameter is in dollars.
 export interface AutoBalance {
   // deposit money when the balance goes below this
@@ -502,7 +506,8 @@ Table({
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
             no_email_new_messages: false,
-            use_balance_toward_subscriptions: false,
+            [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
+              USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
           },
           name: null,
           first_name: "",
