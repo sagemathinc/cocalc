@@ -149,6 +149,14 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           ),
         },
         {
+          key: "messages-starred",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="star" /> Starred
+            </span>
+          ),
+        },
+        {
           key: "messages-all",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>

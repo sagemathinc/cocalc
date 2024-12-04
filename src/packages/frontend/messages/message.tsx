@@ -26,6 +26,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Read from "./read";
+import Star from "./star";
 
 const LEFT_OFFSET = "46px";
 
@@ -123,6 +124,14 @@ function MessageInList({
             />
           </div>
         )}
+        {!inThread && (
+          <Star
+            message={message}
+            threads={threads}
+            inThread={inThread}
+            style={{ margin: "0 10px 0 5px" }}
+          />
+        )}
         <div
           style={{
             flex: 1,
@@ -207,16 +216,27 @@ function MessageInList({
             />
           </Tooltip>
         </div>
+        {inThread && (
+          <Star
+            message={message}
+            threads={threads}
+            inThread={inThread}
+            style={{ margin: "0 0 0 5px" }}
+          />
+        )}
         {SHOW_ID && (
-          <div
-            style={{
-              color: "#888",
-              position: "absolute",
-              right: 0,
-            }}
-          >
-            {message.id}
-          </div>
+          <Tooltip title={<>{message.id}</>}>
+            <div
+              style={{
+                color: "#999",
+                position: "absolute",
+                right: 0,
+                fontSize: "11px",
+              }}
+            >
+              {message.id}
+            </div>
+          </Tooltip>
         )}
       </Flex>
       {inThread && (
@@ -391,13 +411,19 @@ function MessageFull({
             />
           </Tooltip>
         </div>
+        <Star
+          message={message}
+          threads={threads}
+          inThread={true}
+          style={{ marginLeft: "10px" }}
+        />
         {SHOW_ID && (
           <div
             style={{
-              color: "#888",
-              marginRight: "10px",
-              width: "50px",
-              textAlign: "right",
+              color: "#999",
+              fontSize: "12px",
+              position: "absolute",
+              right: 0,
             }}
           >
             {message.id}

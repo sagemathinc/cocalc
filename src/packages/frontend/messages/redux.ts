@@ -63,6 +63,7 @@ export class MessagesActions extends Actions<MessagesState> {
     ids?: Set<number>;
     read?: boolean;
     saved?: boolean;
+    starred?: boolean;
     deleted?: boolean;
     expire?: boolean;
   }) => {
@@ -81,6 +82,7 @@ export class MessagesActions extends Actions<MessagesState> {
       // change more than one record at a time.
       let changed_table = false;
       let changed_sent_table = false;
+
       for (const id of ids) {
         let message = table.get_one(`${id}`);
         if (message != null) {
@@ -383,6 +385,7 @@ class MessagesTable extends Table {
           thread_id: null,
           read: null,
           saved: null,
+          starred: null,
           deleted: null,
           expire: null,
         },
@@ -423,6 +426,7 @@ class SentMessagesTable extends Table {
           thread_id: null,
           read: null,
           saved: null,
+          starred: null,
           deleted: null,
           expire: null,
         },

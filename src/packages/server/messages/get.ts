@@ -58,6 +58,14 @@ export default async function get({
     where.push(`not ${pgBitField("saved", account_id, "")}`);
     where.push(`not ${pgBitField("deleted", account_id, "")}`);
     where.push(`not ${pgBitField("expire", account_id, "")}`);
+  } else if (type == "starred") {
+    query = `SELECT ${fields} FROM messages`;
+    where.push(`$${params.length + 1}::UUID = ANY(to_ids)`);
+    params.push(account_id);
+    where.push("sent IS NOT NULL");
+    where.push(`${pgBitField("starred", account_id, "")}`);
+    where.push(`not ${pgBitField("deleted", account_id, "")}`);
+    where.push(`not ${pgBitField("expire", account_id, "")}`);
   }
 
   query += " WHERE " + where.join(" AND ");

@@ -52,10 +52,12 @@ export function isInFolderThreaded({
       folder == "inbox" ||
       folder == "sent" ||
       folder == "drafts" ||
-      folder == "search"
+      folder == "search" ||
+      folder == "starred"
     ) {
       // inbox = at least one message in the thread is in inbox
       // sent = at least one message was sent by us
+      // starred = at least one message in thread is starred
       for (const message of thread) {
         if (isInFolderNotThreaded({ message, folder, search })) {
           return true;
@@ -119,6 +121,10 @@ function isInFolderNotThreaded({
     return false;
   }
 
+  if (folder == "starred") {
+    return isStarred(message);
+  }
+
   const draft = isDraft(message);
 
   if (folder == "drafts") {
@@ -148,6 +154,10 @@ function isInFolderNotThreaded({
 
 export function isRead(message: Mesg) {
   return getBitField(message, "read");
+}
+
+export function isStarred(message: Mesg) {
+  return getBitField(message, "starred");
 }
 
 // true if every single message in the thread is read
@@ -185,6 +195,20 @@ export function isDraft(message?: Mesg): boolean {
 
 export function isToMe(message?: Mesg): boolean {
   return !!get(message, "to_ids")?.includes(webapp_client.account_id);
+}
+
+export function getThread({
+  message,
+  threads,
+}: {
+  message: Mesg;
+  threads: iThreads | null;
+}) {
+  const thread_id = getThreadId(message);
+  if (thread_id != null) {
+    return threads?.get(thread_id) ?? [message];
+  }
+  return [message];
 }
 
 // returns new set that has all the ids in all threads that intersect ids.

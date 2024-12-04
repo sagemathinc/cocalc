@@ -66,6 +66,7 @@ export const NON_BITSET_FIELDS = [
 export interface Message extends Message0 {
   read?: string;
   saved?: string;
+  starred?: string;
   deleted?: string;
   expire?: string;
 }
@@ -73,13 +74,20 @@ export interface Message extends Message0 {
 export interface MessageMe extends Message0 {
   read?: boolean;
   saved?: boolean;
+  starred?: boolean;
   deleted?: boolean;
   expire?: boolean;
 }
 
 export const MAX_LIMIT = 500;
 
-export const BITSET_FIELDS = ["read", "saved", "deleted", "expire"] as const;
+export const BITSET_FIELDS = [
+  "read",
+  "saved",
+  "starred",
+  "deleted",
+  "expire",
+] as const;
 
 export type BitSetField = (typeof BITSET_FIELDS)[number];
 
@@ -94,7 +102,7 @@ export interface ApiMessagesGet {
   // received = all messages to you (the default)
   // sent = all messages you sent
   // new = to you and not read or saved -- these are what the counter counts
-  type?: "received" | "sent" | "new";
+  type?: "received" | "sent" | "new" | "starred";
   cutoff?: Date;
 }
 
@@ -166,6 +174,11 @@ Table({
       pg_type: "bit varying",
       desc: "Users that saved this message for later (so no longer in inbox)",
     },
+    starred: {
+      type: "string",
+      pg_type: "bit varying",
+      desc: "Users that starred this message so they can easily find it later",
+    },
     deleted: {
       type: "string",
       pg_type: "bit varying",
@@ -198,6 +211,7 @@ Table({
           thread_id: null,
           read: null,
           saved: null,
+          starred: null,
           deleted: null,
           expire: null,
         },
@@ -207,6 +221,7 @@ Table({
           id: true,
           read: true,
           saved: true,
+          starred: true,
           deleted: true,
           expire: true,
         },
@@ -311,6 +326,7 @@ Table({
           sent: true,
           thread_id: true,
           saved: true,
+          starred: true,
           read: true,
           deleted: true,
           expire: true,
