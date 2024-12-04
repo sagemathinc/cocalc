@@ -244,8 +244,8 @@ export function GoogleNetworkCost({ markup: markup0 }: { markup?: number }) {
   const markup = useMarkup(markup0);
   return (
     <>
-      The networking pricing is a {markup != null ? `${markup}%` : "small"}{" "}
-      markup on exactly what{" "}
+      Network pricing is a {markup != null ? `${markup}%` : "small"} markup
+      on exactly what{" "}
       <A href="https://cloud.google.com/vpc/network-pricing">
         Google charges for network usage.
       </A>{" "}

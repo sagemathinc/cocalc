@@ -117,7 +117,12 @@ export async function setQuota(
 export async function isPurchaseAllowed(
   service: Service,
   cost?: number,
-): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
+): Promise<{
+  allowed: boolean;
+  discouraged?: boolean;
+  reason?: string;
+  chargeAmount?: number;
+}> {
   return await api("purchases/is-purchase-allowed", { service, cost });
 }
 

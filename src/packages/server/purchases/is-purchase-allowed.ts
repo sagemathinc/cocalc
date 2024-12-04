@@ -50,6 +50,7 @@ export async function isPurchaseAllowed({
   margin = 0,
 }: Options): Promise<{
   allowed: boolean;
+  discouraged?: boolean;
   reason?: string;
   // if purchase is not allowed entirely because balance is too low -- this is how much you must pay,
   // taking into account the configured minPayment. The reason will explain this.
@@ -132,6 +133,8 @@ export async function isPurchaseAllowed({
     };
   }
 
+  // Below this is payg services only:
+
   // First check that making purchase won't reduce our balance below the minBalance.
   // Also, we round balance down since fractional pennies don't count, and
   // can cause required to be off by 1 below.
@@ -139,6 +142,8 @@ export async function isPurchaseAllowed({
   const balanceAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (balanceAfterPurchase + 0.01 < minBalance) {
+    // You do not have enough money, so obviously deny the purchase.
+
     const required = round2up(cost - (balance - minBalance));
     const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
     const v: string[] = [];
@@ -158,6 +163,10 @@ export async function isPurchaseAllowed({
       reason: `Please pay ${currency(round2up(chargeAmount))}${v.length > 0 ? ": " : ""} ${v.join(", ")}`,
     };
   }
+
+  // Below here you have enough money, so everything is allowed, but
+  // possibly discouraged.
+
   // Next check that the quota for the specific service is not exceeded.
   // This is a self-imposed limit by the user to control what they
   // explicitly authorized.
@@ -165,10 +174,11 @@ export async function isPurchaseAllowed({
     const quotaForService = (services[service] ?? 0) + margin;
     if (quotaForService <= 0) {
       return {
-        allowed: false,
-        reason: `You must increase your monthly spending limit for the "${
+        allowed: true,
+        discouraged: true,
+        reason: `This purchase may exceed your personal monthly spending budget for the "${
           QUOTA_SPEC[service]?.display ?? service
-        }" service.`,
+        }" service.  The purchase is still allowed.`,
       };
     }
     // user has set a quota for this service.  is the total unpaid spend within this quota?
@@ -182,14 +192,13 @@ export async function isPurchaseAllowed({
     );
     if (chargesForService + cost > quotaForService) {
       return {
-        allowed: false,
-        reason: `You need to increase your ${
+        allowed: true,
+        discouraged: true,
+        reason: `This purchase may exceed your personal monthly spending budget of ${currency(quotaForService)} for "${
           QUOTA_SPEC[service]?.display ?? service
-        } spending limit (this month charges: ${currency(
-          chargesForService,
-        )}).  Your limit ${currency(quotaForService)} for "${
+        }".  This month you have spent ${currency(chargesForService)} on ${
           QUOTA_SPEC[service]?.display ?? service
-        }" is not sufficient to make a purchase of up to ${currency(cost)}.`,
+        }.`,
       };
     }
   }

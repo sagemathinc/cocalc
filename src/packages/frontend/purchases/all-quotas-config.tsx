@@ -22,7 +22,7 @@ import { SectionDivider } from "./util";
 
 export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
-export const PRESETS = [0, 100, 500, 2000];
+export const PRESETS = [0, 25, 100, 2000];
 export const STEP = 5;
 
 interface ServiceQuota {
@@ -200,7 +200,7 @@ export default function AllQuotasConfig() {
   return (
     <div>
       <SectionDivider onRefresh={handleRefresh} loading={saving || loading}>
-        Prices and Limits
+        Your Pay As You Go Budget
       </SectionDivider>
       {error && (
         <Alert
@@ -211,8 +211,20 @@ export default function AllQuotasConfig() {
       )}
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-        <b>Your Budget</b>: these are your monthly spending limits to prevent
-        overspending. You can change them at any time.
+        <Alert
+          style={{ margin: "auto", maxWidth: "800px" }}
+          type="info"
+          description={
+            <>
+              These are your monthly spending limits to help prevent
+              overspending. You can change them at any time, and they help you
+              visualize how much you have spent on pay as you go purchases.
+              These are "soft limits" --{" "}
+              <b>purchases are not blocked if you exceed these limits</b>;
+              instead, you will receive warnings.
+            </>
+          }
+        />
       </div>
 
       <div style={{ marginBottom: "15px" }}>
