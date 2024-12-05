@@ -30,14 +30,6 @@ export function isCoCalcURL(href?: string): boolean {
   }
   const url = new URL("http://dummy/" + s);
   const path = url.pathname.split("/")[1];
-  console.log({
-    href,
-    s,
-    path,
-    h: APP_ROUTES.has(path),
-    pathname: url.pathname,
-    url,
-  });
   return APP_ROUTES.has(path);
 }
 

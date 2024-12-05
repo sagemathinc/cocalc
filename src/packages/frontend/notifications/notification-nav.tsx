@@ -127,9 +127,13 @@ export function NotificationNav({ filter, on_click, style }: Props) {
         {
           key: "messages-inbox",
           label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="container" /> Inbox
-            </span>
+            <div style={{ display: "flex", width: "100%" }}>
+              <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+                <Icon name="container" /> Inbox
+              </span>
+              <div style={{ flex: 1 }} />
+              <MessagesCounter minimal />
+            </div>
           ),
         },
         {
