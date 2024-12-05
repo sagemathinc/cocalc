@@ -21,7 +21,7 @@ import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
 import User from "./user";
 import Compose from "./compose";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
@@ -294,6 +294,7 @@ function MessageFull({
   showThread,
 }: Props) {
   const read = isRead(message);
+  const readRef = useRef<boolean>(read);
   const searchWords = useTypedRedux("messages", "searchWords");
   const fontSize = useTypedRedux("messages", "fontSize");
 
@@ -302,7 +303,16 @@ function MessageFull({
   }, [folder, message.id]);
 
   useEffect(() => {
-    if (!read) {
+    // reset this whenever message id changes, because now rendering a
+    // different one, and may need to mark it read.
+    readRef.current = read;
+  }, [message.id]);
+
+  useEffect(() => {
+    if (!read && !readRef.current) {
+      readRef.current = true;
+      // only ever set it to be read once -- e.g., if you click "Unread" then don't want
+      // the message to instantly get set to read again just because it is rendered.
       redux.getActions("messages").mark({
         id: message.id,
         read: true,
