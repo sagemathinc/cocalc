@@ -11,11 +11,20 @@ CREATE PAYMENTS:
   for that subscription, we do the following:
 
   - Create a payment intent for the amount to renew the subscription for the next
-    period. The metadata says exactly what this payment is for and what should happen
-    when payment is processed.
+    period. The metadata says what this payment is for and what should happen
+    when payment is processed.  If user has selected to pay from credit on file
+    and they have enough to covert the entire renewal, subscription is immediately
+    renewed using available credit.
 
-  - Also, when making the payment intent, extend the license expire date for 3 days,
-    as a free automatic grace period, since payments can take a while to complete.
+  - After successfully making the payment intent, extend the license so it does not
+    expires 5 days from now (3 days after expire), as a free automatic grace
+    period, since payments can take a while to complete.
+
+      ABUSE POTENTIAL: this is slightly DANGEROUS!!  The user could maybe cancel everything and
+      get a prorated refund on the license that would give them credit for these 3
+      days.  It's not too dangerous though, since this only happens automatically
+      on the subscription renewal and there is no way for the user to trigger it.
+      We might want to not allow this...  We'll see.
 
   - Send message about subscription renewal payment.  Including invoice
     payment link from stripe in that message.
@@ -90,6 +99,7 @@ import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
 import { currency } from "@cocalc/util/misc";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -210,7 +220,7 @@ export async function createPayments() {
   SELECT id as subscription_id, account_id FROM subscriptions WHERE
       status != 'canceled' AND
       current_period_end <= NOW() + interval '48 hours' AND
-      payment#>>'{status}' != 'active'
+      coalesce(payment#>>'{status}','') != 'active'
   `,
   );
   logger.debug(
@@ -231,6 +241,55 @@ export async function createPayments() {
         `createPayments -- ERROR billing subscription id ${subscription_id} -- ${err}`,
       );
     }
+    await gracePeriod({
+      subscription_id,
+      until: dayjs().add(5, "days").toDate(),
+    });
+  }
+}
+
+export async function gracePeriod({
+  subscription_id,
+  until,
+}: {
+  subscription_id: number;
+  until: Date;
+}) {
+  logger.debug("gracePeriod", { subscription_id, until });
+  // Check to ensure the license does not expire until after "until".
+  // It might have been renewed already by the time we get here.
+  const pool = getPool();
+  const { rows: subscriptions } = await pool.query(
+    "SELECT metadata FROM subscriptions WHERE id=$1",
+    [subscription_id],
+  );
+  const license_id = subscriptions[0]?.metadata?.license_id;
+  if (!license_id) {
+    logger.debug("gracePeriod: no license_id");
+    return;
+  }
+  logger.debug("gracePeriod:", { license_id });
+  const { rows: licenses } = await pool.query(
+    "SELECT expires FROM site_licenses WHERE id=$1",
+    [license_id],
+  );
+  if (licenses.length == 0) {
+    logger.debug("gracePeriod: no such license", { license_id });
+    return;
+  }
+  const expires = licenses[0].expires;
+  if (expires == null) {
+    logger.debug("gracePeriod: suspicious license - no expires set (?)", {
+      license_id,
+    });
+    return;
+  }
+  if (expires < until) {
+    logger.debug("gracePeriod: adding grace period to license.");
+    await pool.query("UPDATE site_licenses SET expires=$1 WHERE id=$2", [
+      until,
+      license_id,
+    ]);
   }
 }
 

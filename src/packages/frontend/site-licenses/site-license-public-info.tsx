@@ -353,7 +353,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
       return (
         <>
-          {runLimitTxt} Paid through {when}.
+          {runLimitTxt} Valid through {when}.
         </>
       );
     }

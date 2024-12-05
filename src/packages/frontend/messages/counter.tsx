@@ -17,6 +17,9 @@ export default function Counter({
     set_window_title();
   }, [unread_message_count]);
   if (minimal) {
+    if (!unread_message_count) {
+      return null;
+    }
     return <span style={style}>{unread_message_count}</span>;
   }
   return (

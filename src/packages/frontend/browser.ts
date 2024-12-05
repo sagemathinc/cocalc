@@ -12,10 +12,13 @@ export function notifyCount() {
   const mentions = redux.getStore("mentions");
   const account = redux.getStore("account");
   const news = redux.getStore("news");
+  // we always count balance_alert as "1", since we don't even
+  // know how many of them there are until querying stripe.
   return (
     (mentions?.getUnreadSize() ?? 0) +
     (account?.get("unread_message_count") ?? 0) +
-    (news?.get("unread") ?? 0)
+    (news?.get("unread") ?? 0) +
+    (account?.get("balance_alert") ? 1 : 0)
   );
 }
 
