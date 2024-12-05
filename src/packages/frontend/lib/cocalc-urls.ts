@@ -10,6 +10,15 @@ function getOrigin(): string {
   return document.location.origin + (appBasePath.length > 1 ? appBasePath : "");
 }
 
+// strips page origin from href, but NOT leading slash
+export function removeOrigin(href: string): string {
+  const origin = getOrigin();
+  if (!href?.startsWith(origin)) {
+    return href;
+  }
+  return href.slice(origin.length);
+}
+
 // True if starts with host's URL, but is not a port or proxy URL (e.g.,
 // cocalc.com/[project_id]), since it makes no sense to open a proxy server
 // URL directly inside CoCalc.
@@ -52,10 +61,6 @@ export function parseCoCalcURL(href?: string): {
   const query = url.search;
   let pathname = url.pathname.slice(1);
   const i = pathname.indexOf("/");
-  if (pathname.startsWith("settings")) {
-    // annoyingly, 'account' is what it is called in src/packages/frontend/app/actions.ts
-    pathname = "account";
-  }
   if (i == -1) {
     return { page: pathname, fragmentId, query };
   }

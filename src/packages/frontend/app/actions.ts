@@ -163,6 +163,7 @@ export class PageActions extends Actions<PageState> {
         set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
+      case "settings":
         if (change_history) {
           redux.getActions("account").push_state();
         }

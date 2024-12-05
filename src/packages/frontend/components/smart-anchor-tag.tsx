@@ -17,7 +17,11 @@ import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import {
+  isCoCalcURL,
+  parseCoCalcURL,
+  removeOrigin,
+} from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import {
@@ -125,7 +129,7 @@ function CoCalcURL({ href, title, children, project_id }) {
     } else if (page) {
       // opening a different top level page, e.g., all projects or account settings or something.
       e.preventDefault();
-      redux.getActions("page").set_active_tab(page);
+      globalLoadTarget(removeOrigin(href));
       return;
     }
     // fall back to default.

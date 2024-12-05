@@ -82,7 +82,7 @@ export function update_params() {
   }
 }
 
-// the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
+// the url must already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
 export function set_url(url: string, hash?: string) {
   if (IS_EMBEDDED) {
     // no need to mess with url in embedded mode.
