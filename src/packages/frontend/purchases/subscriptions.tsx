@@ -21,7 +21,7 @@ The subscriptions look like this in the database:
 ];
 */
 
-import { Alert, Collapse, Spin, Table } from "antd";
+import { Alert, Collapse, Spin, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ManageSubscriptionButton } from "./manage-subscription";
@@ -30,8 +30,11 @@ import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
-import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
-import { currency, round2up } from "@cocalc/util/misc";
+import {
+  type Subscription,
+  STATUS_TO_COLOR,
+} from "@cocalc/util/db-schema/subscriptions";
+import { capitalize, currency, round2up } from "@cocalc/util/misc";
 import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
@@ -478,18 +481,35 @@ export default function Subscriptions() {
         },
       },
       {
+        width: "10%",
+        title: "Payment Status",
+        key: "status",
+        render: (_, subscription) => {
+          const status = subscription.payment?.status;
+          if (!status) {
+            return null;
+          }
+          const tag = (
+            <Tag color={STATUS_TO_COLOR[status]}>{capitalize(status)}</Tag>
+          );
+          return tag;
+        },
+      },
+      {
         title: "Last Transaction Id",
         dataIndex: "latest_purchase_id",
         key: "latest_purchase_id",
       },
       {
-        title: "Action",
-        key: "action",
+        title: "Manage",
+        key: "manage",
         render: (_, subscription) => (
-          <ManageSubscriptionButton
-            type="default"
-            subscription_id={subscription.id}
-          />
+          <>
+            <ManageSubscriptionButton
+              type="default"
+              subscription_id={subscription.id}
+            />
+          </>
         ),
       },
       {
