@@ -10,10 +10,9 @@ import type {
   CheckoutSessionSecret,
   CheckoutSessionOptions,
 } from "@cocalc/util/stripe/types";
-import base_path from "@cocalc/backend/base-path";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { isEqual } from "lodash";
 import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
+import { url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -62,8 +61,7 @@ export default async function getCheckoutSession({
   };
 
   if (!return_url) {
-    const { dns } = await getServerSettings();
-    return_url = `https://${dns}${base_path}`;
+    return_url = await url();
   }
 
   const openSessions = await stripe.checkout.sessions.list({

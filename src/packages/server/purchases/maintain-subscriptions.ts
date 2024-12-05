@@ -84,7 +84,7 @@ to actually cancel and refund the subscription if the user doesn't pay.
 */
 
 import createSubscriptionPayment from "./stripe/create-subscription-payment";
-import send from "@cocalc/server/messages/send";
+import send, { url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
@@ -96,8 +96,6 @@ import { isEmailConfigured } from "@cocalc/server/email/send-email";
 import { getPendingBalance } from "./get-balance";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import basePath from "@cocalc/backend/base-path";
-import { join } from "path";
 import { currency } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 
@@ -129,11 +127,7 @@ export default async function maintainSubscriptions() {
 
 export async function sendUpcomingRenewalNotifications() {
   logger.debug("sendUpcomingRenewalNotifications");
-  const {
-    support_account_id: from_id,
-    site_name,
-    dns,
-  } = await getServerSettings();
+  const { support_account_id: from_id, site_name } = await getServerSettings();
   if (from_id == null) {
     throw Error("configure the support account_id in admin settings.");
   }
@@ -169,7 +163,7 @@ You have a ${interval}ly subscription that will **automatically renew** in ${cut
 If you do nothing you will be automatically billed and may continue using your subscription.  You can also make a payment right now, pay in a different way,
 cancel, change or pause your subscription or modify the renewal date:
 
-https://${dns}${join(basePath, "subscriptions", `${id}`)}
+${url("subscriptions", id)}
 
 ### Details
 

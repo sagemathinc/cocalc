@@ -81,10 +81,17 @@ export default async function send({
 }
 
 export async function support() {
-  const { help_email, dns, site_name } = await getServerSettings();
+  const { help_email, site_name } = await getServerSettings();
   const help = help_email
     ? ` email us at [${help_email}](mailto:${help_email}), `
     : "";
   return `\n\n---\n\nThank you for using and supporting ${site_name}! If you have questions, reply to this message, ${help}
-or [create a support ticket](https://${dns}${join(basePath, "support", "new")}).\n\n---\n\n`;
+or [create a support ticket](${url("support", "new")}).\n\n---\n\n`;
+}
+
+// Given a URL like /support/new, this returns something like https://cocalc.com/support/new,
+// but for this site.   url("support", "new")
+export async function url(...args) {
+  const { dns } = await getServerSettings();
+  return `https://${dns}${join(basePath, ...args.map((x) => `${x}`))}`;
 }

@@ -10,11 +10,9 @@ import getBalance from "./get-balance";
 import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments";
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
 import { AUTOBALANCE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
-import send, { support } from "@cocalc/server/messages/send";
+import send, { support, url } from "@cocalc/server/messages/send";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { join } from "path";
-import basePath from "@cocalc/backend/base-path";
 import { decimalAdd } from "@cocalc/util/stripe/calc";
 import {
   type AutoBalance,
@@ -258,8 +256,7 @@ async function update({
 }
 
 async function sendAutoBalanceAlert({ account_id, description }) {
-  const { site_name: siteName, dns } = await getServerSettings();
-  const url = `https://${dns}${join(basePath, "settings/payments")}`;
+  const { site_name: siteName } = await getServerSettings();
   const { name } = await getUser(account_id);
   const subject = `${siteName}: Automatic Low Balance Deposit`;
 
@@ -269,7 +266,7 @@ Dear ${name},
 You have automatic deposits setup, which just did the following:
 ${description}
 
-${url}
+${url("settings", "payments")}
 
  -- ${siteName}
 

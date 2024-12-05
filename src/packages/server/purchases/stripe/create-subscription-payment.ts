@@ -13,10 +13,9 @@ import {
   USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
 } from "@cocalc/util/db-schema/accounts";
 import getBalance from "@cocalc/server/purchases/get-balance";
-import send from "@cocalc/server/messages/send";
+import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import base_path from "@cocalc/backend/base-path";
 
 // nothing should ever be this small, but just in case:
 const MIN_SUBSCRIPTION_AMOUNT = 1;
@@ -95,7 +94,7 @@ export default async function createSubscriptionPayment({
     }
   }
 
-  const { site_name, dns } = await getServerSettings();
+  const { site_name } = await getServerSettings();
 
   if (payNow) {
     // Instead of trying to charge their credit card (etc.), we just
@@ -168,8 +167,6 @@ export default async function createSubscriptionPayment({
     new_expires_ms,
   };
 
-  const site = `https://${dns}${base_path}`;
-
   await pool.query("UPDATE subscriptions SET payment=$1 WHERE id=$2", [
     payment1,
     subscription_id,
@@ -177,7 +174,16 @@ export default async function createSubscriptionPayment({
   await send({
     to_ids: [account_id],
     subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
-    body: `${site_name} has started renewing your subscription (id=${subscription_id}).\n\n- [Subscription Status](${site}/subscriptions/${subscription_id})\n\n- Your Account: [Subscriptions](${site}/settings/subscriptions), [Payments](${site}/settings/payments) and [Purchases](${site}/settings/purchases)\n\n- Hosted Invoice: ${hosted_invoice_url}`,
+    body: `
+${site_name} has started renewing your subscription (id=${subscription_id}).
+
+- [Subscription Status](${url("subscriptions", subscription_id)})
+
+- Your Account: [Subscriptions](${url("settings", "subscriptions")}), [Payments](${url("settings", "payments")}) and [Purchases](${url("settings", "purchases")})
+
+- Hosted Invoice: ${hosted_invoice_url}
+
+${support()}`,
   });
 }
 

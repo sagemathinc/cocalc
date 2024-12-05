@@ -18,6 +18,7 @@ import adminAlert from "@cocalc/server/messages/admin-alert";
 import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getBalance from "@cocalc/server/purchases/get-balance";
+import getPool from "@cocalc/database/pool";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -201,6 +202,16 @@ export const processPaymentIntent = reuseInFlight(
       } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
         reason = `renew a subscription (id=${paymentIntent.metadata.subscription_id})`;
         await processSubscriptionRenewal({ account_id, paymentIntent, amount });
+      } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
+        const statement_id = parseInt(
+          paymentIntent.metadata.purpose.split("-")[1],
+        );
+        reason = `pay balance on monthly statement (id=${statement_id})`;
+        const pool = getPool();
+        await pool.query(
+          "UPDATE statements SET paid_purchase_id=$1 WHERE id=$2",
+          [credit_id, statement_id],
+        );
       }
       send({
         to_ids: [account_id],

@@ -16,10 +16,15 @@ export interface Statement {
   total_credits: number;
   num_credits: number;
   last_sent?: Date;
+  // If an automatic payment was created to pay for this statement, then
+  // automatic_payment_intent_id is the id of that payment intent.  When the
+  // payment is processed, the resulting purchase_id is set in the
+  // field paid_purchase_id.
+  automatic_payment_intent_id?: string;
+  automatic_payment?: Date;
   // If this statement has been paid, this is the purchase_id of the credit that paid it.
   // A payment is required exactly if the balance is negative.
   paid_purchase_id?: number;
-  automatic_payment?: Date;
 }
 
 Table({
@@ -42,7 +47,7 @@ Table({
     },
     balance: {
       title: "Balance (USD $)",
-      desc: "The balance in US dollars of the user's account at this point in time.  THIS ALWAYS INCLUDES PENDING TRANSACTIONS.",
+      desc: "The balance in US dollars of the user's account at this point in time.",
       type: "number",
       pg_type: "real",
     },
@@ -74,9 +79,15 @@ Table({
       type: "integer",
     },
     automatic_payment: {
-      title: "Automatic Payment",
+      title: "Automatic Payment Time",
       type: "timestamp",
-      desc: "If an automatic payment was issued for this statement (and any subscriptions that will soon renew), then this the timestamp of that payment.  This is only used for monthly statements, when a user has elected to have a stripe metered usage subscription setup, so stripe_usage_subscription is set in the accounts table.  If this is issued and the user successfully pays it, then when the payment is processed the paid_purchase_id field above will get set.",
+      desc: "If an automatic payment was attempted at all for this statement (and any subscriptions that will soon renew), then this the timestamp of that attempt.  Only one attempt to make a paymentIntent ever happens automatically.",
+    },
+
+    automatic_payment_intent_id: {
+      title: "Automatic Payment",
+      type: "string",
+      desc: "If an automatic payment was issued for this statement, then this is the id of the payment intent.   This is only used for monthly statements when the balance is NEGATIVE. If this is issued and the user successfully pays it, then when the payment is processed the paid_purchase_id field above will get set.",
     },
     last_sent: {
       type: "timestamp",
@@ -101,6 +112,7 @@ Table({
           num_charges: null,
           total_credits: null,
           num_credits: null,
+          automatic_payment_intent_id: null,
           automatic_payment: null,
           last_sent: null,
         },
@@ -128,6 +140,7 @@ Table({
           num_charges: null,
           total_credits: null,
           num_credits: null,
+          automatic_payment_intent_id: null,
           automatic_payment: null,
           notes: null,
           last_sent: null,

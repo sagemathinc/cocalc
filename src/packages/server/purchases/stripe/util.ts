@@ -7,9 +7,9 @@ import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import basePath from "@cocalc/backend/base-path";
 import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 import type { LineItem } from "@cocalc/util/stripe/types";
+import { url } from "@cocalc/server/messages/send";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 
@@ -130,10 +130,9 @@ export async function getAccountIdFromStripeCustomerId(
   return rows[0]?.account_id;
 }
 
-// [ ] TODO!
+// [ ] TODO!?
 export async function defaultReturnUrl() {
-  const { dns } = await getServerSettings();
-  const return_url = `https://${dns}${basePath}`;
+  const return_url = url();
   return return_url;
 }
 
