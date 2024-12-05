@@ -38,11 +38,54 @@ export default function ReplyButton({
       title={`Draft a reply to the sender ${replyAll ? "everybody in this thread" : ""}`}
     >
       <Button {...props} onClick={() => createReply()} disabled={creating}>
-        <Icon name="reply" />
+        <Icon name="reply" style={{ color: "darkgreen" }} />
         {replyAll ? (
-          <Icon name="reply" style={{ marginLeft: "-15px" }} />
+          <Icon
+            name="reply"
+            style={{ marginLeft: "-15px", color: "darkgreen" }}
+          />
         ) : undefined}
         {label ?? `Reply ${replyAll ? "All" : ""}`}
+        {creating && <Spin delay={1000} style={{ marginLeft: "15px" }} />}
+      </Button>
+    </Tooltip>
+  );
+}
+
+export function ForwardButton({
+  label,
+  replyTo,
+  replyAll: forwardAll,
+  ...props
+}: ReplyButtonProps) {
+  const [creating, setCreating] = useState<boolean>(false);
+
+  const createForward = useMemo(
+    () => async () => {
+      const actions = redux.getActions("messages");
+      try {
+        setCreating(true);
+        await actions.createForward({
+          message: replyTo,
+          forwardAll: forwardAll,
+        });
+      } catch (err) {
+        actions.setError(`${err}`);
+      } finally {
+        setCreating(false);
+      }
+    },
+    [replyTo],
+  );
+
+  return (
+    <Tooltip title={`Forward ${forwardAll ? "entire thread" : "this message"}`}>
+      <Button {...props} onClick={() => createForward()} disabled={creating}>
+        <Icon
+          name={forwardAll ? "forward" : "step-forward"}
+          style={{ fontSize: "20px", color: "darkblue" }}
+        />
+        {label ?? `Forward ${forwardAll ? "Thread" : ""}`}
         {creating && <Spin delay={1000} style={{ marginLeft: "15px" }} />}
       </Button>
     </Tooltip>

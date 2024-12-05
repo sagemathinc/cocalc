@@ -3,7 +3,7 @@ import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import ReplyButton from "./reply-button";
+import ReplyButton, { ForwardButton } from "./reply-button";
 import {
   isDraft,
   isDeleted,
@@ -394,6 +394,8 @@ function MessageFull({
               <ReplyButton type="text" replyTo={message} replyAll label="" />
             )}
             <ReplyButton type="text" replyTo={message} label="" />
+            <ForwardButton type="text" replyTo={message} label="" />
+            <ForwardButton type="text" replyTo={message} replyAll label="" />
           </Space>
         </div>
         <div
@@ -449,7 +451,11 @@ function MessageFull({
         }}
       >
         {isDraft(message) && !isDeleted(message) ? (
-          <Compose style={{ marginBottom: "45px" }} message={message} />
+          <Compose
+            style={{ marginBottom: "45px" }}
+            message={message}
+            onCancel={() => setShowThread?.(null)}
+          />
         ) : (
           <>
             <MostlyStaticMarkdown
@@ -466,6 +472,8 @@ function MessageFull({
                     <ReplyButton size="large" replyTo={message} replyAll />
                   )}
                   <ReplyButton size="large" replyTo={message} />
+                  <ForwardButton size="large" replyTo={message} />
+                  <ForwardButton size="large" replyTo={message} replyAll />
                 </Space>
               </div>
             )}

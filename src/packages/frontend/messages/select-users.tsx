@@ -168,7 +168,10 @@ export default function SelectUser({
       // we also autoopen the selector, but ONLY after a delay, since
       // this component is often used in a modal, and that modal animates
       // into view, and it looks broken to have this open before the modal exists.
-      setTimeout(() => setOpen(true), autoOpen);
+      setTimeout(() => {
+        setOpen(true);
+        handleSearch({ query: "", setData, knownUsers });
+      }, autoOpen);
     }
   }, []);
 

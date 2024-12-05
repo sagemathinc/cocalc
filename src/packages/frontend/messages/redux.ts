@@ -13,8 +13,11 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   isDeleted,
   isDraft,
+  get,
+  getThread,
   getThreadId,
   replySubject,
+  forwardSubject,
   getNotExpired,
   getThreads,
   setBitField,
@@ -240,6 +243,50 @@ export class MessagesActions extends Actions<MessagesState> {
       thread_id: getThreadId(message),
       subject,
       body: "",
+    });
+  };
+
+  createForward = async ({
+    message,
+    forwardAll,
+  }: {
+    message: Message;
+    forwardAll?: boolean;
+  }) => {
+    const subject = forwardSubject(message.subject);
+    const store = this.redux.getStore("users");
+    const w: string[] = [];
+    const header =
+      "&nbsp;\n\n&nbsp;\n\n&nbsp;\n\n---------- Forwarded message ---------\n\n";
+    const messages = forwardAll
+      ? getThread({ message, threads: this.getStore().get("threads") })
+      : [message];
+    for (const mesg of messages) {
+      const from = store.get_name(get(mesg, "from_id"));
+      const to: string[] = [];
+      for (const account_id of get(mesg, "to_ids")) {
+        const name = store.get_name(account_id);
+        if (name?.trim()) {
+          to.push(name);
+        }
+      }
+      w.push(`
+${get(mesg, "sent") ? `- Date: ${get(mesg, "sent").toLocaleString()}` : ""}
+${from ? "- From: " + from : ""}
+- Subject: ${get(mesg, "subject")}
+${to.length > 0 ? "- To: " + to.join(", ") : ""}
+
+<br/>
+
+${get(mesg, "body")}
+`);
+    }
+
+    return await this.createDraft({
+      to_ids: [],
+      thread_id: getThreadId(message),
+      subject,
+      body: header + w.join(header),
     });
   };
 

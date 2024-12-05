@@ -17,7 +17,6 @@ import {
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { replySubject } from "./util";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
@@ -179,7 +178,10 @@ export default function Compose({
   };
 
   const send = async (body0?: string) => {
-    const thread_id = getThreadId({ message, subject });
+    const thread_id =
+      (message?.subject?.trim() ?? "") == subject.trim()
+        ? message.thread_id
+        : 0;
     try {
       setError("");
       setState("sending");
@@ -223,8 +225,8 @@ export default function Compose({
         <div style={{ width: "82px", fontSize: "12pt" }}>To:</div>
         <SelectUsers
           style={{ width: "100%" }}
-          autoOpen={draftId.current ? undefined : 250}
-          autoFocus={!draftId.current}
+          autoOpen={draftId.current && to_ids.length > 0 ? undefined : 250}
+          autoFocus={!draftId.current || to_ids.length == 0}
           disabled={state != "compose"}
           placeholder="Add one or more users by name or email address..."
           onChange={(account_ids) => {
@@ -331,7 +333,7 @@ export default function Compose({
             saveDraft({ body, subject });
           }}
           placeholder="Body..."
-          autoFocus={message != null}
+          autoFocus={message != null && to_ids.length > 0}
           height="40vh"
           onShiftEnter={(body) => {
             setBody(body);
@@ -462,29 +464,4 @@ export function ComposeModal() {
       <Compose onSend={close} onCancel={close} />
     </Modal>
   );
-}
-
-// If user explicitly edits the thread in any way,
-// then reply starts a new thread.
-function getThreadId({ message, subject }): number | undefined {
-  if (message == null) {
-    // not loaded yet or not replying
-    return;
-  }
-  const { thread_id } = message;
-  if (!thread_id) {
-    // not in a thread, e.g., a standalone draft
-    return;
-  }
-  const threadSubject = redux
-    .getStore("messages")
-    .getIn(["threads", thread_id])
-    ?.first()
-    ?.get("subject");
-
-  if (threadSubject == null || subject.trim() == replySubject(threadSubject)) {
-    return thread_id;
-  }
-  // changed the subject, so start a new thread.
-  return 0;
 }

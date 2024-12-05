@@ -311,12 +311,25 @@ export function setFragment({ folder, id }: { folder: Folder; id?: number }) {
 
 export function replySubject(subject) {
   if (!subject?.trim()) {
-    return "";
+    return "Re:";
   }
   if (subject.toLowerCase().startsWith("re:")) {
     return subject;
   }
   return `Re: ${subject}`;
+}
+
+export function forwardSubject(subject) {
+  if (!subject?.trim()) {
+    return "Fwd:";
+  }
+  while (
+    subject.toLowerCase().startsWith("re:") ||
+    subject.toLowerCase().startsWith("fwd:")
+  ) {
+    subject = subject.slice(4).trim();
+  }
+  return `Fwd: ${subject}`;
 }
 
 export function getNotExpired(messages) {
