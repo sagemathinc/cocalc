@@ -4,6 +4,8 @@
  */
 
 /* Code related to the history and URL in the browser bar.
+See also src/packages/util/routing/app.ts
+and src/packages/hub/servers/app/app-redirect.ts
 
 The URI schema handled by the single page app is as follows:
      Overall settings:

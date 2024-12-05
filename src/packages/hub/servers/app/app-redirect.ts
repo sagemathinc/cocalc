@@ -8,16 +8,12 @@ import { join } from "path";
 import { Router } from "express";
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
-
-// All top level page "entry points" in the webapp must be listed here.
-// Should be consistent with what is handled in @cocalc/frontend/history.ts
-// and @cocalc/frontend/app/actions.ts
-const ROUTES = ["admin", "projects", "settings", "notifications"];
+import { APP_ROUTES } from "@cocalc/util/routing/app";
 
 export default function init(router: Router) {
   const winston = getLogger("app-redirect");
   const v: string[] = [];
-  for (const path of ROUTES) {
+  for (const path of APP_ROUTES) {
     v.push(`/${path}*`);
   }
   router.get(v, (req, res) => {
