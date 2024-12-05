@@ -31,7 +31,6 @@ FROM (
     LIMIT ${NUM_MESSAGES}
 ) AS subquery
 WHERE read=false AND saved=false AND deleted=false`;
-  console.log(query);
   const { rows: counts } = await pool.query(query, [account_id]);
 
   const { unread_count } = counts[0];

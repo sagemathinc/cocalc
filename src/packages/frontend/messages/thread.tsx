@@ -4,7 +4,7 @@ import { MessageInThread } from "./message";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { useState } from "react";
 import { plural } from "@cocalc/util/misc";
-import { isFromMe, isToMe, isRead } from "./util";
+import { isFromMe, isRead } from "./util";
 import User from "./user";
 import { redux } from "@cocalc/frontend/app-framework";
 
@@ -39,10 +39,10 @@ export default function Thread({
     if (thread_id != null) {
       const thread = threads.get(thread_id)?.toJS() as unknown as MessageType[];
       if (thread != null) {
-        // expand each message *to me* that is not read:
+        // expand each message that is not read:
         const ids = new Set<number>();
         for (const id of thread
-          .filter((message) => isToMe(message) && !isRead(message))
+          .filter((message) => !isRead(message))
           .map(({ id }) => id)) {
           ids.add(id);
           expanded.add(id);

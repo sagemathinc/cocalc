@@ -8,13 +8,15 @@ import { redux } from "./app-framework";
 // Calling set_window_title will set the title, but also put a notification
 // count to the left of the title; if called with no arguments just updates
 // the count, maintaining the previous title.
-type NotifyFunction = () => number;
-let notify_count: NotifyFunction | undefined = undefined;
-
-export function set_notify_count_function() {
-  const store = redux.getStore("file_use");
-  if (store == null) throw Error("file_use must be defined");
-  notify_count = store?.get_notify_count;
+export function notifyCount() {
+  const mentions = redux.getStore("mentions");
+  const account = redux.getStore("account");
+  const news = redux.getStore("news");
+  return (
+    (mentions?.getUnreadSize() ?? 0) +
+    (account?.get("unread_message_count") ?? 0) +
+    (news?.get("unread") ?? 0)
+  );
 }
 
 let last_title: string = "";
@@ -24,7 +26,7 @@ export function set_window_title(title?: string): void {
     title = last_title;
   }
   last_title = title;
-  const u = notify_count?.();
+  const u = notifyCount();
   if (u) {
     title = `(${u}) ${title}`;
   }

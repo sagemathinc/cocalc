@@ -32,7 +32,7 @@ const MentionsCounter = () => {
   const mentions = useTypedRedux("mentions", "mentions");
   const mentions_store = redux.getStore("mentions");
   const count = useMemo(() => {
-    return mentions_store.get_unseen_size(mentions);
+    return mentions_store.getUnreadSize();
   }, [mentions]);
 
   return (
