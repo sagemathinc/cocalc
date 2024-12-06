@@ -2,6 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getTransactionClient } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getCart from "@cocalc/server/shopping/cart/get";
+import { removeShoppingCartPaymentIntent } from "@cocalc/server/shopping/cart/payment-intent";
 import { Item as ShoppingCartItem } from "@cocalc/util/db-schema/shopping-cart-items";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
@@ -105,6 +106,11 @@ export const shoppingCartCheckout = async ({
     );
   }
 };
+
+// payment canceled, so make the items available in the cart again
+export async function shoppingCartPutItemsBack({ cart_ids }) {
+  await removeShoppingCartPaymentIntent({ cart_ids });
+}
 
 export const getCheckoutCart = async (
   account_id: string,

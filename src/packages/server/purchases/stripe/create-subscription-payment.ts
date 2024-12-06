@@ -310,3 +310,21 @@ export async function useBalanceTowardSubscriptions(
       return USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT;
   }
 }
+
+export async function processSubscriptionRenewalFailure({ paymentIntent }) {
+  const { subscription_id } = paymentIntent?.metadata ?? {};
+  if (!subscription_id) {
+    throw Error(
+      `invalid paymentIntent ${paymentIntent?.id} -- metadata must contain subscription_id`,
+    );
+  }
+  const id =
+    typeof subscription_id != "number"
+      ? parseInt(subscription_id)
+      : subscription_id;
+  const pool = getPool();
+  await pool.query(
+    `UPDATE subscriptions SET payment = jsonb_set(payment, '{status}', $2) WHERE id=$1`,
+    [id, "canceled"],
+  );
+}

@@ -4,21 +4,30 @@ import getLogger from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { LineItem } from "@cocalc/util/stripe/types";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
-import { shoppingCartCheckout } from "@cocalc/server/purchases/shopping-cart-checkout";
-import studentPay from "@cocalc/server/purchases/student-pay";
+import {
+  shoppingCartCheckout,
+  shoppingCartPutItemsBack,
+} from "@cocalc/server/purchases/shopping-cart-checkout";
+import studentPay, {
+  studentPayUnlock,
+} from "@cocalc/server/purchases/student-pay";
 import {
   AUTO_CREDIT,
   SHOPPING_CART_CHECKOUT,
   STUDENT_PAY,
   SUBSCRIPTION_RENEWAL,
 } from "@cocalc/util/db-schema/purchases";
-import { processSubscriptionRenewal } from "./create-subscription-payment";
-import send, { support } from "@cocalc/server/messages/send";
+import {
+  processSubscriptionRenewal,
+  processSubscriptionRenewalFailure,
+} from "./create-subscription-payment";
+import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getPool from "@cocalc/database/pool";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -88,8 +97,11 @@ export default async function processPaymentIntents({
 }
 
 export function isReadyToProcess(paymentIntent) {
+  // Ready to process if it is in either of the FINAL states, which are
+  // succeeded or canceled.  https://docs.stripe.com/payments/paymentintents/lifecycle
   return (
-    paymentIntent.status == "succeeded" &&
+    (paymentIntent.status == "succeeded" ||
+      paymentIntent.status == "canceled") &&
     paymentIntent.metadata["processed"] != "true" &&
     paymentIntent.metadata["purpose"] &&
     paymentIntent.invoice
@@ -128,8 +140,98 @@ export const processPaymentIntent = reuseInFlight(
           "processPaymentIntent: unknown stripe customer",
           paymentIntent.customer,
         );
+        adminAlert({
+          subject: `Broken payment intent ${paymentIntent.id} that can't be processed - please investigate`,
+          body: `
+CoCalc was processing the payment intent with id ${paymentIntent.id}, but the metadata didn't have an
+account_id set (which should impossible) AND the customer for the paymentIntent isn't a known stripe
+customer.  So we don't know what to do with this.  Please manually investigate.
+`,
+        });
         return;
       }
+    }
+
+    if (paymentIntent.status == "canceled") {
+      // This is a payment intent that has definitely failed
+      // forever.  In some cases, we also want to do some
+      // processing.
+
+      paymentIntent.metadata.processed = "true";
+      await stripe.paymentIntents.update(paymentIntent.id, {
+        metadata: paymentIntent.metadata,
+      });
+
+      let result = "we did NOT add credit to your account";
+      try {
+        if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
+          result = "put the items you were buying back in your cart";
+          // free up the items so they can be purchased again.
+          // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
+          // to provision each of those items.
+          const cart_ids =
+            paymentIntent.metadata.cart_ids != null
+              ? JSON.parse(paymentIntent.metadata.cart_ids)
+              : undefined;
+          if (cart_ids) {
+            await shoppingCartPutItemsBack({ cart_ids });
+          }
+        } else if (paymentIntent.metadata.purpose == STUDENT_PAY) {
+          result = `the course (project_id=${paymentIntent.metadata.project_id}) was not paid for`;
+          // Student pay for a course
+          await studentPayUnlock({
+            project_id: paymentIntent.metadata.project_id,
+          });
+        } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
+          result = `we did NOT renew subscription (id=${paymentIntent.metadata.subscription_id})`;
+          await processSubscriptionRenewalFailure({
+            paymentIntent,
+          });
+        } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
+          const statement_id = parseInt(
+            paymentIntent.metadata.purpose.split("-")[1],
+          );
+          result = `your monthly statement (id=${statement_id}) is not paid for and you may still owe money`;
+        }
+        send({
+          to_ids: [account_id],
+          subject: `Canceled ${currency(amount)} Payment`,
+          body: `You canceled a payment of ${currency(amount)}, and as a result ${result}.
+- Payment id: ${paymentIntent.id}
+
+- Your payments: ${url("settings", "payments")}
+
+- Credit id: ${credit_id}
+
+- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+
+${await support()}`,
+        });
+        adminAlert({
+          subject: `A User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
+          body: `
+The user with account_id=${account_id} had a canceled payment intent. We told them
+the consequence is "${result}".  Admins might want to investigate.
+`,
+        });
+      } catch (err) {
+        // There basically should never be a case where any of the above fails.  But multiple
+        // transactions happening at once, or bugs, etc. could maybe lead to a case where
+        // cocalc refuses to fully process the transaction.  Communicate this.
+        const body = `You made a payment of ${currency(amount)}, which has been successfully processed by our payment processor, and a credit of ${currency(amount)} has been added to your account (purchase id=${credit_id}).  You made this payment to ${reason}.   Please retry that purchase instead using the credit that is now on your account.  \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} \n\nERROR: ${err}${await support()}`;
+        send({
+          to_ids: [account_id],
+          subject: `Possible Issue Processing ${currency(amount)} Payment`,
+          body,
+        });
+        adminAlert({
+          subject: "Issue Processing a User Payment",
+          body: `There was an error processing payment intent id ${paymentIntent.id} for the user with account_id=${account_id}.\n\n## Message sent to user:\n\n${body}`,
+        });
+        throw err;
+      }
+
+      return;
     }
 
     // IMPORTANT: There is just no way in general to know directly from the payment intent
@@ -216,13 +318,41 @@ export const processPaymentIntent = reuseInFlight(
       send({
         to_ids: [account_id],
         subject: `Successfully Processed ${currency(amount)} Payment (Credit id: ${credit_id})`,
-        body: `You successfully made a payment of ${currency(amount)}, which was used to ${reason}.  Thank you!\n\n- Payment id: ${paymentIntent.id}\n- Credit id: ${credit_id}\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} ${await support()}`,
+        body: `
+You successfully made a payment of ${currency(amount)}, which was used to ${reason}.
+Thank you!
+
+- Payment id: ${paymentIntent.id}
+
+- Your payments: ${url("settings", "payments")}
+
+- Credit id: ${credit_id}
+
+- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+
+${await support()}`,
       });
     } catch (err) {
       // There basically should never be a case where any of the above fails.  But multiple
       // transactions happening at once, or bugs, etc. could maybe lead to a case where
       // cocalc refuses to fully process the transaction.  Communicate this.
-      const body = `You made a payment of ${currency(amount)}, which has been successfully processed by our payment processor, and a credit of ${currency(amount)} has been added to your account (purchase id=${credit_id}).  You made this payment to ${reason}.   Please retry that purchase instead using the credit that is now on your account.  \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} \n\nERROR: ${err}${await support()}`;
+      const body = `
+You made a payment of ${currency(amount)}, which has been successfully processed by our
+payment processor, and a credit of ${currency(amount)} has been added to your
+account (purchase id=${credit_id}).   You made this payment to ${reason}, but something
+went wrong.
+
+Please retry that purchase instead using the credit that is now on your account, or contact
+support if you are concerned (see below).
+
+- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+
+- Your payments: ${url("settings", "payments")}
+
+- ERROR: ${err}
+
+${await support()}
+`;
       send({
         to_ids: [account_id],
         subject: `Possible Issue Processing ${currency(amount)} Payment`,

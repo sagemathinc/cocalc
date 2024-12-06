@@ -79,8 +79,7 @@ SHIFT SUBSCRIPTION PERIOD:
   When they do this, they have to pay the prorated difference to make the shift,
   using our standard methods (min payment size, credit can be used).
 
-There's another maintenance task -- cancelAllPendingSubscriptions below --
-to actually cancel and refund the subscription if the user doesn't pay.
+
 */
 
 import createSubscriptionPayment from "./stripe/create-subscription-payment";
