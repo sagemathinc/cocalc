@@ -177,13 +177,13 @@ export default async function createSubscriptionPayment({
     body: `
 ${site_name} has started renewing your subscription (id=${subscription_id}).
 
-- [Subscription Status](${url("subscriptions", subscription_id)})
+- [Subscription Status](${await url("subscriptions", subscription_id)})
 
-- Your Account: [Subscriptions](${url("settings", "subscriptions")}), [Payments](${url("settings", "payments")}) and [Purchases](${url("settings", "purchases")})
+- Your Account: [Subscriptions](${await url("settings", "subscriptions")}), [Payments](${await url("settings", "payments")}) and [Purchases](${await url("settings", "purchases")})
 
 - Hosted Invoice: ${hosted_invoice_url}
 
-${support()}`,
+${await support()}`,
   });
 }
 
@@ -324,7 +324,7 @@ export async function processSubscriptionRenewalFailure({ paymentIntent }) {
       : subscription_id;
   const pool = getPool();
   await pool.query(
-    `UPDATE subscriptions SET payment = jsonb_set(payment, '{status}', $2) WHERE id=$1`,
-    [id, "canceled"],
+    `UPDATE subscriptions SET payment = jsonb_set(payment, '{status}', '"canceled"') WHERE id=$1`,
+    [id],
   );
 }

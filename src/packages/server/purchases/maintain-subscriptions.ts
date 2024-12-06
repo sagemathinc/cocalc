@@ -162,7 +162,7 @@ You have a ${interval}ly subscription that will **automatically renew** in ${cut
 If you do nothing you will be automatically billed and may continue using your subscription.  You can also make a payment right now, pay in a different way,
 cancel, change or pause your subscription or modify the renewal date:
 
-${url("subscriptions", id)}
+${await url("subscriptions", id)}
 
 ### Details
 

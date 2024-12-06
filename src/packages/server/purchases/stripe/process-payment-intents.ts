@@ -178,7 +178,7 @@ customer.  So we don't know what to do with this.  Please manually investigate.
       let result = "we did NOT add credit to your account";
       try {
         if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
-          result = "put the items you were buying back in your cart";
+          result = "the items you were buying were put back in your cart";
           // free up the items so they can be purchased again.
           // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
           // to provision each of those items.
@@ -209,10 +209,10 @@ customer.  So we don't know what to do with this.  Please manually investigate.
         send({
           to_ids: [account_id],
           subject: `Canceled ${currency(amount)} Payment`,
-          body: `You canceled a payment of ${currency(amount)}, and as a result ${result}.
+          body: `A payment of ${currency(amount)} was canceled, and as a result ${result}.
 - Payment id: ${paymentIntent.id}
 
-- Your payments: ${url("settings", "payments")}
+- Your payments: ${await url("settings", "payments")}
 
 - Account Balance: ${currency(round2down(await getBalance({ account_id })))}
 
@@ -328,7 +328,7 @@ Thank you!
 
 - Payment id: ${paymentIntent.id}
 
-- Your payments: ${url("settings", "payments")}
+- Your payments: ${await url("settings", "payments")}
 
 - Credit id: ${credit_id}
 
@@ -351,7 +351,7 @@ support if you are concerned (see below).
 
 - Account Balance: ${currency(round2down(await getBalance({ account_id })))}
 
-- Your payments: ${url("settings", "payments")}
+- Your payments: ${await url("settings", "payments")}
 
 - ERROR: ${err}
 

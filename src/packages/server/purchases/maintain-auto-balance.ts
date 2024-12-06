@@ -266,7 +266,7 @@ Dear ${name},
 You have automatic deposits setup, which just did the following:
 ${description}
 
-${url("settings", "payments")}
+${await url("settings", "payments")}
 
  -- ${siteName}
 

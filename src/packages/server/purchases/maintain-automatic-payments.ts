@@ -128,9 +128,9 @@ The amount due on your monthly statement is ${currency(amount)}.
 However, this is below the minimum payment size of ${currency(pay_as_you_go_min_payment)}.
 You will not be billed this month, and your balance will roll over to your next statement.
 
-- [Your Statements](${url("settings", "statements")})
+- [Your Statements](${await url("settings", "statements")})
 
-${support()}
+${await support()}
 `,
         });
         continue;
@@ -163,11 +163,11 @@ ${support()}
           body: `
 ${site_name} issued an invoice for the balance of ${currency(amount)} that is due on your monthly statement id=${statement_id}.
 
-- Statements: ${url("settings", "statements")}
+- Statements: ${await url("settings", "statements")}
 
 - Hosted Invoice: ${hosted_invoice_url}
 
-${support()}`,
+${await support()}`,
         });
         await pool.query(
           "UPDATE statements SET automatic_payment_intent_id=$1 WHERE id=$2",
@@ -185,9 +185,9 @@ When attempting to automatically charge you, an error occured.
 
 ${err}
 
-- [Your Statements](${url("settings", "statements")})
+- [Your Statements](${await url("settings", "statements")})
 
-${support()}
+${await support()}
 `,
       });
       adminAlert({

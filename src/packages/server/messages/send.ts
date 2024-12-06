@@ -86,7 +86,7 @@ export async function support() {
     ? ` email us at [${help_email}](mailto:${help_email}), `
     : "";
   return `\n\n---\n\nThank you for using and supporting ${site_name}! If you have questions, reply to this message, ${help}
-or [create a support ticket](${url("support", "new")}).\n\n---\n\n`;
+or [create a support ticket](${await url("support", "new")}).\n\n---\n\n`;
 }
 
 // Given a URL like /support/new, this returns something like https://cocalc.com/support/new,

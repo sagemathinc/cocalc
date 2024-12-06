@@ -66,10 +66,10 @@ export default async function adminAlert({
       logger.debug("no admins so nothing to do");
       return;
     }
-    const { support_account_id, site_name } = await getServerSettings();
+    const { support_account_id } = await getServerSettings();
     const from_id = support_account_id ? support_account_id : to_ids[0];
     await send({
-      subject: `${site_name} Admin Alert - ${subject}`,
+      subject: `Admin Alert - ${subject}`,
       body: toString(body) + "\n\n---\n" + "```js\n" + stack + "\n```\n",
       from_id,
       to_ids,
