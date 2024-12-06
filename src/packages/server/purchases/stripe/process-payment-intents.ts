@@ -328,9 +328,9 @@ Thank you!
 
 - Payment id: ${paymentIntent.id}
 
-- Your payments: ${await url("settings", "payments")}
+- Purchase credit id: ${credit_id}
 
-- Credit id: ${credit_id}
+- Browser all your [Payments](${await url("settings", "payments")}) and [Purchases](${await url("settings", "purchases")})
 
 - Account Balance: ${currency(round2down(await getBalance({ account_id })))}
 
