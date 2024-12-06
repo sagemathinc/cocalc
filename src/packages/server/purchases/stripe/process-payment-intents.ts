@@ -27,7 +27,6 @@ import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getPool from "@cocalc/database/pool";
-import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -152,6 +151,20 @@ customer.  So we don't know what to do with this.  Please manually investigate.
       }
     }
 
+    const stripe = await getConn();
+    // IMPORTANT: There is just no way in general to know directly from the payment intent
+    // and invoice exactly what we were trying to charge the customer!  The problem is that
+    // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
+    // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
+    // this metadata, and we depend on it for how much the invoice is worth to us.
+    const total_excluding_tax_usd =
+      paymentIntent.metadata.total_excluding_tax_usd;
+    if (total_excluding_tax_usd == null) {
+      // cannot be processed further.
+      return;
+    }
+    const amount = stripeToDecimal(parseInt(total_excluding_tax_usd));
+
     if (paymentIntent.status == "canceled") {
       // This is a payment intent that has definitely failed
       // forever.  In some cases, we also want to do some
@@ -201,8 +214,6 @@ customer.  So we don't know what to do with this.  Please manually investigate.
 
 - Your payments: ${url("settings", "payments")}
 
-- Credit id: ${credit_id}
-
 - Account Balance: ${currency(round2down(await getBalance({ account_id })))}
 
 ${await support()}`,
@@ -215,18 +226,25 @@ the consequence is "${result}".  Admins might want to investigate.
 `,
         });
       } catch (err) {
-        // There basically should never be a case where any of the above fails.  But multiple
-        // transactions happening at once, or bugs, etc. could maybe lead to a case where
-        // cocalc refuses to fully process the transaction.  Communicate this.
-        const body = `You made a payment of ${currency(amount)}, which has been successfully processed by our payment processor, and a credit of ${currency(amount)} has been added to your account (purchase id=${credit_id}).  You made this payment to ${reason}.   Please retry that purchase instead using the credit that is now on your account.  \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))} \n\nERROR: ${err}${await support()}`;
+        // There basically should never be a case where any of the above fails... but reality.
+        // So communicate this.
+        const body = `You canceled a payment of ${currency(amount)}, so ${result}.  However, cleaning up this resulted in an error.  You may need to contact support.
+
+- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+
+- ERROR: ${err}
+
+${await support()}`;
         send({
           to_ids: [account_id],
-          subject: `Possible Issue Processing ${currency(amount)} Payment`,
+          subject: `Possible Issue Processing Canceled ${currency(amount)} Payment`,
           body,
         });
         adminAlert({
-          subject: "Issue Processing a User Payment",
-          body: `There was an error processing payment intent id ${paymentIntent.id} for the user with account_id=${account_id}.\n\n## Message sent to user:\n\n${body}`,
+          subject: "Issue Processing a Canceled Payment",
+          body: `There was an error processing the cancelation of a payment intent with id ${paymentIntent.id} for the user with account_id=${account_id}.  An admin might want to look into this, since this sort of error should never happen.
+
+## Message sent to user: ${body}`,
         });
         throw err;
       }
@@ -234,20 +252,6 @@ the consequence is "${result}".  Admins might want to investigate.
       return;
     }
 
-    // IMPORTANT: There is just no way in general to know directly from the payment intent
-    // and invoice exactly what we were trying to charge the customer!  The problem is that
-    // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
-    // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
-    // this metadata, and we depend on it for how much the invoice is worth to us.
-    const total_excluding_tax_usd =
-      paymentIntent.metadata.total_excluding_tax_usd;
-    if (total_excluding_tax_usd == null) {
-      // cannot be processed further.
-      return;
-    }
-    const amount = stripeToDecimal(parseInt(total_excluding_tax_usd));
-
-    const stripe = await getConn();
     const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
 
     // credit the account.  If the account was already credited for this (e.g.,

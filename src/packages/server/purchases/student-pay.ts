@@ -242,7 +242,7 @@ async function getCourseInfo(project_id) {
   return rows[0];
 }
 
-async function studentPayUnlock({ project_id }) {
+export async function studentPayUnlock({ project_id }) {
   console.log({ project_id });
   throw Error("TODO [ ]! ");
 }
