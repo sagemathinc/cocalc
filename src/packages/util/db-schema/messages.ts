@@ -51,6 +51,10 @@ interface Message0 {
   body: string;
   // used for replies
   thread_id?: number;
+
+  // optionally included mainly in frontend code when working with a list of messages
+  // not in database!
+  index?: number;
 }
 
 export const NON_BITSET_FIELDS = [

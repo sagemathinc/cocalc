@@ -27,6 +27,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Read from "./read";
 import Star from "./star";
+import useCommand from "./use-command";
 
 const LEFT_OFFSET = "46px";
 
@@ -45,6 +46,7 @@ interface Props {
   style?;
   threads: iThreads;
   inThread?: boolean;
+  focused?: boolean;
 }
 
 export default function Message(props: Props) {
@@ -64,6 +66,7 @@ function MessageInList({
   style,
   threads,
   inThread,
+  focused,
 }: Props) {
   const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
@@ -95,37 +98,15 @@ function MessageInList({
     >
       <Flex>
         {setChecked != null && (
-          <div
-            style={
-              {
-                width: "40px",
-                paddingLeft: "10px",
-                marginLeft: "-10px",
-                marginTop: "2px",
-              } /* This div is because for some reason it is easy to slightly miss
-               the checkbox when clicking and open the thread, which is just
-               annoying. So we make clicking next to the checkbox a little also work
-               to toggle it. */
-            }
-            onClick={(e) => {
-              const shiftKey = e.nativeEvent.shiftKey;
-              e.stopPropagation();
-              setChecked({ checked: !checked, shiftKey });
-            }}
-          >
-            <Checkbox
-              onClick={(e) => e.stopPropagation()}
-              style={{ marginRight: "15px" }}
-              checked={!!checked}
-              onChange={(e) => {
-                const shiftKey = e.nativeEvent.shiftKey;
-                setChecked({ checked: e.target.checked, shiftKey });
-              }}
-            />
-          </div>
+          <SelectConversation
+            setChecked={setChecked}
+            checked={checked}
+            focused={focused}
+          />
         )}
         {!inThread && (
           <Star
+            focused={focused}
             message={message}
             threads={threads}
             inThread={inThread}
@@ -218,6 +199,7 @@ function MessageInList({
         </div>
         {inThread && (
           <Star
+            focused={focused}
             message={message}
             threads={threads}
             inThread={inThread}
@@ -292,6 +274,7 @@ function MessageFull({
   inThread,
   setShowThread,
   showThread,
+  focused,
 }: Props) {
   const read = isRead(message);
   const readRef = useRef<boolean>(read);
@@ -424,6 +407,7 @@ function MessageFull({
           </Tooltip>
         </div>
         <Star
+          focused={focused}
           message={message}
           threads={threads}
           inThread={true}
@@ -536,6 +520,47 @@ function getTag({ message, threads, folder }) {
   }
 
   return <>{v}</>;
+}
+
+function SelectConversation({ setChecked, checked, focused }) {
+  useCommand({
+    ["select-conversation"]: () => {
+      if (focused) {
+        setChecked({ checked: !checked });
+      }
+    },
+  });
+
+  return (
+    <div
+      style={
+        {
+          width: "40px",
+          paddingLeft: "10px",
+          marginLeft: "-10px",
+          marginTop: "2px",
+        } /* This div is because for some reason it is easy to slightly miss
+               the checkbox when clicking and open the thread, which is just
+               annoying. So we make clicking next to the checkbox a little also work
+               to toggle it. */
+      }
+      onClick={(e) => {
+        const shiftKey = e.nativeEvent.shiftKey;
+        e.stopPropagation();
+        setChecked({ checked: !checked, shiftKey });
+      }}
+    >
+      <Checkbox
+        onClick={(e) => e.stopPropagation()}
+        style={{ marginRight: "15px" }}
+        checked={!!checked}
+        onChange={(e) => {
+          const shiftKey = e.nativeEvent.shiftKey;
+          setChecked({ checked: e.target.checked, shiftKey });
+        }}
+      />
+    </div>
+  );
 }
 
 /*

@@ -75,6 +75,8 @@ MANUAL PAYMENTS:
 
 SHIFT SUBSCRIPTION PERIOD:
 
+(not done -- "andrey says not needed, imho")
+
 - Similarly, provide a tool so a user can manually shift their subscription period.
   When they do this, they have to pay the prorated difference to make the shift,
   using our standard methods (min payment size, credit can be used).

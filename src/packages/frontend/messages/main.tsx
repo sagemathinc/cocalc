@@ -18,6 +18,7 @@ import { isFolder, Folder } from "./types";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Zoom from "./zoom";
+import useCommand from "./use-command";
 
 export default function Main({ messages, threads, filter, search }) {
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
@@ -129,42 +130,44 @@ function Actions({
   setShowThread,
   threads,
 }) {
+  const archive = () => {
+    if (folder != "inbox") {
+      return;
+    }
+    redux.getActions("messages").mark({
+      ids: expandToThreads({
+        ids: checkedMessageIds,
+        threads,
+        messages,
+      }),
+      saved: true,
+    });
+    setShowThread(null);
+  };
+
+  const deleteCommand = () => {
+    redux.getActions("messages").mark({
+      ids: expandToThreads({
+        ids: checkedMessageIds,
+        threads,
+        messages,
+      }),
+      deleted: true,
+    });
+    setShowThread(null);
+  };
+
+  useCommand({ archive, ["delete"]: deleteCommand });
+
   return (
     <Space wrap>
       {folder != "sent" && folder != "trash" && folder != "search" && (
-        <Button
-          type="text"
-          disabled={folder != "inbox"}
-          onClick={() => {
-            redux.getActions("messages").mark({
-              ids: expandToThreads({
-                ids: checkedMessageIds,
-                threads,
-                messages,
-              }),
-              saved: true,
-            });
-            setShowThread(null);
-          }}
-        >
+        <Button type="text" disabled={folder != "inbox"} onClick={archive}>
           <Icon name="download" /> Archive
         </Button>
       )}
       {folder != "trash" && (
-        <Button
-          type="text"
-          onClick={() => {
-            redux.getActions("messages").mark({
-              ids: expandToThreads({
-                ids: checkedMessageIds,
-                threads,
-                messages,
-              }),
-              deleted: true,
-            });
-            setShowThread(null);
-          }}
-        >
+        <Button type="text" onClick={deleteCommand}>
           <Icon name="trash" /> Delete
         </Button>
       )}
@@ -311,6 +314,37 @@ function ShowAllThreads({
   setCheckedMessageIds;
   filteredMessages: MessageType[];
 }) {
+  const [cursor, setCursor] = useState<number>(0);
+  useCommand({
+    up: () => {
+      setCursor(Math.max(0, cursor - 1));
+    },
+    down: () => {
+      setCursor(Math.min(filteredMessages.length - 1, cursor + 1));
+    },
+    archive: () => {
+      redux.getActions("messages").mark({
+        ids: expandToThreads({
+          ids: new Set([filteredMessages[cursor].id]),
+          threads,
+          messages,
+        }),
+        saved: true,
+      });
+    },
+    ["delete"]: () => {
+      if (checkedMessageIds.size > 0) {
+        // handled by action button
+        return;
+      }
+      // current selected message
+      redux.getActions("messages").mark({
+        ids: new Set([filteredMessages[cursor].id]),
+        deleted: true,
+      });
+    },
+  });
+
   return (
     <>
       <Flex style={{ minHeight: "37px" }}>
@@ -354,46 +388,55 @@ function ShowAllThreads({
         style={{ overflowY: "auto" }}
         bordered
         dataSource={filteredMessages}
-        renderItem={(message) => (
-          <List.Item style={{ background: "#f2f6fc" }}>
-            <Message
-              threads={threads}
-              checked={checkedMessageIds.has(message.id)}
-              setChecked={({ checked, shiftKey }) => {
-                if (shiftKey && mostRecentChecked != null) {
-                  // set the range of id's between this message and the most recent one
-                  // to be checked.  This matches the algorithm I think in gmail and our file explorer.
-                  const v = get_array_range(
-                    filteredMessages.map(({ id }) => id),
-                    mostRecentChecked,
-                    message.id,
-                  );
-                  if (checked) {
-                    for (const id of v) {
-                      checkedMessageIds.add(id);
-                    }
-                  } else {
-                    for (const id of v) {
-                      checkedMessageIds.delete(id);
-                    }
-                  }
-                } else {
-                  if (checked) {
-                    checkedMessageIds.add(message.id);
-                  } else {
-                    checkedMessageIds.delete(message.id);
-                  }
-                }
-                setCheckedMessageIds(new Set(checkedMessageIds));
-                setMostRecentChecked(message.id);
+        renderItem={(message) => {
+          const focused = message.index == cursor;
+          return (
+            <List.Item
+              style={{
+                background: focused ? "#eee" : "#f2f6fc",
+                border: focused ? `1px solid #ccc` : `1px solid transparent`,
               }}
-              message={message}
-              showThread={showThread}
-              setShowThread={setShowThread}
-              folder={folder}
-            />
-          </List.Item>
-        )}
+            >
+              <Message
+                focused={focused}
+                threads={threads}
+                checked={checkedMessageIds.has(message.id)}
+                setChecked={({ checked, shiftKey }) => {
+                  if (shiftKey && mostRecentChecked != null) {
+                    // set the range of id's between this message and the most recent one
+                    // to be checked.  This matches the algorithm I think in gmail and our file explorer.
+                    const v = get_array_range(
+                      filteredMessages.map(({ id }) => id),
+                      mostRecentChecked,
+                      message.id,
+                    );
+                    if (checked) {
+                      for (const id of v) {
+                        checkedMessageIds.add(id);
+                      }
+                    } else {
+                      for (const id of v) {
+                        checkedMessageIds.delete(id);
+                      }
+                    }
+                  } else {
+                    if (checked) {
+                      checkedMessageIds.add(message.id);
+                    } else {
+                      checkedMessageIds.delete(message.id);
+                    }
+                  }
+                  setCheckedMessageIds(new Set(checkedMessageIds));
+                  setMostRecentChecked(message.id);
+                }}
+                message={message}
+                showThread={showThread}
+                setShowThread={setShowThread}
+                folder={folder}
+              />
+            </List.Item>
+          );
+        }}
       />
     </>
   );
@@ -467,6 +510,16 @@ function ShowOneThread({
     return thread?.get(0)?.toJS() ?? message;
   }, [message, threads]);
 
+  const down = () => {
+    setShowThread(filteredMessages[mesgIndex + 1]?.id);
+  };
+
+  const up = () => {
+    setShowThread(filteredMessages[mesgIndex - 1]?.id);
+  };
+
+  useCommand({ down, up });
+
   if (message == null) {
     return <Spin />;
   }
@@ -501,20 +554,18 @@ function ShowOneThread({
             {mesgIndex + 1} of {filteredMessages.length}
             <Button
               size="large"
-              disabled={mesgIndex <= 0}
               type="text"
               onClick={() => {
-                setShowThread(filteredMessages[mesgIndex - 1]?.id);
+                up();
               }}
             >
               <Icon name="chevron-left" />
             </Button>
             <Button
               size="large"
-              disabled={mesgIndex >= filteredMessages.length - 1}
               type="text"
               onClick={() => {
-                setShowThread(filteredMessages[mesgIndex + 1]?.id);
+                down();
               }}
             >
               <Icon name="chevron-right" />

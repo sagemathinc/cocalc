@@ -28,8 +28,11 @@ import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 import { BITSET_FIELDS } from "@cocalc/util/db-schema/messages";
 import { once } from "@cocalc/util/async-utils";
+import type { TypedMap } from "@cocalc/util/types/typed-map";
 
 const DEFAULT_FONT_SIZE = 14;
+
+type Command = TypedMap<{ name: string; counter: number }>;
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -42,6 +45,7 @@ export interface MessagesState {
   // error to display to user
   error: string;
   fontSize: number;
+  command: Command;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -59,6 +63,12 @@ export class MessagesActions extends Actions<MessagesState> {
 
   setError = (error: string) => {
     this.setState({ error });
+  };
+
+  command = (name) => {
+    const counter = this.getStore().getIn(["command", "counter"], 0) + 1;
+    // @ts-ignore
+    this.setState({ command: { name, counter } });
   };
 
   mark = async (obj: {
@@ -500,6 +510,7 @@ export function init() {
     searchWords: new Set<string>(),
     error: "",
     fontSize: loadFontSize(),
+    command: { name: "", counter: 0 },
   });
   redux.createActions<MessagesState, MessagesActions>(
     "messages",

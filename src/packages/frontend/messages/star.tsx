@@ -3,12 +3,14 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { isInFolderThreaded, isStarred, get, getThread } from "./util";
 import type { iThreads } from "./types";
 import { redux } from "@cocalc/frontend/app-framework";
+import useCommand from "./use-command";
 
 interface Props {
   message: MessageType;
   threads: iThreads;
   inThread?: boolean;
   style?;
+  focused?: boolean;
 }
 
 function showAsStarred({ message, threads, inThread }) {
@@ -39,13 +41,26 @@ async function markThread({ message, threads, starred }) {
   }
 }
 
-export default function Star({ message, threads, inThread, style }: Props) {
+export default function Star({
+  message,
+  threads,
+  inThread,
+  style,
+  focused,
+}: Props) {
   const starred = showAsStarred({ message, threads, inThread });
+  useCommand({
+    ["toggle-star"]: () => {
+      if (focused) {
+        markThread({ message, threads, starred: !starred });
+      }
+    },
+  });
+
   return (
     <Icon
       onClick={(e) => {
         e?.stopPropagation();
-        //setStarred(!starred);
         if (!inThread) {
           markThread({ message, threads, starred: !starred });
         } else {

@@ -299,6 +299,12 @@ export function getFilteredMessages({
       }
       return cmp(b.id, a.id);
     }) as unknown as Message[];
+
+  let index = 0;
+  for (const message of filteredMessages) {
+    message.index = index;
+    index += 1;
+  }
   return filteredMessages;
 }
 

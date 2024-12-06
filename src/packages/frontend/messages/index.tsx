@@ -14,6 +14,7 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import SmartAnchorTag from "@cocalc/frontend/components/smart-anchor-tag";
 import { ComposeModal } from "./compose";
 import ShowError from "@cocalc/frontend/components/error";
+import KeyboardShortcuts from "./keyboard";
 
 // This is a little trick so we can initialize the redux store *only* when
 // the component is first mounted... which only happens if the user actually
@@ -53,6 +54,7 @@ function Messages0({ filter, style }: Props) {
       value={{ AnchorTagComponent, jupyterApiEnabled: jupyter_api_enabled }}
     >
       <ConfigProvider renderEmpty={() => <Empty description={"No messages"} />}>
+        <KeyboardShortcuts />
         <div
           style={{
             overflowY: "auto",
