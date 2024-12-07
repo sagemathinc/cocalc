@@ -129,7 +129,7 @@ describe("creates an account, then creates statements and corresponding emails a
       force: true,
     });
     expect(subject).toMatch("Monthly Statement");
-    expect(body).toMatch("Statement balance is not negative");
+    expect(body).toMatch("NO PAYMENT IS REQUIRED");
   });
 
   it("No payment is currently required. -- it sets min balance and makes a purchase that puts the balance below 0 but above the thresh to 'demand' payment.", async () => {
@@ -143,7 +143,7 @@ describe("creates an account, then creates statements and corresponding emails a
       service: "license",
       description: {} as any,
       client: null,
-      cost: 11,
+      cost: 0.5,
     });
     await delay(100); // avoid clock issues
     await createStatements({
@@ -161,7 +161,7 @@ describe("creates an account, then creates statements and corresponding emails a
       dryRun: true,
       force: true,
     });
-    expect(body).toMatch("No payment is currently required.");
+    expect(body).toMatch("NO PAYMENT IS REQUIRED");
   });
 
   it("Payment required -- makes a bigger purchase, then creates a monthly statement, which explicitly asks the user to make a payment", async () => {
@@ -170,7 +170,7 @@ describe("creates an account, then creates statements and corresponding emails a
       service: "license",
       description: {} as any,
       client: null,
-      cost: 12,
+      cost: 25,
     });
     await delay(100); // avoid clock issues
     await createStatements({
@@ -188,6 +188,7 @@ describe("creates an account, then creates statements and corresponding emails a
       dryRun: true,
       force: true,
     });
-    expect(body).toMatch("Payment required.");
+    expect(body).toMatch("invoice soon");
+    expect(body).not.toMatch("NO PAYMENT IS REQUIRED");
   });
 });
