@@ -55,18 +55,17 @@ export default function Thread({
   if (!thread_id) {
     return null;
   }
-  const thread = threads.get(thread_id)?.toJS();
+  const thread = threads.get(thread_id)?.toJS() as unknown as
+    | MessageType[]
+    | null;
   if (thread == null) {
     return null;
   }
-
   return (
     <List
       style={style}
       bordered
-      dataSource={
-        thread.slice(0, thread.length - 1) as unknown as MessageType[]
-      }
+      dataSource={thread.slice(0, thread.length - 1)}
       renderItem={(message) => (
         <List.Item>
           <MessageInThread

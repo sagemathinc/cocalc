@@ -280,7 +280,7 @@ function MessageFull({
   const readRef = useRef<boolean>(read);
   const searchWords = useTypedRedux("messages", "searchWords");
   const fontSize = useTypedRedux("messages", "fontSize");
-
+  
   useEffect(() => {
     setFragment({ folder, id: message.id });
   }, [folder, message.id]);
@@ -374,10 +374,21 @@ function MessageFull({
           <Space>
             {excludeSelf(participantsInThread({ message, threads })).length >
               1 && (
-              <ReplyButton type="text" replyTo={message} replyAll label="" />
+              <ReplyButton
+                type="text"
+                replyTo={message}
+                replyAll
+                label=""
+                focused={focused}
+              />
             )}
             <ReplyButton type="text" replyTo={message} label="" />
-            <ForwardButton type="text" replyTo={message} label="" />
+            <ForwardButton
+              type="text"
+              replyTo={message}
+              label=""
+              focused={focused}
+            />
             <ForwardButton type="text" replyTo={message} replyAll label="" />
           </Space>
         </div>

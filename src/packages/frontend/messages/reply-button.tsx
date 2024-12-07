@@ -3,17 +3,20 @@ import { useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { Message } from "./types";
+import useCommand from "./use-command";
 
 interface ReplyButtonProps extends ButtonProps {
   label?;
   replyTo: Message;
   replyAll?: boolean;
+  focused?: boolean;
 }
 
 export default function ReplyButton({
   label,
   replyTo,
   replyAll,
+  focused,
   ...props
 }: ReplyButtonProps) {
   const [creating, setCreating] = useState<boolean>(false);
@@ -32,6 +35,19 @@ export default function ReplyButton({
     },
     [replyTo],
   );
+
+  useCommand({
+    reply: () => {
+      if (focused && !replyAll) {
+        createReply();
+      }
+    },
+    ["reply-all"]: () => {
+      if (focused && replyAll) {
+        createReply();
+      }
+    },
+  });
 
   return (
     <Tooltip
@@ -56,6 +72,7 @@ export function ForwardButton({
   label,
   replyTo,
   replyAll: forwardAll,
+  focused,
   ...props
 }: ReplyButtonProps) {
   const [creating, setCreating] = useState<boolean>(false);
@@ -77,6 +94,14 @@ export function ForwardButton({
     },
     [replyTo],
   );
+
+  useCommand({
+    forward: () => {
+      if (focused) {
+        createForward();
+      }
+    },
+  });
 
   return (
     <Tooltip title={`Forward ${forwardAll ? "entire thread" : "this message"}`}>

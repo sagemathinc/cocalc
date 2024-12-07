@@ -13,8 +13,25 @@ function handler(e) {
     // never use this handler if something is focused.
     return;
   }
+  // obviously dumb -- use a map instead!
   let name = "";
   switch (e.key) {
+    case "r":
+      name = "reply";
+      break;
+    case "a":
+      name = "reply-all";
+      break;
+    case "f":
+      name = "forward";
+      break;
+    case "Enter":
+    case "o":
+      name = "open";
+      break;
+    case "u":
+      name = "back-to-threadlist";
+      break;
     case "ArrowDown":
     case "j":
       name = "down";
@@ -42,7 +59,7 @@ function handler(e) {
       name = "toggle-star";
 
     default:
-    //      console.log(e);
+    //console.log(e);
   }
   if (name) {
     redux.getActions("messages").command(name);

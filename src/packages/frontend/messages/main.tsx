@@ -343,6 +343,9 @@ function ShowAllThreads({
         deleted: true,
       });
     },
+    open: () => {
+      setShowThread(filteredMessages[cursor].id);
+    },
   });
 
   return (
@@ -518,7 +521,13 @@ function ShowOneThread({
     setShowThread(filteredMessages[mesgIndex - 1]?.id);
   };
 
-  useCommand({ down, up });
+  useCommand({
+    down,
+    up,
+    ["back-to-threadlist"]: () => {
+      setShowThread(null);
+    },
+  });
 
   if (message == null) {
     return <Spin />;
@@ -583,6 +592,7 @@ function ShowOneThread({
         setShowThread={setShowThread}
         folder={folder}
         style={{ paddingLeft: "12px" }}
+        focused={true}
       />
     </>
   );
