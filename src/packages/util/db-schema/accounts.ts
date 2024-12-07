@@ -376,7 +376,7 @@ Table({
     },
     email_daily_statements: {
       type: "boolean",
-      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      desc: "If true, try to send daily statements to user showing all of their purchases.  If false or not set, then do not.  NOTE: we always try to email monthly statements to users.",
       render: {
         type: "boolean",
         editable: true,

@@ -56,14 +56,15 @@ export function statementToMarkdown(
   return `
 ## Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement (Id = ${statement.id})
 - ${toISODay(statement.time)}
-- Previous Account Balance: ${currency(round2down(previousStatement?.balance ?? 0))}
+- Previous Balance: ${currency(round2down(previousStatement?.balance ?? 0))}
 - ${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
     -statement.total_charges,
   )}
 - ${statement.num_credits} ${plural(statement.num_credits, "Credit")}: ${currency(
     -statement.total_credits,
   )}
-- **New Statement Balance: ${currency(statement.balance)}**
+- New Balance: ${currency(statement.balance)}
+${statement.balance >= 0 ? "- **NO PAYMENT IS REQUIRED.**" : ""}
 `;
 }
 
