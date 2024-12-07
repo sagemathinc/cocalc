@@ -134,7 +134,6 @@ export default async function getPurchases({
       }
     }
   }
-  console.log("getPurchases", query);
 
   // get all the purchases and the user balance in a single transaction:
   const client = await getTransactionClient();

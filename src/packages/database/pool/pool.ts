@@ -5,7 +5,6 @@
 
 import { Client, Pool, PoolClient } from "pg";
 import { syncSchema } from "@cocalc/database/postgres/schema";
-
 import {
   pgdatabase as database,
   pghost as host,

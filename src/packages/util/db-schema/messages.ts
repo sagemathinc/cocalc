@@ -44,11 +44,12 @@ export const NUM_MESSAGES = 1000;
 
 interface Message0 {
   id: number;
-  sent: Date;
   from_id: string; // a uuid
   to_ids: string[]; // array of uuid's
   subject: string;
   body: string;
+  // sent is only set after message is sent.
+  sent?: Date;
   // used for replies
   thread_id?: number;
 

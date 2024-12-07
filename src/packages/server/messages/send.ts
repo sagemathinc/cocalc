@@ -9,6 +9,7 @@ import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
 import getAdmins from "@cocalc/server/accounts/admins";
 import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
+import type { Message } from "@cocalc/util/db-schema/messages";
 
 export default async function send({
   to_ids,
@@ -46,9 +47,9 @@ export default async function send({
     from_id = support_account_id ? support_account_id : (await getAdmins())[0];
   }
   if (!from_id) {
-    throw Error(
-      "no valid from_id and no support account configured in admin settings",
-    );
+    // if support not configured, just make message be **from the user.**
+    // this is better than nothing...
+    from_id = to_ids[0];
   }
   if (!(await isValidAccount(from_id))) {
     throw Error(`invalid from_id account_id -- ${from_id}`);
@@ -74,10 +75,18 @@ export default async function send({
     "INSERT INTO messages(from_id,to_ids,subject,body,sent,thread_id) VALUES($1,$2,$3,$4,NOW(),$5) RETURNING id",
     [from_id, to_ids, subject, body, thread_id],
   );
+  const { id } = rows[0];
+  if (process.env.COCALC_TEST_MODE) {
+    // In testing mode, we also push emails into an in-memory list.  The test framework can then check to see
+    // what happened, reset it, etc.  Testing could alternatively look in the database, but this is simpler,
+    // synchronous (instead of async) and much faster.
+    testMessages.push({ id, from_id, to_ids, subject, body, thread_id });
+  }
+
   for (const account_id of to_ids) {
     await updateUnreadMessageCount({ account_id });
   }
-  return rows[0].id;
+  return id;
 }
 
 export async function support() {
@@ -94,4 +103,9 @@ or [create a support ticket](${await url("support", "new")}).\n\n---\n\n`;
 export async function url(...args) {
   const { dns } = await getServerSettings();
   return `https://${dns}${join(basePath, ...args.map((x) => `${x}`))}`;
+}
+
+export const testMessages: Message[] = [];
+export async function resetTestMessages() {
+  testMessages.length = 0;
 }
