@@ -41,6 +41,7 @@ import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LineItemsTable } from "./line-items";
 import { AddressButton } from "./address";
+import CancelPaymentIntent from "./cancel-payment-intent";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -323,16 +324,15 @@ export function FinishStripePayment({
       <PaymentForm
         style={style}
         onFinished={onFinished}
-        disabled={
-          paymentIntent.status == "succeeded" ||
-          paymentIntent.status == "canceled"
-        }
+        paymentIntent={paymentIntent}
       />
     </Elements>
   );
 }
 
-function PaymentForm({ style, onFinished, disabled }) {
+function PaymentForm({ style, onFinished, paymentIntent }) {
+  const finalized =
+    paymentIntent.status == "succeeded" || paymentIntent.status == "canceled";
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -411,11 +411,11 @@ function PaymentForm({ style, onFinished, disabled }) {
       />
       {ready && (
         <ConfirmButton
-          label={<>Choose Payment Method</>}
+          label={<>Use this Payment Method</>}
           showAddress
           disabled={
             success ||
-            disabled ||
+            finalized ||
             isSubmitting ||
             !stripe ||
             !elements ||
@@ -424,6 +424,10 @@ function PaymentForm({ style, onFinished, disabled }) {
           onClick={handleSubmit}
           success={success}
           isSubmitting={isSubmitting}
+          cancellablePaymentIntentId={!finalized ? paymentIntent.id : undefined}
+          onCancel={() => {
+            onFinished?.();
+          }}
         />
       )}
       {/* Show error message */}
@@ -445,6 +449,7 @@ export function ConfirmButton({
   notPrimary,
   onCancel,
   showAddress,
+  cancellablePaymentIntentId,
 }: {
   disabled?: boolean;
   onClick;
@@ -454,6 +459,8 @@ export function ConfirmButton({
   notPrimary?: boolean;
   onCancel?: Function;
   showAddress?: boolean;
+  // if given, also include button to cancel the given payment intent
+  cancellablePaymentIntentId?: string;
 }) {
   return (
     <div style={{ marginTop: "15px", display: "flex" }}>
@@ -494,6 +501,15 @@ export function ConfirmButton({
               disabled={disabled || isSubmitting}
               size="large"
               style={{ height: "44px" }}
+            />
+          )}
+          {!!cancellablePaymentIntentId && (
+            <CancelPaymentIntent
+              paymentIntentId={cancellablePaymentIntentId}
+              disabled={disabled || isSubmitting}
+              size="large"
+              style={{ height: "44px" }}
+              onCancel={onCancel}
             />
           )}
         </Space>

@@ -1,5 +1,12 @@
+/*
+An admin can cancel anybody's payment intent, whereas a user can only cancel their own.
+*/
+
 import getAccountId from "lib/account/get-account";
-import { cancelPaymentIntent } from "@cocalc/server/purchases/stripe/create-payment-intent";
+import {
+  cancelPaymentIntent,
+  getPaymentIntentAccountId,
+} from "@cocalc/server/purchases/stripe/create-payment-intent";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import throttle from "@cocalc/util/api/throttle";
@@ -22,10 +29,13 @@ async function get(req) {
     account_id,
     endpoint: "purchases/stripe/cancel-payment-intent",
   });
-  if (!(await userIsInGroup(account_id, "admin"))) {
-    throw Error("only admins can cancel an open payment");
-  }
   const { id, reason } = getParams(req);
+  const owner_id = await getPaymentIntentAccountId(id);
+  if (owner_id != account_id) {
+    if (!(await userIsInGroup(account_id, "admin"))) {
+      throw Error("only admins can cancel other user's payment intents");
+    }
+  }
   await cancelPaymentIntent({ id, reason });
   return { success: true };
 }

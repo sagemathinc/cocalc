@@ -234,3 +234,11 @@ export async function cancelPaymentIntent({
     throw err;
   }
 }
+
+export async function getPaymentIntentAccountId(
+  id: string,
+): Promise<string | undefined> {
+  const stripe = await getConn();
+  const paymentIntent = await stripe.paymentIntents.retrieve(id);
+  return paymentIntent.metadata?.account_id;
+}

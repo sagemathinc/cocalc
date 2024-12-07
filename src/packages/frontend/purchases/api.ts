@@ -522,7 +522,6 @@ export async function getStripePublishableKey(): Promise<string> {
   return stripe_publishable_key as string;
 }
 
-// only admins can do this
 export async function cancelPaymentIntent(opts: {
   id: string;
   reason: PaymentIntentCancelReason;
