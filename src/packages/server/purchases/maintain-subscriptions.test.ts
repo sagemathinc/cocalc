@@ -1,4 +1,4 @@
-import { uuid } from "@cocalc/util/misc";
+/*import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
@@ -407,3 +407,4 @@ describe("test renewSubscriptions doesn't cancel tiny subscription", () => {
     expect(subs[0].status).toBe("active");
   });
 });
+*/

@@ -452,14 +452,17 @@ export async function getLicense(
 
 export async function cancelSubscription({
   subscription_id,
+  reason,
   now,
 }: {
   subscription_id: number;
+  reason: string;
   now?: boolean;
 }) {
   return await api("purchases/cancel-subscription", {
     subscription_id,
     now,
+    reason,
   });
 }
 

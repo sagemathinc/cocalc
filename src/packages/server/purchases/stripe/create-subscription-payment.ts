@@ -16,6 +16,7 @@ import getBalance from "@cocalc/server/purchases/get-balance";
 import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { sendCancelNotification } from "../cancel-subscription";
 
 // nothing should ever be this small, but just in case:
 const MIN_SUBSCRIPTION_AMOUNT = 1;
@@ -311,6 +312,8 @@ export async function useBalanceTowardSubscriptions(
   }
 }
 
+// We set payment status to canceled *and* cancel the subscription --
+// user can resume it at current rates at a later date.
 export async function processSubscriptionRenewalFailure({ paymentIntent }) {
   const { subscription_id } = paymentIntent?.metadata ?? {};
   if (!subscription_id) {
@@ -324,7 +327,8 @@ export async function processSubscriptionRenewalFailure({ paymentIntent }) {
       : subscription_id;
   const pool = getPool();
   await pool.query(
-    `UPDATE subscriptions SET payment = jsonb_set(payment, '{status}', '"canceled"') WHERE id=$1`,
+    `UPDATE subscriptions SET payment = jsonb_set(payment, '{status}', '"canceled"'), status='canceled', canceled_at=NOW(), canceled_reason='The payment was canceled instead of being paid.' WHERE id=$1`,
     [id],
   );
+  await sendCancelNotification({ subscription_id });
 }

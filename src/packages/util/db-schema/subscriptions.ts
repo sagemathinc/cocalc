@@ -37,6 +37,7 @@ export interface Subscription {
   latest_purchase_id?: number;
   status: Status;
   canceled_at?: Date;
+  canceled_reason?: string;
   resumed_at?: Date;
   metadata: Metadata;
   renewal_email?: Date;
@@ -90,6 +91,10 @@ Table({
     canceled_at: {
       type: "timestamp",
       desc: "When subscription was canceled",
+    },
+    canceled_reason: {
+      type: "string",
+      desc: "Why subscription was canceled",
     },
     resumed_at: {
       type: "timestamp",

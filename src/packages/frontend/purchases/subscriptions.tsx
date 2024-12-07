@@ -21,9 +21,20 @@ The subscriptions look like this in the database:
 ];
 */
 
-import { Alert, Collapse, Spin, Table, Tag } from "antd";
-import { useEffect, useMemo, useState } from "react";
-import { useIntl } from "react-intl";
+import {
+  Alert,
+  Button,
+  Collapse,
+  Input,
+  Modal,
+  Popconfirm,
+  Space,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import { ManageSubscriptionButton } from "./manage-subscription";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
@@ -35,14 +46,30 @@ import {
   STATUS_TO_COLOR,
 } from "@cocalc/util/db-schema/subscriptions";
 import { capitalize, currency, round2up } from "@cocalc/util/misc";
-import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
+import {
+  cancelSubscription,
+  costToResumeSubscription,
+  creditToCancelSubscription,
+  getLicense,
+  getSubscriptions as getSubscriptionsUsingApi,
+  renewSubscription,
+  resumeSubscription,
+} from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
+import type { License } from "@cocalc/util/db-schema/site-licenses";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 import { SubscriptionStatus } from "./subscriptions-util";
 
-/*
+// Cancel immediately makes it pointless to ever buy a license without
+// buying a subscription, since you can just buy a license via a subscription,
+// get a big discount, and cancel exactly at the end of the period. Hence
+// disabling this for now, unless we come up with something better.  This
+// flag can be toggled to turn the functionality back on.
+const SUPPORT_CANCEL_IMMEDIATELY = false;
+
 function SubscriptionActions({
   subscription_id,
   license_id,
@@ -58,7 +85,7 @@ function SubscriptionActions({
 
   const updateLicense = async () => {
     try {
-      setLicense(await getLicense({license_id}));
+      setLicense((await getLicense({ license_id })) as License);
     } catch (err) {
       setError(`${err}`);
     }
@@ -95,11 +122,16 @@ function SubscriptionActions({
     }
   };
 
+  const reasonRef = useRef<string>("");
   const handleCancel = async (now: boolean = false) => {
     try {
       setLoading(true);
       setError("");
-      await cancelSubscription({ subscription_id, now });
+      await cancelSubscription({
+        subscription_id,
+        now,
+        reason: `Requested by the user: ${reasonRef.current}`,
+      });
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -183,6 +215,12 @@ function SubscriptionActions({
               the prorated time left on the subscription. There are no
               transaction fees for canceling or resuming a subscription, and you
               can resume your subscription at any point later.
+              <br />
+              <Input
+                style={{ width: "100%" }}
+                onChange={(e) => (reasonRef.current = e.target.value)}
+                placeholder={"Why are you canceling..."}
+              />
             </div>
           );
         }}
@@ -207,6 +245,12 @@ function SubscriptionActions({
             defaultMessage={
               "The license will still be valid until the subscription period ends. You can always restart the subscription or edit the license to change the subscription price."
             }
+          />
+          <br />
+          <Input
+            style={{ width: "100%" }}
+            onChange={(e) => (reasonRef.current = e.target.value)}
+            placeholder={"Why are you canceling..."}
           />
         </div>
       }
@@ -345,7 +389,6 @@ function SubscriptionActions({
     </Space>
   );
 }
-*/
 
 function LicenseDescription({ license_id, refresh }) {
   return (
@@ -503,11 +546,16 @@ export default function Subscriptions() {
       {
         title: "Manage",
         key: "manage",
-        render: (_, subscription) => (
+        render: (_, { cost, id, metadata, status, interval }) => (
           <>
-            <ManageSubscriptionButton
-              type="default"
-              subscription_id={subscription.id}
+            <ManageSubscriptionButton type="default" subscription_id={id} />
+            <SubscriptionActions
+              subscription_id={id}
+              license_id={metadata.license_id}
+              status={status}
+              refresh={getSubscriptions}
+              cost={cost}
+              interval={interval}
             />
           </>
         ),
