@@ -11,6 +11,8 @@ export interface LicenseMetadata {
 }
 export type Metadata = LicenseMetadata;
 
+export const RENEW_DAYS_BEFORE_END = 5;
+
 export interface SubscriptionPayment {
   // id of the payment intent in stripe
   payment_intent_id: string;

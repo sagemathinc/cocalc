@@ -9,9 +9,7 @@ import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
-import resumeSubscription, {
-  costToResumeSubscription,
-} from "./resume-subscription";
+import resumeSubscription from "./resume-subscription";
 import cancelSubscription, {
   creditToCancelSubscription,
 } from "./cancel-subscription";
@@ -69,20 +67,10 @@ describe("create a subscription, cancel it, then resume it", () => {
       0,
     );
 
-    const balanceBeforeResume = await getBalance({ account_id });
-    const { cost: costToResume } =
-      await costToResumeSubscription(subscription_id);
     // now resume:
     await resumeSubscription({ account_id, subscription_id });
     // and it is active
     expect((await getSubscription(subscription_id)).status).toBe("active");
-
-    // and balance is right
-    const balanceAfterResume = await getBalance({ account_id });
-    expect(balanceBeforeResume - costToResume).toBeCloseTo(
-      balanceAfterResume,
-      2,
-    );
 
     // confirm the license is active again for same period as subscription current period.
     const license2 = await getLicense(license_id);

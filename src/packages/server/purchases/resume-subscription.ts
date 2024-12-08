@@ -2,19 +2,25 @@
 Resume a canceled subscription, which does all of the following in a single ATOMIC transaction.
 
 - Changes the status of the subscription to active, so it'll get renewed each month.
-- Sets the current_period_start/end dates for the subscription to include now.
+- Sets the current_period_start/end dates for the subscription with current_period_start=midnight today.
+  and current_period_end an interval (='month' or 'year') from now.
 - Edits the license so that start date is now and end date is current_period_end.
   Doing this edit involves a charge and will fail if user doesn't have sufficient
   credit.
 */
 
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
-import editLicense, { costToChangeLicense } from "./edit-license";
-import { getSubscription, intervalContainingNow } from "./renew-subscription";
+import editLicense from "./edit-license";
+import { getSubscription, addInterval } from "./renew-subscription";
 import {
   compute_cost,
   periodicCost as getPeriodicCost,
 } from "@cocalc/util/licenses/purchase/compute-cost";
+import dayjs from "dayjs";
+import send, { support, url, name } from "@cocalc/server/messages/send";
+import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
+import adminAlert from "@cocalc/server/messages/admin-alert";
+import getBalance from "./get-balance";
 
 interface Options {
   account_id: string;
@@ -33,7 +39,7 @@ export default async function resumeSubscription({
       account_id,
       license_id,
       changes: { end },
-      note: "Resume a subscription. This is the prorated cost to pay for the remainder of the current period at current rates.",
+      note: `This is to pay for the subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
       isSubscriptionRenewal: true,
       client,
     });
@@ -50,9 +56,60 @@ export default async function resumeSubscription({
       );
     }
     await client.query("COMMIT");
+    send({
+      to_ids: [account_id],
+      subject: `Subscription Id=${subscription_id} Successfully Resumed!`,
+      body: `
+You have successfully manually resumed subscription id=${subscription_id} which covers your license
+
+${license_id}
+
+Your subscription will automatically renew ${RENEW_DAYS_BEFORE_END} days before ${end.toDateString()}.
+
+- [Your Subscriptions](${await url("settings", "subscriptions")})
+
+Thank you!
+
+${await support()}`,
+    });
+    adminAlert({
+      subject: `User manually resumed cancelled subscription ${subscription_id}`,
+      body: `
+**Good news** - The user ${await name(account_id)} with account_id=${account_id} has manually resumed
+and paid for their canceled subscription id=${subscription_id}.
+You might want to check in with them.`,
+    });
+
+    // update user's displayed balance
+    await getBalance({ account_id });
+
     return purchase_id;
   } catch (err) {
     await client.query("ROLLBACK");
+
+    send({
+      to_ids: [account_id],
+      subject: `Subscription Id=${subscription_id} Failed to Resume`,
+      body: `
+An unexpected error happened when manually resuming your subscription with id=${subscription_id} for the license ${license_id}
+
+- [Your Subscriptions](${await url("settings", "subscriptions")})
+
+- ERROR: ${err}
+
+${await support()}`,
+    });
+    adminAlert({
+      subject: `Unexpected error when user manually resumed cancelled subscription ${subscription_id}`,
+      body: `
+PROBLEM: The user ${await name(account_id)} with account_id=${account_id} tried to manually resume
+their canceled subscription id=${subscription_id}, but there was an unexpected
+error. An admin should check in on this.
+
+- ERROR: ${err}
+`,
+    });
+
     throw err;
   } finally {
     client.release();
@@ -67,7 +124,6 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
 }> {
   const {
     cost: currentCost,
-    current_period_end,
     interval,
     metadata,
     status,
@@ -100,19 +156,14 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
       periodicCost = newCost;
     }
   }
-  const { start, end } = intervalContainingNow(current_period_end, interval);
+  const start = dayjs().startOf("day").toDate();
+  const end = addInterval(start, interval);
   return { license_id, start, end, periodicCost };
 }
 
 export async function costToResumeSubscription(
   subscription_id,
-): Promise<{ cost: number; periodicCost: number }> {
-  const { license_id, end, periodicCost } =
-    await getSubscriptionRenewalData(subscription_id);
-  const { cost } = await costToChangeLicense({
-    license_id,
-    changes: { end },
-    isSubscriptionRenewal: true,
-  });
-  return { cost, periodicCost };
+): Promise<{ periodicCost: number }> {
+  const { periodicCost } = await getSubscriptionRenewalData(subscription_id);
+  return { periodicCost };
 }

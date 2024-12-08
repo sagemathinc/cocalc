@@ -68,7 +68,8 @@ export default async function maintainAutoBalance() {
 
   // Now we maintain auto balance for each of these accounts.
   // Initially, likely there will be very few such users, but eventually
-  // we'll need tricks to make this more efficient.   In particular, we should make getBalance more efficient.
+  // we'll need tricks to make this more efficient.   In particular,
+  // we should make getBalance more efficient.
   for (const account_id of accounts) {
     try {
       const { reason, status } = await update({
@@ -240,17 +241,6 @@ async function update({
     week: amount_week + amount,
     month: amount_month + amount,
   };
-  // do a balance check to update account balance, in case transaction clears.
-  // user will see this if they are actively using cocalc.  do not block on this.
-  setTimeout(async () => {
-    try {
-      await getBalance({ account_id });
-    } catch (err) {
-      logger.debug(
-        `${account_id} -- WARNING failed to update balance -- ${err}`,
-      );
-    }
-  }, 15000);
 
   return { reason: longDescription, status };
 }

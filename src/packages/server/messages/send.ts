@@ -10,6 +10,12 @@ import getAdmins from "@cocalc/server/accounts/admins";
 import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
 import type { Message } from "@cocalc/util/db-schema/messages";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+
+export async function name(account_id: string) {
+  const { name: name0, email_address } = await getUser(account_id);
+  return `${name0} <${email_address}>`;
+}
 
 export default async function send({
   to_ids,

@@ -474,7 +474,7 @@ export async function resumeSubscription(subscription_id: number) {
 
 export async function costToResumeSubscription(
   subscription_id: number,
-): Promise<{ cost: number; periodicCost: number }> {
+): Promise<{ periodicCost: number }> {
   return await api("purchases/cost-to-resume-subscription", {
     subscription_id,
   });

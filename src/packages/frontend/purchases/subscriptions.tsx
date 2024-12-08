@@ -25,6 +25,7 @@ import {
   Alert,
   Button,
   Collapse,
+  Flex,
   Input,
   Modal,
   Popconfirm,
@@ -60,7 +61,7 @@ import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-
+import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 import { SubscriptionStatus } from "./subscriptions-util";
 
 // Cancel immediately makes it pointless to ever buy a license without
@@ -91,17 +92,12 @@ function SubscriptionActions({
     }
   };
 
-  const [costToResume, setCostToResume] = useState<number | undefined>(
-    undefined,
-  );
   const [periodicCost, setPeriodicCost] = useState<number | undefined>(
     undefined,
   );
   const updateCostToResume = async () => {
     try {
-      const { cost, periodicCost } =
-        await costToResumeSubscription(subscription_id);
-      setCostToResume(cost);
+      const { periodicCost } = await costToResumeSubscription(subscription_id);
       setPeriodicCost(periodicCost);
       return cost;
     } catch (err) {
@@ -356,29 +352,24 @@ function SubscriptionActions({
           title={"Resume this subscription?"}
           description={() => {
             setTimeout(updateCostToResume, 1);
-            if (costToResume == null) {
+            if (periodicCost == null) {
               return <Spin />;
             }
             return (
               <div style={{ maxWidth: "450px" }}>
-                The corresponding license will become active again, and{" "}
-                <b>you will be charged {currency(round2up(costToResume))}</b>{" "}
-                for the remainder of the current period.
-                {periodicCost != null && (
-                  <span>
-                    {" "}
-                    The cost will then be{" "}
-                    <b>
-                      {currency(round2up(periodicCost))}/{interval}
-                    </b>
-                    , which is the current rate.
-                  </span>
-                )}
+                The corresponding subscription and license will become active
+                again, and{" "}
+                <b>
+                  you will be charged {currency(round2up(periodicCost))}/
+                  {interval}
+                </b>
+                , which is the current rate. You will be billed each {interval}{" "}
+                {RENEW_DAYS_BEFORE_END} days before the license would expire.
               </div>
             );
           }}
           onConfirm={handleResume}
-          okText="Yes"
+          okText="Yes, Resume Subscription"
           cancelText="No"
         >
           <Button disabled={loading} type="default">
@@ -573,9 +564,10 @@ export default function Subscriptions() {
   return (
     <SettingBox
       title={
-        <>
+        <Flex style={{ width: "100%" }}>
           <Icon name="calendar" style={{ marginRight: "15px" }} />{" "}
           {intl.formatMessage(labels.subscriptions)}
+          <div style={{ flex: 1 }} />
           <Refresh
             handleRefresh={getSubscriptions}
             style={{ marginLeft: "30px" }}
@@ -587,7 +579,7 @@ export default function Subscriptions() {
               style={{ marginLeft: "8px" }}
             />
           </div>
-        </>
+        </Flex>
       }
     >
       {error && (

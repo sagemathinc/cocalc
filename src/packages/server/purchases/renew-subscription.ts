@@ -73,7 +73,7 @@ export default async function renewSubscription({
 }
 
 // add the interval to the date.  The day of the month (and time) should be unchanged
-function addInterval(expires: Date, interval: "month" | "year"): Date {
+export function addInterval(expires: Date, interval: "month" | "year"): Date {
   if (interval != "month" && interval != "year") {
     throw Error(`interval must be 'month' or 'year' but it is "${interval}"`);
   }

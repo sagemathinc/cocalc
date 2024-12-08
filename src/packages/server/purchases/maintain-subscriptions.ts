@@ -7,7 +7,7 @@ UPCOMING NOTIFICATIONS:
 
 CREATE PAYMENTS:
   For each subscription that has status not 'canceled' and current_period_end
-  is within the next 5 days, and there isn't already a renewal process happening
+  is within the next {RENEW_DAYS_BEFORE_END} days, and there isn't already a renewal process happening
   for that subscription, we do the following:
 
   - Create a payment intent for the amount to renew the subscription for the next
@@ -73,6 +73,7 @@ import getLogger from "@cocalc/backend/logger";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { currency } from "@cocalc/util/misc";
+import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -182,14 +183,14 @@ export async function createPayments() {
   );
   // Do a query for each subscription that:
   //    - has status not 'canceled', and
-  //    - current_period_end is within the next 5 days, and
+  //    - current_period_end is within the next RENEW_DAYS_BEFORE_END days, and
   //    - there isn't already an outstanding payment for this subscription
   const pool = getPool();
   const { rows } = await pool.query(
     `
   SELECT id as subscription_id, account_id FROM subscriptions WHERE
       status != 'canceled' AND
-      current_period_end <= NOW() + interval '5 days' AND
+      current_period_end <= NOW() + interval '${RENEW_DAYS_BEFORE_END} days' AND
       coalesce(payment#>>'{status}','') != 'active'
   `,
   );
