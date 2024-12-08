@@ -266,10 +266,13 @@ export default function Checkout() {
                   style={{
                     paddingRight: "30px",
                     borderRight: "1px solid #ddd",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
                   }}
                 >
                   {round2down(params.balance ?? 0) > 0 && (
-                    <>
+                    <div>
                       <Checkbox
                         style={{ fontSize: "12pt" }}
                         checked={showApplyCredit}
@@ -339,7 +342,7 @@ export default function Checkout() {
                             )}
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </Col>
                 <Col sm={12} style={{ paddingLeft: "30px" }}>

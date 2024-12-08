@@ -184,7 +184,7 @@ customer.  So we don't know what to do with this.  Please manually investigate.
             paymentIntent.metadata.cart_ids != null
               ? JSON.parse(paymentIntent.metadata.cart_ids)
               : undefined;
-          if (cart_ids) {
+          if (cart_ids != null) {
             await shoppingCartPutItemsBack({ cart_ids });
           }
         } else if (paymentIntent.metadata.purpose == STUDENT_PAY) {
@@ -284,8 +284,8 @@ ${await support()}`;
     try {
       if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
         reason = "purchase items in your shopping cart";
-        // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
-        // to provision each of those items.
+        // The purpose of this payment was to buy certain items from the store.
+        // We use the credit we just got above to provision each of those items.
         await shoppingCartCheckout({
           account_id,
           payment_intent: paymentIntent.id,

@@ -32,6 +32,7 @@ async function get(req) {
     starting_after,
     limit,
     unfinished,
+    canceled,
   } = getParams(req);
   if (user_account_id) {
     // This user MUST be an admin:
@@ -45,6 +46,7 @@ async function get(req) {
       starting_after,
       limit,
       unfinished,
+      canceled,
     });
   }
 
@@ -55,5 +57,6 @@ async function get(req) {
     starting_after,
     limit,
     unfinished,
+    canceled,
   });
 }

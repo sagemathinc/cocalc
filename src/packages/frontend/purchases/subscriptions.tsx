@@ -92,12 +92,17 @@ function SubscriptionActions({
     }
   };
 
+  const [costToResume, setCostToResume] = useState<number | undefined>(
+    undefined,
+  );
   const [periodicCost, setPeriodicCost] = useState<number | undefined>(
     undefined,
   );
   const updateCostToResume = async () => {
     try {
-      const { periodicCost } = await costToResumeSubscription(subscription_id);
+      const { cost, periodicCost } =
+        await costToResumeSubscription(subscription_id);
+      setCostToResume(cost);
       setPeriodicCost(periodicCost);
       return cost;
     } catch (err) {
@@ -213,9 +218,9 @@ function SubscriptionActions({
               can resume your subscription at any point later.
               <br />
               <Input
-                style={{ width: "100%" }}
+                style={{ width: "100%", margin: "15px 0" }}
                 onChange={(e) => (reasonRef.current = e.target.value)}
-                placeholder={"Why are you canceling..."}
+                placeholder={"Why are you canceling this subscription..."}
               />
             </div>
           );
@@ -244,9 +249,9 @@ function SubscriptionActions({
           />
           <br />
           <Input
-            style={{ width: "100%" }}
+            style={{ width: "100%", margin: "15px 0" }}
             onChange={(e) => (reasonRef.current = e.target.value)}
-            placeholder={"Why are you canceling..."}
+            placeholder={"Why are you canceling this subscription..."}
           />
         </div>
       }
@@ -349,7 +354,7 @@ function SubscriptionActions({
       )}
       {status == "canceled" && (
         <Popconfirm
-          title={"Resume this subscription?"}
+          title={`Resume Subscription Id=${subscription_id}?`}
           description={() => {
             setTimeout(updateCostToResume, 1);
             if (periodicCost == null) {
@@ -357,14 +362,21 @@ function SubscriptionActions({
             }
             return (
               <div style={{ maxWidth: "450px" }}>
-                The corresponding subscription and license will become active
-                again, and{" "}
-                <b>
-                  you will be charged {currency(round2up(periodicCost))}/
-                  {interval}
-                </b>
-                , which is the current rate. You will be billed each {interval}{" "}
-                {RENEW_DAYS_BEFORE_END} days before the license would expire.
+                {costToResume == 0 ? (
+                  <b>
+                    There is no charge to resume your subscription, since your
+                    license is still active.
+                  </b>
+                ) : (
+                  <b>
+                    To resume your subscription, you will be charged{" "}
+                    {currency(round2up(periodicCost))} for the next {interval}.
+                  </b>
+                )}{" "}
+                The current subscription rate is{" "}
+                {currency(round2up(periodicCost))}/{interval}. You will be
+                billed each {interval} {RENEW_DAYS_BEFORE_END} days before the
+                license would expire.
               </div>
             );
           }}

@@ -118,6 +118,7 @@ export default function StripePayment({
       <div>
         <div style={{ textAlign: "center" }}>
           <Space>
+            {hasPaymentMethods == null && <BigSpin style={{ width: "100%" }} />}
             {showOneClick && hasPaymentMethods != null && (
               <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
                 <ConfirmButton
@@ -145,7 +146,7 @@ export default function StripePayment({
                 />
               </Tooltip>
             )}
-            {!requiresPayment && (
+            {!requiresPayment && hasPaymentMethods != null && (
               <ConfirmButton
                 notPrimary={showOneClick}
                 disabled={loading}

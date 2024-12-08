@@ -113,7 +113,11 @@ export default function PaymentMethods() {
               ),
             },
             {
-              title: <div style={{ marginLeft: "15px" }}>Actions</div>,
+              title: (
+                <div style={{ marginLeft: "15px", textAlign: "center" }}>
+                  Actions
+                </div>
+              ),
               render: (_, record) => (
                 <PaymentMethodControls
                   paymentMethod={record}
@@ -152,26 +156,34 @@ function PaymentMethodControls({
 }) {
   return (
     <Space>
-      <Button
-        disabled={isDefault || loading}
-        type="text"
-        onClick={async () => {
-          try {
-            setError("");
-            setLoading(true);
-            await setDefaultPaymentMethodUsingApi({
-              default_payment_method: paymentMethod.id,
-            });
-            setDefaultPaymentMethod(paymentMethod.id);
-          } catch (err) {
-            setError(`${err}`);
-          } finally {
-            setLoading(false);
-          }
-        }}
-      >
-        Set as Default
-      </Button>
+      <div style={{ width: "150px", textAlign: "center" }}>
+        {!isDefault ? (
+          <Button
+            disabled={loading}
+            type="text"
+            onClick={async () => {
+              try {
+                setError("");
+                setLoading(true);
+                await setDefaultPaymentMethodUsingApi({
+                  default_payment_method: paymentMethod.id,
+                });
+                setDefaultPaymentMethod(paymentMethod.id);
+              } catch (err) {
+                setError(`${err}`);
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Set as Default
+          </Button>
+        ) : (
+          <b>
+            <Tag color="blue">Default</Tag>
+          </b>
+        )}
+      </div>
       <Popconfirm
         title="Are you sure?"
         description="Deleting this PaymentMethod means it can no longer be used for payments."

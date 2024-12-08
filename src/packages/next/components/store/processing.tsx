@@ -12,9 +12,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { getColumns } from "./checkout";
-import {
-  getShoppingCartCheckoutParams,
-} from "@cocalc/frontend/purchases/api";
+import { getShoppingCartCheckoutParams } from "@cocalc/frontend/purchases/api";
 import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
 import { useRouter } from "next/router";
 
@@ -97,27 +95,40 @@ export default function Processing() {
     }
     if (finished) {
       return (
-        <Alert
-          type="success"
-          showIcon
-          style={{ margin: "30px auto", maxWidth: "700px" }}
-          message="Success"
-          description=<>
-            Congratulations, all your purchases have been processed and are
-            ready to use!
-            <div style={{ textAlign: "center", marginTop: "30px" }}>
-              <Button
-                size="large"
-                type="primary"
-                onClick={() => {
-                  router.push("/store/congrats");
-                }}
-              >
-                Congrats! View Your Items...
-              </Button>
-            </div>
-          </>
-        />
+        <div>
+          <Alert
+            type="success"
+            showIcon
+            style={{ margin: "30px auto", maxWidth: "700px" }}
+            message="Success"
+            description=<>
+              Congratulations, all your purchases have been processed and are
+              ready to use!
+              <div style={{ textAlign: "center", marginTop: "30px" }}>
+                <Button
+                  size="large"
+                  type="primary"
+                  onClick={() => {
+                    router.push("/store/congrats");
+                  }}
+                >
+                  Congrats! View Your Items...
+                </Button>
+              </div>
+            </>
+          />
+
+          <Payments
+            unfinished
+            canceled
+            purpose={SHOPPING_CART_CHECKOUT}
+            refresh={() => {
+              refreshRef.current();
+            }}
+            numPaymentsRef={numPaymentsRef}
+            refreshPaymentsRef={refreshPaymentsRef}
+          />
+        </div>
       );
     }
 
@@ -125,9 +136,11 @@ export default function Processing() {
       return null;
     }
 
+    const done = !numPaymentsRef.current || params.cart.length == 0;
+
     return (
       <>
-        {(numPaymentsRef.current ?? 0) > 0 && (
+        {!done && (
           <Alert
             type="warning"
             showIcon
@@ -136,23 +149,27 @@ export default function Processing() {
             description=<>
               Your items will be added to your account when the outstanding
               payment listed below goes through. You can update any payment
-              configuration or cancel an unfinished order below.
+              configuration or cancel an unfinished payment below.
             </>
           />
         )}
 
-        {numPaymentsRef.current === 0 && (
+        {done && (
           <Alert
             type="success"
             showIcon
             style={{ margin: "30px auto", maxWidth: "700px" }}
             message="Thank you"
-            description=<>Your items should be allocated soon!</>
+            description=<>
+              Your items should be allocated soon, or in case you canceled your
+              payment, put back in your shopping cart.
+            </>
           />
         )}
 
         <Payments
           unfinished
+          canceled
           purpose={SHOPPING_CART_CHECKOUT}
           refresh={() => {
             refreshRef.current();
@@ -189,7 +206,7 @@ export default function Processing() {
         Check Order Status {loading && <Spin />}
       </Button>
       <h3>
-        <Icon name="run" /> Processing Your Order
+        <Icon name="run" /> Order Processing
       </h3>
       {loading && <Loading large center />}
       {renderBody()}

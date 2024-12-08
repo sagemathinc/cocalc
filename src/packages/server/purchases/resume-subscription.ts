@@ -31,30 +31,43 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { license_id, start, end } =
+  const { license_id, start, end, current_period_end } =
     await getSubscriptionRenewalData(subscription_id);
   const client = await getTransactionClient();
+  let purchase_id: number | undefined = undefined;
   try {
-    const { purchase_id } = await editLicense({
-      account_id,
-      license_id,
-      changes: { end },
-      note: `This is to pay for the subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
-      isSubscriptionRenewal: true,
-      client,
-    });
+    if (current_period_end <= new Date()) {
+      // make purchase, if needed
+      purchase_id = (
+        await editLicense({
+          account_id,
+          license_id,
+          changes: { end },
+          note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
+          isSubscriptionRenewal: true,
+          client,
+        })
+      ).purchase_id;
 
-    if (purchase_id) {
-      await client.query(
-        "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4, latest_purchase_id=$5 WHERE id=$1 AND account_id=$2",
-        [subscription_id, account_id, start, end, purchase_id],
-      );
+      if (purchase_id) {
+        await client.query(
+          "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4, latest_purchase_id=$5 WHERE id=$1 AND account_id=$2",
+          [subscription_id, account_id, start, end, purchase_id],
+        );
+      } else {
+        await client.query(
+          "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4 WHERE id=$1 AND account_id=$2",
+          [subscription_id, account_id, start, end],
+        );
+      }
     } else {
+      // only have to change subscription status so it works again
       await client.query(
-        "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4 WHERE id=$1 AND account_id=$2",
-        [subscription_id, account_id, start, end],
+        "UPDATE subscriptions SET status='active', resumed_at=NOW() WHERE id=$1 AND account_id=$2",
+        [subscription_id, account_id],
       );
     }
+
     await client.query("COMMIT");
     send({
       to_ids: [account_id],
@@ -75,8 +88,9 @@ ${await support()}`,
     adminAlert({
       subject: `User manually resumed cancelled subscription ${subscription_id}`,
       body: `
-**Good news** - The user ${await name(account_id)} with account_id=${account_id} has manually resumed
-and paid for their canceled subscription id=${subscription_id}.
+**Good news** - The user ${await name(account_id)} with account_id=${account_id}
+has manually resumed their canceled subscription id=${subscription_id}.
+
 You might want to check in with them.`,
     });
 
@@ -121,12 +135,14 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
   start: Date;
   end: Date;
   periodicCost: number;
+  current_period_end: Date;
 }> {
   const {
     cost: currentCost,
     interval,
     metadata,
     status,
+    current_period_end,
   } = await getSubscription(subscription_id);
   if (status != "canceled") {
     throw Error(
@@ -158,12 +174,16 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
   }
   const start = dayjs().startOf("day").toDate();
   const end = addInterval(start, interval);
-  return { license_id, start, end, periodicCost };
+  return { license_id, start, end, periodicCost, current_period_end };
 }
 
 export async function costToResumeSubscription(
   subscription_id,
-): Promise<{ periodicCost: number }> {
-  const { periodicCost } = await getSubscriptionRenewalData(subscription_id);
-  return { periodicCost };
+): Promise<{ periodicCost: number; cost: number }> {
+  const { periodicCost, current_period_end } =
+    await getSubscriptionRenewalData(subscription_id);
+  return {
+    periodicCost,
+    cost: current_period_end >= new Date() ? 0 : periodicCost,
+  };
 }

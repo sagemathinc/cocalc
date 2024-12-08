@@ -27,7 +27,6 @@ import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import { describeNumberOf, RawJson } from "./util";
 import { PaymentMethod } from "./payment-methods";
-//import SpendPlot from "./spend-plot";
 import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
 import { LineItemsTable, moneyToString } from "./line-items";
 import dayjs from "dayjs";
@@ -44,6 +43,8 @@ interface Props {
   created?;
   // load all unfinished payments (from last 30 days; I think after that it is too late) -- created is ignored
   unfinished?: boolean;
+  // load all canceled payments (recent)
+  canceled?: boolean;
   // if given, only show payments with the given purpose
   purpose?: string;
 }
@@ -55,6 +56,7 @@ export default function Payments({
   account_id,
   created,
   unfinished,
+  canceled,
   purpose,
 }: Props) {
   const [error, setError] = useState<string>("");
@@ -84,6 +86,7 @@ export default function Payments({
           limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
           created,
           unfinished,
+          canceled,
         });
         data0 = result.data;
       } else {
@@ -133,7 +136,11 @@ export default function Payments({
                 loadMore,
                 loading,
                 type: "payment",
-                adjective: unfinished ? "Unfinished " : "",
+                adjective: unfinished
+                  ? `Unfinished ${canceled ? "or Canceled" : ""}`
+                  : canceled
+                    ? "Canceled"
+                    : "",
               })}
               {!!unfinished && (data?.length ?? 0) > 0 && (
                 <Badge
@@ -181,11 +188,7 @@ export default function Payments({
   );
 }
 
-function PaymentIntentsTable({
-  paymentIntents,
-  onFinished,
-  account_id,
-}) {
+function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
   const columns = [
     {
       title: "Credit Id",

@@ -474,7 +474,7 @@ export async function resumeSubscription(subscription_id: number) {
 
 export async function costToResumeSubscription(
   subscription_id: number,
-): Promise<{ periodicCost: number }> {
+): Promise<{ periodicCost: number; cost: number }> {
   return await api("purchases/cost-to-resume-subscription", {
     subscription_id,
   });
@@ -541,6 +541,7 @@ export async function getPayments(
     limit?: number;
     // load all unfinished payments -- all other options are ignored
     unfinished?: boolean;
+    canceled?: boolean;
   } = {},
 ): Promise<StripeData> {
   return await api("purchases/stripe/get-payments", opts);

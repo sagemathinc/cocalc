@@ -12,6 +12,7 @@ export default async function getPayments({
   starting_after,
   limit,
   unfinished,
+  canceled,
 }: {
   account_id: string;
   // see https://docs.stripe.com/api/payment_intents/list for meaning of the params,
@@ -21,12 +22,14 @@ export default async function getPayments({
   ending_before?: string;
   starting_after?: string;
   limit?: number;
-  // if given, ignore all other parameters and get all payments (up to 100 at least) during
+  // if given, ignore all other parameters (except canceled) and get all payments (up to 100 at least) during
   // the last month that are not in a finalized state, i.e., they could use attention.
   unfinished?: boolean;
+  // if canceled also given, also include canceled payments with unfinished
+  canceled?: boolean;
 }): Promise<StripeData> {
   if (unfinished) {
-    return await getAllOpenPayments(account_id);
+    return await getAllOpenPayments(account_id, canceled);
   }
 
   const customer = await getStripeCustomerId({ account_id, create: false });
@@ -61,6 +64,7 @@ export default async function getPayments({
 // bank transfer, needs payment method, etc.).
 export async function getAllOpenPayments(
   account_id: string,
+  canceled?: boolean,
 ): Promise<StripeData> {
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
@@ -69,19 +73,22 @@ export async function getAllOpenPayments(
 
   // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
-  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" ${canceled ? "" : 'AND -status:"canceled"'}`;
   const stripe = await getConn();
   const x = await stripe.paymentIntents.search({
     query,
     limit: 100, // should usually be very small, e.g., 0, 1 or 2.
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
-  x.data = x.data.filter(isOpenPaymentIntent);
+  x.data = x.data.filter(
+    (intent) =>
+      isOpenPaymentIntent(intent) || (canceled && intent.status == "canceled"),
+  );
   const known = new Set<string>();
   for (const intent of x.data) {
     known.add(intent.id);
     const cart_ids_json = intent.metadata?.cart_ids;
-    if (!cart_ids_json) {
+    if (!cart_ids_json || intent.status == "canceled") {
       continue;
     }
     // make sure these are marked properly as being purchased by this payment in the shopping cart.
