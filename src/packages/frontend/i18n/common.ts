@@ -166,7 +166,7 @@ export const labels = defineMessages({
   },
   published_files: {
     id: "labels.published_files",
-    defaultMessage: "Published Files",
+    defaultMessage: "Published",
   },
   upgrades: {
     id: "labels.upgrades",

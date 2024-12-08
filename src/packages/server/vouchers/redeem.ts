@@ -3,25 +3,20 @@
 import { getVoucherCode, redeemVoucherCode } from "./codes";
 import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
-import { createLicenseFromShoppingCartItem } from "@cocalc/server/purchases/purchase-shopping-cart-item";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { isValidUUID } from "@cocalc/util/misc";
-import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
-import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { getTransactionClient } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import { currency } from "@cocalc/util/misc";
+import { join } from "path";
+import basePath from "@cocalc/backend/base-path";
+import send, { support } from "@cocalc/server/messages/send";
 
 const log = getLogger("server:vouchers:redeem");
 
 interface Options {
   account_id: string;
-  project_id?: string; // optional project to apply the licenses to, assuming account_id is a collab on it.
   code: string;
-}
-
-interface CreatedLicense {
-  type: "license";
-  license_id: string;
 }
 
 interface CreatedCash {
@@ -30,11 +25,10 @@ interface CreatedCash {
   purchase_id: number;
 }
 
-export type CreatedItem = CreatedLicense | CreatedCash;
+export type CreatedItem = CreatedCash;
 
 export default async function redeemVoucher({
   account_id,
-  project_id,
   code,
 }: Options): Promise<CreatedItem[]> {
   // get info from db about given voucher code
@@ -43,27 +37,7 @@ export default async function redeemVoucher({
   if (voucherCode.when_redeemed != null) {
     log.debug(code, "already redeemed");
     if (voucherCode.redeemed_by == account_id) {
-      if (!project_id) {
-        throw Error(`You already redeem the voucher '${code}'.`);
-      }
-      // In this case, we apply the licenses coming from the voucher to the current project.
-      // This is a nice convenience for the user and doesn't do any harm.
-      const { license_ids } = voucherCode;
-      if (license_ids == null) {
-        // this should be impossible, since license_ids should always be
-        // set if the code was redeemed.
-        throw Error(
-          `There is something wrong with voucher ${code}. Please contact support.`
-        );
-      }
-      await applyLicensesToProject({ account_id, project_id, license_ids });
-      // just return the licenses; ignoring cash that might have been part of this voucher, if any
-      return license_ids.map((license_id) => {
-        return {
-          type: "license",
-          license_id,
-        };
-      });
+      throw Error(`You already redeem the voucher '${code}'.`);
     } else {
       throw Error(`Voucher '${code}' was already redeemed by somebody else.`);
     }
@@ -79,99 +53,42 @@ export default async function redeemVoucher({
     throw Error(`Voucher '${code}' has already expired.`);
   }
 
-  // Create license resources for user.
-  // TODO: we create license first, then redeem voucher, so in worse case that server crashes
-  // we lose something instead of the user losing something, because we are not evil, but
-  // also 2-phase commit at this point is maybe overkill.
-
-  // TODO -- make licenses!
-  log.debug(
-    "code=",
-    code,
-    " account_id = ",
-    account_id,
-    ": creating licenses associated to voucher=",
-    voucher
-  );
   const client = await getTransactionClient();
   const createdItems: CreatedItem[] = [];
   try {
     // start atomic transaction
-    const license_ids: string[] = [];
+
+    // array because this used to support multiple items, and I don't want to change db schema...
     const purchase_ids: number[] = [];
-    for (const item of voucher.cart) {
-      const { product, description } = item;
-      if (product == "cash-voucher") {
-        // create a cash account credit.
-        const id = await createCredit({
-          account_id,
-          amount: description.amount,
-          tag: "cash-voucher",
-          notes: voucher.title,
-          description: { voucher_code: code },
-          client,
-        });
-        purchase_ids.push(id);
-        createdItems.push({
-          type: "cash",
-          amount: description.amount,
-          purchase_id: id,
-        });
-      } else if (product == "site-license") {
-        // shift range in the description so license starts now.
-        if (description["range"] == null) {
-          throw Error(
-            "invalid voucher: only items with explicit range are allowed"
-          );
-        }
-        let [start, end] = description["range"];
-        if (!start || !end) {
-          throw Error(
-            "invalid voucher: each license must have an explicit range"
-          );
-        }
-        // start and end are ISO string rep, since they are from JSONB in the database,
-        // and JSON doesn't have a date type.
-        const interval = new Date(end).valueOf() - new Date(start).valueOf();
-        description["range"] = [now, new Date(now.valueOf() + interval)];
-        const { license_id } = await createLicenseFromShoppingCartItem(
-          { ...item, account_id }, // changing account_id to the redeemer not the original creator!
-          client
-        );
-        createdItems.push({
-          type: "license",
-          license_id,
-        });
-        log.debug(
-          "created license ",
-          license_id,
-          " associated to voucher code ",
-          code
-        );
-        license_ids.push(license_id);
-      } else {
-        // this is assumed by createLicenseFromShoppingCartItem
-        throw Error(
-          `Redeeming voucher product ${product} is not implemented. Contact support.`
-        );
-      }
-    }
-    // set voucher as redeemed for the license_ids in the voucher_code,
-    // (so we know what licenses were created).
+    const id = await createCredit({
+      account_id,
+      amount: voucher.cost,
+      tag: "cash-voucher",
+      notes: voucher.title,
+      description: { voucher_code: code },
+      client,
+    });
+    purchase_ids.push(id);
+    createdItems.push({
+      type: "cash",
+      amount: voucher.cost,
+      purchase_id: id,
+    });
+    // set voucher as redeemed in the voucher_code:
     await redeemVoucherCode({
       code,
       account_id,
-      license_ids,
       purchase_ids,
       client,
     });
     await client.query("COMMIT");
+
     try {
-      await applyLicensesToProject({ account_id, project_id, license_ids });
-    } catch (_err) {
-      // nonfatal
-      log.debug("WARNING -- issue applying voucher license to project");
+      sendRedeemAlert({ account_id, voucher, code });
+    } catch (err) {
+      log.debug(`WARNING -- issue sending redeem alert: ${err}`);
     }
+
     return createdItems;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -183,23 +100,30 @@ export default async function redeemVoucher({
   }
 }
 
-// applies the licenses assuming that project_id is defined, is a valid
-// project_id and that account_id is a collab on it. Otherwise this is a no op,
-// which is fine since this is used entirely as a convenience for users.
-async function applyLicensesToProject({
-  account_id,
-  project_id,
-  license_ids,
-}): Promise<void> {
-  if (
-    project_id != null &&
-    (await isCollaborator({ account_id, project_id })) &&
-    isValidUUID(project_id)
-  ) {
-    // apply licenses to project
-    for (const license_id of license_ids) {
-      await addLicenseToProject({ project_id, license_id });
-    }
-    restartProjectIfRunning(project_id); // don't wait, obviously.
-  }
+async function sendRedeemAlert({ account_id, voucher, code }) {
+  const { name } = await getUser(voucher.created_by);
+
+  const { site_name: siteName, dns } = await getServerSettings();
+  const { name: userName, email_address: userEmail } =
+    await getUser(account_id);
+  const url = `https://${dns}${join(basePath, "vouchers")}`;
+
+  const subject = `${siteName} Voucher ${code} Redeemed for ${currency(voucher.cost)}`;
+
+  const body = `
+Hello ${name},
+
+A voucher you created with the code '${code}' was redeemed
+by ${userName} (${userEmail}) for ${currency(voucher.cost)}.
+To browse the status of all voucher codes for this voucher, see
+
+${url}
+
+
+ -- ${siteName}
+
+${await support()}
+`;
+
+  await send({ to_ids: [account_id], subject, body });
 }

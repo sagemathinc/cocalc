@@ -16,6 +16,10 @@ import {
 } from "@cocalc/util/misc";
 import { toEpoch } from "@cocalc/database/postgres/util";
 import { getLogger } from "@cocalc/backend/logger";
+import {
+  USER_SEARCH_LIMIT,
+  ADMIN_SEARCH_LIMIT,
+} from "@cocalc/util/db-schema/accounts";
 
 const logger = getLogger("accounts/search");
 
@@ -74,6 +78,12 @@ export default async function search({
   limit = limit ?? 20;
   admin = !!admin;
   logger.debug("search for ", query);
+
+  if (admin) {
+    limit = Math.min(limit, ADMIN_SEARCH_LIMIT);
+  } else {
+    limit = Math.min(limit, USER_SEARCH_LIMIT);
+  }
 
   // One special case: when the query is just an email address or uuid.
   // We just return that account or empty list if no match.
@@ -198,7 +208,7 @@ async function getCollaborators(project_id: string): Promise<DBUser[]> {
     .map((x) => `accounts.${x.trim()}`)
     .join(", ");
   const result = await pool.query(
-    `SELECT ${fields} FROM accounts, (${subQuery}) 
+    `SELECT ${fields} FROM accounts, (${subQuery})
         AS users WHERE accounts.account_id=users.account_id::UUID`,
     queryParams,
   );

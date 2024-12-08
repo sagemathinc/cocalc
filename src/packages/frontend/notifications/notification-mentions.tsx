@@ -4,9 +4,7 @@
  */
 
 import { Button, Collapse, Space } from "antd";
-
 const { Panel } = Collapse;
-
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, MarkAll } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";

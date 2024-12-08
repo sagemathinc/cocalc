@@ -14,8 +14,8 @@ to use.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { capitalize, currency, isValidUUID } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
+import { capitalize, isValidUUID } from "@cocalc/util/misc";
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -35,7 +35,7 @@ import type {
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
-  const [subTotal, setSubTotal] = useState<number>(0);
+  const [numChecked, setNumChecked] = useState<number>(0);
   const router = useRouter();
 
   // most likely, user will checkout next
@@ -50,7 +50,7 @@ export default function ShoppingCart() {
     // TODO deal with errors returned by useAPI
     if (cart.result.error != null) return undefined;
     const x: any[] = [];
-    let subTotal = 0;
+    let numChecked = 0;
     for (const item of cart.result) {
       try {
         item.cost = computeCost(item.description);
@@ -66,11 +66,11 @@ export default function ShoppingCart() {
         continue;
       }
       if (item.checked) {
-        subTotal += item.cost.cost;
+        numChecked += 1;
       }
       x.push(item);
     }
-    setSubTotal(subTotal);
+    setNumChecked(numChecked);
     return x;
   }, [cart.result]);
 
@@ -79,7 +79,7 @@ export default function ShoppingCart() {
   }
 
   if (!items) {
-    return <Loading center />;
+    return <Loading large center />;
   }
 
   async function reload() {
@@ -195,40 +195,20 @@ export default function ShoppingCart() {
     );
   }
 
-  function Proceed() {
-    const checkout = (
-      <Button
-        disabled={subTotal == 0 || updating}
-        size="large"
-        type="primary"
-        onClick={() => {
-          router.push("/store/checkout");
-        }}
-      >
-        Proceed to Checkout
-      </Button>
-    );
-    return (
-      <Space>
-        {checkout}
-        <Button
-          disabled={subTotal == 0 || updating}
-          size="large"
-          onClick={() => {
-            router.push("/store/vouchers");
-          }}
-        >
-          Create Vouchers
-        </Button>
-      </Space>
-    );
-  }
-
   function renderItems() {
     return (
       <>
         <div style={{ float: "right" }}>
-          <Proceed />
+          <Button
+            disabled={numChecked == 0 || updating}
+            size="large"
+            type="primary"
+            onClick={() => {
+              router.push("/store/checkout");
+            }}
+          >
+            Proceed to Checkout
+          </Button>
         </div>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
@@ -370,7 +350,8 @@ const DESCRIPTION_STYLE = {
 
 // Also used externally for showing what a voucher is for in next/pages/vouchers/[id].tsx
 export function DescriptionColumn(props: DCProps) {
-  const { description, style, readOnly } = props;
+  const router = useRouter();
+  const { id, description, style, readOnly } = props;
   if (
     description.type == "disk" ||
     description.type == "vm" ||
@@ -380,12 +361,20 @@ export function DescriptionColumn(props: DCProps) {
   } else if (description.type == "cash-voucher") {
     return (
       <div style={style}>
-        <b style={{ fontSize: "12pt" }}>Cash voucher</b>
+        <b style={{ fontSize: "12pt" }}>Cash Voucher: {description.title}</b>
         <div style={DESCRIPTION_STYLE}>
-          Voucher for {currency(description.amount)}.
+          {describeItem({ info: description })}
         </div>
         {!readOnly && (
           <>
+            <Button
+              style={{ marginRight: "5px" }}
+              onClick={() => {
+                router.push(`/store/vouchers?id=${id}`);
+              }}
+            >
+              <Icon name="pencil" /> Edit
+            </Button>
             <SaveForLater {...props} />
             <DeleteItem {...props} />
           </>
@@ -444,13 +433,9 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   }
 
   // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "boost" | "dedicated" | "vouchers" {
+  function editPage(): "site-license" | "vouchers" {
     if (input.type == "cash-voucher") {
       return "vouchers";
-    } else if (input.type === "disk" || input.type === "vm") {
-      return "dedicated";
-    } else if (input.boost) {
-      return "boost";
     }
     return "site-license";
   }

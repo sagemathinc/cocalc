@@ -33,9 +33,10 @@ async function doIt({ req, res }) {
 
   const { value, ttl_s } = await createRememberMeCookie(account_id, 12 * 3600);
   const cookies = new Cookies(req, res);
+  const { samesite_remember_me } = await getServerSettings();
   cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
     maxAge: ttl_s * 1000,
-    sameSite: "strict",
+    sameSite: samesite_remember_me,
   });
 
   const { dns } = await getServerSettings();

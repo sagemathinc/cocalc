@@ -21,7 +21,7 @@ export default function SpendRate({ style, spendRate }: Props) {
         )}/hour.  Licenses and network data transfer costs are not included above.`}
       >
         <Statistic
-          title={"Metered Spend Rate (USD)"}
+          title={"Compute Server Spend Rate (USD)"}
           value={round2(spendRate)}
           precision={2}
           prefix={"$"}

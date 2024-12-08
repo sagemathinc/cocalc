@@ -11,6 +11,8 @@ number of items in their cart, which would be bad for the database.
 We need to worry about that at some point, e.g., by throttling or
 checking periodically, then blacklisting...?  This isn't something of
 any value to a spammer so it's very unlikely to be exploited maliciously.
+
+I did add throttling to the api handler.
 */
 
 import { isValidUUID } from "@cocalc/util/misc";

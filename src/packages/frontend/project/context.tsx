@@ -50,44 +50,40 @@ export interface ProjectContextState {
   };
 }
 
+export const emptyProjectContext = {
+  actions: undefined,
+  active_project_tab: undefined,
+  group: undefined,
+  project: undefined,
+  is_active: false,
+  project_id: "",
+  isRunning: undefined,
+  status: INIT_PROJECT_STATE,
+  hasInternet: undefined,
+  flipTabs: [0, () => {}],
+  onCoCalcCom: true,
+  onCoCalcDocker: false,
+  enabledLLMs: {
+    openai: false,
+    google: false,
+    ollama: false,
+    mistralai: false,
+    anthropic: false,
+    custom_openai: false,
+    user: false,
+  },
+  mainWidthPx: 0,
+  manageStarredFiles: {
+    starred: [],
+    setStarredPath: () => {},
+  },
+} as ProjectContextState;
+
 export const ProjectContext: Context<ProjectContextState> =
-  createContext<ProjectContextState>({
-    actions: undefined,
-    active_project_tab: undefined,
-    group: undefined,
-    project: undefined,
-    is_active: false,
-    project_id: "",
-    isRunning: undefined,
-    status: INIT_PROJECT_STATE,
-    hasInternet: undefined,
-    flipTabs: [0, () => {}],
-    onCoCalcCom: true,
-    onCoCalcDocker: false,
-    enabledLLMs: {
-      openai: false,
-      google: false,
-      ollama: false,
-      mistralai: false,
-      anthropic: false,
-      custom_openai: false,
-      user: false,
-    },
-    mainWidthPx: 0,
-    manageStarredFiles: {
-      starred: [],
-      setStarredPath: () => {},
-    },
-  });
+  createContext<ProjectContextState>(emptyProjectContext);
 
 export function useProjectContext() {
-  const context = useContext(ProjectContext);
-  if (context.project_id === "") {
-    throw new Error(
-      "useProjectContext() must be used inside a <ProjectContext.Provider>",
-    );
-  }
-  return context;
+  return useContext(ProjectContext);
 }
 
 export function useProjectContextProvider({

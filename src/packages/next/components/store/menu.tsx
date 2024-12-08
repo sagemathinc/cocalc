@@ -4,16 +4,12 @@
  */
 
 import React, { useContext } from "react";
-import { Menu, MenuProps, Typography, Flex } from "antd";
+import { Button, Menu, MenuProps, Flex, Spin } from "antd";
 import { useRouter } from "next/router";
-
 import { currency, round2down } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "@cocalc/frontend/components/icon";
-
 import { StoreBalanceContext } from "../../lib/balance";
-
-const { Text } = Typography;
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -50,12 +46,16 @@ export interface ConfigMenuProps {
 
 export default function ConfigMenu({ main }: ConfigMenuProps) {
   const router = useRouter();
-  const { balance } = useContext(StoreBalanceContext);
+  const { balance, refreshBalance, loading } = useContext(StoreBalanceContext);
 
   const handleMenuItemSelect: MenuProps["onSelect"] = ({ keyPath }) => {
     router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
+    refreshBalance();
+    setTimeout(() => {
+      refreshBalance();
+    }, 7500);
   };
 
   const items: MenuItem[] = [
@@ -63,6 +63,11 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       label: "Licenses",
       key: "site-license",
       icon: <Icon name="key" />,
+    },
+    {
+      label: "Vouchers",
+      key: "vouchers",
+      icon: <Icon name="gift" />,
     },
     {
       label: "Cart",
@@ -75,14 +80,14 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       icon: <Icon name="list" />,
     },
     {
+      label: "Processing",
+      key: "processing",
+      icon: <Icon name="run" />,
+    },
+    {
       label: "Congrats",
       key: "congrats",
       icon: <Icon name="check-circle" />,
-    },
-    {
-      label: "Vouchers",
-      key: "vouchers",
-      icon: <Icon name="gift" />,
     },
   ];
 
@@ -114,11 +119,20 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
           items={items}
         />
       </Flex>
-      <Text strong style={styles.menuBookend}>
+      <Button
+        type="text"
+        style={styles.menuBookend}
+        onClick={() => {
+          refreshBalance();
+        }}
+      >
         {balance !== undefined
           ? `Balance: ${currency(round2down(balance))}`
           : null}
-      </Text>
+        {loading && (
+          <Spin delay={2000} size="small" style={{ marginLeft: "15px" }} />
+        )}
+      </Button>
     </Flex>
   );
 }

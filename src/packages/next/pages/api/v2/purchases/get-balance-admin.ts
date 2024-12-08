@@ -28,5 +28,5 @@ async function get(req) {
 
   const { account_id } = getParams(req);
 
-  return await getBalance(account_id);
+  return await getBalance({ account_id });
 }

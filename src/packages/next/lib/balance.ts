@@ -8,6 +8,7 @@ import { createContext } from "react";
 export interface StoreBalance  {
   balance?: number;
   refreshBalance: () => Promise<void>;
+  loading?: boolean;
 }
 
 export const StoreBalanceContext = createContext<StoreBalance>({

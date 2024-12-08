@@ -17,7 +17,7 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Progress } from "antd";
 import { Map } from "immutable";
 import { join } from "path";
-import { Footer, PolicyPricingPageUrl, SiteName } from "../../customize";
+import { PolicyPricingPageUrl, SiteName } from "../../customize";
 import "./project-upgrades-table";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
 export { tmp as UpgradesPage };
@@ -46,14 +46,12 @@ class UpgradesPage extends Component<reduxProps> {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please visit <A href={join(appBasePath, "store")}>
-          the new store
-        </A>, explore <A href={join(appBasePath, "pricing")}>our products</A>, or{" "}
+        Please visit <A href={join(appBasePath, "store")}>the new store</A>,
+        explore <A href={join(appBasePath, "pricing")}>our products</A>, or{" "}
         <A href={join(appBasePath, "billing/subscriptions")}>
           view your legacy upgrade subscriptions
         </A>
         .
-        <Footer />
       </div>
     );
   }

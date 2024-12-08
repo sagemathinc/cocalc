@@ -10,7 +10,7 @@ PARAMS:
 
 RETURNS:
 
-  - {allowed:boolean; reason?:string}   or {error:message} (e.g., if not signed in)
+  - {allowed:boolean; discouraged?:boolean; reason?:string}   or {error:message} (e.g., if not signed in)
 */
 
 import getAccountId from "lib/account/get-account";

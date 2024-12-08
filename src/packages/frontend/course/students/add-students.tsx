@@ -2,7 +2,7 @@
 Component for adding one or more students to the course.
 */
 
-import { Button, Checkbox, Col, Flex, Form, Input, Row, Space } from "antd";
+import { Alert, Button, Col, Flex, Form, Input, Row, Space } from "antd";
 import { concat, sortBy } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -51,8 +51,6 @@ export default function AddStudents({
   const [err, set_err] = useState<string | undefined>(undefined);
   const [add_search, set_add_search] = useState<string>("");
   const [add_searching, set_add_searching] = useState<boolean>(false);
-  const [include_name_search, set_include_name_search] =
-    useState<boolean>(false);
   const [add_select, set_add_select] = useState<any>(undefined);
   const [existing_students, set_existing_students] = useState<any | undefined>(
     undefined,
@@ -67,7 +65,7 @@ export default function AddStudents({
     set_selected_option_num(selected_option_nodes?.length ?? 0);
   }, [selected_option_nodes]);
 
-  async function do_add_search(e): Promise<void> {
+  async function do_add_search(e, only_email = true): Promise<void> {
     // Search for people to add to the course
     if (e != null) {
       e.preventDefault();
@@ -92,7 +90,7 @@ export default function AddStudents({
       select = await webapp_client.users_client.user_search({
         query: add_search,
         limit: 150,
-        only_email: !include_name_search,
+        only_email,
       });
     } catch (err) {
       if (!isMounted) return;
@@ -164,25 +162,21 @@ export default function AddStudents({
 
     return (
       <Flex vertical={true} align="start" gap={5}>
-        <Button onClick={do_add_search} icon={icon} disabled={disabled}>
-          <FormattedMessage
-            id="course.add-students.search-button"
-            defaultMessage="Search (shift+enter)"
-          />
+        <Button
+          type="primary"
+          onClick={(e) => do_add_search(e, true)}
+          icon={icon}
+          disabled={disabled}
+        >
+          Search by Email Address (shift+enter)
         </Button>
-        {!disabled && (
-          <Checkbox
-            checked={include_name_search}
-            onChange={() => {
-              set_include_name_search(!include_name_search);
-            }}
-          >
-            <FormattedMessage
-              id="course.add-students.search-students-by-name"
-              defaultMessage="Search by name too"
-            />
-          </Checkbox>
-        )}
+        <Button
+          onClick={(e) => do_add_search(e, false)}
+          icon={icon}
+          disabled={disabled}
+        >
+          Search by Name
+        </Button>
       </Flex>
     );
   }
@@ -269,7 +263,7 @@ export default function AddStudents({
           ? x.first_name + " " + x.last_name
           : x.email_address;
       const email =
-        !include_name_search && x.account_id != null && x.email_address
+        x.account_id != null && x.email_address
           ? " (" + x.email_address + ")"
           : "";
       v.push(
@@ -410,10 +404,12 @@ export default function AddStudents({
         const existingStr = existing.join(", ");
         const msg = `Already added (or deleted) students or project collaborators: ${existingStr}`;
         return (
-          <ShowError
+          <Alert
+            type="info"
+            message={msg}
             style={{ margin: "15px 0" }}
-            error={msg}
-            setError={() => set_existing_students(undefined)}
+            closable
+            onClose={() => set_existing_students(undefined)}
           />
         );
       }
@@ -455,18 +451,12 @@ export default function AddStudents({
 
   const rows = add_search.trim().length == 0 && !studentInputFocused ? 1 : 4;
 
-  const placeholder = intl.formatMessage(
-    {
-      id: "course.add-students.textarea.placeholder",
-      defaultMessage: `Add students by {include_name_search, select, true {names or} other {}} email addresses...`,
-    },
-    { include_name_search },
-  );
+  const placeholder = "Add students by email address or name...";
 
   return (
     <Form onFinish={do_add_search} style={{ marginLeft: "15px" }}>
       <Row>
-        <Col md={18}>
+        <Col md={14}>
           <Form.Item style={{ margin: "0 0 5px 0" }}>
             <Input.TextArea
               ref={studentAddInputRef}
@@ -480,7 +470,7 @@ export default function AddStudents({
             />
           </Form.Item>
         </Col>
-        <Col md={6}>
+        <Col md={10}>
           <div style={{ marginLeft: "15px", width: "100%" }}>
             {student_add_button()}
           </div>

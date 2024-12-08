@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Footer } from "@cocalc/frontend/customize";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { ManagedLicenses } from "./managed-licenses";
@@ -47,7 +46,6 @@ export function LicensesPage() {
           </li>
         </ul>
       </div>
-      <Footer />
     </div>
   );
 }

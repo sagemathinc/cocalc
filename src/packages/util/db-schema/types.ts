@@ -218,6 +218,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * before the actual change to the database is made.
      * If cb(err) then no change is made and error is reported.
      # If cb(undefined, true) then no change is made and no error; any work is considered done.
+     #
+     # NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     before_change?: (
       database,
@@ -237,6 +239,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * code whenever the user does a certain type of set query.
      * Obviously, if that code doesn't set the query in the
      * database, then query won't be the new val.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     instead_of_change?: (
       database,
@@ -250,6 +254,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * 3. AFTER:  If set, the on_change is called with
      *   (database, old_val, query, account_id, cb)
      * after everything the database has been modified.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     on_change?: (
       database,
@@ -277,6 +283,9 @@ export interface TableSchema<F extends Fields> {
 
   // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   primary_key?: keyof F | (keyof F)[];
+
+  // Optional keys to also include in the select clause when creating changefeed.  Needed, e.g., when using a serial primary key.
+  changefeed_keys?: (keyof F)[];
 
   // this is only used when migrating when we *add* a new primary key as primary key for the schema for a table (e.g., for listings)
   default_primary_key_value?: { [key: string]: any };

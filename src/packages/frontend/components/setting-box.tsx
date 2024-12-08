@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Card, Typography } from "antd";
+import { Card, Flex, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
@@ -25,17 +25,16 @@ const STYLE = {
   marginBottom: "20px",
 } as CSSProperties;
 
-export function SettingBox(props: Props) {
-  const {
-    icon,
-    title,
-    subtitle,
-    show_header = true,
-    close,
-    children,
-    style,
-    bodyStyle,
-  } = props;
+export function SettingBox({
+  icon,
+  title,
+  subtitle,
+  show_header = true,
+  close,
+  children,
+  style,
+  bodyStyle,
+}: Props) {
   return (
     // type inner for the gray background in the header
     <Card
@@ -43,7 +42,9 @@ export function SettingBox(props: Props) {
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
             <Title level={4}>
-              {icon && <Icon name={icon} />}&nbsp;{title}
+              <Flex>
+                {icon && <Icon name={icon} />}&nbsp;{title}
+              </Flex>
             </Title>
             {subtitle}
             {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}

@@ -58,8 +58,8 @@ export const SlateMath: React.FC<Props> = React.memo(
                     : undefined),
                 }
               : !isInline
-              ? { border: "1px solid transparent" }
-              : undefined
+                ? { border: "1px solid transparent" }
+                : undefined
           }
           onClick={async (e) => {
             e.preventDefault();
@@ -83,11 +83,18 @@ export const SlateMath: React.FC<Props> = React.memo(
     }
     // putting renderEditMode before is critical since as we type, length of formula changes,
     // and default would move the popover as we type, which is horrible
+    
+    // !frameContext.project_id is so that this also works when using editor outside of any
+    // particular project.
+    const open =
+      editMode &&
+      ((frameContext.isFocused && frameContext.isVisible) ||
+        !frameContext.project_id);
 
     return (
       <span contentEditable={false} style={{ cursor: "pointer" }}>
         <Popover
-          open={editMode && frameContext.isFocused && frameContext.isVisible}
+          open={open}
           destroyTooltipOnHide={true}
           title={
             <>
@@ -122,5 +129,5 @@ export const SlateMath: React.FC<Props> = React.memo(
         </Popover>
       </span>
     );
-  }
+  },
 );

@@ -10,18 +10,13 @@ import {
   describe_quota,
 } from "@cocalc/util/licenses/describe-quota";
 import type {
-  CostInput,
   CostInputPeriod,
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round2, round4, round2up } from "@cocalc/util/misc";
+import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
-import {
-  dedicatedDiskDisplay,
-  dedicatedVmDisplay,
-} from "@cocalc/util/upgrades/utils";
 import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
@@ -29,6 +24,7 @@ import { Tooltip, Typography } from "antd";
 import { currency } from "@cocalc/util/misc";
 const { Text } = Typography;
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 interface Props {
   cost: CostInputPeriod;
@@ -81,14 +77,13 @@ export function DisplayCost({
     <span>
       {describeItem({ info: cost.input })}
       <hr />
-      <Icon name="money-check" /> Cost:{" "}
-      <Tooltip title={`$${round4(periodicCost(cost))}`}>{desc}</Tooltip>
+      <Icon name="money-check" /> Total Cost: {desc}
     </span>
   );
 }
 
 interface DescribeItemProps {
-  info: CostInput;
+  info;
   variant?: "short" | "long";
   voucherPeriod?: boolean;
 }
@@ -102,26 +97,18 @@ export function describeItem({
   voucherPeriod,
 }: DescribeItemProps): ReactNode {
   if (info.type == "cash-voucher") {
-    return <>{currency(info.amount)} account credit</>;
-  }
-  if (info.type === "disk") {
+    // see also packages/util/upgrades/describe.ts for text version of this
+    // that appears on invoices.
     return (
       <>
-        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk, variant)}){" "}
-        {describePeriod({ quota: info, variant, voucherPeriod })}
+        {info.numVouchers ?? 1} {plural(info.numVouchers ?? 1, "Voucher Code")}{" "}
+        {info.numVouchers > 1 ? " each " : ""} worth{" "}
+        {currency(info.amount)}. Total Value:{" "}
+        {currency(decimalMultiply(info.amount, info.numVouchers ?? 1))}
+        {info.whenPay == "admin" ? " (admin: no charge)" : ""}
       </>
     );
   }
-
-  if (info.type === "vm") {
-    return (
-      <>
-        Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
-        {describePeriod({ quota: info, variant, voucherPeriod })}
-      </>
-    );
-  }
-
   if (info.type !== "quota") {
     throw Error("at this point, we only deal with type=quota");
   }

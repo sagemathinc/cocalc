@@ -205,6 +205,7 @@ export interface StoreStates {
   customize: types.CustomizeState;
   file_use: types.FileUseState;
   mentions: types.MentionsState;
+  messages: types.MessagesState;
   page: types.PageState;
   projects: types.ProjectsState;
   users: types.UsersState;
@@ -309,24 +310,6 @@ then it's the project actions or editor actions; otherwise,
 it's one of the other named actions or undefined.
 */
 
-// TODO: very incomplete -- might not even work.
-/*
-export interface ActionsTypes {
-  account: types.AccountActions;
-  "admin-site-licenses": types.SiteLicensesActions;
-  "admin-users": types.AdminUsersActions;
-  billing: types.BillingActions;
-  compute_images: types.ComputeImagesActions;
-  customize: types.CustomizeActions;
-  file_use: types.FileUseActions;
-  mentions: types.MentionsActions;
-  page: types.PageActions;
-  projects: types.ProjectsActions;
-  users: types.UsersActions;
-}
-
-*/
-
 export function useActions(name: "account"): types.AccountActions;
 export function useActions(
   name: "admin-site-licenses",
@@ -335,6 +318,7 @@ export function useActions(name: "admin-users"): types.AdminUsersActions;
 export function useActions(name: "billing"): types.BillingActions;
 export function useActions(name: "file_use"): types.FileUseActions;
 export function useActions(name: "mentions"): types.MentionsActions;
+export function useActions(name: "messages"): types.MessagesActions;
 export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "users"): types.UsersActions;
@@ -398,6 +382,7 @@ export interface Stores {
   customize: types.CustomizeStore;
   file_use: types.FileUseStore;
   mentions: types.MentionsStore;
+  messages: types.MessagesStore;
   page: types.PageStore;
   projects: types.ProjectsStore;
   users: types.UsersStore;

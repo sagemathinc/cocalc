@@ -2,7 +2,7 @@
 If the user is NOT a student in another course that they *have* paid the license for, then
 this component shows nothing.
 
-If the user is a student in at least one other course that they have paid for the license 
+If the user is a student in at least one other course that they have paid for the license
 for, then a "Transfer License..." button shows up.  When clicked, it shows a description
 and buttons for each of the other courses that qualify.  Clicking on the button uses
 a backend api call to actually transfer the license, which makes the current course be
@@ -74,14 +74,14 @@ export default function Transfer({ project_id }: Props) {
   return (
     <div>
       <Button disabled={loading} onClick={() => setOpen(true)}>
-        <Icon name="sync" /> Transfer License...
+        <Icon name="sync" /> Transfer license from another course...
         {loading && <Spin />}
       </Button>
       {open && (
         <Card
           title={
             <>
-              Transfer License
+              Transfer license from another course
               <Button
                 style={{ float: "right", marginLeft: "30px" }}
                 onClick={() => setOpen(false)}

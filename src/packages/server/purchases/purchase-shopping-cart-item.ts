@@ -63,7 +63,6 @@ Here's what a typical shopping cart item looks like:
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
-import type { Cost } from "@cocalc/util/licenses/purchase/types";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
@@ -72,10 +71,8 @@ import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { round2up } from "@cocalc/util/misc";
-import { getNextClosingDate, getNextClosingDateAfter } from "./closing-date";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import dayjs from "dayjs";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
+import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
@@ -84,21 +81,33 @@ export default async function purchaseShoppingCartItem(
   client: PoolClient,
 ) {
   logger.debug("purchaseShoppingCartItem", item);
-  if (item.product != "site-license") {
-    // This *ONLY* implements purchasing the site-license product, which is the only
-    // one we have right now.
-    throw Error("only the 'site-license' product is currently implemented");
-  }
-
   // just a little sanity check.
   if (!(await isValidAccount(item?.account_id))) {
     throw Error(`invalid account_id - ${item.account_id}`);
+  }
+  if (item.product == "site-license") {
+    await purchaseLicenseShoppingCartItem(item, client);
+  } else if (item.product == "cash-voucher") {
+    await purchaseVoucherShoppingCartItem(item, client);
+  } else {
+    throw Error(`unknown product type '${item.product}'`);
+  }
+}
+
+/***
+  Licenses
+ ***/
+
+async function purchaseLicenseShoppingCartItem(item, client: PoolClient) {
+  logger.debug("purchaseLicenseShoppingCartItem", item);
+  if (item.product != "site-license") {
+    throw Error("product type must be 'site-license'");
   }
 
   const { license_id, info, licenseCost } =
     await createLicenseFromShoppingCartItem(item, client);
   logger.debug(
-    "purchaseShoppingCartItem -- created license from shopping cart item",
+    "purchaseLicenseShoppingCartItem -- created license from shopping cart item",
     license_id,
     item,
     info,
@@ -117,7 +126,7 @@ export default async function purchaseShoppingCartItem(
     client,
   });
   logger.debug(
-    "purchaseShoppingCartItem -- created purchase from shopping cart item",
+    "purchaseLicenseShoppingCartItem -- created purchase from shopping cart item",
     { purchase_id, license_id, item_id: item.id },
   );
 
@@ -145,13 +154,15 @@ export default async function purchaseShoppingCartItem(
       client,
     );
     logger.debug(
-      "purchaseShoppingCartItem -- created subscription from shopping cart item",
+      "purchaseLicenseShoppingCartItem -- created subscription from shopping cart item",
       { subscription_id, license_id, item_id: item.id },
     );
   }
 
   await markItemPurchased(item, license_id, client);
-  logger.debug("moved shopping cart item to purchased.");
+  logger.debug(
+    "purchaseLicenseShoppingCartItem: moved shopping cart item to purchased.",
+  );
 }
 
 export async function createLicenseFromShoppingCartItem(
@@ -160,14 +171,6 @@ export async function createLicenseFromShoppingCartItem(
 ): Promise<{ license_id: string; info; licenseCost }> {
   const info = getPurchaseInfo(item.description);
   let licenseCost = item.cost;
-
-  if (info.type != "vouchers" && item.description.period != "range") {
-    // handle initial purchase of subscription:
-    const { cost, start, end } = await getInitialCostForSubscription(item);
-    licenseCost = cost;
-    info.start = start;
-    info.end = end;
-  }
 
   logger.debug("running sanity checks on license...");
   const pool = client ?? getPool();
@@ -179,37 +182,21 @@ export async function createLicenseFromShoppingCartItem(
   return { info, license_id, licenseCost };
 }
 
-export async function getInitialCostForSubscription(
+async function markItemPurchased(
   item,
-): Promise<{ cost: Cost; start: Date; end: Date }> {
-  const info = getPurchaseInfo(item.description);
-  if (info.type != "quota") {
-    throw Error(`item must be a subscription, but type='${info.type}'`);
-  }
-  const start = new Date();
-  let end;
-  if (item.description.period == "yearly") {
-    end = await getNextClosingDateAfter(
-      item.account_id,
-      dayjs(start).add(11, "month").add(1, "day").toDate(),
-    );
-  } else if (item.description.period == "monthly") {
-    end = await getNextClosingDate(item.account_id);
-  } else {
-    throw Error(`invalid period -- "${item.description.period}"`);
-  }
-  const cost = compute_cost({ ...info, start, end });
-  return { cost, start, end };
-}
-
-async function markItemPurchased(item, license_id: string, client: PoolClient) {
+  license_id: string | undefined,
+  client: PoolClient,
+) {
   const pool = client ?? getPool();
   await pool.query(
-    "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
+    `
+      UPDATE shopping_cart_items
+      SET purchased = COALESCE(purchased, '{}'::jsonb) || $3::jsonb
+      WHERE account_id = $1 AND id = $2
+    `,
     [item.account_id, item.id, { success: true, time: new Date(), license_id }],
   );
 }
-
 export async function addLicenseToProjectAndRestart(
   project_id: string,
   license_id: string,
@@ -222,4 +209,24 @@ export async function addLicenseToProjectAndRestart(
     // non-fatal, since it's just a convenience.
     logger.debug("WARNING -- issue adding license to project ", err);
   }
+}
+
+/***
+  Vouchers
+ ***/
+
+async function purchaseVoucherShoppingCartItem(item, client: PoolClient) {
+  logger.debug("purchaseVoucherShoppingCartItem", item);
+  const { description } = item;
+  if (description.type != "cash-voucher") {
+    throw Error("product type must be 'cash-voucher'");
+  }
+
+  await createVouchers({
+    ...description,
+    account_id: item.account_id,
+    client,
+  });
+
+  await markItemPurchased(item, undefined, client);
 }

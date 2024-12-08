@@ -25,6 +25,7 @@ import { load_server_settings_from_env } from "@cocalc/database/settings/server-
 import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
+import initMessageMaintenance from "@cocalc/server/messages/maintenance";
 import initProjectControl, {
   COCALC_MODES,
 } from "@cocalc/server/projects/control";
@@ -47,7 +48,7 @@ import initVersionServer from "./servers/version";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
 // Logger tagged with 'hub' for this file.
-const winston = getLogger("hub");
+const logger = getLogger("hub");
 
 // program gets populated with the command line options below.
 let program: { [option: string]: any } = {};
@@ -63,16 +64,16 @@ const clients = getClients();
 async function reset_password(email_address: string): Promise<void> {
   try {
     await callback2(database.reset_password, { email_address });
-    winston.info(`Password changed for ${email_address}`);
+    logger.info(`Password changed for ${email_address}`);
   } catch (err) {
-    winston.info(`Error resetting password -- ${err}`);
+    logger.info(`Error resetting password -- ${err}`);
   }
 }
 
 // This calculates and updates the statistics for the /stats endpoint.
 // It's important that we call this periodically, because otherwise the /stats data is outdated.
 async function init_update_stats(): Promise<void> {
-  winston.info("init updating stats periodically");
+  logger.info("init updating stats periodically");
   const update = () => callback2(database.get_stats);
   // Do it every minute:
   setInterval(() => update(), 60000);
@@ -85,15 +86,15 @@ async function init_update_stats(): Promise<void> {
 // to be able to monitor site license usage. This is enabled
 // by default only for dev mode (so for development).
 async function init_update_site_license_usage_log() {
-  winston.info("init updating site license usage log periodically");
+  logger.info("init updating site license usage log periodically");
   const update = async () => await database.update_site_license_usage_log();
   setInterval(update, 31000);
   await update();
 }
 
 async function initMetrics() {
-  winston.info("Initializing Metrics Recorder...");
-  await callback(MetricsRecorder.init, winston);
+  logger.info("Initializing Metrics Recorder...");
+  await callback(MetricsRecorder.init, logger);
   return {
     metric_blocked: MetricsRecorder.new_counter(
       "blocked_ms_total",
@@ -107,10 +108,10 @@ async function initMetrics() {
 }
 
 async function startServer(): Promise<void> {
-  winston.info("start_server");
+  logger.info("start_server");
 
-  winston.info(`basePath='${basePath}'`);
-  winston.info(
+  logger.info(`basePath='${basePath}'`);
+  logger.info(
     `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
   );
 
@@ -123,7 +124,7 @@ async function startServer(): Promise<void> {
     }
     // record that something blocked:
     if (ms > 100) {
-      winston.debug(`BLOCKED for ${ms}ms`);
+      logger.debug(`BLOCKED for ${ms}ms`);
     }
   });
 
@@ -133,10 +134,10 @@ async function startServer(): Promise<void> {
     start_delay: 1000,
     max_delay: 10000,
   });
-  winston.info("connected to database.");
+  logger.info("connected to database.");
 
   if (program.updateDatabaseSchema) {
-    winston.info("Update database schema");
+    logger.info("Update database schema");
     await callback2(database.update_schema);
 
     // in those cases where we initialize the database upon startup
@@ -151,18 +152,20 @@ async function startServer(): Promise<void> {
   await load_server_settings_from_env(database);
 
   if (program.agentPort) {
-    winston.info("Configure agent port");
+    logger.info("Configure agent port");
     set_agent_endpoint(program.agentPort, program.hostname);
   }
 
   // Mentions
   if (program.mentions) {
-    winston.info("enabling handling of mentions...");
+    logger.info("enabling handling of mentions...");
     initHandleMentions();
+    logger.info("enabling handling of messaging...");
+    initMessageMaintenance();
   }
 
   // Project control
-  winston.info("initializing project control...");
+  logger.info("initializing project control...");
   const projectControl = initProjectControl(program.mode);
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
@@ -187,7 +190,7 @@ async function startServer(): Promise<void> {
       // all projects are stopped, since assuming they are
       // running when they are not is bad.  Something similar
       // is done in cocalc-docker.
-      winston.info("killing all projects...");
+      logger.info("killing all projects...");
       await callback2(database._query, {
         safety_check: false,
         query: 'update projects set state=\'{"state":"opened"}\'',
@@ -197,7 +200,7 @@ async function startServer(): Promise<void> {
       // Also, unrelated to killing projects, for purposes of developing
       // custom software images, we inject a couple of random nonsense entries
       // into the table in the DB:
-      winston.info("inserting random nonsense compute images in database");
+      logger.info("inserting random nonsense compute images in database");
       await callback2(database.insert_random_compute_images);
     }
 
@@ -205,7 +208,7 @@ async function startServer(): Promise<void> {
       await init_update_stats();
       await init_update_site_license_usage_log();
       // This is async but runs forever, so don't wait for it.
-      winston.info("init starting always running projects");
+      logger.info("init starting always running projects");
       init_start_always_running_projects(database);
     }
   }
@@ -233,7 +236,7 @@ async function startServer(): Promise<void> {
     host: program.hostname,
   });
 
-  winston.info(`starting webserver listening on ${program.hostname}:${port}`);
+  logger.info(`starting webserver listening on ${program.hostname}:${port}`);
   await callback(httpServer.listen.bind(httpServer), port, program.hostname);
 
   if (port == 443 && program.httpsCert && program.httpsKey) {
@@ -242,7 +245,7 @@ async function startServer(): Promise<void> {
   }
 
   if (program.websocketServer) {
-    winston.info("initializing primus websocket server");
+    logger.info("initializing primus websocket server");
     initPrimus({
       httpServer,
       router,
@@ -255,7 +258,7 @@ async function startServer(): Promise<void> {
   }
 
   if (program.websocketServer || program.proxyServer || program.nextServer) {
-    winston.info(
+    logger.info(
       "Starting registering periodically with the database and updating a health check...",
     );
 
@@ -279,29 +282,38 @@ async function startServer(): Promise<void> {
           basePath +
           " to it."
     }\n\n-----------\n\n`;
-    winston.info(msg);
+    logger.info(msg);
     console.log(msg);
 
-    // this is not so robust, so disabled for now.
-    //     if (
-    //       program.websocketServer &&
-    //       program.nextServer &&
-    //       process.env["NODE_ENV"] != "production"
-    //     ) {
-    //       // This is entirely to deal with conflicts between both nextjs and webpack when doing
-    //       // hot module reloading.  They fight with each other, and the we -- the developers --
-    //       // win only AFTER the fight is done. So we force the fight automatically, rather than
-    //       // manually, which is confusing.
-    //       console.log(
-    //         `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
-    //       );
-    //       const process = spawn(
-    //         "chromium-browser",
-    //         ["--no-sandbox", "--headless", target],
-    //         { detached: true, stdio: "ignore" },
-    //       );
-    //       process.unref();
-    //     }
+    if (
+      program.websocketServer &&
+      program.nextServer &&
+      process.env["NODE_ENV"] != "production"
+    ) {
+      // This is mostly to deal with conflicts between both nextjs and webpack when doing
+      // hot module reloading.  They fight with each other, and the we -- the developers --
+      // win only AFTER the fight is done. So we force the fight automatically, rather than
+      // manually, which is confusing.
+      // It also allows us to ensure super insanely slow nextjs is built.
+      console.log(
+        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
+      );
+      const childProcess = spawn(
+        "chromium-browser",
+        ["--no-sandbox", "--headless", target],
+        { detached: true, stdio: "ignore" },
+      );
+      childProcess.unref();
+
+      // Schedule the process to be killed after 120 seconds (120,000 milliseconds)
+      setTimeout(() => {
+        if (childProcess.pid) {
+          try {
+            process.kill(-childProcess.pid, "SIGKILL");
+          } catch (_err) {}
+        }
+      }, 120000);
+    }
   }
 
   if (program.all || program.mentions) {
@@ -329,13 +341,13 @@ const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
 
 function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
-    winston.error(
+    logger.error(
       "BUG ****************************************************************************",
     );
-    winston.error("Uncaught exception: " + err);
+    logger.error("Uncaught exception: " + err);
     console.error(err.stack);
-    winston.error(err.stack);
-    winston.error(
+    logger.error(err.stack);
+    logger.error(
       "BUG ****************************************************************************",
     );
     const key = `${err}`;
@@ -348,12 +360,12 @@ function addErrorListeners(uncaught_exception_total) {
   });
 
   return process.on("unhandledRejection", function (reason, p) {
-    winston.error(
+    logger.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
-    console.error(p, reason); // strangely sometimes winston.error can't actually show the traceback...
-    winston.error("Unhandled Rejection at:", p, "reason:", reason);
-    winston.error(
+    console.error(p, reason); // strangely sometimes logger.error can't actually show the traceback...
+    logger.error("Unhandled Rejection at:", p, "reason:", reason);
+    logger.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
     const key = `${p}${reason}`;
@@ -505,12 +517,12 @@ async function main(): Promise<void> {
     });
 
     if (program.passwd) {
-      winston.debug("Resetting password");
+      logger.debug("Resetting password");
       await reset_password(program.passwd);
       process.exit();
     } else if (program.stripeSync) {
-      winston.debug("Stripe sync");
-      await stripe_sync({ database, logger: winston });
+      logger.debug("Stripe sync");
+      await stripe_sync({ database, logger: logger });
       process.exit();
     } else if (program.deleteExpired) {
       await callback2(database.delete_expired, {
@@ -528,7 +540,7 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     console.log(err);
-    winston.error("Error -- ", err);
+    logger.error("Error -- ", err);
     process.exit(1);
   }
 }

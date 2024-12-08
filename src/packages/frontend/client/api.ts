@@ -31,8 +31,8 @@ export async function v1(endpoint: string, args?: object) {
 // This "api call fails" isn't where you get an error json
 // back, but when actually making the request really is
 // failing, e.g., due to network or server issues.
-const RETRY_DELAY_MS = 2000;
-const NUM_RETRIES = 3;
+const RETRY_DELAY_MS = 3000;
+const NUM_RETRIES = 2;
 
 // NOTE: I made this complicated with respClone, so I can see
 // what the response is if it is not JSON.
@@ -62,7 +62,7 @@ async function callApi(
     }
     numRetriesOnFail = numRetriesOnFail ?? NUM_RETRIES;
     console.log(
-      `waiting 3s then trying again up to ${numRetriesOnFail} more times`,
+      `waiting ${RETRY_DELAY_MS}ms then trying again up to ${numRetriesOnFail} more times`,
     );
     await delay(RETRY_DELAY_MS);
     return await callApi(endpoint, args, numRetriesOnFail - 1);

@@ -3,14 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Input, Space } from "antd";
+import { Button, Input, Modal } from "antd";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-
-import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { A, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-
 import { compute_fingerprint } from "./fingerprint";
+import ShowError from "@cocalc/frontend/components/error";
 
 const ALLOWED_SSH_TYPES = [
   "ssh-rsa",
@@ -68,45 +67,59 @@ const validate_key = function (value): ParsedKey {
 
 interface Props {
   add_ssh_key: Function;
-  toggleable?: boolean;
   style?: React.CSSProperties;
   extra?: JSX.Element;
+  size?;
 }
 
-export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
-  const { add_ssh_key, toggleable, style, extra } = props;
+export default function SSHKeyAdder({
+  add_ssh_key,
+  style,
+  extra,
+  size,
+}: Props) {
+  const [add, setAdd] = useState<boolean>(false);
   const intl = useIntl();
-  const [key_title, set_key_title] = useState<string>("");
-  const [key_value, set_key_value] = useState<string>("");
-  const [show_panel, set_show_panel] = useState<boolean>(false);
-  const [error, set_error] = useState<undefined | string>(undefined);
+  const [keyTitle, setKeyTitle] = useState<string>("");
+  const [keyValue, setKeyValue] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  const button = (
+    <Button size={size} onClick={() => setAdd(!add)}>
+      <Icon name="plus-circle" /> Add SSH Key...
+    </Button>
+  );
+
+  if (!add) {
+    return button;
+  }
 
   const addKey = intl.formatMessage({
     id: "account.ssh-key-adder.button",
     defaultMessage: "Add SSH Key",
   });
 
-  function cancel_and_close() {
-    set_key_title("");
-    set_key_value("");
-    set_show_panel(!toggleable);
-    set_error(undefined);
+  function cancelAndClose() {
+    setKeyTitle("");
+    setKeyValue("");
+    setError("");
+    setAdd(false);
   }
 
   function submit_form(e?): void {
     let title;
     e?.preventDefault();
     try {
-      const validated_key = validate_key(normalize_key(key_value));
+      const validated_key = validate_key(normalize_key(keyValue));
       if (validated_key.error != null) {
-        set_error(validated_key.error);
+        setError(validated_key.error);
         return;
       } else {
-        set_error(undefined);
+        setError("");
       }
 
-      if (key_title) {
-        title = key_title;
+      if (keyTitle) {
+        title = keyTitle;
       } else {
         title = validated_key.source;
       }
@@ -119,15 +132,18 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
         fingerprint: compute_fingerprint(validated_key.pubkey),
       });
 
-      cancel_and_close();
+      cancelAndClose();
     } catch (err) {
-      set_error(err.toString());
+      setError(`${err}`);
     }
   }
 
-  function render_panel() {
-    return (
-      <Card
+  return (
+    <>
+      {button}
+      <Modal
+        open
+        onCancel={cancelAndClose}
         title={
           <>
             <Icon name="plus-circle" />{" "}
@@ -145,14 +161,27 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
           </>
         }
         style={style}
+        footer={[
+          <Button onClick={() => cancelAndClose()} key="close">
+            {intl.formatMessage(labels.cancel)}
+          </Button>,
+          <Button
+            key="add"
+            type="primary"
+            onClick={submit_form}
+            disabled={keyValue.length < 10}
+          >
+            {addKey}
+          </Button>,
+        ]}
       >
         {extra && extra}
         <div>
           Title
           <Input
             id="ssh-title"
-            value={key_title}
-            onChange={(e) => set_key_title(e.target.value)}
+            value={keyTitle}
+            onChange={(e) => setKeyTitle(e.target.value)}
             placeholder={intl.formatMessage({
               id: "account.ssh-key-adder.placeholder",
               defaultMessage:
@@ -162,10 +191,10 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
           <div style={{ marginTop: "15px" }}>
             Key
             <Input.TextArea
-              value={key_value}
+              value={keyValue}
               rows={8}
               placeholder={`Begins with ${ALLOWED_SSH_TYPES_DESCRIPTION}`}
-              onChange={(e) => set_key_value((e.target as any).value)}
+              onChange={(e) => setKeyValue((e.target as any).value)}
               onKeyDown={(e) => {
                 if (e.keyCode == 13) {
                   e.preventDefault();
@@ -176,44 +205,13 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
             />
           </div>
         </div>
-        <div style={{ marginTop: "15px" }}>
-          <Space>
-            {toggleable ? (
-              <Button onClick={cancel_and_close}>
-                {intl.formatMessage(labels.cancel)}
-              </Button>
-            ) : undefined}
-            <Button
-              type="primary"
-              onClick={submit_form}
-              disabled={key_value.length < 10}
-            >
-              {addKey}
-            </Button>
-          </Space>
-          {error && (
-            <ErrorDisplay
-              error={error}
-              onClose={() => set_error(undefined)}
-              style={{ marginTop: "10px" }}
-            />
-          )}
-        </div>
-      </Card>
-    );
-  }
 
-  function render_open_button() {
-    return (
-      <Button onClick={() => set_show_panel(true)} style={style}>
-        <Icon name="terminal" /> {addKey}...
-      </Button>
-    );
-  }
-
-  if (!toggleable || show_panel) {
-    return render_panel();
-  } else {
-    return render_open_button();
-  }
-};
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ marginTop: "15px" }}
+        />
+      </Modal>
+    </>
+  );
+}

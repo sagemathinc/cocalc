@@ -82,9 +82,18 @@ export function UsageAndDuration(props: Props) {
 
   function renderRangeSelector(getFieldValue) {
     const period = getFieldValue("period");
-    if (period !== "range") return;
-    const range = getFieldValue("range");
+    if (period !== "range") {
+      return;
+    }
+    let range = getFieldValue("range");
     let invalidRange = range?.[0] == null || range?.[1] == null;
+    if (invalidRange) {
+      const start = new Date();
+      const end = new Date(start.valueOf() + 1000 * 60 * 60 * 24 * 30);
+      range = [start, end];
+      form.setFieldsValue({ range });
+      onChange();
+    }
     let suffix;
     try {
       if (!invalidRange) {
@@ -95,7 +104,9 @@ export function UsageAndDuration(props: Props) {
         range[1] = new Date(range[1]);
       }
       suffix =
-        range && range[0] && `(midnight to 11:59pm, ${getTimezoneFromDate(range[0], "long")})`;
+        range &&
+        range[0] &&
+        `(midnight to 11:59pm, ${getTimezoneFromDate(range[0], "long")})`;
     } catch (err) {
       invalidRange = true;
       console.warn(`WARNING: issue parsing date ${range[0]}`);

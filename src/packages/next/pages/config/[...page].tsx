@@ -5,7 +5,6 @@
 
 import { Layout } from "antd";
 import { join } from "path";
-
 import ConfigLayout from "components/account/config/layout";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -30,7 +29,7 @@ export default function Preferences({ customize, page }) {
       >
         This is the account configuration page.{" "}
         <A href={join(basePath, "settings")} external>
-          You can also adjust key preferences in the main app...
+          You can also adjust preferences in the main app...
         </A>
       </Paragraph>
     );
@@ -41,6 +40,11 @@ export default function Preferences({ customize, page }) {
       <Head title="Configuration" />
       <Layout>
         <Header page={"account"} />
+        <div style={{ margin: "30px", fontSize: "15pt" }}>
+          <A href="/settings/account">
+            This page is deprecated. Visit the settings pages instead...
+          </A>
+        </div>
         <ConfigLayout page={page} />
         {noteAboutConfig()}
         <Footer />

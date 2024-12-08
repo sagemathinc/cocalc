@@ -68,5 +68,5 @@ async function getEmailDaily(account_id: string): Promise<boolean> {
     "SELECT email_daily_statements FROM accounts WHERE account_id=$1",
     [account_id],
   );
-  return rows[0].email_daily_statements ?? true;
+  return !!rows[0].email_daily_statements;
 }

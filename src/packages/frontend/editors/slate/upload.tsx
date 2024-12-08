@@ -59,7 +59,11 @@ export default function useUpload(
   const updloadEventHandlers = useMemo(() => {
     return {
       error: (_, message) => {
-        actions?.set_error(`${message}`);
+        if (actions?.set_error != null) {
+          actions?.set_error(`${message}`);
+        } else {
+          console.warn("Error uploading file -- ", message);
+        }
       },
       sending: ({ name }) => {
         actionsRef.current?.set_status?.(`Uploading ${name}...`);

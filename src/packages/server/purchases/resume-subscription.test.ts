@@ -9,9 +9,7 @@ import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
-import resumeSubscription, {
-  costToResumeSubscription,
-} from "./resume-subscription";
+import resumeSubscription from "./resume-subscription";
 import cancelSubscription, {
   creditToCancelSubscription,
 } from "./cancel-subscription";
@@ -48,7 +46,7 @@ describe("create a subscription, cancel it, then resume it", () => {
 
   it("cancels our subscription, so that we can renew it.  Resume works, since we have money from the cancelation.", async () => {
     const creditToCancel = await creditToCancelSubscription(subscription_id);
-    const balanceBeforeCancel = await getBalance(account_id);
+    const balanceBeforeCancel = await getBalance({ account_id });
     await cancelSubscription({
       account_id,
       subscription_id,
@@ -58,7 +56,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     // ATTN: getting this wrong could result in a loophole where a user can cancel and resume
     // their subscription a large number of times to steal money.   We want to make that not
     // work, but should probably also add some throttling (TODO).
-    expect(-(await getBalance(account_id))).toBeCloseTo(
+    expect(-(await getBalance({ account_id }))).toBeCloseTo(
       balanceBeforeCancel + creditToCancel,
       0.1,
     );
@@ -66,23 +64,13 @@ describe("create a subscription, cancel it, then resume it", () => {
     // fully refunded (since starts in future) -- license is not active for nonzero period
     expect((license.expires?.valueOf() ?? 0) / 1000).toBeCloseTo(
       Date.now() / 1000,
-      1,
+      0,
     );
 
-    const balanceBeforeResume = await getBalance(account_id);
-    const { cost: costToResume } =
-      await costToResumeSubscription(subscription_id);
     // now resume:
     await resumeSubscription({ account_id, subscription_id });
     // and it is active
     expect((await getSubscription(subscription_id)).status).toBe("active");
-
-    // and balance is right
-    const balanceAfterResume = await getBalance(account_id);
-    expect(balanceBeforeResume - costToResume).toBeCloseTo(
-      balanceAfterResume,
-      2,
-    );
 
     // confirm the license is active again for same period as subscription current period.
     const license2 = await getLicense(license_id);
@@ -103,7 +91,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     try {
       await resumeSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add at least");
+      expect(e.message).toMatch("Please pay");
     }
   });
 });

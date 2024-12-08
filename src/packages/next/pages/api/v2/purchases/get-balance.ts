@@ -1,5 +1,6 @@
 /*
-Get total amount owed right now.
+Get balance right now.
+As a side effect, it updates the balance field of the accounts table.
 */
 
 import getAccountId from "lib/account/get-account";
@@ -19,5 +20,5 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  return await getBalance(account_id);
+  return await getBalance({ account_id });
 }

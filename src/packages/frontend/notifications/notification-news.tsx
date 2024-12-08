@@ -147,7 +147,7 @@ export function NewsPanel(props: NewsPanelProps) {
         actions={[
           <Button
             key="read"
-            type="primary"
+            type="text"
             ghost={true}
             onClick={(e) => newsItemOnClick(e, n)}
           >
@@ -181,8 +181,9 @@ export function NewsPanel(props: NewsPanelProps) {
         size="small"
         dataSource={newsData}
         renderItem={renderNewsItem}
-        pagination={{ position: "bottom", pageSize: 10 }}
       />
     </Card>
   );
 }
+
+/*         pagination={{ position: "bottom", pageSize: 10 }} */

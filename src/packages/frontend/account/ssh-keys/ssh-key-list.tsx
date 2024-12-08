@@ -3,10 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popconfirm, Typography } from "antd";
+import { Button, Flex, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
 import { useIntl } from "react-intl";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   Gap,
@@ -18,6 +17,7 @@ import {
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { cmp } from "@cocalc/util/misc";
+import SSHKeyAdder from "./ssh-key-adder";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
@@ -29,24 +29,66 @@ interface SSHKeyListProps {
 
 // Children are rendered above the list of SSH Keys
 // Takes an optional Help string or node to render as a help modal
-export const SSHKeyList: React.FC<SSHKeyListProps> = (
-  props: SSHKeyListProps,
-) => {
+export default function SSHKeyList({
+  ssh_keys,
+  project_id,
+  help,
+  children,
+  mode = "project",
+}: SSHKeyListProps) {
   const intl = useIntl();
-  const { ssh_keys, project_id, help, children, mode = "project" } = props;
   const isFlyout = mode === "flyout";
+
+  function renderAdder(size?) {
+    if (project_id) {
+      return (
+        <SSHKeyAdder
+          size={size}
+          add_ssh_key={(opts) => {
+            redux
+              .getActions("projects")
+              .add_ssh_key_to_project({ ...opts, project_id });
+          }}
+          style={{ marginBottom: "10px" }}
+          extra={
+            <p>
+              If you want to use the same SSH key for all your projects and
+              compute servers, add it using the "SSH Keys" tab under Account
+              Settings. If you have done that, there is no need to also
+              configure an SSH key here.
+            </p>
+          }
+        />
+      );
+    } else {
+      return (
+        <SSHKeyAdder
+          size={size}
+          add_ssh_key={(opts) => redux.getActions("account").add_ssh_key(opts)}
+          style={{ marginBottom: "0px" }}
+        />
+      );
+    }
+  }
 
   function render_header() {
     return (
-      <>
+      <Flex style={{ width: "100%" }}>
+        {project_id ? "Project Specific " : "Global "}
         {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
-      </>
+        <div style={{ flex: 1 }} />
+        {(ssh_keys?.size ?? 0) > 0 ? (
+          <div style={{ float: "right" }}>{renderAdder()}</div>
+        ) : undefined}
+      </Flex>
     );
   }
 
   function render_keys() {
-    if (ssh_keys == null || ssh_keys.size == 0) return;
+    if (ssh_keys == null || ssh_keys.size == 0) {
+      return <div style={{ textAlign: "center" }}>{renderAdder("large")}</div>;
+    }
     const v: { date?: Date; fp: string; component: JSX.Element }[] = [];
 
     ssh_keys?.forEach(
@@ -111,7 +153,7 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
       </SettingBox>
     );
   }
-};
+}
 
 interface OneSSHKeyProps {
   ssh_key: Map<string, any>;
@@ -177,6 +219,7 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           cancelText={<CancelText />}
         >
           <Button
+            type="link"
             size={isFlyout ? "small" : "middle"}
             style={{ float: "right" }}
           >

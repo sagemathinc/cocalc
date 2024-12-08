@@ -9,11 +9,8 @@ import track from "@cocalc/frontend/user-tracking";
 
 // when checking user has sufficient credits to run compute server, require that
 // they have enough for this many hours.
-// Otherwise, it is way too easy to start compute server with upgrades,
-// then have it just stop again an hour or less later, which is
-// just annoying.
-const MIN_HOURS = 3;
-const MIN_COST = 2.5; // no matter what, require at least this much credit.
+const MIN_HOURS = 0.25;
+const MIN_COST = 1; // no matter what, require at least this much credit.
 
 export default async function confirmStartComputeServer({
   id,

@@ -6,10 +6,6 @@ import {
   disableDailyStatements,
   extraInfo as dailyStatementsExtraInfo,
 } from "./daily-statements";
-import {
-  handleCancelSubscription,
-  extraInfo as cancelSubscriptionExtraInfo,
-} from "./cancel-subscription";
 
 /*
 If a user visits the URL for an action link, then this gets called.
@@ -17,7 +13,7 @@ If a user visits the URL for an action link, then this gets called.
 
 export default async function handleTokenAction(
   token: string,
-  account_id: string | undefined
+  account_id: string | undefined,
 ): Promise<{ description: Description; data: any }> {
   const description = await getTokenDescription(token, account_id);
   const data = await handleDescription(token, description, account_id);
@@ -30,7 +26,7 @@ export default async function handleTokenAction(
 async function handleDescription(
   token: string,
   description: Description,
-  account_id: string | undefined
+  account_id: string | undefined,
 ): Promise<any> {
   switch (description.type) {
     case "disable-daily-statements":
@@ -39,8 +35,6 @@ async function handleDescription(
       return await makePayment(token, description);
     case "student-pay":
       return await studentPay(token, description, account_id);
-    case "cancel-subscription":
-      return await handleCancelSubscription(description);
     default:
       // @ts-ignore
       throw Error(`action of type ${description.type} not implemented`);
@@ -49,7 +43,7 @@ async function handleDescription(
 
 export async function getTokenDescription(
   token: string,
-  account_id?: string
+  account_id?: string,
 ): Promise<Description> {
   if (!token || token.length < 20) {
     throw Error(`invalid token: '${token}'`);
@@ -57,7 +51,7 @@ export async function getTokenDescription(
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT expire, description FROM token_actions WHERE token=$1",
-    [token]
+    [token],
   );
   if (rows.length == 0) {
     throw Error(`The token '${token}' has expired or does not exist.`);
@@ -76,7 +70,7 @@ export async function getTokenDescription(
 async function includeExtraInfo(
   description: Description,
   account_id: string | undefined,
-  token: string
+  token: string,
 ) {
   switch (description.type) {
     case "disable-daily-statements":
@@ -85,8 +79,6 @@ async function includeExtraInfo(
       return await studentPayExtraInfo(description, account_id);
     case "make-payment":
       return await makePaymentExtraInfo(description, token);
-    case "cancel-subscription":
-      return await cancelSubscriptionExtraInfo(description);
     default:
       return description;
   }

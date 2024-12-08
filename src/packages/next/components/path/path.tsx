@@ -8,8 +8,10 @@ import {
   Avatar as AntdAvatar,
   Button,
   Divider,
+  Flex,
   Space,
   Tooltip,
+  QRCode,
 } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -113,6 +115,11 @@ export default function PublicPath({
   useEffect(() => {
     setIsStarred(isStarred0);
   }, [isStarred0]);
+
+  const [qrcode, setQrcode] = useState<string>("");
+  useEffect(() => {
+    setQrcode(location.href);
+  }, []);
 
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
@@ -400,11 +407,16 @@ export default function PublicPath({
           />
           <Space
             style={{
+              marginTop: "-30px",
               float: "right",
               justifyContent: "flex-end",
             }}
             direction="vertical"
           >
+            <Flex>
+              <div style={{ flex: 1 }} />
+              {qrcode && <QRCode value={qrcode} size={110} color="#5a687d" />}
+            </Flex>
             <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
           {signingUp && (

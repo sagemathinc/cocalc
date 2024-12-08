@@ -18,7 +18,7 @@ import {
   untangleUptime,
   Uptime,
 } from "../consts/site-license";
-import { capitalize, plural } from "../misc";
+import { capitalize, is_array, plural, round2 } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import { loadPatch } from "../upgrades/quota";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
@@ -140,7 +140,7 @@ export function describe_quota(
   }
   if (quota.gpu) {
     const { gpu } = quota;
-    const num = gpu === true ? 1 : gpu.num ?? 1;
+    const num = gpu === true ? 1 : (gpu.num ?? 1);
     v.push(`${num} GPU(s)`);
   }
 
@@ -183,13 +183,34 @@ export function describe_quota(
   }
   if (quota.run_limit) {
     v.push(
-      `up to ${quota.run_limit} simultaneous running ${plural(
-        quota.run_limit,
-        "project",
-      )}`,
+      `up to ${quota.run_limit} running ${plural(quota.run_limit, "project")}`,
     );
   }
-  return `${intro} ${v.join(", ")}`;
+  let describePeriod = "";
+  const period = quota["period"];
+  const range = quota["range"];
+  if (period) {
+    if (period == "monthly") {
+      describePeriod = " (monthly subscription)";
+    } else if (period == "yearly") {
+      describePeriod = " (yearly subscription)";
+    } else if (
+      period == "range" &&
+      range != null &&
+      is_array(range) &&
+      range.length == 2
+    ) {
+      // specific range
+      const v = range.map((x) => new Date(x).toLocaleString());
+      const days = round2(
+        (new Date(range[1]).valueOf() - new Date(range[0]).valueOf()) /
+          (1000 * 60 * 60 * 24),
+      );
+      describePeriod = ` (${v[0]} - ${v[1]}, ${days} ${plural(Math.round(days), "day")})`;
+    }
+  }
+
+  return `${intro} ${v.join(", ")}${describePeriod}`;
 }
 
 // similar to the above, but very short for the info bar on those store purchase pages.

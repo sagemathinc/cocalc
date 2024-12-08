@@ -44,6 +44,7 @@ import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -585,9 +586,10 @@ export class PassportLogin {
     );
 
     L(`actually set remember_me cookie in client. ttl=${ttl_s}s`);
+    const { samesite_remember_me } = await getServerSettings();
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
-      sameSite: "strict",
+      sameSite: samesite_remember_me,
     });
   }
 }

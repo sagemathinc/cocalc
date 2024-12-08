@@ -9,7 +9,6 @@ Create a new site license.
 import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -29,7 +28,6 @@ import { IdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, PRESET_MATCH_FIELDS, Preset } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
-import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
 import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
@@ -50,8 +48,7 @@ interface Props {
   noAccount: boolean;
 }
 
-export default function SiteLicense(props: Props) {
-  const { noAccount } = props;
+export default function SiteLicense({ noAccount }: Props) {
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -75,7 +72,7 @@ export default function SiteLicense(props: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License in Shopping Cart"
-          : "Buy a License"}
+          : "Configure a License"}
       </Title>
       {router.query.id == null && (
         <div>
@@ -83,10 +80,10 @@ export default function SiteLicense(props: Props) {
             <A href="https://doc.cocalc.com/licenses.html">
               <SiteName /> licenses
             </A>{" "}
-            allow you to upgrade any number of projects to run more quickly,
-            have network access, more disk space and memory. Licenses cover a
-            wide range of use cases, ranging from a single hobbyist project to
-            thousands of simultaneous users across a large organization.
+            allow you to upgrade projects to run more quickly, have network
+            access, more disk space and memory. Licenses cover a wide range of
+            use cases, ranging from a single hobbyist project to thousands of
+            simultaneous users across a large organization.
           </Paragraph>
 
           <Paragraph style={{ fontSize: "12pt" }}>
@@ -100,9 +97,6 @@ export default function SiteLicense(props: Props) {
             >
               edited at any time.{" "}
             </A>
-            It is also possible to{" "}
-            <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
-            for resale or distribution.
           </Paragraph>
         </div>
       )}
@@ -121,7 +115,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
-  const [showExplanations, setShowExplanations] = useState<boolean>(true);
+  const [showExplanations, setShowExplanations] = useState<boolean>(false);
   const [configMode, setConfigMode] = useState<"preset" | "expert">("preset");
   const [form] = Form.useForm();
   const router = useRouter();
@@ -289,12 +283,6 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           />
         ) : undefined}
         <TitleDescription showExplanations={showExplanations} form={form} />
-        <Reset
-          addBox={addBox}
-          form={form}
-          onChange={onLicenseChange}
-          router={router}
-        />
       </Form>
     </div>
   );

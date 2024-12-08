@@ -72,7 +72,20 @@ function App({ children }) {
     }
   }, [getLocale(other_settings)]);
 
-  return <AppContext.Provider value={appState}>{children}</AppContext.Provider>;
+  const timeAgo = {
+    timeAgoAbsolute: other_settings.get("time_ago_absolute"),
+    setTimeAgoAbsolute: (absolute: boolean) => {
+      redux
+        .getActions("account")
+        .set_other_settings("time_ago_absolute", absolute);
+    },
+  };
+
+  return (
+    <AppContext.Provider value={{ ...appState, ...timeAgo }}>
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 function Root({ Page }) {

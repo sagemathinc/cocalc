@@ -5,13 +5,11 @@
 
 import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge } from "antd";
-
 import {
   CSS,
   React,
   redux,
   useActions,
-  useMemo,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -20,6 +18,8 @@ import { COLORS } from "@cocalc/util/theme";
 import track from "@cocalc/frontend/user-tracking";
 import { PageStyle, TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 import { blur_active_element } from "./util";
+import { useEffect, useMemo } from "react";
+import { set_window_title } from "@cocalc/frontend/browser";
 
 interface Props {
   type: "bell" | "notifications";
@@ -37,18 +37,24 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const mentions = useTypedRedux("mentions", "mentions");
   const notify_count = useTypedRedux("file_use", "notify_count");
   const news_unread = useTypedRedux("news", "unread");
+  const unread_message_count =
+    useTypedRedux("account", "unread_message_count") ?? 0;
 
   const count = useMemo(() => {
     switch (type) {
       case "bell":
         return notify_count ?? 0;
       case "notifications":
-        return mentions_store.get_unseen_size(mentions) ?? 0;
+        return mentions_store.getUnreadSize() ?? 0;
       default:
         unreachable(type);
         return 0;
     }
   }, [type, notify_count, mentions]);
+
+  useEffect(() => {
+    set_window_title();
+  }, [count, news_unread]);
 
   const outer_style: CSS = {
     padding: `${topPaddingIcons} ${sidePaddingIcons}`,
@@ -114,25 +120,33 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
       case "notifications":
         // only wiggle, if there are unread news – because they clear out automatically.
         // mentions can be more long term, i.e. keep them unread until you mark them done.
-        const wiggle = news_unread > 0;
+        const wiggle = news_unread > 0 || unread_message_count > 0;
         return (
           <Badge
-            color={count == 0 ? COLORS.GRAY : undefined}
-            count={count}
+            color={unread_message_count == 0 ? COLORS.GRAY : "green"}
+            count={unread_message_count}
             size="small"
+            showZero={false}
+            offset={[0, `${fontSizeIcons}`]}
           >
             <Badge
-              color={news_unread == 0 ? COLORS.GRAY : ANTD_BLUE.primary}
-              count={news_unread}
-              showZero={false}
+              color={count == 0 ? COLORS.GRAY : undefined}
+              count={count}
               size="small"
-              offset={[newsBadgeOffset, 0]}
             >
-              <Icon
-                style={{ fontSize: fontSizeIcons }}
-                className={wiggle ? "smc-bell-notification" : ""}
-                name="mail"
-              />{" "}
+              <Badge
+                color={news_unread == 0 ? COLORS.GRAY : ANTD_BLUE.primary}
+                count={news_unread}
+                showZero={false}
+                size="small"
+                offset={[newsBadgeOffset, 0]}
+              >
+                <Icon
+                  style={{ fontSize: fontSizeIcons }}
+                  className={wiggle ? "smc-bell-notification" : ""}
+                  name="mail"
+                />{" "}
+              </Badge>
             </Badge>
           </Badge>
         );

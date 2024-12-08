@@ -7,7 +7,6 @@ import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,

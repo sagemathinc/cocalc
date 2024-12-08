@@ -21,7 +21,8 @@ exports.save_blob = (opts) ->
                            # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
         check      : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
                            # This is a check against bad user-supplied data.
-        project_id : undefined  # also required
+        project_id : undefined
+        account_id : undefined
         database   : required
         cb         : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
 
@@ -56,6 +57,7 @@ exports.save_blob = (opts) ->
         blob       : opts.blob
         ttl        : opts.ttl
         project_id : opts.project_id
+        account_id : opts.account_id
         cb         : (err, ttl) =>
             if err
                 dbg("failed to store blob -- #{err}")

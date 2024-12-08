@@ -46,7 +46,11 @@ export default function StudentPay({ actions, settings }) {
       start: new Date(),
       end: dayjs().add(3, "month").toDate(),
     } as PurchaseInfo;
-    actions.configuration.setStudentPay({ info, cost });
+    setTimeout(() => {
+      // React requirment: this must happen in different render loop, because
+      // it causes an update to the UI.
+      actions.configuration.setStudentPay({ info, cost });
+    }, 1);
     return info;
   });
 
@@ -125,7 +129,6 @@ export default function StudentPay({ actions, settings }) {
         type="primary"
         onClick={() => {
           actions.configuration.setStudentPay({ info, when, cost });
-          setShowStudentPay(false);
         }}
       >
         {intl.formatMessage(labels.save_changes)}

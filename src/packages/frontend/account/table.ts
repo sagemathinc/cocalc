@@ -25,6 +25,10 @@ export class AccountTable extends Table {
       accounts: [
         {
           account_id: null,
+          balance: null,
+          min_balance: null,
+          balance_alert: null,
+          auto_balance: null,
           email_address: null,
           email_address_verified: null,
           email_address_problem: null,
@@ -50,6 +54,7 @@ export class AccountTable extends Table {
           stripe_checkout_session: null,
           stripe_usage_subscription: null,
           stripe_customer: null, // used for legacy upgrades ONLY.
+          unread_message_count: null,
         },
       ],
     };

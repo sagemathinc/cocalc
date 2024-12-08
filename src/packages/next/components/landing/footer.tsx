@@ -90,7 +90,7 @@ export default function Footer() {
           hide: !enabledPages?.pricing,
         },
         {
-          text: "On Premises",
+          text: "On-Premises",
           url: "/pricing/onprem",
           hide: !enabledPages?.onPrem,
         },

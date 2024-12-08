@@ -1,6 +1,5 @@
 import { Alert, Modal } from "antd";
 import { useRef } from "react";
-
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { load_target } from "@cocalc/frontend/history";
@@ -34,6 +33,11 @@ export default function PayAsYouGoModal({}) {
       storeState.service as Service,
       storeState.cost,
     );
+    if (x?.allowed) {
+      // done -- close the modal
+      handleOk();
+      return;
+    }
     actions.setState({ pay_as_you_go: { ...storeState, ...x } as any });
   };
   const handleCancel = () => {
@@ -86,7 +90,7 @@ export default function PayAsYouGoModal({}) {
           style={{ margin: "15px 0" }}
           showIcon
           type="success"
-          description={<>Thanks, your purchase should now be allowed!</>}
+          description={<>Thanks! Your purchase should now be complete.</>}
         />
       )}
       {storeState.cost_per_hour != null && (

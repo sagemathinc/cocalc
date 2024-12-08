@@ -7,7 +7,6 @@ import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge, Menu } from "antd";
 import React, { useMemo } from "react";
 import { defineMessage, defineMessages, useIntl } from "react-intl";
-
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, MenuItems, Text } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
@@ -15,6 +14,8 @@ import { Channel, CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
 import { IntlMessage } from "../i18n";
 import { NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
+import MessagesCounter from "@cocalc/frontend/messages/counter";
+import { ComposeButton } from "@cocalc/frontend/messages/compose";
 
 export const NewsCounter = () => {
   const news_unread = useTypedRedux("news", "unread");
@@ -31,7 +32,7 @@ const MentionsCounter = () => {
   const mentions = useTypedRedux("mentions", "mentions");
   const mentions_store = redux.getStore("mentions");
   const count = useMemo(() => {
-    return mentions_store.get_unseen_size(mentions);
+    return mentions_store.getUnreadSize();
   }, [mentions]);
 
   return (
@@ -60,12 +61,12 @@ const MSGS = defineMessages({
   },
   saved: {
     id: "notifications.nav.saved",
-    defaultMessage: "Saved for later",
+    defaultMessage: "Saved for Later",
     description: "Label for messages saved for later",
   },
   all: {
     id: "notifications.nav.all",
-    defaultMessage: "All mentions",
+    defaultMessage: "All Mentions",
   },
   news: {
     id: "notifications.nav.news",
@@ -73,7 +74,7 @@ const MSGS = defineMessages({
   },
   allNews: {
     id: "notifications.nav.allNews",
-    defaultMessage: "All news",
+    defaultMessage: "All News",
   },
 });
 
@@ -100,11 +101,93 @@ interface Props {
   style: React.CSSProperties;
 }
 
-export function NotificationNav(props: Props) {
-  const { filter, on_click, style } = props;
+export function NotificationNav({ filter, on_click, style }: Props) {
   const intl = useIntl();
 
   const ITEMS: MenuItems = [
+    {
+      key: "messages",
+      label: (
+        <div
+          style={{
+            margin:
+              "0 -12px" /* weird margin is so the compose button lines up with the items */,
+          }}
+        >
+          <Text strong style={{ fontSize: "125%", marginLeft: "12px" }}>
+            Messages <MessagesCounter />
+          </Text>
+          <ComposeButton
+            size="large"
+            style={{ marginTop: "15px", width: "100%" }}
+          />
+        </div>
+      ),
+      children: [
+        {
+          key: "messages-inbox",
+          label: (
+            <div style={{ display: "flex", width: "100%" }}>
+              <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+                <Icon name="container" /> Inbox
+              </span>
+              <div style={{ flex: 1 }} />
+              <MessagesCounter minimal />
+            </div>
+          ),
+        },
+        {
+          key: "messages-sent",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name={"paper-plane"} /> Sent
+            </span>
+          ),
+        },
+        {
+          key: "messages-drafts",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="note" /> Drafts
+            </span>
+          ),
+        },
+        {
+          key: "messages-starred",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="star" /> Starred
+            </span>
+          ),
+        },
+        {
+          key: "messages-all",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="mail" /> All Messages
+            </span>
+          ),
+        },
+        {
+          key: "messages-search",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="search" /> Search
+            </span>
+          ),
+        },
+        {
+          key: "messages-trash",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="trash" /> Trash
+            </span>
+          ),
+        },
+      ],
+      type: "group",
+    },
+    { key: "divider-before-mentions", type: "divider" },
     {
       key: "mentions",
       label: (
@@ -149,7 +232,7 @@ export function NotificationNav(props: Props) {
       ],
       type: "group",
     },
-    { key: "d1", type: "divider" },
+    { key: "divider-before-news", type: "divider" },
     {
       key: "news",
       label: (

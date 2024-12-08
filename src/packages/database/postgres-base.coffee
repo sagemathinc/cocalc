@@ -672,7 +672,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     if typeof(cond) != 'string'
                         opts.cb?("each condition must be a string but '#{cond}' isn't")
                         return
-                    if not param?  # *IGNORE* where conditions where value is explicitly undefined
+                    if not param?
+                        # *IGNORE* where conditions where value is explicitly undefined
+                        # Note that in SQL NULL is not a value and there is no way to use it in placeholder
+                        # anyways, so this can never work.
                         continue
                     if cond.indexOf('$') == -1
                         # where condition is missing it's $ parameter -- default to equality

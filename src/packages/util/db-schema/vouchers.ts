@@ -1,7 +1,6 @@
 import { Table } from "./types";
 import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 export type WhenPay = "now" | "admin";
 
@@ -18,10 +17,6 @@ export interface Voucher {
   created: Date;
   created_by: string;
   title: string;
-  cart: (
-    | { description: SiteLicenseDescriptionDB; product: "site-license" }
-    | { description: { amount: number }; product: "cash-voucher" }
-  )[];
   count: number;
   cost: number;
   tax: number;
@@ -79,13 +74,6 @@ Table({
         editable: true,
       },
     },
-    cart: {
-      // items in the shopping cart that were used to create this voucher.  This defines
-      // what the voucher provides.
-      type: "map",
-      pg_type: "JSONB[]",
-      desc: "Cart of items provided by this voucher.",
-    },
     count: {
       type: "number",
       title: "Count",
@@ -125,7 +113,6 @@ Table({
           count: null,
           cost: null,
           tax: null,
-          cart: null,
           when_pay: null,
           purchased: null,
         },

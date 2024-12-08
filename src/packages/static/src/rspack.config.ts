@@ -47,6 +47,9 @@ import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import hotModuleReplacementPlugin, { getHotMiddlewareUrl } from "./plugins/hot";
 import moduleRules from "./module-rules";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("rspack.config");
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
 // relative to "src/packages/static".
@@ -149,6 +152,8 @@ export default function getConfig({ middleware }: Options = {}): any {
   }
 
   const config = {
+    // this makes things 10x slower:
+    //cache: RSPACK_DEV_SERVER || PRODMODE ? false : true,
     ignoreWarnings: [/Failed to parse source map/],
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
     mode: PRODMODE
@@ -240,6 +245,6 @@ export default function getConfig({ middleware }: Options = {}): any {
     },
   };
 
-  //console.log(config);
+  logger.debug(config);
   return config;
 }

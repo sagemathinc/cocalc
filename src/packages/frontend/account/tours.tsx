@@ -1,6 +1,6 @@
-import { Checkbox, Space } from "antd";
+import { Card, Checkbox, Space } from "antd";
 import { ReactNode } from "react";
-
+import { Icon } from "@cocalc/frontend/components/icon";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 
 const TOUR_NAMES = {
@@ -34,5 +34,9 @@ export default function Tours() {
       </Checkbox>,
     );
   }
-  return <Space wrap>Completed Tours: {v}</Space>;
+  return (
+    <Card title={<span><Icon name="map"/> Completed Tours</span>}>
+      <Space wrap>{v}</Space>
+    </Card>
+  );
 }

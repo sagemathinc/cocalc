@@ -25,6 +25,7 @@ import getParams from "lib/api/get-params";
 import { verify } from "password-hash";
 import { Request, Response } from "express";
 // import reCaptcha from "@cocalc/server/auth/recaptcha";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 export default async function signIn(req: Request, res: Response) {
   let { email, password } = getParams(req);
@@ -84,10 +85,11 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
     return;
   }
   try {
+    const { samesite_remember_me } = await getServerSettings();
     const cookies = new Cookies(req, res, { secure: true });
     cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
-      sameSite: "strict",
+      sameSite: samesite_remember_me,
     });
   } catch (err) {
     res.json({ error: `Problem setting cookie -- ${err.message}.` });

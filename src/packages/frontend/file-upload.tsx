@@ -104,6 +104,9 @@ function Header({ close_preview }: { close_preview?: Function }) {
 }
 
 function postUrl(project_id: string, path: string): string {
+  if (!project_id) {
+    return join(appBasePath, "blobs");
+  }
   const dest_dir = encode_path(path);
   const compute_server_id = redux
     .getProjectStore(project_id)
@@ -175,9 +178,8 @@ export function FileUpload({
           }}
           eventHandlers={dropzone_handler}
           djsConfig={{
-            previewTemplate: ReactDOMServer.renderToStaticMarkup(
-              dropzone_template(),
-            ),
+            previewTemplate:
+              ReactDOMServer.renderToStaticMarkup(dropzone_template()),
             ...UPLOAD_OPTIONS,
           }}
         />
@@ -383,7 +385,9 @@ export function FileUploadWrapper({
   }
 
   function log(entry): void {
-    redux.getProjectActions(project_id).log(entry);
+    if (project_id) {
+      redux.getProjectActions(project_id).log(entry);
+    }
   }
 
   function set_up_events(): void {

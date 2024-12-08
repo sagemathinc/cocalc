@@ -76,7 +76,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id, project_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add at least");
+      expect(e.message).toMatch("Please pay");
     }
   });
 
@@ -86,7 +86,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id, project_id });
     } catch (e) {
-      expect(e.message).toMatch("do not have enough");
+      expect(e.message).toMatch("Please pay");
     }
   });
 

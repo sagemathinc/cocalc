@@ -3,14 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Form, Switch, Tooltip } from "antd";
-import { join } from "path";
-import { FormattedMessage } from "react-intl";
+import { Flex, Form, Switch, Tooltip } from "antd";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, Loading } from "@cocalc/frontend/components";
-import { Footer } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Loading } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { KeyboardSettings } from "./keyboard-settings";
@@ -20,6 +16,8 @@ import { AccountSettings } from "./settings/account-settings";
 import ApiKeys from "./settings/api-keys";
 import TableError from "./table-error";
 import { TerminalSettings } from "./terminal-settings";
+import GlobalSSHKeys from "./ssh-keys/global-ssh-keys";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -42,6 +40,7 @@ export const AccountPreferences: React.FC = () => {
   const email_enabled = useTypedRedux("customize", "email_enabled");
   const verify_emails = useTypedRedux("customize", "verify_emails");
   const kucalc = useTypedRedux("customize", "kucalc");
+  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
 
   function render_account_settings(): JSX.Element {
     return (
@@ -81,7 +80,7 @@ export const AccountPreferences: React.FC = () => {
   function renderDarkMode(): JSX.Element {
     return (
       <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
-        <Form>
+        <Form style={{ height: "37px" }}>
           <Form.Item
             label={
               <div
@@ -123,26 +122,10 @@ export const AccountPreferences: React.FC = () => {
   function render_all_settings(): JSX.Element {
     return (
       <>
-        <div style={{ float: "right" }}>{renderDarkMode()}</div>
-        <h2>
-          <FormattedMessage
-            id="account.account_preferences.title"
-            defaultMessage={"Account Preferences"}
-          />
-        </h2>
-        <div style={{ fontSize: "14pt" }}>
-          <FormattedMessage
-            id="accountaccount.account_preferences.subtitle"
-            defaultMessage={
-              "Adjust account preferences below. <A>Visit your account configuration for more...</A>"
-            }
-            values={{
-              A: (ch) => <A href={join(appBasePath, "config")}>{ch}</A>,
-            }}
-          />
-        </div>
-        <br />
-        <br />
+        <Flex>
+          <div style={{ flex: 1 }} />
+          {renderDarkMode()}
+        </Flex>
         <Row>
           <Col xs={12} md={6}>
             {render_account_settings()}
@@ -152,6 +135,7 @@ export const AccountPreferences: React.FC = () => {
               // last_name={last_name}
             />
             {render_other_settings()}
+            {(ssh_gateway || kucalc === KUCALC_COCALC_COM) && <GlobalSSHKeys />}
             {!is_anonymous && <ApiKeys />}
           </Col>
           <Col xs={12} md={6}>
@@ -160,13 +144,12 @@ export const AccountPreferences: React.FC = () => {
             <KeyboardSettings />
           </Col>
         </Row>
-        <Footer />
       </>
     );
   }
 
   return (
-    <div style={{ marginTop: "1em" }}>
+    <div>
       <TableError />
       {is_anonymous ? render_account_settings() : render_all_settings()}
     </div>

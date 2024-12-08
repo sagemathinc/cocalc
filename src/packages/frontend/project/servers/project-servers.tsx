@@ -249,6 +249,7 @@ export function ProjectServers() {
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
       <Tabs
+        style={{ maxWidth: "1100px" }}
         items={items}
         defaultActiveKey={getServerTab(project_id)}
         onChange={(tab) => setServerTab(project_id, tab as TabName)}

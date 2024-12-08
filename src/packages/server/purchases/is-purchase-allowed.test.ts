@@ -154,27 +154,30 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(x.allowed).toBe(false);
   });
 
-  it("denies purchase for service with a quota even though our balance is large, since the quota default is 0", async () => {
-    const { allowed } = await isPurchaseAllowed({
-      account_id,
-      service: "openai-gpt-4",
-      cost: 0.5,
-    });
-    expect(allowed).toBe(false);
-  });
-
-  it("raise the quota and now purchase *is* allowed", async () => {
-    await setPurchaseQuota({
-      account_id,
-      service: "openai-gpt-4",
-      value: 2,
-    });
-    const { allowed } = await isPurchaseAllowed({
+  it("allows but DISCOURAGES purchase for service with a quota even though our balance is large, since the quota default is 0... but ", async () => {
+    const { allowed, reason, discouraged } = await isPurchaseAllowed({
       account_id,
       service: "openai-gpt-4",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
+    expect(discouraged).toBe(true);
+    expect(reason).toMatch("may exceed your personal monthly spending budget");
+  });
+
+  it("raise the quota and now purchase *is* not discouraged", async () => {
+    await setPurchaseQuota({
+      account_id,
+      service: "openai-gpt-4",
+      value: 2,
+    });
+    const { allowed, discouraged } = await isPurchaseAllowed({
+      account_id,
+      service: "openai-gpt-4",
+      cost: 0.5,
+    });
+    expect(allowed).toBe(true);
+    expect(!!discouraged).toBe(false);
   });
 
   it("raise the quota and now purchase *is* allowed BUT ONLY UP TO A POINT", async () => {

@@ -28,8 +28,12 @@ export class UsersClient {
       admin?: boolean; // admins can do an admin version of the query, which also does substring searches on email address (not just name)
       only_email?: boolean; // search only via email address
     }): Promise<User[]> => {
-      if (opts.limit == null) opts.limit = 20;
-      if (opts.active == null) opts.active = "";
+      if (opts.limit == null) {
+        opts.limit = 20;
+      }
+      if (opts.active == null) {
+        opts.active = "";
+      }
 
       const { results } = await this.async_call({
         message: message.user_search({
@@ -37,7 +41,7 @@ export class UsersClient {
           limit: opts.limit,
           admin: opts.admin,
           active: opts.active,
-          only_email: opts.only_email
+          only_email: opts.only_email,
         }),
       });
       return results;

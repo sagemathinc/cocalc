@@ -4,8 +4,9 @@ export const StorePages = [
   "dedicated",
   "cart",
   "checkout",
+  "processing",
   "vouchers",
   "congrats",
 ] as const;
 
-export type StorePagesTypes = typeof StorePages[number];
+export type StorePagesTypes = (typeof StorePages)[number];

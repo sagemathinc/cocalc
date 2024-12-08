@@ -9,7 +9,7 @@ interface Props {
 
 export default function EmailDailyStatements({ style }: Props) {
   const email_daily_statements: boolean =
-    useTypedRedux("account", "email_daily_statements") ?? true;
+    useTypedRedux("account", "email_daily_statements") ?? false;
   return (
     <Tooltip title="Email a statement to you listing the purchases you make each day, so you can keep track of your spending.  Monthly statements are always sent to you.">
       <Checkbox

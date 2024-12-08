@@ -14,12 +14,12 @@ import addToCart, {
 } from "@cocalc/server/shopping/cart/add";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   ShoppingCartAddInputSchema,
   ShoppingCartAddOutputSchema,
 } from "lib/api/schema/shopping/cart/add";
+import throttle from "@cocalc/util/api/throttle";
 
 async function handle(req, res) {
   try {
@@ -35,6 +35,10 @@ async function add(req): Promise<number | undefined> {
   if (account_id == null) {
     throw Error("must be signed in to use shopping cart");
   }
+  throttle({
+    account_id,
+    endpoint: "shopping/cart/add",
+  });
   const { product, description, id, purchased, project_id } = getParams(req);
   if (id != null) {
     if (purchased) {
