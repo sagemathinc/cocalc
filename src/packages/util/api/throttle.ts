@@ -20,6 +20,11 @@ this hardcoded value, rather than an api endoint to get this.
 */
 
 const THROTTLE = {
+  " purchases/is-purchase-allowed": {
+    second: 7,
+    minute: 30,
+    hour: 300,
+  },
   "purchases/stripe/get-payments": {
     second: 3,
     minute: 15,

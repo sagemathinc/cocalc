@@ -3,10 +3,9 @@ import { useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { cancelPaymentIntent } from "./api";
 
-export default function CancelPaymentIntent(props) {
+export default function CancelPaymentIntent({ paymentIntentId, ...props }) {
   const [canceling, setCanceling] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const { paymentIntentId } = props;
   const cancelOrder = async () => {
     try {
       setError("");

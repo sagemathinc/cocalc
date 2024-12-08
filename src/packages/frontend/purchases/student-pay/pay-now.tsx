@@ -77,6 +77,7 @@ export default function PayNow({
       closable={setOpen != null}
       open={open}
       zIndex={zIndexPayAsGo - 1}
+      width={800}
       destroyOnClose
       footer={null}
       onOk={() => setOpen?.(false)}
@@ -104,11 +105,8 @@ export default function PayNow({
       {place == "processing" && (
         <div>
           When all open payments below are processed, you will be able to access
-          your project.
-          <Payments
-            purpose={STUDENT_PAY}
-            numPaymentsRef={numPaymentsRef}
-          />
+          your course project.
+          <Payments purpose={STUDENT_PAY} numPaymentsRef={numPaymentsRef} />
         </div>
       )}
       {place == "checkout" && lineItems == null && <Spin />}
@@ -153,6 +151,12 @@ export default function PayNow({
             />
           )}
         </>
+      )}
+      {/* Show this just in case the user started to pay with a slow/bad method, then
+          refreshed their browser and then tried to pay agian.  They will clearly see
+          the pending student payment. */}
+      {place != "processing" && (
+        <Payments purpose={STUDENT_PAY} numPaymentsRef={numPaymentsRef} />
       )}
       {place == "checkout" && (
         <>

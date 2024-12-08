@@ -16,8 +16,15 @@ import {
   processPaymentIntent,
 } from "./process-payment-intents";
 import { decimalToStripe, grandTotal } from "@cocalc/util/stripe/calc";
-import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
+import {
+  SHOPPING_CART_CHECKOUT,
+  STUDENT_PAY,
+} from "@cocalc/util/db-schema/purchases";
 import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
+import {
+  studentPaySetPaymentIntent,
+  studentPayAssertNotPaying,
+} from "@cocalc/server/purchases/student-pay";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -51,6 +58,12 @@ export default async function createPaymentIntent({
     throw Error("purpose must be set");
   }
   assertValidUserMetadata(metadata);
+
+  if (purpose == STUDENT_PAY) {
+    // check some conditions
+    const project_id = metadata?.project_id;
+    await studentPayAssertNotPaying({ project_id });
+  }
 
   const { lineItemsWithoutCredit, total_excluding_tax_usd } =
     getStripeLineItems(lineItems);
@@ -134,6 +147,11 @@ export default async function createPaymentIntent({
     // Now in case of shopping, the items in the cart have been moved to a new state
     // so they can't be bought again, so it's safe to start trying to get the user
     // to pay us, which is what happens next below.
+  } else if (purpose == STUDENT_PAY) {
+    await studentPaySetPaymentIntent({
+      project_id: metadata.project_id,
+      paymentIntentId,
+    });
   }
 
   await stripe.paymentIntents.update(paymentIntentId, {

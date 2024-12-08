@@ -31,6 +31,8 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { len } from "@cocalc/util/misc";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
+import getConn from "@cocalc/server/stripe/connection";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -242,7 +244,38 @@ async function getCourseInfo(project_id) {
   return rows[0];
 }
 
-export async function studentPayUnlock({ project_id }) {
-  console.log({ project_id });
-  throw Error("TODO [ ]! ");
+export async function studentPaySetPaymentIntent({
+  project_id,
+  paymentIntentId,
+}) {
+  const pool = getPool();
+  // OK, set the payment intent.
+  // paymentIntentId only comes directly from stripe, not the user, so no danger of SQL injection,
+  // but we are still careful!
+  await pool.query(
+    `UPDATE projects SET course = jsonb_set(course, '{payment_intent_id}', $2::jsonb) WHERE project_id = $1`,
+    [project_id, JSON.stringify(paymentIntentId)],
+  );
+}
+
+// call this if trying to create a new student payment attempt for a course project
+export async function studentPayAssertNotPaying({ project_id }) {
+  if (!isValidUUID(project_id)) {
+    throw Error(`project_id=${project_id} is not a valid UUID`);
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT course#>>'{payment_intent_id}' as payment_intent_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const payment_intent_id = rows[0]?.payment_intent_id;
+  if (payment_intent_id) {
+    const stripe = await getConn();
+    const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (intent.status != "canceled") {
+      throw Error(
+        `There is an outstanding payment for this course right now.  Pay that invoice or cancel it.`,
+      );
+    }
+  }
 }
