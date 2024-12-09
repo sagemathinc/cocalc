@@ -6,6 +6,7 @@ import {
   DatePicker,
   Flex,
   Input,
+  Modal,
   Popover,
   Space,
   Spin,
@@ -78,6 +79,7 @@ import PurchasesPlot from "./purchases-plot";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 const DEFAULT_LIMIT = 10;
 
@@ -577,6 +579,24 @@ function DetailedPurchaseTable({
   purchases: PurchaseItem[] | null;
   admin: boolean;
 }) {
+  const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
+  const fragment = useTypedRedux("account", "fragment");
+  useEffect(() => {
+    if (purchases == null) {
+      return;
+    }
+    const id = parseInt(fragment?.get("id") ?? Fragment.get()?.id ?? "-1");
+    if (id == -1) {
+      return;
+    }
+    for (const purchase of purchases) {
+      if (purchase.id == id) {
+        setCurrent(purchase);
+        return;
+      }
+    }
+  }, [fragment, purchases]);
+
   if (purchases == null) {
     return <Spin size="large" />;
   }
@@ -588,6 +608,15 @@ function DetailedPurchaseTable({
           dataSource={purchases}
           rowKey="id"
           columns={[
+            {
+              render: (_, purchase) => {
+                return (
+                  <Button onClick={() => setCurrent(purchase)}>
+                    <Icon name="external-link" />
+                  </Button>
+                );
+              },
+            },
             {
               width: "100px",
               title: "Id",
@@ -601,54 +630,8 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (
-                _,
-                { id, description, invoice_id, notes, period_end, service },
-              ) => (
-                <div>
-                  <Description
-                    service={service}
-                    description={description}
-                    period_end={period_end}
-                  />
-                  <Flex wrap style={{ marginLeft: "-8px" }}>
-                    {description?.["line_items"] != null && (
-                      <LineItemsButton
-                        lineItems={description["line_items"]}
-                        style={{ marginBottom: "15px" }}
-                      />
-                    )}
-                    {invoice_id && (
-                      <Space>
-                        {admin && id != null && (
-                          <AdminRefund purchase_id={id} />
-                        )}
-                        {!admin && (
-                          <Button
-                            size="small"
-                            type="link"
-                            target="_blank"
-                            href={getSupportURL({
-                              body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
-                              subject: `Refund Request: Transaction ${id}`,
-                              type: "purchase",
-                              hideExtra: true,
-                            })}
-                          >
-                            <Icon name="external-link" /> Refund
-                          </Button>
-                        )}
-                        <InvoiceLink invoice_id={invoice_id} />
-                      </Space>
-                    )}
-                  </Flex>
-                  {notes && (
-                    <StaticMarkdown
-                      style={{ marginTop: "8px" }}
-                      value={`**Notes:** ${notes}`}
-                    />
-                  )}
-                </div>
+              render: (_, purchase) => (
+                <PurchaseDescription {...(purchase as any)} admin={admin} />
               ),
             },
             {
@@ -722,7 +705,117 @@ function DetailedPurchaseTable({
           ]}
         />
       </div>
+      {current != null && (
+        <PurchaseModal
+          admin={admin}
+          purchase={current}
+          onClose={() => {
+            setCurrent(undefined);
+            Fragment.clear();
+            redux.getActions("account").setFragment(undefined);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function PurchaseDescription({
+  id,
+  description,
+  invoice_id,
+  notes,
+  period_end,
+  service,
+  admin,
+}) {
+  return (
+    <div>
+      <Description
+        service={service}
+        description={description}
+        period_end={period_end}
+      />
+      <Flex wrap style={{ marginLeft: "-8px" }}>
+        {description?.["line_items"] != null && (
+          <LineItemsButton
+            lineItems={description["line_items"]}
+            style={{ marginBottom: "15px" }}
+          />
+        )}
+        {invoice_id && (
+          <Space>
+            {admin && id != null && <AdminRefund purchase_id={id} />}
+            {!admin && (
+              <Button
+                size="small"
+                type="link"
+                target="_blank"
+                href={getSupportURL({
+                  body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                  subject: `Refund Request: Transaction ${id}`,
+                  type: "purchase",
+                  hideExtra: true,
+                })}
+              >
+                <Icon name="external-link" /> Refund
+              </Button>
+            )}
+            <InvoiceLink invoice_id={invoice_id} />
+          </Space>
+        )}
+      </Flex>
+      {notes && (
+        <StaticMarkdown
+          style={{ marginTop: "8px" }}
+          value={`**Notes:** ${notes}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function PurchaseModal({ purchase, onClose, admin }) {
+  useEffect(() => {
+    Fragment.set({ id: purchase.id });
+  }, [purchase.id]);
+  return (
+    <Modal
+      width={800}
+      open
+      onOk={onClose}
+      onCancel={onClose}
+      title={<>Purchase Id={purchase.id}</>}
+    >
+      <Space direction="vertical">
+        <PurchaseDescription {...purchase} admin={admin} />
+        <div>
+          Time: <TimeAgo date={purchase.text} />
+        </div>
+        <div>
+          <Active record={purchase} />
+          <Period record={purchase} />
+        </div>
+        <div>
+          {purchase.project_id ? (
+            <>
+              Project: <ProjectTitle project_id={purchase.project_id} />
+            </>
+          ) : undefined}
+        </div>
+        <div>
+          Service: <ServiceTag service={purchase.service} />
+        </div>
+        <div>
+          Amount: <Amount record={purchase} />
+        </div>
+        {purchase.balance != null && (
+          <div>
+            Balance: <Balance balance={purchase.balance} />
+          </div>
+        )}
+      </Space>
+    </Modal>
   );
 }
 
