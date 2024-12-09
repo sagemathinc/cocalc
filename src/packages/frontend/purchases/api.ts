@@ -453,15 +453,12 @@ export async function getLicense(
 export async function cancelSubscription({
   subscription_id,
   reason,
-  now,
 }: {
   subscription_id: number;
   reason: string;
-  now?: boolean;
 }) {
   return await api("purchases/cancel-subscription", {
     subscription_id,
-    now,
     reason,
   });
 }
@@ -478,15 +475,6 @@ export async function costToResumeSubscription(
   return await api("purchases/cost-to-resume-subscription", {
     subscription_id,
   });
-}
-
-export async function creditToCancelSubscription(
-  subscription_id: number,
-): Promise<number> {
-  const { cost } = await api("purchases/credit-to-cancel-subscription", {
-    subscription_id,
-  });
-  return cost;
 }
 
 export async function renewSubscription(

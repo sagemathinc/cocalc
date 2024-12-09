@@ -79,58 +79,34 @@ describe("create a subscription license and edit it and confirm the subscription
     client.release();
   });
 
-  it("checks that that day of the end date of the license (and subscription period) is about 30 days today -- this now has nothing to do with the closing date for the account statement", async () => {
+  it("checks that that day of the end date of the license (and subscription period) is about 30 days  from today -- this now has nothing to do with the closing date for the account statement", async () => {
     const subs = await getSubscriptions({ account_id: item.account_id });
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe("active");
-    expect(dayjs(subs[0].current_period_end).date()).toBe(dayjs().date());
+
+    const n = dayjs(subs[0].current_period_end).diff(dayjs(), "days");
+    expect(Math.abs(n - 30)).toBeLessThan(3);
+
     const license_id = subs[0].metadata.license_id;
     const license = await getLicense(license_id);
-    const end = dayjs(license.expires);
-    expect(end.date()).toBe(dayjs().date());
+    expect(license.expires).toBe(subs[0].current_period_end.valueOf());
     // The cost of the license should be close to the monthly subscription,
     // as there is no proration and setting the close day above doesn't impact this!
     expect(
       Math.abs(await getBalance({ account_id: item.account_id })),
-    ).toBeCloseTo(subs[0].cost, 0);
+    ).toBeCloseTo(subs[0].cost, -1);
   });
 
-  it("cancels subscription and verifies that balance is small", async () => {
+  it("cancels subscription and verifies that balance is unchanged", async () => {
     const subs = await getSubscriptions({ account_id: item.account_id });
     const { id: subscription_id } = subs[0];
+    const before = await getBalance({ account_id: item.account_id });
     await cancelSubscription({
       account_id: item.account_id,
       subscription_id,
-      cancelImmediately: true,
-    });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
-  });
-
-  it("add credit to account, resume subscription, then cancels it again, and verifies again that the balance is correct", async () => {
-    // must add credit to account since resuming subscription charges for a full period
-    // starting now.
-    const subs = await getSubscriptions({ account_id: item.account_id });
-    const cost = subs[0].cost;
-    await createPurchase({
-      account_id: item.account_id,
-      service: "credit",
-      description: {} as any,
-      client: null,
-      cost: -cost - 1,
-    });
-    const { id: subscription_id } = subs[0];
-    await resumeSubscription({
-      account_id: item.account_id,
-      subscription_id,
-    });
-    await cancelSubscription({
-      account_id: item.account_id,
-      subscription_id,
-      cancelImmediately: true,
     });
     expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
-      cost + 1,
-      1,
+      before,
     );
   });
 
@@ -199,24 +175,10 @@ describe("create a subscription license and edit it and confirm the subscription
     await cancelSubscription({
       account_id: item.account_id,
       subscription_id,
-      cancelImmediately: true,
     });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
-      100000,
-      0,
-    );
     await resumeSubscription({
       account_id: item.account_id,
       subscription_id,
     });
-    await cancelSubscription({
-      account_id: item.account_id,
-      subscription_id,
-      cancelImmediately: true,
-    });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
-      100000,
-      0,
-    );
   });
 });

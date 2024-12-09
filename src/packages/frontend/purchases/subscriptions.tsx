@@ -50,7 +50,6 @@ import { capitalize, currency, round2up } from "@cocalc/util/misc";
 import {
   cancelSubscription,
   costToResumeSubscription,
-  creditToCancelSubscription,
   getLicense,
   getSubscriptions as getSubscriptionsUsingApi,
   renewSubscription,
@@ -110,27 +109,13 @@ function SubscriptionActions({
     }
   };
 
-  const [creditToCancel, setCreditToCancel] = useState<number | undefined>(
-    undefined,
-  );
-  const updateCreditToCancel = async () => {
-    try {
-      const cost = await creditToCancelSubscription(subscription_id);
-      setCreditToCancel(-cost);
-      return cost;
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
   const reasonRef = useRef<string>("");
-  const handleCancel = async (now: boolean = false) => {
+  const handleCancel = async () => {
     try {
       setLoading(true);
       setError("");
       await cancelSubscription({
         subscription_id,
-        now,
         reason: `Requested by the user: ${reasonRef.current}`,
       });
       refresh();
@@ -194,47 +179,6 @@ function SubscriptionActions({
       No Change
     </Button>,
   ];
-  if (SUPPORT_CANCEL_IMMEDIATELY) {
-    footer.push(
-      <Popconfirm
-        key="cancelNow"
-        title={"Cancel this subscription immediately?"}
-        description={() => {
-          setTimeout(updateCreditToCancel, 1);
-          if (creditToCancel == null) {
-            return <Spin />;
-          }
-
-          return (
-            <div style={{ maxWidth: "450px" }}>
-              The license will immediately become invalid and any projects using
-              it will stop.
-              {license?.info?.purchased.type == "disk" && (
-                <b> All data on the disk will be permanently deleted.</b>
-              )}{" "}
-              You will receive a <b>credit of {currency(creditToCancel)}</b> for
-              the prorated time left on the subscription. There are no
-              transaction fees for canceling or resuming a subscription, and you
-              can resume your subscription at any point later.
-              <br />
-              <Input
-                style={{ width: "100%", margin: "15px 0" }}
-                onChange={(e) => (reasonRef.current = e.target.value)}
-                placeholder={"Why are you canceling this subscription..."}
-              />
-            </div>
-          );
-        }}
-        onConfirm={() => handleCancel(true)}
-        okText="Yes"
-        cancelText="No"
-      >
-        <Button disabled={loading} danger>
-          Cancel Now...
-        </Button>
-      </Popconfirm>,
-    );
-  }
   footer.push(
     <Popconfirm
       key="cancelEnd"
@@ -255,7 +199,7 @@ function SubscriptionActions({
           />
         </div>
       }
-      onConfirm={() => handleCancel(false)}
+      onConfirm={() => handleCancel()}
       okText="Yes"
       cancelText="No"
     >

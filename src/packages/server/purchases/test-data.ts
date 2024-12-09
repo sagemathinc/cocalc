@@ -48,14 +48,17 @@ export async function createTestAccount(account_id: string) {
 export async function createTestSubscription(account_id: string) {
   const cost = 10; // cost is technically arbitrary and not related to actual cost of prorated license so making this up should be fine.
   const info = getPurchaseInfo(license1);
+  if (info.type != "quota") {
+    throw Error("bug");
+  }
   const license_id = await createLicense(account_id, info);
   const subscription_id = await createSubscription(
     {
       account_id,
       cost,
       interval: "month",
-      current_period_start: dayjs().toDate(),
-      current_period_end: dayjs().add(1, "month").toDate(),
+      current_period_start: info.start!,
+      current_period_end: info.end!,
       status: "active",
       metadata: { type: "license", license_id },
       latest_purchase_id: 0,
