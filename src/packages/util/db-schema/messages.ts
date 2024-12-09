@@ -275,7 +275,10 @@ Table({
                 // be especially careful to avoid sql injection attack.
                 throw Error(`invalid bit '${bit}'`);
               }
-              return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),${userIndex}+1)`;
+              // This only works with postgresql version 14:
+              //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),${userIndex}+1)`;
+
+              return `${field} = (coalesce(${field},'0'::bit(1))::bit(${numUsers})::bit(${userIndex})::int::text || '${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from ${userIndex + 2}))::bit(${numUsers})`;
             };
 
             const v: string[] = [];
@@ -375,7 +378,9 @@ Table({
                 if (bit != "0" && bit != "1") {
                   throw Error(`invalid bit '${bit}'`);
                 }
-                return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),1)`;
+                // this only works with postgresql 14+
+                //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),1)`;
+                return `${field} = ('${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from 2))::bit(${numUsers})`;
               };
               const v: string[] = [];
               for (const field of BITSET_FIELDS) {
