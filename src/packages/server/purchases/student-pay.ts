@@ -4,8 +4,7 @@ with that license exactly as prescribed by "student pay" for a course.
 
 This fails if:
 
- - The user doesn't have sufficient funds on their account to pay for the license.
- - The user is not the STUDENT that the project is meant for, or allowOther is set.
+ - The user doesn't have sufficient funds on their account to pay for the license (unless amount is sufficient).
  - The course fee was already paid.
 
 Everything is done in a single atomic transaction.
@@ -28,24 +27,29 @@ import createTokenAction, {
   getTokenUrl,
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
-import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { len } from "@cocalc/util/misc";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
+import getConn from "@cocalc/server/stripe/connection";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:student-pay");
 
 interface Options {
   account_id: string;
   project_id: string;
-  allowOther?: boolean; //
+
+  // if given, then we just captured this amount of money from the payee; if it is
+  // enough to cover the purchase -- irregardless of possible negative balance --
+  // we always allow the purchase.
+  amount?: number;
 }
 
 export default async function studentPay({
   account_id,
   project_id,
-  allowOther,
+  amount,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
@@ -64,21 +68,6 @@ export default async function studentPay({
     const currentCourse: CourseInfo | undefined = rows[0].course;
     if (currentCourse == null) {
       throw Error("course fee not configured for this project");
-    }
-    // ensure account_id matches the student; this also ensures that currentCourse is not null.
-    if (!allowOther && currentCourse?.account_id != account_id) {
-      // Also allow possibility that only the email address matches.  This can happen if the course config
-      // doesn't have the user's account_id yet.
-      const email_address = await getEmailAddress(account_id);
-      if (email_address != currentCourse?.email_address) {
-        if (currentCourse?.email_address) {
-          throw Error("student pay is not properly configured");
-        } else {
-          throw Error(
-            `only the user with email address ${currentCourse?.email_address} can pay the course fee`,
-          );
-        }
-      }
     }
     if (currentCourse.paid) {
       throw Error("course fee already paid");
@@ -99,10 +88,15 @@ export default async function studentPay({
       service: "license",
       cost,
       client,
+      amount,
     });
 
-    // Create the license
-    const license_id = await createLicense(account_id, purchaseInfo, client);
+    // Create the license, **owned by the student**
+    const license_id = await createLicense(
+      currentCourse?.account_id ?? account_id,
+      purchaseInfo,
+      client,
+    );
 
     // Add license to the project.
     await addLicenseToProject({ project_id, license_id, client });
@@ -248,4 +242,40 @@ async function getCourseInfo(project_id) {
     [project_id],
   );
   return rows[0];
+}
+
+export async function studentPaySetPaymentIntent({
+  project_id,
+  paymentIntentId,
+}) {
+  const pool = getPool();
+  // OK, set the payment intent.
+  // paymentIntentId only comes directly from stripe, not the user, so no danger of SQL injection,
+  // but we are still careful!
+  await pool.query(
+    `UPDATE projects SET course = jsonb_set(course, '{payment_intent_id}', $2::jsonb) WHERE project_id = $1`,
+    [project_id, JSON.stringify(paymentIntentId)],
+  );
+}
+
+// call this if trying to create a new student payment attempt for a course project
+export async function studentPayAssertNotPaying({ project_id }) {
+  if (!isValidUUID(project_id)) {
+    throw Error(`project_id=${project_id} is not a valid UUID`);
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT course#>>'{payment_intent_id}' as payment_intent_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const payment_intent_id = rows[0]?.payment_intent_id;
+  if (payment_intent_id) {
+    const stripe = await getConn();
+    const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (intent.status != "canceled") {
+      throw Error(
+        `There is an outstanding payment for this course right now.  Pay that invoice or cancel it.`,
+      );
+    }
+  }
 }

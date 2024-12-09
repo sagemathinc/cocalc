@@ -21,6 +21,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { markTokenActionPaid } from "@cocalc/server/token-actions/make-payment";
 import { currency } from "@cocalc/util/misc";
+import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:create-invoice");
 
@@ -69,7 +70,7 @@ export default async function createInvoice({
   await stripe.invoiceItems.create({
     invoice: invoice.id,
     customer,
-    amount: Math.round(100 * amount), // stripe uses pennies not dollars.
+    amount: decimalToStripe(amount), // stripe uses pennies not dollars.
     currency: "usd",
     description,
   });
@@ -210,7 +211,7 @@ export async function createCreditFromPaidStripeInvoice(
   let amount;
   if (invoice.currency == "usd") {
     // See comment about "total_excluding_tax" below.
-    amount = invoice.total_excluding_tax / 100;
+    amount = stripeToDecimal(invoice.total_excluding_tax);
   } else {
     /*
     The currency is not usd so we can't just read off total_excluding_tax, since it will be horribly wrong.
@@ -234,7 +235,7 @@ export async function createCreditFromPaidStripeInvoice(
         throw Error("cannot process this invoice since unknown currency");
       }
       // This is the amount we are trying to charge the user before any taxes or currency conversion:
-      amount += (line.quantity * line.price.unit_amount) / 100;
+      amount += stripeToDecimal(line.quantity * line.price.unit_amount);
     }
   }
   if (!amount) {
@@ -309,7 +310,7 @@ intent = {
   }
 
   // See comment about "total_excluding_tax" below.
-  const amount = intent.amount_received / 100;
+  const amount = stripeToDecimal(intent.amount_received);
   if (!amount) {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping",

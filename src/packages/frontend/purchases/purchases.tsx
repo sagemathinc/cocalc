@@ -1,6 +1,12 @@
 import {
+  Alert,
   Button,
+  Card,
   Checkbox,
+  DatePicker,
+  Flex,
+  Input,
+  Modal,
   Popover,
   Space,
   Spin,
@@ -8,15 +14,19 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { CSSProperties, useEffect, useState } from "react";
-
+import {
+  CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  MutableRefObject,
+} from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components/A";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import {
   ComputeServerDescription,
@@ -47,12 +57,15 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   capitalize,
+  cmp,
+  field_cmp,
   currency,
   plural,
   round1,
   round2down,
   round4,
 } from "@cocalc/util/misc";
+import { decimalAdd } from "@cocalc/util/stripe/calc";
 import AdminRefund from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
@@ -60,8 +73,15 @@ import Export from "./export";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import Refresh from "./refresh";
 import ServiceTag from "./service";
+import { LineItemsButton } from "./line-items";
+import { describeNumberOf, SectionDivider } from "./util";
+import PurchasesPlot from "./purchases-plot";
+import searchFilter from "@cocalc/frontend/search/filter";
+import { debounce } from "lodash";
+import dayjs from "dayjs";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
-const DEFAULT_LIMIT = 150;
+const DEFAULT_LIMIT = 10;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -69,6 +89,7 @@ interface Props {
   day_statement_id?: number; // if given, restrict to purchases on this day statement.
   month_statement_id?: number; // if given, restrict to purchases on this month statement.
   account_id?: string; // used by admins to specify a different user
+  noTitle?: boolean;
 }
 
 export default function Purchases(props: Props) {
@@ -85,89 +106,88 @@ function Purchases0({
   day_statement_id,
   month_statement_id,
   account_id,
+  noTitle,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
-  const [activeOnly, setActiveOnly] = useState<boolean>(false);
-  const [thisMonth, setThisMonth] = useState<boolean>(true);
-  const [noStatement, setNoStatement] = useState<boolean>(false);
+  const [cutoff, setCutoff] = useState<Date | undefined>(undefined);
 
   return (
-    <SettingBox
-      title={
-        <>
-          {account_id && (
-            <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
-          )}
-          {project_id ? (
-            <span>
+    <div>
+      <Card
+        title={
+          noTitle ? undefined : (
+            <>
+              {account_id && (
+                <Avatar
+                  account_id={account_id}
+                  style={{ marginRight: "15px" }}
+                />
+              )}
               {project_id ? (
-                <a onClick={() => load_target("settings/purchases")}>
-                  Purchases
-                </a>
+                <span>
+                  {project_id ? (
+                    <a onClick={() => load_target("settings/purchases")}>
+                      Purchases
+                    </a>
+                  ) : (
+                    "Purchases"
+                  )}{" "}
+                  in <ProjectTitle project_id={project_id} trunc={30} />
+                </span>
               ) : (
-                "Purchases"
-              )}{" "}
-              in <ProjectTitle project_id={project_id} trunc={30} />
-            </span>
-          ) : (
-            <span>
-              <Icon name="table" /> Transactions
-            </span>
+                <span>
+                  <Icon name="credit-card" /> Purchases
+                </span>
+              )}
+            </>
+          )
+        }
+      >
+        <Flex style={{ alignItems: "center" }}>
+          <div style={{ flex: 1 }} />
+          <div>
+            <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+              <Checkbox
+                checked={group}
+                onChange={(e) => {
+                  setGroup(e.target.checked);
+                }}
+              >
+                Group by service and project
+              </Checkbox>
+            </Tooltip>
+          </div>
+          {group && (
+            <div style={{ marginLeft: "30px" }}>
+              Starting{" "}
+              <DatePicker
+                changeOnBlur
+                allowClear
+                value={cutoff}
+                onChange={setCutoff}
+                disabledDate={(current) => current >= dayjs().startOf("day")}
+              />
+            </div>
           )}
-        </>
-      }
-    >
-      <div>
-        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
-          <Checkbox
-            checked={group}
-            onChange={(e) => setGroup(e.target.checked)}
-          >
-            Group by service and project
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions from your current billing month.">
-          <Checkbox
-            checked={thisMonth}
-            onChange={(e) => setThisMonth(e.target.checked)}
-          >
-            Current billing month
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
-          <Checkbox
-            checked={noStatement}
-            onChange={(e) => setNoStatement(e.target.checked)}
-          >
-            Not on any statement yet
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show unfinished active purchases">
-          <Checkbox
-            disabled={group}
-            checked={!group && activeOnly}
-            onChange={(e) => setActiveOnly(e.target.checked)}
-          >
-            Only Show Active
-          </Checkbox>
-        </Tooltip>
-      </div>
-      <PurchasesTable
-        project_id={project_id}
-        account_id={account_id}
-        group={group}
-        thisMonth={thisMonth}
-        day_statement_id={day_statement_id}
-        month_statement_id={month_statement_id}
-        noStatement={noStatement}
-        showBalance
-        showTotal
-        showRefresh
-        activeOnly={activeOnly}
-      />
-    </SettingBox>
+        </Flex>
+        <PurchasesTable
+          project_id={project_id}
+          account_id={account_id}
+          group={group}
+          day_statement_id={day_statement_id}
+          month_statement_id={month_statement_id}
+          showBalance
+          showTotal
+          cutoff={group ? cutoff : undefined}
+        />
+      </Card>
+    </div>
   );
 }
+
+type PurchaseItem = Partial<
+  Purchase & { sum?: number; filter?: string; balance?: number }
+>;
 
 export function PurchasesTable({
   account_id,
@@ -182,9 +202,9 @@ export function PurchasesTable({
   showTotal,
   showRefresh,
   style,
-  limit = DEFAULT_LIMIT,
   filename,
   activeOnly,
+  refreshRef,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
@@ -193,83 +213,139 @@ export function PurchasesTable({
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
-  limit?: number;
   filename?: string;
   activeOnly?: boolean;
+  refreshRef?;
 }) {
-  const [purchaseRecords, setPurchaseRecords] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
-  >(null);
-  const [purchases, setPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+  const [loading, setLoading] = useState<boolean>(false);
+  const [purchaseRecords, setPurchaseRecords] = useState<PurchaseItem[] | null>(
+    null,
+  );
+  const [purchases, setPurchases] = useState<PurchaseItem[] | null>(null);
+  const [filteredPurchases, setFilteredPurchases] = useState<
+    PurchaseItem[] | null
   >(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+    PurchaseItem[] | null
   >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const [balance, setBalance] = useState<number>(0);
+  const [balance, setBalance] = useState<number | null | undefined>(undefined);
+  const [hasMore, setHasMore] = useState<boolean>(true); // todo
+  const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
+  const [filter, setFilter] = useState<string>("");
+  const searchFilterRef = useRef<any>(null) as MutableRefObject<
+    (string) => Promise<PurchaseItem[]> | null
+  >;
 
-  const getNextPage = () => {
-    setOffset((prevOffset) => prevOffset + limit);
-  };
-
-  const getPrevPage = () => {
-    setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
-  };
-
-  const getBalance = async () => {
+  const loadMore = async ({ init }: { init? } = {}) => {
     try {
-      const userBalance = account_id
-        ? await api.getBalanceAdmin(account_id)
-        : await api.getBalance();
+      setError("");
+      setLoading(true);
 
-      setBalance(userBalance);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  const getPurchaseRecords = async () => {
-    try {
-      setPurchaseRecords(null);
+      let limit0;
+      if (group) {
+        limit0 = 300;
+      } else {
+        if (purchaseRecords == null) {
+          limit0 = DEFAULT_LIMIT;
+        } else if (init) {
+          limit0 = Math.max(
+            DEFAULT_LIMIT,
+            Math.min(100, purchaseRecords.length),
+          );
+        } else {
+          limit0 = limit;
+        }
+      }
 
       const opts = {
         cutoff,
         day_statement_id,
         month_statement_id,
         group,
-        limit,
+        limit: limit0 + 1,
         no_statement: noStatement,
-        offset,
+        offset: init ? 0 : offset,
         project_id,
         service,
         thisMonth,
       };
-      const x = account_id
+      let { purchases: x, balance } = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
+      setBalance(balance);
+      for (const purchase of x) {
+        getFilter(purchase);
+      }
 
-      setPurchaseRecords(x);
+      // TODO: need getPurchases to tell if there are more or not.
+      setHasMore(x.length == limit0 + 1);
+      x = x.slice(0, limit0);
+
+      if (init) {
+        setOffset(DEFAULT_LIMIT);
+        searchFilterRef.current = await searchFilter({
+          data: x,
+          toString: getFilter,
+        });
+        setPurchaseRecords(x); // put after creating filter so will update view
+      } else {
+        const v: { [id: string]: any } = {};
+        for (const z of (purchaseRecords ?? []).concat(x)) {
+          v[(z as any).id] = z;
+        }
+        const v2 = Object.values(v);
+        v2.sort(field_cmp("id"));
+        v2.reverse();
+        // for next time:
+        setOffset(v2.length);
+        searchFilterRef.current = await searchFilter<PurchaseItem>({
+          data: v2,
+          toString: getFilter,
+        });
+        setPurchaseRecords(v2); // put after creating filter so will update view
+      }
+      setLimit(100);
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useMemo(() => {
+    if (
+      searchFilterRef.current == null ||
+      !filter?.trim() ||
+      purchases == null
+    ) {
+      setFilteredPurchases(purchases);
+      return;
+    }
+    (async () => {
+      setFilteredPurchases(await searchFilterRef.current(filter));
+    })();
+  }, [filter, purchases]);
+
   const refreshRecords = async () => {
-    await getPurchaseRecords();
-    await getBalance();
+    // [ ] TODO: this needs to instead get only recent records (that could have possibly
+    // changed or been added) and update them.
+    await loadMore({ init: true });
   };
+  if (refreshRef != null) {
+    refreshRef.current = refreshRecords;
+  }
 
   useEffect(() => {
-    getBalance();
-  }, []);
+    loadMore({ init: true });
+  }, [cutoff]);
 
   useEffect(() => {
-    getPurchaseRecords();
-  }, [group, limit, noStatement, offset, project_id, service, thisMonth]);
+    refreshRecords();
+  }, [group, noStatement, project_id, service, thisMonth]);
 
   useEffect(() => {
     if (purchaseRecords == null) {
@@ -280,27 +356,34 @@ export function PurchasesTable({
 
     let b = balance;
     let t = 0;
-    const purchases: Partial<Purchase & { balance: number }>[] = [];
+    const purchases: PurchaseItem[] = [];
     for (const row of purchaseRecords) {
       if (activeOnly && row.cost != null) {
         continue;
       }
       const cost = getCost(row);
       // Compute incremental balance
-      purchases.push({ ...row, balance: b });
+      if (b != null) {
+        purchases.push({ ...row, balance: b });
+      } else {
+        purchases.push(row);
+      }
 
       if (row.pending) {
         // pending transactions are not include in the total
         // or the balance
         continue;
       }
-      b += cost;
+      if (b != null) {
+        b = decimalAdd(b, cost);
+      }
 
       // Compute total cost
-      t += cost;
+      t = decimalAdd(t, cost);
     }
 
     if (group) {
+      purchases.sort(field_cmp("service"));
       setGroupedPurchases(purchases);
     } else {
       setPurchases(purchases);
@@ -312,25 +395,71 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
-      <div>
-        <ShowError error={error} setError={setError} />
-        <div style={{ display: "flex" }}>
-          <Export
-            style={{ marginRight: "8px" }}
-            name={
-              filename ??
-              getFilename({ thisMonth, cutoff, limit, offset, noStatement })
-            }
-            data={purchases}
-          />
-          {showRefresh && (
-            <Refresh
-              handleRefresh={refreshRecords}
-              style={{ marginRight: "8px" }}
-            />
+      <SectionDivider
+        loading={loading}
+        onRefresh={() => loadMore({ init: true })}
+      >
+        <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
+          {group ? (
+            <>
+              All Your Purchases Grouped by Service and Project
+              {cutoff && (
+                <>
+                  {" "}
+                  starting <TimeAgo date={cutoff} />
+                </>
+              )}
+            </>
+          ) : (
+            describeNumberOf({
+              n: purchases?.length,
+              hasMore,
+              loadMore,
+              loading,
+              type: "purchase",
+            })
           )}
-        </div>
-      </div>
+        </Tooltip>
+      </SectionDivider>
+      <ShowError error={error} setError={setError} />
+      <Flex>
+        {!group && (
+          <>
+            <Input.Search
+              allowClear
+              placeholder="Filter purchases..."
+              style={{ maxWidth: "400px" }}
+              onChange={debounce((e) => setFilter(e.target.value ?? ""), 250)}
+            />
+            {filter?.trim() &&
+              filteredPurchases != null &&
+              purchases != null &&
+              filteredPurchases.length != purchases.length && (
+                <Alert
+                  style={{ margin: "-5px 0 0 15px" }}
+                  showIcon
+                  type="warning"
+                  message={`Showing ${filteredPurchases.length} matching ${plural(filteredPurchases.length, "purchase")} and hiding ${purchases.length - filteredPurchases.length} ${plural(purchases.length - filteredPurchases.length, "purchase")}.`}
+                />
+              )}
+          </>
+        )}
+        <div style={{ flex: 1 }} />
+        <Export
+          style={{ margin: "-8px" }}
+          name={
+            filename ??
+            getFilename({ thisMonth, cutoff, limit, offset, noStatement })
+          }
+          data={purchases}
+        />
+        {showRefresh && (
+          <Refresh
+            handleRefresh={refreshRecords}
+            style={{ marginRight: "8px" }}
+          />
+        )}
+      </Flex>
       <div
         style={{
           display: "flex",
@@ -338,29 +467,6 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {purchases &&
-          !thisMonth &&
-          purchases.length > 0 &&
-          (purchases.length >= limit || offset > 0) && (
-            <div style={{ marginRight: "10px" }}>
-              Page {Math.floor(offset / limit) + 1}
-            </div>
-          )}
-        {!thisMonth && offset > 0 && (
-          <Button
-            type="default"
-            onClick={getPrevPage}
-            style={{ marginRight: "8px" }}
-          >
-            Previous
-          </Button>
-        )}
-        {!thisMonth && purchases && purchases.length >= limit && (
-          <Button type="default" onClick={getNextPage}>
-            Next
-          </Button>
-        )}
-
         {(day_statement_id != null || month_statement_id != null) && (
           <EmailStatement
             style={{ marginLeft: "8px" }}
@@ -372,7 +478,10 @@ export function PurchasesTable({
         {group ? (
           <GroupedPurchaseTable purchases={groupedPurchases} />
         ) : (
-          <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
+          <DetailedPurchaseTable
+            purchases={filteredPurchases}
+            admin={!!account_id}
+          />
         )}
       </div>
       <div
@@ -384,13 +493,14 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {showTotal && total != null && (
+        {showTotal && total != null && !filter?.trim() && (
           <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
-        {showBalance && balance != null && (
+        {showBalance && balance != null && !filter?.trim() && (
           <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
+      {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
     </div>
   );
 }
@@ -403,7 +513,6 @@ function GroupedPurchaseTable({ purchases }) {
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "600px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey={({ service, project_id }) => `${service}-${project_id}`}
@@ -439,6 +548,16 @@ function GroupedPurchaseTable({ purchases }) {
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
+              sorter: (a: any, b: any) => {
+                const title_a = a.project_id
+                  ? redux.getStore("projects").get_title(a.project_id)
+                  : "";
+                const title_b = a.project_id
+                  ? redux.getStore("projects").get_title(b.project_id)
+                  : "";
+                return cmp(title_a, title_b);
+              },
+              sortDirections: ["ascend", "descend"],
               render: (project_id) =>
                 project_id ? (
                   <ProjectTitle project_id={project_id} trunc={30} />
@@ -457,9 +576,27 @@ function DetailedPurchaseTable({
   purchases,
   admin,
 }: {
-  purchases: Partial<Purchase & { balance?: number }>[] | null;
+  purchases: PurchaseItem[] | null;
   admin: boolean;
 }) {
+  const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
+  const fragment = useTypedRedux("account", "fragment");
+  useEffect(() => {
+    if (purchases == null) {
+      return;
+    }
+    const id = parseInt(fragment?.get("id") ?? Fragment.get()?.id ?? "-1");
+    if (id == -1) {
+      return;
+    }
+    for (const purchase of purchases) {
+      if (purchase.id == id) {
+        setCurrent(purchase);
+        return;
+      }
+    }
+  }, [fragment, purchases]);
+
   if (purchases == null) {
     return <Spin size="large" />;
   }
@@ -467,11 +604,19 @@ function DetailedPurchaseTable({
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey="id"
           columns={[
+            {
+              render: (_, purchase) => {
+                return (
+                  <Button onClick={() => setCurrent(purchase)}>
+                    <Icon name="external-link" />
+                  </Button>
+                );
+              },
+            },
             {
               width: "100px",
               title: "Id",
@@ -485,43 +630,8 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (
-                _,
-                { id, description, invoice_id, notes, period_end, service },
-              ) => (
-                <div>
-                  <Description
-                    service={service}
-                    description={description}
-                    period_end={period_end}
-                  />
-                  {invoice_id && (
-                    <div
-                      style={{ marginLeft: "15px", display: "inline-block" }}
-                    >
-                      {admin && id != null && <AdminRefund purchase_id={id} />}
-                      {!admin && (
-                        <A
-                          href={getSupportURL({
-                            body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
-                            subject: `Refund Request: Transaction ${id}`,
-                            type: "purchase",
-                            hideExtra: true,
-                          })}
-                        >
-                          <Icon name="external-link" /> Refund
-                        </A>
-                      )}
-                      <InvoiceLink invoice_id={invoice_id} />
-                    </div>
-                  )}
-                  {notes && (
-                    <StaticMarkdown
-                      style={{ marginTop: "8px" }}
-                      value={`**Notes:** ${notes}`}
-                    />
-                  )}
-                </div>
+              render: (_, purchase) => (
+                <PurchaseDescription {...(purchase as any)} admin={admin} />
               ),
             },
             {
@@ -595,7 +705,117 @@ function DetailedPurchaseTable({
           ]}
         />
       </div>
+      {current != null && (
+        <PurchaseModal
+          admin={admin}
+          purchase={current}
+          onClose={() => {
+            setCurrent(undefined);
+            Fragment.clear();
+            redux.getActions("account").setFragment(undefined);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function PurchaseDescription({
+  id,
+  description,
+  invoice_id,
+  notes,
+  period_end,
+  service,
+  admin,
+}) {
+  return (
+    <div>
+      <Description
+        service={service}
+        description={description}
+        period_end={period_end}
+      />
+      <Flex wrap style={{ marginLeft: "-8px" }}>
+        {description?.["line_items"] != null && (
+          <LineItemsButton
+            lineItems={description["line_items"]}
+            style={{ marginBottom: "15px" }}
+          />
+        )}
+        {invoice_id && (
+          <Space>
+            {admin && id != null && <AdminRefund purchase_id={id} />}
+            {!admin && (
+              <Button
+                size="small"
+                type="link"
+                target="_blank"
+                href={getSupportURL({
+                  body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                  subject: `Refund Request: Transaction ${id}`,
+                  type: "purchase",
+                  hideExtra: true,
+                })}
+              >
+                <Icon name="external-link" /> Refund
+              </Button>
+            )}
+            <InvoiceLink invoice_id={invoice_id} />
+          </Space>
+        )}
+      </Flex>
+      {notes && (
+        <StaticMarkdown
+          style={{ marginTop: "8px" }}
+          value={`**Notes:** ${notes}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function PurchaseModal({ purchase, onClose, admin }) {
+  useEffect(() => {
+    Fragment.set({ id: purchase.id });
+  }, [purchase.id]);
+  return (
+    <Modal
+      width={800}
+      open
+      onOk={onClose}
+      onCancel={onClose}
+      title={<>Purchase Id={purchase.id}</>}
+    >
+      <Space direction="vertical">
+        <PurchaseDescription {...purchase} admin={admin} />
+        <div>
+          Time: <TimeAgo date={purchase.text} />
+        </div>
+        <div>
+          <Active record={purchase} />
+          <Period record={purchase} />
+        </div>
+        <div>
+          {purchase.project_id ? (
+            <>
+              Project: <ProjectTitle project_id={purchase.project_id} />
+            </>
+          ) : undefined}
+        </div>
+        <div>
+          Service: <ServiceTag service={purchase.service} />
+        </div>
+        <div>
+          Amount: <Amount record={purchase} />
+        </div>
+        {purchase.balance != null && (
+          <div>
+            Balance: <Balance balance={purchase.balance} />
+          </div>
+        )}
+      </Space>
+    </Modal>
   );
 }
 
@@ -684,10 +904,11 @@ function Description({ description, period_end, service }) {
     return (
       <Space>
         <Tooltip title="Thank you!">
-          Credit{" "}
+          {description?.description ?? "Credit"}
           {description.voucher_code ? (
             <>
-              from voucher <Tag>{description.voucher_code}</Tag>
+              {" "}
+              For voucher <Tag>{description.voucher_code}</Tag>
             </>
           ) : (
             ""
@@ -881,6 +1102,7 @@ function InvoiceLink({ invoice_id }) {
   const [unknown, setUnknown] = useState<boolean>(false);
   return (
     <Button
+      size="small"
       disabled={unknown}
       type="link"
       onClick={async () => {
@@ -925,7 +1147,7 @@ function Amount({ record }) {
   if (cost != null) {
     const amount = -cost;
     return (
-      <Tooltip title={` (USD): $${round4(amount)}`}>
+      <Tooltip title={` (USD): ${currency(round4(amount), 4)}`}>
         <span
           style={{
             ...getAmountStyle(amount),
@@ -965,7 +1187,7 @@ function Pending({ record }) {
 function Balance({ balance }) {
   if (balance != null) {
     return (
-      <Tooltip title={` (USD): $${round4(balance)}`}>
+      <Tooltip title={` (USD): ${currency(round4(balance), 4)}`}>
         <span style={getAmountStyle(balance)}>
           {currency(round2down(balance), 2)}
         </span>
@@ -999,8 +1221,8 @@ export function PurchasesButton(props: Props) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <div>
-      <Button onClick={() => setShow(!show)}>
-        <Icon name="table" /> Transactions...
+      <Button onClick={() => setShow(!show)} type={show ? "dashed" : undefined}>
+        <Icon name="table" /> Purchases
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>
@@ -1012,7 +1234,7 @@ export function PurchasesButton(props: Props) {
 }
 
 // this should match with sql formula in server/purchases/get-balance.ts
-function getCost(row: Partial<Purchase>) {
+function getCost(row: PurchaseItem) {
   if (row.cost != null) {
     return row.cost;
   }
@@ -1103,4 +1325,11 @@ function Period({ record }) {
     }
   }
   return null;
+}
+
+function getFilter(purchase) {
+  if (purchase.filter == null) {
+    purchase.filter = JSON.stringify(purchase).toLowerCase();
+  }
+  return purchase.filter;
 }

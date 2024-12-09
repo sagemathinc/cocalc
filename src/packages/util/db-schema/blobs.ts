@@ -40,11 +40,15 @@ Table({
     },
     project_id: {
       // I'm not really sure why we record a project associated to the blob, rather
-      // than something else (e.g., account_id).  However, it's useful for abuse, since
+      // than something else (e.g., account_id)-- update: added that.  However, it's useful for abuse, since
       // if abuse happened with a project, we could easily delete all corresponding blobs,
       // and also it's a good tag for throttling.
       type: "string",
-      desc: "The uuid of the project that created the blob.",
+      desc: "The uuid of the project that created the blob, if it is associated to a project.",
+    },
+    account_id: {
+      type: "uuid",
+      desc: "The uuid of the account that created the blob. (Only started recording in late 2024.  Will make it so a user can optionally delete any blobs associated to their account when deleting their account.)",
     },
     last_active: {
       type: "timestamp",
@@ -112,6 +116,7 @@ Table({
           id: true,
           blob: true,
           project_id: "project_write",
+          account_id: "account_id",
           ttl: 0,
         } as any,
         required_fields: {
@@ -123,7 +128,7 @@ Table({
           database,
           _old_value,
           new_val,
-          _account_id,
+          account_id,
           cb,
         ): Promise<void> {
           database.save_blob({
@@ -131,6 +136,7 @@ Table({
             blob: new_val.blob,
             ttl: new_val.ttl,
             project_id: new_val.project_id,
+            account_id,
             check: true, // can't trust the user!
             cb,
           });

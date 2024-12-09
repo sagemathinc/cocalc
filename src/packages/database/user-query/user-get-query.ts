@@ -32,7 +32,7 @@ export function userGetQueryFilter(
   }
 
   // If the schema lists the value in a get query as 'null', then we remove it;
-  // nulls means it was only there to be used by the initial where filter
+  // null means it was only there to be used by the initial where filter
   // part of the query.
   for (const field in client_query.get.fields) {
     const val = client_query.get.fields[field];

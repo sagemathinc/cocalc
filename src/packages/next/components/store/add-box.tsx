@@ -6,13 +6,27 @@
 /*
 Add a cash voucher to your shopping cart.
 */
+import { useState } from "react";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { round2up, round4 } from "@cocalc/util/misc";
+import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { Alert, Button, Tooltip } from "antd";
+import { Alert, Button, Spin } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { decimalDivide } from "@cocalc/util/stripe/calc";
+
+export const ADD_STYLE = {
+  display: "inline-block",
+  maxWidth: "550px",
+  minWidth: "400px",
+  background: "#fafafa",
+  border: "1px solid #ccc",
+  padding: "10px 20px",
+  borderRadius: "5px",
+  margin: "15px 0",
+  fontSize: "12pt",
+} as const;
 
 interface Props {
   cost?: CostInputPeriod;
@@ -25,21 +39,19 @@ interface Props {
   noAccount: boolean;
 }
 
-export function AddBox(props: Props) {
-  const {
-    cost,
-    router,
-    form,
-    cartError,
-    setCartError,
-    dedicatedItem = false,
-    noAccount,
-  } = props;
-  // console.log({ cost });
+export function AddBox({
+  cost,
+  router,
+  form,
+  cartError,
+  setCartError,
+  dedicatedItem = false,
+  noAccount,
+  disabled = false,
+}: Props) {
   if (cost?.input.type == "cash-voucher") {
     return null;
   }
-  let disabled = props.disabled ?? false;
   // if any of the fields in cost that start with the string "cost" are NaN, disable submission:
   if (
     !cost ||
@@ -55,11 +67,20 @@ export function AddBox(props: Props) {
     if (dedicatedItem || cost.input.quantity == null) {
       return;
     }
-    const costPer = periodicCost(cost) / cost.input.quantity;
+    const costPer = decimalDivide(periodicCost(cost), cost.input.quantity);
     return (
-      <Tooltip title={`$${round4(costPer)} per project`}>
-        <div>{money(round2up(costPer))} per project</div>
-      </Tooltip>
+      <Alert
+        type="warning"
+        style={{
+          margin: "10px",
+        }}
+        message={
+          <>
+            {money(round2up(costPer))} <b>per project</b>{" "}
+            {!!cost.period && cost.period != "range" ? cost.period : ""}
+          </>
+        }
+      />
     );
   }
 
@@ -67,7 +88,7 @@ export function AddBox(props: Props) {
     if (noAccount) return null;
 
     return (
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: "5px" }}>
         {router.query.id != null && (
           <Button
             size="large"
@@ -93,18 +114,7 @@ export function AddBox(props: Props) {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          display: "inline-block",
-          maxWidth: "550px",
-          background: "white",
-          border: "1px solid #ccc",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          margin: "15px 0",
-          fontSize: "12pt",
-        }}
-      >
+      <div style={ADD_STYLE}>
         {cost && <DisplayCost cost={cost} />}
         {cost && costPerProject()}
         {renderButton()}
@@ -123,34 +133,51 @@ interface CartButtonProps {
   variant?: "primary" | "small";
 }
 
-export function AddToCartButton(props: CartButtonProps) {
-  const {
-    cost,
-    form,
-    router,
-    setCartError,
-    cartError,
-    variant = "primary",
-  } = props;
-
-  const style = variant === "primary" ? { marginTop: "5px" } : {};
+export function AddToCartButton({
+  cost,
+  form,
+  router,
+  setCartError,
+  cartError,
+  variant = "primary",
+  disabled: disabled0,
+}: CartButtonProps) {
+  const [clicked, setClicked] = useState<boolean>(false);
   const disabled =
-    (props.disabled ?? false) || !!cartError || cost == null || cost.cost === 0;
+    clicked ||
+    (disabled0 ?? false) ||
+    !!cartError ||
+    cost == null ||
+    cost.cost === 0;
 
   return (
     <Button
       size={variant === "small" ? "small" : "large"}
       type="primary"
       htmlType="submit"
-      style={style}
-      onClick={() => addToCart({ form, setCartError, router })}
+      onClick={async () => {
+        // you can only click this add to cart button *once* -- due to slow
+        // turnaround, if we don't change this state, then the user could
+        // click multiple times and add the same item more than once, thus
+        // accidentally ending up with a "dobule purchase"
+        try {
+          setClicked(true);
+          await addToCart({ form, setCartError, router });
+        } catch (_err) {
+          // error is reported via setCartError.  But also
+          // give a chance to click the button again, since item
+          // wasn't actually added.
+          setClicked(false);
+        }
+      }}
       disabled={disabled}
     >
-      {disabled
-        ? "Finish configuring the license..."
+      {clicked
+        ? "Moving to Cart..."
         : router.query.id != null
           ? "Save Changes"
           : "Add to Cart"}
+      {clicked && <Spin style={{ marginLeft: "15px" }} />}
     </Button>
   );
 }

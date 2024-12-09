@@ -14,7 +14,7 @@ export default async function handle(req, res) {
 
 // returns array of objects that describe roughly what redeeming the code provided
 async function doIt(req) {
-  const { code, project_id } = getParams(req);
+  const { code } = getParams(req);
   if (!code || code.length < 8) {
     throw Error("code must be at least 8 characters long");
   }
@@ -23,5 +23,5 @@ async function doIt(req) {
     throw Error("must be signed in to redeem a voucher code");
   }
 
-  return await redeemVoucher({ account_id, code, project_id });
+  return await redeemVoucher({ account_id, code });
 }

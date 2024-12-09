@@ -1,8 +1,21 @@
-import getPool from "@cocalc/database/pool";
+/*
+Important -- we return the balance along with getting the list of purchases
+because it's very important that we have a consistent query of both things
+and compute the resulting balance properly.  We were doing this on the frontend,
+and there could be a skew between updating the list of purchases and computing
+the balance, which sometimes made the balances listed in the purchase table out
+of whack, which is confusing.
+
+Also important: balance at a point in time is NOT constant when there are
+**active payg transactions**.  That's why we fill it in.
+*/
+
+import { getTransactionClient } from "@cocalc/database/pool";
 import { Service, MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getLastClosingDate } from "./closing-date";
 import { COST_OR_METERED_COST } from "./get-balance";
+import getBalance from "./get-balance";
 
 interface Options {
   account_id: string;
@@ -19,8 +32,8 @@ interface Options {
   day_statement_id?: number;
   month_statement_id?: number;
   no_statement?: boolean; // only purchases not on any statement
-  noCache?: boolean;
-  // For admins - if true, include email_address, first_name, and last_name fields from the accounts table, for each user. Ignored if group is true.
+  // For admins - if true, include email_address, first_name, and last_name
+  // fields from the accounts table, for each user. Ignored if group is true.
   includeName?: boolean;
 }
 
@@ -42,13 +55,11 @@ export default async function getPurchases({
   day_statement_id,
   month_statement_id,
   no_statement,
-  noCache,
   includeName,
-}: Options): Promise<PurchaseData[]> {
+}: Options): Promise<{ balance: number; purchases: PurchaseData[] }> {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
-  const pool = getPool(noCache ? undefined : "medium");
   const params: any[] = [];
   const conditions: string[] = [];
   let query;
@@ -123,6 +134,22 @@ export default async function getPurchases({
       }
     }
   }
-  const { rows } = await pool.query(query, params);
-  return rows as unknown as PurchaseData[];
+
+  // get all the purchases and the user balance in a single transaction:
+  const client = await getTransactionClient();
+  try {
+    // This line is needed so that even if somebody writes to the database
+    // between grabbing purchases and getting balance, we see the balance without
+    // that purchase:
+    client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
+    const { rows: purchases } = await client.query(query, params);
+    const balance = await getBalance({ account_id, client, noSave: true });
+    return { purchases: purchases as unknown as PurchaseData[], balance };
+  } finally {
+    try {
+      await client.query("COMMIT");
+    } finally {
+      client.release();
+    }
+  }
 }

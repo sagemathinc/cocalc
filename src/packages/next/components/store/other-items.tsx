@@ -33,7 +33,7 @@ interface Props {
 }
 
 export default function OtherItems({ onChange, cart }) {
-  const [tab, setTab] = useState<Tab>("saved-for-later");
+  const [tab, setTab] = useState<Tab>("buy-it-again");
   const [search, setSearch] = useState<string>("");
 
   const items: MenuItem[] = [
@@ -104,7 +104,12 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     for (const item of get.result) {
       if (search && !search_match(JSON.stringify(item).toLowerCase(), v))
         continue;
-      item.cost = computeCost(item.description);
+      try {
+        item.cost = computeCost(item.description);
+      } catch (_err) {
+        // deprecated, so do not include
+        continue;
+      }
       x.push(item);
     }
     return x;
@@ -118,7 +123,7 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     return <Alert type="error" message={get.error} />;
   }
   if (get.result == null || items == null) {
-    return <Loading center />;
+    return <Loading large center />;
   }
 
   async function reload() {

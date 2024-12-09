@@ -27,8 +27,10 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import { LineItemsTable } from "@cocalc/frontend/purchases/line-items";
 
-const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
+const STYLE = { margin: "30px auto", maxWidth: "750px", fontSize: "14pt" };
 
 export async function getServerSideProps(context) {
   const { id: token_id } = context.params;
@@ -91,6 +93,7 @@ export default function TokenActions({
           okText={description.okText}
           cancelText={description.cancelText}
           icon={description.icon}
+          payment={description["payment"]}
           onConfirm={() => {
             setDoAction(true);
           }}
@@ -116,13 +119,14 @@ function Dialog({
   onConfirm,
   onCancel,
   loading,
+  payment,
 }) {
   return (
     <Card
       style={{
         margin: "30px auto",
-        minWidth: "400px",
-        maxWidth: "min(700px,100%)",
+        width: "750px",
+        maxWidth: "100%",
       }}
       title={
         <Space>
@@ -131,18 +135,24 @@ function Dialog({
         </Space>
       }
     >
-      {details && <Markdown value={details} />}
+      {payment && <LineItemsTable lineItems={payment.lineItems} />}
+      {details && <Markdown value={details} style={{ marginTop: "30px" }} />}
       <Divider />
-      <div style={{ float: "right" }}>
+      <div style={{ textAlign: "center" }}>
         <Space style={{ marginTop: "8px" }}>
           {loading && <Spin />}
           {cancelText != "" && (
-            <Button onClick={onCancel} disabled={disabled || loading}>
+            <Button
+              size="large"
+              onClick={onCancel}
+              disabled={disabled || loading}
+            >
               {cancelText ?? "Cancel"}
             </Button>
           )}
           {okText != "" && (
             <Button
+              size="large"
               onClick={onConfirm}
               disabled={disabled || loading}
               type="primary"
@@ -157,7 +167,7 @@ function Dialog({
 }
 
 function HandleToken({ token }) {
-  const { calling, result, error } = useAPI("token-action", { token });
+  const { calling, result, error, call } = useAPI("token-action", { token });
 
   return (
     <div>
@@ -168,23 +178,29 @@ function HandleToken({ token }) {
       )}
       {error && <Alert showIcon style={STYLE} type="error" message={error} />}
       {!calling && result != null && !error && (
-        <RenderResult data={result.data} />
+        <RenderResult data={result.data} call={call} />
       )}
     </div>
   );
 }
 
-function RenderResult({ data }: { data: any }) {
-  if (data?.type == "create-credit") {
-    const { session, instructions } = data;
+function RenderResult({ data, call }) {
+  const [finishedPaying, setFinishedPaying] = useState<boolean>(false);
+
+  if (data?.pay != null) {
     return (
-      <Alert
-        showIcon
-        style={STYLE}
-        type="warning"
-        message="Make a Payment"
-        description={<a href={session.url}>{instructions}</a>}
-      />
+      <Card style={STYLE} title="Make a Payment">
+        <div>
+          <StripePayment
+            disabled={finishedPaying}
+            {...data.pay}
+            onFinished={() => {
+              setFinishedPaying(true);
+              call();
+            }}
+          />
+        </div>
+      </Card>
     );
   } else {
     return (
@@ -192,7 +208,7 @@ function RenderResult({ data }: { data: any }) {
         showIcon
         style={STYLE}
         type="success"
-        message="Success!"
+        message="Success! Thank you very much."
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

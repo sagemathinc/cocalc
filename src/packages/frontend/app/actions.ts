@@ -163,6 +163,7 @@ export class PageActions extends Actions<PageState> {
         set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
+      case "settings":
         if (change_history) {
           redux.getActions("account").push_state();
         }
@@ -184,7 +185,7 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title(intl.formatMessage(labels.notifications));
+        set_window_title("Messages, Mentions and News");
         return;
       case undefined:
         return;

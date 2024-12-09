@@ -579,7 +579,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
-                    cb("FATAL: query must specify (primary) key '#{primary_key}'")
+                    # this is fine -- it just means the old_val isn't defined.
+                    # this can happen, e.g., when creating a new object with a primary key that is a generated id.
+                    cb()
                     return
             # get the old value before changing it
             # TODO: optimization -- can we restrict columns below?
@@ -1133,7 +1135,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         subs = {}
         for x in pg_where
             if misc.is_object(x)
-                for key, value of x
+                for _, value of x
                     subs[value] = value
 
         sub_value = (value, cb) =>
@@ -1296,7 +1298,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 delete new_val[key]
 
     _user_get_query_changefeed: (changes, table, primary_keys, user_query,
-                                 where, json_fields, account_id, client_query, cb) =>
+                                 where, json_fields, account_id, client_query, orig_table, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
         dbg()
         # WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
@@ -1311,7 +1313,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
-            if not user_query[primary_key]? and user_query[primary_key] != null  # TODO: this seems slightly off
+            if not user_query[primary_key]? and user_query[primary_key] != null
                 cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []
@@ -1320,11 +1322,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         possible_time_fields = misc.deep_copy(json_fields)
         feed = undefined
 
+        changefeed_keys = SCHEMA[orig_table]?.changefeed_keys ? SCHEMA[table]?.changefeed_keys ? []
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
                 possible_time_fields[field] = 'all'
-            if val == null and field not in primary_keys
+            if val == null and field not in primary_keys and field not in changefeed_keys
                 watch.push(field)
             else
                 select[field] = type
@@ -1589,7 +1592,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     dbg("getting changefeed")
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
-                                                opts.account_id, client_query, cb)
+                                                opts.account_id, client_query, opts.table,
+                                                cb)
                 else
                     cb()
 

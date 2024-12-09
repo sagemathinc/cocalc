@@ -17,9 +17,25 @@ interface Spec {
   noSet?: boolean; // if true, then no spend limits are set for this.
   color: string;
   category: ServiceCategory;
+  // tooltip more detailed description
+  description?: string;
 }
 
 export type QuotaSpec = Record<Service, Spec>;
+
+// for each category of service, this says whether or not it is a pay as you go service,
+// which can impact how spend options are determined.
+const IS_PAYG: { [name: ServiceCategory]: boolean } = {
+  money: false,
+  compute: true,
+  license: false,
+  ai: true,
+} as const;
+
+export function isPaygService(service: Service): boolean {
+  const category = QUOTA_SPEC[service]?.category;
+  return IS_PAYG[category ?? ""] ?? false;
+}
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
@@ -57,45 +73,69 @@ const GOOGLE_AI_COLOR = "#ff4d4f";
 
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
-  credit: { display: "Credit", noSet: true, color: "green", category: "money" },
-  refund: { display: "Refund", noSet: true, color: "red", category: "money" },
-  "project-upgrade": {
-    display: "Project Upgrade",
-    color: "#5bc0de",
-    category: "compute",
+  credit: {
+    display: "Credit",
+    noSet: true,
+    color: "green",
+    category: "money",
+    description:
+      "Credit that was added to your account as a result of a manual or subscription payment (e.g., from a credit card)",
+  },
+  "auto-credit": {
+    display: "Automatic Credit",
+    noSet: true,
+    color: "green",
+    category: "money",
+    description:
+      "Credited that was automatically added to your account as a result of a payment because of your balance became low.",
+  },
+  refund: {
+    display: "Refund",
+    noSet: true,
+    color: "red",
+    category: "money",
+    description:
+      "Money that was refunded to your account as a result of a support request.",
   },
   "compute-server": {
     display: "Compute Server",
     color: "#2196f3",
     category: "compute",
+    description: "Charge for creating or using a compute server.",
   },
   "compute-server-network-usage": {
     display: "Network Data",
     color: "#2196f3",
     category: "compute",
+    description: "Charge due to network traffic out of a compute server.",
   },
   "compute-server-storage": {
     display: "Cloud Storage",
     color: "#fbbd05",
     category: "compute",
+    description: "Charge due to storage of data on a cloud filesystem.",
   },
   license: {
     display: "License",
     color: "cyan",
     noSet: true,
     category: "license",
+    description: "Purchase of a license from the store.",
   },
   "edit-license": {
     display: "Edit License",
     color: "gold",
     noSet: true,
     category: "license",
+    description:
+      "Charge or credit resulting from changing a license, which includes you manually editing the license, or the license being edited to extend the validity date on subscription renewal.",
   },
   voucher: {
     display: "Voucher",
     color: "#00238b",
     noSet: true,
     category: "money",
+    description: "Charge for purchasing a voucher.",
   },
   // ATTN: LLMs comes below this line, the quotas above are the important ones to show first!
   "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f", category: "ai" },
@@ -225,6 +265,13 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: LLM_USERNAMES["mistral-large-latest"],
     color: "#ff7000", // the orange from their website
     category: "ai",
+  },
+  "project-upgrade": {
+    display: "Project Upgrade",
+    color: "#5bc0de",
+    category: "compute",
+    description:
+      "Charge resulting from using pay as you go upgrades to a project.",
   },
 } as const;
 

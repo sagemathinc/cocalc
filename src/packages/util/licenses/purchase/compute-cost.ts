@@ -11,6 +11,8 @@ import {
 import { BASIC, getCosts, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
 import type { Cost, PurchaseInfo } from "./types";
+import { round2up } from "@cocalc/util/misc";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 // NOTE: the PurchaseInfo object optionally has a "version" field in it.
 // If the version is not specified, then it defaults to "1", which is the version
@@ -33,7 +35,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   }
 
   if (info.type !== "quota") {
-    throw new Error(`can only compute cost for type=quota`);
+    throw new Error(`can only compute costa for type=quota`);
   }
 
   let {
@@ -42,15 +44,14 @@ export function compute_cost(info: PurchaseInfo): Cost {
     user,
     upgrade,
     subscription,
-    custom_ram,
-    custom_cpu,
-    custom_dedicated_ram,
-    custom_dedicated_cpu,
-    custom_disk,
-    custom_member,
+    custom_ram = 0,
+    custom_cpu = 0,
+    custom_dedicated_ram = 0,
+    custom_dedicated_cpu = 0,
+    custom_disk = 0,
+    custom_member = 0,
     custom_uptime,
   } = info;
-
   const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
@@ -133,10 +134,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
+  cost_per_project_per_month = round2up(cost_per_project_per_month);
+
   // It's convenient in all cases to have the actual amount we will be charging
   // for both monthly and yearly available.
   const cost_sub_month = cost_per_project_per_month;
-  const cost_sub_year = cost_per_project_per_month * 12;
+  const cost_sub_year = decimalMultiply(cost_per_project_per_month, 12);
 
   let base_cost;
 
@@ -151,7 +154,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   } else if (subscription == "yearly") {
     // If we're computing the cost for an annual subscription, multiply the monthly subscription
     // cost by 12.
-    base_cost = 12 * cost_per_project_per_month;
+    base_cost = decimalMultiply(cost_per_project_per_month, 12);
   } else if (subscription == "monthly") {
     base_cost = cost_per_project_per_month;
   } else {
@@ -165,14 +168,13 @@ export function compute_cost(info: PurchaseInfo): Cost {
     // does not impact cost_sub_month or cost_sub_year.
     // It is used for computing the cost to edit a license.
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    base_cost = months * cost_per_project_per_month;
+    base_cost = round2up(decimalMultiply(cost_per_project_per_month, months));
   }
 
   // cost_per_unit is important for purchasing upgrades for specific intervals.
   // i.e. above the "cost" is calculated for the total number of projects,
-  // note: later on you have to use round2, since this is the price with full precision.
   const cost_per_unit = base_cost;
-  const cost_total = quantity * cost_per_unit;
+  const cost_total = decimalMultiply(cost_per_unit, quantity);
 
   return {
     cost_per_unit,
@@ -190,9 +192,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
 
 export function periodicCost(cost: Cost): number {
   if (cost.period == "monthly") {
-    return cost.quantity * cost.cost_sub_month;
+    return decimalMultiply(cost.quantity, cost.cost_sub_month);
   } else if (cost.period == "yearly") {
-    return cost.quantity * cost.cost_sub_year;
+    return decimalMultiply(cost.quantity, cost.cost_sub_year);
   } else {
     return cost.cost;
   }

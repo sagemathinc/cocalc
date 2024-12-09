@@ -5,7 +5,7 @@
 
 //TODO: Make useable without passing in user_map
 
-import { Component, redux } from "../app-framework";
+import { redux } from "../app-framework";
 import { Gap, TimeAgo, Tip } from "../components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
@@ -19,54 +19,25 @@ interface Props {
   show_original?: boolean;
   name?: string;
   show_avatar?: boolean; // if true, show an avatar to the left of the user
+  avatarSize?: number; // in pixels
+  style?;
+  addonAfter?;
+  trunc?: number;
 }
 
-export class User extends Component<Props> {
-  shouldComponentUpdate(nextProps) {
-    if (this.props.account_id !== nextProps.account_id) {
-      return true;
-    }
-    const n =
-      nextProps.user_map != null
-        ? nextProps.user_map.get(this.props.account_id)
-        : undefined;
-    if (n == null) {
-      return true; // don't know anything about user yet, so just update.
-    }
-    if (
-      !n.equals(
-        this.props.user_map != null
-          ? this.props.user_map.get(this.props.account_id)
-          : undefined
-      )
-    ) {
-      return true; // something about the user changed in the user_map, so updated.
-    }
-    if (this.props.last_active !== nextProps.last_active) {
-      return true; // last active time changed, so update
-    }
-    if (this.props.show_original !== nextProps.show_original) {
-      return true;
-    }
-    if (this.props.name !== nextProps.name) {
-      return true;
-    }
-    // same so don't update
-    return false;
-  }
-
-  render_last_active() {
-    if (this.props.last_active) {
+export function User(props: Props) {
+  function render_last_active() {
+    if (props.last_active) {
       return (
         <span>
           {" "}
-          (<TimeAgo date={this.props.last_active} />)
+          (<TimeAgo date={props.last_active} />)
         </span>
       );
     }
   }
 
-  render_original(info) {
+  function render_original(info) {
     let full_name;
     if (info.first_name && info.last_name) {
       full_name = info.first_name + " " + info.last_name;
@@ -78,7 +49,7 @@ export class User extends Component<Props> {
       full_name = "No Name";
     }
 
-    if (this.props.show_original && full_name !== this.props.name) {
+    if (props.show_original && full_name !== props.name) {
       return (
         <Tip
           placement="top"
@@ -91,12 +62,10 @@ export class User extends Component<Props> {
     }
   }
 
-  name(info) {
+  function name(info) {
     const x = trunc_middle(
-      this.props.name != null
-        ? this.props.name
-        : `${info.first_name} ${info.last_name}`,
-      50
+      props.name != null ? props.name : `${info.first_name} ${info.last_name}`,
+      props.trunc ?? 50,
     ).trim();
     if (x) {
       return x;
@@ -104,35 +73,48 @@ export class User extends Component<Props> {
     return "No Name";
   }
 
-  render() {
-    const user_map =
-      this.props.user_map ?? redux.getStore("users").get("user_map");
-    if (user_map == null || user_map.size === 0) {
-      return <span>Loading...</span>;
-    }
-    let info = user_map?.get(this.props.account_id);
-    if (info == null) {
-      if (!is_valid_uuid_string(this.props.account_id)) {
-        return <span>Unknown User {this.props.account_id}</span>;
-      }
-      actions.fetch_non_collaborator(this.props.account_id);
-      return <span>Loading...</span>;
-    } else {
-      info = info.toJS();
-      const n = this.name(info);
+  const { addonAfter, style } = props;
+
+  const user_map = props.user_map ?? redux.getStore("users").get("user_map");
+  if (user_map == null || user_map.size === 0) {
+    return <span style={style}>Loading...{addonAfter}</span>;
+  }
+  let info = user_map?.get(props.account_id);
+  if (info == null) {
+    if (!is_valid_uuid_string(props.account_id)) {
       return (
-        <span>
-          {this.props.show_avatar && (
-            <>
-              <Avatar account_id={this.props.account_id} first_name={n} />
-              <Gap />
-            </>
-          )}
-          {n}
-          {this.render_original(info)}
-          {this.render_last_active()}
+        <span style={style}>
+          Unknown User {props.account_id}
+          {addonAfter}
         </span>
       );
     }
+    actions.fetch_non_collaborator(props.account_id);
+    return <span style={style}>Loading...{addonAfter}</span>;
+  } else {
+    info = info.toJS();
+    const n = name(info);
+    return (
+      <span style={style}>
+        {props.show_avatar && (
+          <>
+            <Avatar
+              account_id={props.account_id}
+              first_name={n}
+              size={props.avatarSize}
+              no_tooltip={
+                true /* the tooltip just shows the name which is annoying/redundant since we are showing the name here anyways */
+              }
+              no_loading
+            />
+            <Gap />
+          </>
+        )}
+        {n}
+        {render_original(info)}
+        {render_last_active()}
+        {addonAfter}
+      </span>
+    );
   }
 }

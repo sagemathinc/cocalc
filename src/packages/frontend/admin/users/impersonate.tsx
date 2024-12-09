@@ -3,13 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
+import { Alert, Card } from "antd";
 import { join } from "path";
-
 import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface Props {
   account_id: string;
@@ -17,17 +17,15 @@ interface Props {
   last_name: string;
 }
 
-export function Impersonate(props: Readonly<Props>) {
-  const { first_name, last_name, account_id } = props;
-
+export function Impersonate({ first_name, last_name, account_id }: Props) {
   const [auth_token, set_auth_token] = useState<string | null>(null);
   const [err, set_err] = useState<string | null>(null);
+  const [extraWarning, setExtraWarning] = useState<boolean>(false);
 
   async function get_token(): Promise<void> {
     try {
-      const auth_token = await webapp_client.admin_client.get_user_auth_token(
-        account_id,
-      );
+      const auth_token =
+        await webapp_client.admin_client.get_user_auth_token(account_id);
       set_auth_token(auth_token);
       set_err(null);
     } catch (err) {
@@ -44,21 +42,50 @@ export function Impersonate(props: Readonly<Props>) {
     if (auth_token == null) {
       return <Loading />;
     }
-    // lang_temp: https://github.com/sagemathinc/cocalc/issues/7782
-    const link = join(appBasePath, `auth/impersonate?auth_token=${auth_token}&lang_temp=en`);
+
+    const link = join(
+      appBasePath,
+      `auth/impersonate?auth_token=${auth_token}&lang_temp=en`,
+    );
+
+    const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault(); // Prevent left click from opening the link
+      setExtraWarning(true);
+    };
+
     return (
       <div>
-        <a href={link} target="_blank" rel="noopener noreferrer">
-          Right click and open this link in a new incognito window, where you
-          will be signed in as {first_name} {last_name}...
-        </a>
-        <br />
-        The actual link:
-        <pre style={{ fontSize: "11pt", textAlign: "center" }}>
-          <a href={link} target="_blank" rel="noopener noreferrer">
-            {link}
+        <div style={{ fontSize: "13pt", textAlign: "center" }}>
+          <a
+            href={link}
+            onClick={handleClick}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="external-link" /> Right click and open this link in a
+            new <b>Incognito Window</b>, where you will be signed in as "
+            {first_name} {last_name}"...
           </a>
-        </pre>
+          <br />
+          <br />
+          or copy the following link and paste it in a different browser:
+          <br />
+          <br />
+          <CopyToClipBoard
+            before
+            inputWidth="500px"
+            value={`${location.origin}${link}`}
+          />
+        </div>
+        {extraWarning && (
+          <Alert
+            showIcon
+            style={{ margin: "30px auto", maxWidth: "800px" }}
+            type="warning"
+            message="Open this link in a new Incognito Window!"
+            description="Otherwise your current browser session will get overwritten, and potentially sensitive information could leak."
+          />
+        )}
       </div>
     );
   }
@@ -74,20 +101,15 @@ export function Impersonate(props: Readonly<Props>) {
   }
 
   return (
-    <Alert
-      type="warning"
-      style={{ margin: "15px" }}
-      message={
-        <b>
-          Impersonate user "{first_name} {last_name}"
-        </b>
-      }
-      description={
+    <Card
+      title={
         <>
-          {render_err()}
-          {render_link()}
+          Impersonate user "{first_name} {last_name}"
         </>
       }
-    />
+    >
+      {render_err()}
+      {render_link()}
+    </Card>
   );
 }

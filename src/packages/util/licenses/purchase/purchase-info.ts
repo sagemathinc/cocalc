@@ -103,7 +103,12 @@ export function fixRange(
         "if period is 'range', then start and end dates must be explicitly given",
       );
     }
-    return { start: now, end: addPeriod(now, period) };
+    // we expand the dates to be as inclusive as possible for subscriptions, since
+    // that doesn't result in any more charge to the user.
+    return {
+      start: dayjs(now).startOf("day").toDate(),
+      end: dayjs(addPeriod(now, period)).endOf("day").toDate(),
+    };
   }
 
   return {

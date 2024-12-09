@@ -50,7 +50,7 @@ describe("basic consistency checks for marking purchases that are pending to not
       cost: 3,
       pending: true,
     });
-    expect(await getBalance(account_id)).toBe(-5);
+    expect(await getBalance({ account_id })).toBe(-5);
     await updatePendingPurchases(account_id);
     expect(await getPendingBalance(account_id)).toBe(-3);
   });
@@ -63,10 +63,10 @@ describe("basic consistency checks for marking purchases that are pending to not
       client: null,
       cost: -9,
     });
-    expect(await getBalance(account_id)).toBe(4); // enough
+    expect(await getBalance({ account_id })).toBe(4); // enough
     await updatePendingPurchases(account_id);
     expect(await getPendingBalance(account_id)).toBe(0);
-    expect(await getBalance(account_id)).toBe(1); // what's left
+    expect(await getBalance({ account_id })).toBe(1); // what's left
   });
 
   it("create 3 pending purchases and have knapsack select 2 carefully to get marked as non-pending", async () => {
@@ -103,13 +103,13 @@ describe("basic consistency checks for marking purchases that are pending to not
       cost: -6,
     });
     expect(await getPendingBalance(account_id)).toBe(-(2 + 3 + 6));
-    expect(await getBalance(account_id)).toBe(7);
+    expect(await getBalance({ account_id })).toBe(7);
     // update pending should select the purchase that cost $6 above
     // instead of the $2 and $3 purchases, since that maximizes the
     // amount of money that gets used.  After doing that the balance
     // is back to 1.
     await updatePendingPurchases(account_id);
     expect(await getPendingBalance(account_id)).toBe(-(2 + 3));
-    expect(await getBalance(account_id)).toBe(1); // what's left
+    expect(await getBalance({ account_id })).toBe(1); // what's left
   });
 });

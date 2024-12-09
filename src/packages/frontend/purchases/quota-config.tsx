@@ -136,6 +136,7 @@ export default function QuotaConfig({
       )}
       <div style={{ marginTop: "15px", textAlign: "center" }}>
         <Balance
+          defaultAdd
           balance={balance}
           style={{ width: "100%", marginBottom: "15px" }}
           cost={

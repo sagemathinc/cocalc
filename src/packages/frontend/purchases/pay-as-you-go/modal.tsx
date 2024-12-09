@@ -1,9 +1,7 @@
 import { Alert, Modal } from "antd";
 import { useRef } from "react";
-
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { load_target } from "@cocalc/frontend/history";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
@@ -34,6 +32,11 @@ export default function PayAsYouGoModal({}) {
       storeState.service as Service,
       storeState.cost,
     );
+    if (x?.allowed) {
+      // done -- close the modal
+      handleOk();
+      return;
+    }
     actions.setState({ pay_as_you_go: { ...storeState, ...x } as any });
   };
   const handleCancel = () => {
@@ -47,23 +50,14 @@ export default function PayAsYouGoModal({}) {
   // destroyOnClose so values in quota input get updated
   return (
     <Modal
-      width={"600px"}
+      width={800}
       zIndex={zIndex}
       destroyOnClose
       maskClosable={false}
       open={storeState.showModal}
       title={
         <>
-          <Icon name="credit-card" style={{ marginRight: "15px" }} />{" "}
-          <a
-            onClick={() => {
-              handleCancel();
-              load_target("settings/purchases");
-            }}
-          >
-            Pay
-          </a>{" "}
-          for{" "}
+          <Icon name="credit-card" style={{ marginRight: "15px" }} /> Pay for{" "}
           <ServiceTag
             service={storeState.service as Service}
             style={{ fontSize: "16px" }}
@@ -86,7 +80,7 @@ export default function PayAsYouGoModal({}) {
           style={{ margin: "15px 0" }}
           showIcon
           type="success"
-          description={<>Thanks, your purchase should now be allowed!</>}
+          description={<>Thanks! Your purchase should now be complete.</>}
         />
       )}
       {storeState.cost_per_hour != null && (

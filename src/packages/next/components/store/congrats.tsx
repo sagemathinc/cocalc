@@ -130,7 +130,7 @@ export default function Congrats() {
 
   function renderAutomaticallyApplied(): JSX.Element {
     const appliedProjects = purchases.result.filter(
-      (x) => x.project_id != null
+      (x) => x.project_id != null,
     );
     const numApplied = appliedProjects.length;
     if (numApplied == 0) return <></>;
@@ -164,6 +164,8 @@ export default function Congrats() {
     );
   }
 
+  const licenses = purchases.result.filter((x) => x.purchased.license_id);
+
   return (
     <>
       <div style={{ float: "right" }}>
@@ -177,21 +179,20 @@ export default function Congrats() {
           />{" "}
           Order Complete!
         </h1>
-        {purchases.result.length > 0 && (
+        {licenses.length > 0 && (
           <Card
             style={{ margin: "15px auto", maxWidth: "700px" }}
             title={
               <>
                 <Icon name="key" style={{ marginRight: "15px" }} />
                 Congrats! You recently ordered{" "}
-                {purchases.result.length >= 2 ? "these" : "this"}{" "}
-                {purchases.result.length} <SiteName />{" "}
-                {plural(purchases.result.length, "license")}
+                {licenses.length >= 2 ? "these" : "this"} {licenses.length}{" "}
+                <SiteName /> {plural(licenses.length, "license")}.
               </>
             }
           >
             <ul>
-              {purchases.result.map((item) => (
+              {licenses.map((item) => (
                 <li key={item.purchased.license_id}>
                   <License
                     key={item.purchased.license_id}
@@ -215,7 +216,7 @@ export default function Congrats() {
             }
             style={{ margin: "15px auto", maxWidth: "700px" }}
           >
-            You can download the corresponding voucher codes via the{" "}
+            You can download and track your voucher codes via the{" "}
             {plural(vouchers.result.length, "link")} below.
             <br />
             <br />

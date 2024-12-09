@@ -11,10 +11,11 @@ and configuration.
 */
 
 import { useEffect } from "react";
-import { Space } from "antd";
+import { Flex, Menu, Space } from "antd";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
-import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
+import { AntdTabItem } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -27,6 +28,8 @@ import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { labels } from "@cocalc/frontend/i18n";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
+import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -38,9 +41,9 @@ import { AccountPreferences } from "./account-preferences";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
-import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Footer } from "@cocalc/frontend/customize";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -48,12 +51,11 @@ export const AccountPage: React.FC = () => {
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const active_page = useTypedRedux("account", "active_page");
+  const active_page = useTypedRedux("account", "active_page") ?? "account";
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const kucalc = useTypedRedux("customize", "kucalc");
-  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
 
@@ -76,7 +78,7 @@ export const AccountPage: React.FC = () => {
       key: "account",
       label: (
         <span>
-          <Icon name="wrench" /> {intl.formatMessage(labels.preferences)}
+          <Icon name="address-card" /> {intl.formatMessage(labels.preferences)}
         </span>
       ),
       children: (active_page == null || active_page === "account") && (
@@ -97,10 +99,29 @@ export const AccountPage: React.FC = () => {
         key: "purchases",
         label: (
           <span>
-            <Icon name="money" /> {intl.formatMessage(labels.purchases)}
+            <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
+      });
+      items.push({
+        key: "payments",
+        label: (
+          <span>
+            <Icon name="credit-card" /> Payments
+          </span>
+        ),
+        children: active_page === "payments" && <PaymentsPage />,
+      });
+      items.push({
+        key: "statements",
+        label: (
+          <span>
+            <Icon name="calendar-week" />{" "}
+            {intl.formatMessage(labels.statements)}
+          </span>
+        ),
+        children: active_page === "statements" && <StatementsPage />,
       });
       items.push({
         key: "subscriptions",
@@ -112,13 +133,13 @@ export const AccountPage: React.FC = () => {
         children: active_page === "subscriptions" && <SubscriptionsPage />,
       });
       items.push({
-        key: "statements",
+        key: "payg",
         label: (
           <span>
-            <Icon name="money" /> {intl.formatMessage(labels.statements)}
+            <Icon name="line-chart" /> Pay As You Go
           </span>
         ),
-        children: active_page === "statements" && <StatementsPage />,
+        children: active_page === "payg" && <PayAsYouGoPage />,
       });
     }
 
@@ -138,17 +159,6 @@ export const AccountPage: React.FC = () => {
       });
     }
 
-    if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
-      items.push({
-        key: "ssh-keys",
-        label: (
-          <span>
-            <Icon name="key" /> {intl.formatMessage(labels.ssh_keys)}
-          </span>
-        ),
-        children: active_page === "ssh-keys" && <SSHKeysPage />,
-      });
-    }
     if (is_commercial) {
       items.push({
         key: "support",
@@ -170,7 +180,20 @@ export const AccountPage: React.FC = () => {
       ),
       children: active_page === "public-files" && <PublicPaths />,
     });
+    if (cloudFilesystemsEnabled()) {
+      items.push({
+        key: "cloud-filesystems",
+        label: (
+          <>
+            <Icon name="server" style={{ marginRight: "5px" }} />
+            {intl.formatMessage(labels.cloud_file_system)}
+          </>
+        ),
+        children: <CloudFilesystems noTitle />,
+      });
+    }
     if (is_commercial && kucalc === KUCALC_COCALC_COM) {
+      // these have been deprecated for ~ 5 years, but some customers still have them.
       items.push({
         key: "upgrades",
         label: (
@@ -182,25 +205,13 @@ export const AccountPage: React.FC = () => {
         children: active_page === "upgrades" && <UpgradesPage />,
       });
     }
-    if (cloudFilesystemsEnabled()) {
-      items.push({
-        key: "cloud-filesystems",
-        label: (
-          <>
-            <Icon name="disk-round" />{" "}
-            {intl.formatMessage(labels.cloud_file_system)}
-          </>
-        ),
-        children: <CloudFilesystems />,
-      });
-    }
-
     return items;
   }
 
   function renderExtraContent() {
     return (
       <Space>
+        <BalanceButton />
         <I18NSelector isWide={isWide} />
         <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>
@@ -228,25 +239,65 @@ export const AccountPage: React.FC = () => {
       ...render_special_tabs(),
     ];
 
+    // NOTE: This is a bit weird, since I rewrote it form antd Tabs
+    // to an antd Menu, but didn't change any of the above.
+    // Antd Menu has a notion of children and submenus, which we *could*
+    // use but aren't using yet.
+    const children = {};
+    const titles = {};
+    for (const tab of tabs) {
+      children[tab.key] = tab.children;
+      titles[tab.key] = tab.label;
+      delete tab.children;
+    }
+
     return (
-      <Row>
-        <Col md={12}>
-          <Tabs
-            activeKey={active_page ?? "account"}
-            onSelect={handle_select}
-            animation={false}
-            tabBarExtraContent={renderExtraContent()}
+      <div className="smc-vfill" style={{ flexDirection: "row" }}>
+        <div
+          style={{
+            background: "#00000005",
+            borderRight: "1px solid rgba(5, 5, 5, 0.06)",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              margin: "15px 0",
+              fontSize: "11pt",
+            }}
+          >
+            <b>Account Configuration</b>
+          </div>
+          <Menu
+            onClick={(e) => {
+              handle_select(e.key);
+            }}
+            selectedKeys={[active_page]}
+            mode="vertical"
             items={tabs}
+            style={{ width: 183, background: "#00000005", height: "100vh" }}
           />
-        </Col>
-      </Row>
+        </div>
+        <div
+          className="smc-vfill"
+          style={{ overflow: "auto", paddingLeft: "15px" }}
+        >
+          <Flex style={{ marginTop: "5px" }}>
+            <h2>{titles[active_page]}</h2>
+            <div style={{ flex: 1 }} />
+            {renderExtraContent()}
+          </Flex>
+          {children[active_page]}
+          <Footer />
+        </div>
+      </div>
     );
   }
 
   return (
     <div
       className="smc-vfill"
-      style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}
+      style={{ overflow: "auto", paddingRight: "15px" }}
     >
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()

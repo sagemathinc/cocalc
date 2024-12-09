@@ -47,7 +47,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:14
+        image: postgres:13
         env:
           POSTGRES_DB: smc
           POSTGRES_USER: smc

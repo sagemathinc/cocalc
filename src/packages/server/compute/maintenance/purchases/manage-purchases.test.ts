@@ -7,7 +7,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
-import { resetTestEmails, testEmails } from "@cocalc/server/email/send-email";
+import { resetTestMessages, testMessages } from "@cocalc/server/messages/send";
 import createProject from "@cocalc/server/projects/create";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { setPurchaseQuota } from "@cocalc/server/purchases/purchase-quotas";
@@ -266,7 +266,7 @@ describe("confirm managing of purchases works", () => {
 
   // rule 6
   it("make time long so that balance is exceeded (but not by too much), and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
-    resetTestEmails();
+    resetTestMessages();
     await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 10));
     const pool = getPool();
     await pool.query(
@@ -280,9 +280,9 @@ describe("confirm managing of purchases works", () => {
       expect.stringContaining("off") || expect.stringContaining("stopping"),
     );
     expect(server.error).toContain("Computer Server Turned Off");
-    //console.log(testEmails);
-    expect(testEmails.length).toBe(1);
-    expect(testEmails[0].text).toContain(
+    //console.log(testMessages);
+    expect(testMessages.length).toBe(1);
+    expect(testMessages[0].body).toContain(
       "Action Taken: Computer Server Turned Off",
     );
 
@@ -332,7 +332,7 @@ describe("confirm managing of purchases works", () => {
 
   // rule 6: delete
   it("make time *really* long so that balance is greatly exceeded, and see that server gets deleted due to too low balance, and an email is sent to the user", async () => {
-    resetTestEmails();
+    resetTestMessages();
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
@@ -347,8 +347,8 @@ describe("confirm managing of purchases works", () => {
     expect(server.error).toContain(
       "Computer Server Deprovisioned (Disk Deleted)",
     );
-    expect(testEmails.length).toBe(1);
-    expect(testEmails[0].text).toContain(
+    expect(testMessages.length).toBe(1);
+    expect(testMessages[0].body).toContain(
       "Action Taken: Computer Server Deprovisioned (Disk Deleted)",
     );
   });

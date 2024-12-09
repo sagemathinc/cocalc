@@ -22,7 +22,7 @@ import { SCHEMA as schema } from "./index";
 // and a user could spend substantially during that time (e.g., over $1000
 // seems possible, e.g., bandwidth egress to China is $0.23/GB, and you can
 // probably download 100MB/s or over 300GB/hour, or over $3000 in 2 days).
-export const CREATE_CLOUD_FILESYSTEM_AMOUNT = 10;
+export const CREATE_CLOUD_FILESYSTEM_AMOUNT = 1;
 
 export const DEFAULT_LOCK = "DELETE";
 // Since all storage gets mounted on all compute servers, and basically

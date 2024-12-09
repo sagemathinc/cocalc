@@ -18,6 +18,7 @@ import "@cocalc/frontend/customize/app-base-path";
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
+import { AppContext, DEFAULT_CONTEXT } from "@cocalc/frontend/app/use-context";
 
 // The IntlProvider makes translated components from the frontend work.
 // It's english only, using the fallback defaultMessage.
@@ -34,14 +35,16 @@ function MyApp({
 }: // router,
 AppProps & { locale: Locale }) {
   return (
-    <IntlProvider
-      locale={DEFAULT_LOCALE}
-      messages={{}}
-      defaultLocale={DEFAULT_LOCALE}
-      defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
-    >
-      <Component {...pageProps} />
-    </IntlProvider>
+    <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
+      <IntlProvider
+        locale={DEFAULT_LOCALE}
+        messages={{}}
+        defaultLocale={DEFAULT_LOCALE}
+        defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
+      >
+        <Component {...pageProps} />
+      </IntlProvider>
+    </AppContext.Provider>
   );
 }
 

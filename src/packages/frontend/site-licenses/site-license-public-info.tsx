@@ -353,7 +353,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
       return (
         <>
-          {runLimitTxt} Paid through {when}.
+          {runLimitTxt} Valid through {when}.
         </>
       );
     }
@@ -514,7 +514,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return (
       <div style={{ display: "flex" }}>
         <Tooltip placement="bottom" title={"Reload license information"}>
-          <Button onClick={() => fetchInfos(true)}>
+          <Button type="link" onClick={() => fetchInfos(true)}>
             <Icon name="refresh" /> {intl.formatMessage(labels.refresh)}
           </Button>
         </Tooltip>
