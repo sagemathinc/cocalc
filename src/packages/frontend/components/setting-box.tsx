@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Card, Flex, Typography } from "antd";
+import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
@@ -42,9 +42,7 @@ export function SettingBox({
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
             <Title level={4}>
-              <Flex>
-                {icon && <Icon name={icon} />}&nbsp;{title}
-              </Flex>
+              {icon && <Icon name={icon} />}&nbsp;{title}
             </Title>
             {subtitle}
             {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}
