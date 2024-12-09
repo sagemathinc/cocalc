@@ -382,4 +382,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       console.warn("processSignUpTags", err);
     }
   };
+
+  setFragment = (fragment) => {
+    // @ts-ignore
+    this.setState({ fragment });
+  };
 }

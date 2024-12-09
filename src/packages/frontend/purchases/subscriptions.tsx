@@ -36,7 +36,6 @@ import {
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { ManageSubscriptionButton } from "./manage-subscription";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -62,6 +61,8 @@ import type { License } from "@cocalc/util/db-schema/site-licenses";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 import { SubscriptionStatus } from "./subscriptions-util";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 
 // Cancel immediately makes it pointless to ever buy a license without
 // buying a subscription, since you can just buy a license via a subscription,
@@ -359,9 +360,27 @@ export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[] | null>(
     null,
   );
+  const [current, setCurrent] = useState<Subscription | undefined>(undefined);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [counter, setCounter] = useState<number>(0);
+  const fragment = useTypedRedux("account", "fragment");
+
+  useEffect(() => {
+    if (subscriptions == null || fragment == null) {
+      return;
+    }
+    const id = parseInt(fragment.get("id") ?? "-1");
+    if (id == -1) {
+      return;
+    }
+    for (const subscription of subscriptions) {
+      if (subscription.id == id) {
+        setCurrent(subscription);
+        return;
+      }
+    }
+  }, [fragment]);
 
   const getSubscriptions = async () => {
     try {
@@ -388,6 +407,25 @@ export default function Subscriptions() {
         return -cmp(a.id, b.id);
       });
       */
+      if (subscriptions == null) {
+        // first time
+        const f =
+          redux.getStore("account").get("fragment")?.toJS() ?? Fragment.get();
+        if (f?.id != null) {
+          const id = parseInt(f.id);
+          let found = false;
+          for (const subscription of subs) {
+            if (subscription.id == id) {
+              setCurrent(subscription);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            Fragment.clear();
+          }
+        }
+      }
       setSubscriptions(subs);
     } catch (err) {
       setError(`${err}`);
@@ -403,6 +441,15 @@ export default function Subscriptions() {
 
   const columns = useMemo(
     () => [
+      {
+        render: (_, subscription) => {
+          return (
+            <Button onClick={() => setCurrent(subscription)}>
+              <Icon name="external-link" />
+            </Button>
+          );
+        },
+      },
       {
         title: "Id",
         dataIndex: "id",
@@ -462,10 +509,10 @@ export default function Subscriptions() {
         width: "15%",
         title: "Paid Through",
         key: "period",
-        render: (_, record) => {
+        render: (_, subscription) => {
           return (
             <>
-              <TimeAgo date={record.current_period_end} />
+              <TimeAgo date={subscription.current_period_end} />
             </>
           );
         },
@@ -474,16 +521,9 @@ export default function Subscriptions() {
         width: "10%",
         title: "Payment Status",
         key: "status",
-        render: (_, subscription) => {
-          const status = subscription.payment?.status;
-          if (!status) {
-            return null;
-          }
-          const tag = (
-            <Tag color={STATUS_TO_COLOR[status]}>{capitalize(status)}</Tag>
-          );
-          return tag;
-        },
+        render: (_, subscription) => (
+          <PaymentStatus subscription={subscription} />
+        ),
       },
       {
         title: "Last Transaction Id",
@@ -495,7 +535,6 @@ export default function Subscriptions() {
         key: "manage",
         render: (_, { cost, id, metadata, status, interval }) => (
           <>
-            <ManageSubscriptionButton type="default" subscription_id={id} />
             <SubscriptionActions
               subscription_id={id}
               license_id={metadata.license_id}
@@ -562,8 +601,78 @@ export default function Subscriptions() {
             dataSource={subscriptions ?? undefined}
             columns={columns}
           />
+          {current != null && (
+            <SubscriptionModal
+              subscription={current}
+              getSubscriptions={getSubscriptions}
+              onClose={() => {
+                setCurrent(undefined);
+                Fragment.clear();
+                redux.getActions("account").setFragment(undefined);
+              }}
+            />
+          )}
         </div>
       )}
     </SettingBox>
+  );
+}
+
+function PaymentStatus({ subscription }) {
+  const status = subscription.payment?.status;
+  if (!status) {
+    return null;
+  }
+  const tag = <Tag color={STATUS_TO_COLOR[status]}>{capitalize(status)}</Tag>;
+  return tag;
+}
+
+function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
+  useEffect(() => {
+    Fragment.set({ id: subscription.id });
+  }, [subscription.id]);
+  return (
+    <Modal
+      width={800}
+      open
+      title={<>Subscription Id={subscription.id}</>}
+      onOk={onClose}
+      onCancel={onClose}
+    >
+      <Space style={{ width: "100%" }} direction="vertical">
+        <LicenseDescription
+          license_id={subscription.metadata.license_id}
+          refresh={getSubscriptions}
+        />
+        <div>
+          Status: <SubscriptionStatus status={subscription.status} />
+        </div>
+        <div>Period: {`${capitalize(subscription.interval)}ly`}</div>
+        <div>
+          Cost: {currency(subscription.cost)} / {subscription.interval}
+        </div>
+        <div>
+          Paid Through: <TimeAgo date={subscription.current_period_end} />
+        </div>
+        <div>
+          Payment Status: <PaymentStatus subscription={subscription} />
+        </div>
+        <div>Last Transaction Id: {subscription.latest_purchase_id}</div>
+        <div>
+          Manage:{" "}
+          <SubscriptionActions
+            subscription_id={subscription.id}
+            license_id={subscription.metadata.license_id}
+            status={subscription.status}
+            refresh={() => {
+              onClose();
+              getSubscriptions();
+            }}
+            cost={subscription.cost}
+            interval={subscription.interval}
+          />
+        </div>
+      </Space>
+    </Modal>
   );
 }

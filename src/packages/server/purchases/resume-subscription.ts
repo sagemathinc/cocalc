@@ -79,7 +79,7 @@ ${license_id}
 
 Your subscription will automatically renew ${RENEW_DAYS_BEFORE_END} days before ${end.toDateString()}.
 
-- [Your Subscriptions](${await url("settings", "subscriptions")})
+- [Your Subscriptions](${await url(`/settings/subscriptions#id=${subscription_id}`)})
 
 Thank you!
 
@@ -107,7 +107,7 @@ You might want to check in with them.`,
       body: `
 An unexpected error happened when manually resuming your subscription with id=${subscription_id} for the license ${license_id}
 
-- [Your Subscriptions](${await url("settings", "subscriptions")})
+- [Your Subscriptions](${await url(`/settings/subscriptions#id=${subscription_id}`)})
 
 - ERROR: ${err}
 

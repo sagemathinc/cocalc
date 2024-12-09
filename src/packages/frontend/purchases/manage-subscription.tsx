@@ -1,8 +1,6 @@
 /*
-
-ATTENTION:  Do not touch this or anything it depends on with i18n, since
-this is also used by the nextjs app!
-
+NEVER USED -- it implements a button to pay a subscription
+in advance.  Should probably delete this as it adds complexity.
 */
 
 import {

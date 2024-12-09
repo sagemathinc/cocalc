@@ -47,7 +47,7 @@ This is a confirmation that your subscription (id=${subscription_id}) was cancel
 
 **REASON:** ${canceled_reason}
 
-You can easily [resume or edit this subscription at any time](${await url("subscriptions", subscription_id)}).
+You can easily [resume or edit this subscription at any time](${await url(`/settings/subscriptions#id=${subscription_id}`)}).
 
 ${await support()}
 `;

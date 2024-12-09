@@ -166,7 +166,9 @@ export function load_target(
         return;
       }
 
-      redux.getActions("account").set_active_tab(segments[1]);
+      const actions = redux.getActions("account");
+      actions.set_active_tab(segments[1]);
+      actions.setFragment(Fragment.decode(hash));
 
       break;
 

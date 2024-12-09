@@ -68,10 +68,8 @@ function handler(e) {
 
 export default function KeyboardShortcuts() {
   useEffect(() => {
-    console.log("enable shortcuts");
     redux.getActions("page").set_active_key_handler(handler);
     return () => {
-      console.log("disable shortcuts");
       redux.getActions("page").erase_active_key_handler(handler);
     };
   }, []);

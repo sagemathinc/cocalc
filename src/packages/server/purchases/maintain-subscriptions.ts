@@ -137,10 +137,10 @@ Hello ${name},
 
 You have a ${interval}ly subscription that will **automatically renew**.
 If you do nothing you will be automatically billed two days from now,
-and can continue using your subscription.  You can also make a payment
-right now, pay in a different way, cancel, change or pause your subscription:
+and can continue using your subscription.  You can also cancel or
+change your subscription:
 
-[Manage Subscription](${await url("subscriptions", id)})
+[Manage Subscription](${await url(`/settings/subscriptions#id=${id}`)})
 
 ### Details
 
