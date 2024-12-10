@@ -6,11 +6,11 @@ import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
-import getAdmins from "@cocalc/server/accounts/admins";
 import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import { getSupportAccountId } from "./support-account";
 
 export async function name(account_id: string) {
   const { name: name0, email_address } = await getUser(account_id);
@@ -49,12 +49,10 @@ export default async function send({
   // validate sender -- if not given, assumed internal and tries to send
   // from support or an admin
   if (!from_id) {
-    const { support_account_id } = await getServerSettings();
-    from_id = support_account_id ? support_account_id : (await getAdmins())[0];
+    from_id = await getSupportAccountId();
   }
   if (!from_id) {
-    // if support not configured, just make message be **from the user.**
-    // this is better than nothing...
+    // this should be impossible, but just in case.
     from_id = to_ids[0];
   }
   if (!(await isValidAccount(from_id))) {
