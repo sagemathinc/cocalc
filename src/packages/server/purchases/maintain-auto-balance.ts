@@ -11,7 +11,6 @@ import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
 import { AUTOBALANCE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import send, { support, url } from "@cocalc/server/messages/send";
-import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { decimalAdd } from "@cocalc/util/stripe/calc";
 import {
@@ -229,7 +228,11 @@ async function update({
   });
 
   try {
-    await sendAutoBalanceAlert({ account_id, description: longDescription });
+    await sendAutoBalanceAlert({
+      account_id,
+      description: longDescription,
+      amount,
+    });
   } catch (err) {
     logger.debug(
       `WARNING: issue sending auto-balance email ${account_id} ${longDescription} -- ${err}`,
@@ -245,20 +248,21 @@ async function update({
   return { reason: longDescription, status };
 }
 
-async function sendAutoBalanceAlert({ account_id, description }) {
-  const { site_name: siteName } = await getServerSettings();
+async function sendAutoBalanceAlert({ account_id, description, amount }) {
   const { name } = await getUser(account_id);
-  const subject = `${siteName}: Automatic Low Balance Deposit`;
+  const subject = `Automatic Deposit of ${currency(amount)} Initiated`;
 
   const body = `
 Dear ${name},
 
-You have automatic deposits setup, which just did the following:
+You have automatic deposits enabled, which just started the following:
+
 ${description}
 
-${await url("settings", "payments")}
+This should completely quickly if you have a valid payment method on file.
+If not, please enter any required information, or cancel the payment.
 
- -- ${siteName}
+- [Your Payments](${await url("settings", "payments")})
 
 ${await support()}
 `;
