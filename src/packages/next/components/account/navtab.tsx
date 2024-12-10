@@ -84,7 +84,7 @@ export default function AccountNavTab({ style }: Props) {
 
   const configuration = menuGroup(
     "configuration",
-    <A href="/config/search/input">
+    <A href="/settings">
       <span style={{ color: "#a4acb3" }}>
         <Icon name="wrench" /> Account
       </span>
@@ -95,24 +95,34 @@ export default function AccountNavTab({ style }: Props) {
         <A href="/settings/account">Preferences</A>,
         "address-card",
       ),
-      menuItem(
-        "purchases",
-        <A href="/settings/purchases">Purchases</A>,
-        "money-check",
-      ),
-      menuItem("payments", <A href="/settings/payments">Payments</A>, "credit-card"),
-      menuItem(
-        "statements",
-        <A href="/settings/statements">Statements</A>,
-        "calendar-week",
-      ),
+      DIVIDER,
       menuItem(
         "subscriptions",
         <A href="/settings/subscriptions">Subscriptions</A>,
         "calendar",
       ),
-      menuItem("payg", <A href="/settings/payg">Pay As You go</A>, "line-chart"),
       menuItem("licenses", <A href="/settings/licenses">Licenses</A>, "key"),
+      menuItem(
+        "payg",
+        <A href="/settings/payg">Pay As You go</A>,
+        "line-chart",
+      ),
+      DIVIDER,
+      menuItem(
+        "purchases",
+        <A href="/settings/purchases">Purchases</A>,
+        "money-check",
+      ),
+      menuItem(
+        "payments",
+        <A href="/settings/payments">Payments</A>,
+        "credit-card",
+      ),
+      menuItem(
+        "statements",
+        <A href="/settings/statements">Statements</A>,
+        "calendar-week",
+      ),
     ],
   );
 
