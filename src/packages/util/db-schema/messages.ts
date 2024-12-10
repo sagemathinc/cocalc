@@ -253,7 +253,7 @@ Table({
             // the number of users (so number of recipients + 1), and 3 is the position to flip (+1 since it is 1-indexed in postgres),
             // and it's `'x'::bit(1),3+1` to set the bit to x (=0 or 1), i.e., 0 in this example:
             //
-            // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20),'0'::bit(1),3+1) where id=61; select saved from messages where id=61;
+            // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20) PLACING '0'::bit(1) FROM 3+1) where id=61; select saved from messages where id=61;
 
             const ids = new_val.to_ids ?? old_val.to_ids ?? [];
             const numUsers = ids.length + 1;
@@ -275,10 +275,7 @@ Table({
                 // be especially careful to avoid sql injection attack.
                 throw Error(`invalid bit '${bit}'`);
               }
-              // This only works with postgresql version 14:
-              //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),${userIndex}+1)`;
-
-              return `${field} = (coalesce(${field},'0'::bit(1))::bit(${numUsers})::bit(${userIndex})::int::text || '${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from ${userIndex + 2}))::bit(${numUsers})`;
+              return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}) PLACING '${bit}'::bit(1) FROM ${userIndex}+1)`;
             };
 
             const v: string[] = [];
@@ -378,9 +375,7 @@ Table({
                 if (bit != "0" && bit != "1") {
                   throw Error(`invalid bit '${bit}'`);
                 }
-                // this only works with postgresql 14+
-                //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),1)`;
-                return `${field} = ('${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from 2))::bit(${numUsers})`;
+                return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}) PLACING '${bit}'::bit(1) FROM 1)`;
               };
               const v: string[] = [];
               for (const field of BITSET_FIELDS) {
