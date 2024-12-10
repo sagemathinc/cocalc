@@ -19,7 +19,7 @@ import {
   processSubscriptionRenewal,
   processSubscriptionRenewalFailure,
 } from "./create-subscription-payment";
-import send, { support, url } from "@cocalc/server/messages/send";
+import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -216,11 +216,16 @@ customer.  So we don't know what to do with this.  Please manually investigate.
 
 ${await support()}`,
         });
+        const n = await name(account_id);
         adminAlert({
-          subject: `A User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
+          subject: `User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
           body: `
-The user with account_id=${account_id} had a canceled payment intent. We told them
+The user with  had a canceled payment intent. We told them
 the consequence is "${result}".  Admins might want to investigate.
+
+- User: ${n}, account_id=${account_id}
+
+
 `,
         });
       } catch (err) {

@@ -50,8 +50,10 @@ export default async function getPayments({
     (intent) => !intent.metadata?.deleted,
   );
 
-  const numOpen = paymentIntents.data.filter(isOpenPaymentIntent).length;
-  await setBalanceAlert({ account_id, balance_alert: numOpen > 0 });
+  if (!(created || ending_before || starting_after)) {
+    const numOpen = paymentIntents.data.filter(isOpenPaymentIntent).length;
+    await setBalanceAlert({ account_id, balance_alert: numOpen > 0 });
+  }
 
   // if any payments haven't been processed, i.e., credit added to cocalc, do that here:
   await processPaymentIntents({ paymentIntents: paymentIntents.data });

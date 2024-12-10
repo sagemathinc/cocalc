@@ -50,7 +50,12 @@ export default function BalanceButton({
       <Button
         size={minimal ? "small" : undefined}
         type={"text"}
-        style={style}
+        style={{
+          ...style,
+          ...(balanceAlert
+            ? { backgroundColor: "red", color: "white", marginRight: "5px" }
+            : undefined),
+        }}
         onClick={() => {
           handleRefresh();
           setOpen(!open);

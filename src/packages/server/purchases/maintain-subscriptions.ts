@@ -49,7 +49,7 @@ PAYMENT FOLLOW-UP:
   - In particular, if a user doesn't pay their monthly subscription for 90 days (say),
     then their license would have not worked during the last 90 days and we didn't
     try to charge them during the second two periods, and moreover their payment
-    got cancelled/expired.  They can start their canceled subscription, paying for a
+    got canceled/expired.  They can start their canceled subscription, paying for a
     full subscription period at this point, and the billing day for this subscription
     changes to the day when they resume the subscription.
 

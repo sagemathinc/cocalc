@@ -143,7 +143,7 @@ export default function StripeMeteredSubscription({ style }: Props) {
         <FormattedMessage
           id="purchases.automatic-payments-warning.description"
           defaultMessage={
-            "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get cancelled</b> by accident."
+            "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get canceled</b> by accident."
           }
         />
       }

@@ -117,7 +117,7 @@ export default function Balance({
                           completed yet and are not included in your balance.
                           Ensure you have automatic payments configured or add
                           credit to your account so that your subscriptions will
-                          not be cancelled.
+                          not be canceled.
                         </div>
                       }
                     >

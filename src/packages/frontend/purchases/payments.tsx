@@ -145,7 +145,7 @@ export default function Payments({
               {!!unfinished && (data?.length ?? 0) > 0 && (
                 <Badge
                   count={data?.length}
-                  style={{ backgroundColor: "#688ff1", marginLeft: "15px" }}
+                  style={{ backgroundColor: "red", marginLeft: "15px" }}
                 />
               )}
             </Tooltip>
@@ -230,8 +230,14 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="credit-card"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
-                  Fill in details
+                <Tag
+                  style={{
+                    backgroundColor: "red",
+                    color: "white",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  Fill in Details
                 </Tag>
               </div>
             );

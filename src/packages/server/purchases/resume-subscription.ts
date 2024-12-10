@@ -86,7 +86,7 @@ Thank you!
 ${await support()}`,
     });
     adminAlert({
-      subject: `User manually resumed cancelled subscription ${subscription_id}`,
+      subject: `User manually resumed canceled subscription ${subscription_id}`,
       body: `
 **Good news** - The user ${await name(account_id)} with account_id=${account_id}
 has manually resumed their canceled subscription id=${subscription_id}.
@@ -114,7 +114,7 @@ An unexpected error happened when manually resuming your subscription with id=${
 ${await support()}`,
     });
     adminAlert({
-      subject: `Unexpected error when user manually resumed cancelled subscription ${subscription_id}`,
+      subject: `Unexpected error when user manually resumed canceled subscription ${subscription_id}`,
       body: `
 PROBLEM: The user ${await name(account_id)} with account_id=${account_id} tried to manually resume
 their canceled subscription id=${subscription_id}, but there was an unexpected
