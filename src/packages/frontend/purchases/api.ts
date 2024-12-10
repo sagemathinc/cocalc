@@ -30,6 +30,7 @@ import type {
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 
 async function api(endpoint: string, args?: object) {
   throttle({ endpoint });
@@ -129,11 +130,22 @@ export async function isPurchaseAllowed(
   if (result.allowed && result.discouraged) {
     if (Date.now() - lastPurchaseAlert >= 3000) {
       lastPurchaseAlert = Date.now();
+      const display = QUOTA_SPEC[service]?.display ?? service;
       try {
         // fire off a warning to the user so they know they are hitting a budget.
         await send({
-          subject: "Pay as You Go Budget Alert",
-          body: `You recently made a purchase.  ${result.reason} \n\n [View and edit your Pay As You Go budgets](/settings/payg) or [browse all your purchases](/settings/purchases).`,
+          subject: `Budget Alert: ${display}`,
+          body: `You recently made a purchase of ${display}.
+
+${result.reason}
+
+<br/>
+
+- [Pay As You Go Budgets](/settings/payg) -- raise your ${display} budget to stop these messages.
+
+- [All Purchases](/settings/purchases)
+
+`,
         });
       } catch (err) {
         console.warn(err);
