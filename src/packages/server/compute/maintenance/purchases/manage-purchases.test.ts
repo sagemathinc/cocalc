@@ -24,7 +24,7 @@ import { getPurchase } from "./util";
 
 // we put a small delay in some cases due to using a database query pool.
 // This might need to be adjusted for CI infrastructure.
-const DELAY = 100;
+const DELAY = 250;
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -276,9 +276,7 @@ describe("confirm managing of purchases works", () => {
     await managePurchases();
     await delay(DELAY);
     const server = await getServer({ account_id, id: server_id });
-    expect(server.state).toEqual(
-      expect.stringContaining("off") || expect.stringContaining("stopping"),
-    );
+    expect(["off", "stopping"].includes(server.state ?? "")).toBe(true);
     expect(server.error).toContain("Computer Server Turned Off");
     //console.log(testMessages);
     expect(testMessages.length).toBe(1);
@@ -331,7 +329,7 @@ describe("confirm managing of purchases works", () => {
   });
 
   // rule 6: delete
-  it("make time *really* long so that balance is greatly exceeded, and see that server gets deleted due to too low balance, and an email is sent to the user", async () => {
+  it("make time *really* long so that balance is greatly exceeded, and see that server gets deleted due to too low balance, and a message is sent to the user", async () => {
     resetTestMessages();
     const pool = getPool();
     await pool.query(
