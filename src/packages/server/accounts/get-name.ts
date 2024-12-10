@@ -31,7 +31,7 @@ function rowsToName(rows): string | undefined {
 }
 
 type Names = {
-  [account_id: string]: { first_name: string; last_name: string };
+  [account_id: string]: { first_name: string; last_name: string; profile? };
 };
 
 function rowsToNames(rows): Names {
@@ -41,15 +41,18 @@ function rowsToNames(rows): Names {
     x[row.account_id] = {
       first_name: row.first_name ?? "",
       last_name: row.last_name ?? "",
+      profile: row.profile,
     };
   }
   return x;
 }
 
+// This also includes the user's profile info, e.g., color or gravatar or image
+
 export async function getNames(account_ids: string[]): Promise<Names> {
   const pool = getPool("long");
   const { rows } = await pool.query(
-    "SELECT account_id, first_name, last_name FROM accounts WHERE account_id=ANY($1::UUID[]) AND (deleted IS NULL OR deleted = false)",
+    "SELECT account_id, first_name, last_name, profile FROM accounts WHERE account_id=ANY($1::UUID[]) AND (deleted IS NULL OR deleted = false)",
     [account_ids],
   );
   return rowsToNames(rows);

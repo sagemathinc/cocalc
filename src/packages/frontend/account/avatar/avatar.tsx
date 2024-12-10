@@ -280,18 +280,15 @@ const Avatar0: React.FC<Props> = (props) => {
   // we put avatars inside <p>'s in some cases so do not use divs here.
   const elt = (
     <span
-      style={{ display: "inline-block", cursor: "pointer", ...props.style }}
+      style={{
+        display: "inline-block",
+        ...outer_style,
+        ...CIRCLE_OUTER_STYLE,
+        ...props.style,
+      }}
+      onClick={click_avatar}
     >
-      <span
-        style={{
-          display: "inline-block",
-          ...outer_style,
-          ...CIRCLE_OUTER_STYLE,
-        }}
-        onClick={click_avatar}
-      >
-        {render_inside()}
-      </span>
+      {render_inside()}
     </span>
   );
   if (props.no_tooltip) {

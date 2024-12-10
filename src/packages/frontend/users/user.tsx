@@ -95,7 +95,7 @@ export function User(props: Props) {
     info = info.toJS();
     const n = name(info);
     return (
-      <span style={style}>
+      <span style={{ ...style, display: "flex", alignItems: "center" }}>
         {props.show_avatar && (
           <>
             <Avatar
