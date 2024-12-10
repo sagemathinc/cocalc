@@ -80,14 +80,6 @@ function StripeAddressElement({ style, onFinished }: { style?; onFinished? }) {
           theme: "stripe",
         },
         loader: "never",
-        fields: {
-          phone: "always",
-        },
-        validation: {
-          phone: {
-            required: "never",
-          },
-        },
       }}
       stripe={loadStripe()}
     >
