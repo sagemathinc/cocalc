@@ -29,6 +29,7 @@ import getAccountId from "lib/account/get-account";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 import { LineItemsTable } from "@cocalc/frontend/purchases/line-items";
+import A from "components/misc/A";
 
 const STYLE = { margin: "30px auto", maxWidth: "750px", fontSize: "14pt" };
 
@@ -167,7 +168,7 @@ function Dialog({
 }
 
 function HandleToken({ token }) {
-  const { calling, result, error, call } = useAPI("token-action", { token });
+  const { calling, result, error } = useAPI("token-action", { token });
 
   return (
     <div>
@@ -178,16 +179,16 @@ function HandleToken({ token }) {
       )}
       {error && <Alert showIcon style={STYLE} type="error" message={error} />}
       {!calling && result != null && !error && (
-        <RenderResult data={result.data} call={call} />
+        <RenderResult data={result.data} />
       )}
     </div>
   );
 }
 
-function RenderResult({ data, call }) {
+function RenderResult({ data }) {
   const [finishedPaying, setFinishedPaying] = useState<boolean>(false);
 
-  if (data?.pay != null) {
+  if (data?.pay != null && !finishedPaying) {
     return (
       <Card style={STYLE} title="Make a Payment">
         <div>
@@ -196,10 +197,6 @@ function RenderResult({ data, call }) {
             {...data.pay}
             onFinished={() => {
               setFinishedPaying(true);
-              call();
-              // wait a little then check again to see if the payment went through.
-              // if not user should see a message about processing.
-              setTimeout(call, 5000);
             }}
           />
         </div>
@@ -211,7 +208,13 @@ function RenderResult({ data, call }) {
         showIcon
         style={STYLE}
         type="success"
-        message="Thank you."
+        message={
+          <>
+            Thank you for your payment! Please visit{" "}
+            <A href="/settings/payments">the payments page</A> to ensure your
+            payment is completed successfully and download a receipt.
+          </>
+        }
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

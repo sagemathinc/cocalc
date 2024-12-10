@@ -469,7 +469,7 @@ function InvoiceLink({ invoice }) {
       type="link"
       target="_blank"
     >
-      <Icon name="external-link" /> Invoice{" "}
+      <Icon name="external-link" /> Invoice and Receipt{" "}
       {isExpired ? " (expired)" : undefined}
     </Button>
   );
