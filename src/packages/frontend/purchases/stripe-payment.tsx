@@ -56,7 +56,7 @@ export default function StripePayment({
 }: {
   description?: string;
   lineItems?: LineItem[];
-  purpose?: string;
+  purpose: string;
   metadata?: { [key: string]: string };
   // onFinished gets called with the total (before taxes) once purchase is confirmed by user
   //   - this means the paymentIntent was created when total > 0

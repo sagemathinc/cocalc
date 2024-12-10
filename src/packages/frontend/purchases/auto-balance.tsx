@@ -77,33 +77,33 @@ export function AutoBalanceModal({ onClose }) {
   } | null>(null);
   const [form] = Form.useForm();
 
-  const setDefaults = (which: "min" | "max" | "default") => {
-    let value;
-    if (which == "default") {
-      value = {
-        trigger: AUTOBALANCE_DEFAULTS.trigger,
-        amount: AUTOBALANCE_DEFAULTS.amount,
-        max_day: AUTOBALANCE_DEFAULTS.max_day,
-        max_week: AUTOBALANCE_DEFAULTS.max_week,
-        max_month: AUTOBALANCE_DEFAULTS.max_month,
-        period: AUTOBALANCE_DEFAULTS.period,
-        enabled: AUTOBALANCE_DEFAULTS.enabled,
-      };
-    } else {
-      const i = which == "min" ? 0 : 1;
-      value = {
-        trigger: AUTOBALANCE_RANGES.trigger[i],
-        amount: AUTOBALANCE_RANGES.amount[i],
-        max_day: AUTOBALANCE_RANGES.max_day[i],
-        max_week: AUTOBALANCE_RANGES.max_week[i],
-        max_month: AUTOBALANCE_RANGES.max_month[i],
-        period: AUTOBALANCE_DEFAULTS.period,
-        enabled: AUTOBALANCE_DEFAULTS.enabled,
-      };
-    }
-    setValue(value);
-    form.setFieldsValue(value);
-  };
+  //   const setDefaults = (which: "min" | "max" | "default") => {
+  //     let value;
+  //     if (which == "default") {
+  //       value = {
+  //         trigger: AUTOBALANCE_DEFAULTS.trigger,
+  //         amount: AUTOBALANCE_DEFAULTS.amount,
+  //         max_day: AUTOBALANCE_DEFAULTS.max_day,
+  //         max_week: AUTOBALANCE_DEFAULTS.max_week,
+  //         max_month: AUTOBALANCE_DEFAULTS.max_month,
+  //         period: AUTOBALANCE_DEFAULTS.period,
+  //         enabled: AUTOBALANCE_DEFAULTS.enabled,
+  //       };
+  //     } else {
+  //       const i = which == "min" ? 0 : 1;
+  //       value = {
+  //         trigger: AUTOBALANCE_RANGES.trigger[i],
+  //         amount: AUTOBALANCE_RANGES.amount[i],
+  //         max_day: AUTOBALANCE_RANGES.max_day[i],
+  //         max_week: AUTOBALANCE_RANGES.max_week[i],
+  //         max_month: AUTOBALANCE_RANGES.max_month[i],
+  //         period: AUTOBALANCE_DEFAULTS.period,
+  //         enabled: AUTOBALANCE_DEFAULTS.enabled,
+  //       };
+  //     }
+  //     setValue(value);
+  //     form.setFieldsValue(value);
+  //   };
 
   useEffect(() => {
     setValue({
@@ -325,7 +325,7 @@ export function AutoBalanceModal({ onClose }) {
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
         <Space>
           {/*<Button onClick={() => setDefaults("min")}>Min</Button> */}
-          <Button onClick={() => setDefaults("default")}>Defaults</Button>
+          {/* <Button onClick={() => setDefaults("default")}>Defaults</Button> */}
           {/* <Button onClick={() => setDefaults("max")}>Max</Button> */}
           <Button disabled={!changed || saving} onClick={save} type="primary">
             Save Changes{" "}

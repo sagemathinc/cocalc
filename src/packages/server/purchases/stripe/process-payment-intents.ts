@@ -295,6 +295,7 @@ ${await support()}`;
           account_id,
           payment_intent: paymentIntent.id,
           amount,
+          credit_id,
           cart_ids:
             paymentIntent.metadata.cart_ids != null
               ? JSON.parse(paymentIntent.metadata.cart_ids)
@@ -307,6 +308,7 @@ ${await support()}`;
           account_id,
           project_id: paymentIntent.metadata.project_id,
           amount,
+          credit_id,
         });
       } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
         reason = `renew a subscription (id=${paymentIntent.metadata.subscription_id})`;

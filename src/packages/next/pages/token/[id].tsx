@@ -197,6 +197,9 @@ function RenderResult({ data, call }) {
             onFinished={() => {
               setFinishedPaying(true);
               call();
+              // wait a little then check again to see if the payment went through.
+              // if not user should see a message about processing.
+              setTimeout(call, 5000);
             }}
           />
         </div>
@@ -208,7 +211,7 @@ function RenderResult({ data, call }) {
         showIcon
         style={STYLE}
         type="success"
-        message="Success! Thank you very much."
+        message="Thank you."
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

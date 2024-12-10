@@ -3,6 +3,7 @@ Page that you show user after they start a purchase and are waiting
 for the payment to be completed and items to be allocated.
 */
 
+import A from "components/misc/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { Alert, Button, Divider, Spin, Table } from "antd";
 import Loading from "components/share/loading";
@@ -161,8 +162,9 @@ export default function Processing() {
             style={{ margin: "30px auto", maxWidth: "700px" }}
             message="Thank you"
             description=<>
-              Your items should be allocated soon, or in case you canceled your
-              payment, put back in your shopping cart.
+              Your items should be allocated soon{" "}
+              <A href="/store/congrats">(check the Congrats tab)</A>, or in case
+              you canceled your payment, put back in your shopping cart.
             </>
           />
         )}

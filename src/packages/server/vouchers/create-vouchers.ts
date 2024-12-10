@@ -47,6 +47,7 @@ interface Options {
     prefix?: string;
     postfix?: string;
   };
+  credit_id?: number;
 }
 
 export default async function createVouchers({
@@ -60,6 +61,7 @@ export default async function createVouchers({
   cancelBy,
   title,
   generate,
+  credit_id,
 }: Options): Promise<{
   id: string;
   codes: string[];
@@ -73,6 +75,7 @@ export default async function createVouchers({
     expire,
     title,
     generate,
+    credit_id,
   });
   if (!count || count < 1 || !isFinite(count)) {
     throw Error("count must be a positive integer");
@@ -165,6 +168,7 @@ export default async function createVouchers({
         cost: amount,
         title,
         voucher_id: id,
+        credit_id,
       } as const;
       log.debug("charging user; description =", description);
       const purchase_id = await createPurchase({

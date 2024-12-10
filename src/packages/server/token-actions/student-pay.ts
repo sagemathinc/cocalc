@@ -11,7 +11,11 @@ import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 
-export async function studentPay(_token, description, account_id): Promise<any> {
+export async function studentPay(
+  _token,
+  description,
+  account_id,
+): Promise<any> {
   if (description.due > 0) {
     return {
       type: "create-credit",
@@ -43,10 +47,26 @@ export async function extraInfo(description: Description, account_id?: string) {
   const projectLink = `[${title}](/projects/${description.project_id})`;
   const cost = getCost(course.payInfo);
   if (course.paid || description.paid) {
+    // Yeah, it's fully paid!
     return {
       ...description,
       title: "Pay Course Fee",
       details: `The ${currency(cost, 2)} course fee for the project ${projectLink} has already been paid. Thank you!`,
+      okText: "",
+      cancelText: "Close",
+      icon: "graduation-cap",
+    };
+  }
+  if (course.payment_intent_id) {
+    // Payment started, but it didn't succeed or finish.  Could have started 1 second ago.
+    return {
+      ...description,
+      title: "Pay Course Fee",
+      details: `The ${currency(cost, 2)} course fee for the project ${projectLink} is being processed.
+
+- Refresh this page to see the latest status.
+
+- [Browse all recent payments.](/settings/payments)`,
       okText: "",
       cancelText: "Close",
       icon: "graduation-cap",
@@ -88,10 +108,11 @@ export async function extraInfo(description: Description, account_id?: string) {
       amount: cost,
     });
   }
-  if (balance > 0) {
+  const balanceAmount = Math.min(0, -decimalSubtract(cost, due));
+  if (balanceAmount > 0) {
     lineItems.push({
       description: "Apply account balance toward course fee",
-      amount: Math.min(0, -decimalSubtract(cost, due)),
+      amount: balanceAmount,
     });
   }
 

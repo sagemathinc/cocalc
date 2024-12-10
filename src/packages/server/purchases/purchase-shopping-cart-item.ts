@@ -79,6 +79,7 @@ const logger = getLogger("purchases:purchase-shopping-cart-item");
 export default async function purchaseShoppingCartItem(
   item,
   client: PoolClient,
+  credit_id?: number,
 ) {
   logger.debug("purchaseShoppingCartItem", item);
   // just a little sanity check.
@@ -86,9 +87,9 @@ export default async function purchaseShoppingCartItem(
     throw Error(`invalid account_id - ${item.account_id}`);
   }
   if (item.product == "site-license") {
-    await purchaseLicenseShoppingCartItem(item, client);
+    await purchaseLicenseShoppingCartItem(item, client, credit_id);
   } else if (item.product == "cash-voucher") {
-    await purchaseVoucherShoppingCartItem(item, client);
+    await purchaseVoucherShoppingCartItem(item, client, credit_id);
   } else {
     throw Error(`unknown product type '${item.product}'`);
   }
@@ -98,7 +99,11 @@ export default async function purchaseShoppingCartItem(
   Licenses
  ***/
 
-async function purchaseLicenseShoppingCartItem(item, client: PoolClient) {
+async function purchaseLicenseShoppingCartItem(
+  item,
+  client: PoolClient,
+  credit_id?: number,
+) {
   logger.debug("purchaseLicenseShoppingCartItem", item);
   if (item.product != "site-license") {
     throw Error("product type must be 'site-license'");
@@ -119,7 +124,7 @@ async function purchaseLicenseShoppingCartItem(item, client: PoolClient) {
     cost: round2up(licenseCost.cost),
     unrounded_cost: licenseCost.cost,
     service: "license",
-    description: { type: "license", item, info, license_id },
+    description: { type: "license", item, info, license_id, credit_id },
     tag: "license-purchase",
     period_start: info.start,
     period_end: info.end,
@@ -215,12 +220,17 @@ export async function addLicenseToProjectAndRestart(
   Vouchers
  ***/
 
-async function purchaseVoucherShoppingCartItem(item, client: PoolClient) {
+async function purchaseVoucherShoppingCartItem(
+  item,
+  client: PoolClient,
+  credit_id?: number,
+) {
   logger.debug("purchaseVoucherShoppingCartItem", item);
   const { description } = item;
   if (description.type != "cash-voucher") {
     throw Error("product type must be 'cash-voucher'");
   }
+  description.credit_id = credit_id;
 
   await createVouchers({
     ...description,

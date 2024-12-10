@@ -3,7 +3,6 @@ Purchases
 
 NOTES:
 
-
 - cost is by definition how much the thing costs the customer, e.g., -10 means a credit of $10.
 - amount is by definition the negative of cost.
 
@@ -135,6 +134,10 @@ export interface License {
   license_id: string;
   item?; // item in shopping cart
   course?: CourseInfo;
+  // if this license was bought using credit that was added, then record the id of that transaction here.
+  // it's mainly "psychological", but often money is added specifically to buy a license, and it is good
+  // to keep track of that flow.
+  credit_id?: number;
 }
 
 export interface Voucher {
@@ -143,6 +146,7 @@ export interface Voucher {
   cost: number; // per voucher
   title: string;
   voucher_id: number;
+  credit_id?: number;
 }
 
 export interface EditLicense {

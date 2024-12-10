@@ -44,12 +44,18 @@ interface Options {
   // enough to cover the purchase -- irregardless of possible negative balance --
   // we always allow the purchase.
   amount?: number;
+
+  // noted when creating the actual purchase of the license, assuming some
+  // specific credit was added to the account for this purpose (which may or may not
+  // be the case, obviously)
+  credit_id?: number;
 }
 
 export default async function studentPay({
   account_id,
   project_id,
   amount,
+  credit_id,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
@@ -75,8 +81,8 @@ export default async function studentPay({
     const { title, description } = rows[0];
     const purchaseInfo = {
       ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
-      title,
-      description,
+      title: `Course License for ${title}`,
+      description: `License for the course "${title}".\n\n${description?.trim() != "No description" ? description : ""}`,
     };
     if (purchaseInfo.type != "quota") {
       // typescript wants this
@@ -128,6 +134,7 @@ export default async function studentPay({
         license_id,
         info: purchaseInfo,
         course: currentCourse,
+        credit_id,
       },
       client,
     });
