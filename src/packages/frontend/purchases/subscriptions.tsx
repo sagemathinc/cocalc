@@ -63,13 +63,7 @@ import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 import { SubscriptionStatus } from "./subscriptions-util";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
-
-// Cancel immediately makes it pointless to ever buy a license without
-// buying a subscription, since you can just buy a license via a subscription,
-// get a big discount, and cancel exactly at the end of the period. Hence
-// disabling this for now, unless we come up with something better.  This
-// flag can be toggled to turn the functionality back on.
-const SUPPORT_CANCEL_IMMEDIATELY = false;
+import getSupportURL from "@cocalc/frontend/support/url";
 
 function SubscriptionActions({
   subscription_id,
@@ -172,6 +166,20 @@ function SubscriptionActions({
 
   const footer = [
     <Button
+      key="support"
+      type="link"
+      style={{ marginRight: "50px" }}
+      href={getSupportURL({
+        body: `I have a question about Subscription Id=${subscription_id}.\n\n`,
+        subject: `Question about Subscription Id=${subscription_id}`,
+        type: "question",
+        hideExtra: true,
+      })}
+      target="_blank"
+    >
+      <Icon name="medkit" /> Support
+    </Button>,
+    <Button
       disabled={loading}
       key="nothing"
       onClick={() => setModalOpen(false)}
@@ -193,10 +201,11 @@ function SubscriptionActions({
             }
           />
           <br />
-          <Input
+          <Input.TextArea
+            rows={4}
             style={{ width: "100%", margin: "15px 0" }}
             onChange={(e) => (reasonRef.current = e.target.value)}
-            placeholder={"Why are you canceling this subscription..."}
+            placeholder={"Tell us why..."}
           />
         </div>
       }
@@ -262,23 +271,15 @@ function SubscriptionActions({
             license will not be renewed.
             <ul style={{ margin: "15px 0" }}>
               <li>
+                Instead of cancelling, <b>you can edit your license</b>, which
+                will change the subscription price. Click the license code to
+                the left, then click "Edit License".
+              </li>
+              <li>
                 Select "Cancel at Period End" to cancel your subscription. You
                 have already paid for your license, so it will continue to the
                 end of the current period.
               </li>
-              <li>
-                You can always edit the license, which will change the
-                subscription price. Click the license code to the left, then
-                click "Edit License..."
-              </li>
-              {SUPPORT_CANCEL_IMMEDIATELY && (
-                <li>
-                  To receive a prorated credit for the remainder of this
-                  license, select "Cancel Now". You can spend your
-                  non-refundable credit on another license, pay-as-you-go
-                  project upgrades, etc.
-                </li>
-              )}
               <li>You can resume a canceled subscription later.</li>
             </ul>
             {license?.info?.purchased.type == "disk" && (
@@ -308,20 +309,24 @@ function SubscriptionActions({
             return (
               <div style={{ maxWidth: "450px" }}>
                 {costToResume == 0 ? (
-                  <b>
-                    There is no charge to resume your subscription, since your
-                    license is still active.
-                  </b>
+                  <>
+                    <b>There is no charge</b> to resume your subscription, since
+                    your license is still active. Your subscription will resume
+                    at the current rate, which is
+                    {currency(round2up(periodicCost))}/{interval}.
+                  </>
                 ) : (
-                  <b>
-                    To resume your subscription, you will be charged{" "}
-                    {currency(round2up(periodicCost))} for the next {interval}.
-                  </b>
+                  <>
+                    To resume your subscription,{" "}
+                    <b>
+                      you will be charged the current rate of{" "}
+                      {currency(round2up(periodicCost))}
+                    </b>{" "}
+                    for the next {interval}.
+                  </>
                 )}{" "}
-                The current subscription rate is{" "}
-                {currency(round2up(periodicCost))}/{interval}. You will be
-                billed each {interval} {RENEW_DAYS_BEFORE_END} days before the
-                license would expire.
+                You will be billed each {interval} {RENEW_DAYS_BEFORE_END} days
+                before the license would expire.
               </div>
             );
           }}
@@ -344,7 +349,14 @@ function LicenseDescription({ license_id, refresh }) {
       items={[
         {
           key: "license",
-          label: `License: ${license_id}`,
+          label: (
+            <Flex>
+              <Icon name="key" style={{ marginRight: "15px" }} /> License Id:{" "}
+              {license_id}
+              <div style={{ flex: 1 }} />
+              <div>(expand to edit)</div>
+            </Flex>
+          ),
           children: (
             <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
           ),
@@ -445,7 +457,7 @@ export default function Subscriptions() {
         render: (_, subscription) => {
           return (
             <Button onClick={() => setCurrent(subscription)}>
-              <Icon name="external-link" />
+              <Icon name="expand" />
             </Button>
           );
         },
@@ -459,13 +471,14 @@ export default function Subscriptions() {
         width: "40%",
         title: "Description",
         key: "desc",
-        render: (_, { metadata }) => {
+        render: (_, subscription) => {
+          const { metadata } = subscription;
           if (metadata.type == "license" && metadata.license_id) {
             return (
-              <LicenseDescription
-                license_id={metadata.license_id}
-                refresh={getSubscriptions}
-              />
+              <Button onClick={() => setCurrent(subscription)}>
+                <Icon name="key" style={{ marginRight: "15px" }} />
+                License Id: {metadata.license_id}
+              </Button>
             );
           }
           return <>{JSON.stringify(metadata, undefined, 2)}</>;

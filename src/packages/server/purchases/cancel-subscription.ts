@@ -1,5 +1,6 @@
 import getPool, { PoolClient } from "@cocalc/database/pool";
-import send, { support, url } from "@cocalc/server/messages/send";
+import send, { support, url, name } from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 interface Options {
   account_id: string;
@@ -41,11 +42,11 @@ export async function sendCancelNotification({
   }
   const { account_id, canceled_reason } = rows[0];
 
-  const subject = `Subscription (id=${subscription_id}) Canceled`;
+  const subject = `Subscription Id=${subscription_id} Canceled`;
   const body = `
 This is a confirmation that your subscription (id=${subscription_id}) was canceled.
 
-**REASON:** ${canceled_reason}
+**REASON:** ${JSON.stringify(canceled_reason)}
 
 You can easily [resume or edit this subscription at any time](${await url(`/settings/subscriptions#id=${subscription_id}`)}).
 
@@ -56,5 +57,17 @@ ${await support()}
     to_ids: [account_id],
     subject,
     body,
+  });
+
+  adminAlert({
+    subject: `Alert -- User Subscription Id=${subscription_id} was Canceled`,
+    body: `
+- User: ${await name(account_id)}, account_id=${account_id}
+
+- User provided reason: "${JSON.stringify(canceled_reason)}"
+
+- subscription_id=${subscription_id}
+
+`,
   });
 }

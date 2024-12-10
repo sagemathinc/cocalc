@@ -131,6 +131,8 @@ export default function EditLicense({ license_id, refresh }: Props) {
     <div>
       <Divider orientation="left">
         <Button
+          size="large"
+          type="primary"
           disabled={loading}
           onClick={() => {
             if (license) {
@@ -140,7 +142,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
             }
           }}
         >
-          <Icon name="pencil" /> Edit{license != null ? "ing" : ""} License...{" "}
+          <Icon name="pencil" /> Edit{license != null ? "ing" : ""} License{" "}
           {loading && <Spin />}
         </Button>
       </Divider>
@@ -219,7 +221,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                       {currency(-cost)}
                     </>
                   )}
-                  {cost == 0 && <>Edit license below -- no charge right now</>}
+                  {cost == 0 && <>Edit license below</>}
                   {makingChange && <Spin style={{ marginLeft: "15px" }} />}
                 </Button>
               </Tooltip>

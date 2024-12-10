@@ -612,7 +612,7 @@ function DetailedPurchaseTable({
               render: (_, purchase) => {
                 return (
                   <Button onClick={() => setCurrent(purchase)}>
-                    <Icon name="external-link" />
+                    <Icon name="expand" />
                   </Button>
                 );
               },

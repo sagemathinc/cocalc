@@ -53,12 +53,16 @@ export default async function adminAlert({
   subject,
   body = "",
   errorOnFail,
+  stackTrace,
 }: {
   subject: string;
   body?: any;
   errorOnFail?: boolean;
+  stackTrace?: boolean;
 }) {
-  const stack = getStackTrace();
+  const stack = stackTrace
+    ? "\n\n---\n" + "```js\n" + getStackTrace() + "\n```\n"
+    : "";
   try {
     logger.debug("mesg", { subject, body });
     const to_ids = await getAdmins();
@@ -70,7 +74,7 @@ export default async function adminAlert({
     const from_id = support_account_id ? support_account_id : to_ids[0];
     await send({
       subject: `Admin Alert - ${subject}`,
-      body: toString(body) + "\n\n---\n" + "```js\n" + stack + "\n```\n",
+      body: toString(body) + stack,
       from_id,
       to_ids,
     });
