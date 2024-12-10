@@ -71,7 +71,7 @@ export default function Payments({
     reset,
   }: { init?: boolean; reset?: boolean } = {}) => {
     const now = Date.now();
-    if (now - lastLoadRef.current < 500) {
+    if (now - lastLoadRef.current < 3000) {
       return;
     }
     lastLoadRef.current = now;

@@ -27,7 +27,7 @@ const THROTTLE = {
   },
   "purchases/stripe/get-payments": {
     second: 3,
-    minute: 15,
+    minute: 20,
     hour: 150,
   },
   "purchases/stripe/get-customer-session": {
