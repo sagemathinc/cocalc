@@ -119,6 +119,11 @@ export default function AccountNavTab({ style }: Props) {
         "credit-card",
       ),
       menuItem(
+        "payment-methods",
+        <A href="/settings/payment-methods">Payment Methods</A>,
+        "credit-card",
+      ),
+      menuItem(
         "statements",
         <A href="/settings/statements">Statements</A>,
         "calendar-week",

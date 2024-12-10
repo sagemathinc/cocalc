@@ -29,6 +29,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
 import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
+import PaymentMethodsPage from "@cocalc/frontend/purchases/payment-methods-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -153,6 +154,15 @@ export const AccountPage: React.FC = () => {
           </span>
         ),
         children: active_page === "payments" && <PaymentsPage />,
+      });
+      items.push({
+        key: "payment-methods",
+        label: (
+          <span>
+            <Icon name="credit-card" /> Payment Methods
+          </span>
+        ),
+        children: active_page === "payment-methods" && <PaymentMethodsPage />,
       });
       items.push({
         key: "statements",
