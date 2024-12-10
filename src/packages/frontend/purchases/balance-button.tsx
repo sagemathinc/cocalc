@@ -4,6 +4,7 @@ import { getBalance as getBalanceUsingApi } from "./api";
 import { currency, round2down } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import BalanceModal from "@cocalc/frontend/purchases/balance-modal";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export default function BalanceButton({
   style,
@@ -31,6 +32,10 @@ export default function BalanceButton({
   };
 
   const handleRefresh = async () => {
+    if (!webapp_client.account_id) {
+      // not signed in.
+      return;
+    }
     try {
       onRefresh?.();
       setLoading(true);
