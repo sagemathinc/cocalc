@@ -1,14 +1,25 @@
 import { Input } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { debounce } from "lodash";
 
 export default function Search({ filter }) {
   const [value, setValue] = useState<string>("");
-  const search = (query) => {
-    setValue(query);
-    const actions = redux.getActions("messages");
-    actions?.search(query);
-  };
+  const search = useMemo(() => {
+    return debounce(
+      (query) => {
+        const actions = redux.getActions("messages");
+        actions?.search(query);
+      },
+      250,
+      {
+        // leading=false, since as soon as you stop your burst of typing,
+        // the index gets built which blocks CPU until done
+        leading: false,
+        trailing: true,
+      },
+    );
+  }, []);
 
   useEffect(() => {
     // reset on mount
@@ -34,6 +45,7 @@ export default function Search({ filter }) {
       placeholder="Search messages..."
       onSearch={() => search(value)}
       onChange={(e) => {
+        setValue(e.target.value);
         search(e.target.value);
       }}
     />

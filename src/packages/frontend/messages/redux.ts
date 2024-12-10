@@ -24,7 +24,7 @@ import {
   participantsInThread,
   excludeSelfUnlessAlone,
 } from "./util";
-import { debounce, throttle } from "lodash";
+import { debounce } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 import { BITSET_FIELDS } from "@cocalc/util/db-schema/messages";
 import { once } from "@cocalc/util/async-utils";
@@ -386,30 +386,26 @@ Body: ${message.get("body")}
     },
   );
 
-  search = throttle(
-    async (query: string) => {
-      if (!query.trim()) {
-        // easy special case
-        this.setState({ search: new Set(), searchWords: new Set() });
-        return;
-      }
-      // used for highlighting
-      const searchWords = new Set(
-        search_split(query, false).filter((x) => typeof x == "string"),
-      );
-      this.setState({ searchWords });
-      // update search index, if necessary
-      await this.updateSearchIndex();
-      // the matching results
-      const search = new Set(await this.searchIndex.filter(query));
-      this.setState({ search });
+  search = async (query: string) => {
+    if (!query.trim()) {
+      // easy special case
+      this.setState({ search: new Set(), searchWords: new Set() });
+      return;
+    }
+    // used for highlighting
+    const searchWords = new Set(
+      search_split(query, false).filter((x) => typeof x == "string"),
+    );
+    this.setState({ searchWords });
+    // update search index, if necessary
+    await this.updateSearchIndex();
+    // the matching results
+    const search = new Set(await this.searchIndex.filter(query));
+    this.setState({ search });
 
-      // change folder if necessary
-      this.redux.getActions("mentions").set_filter("messages-search");
-    },
-    300,
-    { leading: true, trailing: true },
-  );
+    // change folder if necessary
+    this.redux.getActions("mentions").set_filter("messages-search");
+  };
 
   setFontSize = (fontSize: number) => {
     fontSize = Math.max(5, Math.min(fontSize, 100));
