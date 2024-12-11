@@ -3,14 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-//TODO: Make useable without passing in user_map
-
-import { redux } from "../app-framework";
-import { Gap, TimeAgo, Tip } from "../components";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Gap, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";
-import { Avatar } from "../account/avatar/avatar";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 
 interface Props {
   account_id: string;
@@ -25,7 +23,23 @@ interface Props {
   trunc?: number;
 }
 
+// We have to split the component into two like this because
+// it's expensive to invoke the useTypedRedux hook, and we can
+// have a large number of names, in general.
 export function User(props: Props) {
+  if (props.user_map != null) {
+    return <User_map_given {...props} />;
+  } else {
+    return <User_nomap {...props} />;
+  }
+}
+
+function User_nomap(props: Props) {
+  const user_map = useTypedRedux("users", "user_map");
+  return <User_map_given {...props} user_map={user_map} />;
+}
+
+function User_map_given(props: Props) {
   function render_last_active() {
     if (props.last_active) {
       return (
@@ -75,8 +89,8 @@ export function User(props: Props) {
 
   const { addonAfter, style } = props;
 
-  const user_map = props.user_map ?? redux.getStore("users").get("user_map");
-  if (user_map == null || user_map.size === 0) {
+  const user_map = props.user_map;
+  if (user_map == null) {
     return <span style={style}>Loading...{addonAfter}</span>;
   }
   let info = user_map?.get(props.account_id);
