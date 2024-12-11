@@ -95,25 +95,27 @@ export function User(props: Props) {
     info = info.toJS();
     const n = name(info);
     return (
-      <span style={{ ...style, display: "flex", alignItems: "center" }}>
-        {props.show_avatar && (
-          <>
-            <Avatar
-              account_id={props.account_id}
-              first_name={n}
-              size={props.avatarSize}
-              no_tooltip={
-                true /* the tooltip just shows the name which is annoying/redundant since we are showing the name here anyways */
-              }
-              no_loading
-            />
-            <Gap />
-          </>
-        )}
-        {n}
-        {render_original(info)}
-        {render_last_active()}
-        {addonAfter}
+      <span style={{ ...style, display: "inline-block" }}>
+        <span style={{ display: "flex", alignItems: "center" }}>
+          {props.show_avatar && (
+            <>
+              <Avatar
+                account_id={props.account_id}
+                first_name={n}
+                size={props.avatarSize}
+                no_tooltip={
+                  true /* the tooltip just shows the name which is annoying/redundant since we are showing the name here anyways */
+                }
+                no_loading
+              />
+              <Gap />
+            </>
+          )}
+          {n}
+          {render_original(info)}
+          {render_last_active()}
+          {addonAfter}
+        </span>
       </span>
     );
   }

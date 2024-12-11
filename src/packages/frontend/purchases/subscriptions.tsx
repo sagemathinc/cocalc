@@ -143,6 +143,7 @@ function SubscriptionActions({
     }
   };
 
+  // this is NOT exposed in the UI right now, in the interest of simplicity:
   const handleRenewSubscription = async () => {
     try {
       setLoading(true);
