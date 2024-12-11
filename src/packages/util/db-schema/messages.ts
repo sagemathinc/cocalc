@@ -15,7 +15,7 @@ A message has a subject and body.
 
 When it is read can be set, and a message can also be saved for later.
 
-That's it!  This is meant to be just enough to support things like:
+That's it!  This is meant to be just enough to support things liked:
 
  - the system sending messages to users, e.g., reminds about notification
  - a user replying and sending a message to the system (which admins could see).
@@ -80,6 +80,7 @@ export interface MessageMe extends Message0 {
   read?: boolean;
   saved?: boolean;
   starred?: boolean;
+  liked?: boolean;
   deleted?: boolean;
   expire?: boolean;
 }
@@ -90,6 +91,7 @@ export const BITSET_FIELDS = [
   "read",
   "saved",
   "starred",
+  "liked",
   "deleted",
   "expire",
 ] as const;
@@ -107,7 +109,7 @@ export interface ApiMessagesGet {
   // received = all messages to you (the default)
   // sent = all messages you sent
   // new = to you and not read or saved -- these are what the counter counts
-  type?: "received" | "sent" | "new" | "starred";
+  type?: "received" | "sent" | "new" | "starred" | "liked";
   cutoff?: Date;
 }
 
@@ -184,6 +186,11 @@ Table({
       pg_type: "bit varying",
       desc: "Users that starred this message so they can easily find it later",
     },
+    liked: {
+      type: "string",
+      pg_type: "bit varying",
+      desc: "Users liked this message, indicate to sender and other uses that is good. Thumbs up.",
+    },
     deleted: {
       type: "string",
       pg_type: "bit varying",
@@ -217,6 +224,7 @@ Table({
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },
@@ -227,6 +235,7 @@ Table({
           read: true,
           saved: true,
           starred: true,
+          liked: true,
           deleted: true,
           expire: true,
         },
@@ -332,6 +341,7 @@ Table({
           thread_id: true,
           saved: true,
           starred: true,
+          liked: true,
           read: true,
           deleted: true,
           expire: true,

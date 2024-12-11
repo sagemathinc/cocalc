@@ -11,6 +11,8 @@ import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
+  isToMe,
+  isFromMe,
   isDeleted,
   isDraft,
   get,
@@ -77,6 +79,7 @@ export class MessagesActions extends Actions<MessagesState> {
     read?: boolean;
     saved?: boolean;
     starred?: boolean;
+    liked?: boolean;
     deleted?: boolean;
     expire?: boolean;
   }) => {
@@ -101,6 +104,11 @@ export class MessagesActions extends Actions<MessagesState> {
         if (message != null) {
           table.set(setMessage({ message, obj }));
           changed_table = true;
+        }
+
+        if (obj.liked && isToMe(message) && isFromMe(message)) {
+          // ensure like is only set once in this case.
+          obj = { ...obj, liked: false };
         }
 
         message = sent_table.get_one(`${id}`);
@@ -439,6 +447,7 @@ class MessagesTable extends Table {
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },
@@ -480,6 +489,7 @@ class SentMessagesTable extends Table {
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },

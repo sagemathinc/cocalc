@@ -27,6 +27,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Read from "./read";
 import Star from "./star";
+import Like from "./like";
 import useCommand from "./use-command";
 
 const LEFT_OFFSET = "46px";
@@ -118,6 +119,8 @@ function MessageInList({
             flex: inThread ? 1 : 0.5,
             marginRight: "10px",
             fontSize,
+            display: "flex",
+            alignItems: "center",
             ...(!inThread
               ? {
                   textOverflow: "ellipsis",
@@ -137,6 +140,8 @@ function MessageInList({
             width: "45px",
             textAlign: "right",
             marginRight: "10px",
+            display: "flex",
+            alignItems: "center",
           }}
         >
           {message.thread_id != null && threads != null && !inThread && (
@@ -178,6 +183,8 @@ function MessageInList({
             textOverflow: "ellipsis",
             overflow: "hidden",
             whiteSpace: "pre",
+            display: "flex",
+            alignItems: "center",
           }}
         >
           <Tooltip
@@ -204,6 +211,22 @@ function MessageInList({
             threads={threads}
             inThread={inThread}
             style={{ margin: "0 0 0 5px" }}
+          />
+        )}
+        {inThread && (
+          <Like
+            focused={focused}
+            message={message}
+            threads={threads}
+            inThread={inThread}
+          />
+        )}
+        {!inThread && (
+          <Like
+            focused={focused}
+            message={message}
+            threads={threads}
+            inThread={inThread}
           />
         )}
         {SHOW_ID && (
@@ -280,7 +303,7 @@ function MessageFull({
   const readRef = useRef<boolean>(read);
   const searchWords = useTypedRedux("messages", "searchWords");
   const fontSize = useTypedRedux("messages", "fontSize");
-  
+
   useEffect(() => {
     setFragment({ folder, id: message.id });
   }, [folder, message.id]);
@@ -424,6 +447,15 @@ function MessageFull({
           inThread={true}
           style={{ marginLeft: "10px" }}
         />
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Like
+            focused={focused}
+            message={message}
+            threads={threads}
+            inThread={true}
+            style={{ marginTop: "-2px" }}
+          />
+        </div>
         {SHOW_ID && (
           <div
             style={{
@@ -549,7 +581,8 @@ function SelectConversation({ setChecked, checked, focused }) {
           width: "40px",
           paddingLeft: "10px",
           marginLeft: "-10px",
-          marginTop: "2px",
+          display: "flex",
+          alignItems: "center",
         } /* This div is because for some reason it is easy to slightly miss
                the checkbox when clicking and open the thread, which is just
                annoying. So we make clicking next to the checkbox a little also work

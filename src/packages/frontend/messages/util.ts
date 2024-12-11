@@ -53,7 +53,8 @@ export function isInFolderThreaded({
       folder == "sent" ||
       folder == "drafts" ||
       folder == "search" ||
-      folder == "starred"
+      folder == "starred" ||
+      folder == "liked"
     ) {
       // inbox = at least one message in the thread is in inbox
       // sent = at least one message was sent by us
@@ -124,6 +125,9 @@ function isInFolderNotThreaded({
   if (folder == "starred") {
     return isStarred(message);
   }
+  if (folder == "liked") {
+    return isLiked(message);
+  }
 
   const draft = isDraft(message);
 
@@ -158,6 +162,71 @@ export function isRead(message: Mesg) {
 
 export function isStarred(message: Mesg) {
   return getBitField(message, "starred");
+}
+
+export function isLikedByMe(message: Mesg) {
+  return getBitField(message, "liked");
+}
+
+export function isLiked(message: Mesg) {
+  return likeCount({ message, inThread: true, threads: undefined }) > 0;
+}
+
+function countOnes(str: string): number {
+  return str.split("").filter((char) => char === "1").length;
+}
+
+export function likeCount({ message, inThread, threads }): number {
+  if (inThread) {
+    // just this message
+    const b = get(message, "liked");
+    if (!b) {
+      return 0;
+    }
+    return countOnes(b);
+  } else {
+    const thread = getThread({ message, threads });
+    // sum of like counts over messages in the thread
+    let m = 0;
+    for (const mesg of thread) {
+      m += likeCount({ message: mesg, inThread: true, threads });
+    }
+    return m;
+  }
+}
+
+export function likedBy({ message, inThread, threads }): string[] {
+  const from_id = get(message, "from_id");
+  let to_ids = get(message, "to_ids") ?? [];
+  if (iList.isList(to_ids)) {
+    to_ids = to_ids.toJS();
+  }
+  const account_ids = new Set<string>();
+  if (inThread) {
+    // just this message
+    const b = get(message, "liked") ?? "";
+    if (b[0] == "1") {
+      account_ids.add(from_id);
+    }
+    for (let i = 1; i < b.length; i++) {
+      if (b[i] == "1") {
+        account_ids.add(to_ids[i - 1]);
+      }
+    }
+  } else {
+    const thread = getThread({ message, threads });
+    // max of like counts over messages in the thread
+    for (const mesg of thread) {
+      for (const account_id of likedBy({
+        message: mesg,
+        inThread: true,
+        threads,
+      })) {
+        account_ids.add(account_id);
+      }
+    }
+  }
+  return Array.from(account_ids);
 }
 
 // true if every single message in the thread is read
