@@ -5,6 +5,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import ReplyButton, { ForwardButton } from "./reply-button";
 import {
+  get,
   isDraft,
   isDeleted,
   isToMe,
@@ -412,7 +413,10 @@ function MessageFull({
               label=""
               focused={focused}
             />
-            <ForwardButton type="text" replyTo={message} replyAll label="" />
+            {/* TODO: this is not exactly correct, since sometimes a user gets added into a thread. But it's harmless. */}
+            {!!get(message, "thread_id") && (
+              <ForwardButton type="text" replyTo={message} replyAll label="" />
+            )}
           </Space>
         </div>
         <div
@@ -456,6 +460,8 @@ function MessageFull({
             style={{ marginTop: "-2px" }}
           />
         </div>
+        {/* helps line things up when viewing a thread in full/collapsed mode */}
+        <div style={{ width: "25px" }} />
         {SHOW_ID && (
           <div
             style={{
@@ -500,7 +506,9 @@ function MessageFull({
                   )}
                   <ReplyButton size="large" replyTo={message} />
                   <ForwardButton size="large" replyTo={message} />
-                  <ForwardButton size="large" replyTo={message} replyAll />
+                  {!!get(message, "thread_id") && (
+                    <ForwardButton size="large" replyTo={message} replyAll />
+                  )}
                 </Space>
               </div>
             )}

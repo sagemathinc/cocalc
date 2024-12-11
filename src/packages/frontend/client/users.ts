@@ -70,7 +70,6 @@ export class UsersClient {
   // get map from account_id to first_name, last_name (or undefined if no account); cached
   // for about a minute client side.
   getNames = reuseInFlight(async (account_ids: string[]) => {
-    console.log("getNames", { account_ids });
     const x: {
       [account_id: string]:
         | { first_name: string; last_name: string }
@@ -85,7 +84,6 @@ export class UsersClient {
       }
     }
     if (v.length > 0) {
-      console.log("api: /accounts/get-names", { v });
       const { names } = await api("/accounts/get-names", { account_ids: v });
       for (const account_id of v) {
         // iterate over v to record accounts that don't exist too

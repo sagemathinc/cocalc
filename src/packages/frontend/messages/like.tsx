@@ -1,13 +1,6 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  isLiked,
-  likeCount,
-  get,
-  getThread,
-  isLikedByMe,
-  likedBy,
-} from "./util";
+import { likeCount, get, isLikedByMe, likedBy } from "./util";
 import type { iThreads } from "./types";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCommand from "./use-command";
@@ -22,22 +15,6 @@ interface Props {
   focused?: boolean;
 }
 
-async function markThread({ message, threads, liked }) {
-  if (liked) {
-    await redux
-      .getActions("messages")
-      .mark({ id: get(message, "id"), liked: true });
-    return;
-  }
-  for (const m of getThread({ message, threads })) {
-    if (isLiked(m)) {
-      await redux
-        .getActions("messages")
-        .mark({ id: get(m, "id"), liked: false });
-    }
-  }
-}
-
 export default function Like({
   message,
   threads,
@@ -48,10 +25,17 @@ export default function Like({
   const count = likeCount({ message, inThread, threads });
   const liked = count > 0;
   const byMe = isLikedByMe(message);
+
+  const toggle = () => {
+    // always just message seems clearest in my testing.  It's so, SO interesting hi "like" and "star" have
+    // very different semantics?!
+    redux.getActions("messages").mark({ id: get(message, "id"), liked: !byMe });
+  };
+
   useCommand({
     ["toggle-like"]: () => {
       if (focused) {
-        markThread({ message, threads, liked: !liked });
+        toggle();
       }
     },
   });
@@ -69,9 +53,8 @@ export default function Like({
       type={byMe ? "dashed" : "text"}
       onClick={(e) => {
         e?.stopPropagation();
-        const liked = !byMe;
-        // always just message
-        redux.getActions("messages").mark({ id: get(message, "id"), liked });
+        toggle();
+        redux.getActions("messages");
       }}
     >
       <span style={{ minWidth: "15px" }}>
