@@ -79,6 +79,7 @@ export default async function getCart({
   }
   const { rows } = await pool.query(query, params);
   await ensureValidLicenseIntervals(rows, pool);
+  console.log({ query, rows });
   return rows as any as Item[];
 }
 
