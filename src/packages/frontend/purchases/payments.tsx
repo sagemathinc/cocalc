@@ -47,6 +47,7 @@ interface Props {
   canceled?: boolean;
   // if given, only show payments with the given purpose
   purpose?: string;
+  limit?: number;
 }
 
 export default function Payments({
@@ -58,6 +59,7 @@ export default function Payments({
   unfinished,
   canceled,
   purpose,
+  limit = DEFAULT_LIMIT,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [hasLoadedMore, setHasLoadedMore] = useState<boolean>(false);
@@ -83,7 +85,7 @@ export default function Payments({
       if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
-          limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
+          limit: hasLoadedMore ? 100 : limit,
           created,
           unfinished,
           canceled,

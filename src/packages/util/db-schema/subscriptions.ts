@@ -46,6 +46,8 @@ export interface Subscription {
   notes?: string;
   cost_per_hour?: number;
   payment?: SubscriptionPayment;
+  // if resuming this is the payment intent
+  resume_payment_intent?: string;
 }
 
 export const STATUS_TO_COLOR = {
@@ -117,6 +119,10 @@ Table({
     payment: {
       type: "map",
       desc: "Data about the most recent payment intent for a subscription. The type is SubscriptionPayment (see typescript above).",
+    },
+    resume_payment_intent: {
+      type: "string",
+      desc: "When resuming a canceled subscription and paying, this is the payment intent.  This is used to prevent any possibility of double payment.",
     },
   },
   rules: {

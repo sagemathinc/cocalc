@@ -106,7 +106,11 @@ export default function PayNow({
         <div>
           When all open payments below are processed, you will be able to access
           your course project.
-          <Payments purpose={STUDENT_PAY} numPaymentsRef={numPaymentsRef} />
+          <Payments
+            purpose={STUDENT_PAY}
+            numPaymentsRef={numPaymentsRef}
+            limit={5}
+          />
         </div>
       )}
       {place == "checkout" && lineItems == null && <Spin />}
@@ -156,7 +160,11 @@ export default function PayNow({
           refreshed their browser and then tried to pay agian.  They will clearly see
           the pending student payment. */}
       {place != "processing" && (
-        <Payments purpose={STUDENT_PAY} numPaymentsRef={numPaymentsRef} />
+        <Payments
+          purpose={STUDENT_PAY}
+          numPaymentsRef={numPaymentsRef}
+          limit={5}
+        />
       )}
       {place == "checkout" && (
         <>

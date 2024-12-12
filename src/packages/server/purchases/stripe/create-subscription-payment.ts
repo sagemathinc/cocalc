@@ -17,6 +17,7 @@ import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { sendCancelNotification } from "../cancel-subscription";
+import getConn from "@cocalc/server/stripe/connection";
 
 // nothing should ever be this small, but just in case:
 const MIN_SUBSCRIPTION_AMOUNT = 1;
@@ -195,11 +196,13 @@ export async function processSubscriptionRenewal({
   paymentIntent,
   amount,
   client,
+  force,
 }: {
   account_id: string;
   paymentIntent: { metadata: { subscription_id: number | string } };
   amount: number;
   client?;
+  force?: boolean;
 }) {
   const { subscription_id } = paymentIntent?.metadata ?? {};
   logger.debug("processSubscriptionRenewal", {
@@ -229,7 +232,7 @@ export async function processSubscriptionRenewal({
     interval,
     license_id,
   });
-  if (amount + ALLOWED_SLACK <= cost) {
+  if (!force && amount + ALLOWED_SLACK <= cost) {
     logger.debug("processSubscriptionRenewal: SUSPICIOUS! -- not doing it.");
     throw Error(
       `subscription costs a lot more than payment -- contact support.`,
@@ -333,4 +336,69 @@ export async function processSubscriptionRenewalFailure({ paymentIntent }) {
     [id],
   );
   await sendCancelNotification({ subscription_id });
+}
+
+export async function processResumeSubscriptionFailure({ paymentIntent }) {
+  await clearResumeSubscriptionPayment({ paymentIntent });
+}
+
+async function clearResumeSubscriptionPayment({ paymentIntent }) {
+  const { subscription_id } = paymentIntent?.metadata ?? {};
+  if (!subscription_id) {
+    throw Error(
+      `invalid paymentIntent ${paymentIntent?.id} -- metadata must contain subscription_id`,
+    );
+  }
+  const id =
+    typeof subscription_id != "number"
+      ? parseInt(subscription_id)
+      : subscription_id;
+  const pool = getPool();
+  await pool.query(
+    `UPDATE subscriptions SET resume_payment_intent=NULL WHERE id=$1`,
+    [id],
+  );
+}
+
+export async function resumeSubscriptionSetPaymentIntent({
+  subscription_id,
+  paymentIntentId,
+}: {
+  subscription_id: number;
+  paymentIntentId: string;
+}) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT resume_payment_intent FROM subscriptions WHERE id=$1",
+    [subscription_id],
+  );
+  if (rows[0]?.resume_payment_intent) {
+    const stripe = await getConn();
+    const intent = await stripe.paymentIntents.retrieve(
+      rows[0]?.resume_payment_intent,
+    );
+    if (intent.status != "canceled") {
+      throw Error(
+        `There is an outstanding payment to resume this subscription.  Pay that invoice or cancel it.`,
+      );
+    }
+  }
+  await pool.query(
+    "UPDATE subscriptions SET resume_payment_intent=$2 WHERE id=$1",
+    [subscription_id, paymentIntentId],
+  );
+}
+
+export async function processResumeSubscription({
+  account_id,
+  paymentIntent,
+  amount,
+}) {
+  await processSubscriptionRenewal({
+    account_id,
+    paymentIntent,
+    amount,
+    force: true,
+  });
+  await clearResumeSubscriptionPayment({ paymentIntent });
 }

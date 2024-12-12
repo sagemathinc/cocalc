@@ -48,22 +48,20 @@ import {
 import { capitalize, currency, round2up } from "@cocalc/util/misc";
 import {
   cancelSubscription,
-  costToResumeSubscription,
   getLicense,
   getSubscriptions as getSubscriptionsUsingApi,
   renewSubscription,
-  resumeSubscription,
 } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 import { SubscriptionStatus } from "./subscriptions-util";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import getSupportURL from "@cocalc/frontend/support/url";
+import ResumeSubscription from "./resume-subscription";
 
 function SubscriptionActions({
   subscription_id,
@@ -77,28 +75,11 @@ function SubscriptionActions({
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [license, setLicense] = useState<License | null>(null);
+  const [showResume, setShowResume] = useState<boolean>(false);
 
   const updateLicense = async () => {
     try {
       setLicense((await getLicense({ license_id })) as License);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  const [costToResume, setCostToResume] = useState<number | undefined>(
-    undefined,
-  );
-  const [periodicCost, setPeriodicCost] = useState<number | undefined>(
-    undefined,
-  );
-  const updateCostToResume = async () => {
-    try {
-      const { cost, periodicCost } =
-        await costToResumeSubscription(subscription_id);
-      setCostToResume(cost);
-      setPeriodicCost(periodicCost);
-      return cost;
     } catch (err) {
       setError(`${err}`);
     }
@@ -113,28 +94,6 @@ function SubscriptionActions({
         subscription_id,
         reason: `Requested by the user: ${reasonRef.current}`,
       });
-      refresh();
-    } catch (error) {
-      setError(`${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResume = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      try {
-        await resumeSubscription(subscription_id);
-      } catch (_) {
-        cost = await updateCostToResume();
-        await webapp_client.purchases_client.quotaModal({
-          service: "edit-license",
-          cost,
-        });
-        await resumeSubscription(subscription_id);
-      }
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -300,45 +259,27 @@ function SubscriptionActions({
         </Modal>
       )}
       {status == "canceled" && (
-        <Popconfirm
-          title={`Resume Subscription Id=${subscription_id}?`}
-          description={() => {
-            setTimeout(updateCostToResume, 1);
-            if (periodicCost == null) {
-              return <Spin />;
-            }
-            return (
-              <div style={{ maxWidth: "450px" }}>
-                {costToResume == 0 ? (
-                  <>
-                    <b>There is no charge</b> to resume your subscription, since
-                    your license is still active. Your subscription will resume
-                    at the current rate, which is
-                    {currency(round2up(periodicCost))}/{interval}.
-                  </>
-                ) : (
-                  <>
-                    To resume your subscription,{" "}
-                    <b>
-                      you will be charged the current rate of{" "}
-                      {currency(round2up(periodicCost))}
-                    </b>{" "}
-                    for the next {interval}.
-                  </>
-                )}{" "}
-                You will be billed each {interval} {RENEW_DAYS_BEFORE_END} days
-                before the license would expire.
-              </div>
-            );
-          }}
-          onConfirm={handleResume}
-          okText="Yes, Resume Subscription"
-          cancelText="No"
-        >
-          <Button disabled={loading} type="default">
+        <>
+          <Button
+            disabled={loading}
+            type="default"
+            onClick={() => setShowResume(!showResume)}
+          >
             Resume...
           </Button>
-        </Popconfirm>
+          <ResumeSubscription
+            subscription_id={subscription_id}
+            interval={interval}
+            open={showResume}
+            status={status}
+            setOpen={(open) => {
+              setShowResume(open);
+              if (!open) {
+                refresh();
+              }
+            }}
+          />
+        </>
       )}
     </Space>
   );

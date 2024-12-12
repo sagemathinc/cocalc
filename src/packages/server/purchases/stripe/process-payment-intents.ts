@@ -14,10 +14,13 @@ import {
   SHOPPING_CART_CHECKOUT,
   STUDENT_PAY,
   SUBSCRIPTION_RENEWAL,
+  RESUME_SUBSCRIPTION,
 } from "@cocalc/util/db-schema/purchases";
 import {
   processSubscriptionRenewal,
   processSubscriptionRenewalFailure,
+  processResumeSubscription,
+  processResumeSubscriptionFailure,
 } from "./create-subscription-payment";
 import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
@@ -198,6 +201,11 @@ customer.  So we don't know what to do with this.  Please manually investigate.
           await processSubscriptionRenewalFailure({
             paymentIntent,
           });
+        } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
+          result = `we did NOT sume subscription (id=${paymentIntent.metadata.subscription_id})`;
+          await processResumeSubscriptionFailure({
+            paymentIntent,
+          });
         } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
           const statement_id = parseInt(
             paymentIntent.metadata.purpose.split("-")[1],
@@ -313,6 +321,9 @@ ${await support()}`;
       } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
         reason = `renew a subscription (id=${paymentIntent.metadata.subscription_id})`;
         await processSubscriptionRenewal({ account_id, paymentIntent, amount });
+      } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
+        reason = `resume a subscription (id=${paymentIntent.metadata.subscription_id})`;
+        await processResumeSubscription({ account_id, paymentIntent, amount });
       } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
         const statement_id = parseInt(
           paymentIntent.metadata.purpose.split("-")[1],
@@ -326,7 +337,7 @@ ${await support()}`;
       }
       send({
         to_ids: [account_id],
-        subject: `Successfully Processed ${currency(amount)} Payment (Credit id: ${credit_id})`,
+        subject: `You Made a ${currency(amount)} Payment (Credit id: ${credit_id})`,
         body: `
 You successfully made a payment of ${currency(amount)}, which was used to ${reason}.
 Thank you!

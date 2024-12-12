@@ -19,12 +19,14 @@ import { decimalToStripe, grandTotal } from "@cocalc/util/stripe/calc";
 import {
   SHOPPING_CART_CHECKOUT,
   STUDENT_PAY,
+  RESUME_SUBSCRIPTION,
 } from "@cocalc/util/db-schema/purchases";
 import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
 import {
   studentPaySetPaymentIntent,
   studentPayAssertNotPaying,
 } from "@cocalc/server/purchases/student-pay";
+import { resumeSubscriptionSetPaymentIntent } from "./create-subscription-payment";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -150,6 +152,11 @@ export default async function createPaymentIntent({
   } else if (purpose == STUDENT_PAY) {
     await studentPaySetPaymentIntent({
       project_id: metadata.project_id,
+      paymentIntentId,
+    });
+  } else if (purpose == RESUME_SUBSCRIPTION) {
+    await resumeSubscriptionSetPaymentIntent({
+      subscription_id: parseInt(metadata.subscription_id),
       paymentIntentId,
     });
   }
