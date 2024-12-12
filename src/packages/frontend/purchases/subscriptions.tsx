@@ -50,13 +50,11 @@ import {
   cancelSubscription,
   getLicense,
   getSubscriptions as getSubscriptionsUsingApi,
-  renewSubscription,
 } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SubscriptionStatus } from "./subscriptions-util";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
@@ -68,7 +66,6 @@ function SubscriptionActions({
   license_id,
   status,
   refresh,
-  cost,
   interval,
 }) {
   const [error, setError] = useState<string>("");
@@ -94,28 +91,6 @@ function SubscriptionActions({
         subscription_id,
         reason: `Requested by the user: ${reasonRef.current}`,
       });
-      refresh();
-    } catch (error) {
-      setError(`${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // this is NOT exposed in the UI right now, in the interest of simplicity:
-  const handleRenewSubscription = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      try {
-        await renewSubscription(subscription_id);
-      } catch (_) {
-        await webapp_client.purchases_client.quotaModal({
-          service: "edit-license",
-          cost,
-        });
-        await renewSubscription(subscription_id);
-      }
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -188,24 +163,6 @@ function SubscriptionActions({
           closable
           onClose={() => setError("")}
         />
-      )}
-      {(status === "unpaid" || status === "past_due") && (
-        <Popconfirm
-          title={
-            <div style={{ maxWidth: "450px" }}>
-              Are you sure you want to pay for the next month of this
-              subscription? The corresponding license will be renewed and your
-              balance will be reduced by the subscription amount.
-            </div>
-          }
-          onConfirm={handleRenewSubscription}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button disabled={loading} type="primary">
-            Pay Now...
-          </Button>
-        </Popconfirm>
       )}
       {status !== "canceled" && (
         <Button
@@ -488,14 +445,13 @@ export default function Subscriptions() {
       {
         title: "Manage",
         key: "manage",
-        render: (_, { cost, id, metadata, status, interval }) => (
+        render: (_, { id, metadata, status, interval }) => (
           <>
             <SubscriptionActions
               subscription_id={id}
               license_id={metadata.license_id}
               status={status}
               refresh={getSubscriptions}
-              cost={cost}
               interval={interval}
             />
           </>
@@ -620,7 +576,6 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
               onClose();
               getSubscriptions();
             }}
-            cost={subscription.cost}
             interval={subscription.interval}
           />
         </div>
