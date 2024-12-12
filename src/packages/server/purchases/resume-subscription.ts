@@ -31,7 +31,7 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { license_id, start, end, current_period_end } =
+  const { license_id, start, end, current_period_end, periodicCost } =
     await getSubscriptionRenewalData(subscription_id);
   const client = await getTransactionClient();
   let purchase_id: number | undefined = undefined;
@@ -46,6 +46,7 @@ export default async function resumeSubscription({
           note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
           isSubscriptionRenewal: true,
           client,
+          cost: periodicCost,
         })
       ).purchase_id;
 

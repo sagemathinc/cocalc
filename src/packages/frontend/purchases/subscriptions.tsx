@@ -539,36 +539,33 @@ export default function Subscriptions() {
           style={{ marginBottom: "15px" }}
         />
       )}
-      {loading ? (
-        <Spin />
-      ) : (
-        <div style={{ overflow: "auto", width: "100%" }}>
-          <UnpaidSubscriptions
-            size="large"
-            style={{ margin: "15px 0", textAlign: "center" }}
-            showWhen="unpaid"
-            counter={counter}
-            refresh={getSubscriptions}
+      {loading && <Spin />}
+      <div style={{ overflow: "auto", width: "100%" }}>
+        <UnpaidSubscriptions
+          size="large"
+          style={{ margin: "15px 0", textAlign: "center" }}
+          showWhen="unpaid"
+          counter={counter}
+          refresh={getSubscriptions}
+        />
+        <Table
+          rowKey={"id"}
+          pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
+          dataSource={subscriptions ?? undefined}
+          columns={columns}
+        />
+        {current != null && (
+          <SubscriptionModal
+            subscription={current}
+            getSubscriptions={getSubscriptions}
+            onClose={() => {
+              setCurrent(undefined);
+              Fragment.clear();
+              redux.getActions("account").setFragment(undefined);
+            }}
           />
-          <Table
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
-            dataSource={subscriptions ?? undefined}
-            columns={columns}
-          />
-          {current != null && (
-            <SubscriptionModal
-              subscription={current}
-              getSubscriptions={getSubscriptions}
-              onClose={() => {
-                setCurrent(undefined);
-                Fragment.clear();
-                redux.getActions("account").setFragment(undefined);
-              }}
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </SettingBox>
   );
 }

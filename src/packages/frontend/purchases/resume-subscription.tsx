@@ -1,4 +1,4 @@
-import { Alert, Button, Divider, Modal, Spin } from "antd";
+import { Alert, Button, Divider, Modal, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import { zIndexPayAsGo } from "./zindex";
@@ -8,7 +8,9 @@ import {
   resumeSubscription,
   getSubscription,
 } from "./api";
-import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import StripePayment, {
+  BigSpin,
+} from "@cocalc/frontend/purchases/stripe-payment";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import { currency, round2up } from "@cocalc/util/misc";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
@@ -34,9 +36,9 @@ export default function ResumeSubscription({
   const [status, setStatus] = useState<string>(status0);
   const [error, setError] = useState<string>("");
   const [lineItems, setLineItems] = useState<LineItem[] | null>(null);
-  const [place, setPlace] = useState<"checkout" | "processing" | "congrats">(
-    "checkout",
-  );
+  const [place, setPlace] = useState<
+    "checkout" | "processing" | "buying" | "congrats"
+  >("checkout");
   const [disabled, setDisabled] = useState<boolean>(false);
   const numPaymentsRef = useRef<number | null>(null);
   const [costToResume, setCostToResume] = useState<number | undefined>(
@@ -46,6 +48,28 @@ export default function ResumeSubscription({
     undefined,
   );
   const [loading, setLoading] = useState<boolean>(false);
+
+  const directResume = async () => {
+    // user is paying entirely using their credit on file, so we need to get
+    // the purchase to happen via the API. Otherwise, they paid and metadata
+    // got setup so when that payment intent is processed, their item gets
+    // allocated.
+    try {
+      setError("");
+      setDisabled(true);
+      setPlace("buying");
+      await resumeSubscription(subscription_id);
+      setPlace("congrats");
+      const { status } = await getSubscription(subscription_id);
+      setStatus(status);
+    } catch (err) {
+      setPlace("checkout");
+      setError(`${err}`);
+      return;
+    } finally {
+      setDisabled(false);
+    }
+  };
 
   const update = async () => {
     if (!open) {
@@ -107,7 +131,7 @@ export default function ResumeSubscription({
                   <>
                     <b>There is no charge</b> to resume your subscription, since
                     your license is still active. Your subscription will resume
-                    at the current rate, which is
+                    at the current rate, which is{" "}
                     {currency(round2up(periodicCost))}/{interval}.
                   </>
                 ) : (
@@ -154,49 +178,55 @@ export default function ResumeSubscription({
           </div>
         )}
         {place == "checkout" && lineItems == null && <Spin />}
-        {place == "checkout" && lineItems != null && (
-          <>
+        {place == "checkout" &&
+          lineItems != null &&
+          (costToResume == 0 ? (
             <div style={{ textAlign: "center" }}>
-              <StripePayment
-                disabled={disabled}
-                lineItems={lineItems}
-                description={`Pay fee to resume subscription id ${subscription_id}`}
-                purpose={RESUME_SUBSCRIPTION}
-                metadata={{ subscription_id: `${subscription_id}` }}
-                onFinished={async (total) => {
-                  if (!total) {
-                    console.log("total = 0 so pay directly");
-                    // user is paying entirely using their credit on file, so we need to get
-                    // the purchase to happen via the API. Otherwise, they paid and metadata
-                    // got setup so when that payment intent is processed, their item gets
-                    // allocated.
-                    try {
-                      setError("");
-                      setDisabled(true);
-                      setPlace("processing");
-                      await resumeSubscription(subscription_id);
-                    } catch (err) {
-                      setError(`${err}`);
-                      return;
-                    } finally {
-                      setDisabled(false);
-                    }
-                    setPlace("congrats");
-                    return;
-                  }
-                  setPlace("processing");
-                }}
-              />
+              <Space>
+                <Button
+                  size="large"
+                  onClick={() => {
+                    setOpen?.(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => {
+                    directResume();
+                  }}
+                >
+                  Resume Subscription
+                </Button>
+              </Space>
             </div>
-          </>
-        )}
-        {place != "processing" && (
-          <Payments
-            purpose={RESUME_SUBSCRIPTION}
-            numPaymentsRef={numPaymentsRef}
-            limit={5}
-          />
-        )}
+          ) : (
+            <>
+              <div style={{ textAlign: "center" }}>
+                <StripePayment
+                  disabled={disabled}
+                  lineItems={lineItems}
+                  description={`Pay fee to resume subscription id ${subscription_id}`}
+                  purpose={RESUME_SUBSCRIPTION}
+                  metadata={{ subscription_id: `${subscription_id}` }}
+                  onFinished={async (total) => {
+                    if (!total) {
+                      directResume();
+                    } else {
+                      setPlace("processing");
+                    }
+                  }}
+                />
+              </div>
+              <Payments
+                purpose={RESUME_SUBSCRIPTION}
+                numPaymentsRef={numPaymentsRef}
+                limit={5}
+              />
+            </>
+          ))}
       </div>
     );
   }
@@ -214,11 +244,12 @@ export default function ResumeSubscription({
       title={
         <>
           <Icon name="credit-card" style={{ marginRight: "10px" }} />
-          Pay to Resume Subscription Id {subscription_id}
+          Resume Subscription Id {subscription_id}
         </>
       }
     >
       {body}
+      {loading && <BigSpin />}
     </Modal>
   );
 }

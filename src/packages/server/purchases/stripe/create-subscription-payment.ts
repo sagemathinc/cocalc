@@ -242,7 +242,7 @@ export async function processSubscriptionRenewal({
   const end = new Date(payment.new_expires_ms);
 
   logger.debug(
-    "processSubscriptionRenewal: extend the license to payment.new_expires_ms",
+    `processSubscriptionRenewal: extend the license to ${payment.new_expires_ms}`,
   );
   const { purchase_id } = await editLicense({
     account_id,
@@ -369,23 +369,27 @@ export async function resumeSubscriptionSetPaymentIntent({
 }) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT resume_payment_intent FROM subscriptions WHERE id=$1",
+    "SELECT resume_payment_intent, interval FROM subscriptions WHERE id=$1",
     [subscription_id],
   );
-  if (rows[0]?.resume_payment_intent) {
+  if (rows.length == 0) {
+    throw Error(`no such subscription id=${subscription_id}`);
+  }
+  if (rows[0].resume_payment_intent) {
     const stripe = await getConn();
     const intent = await stripe.paymentIntents.retrieve(
-      rows[0]?.resume_payment_intent,
+      rows[0].resume_payment_intent,
     );
-    if (intent.status != "canceled") {
+    if (intent.status != "canceled" && intent.status != "succeeded") {
       throw Error(
         `There is an outstanding payment to resume this subscription.  Pay that invoice or cancel it.`,
       );
     }
   }
+  const new_expires_ms = addInterval(new Date(), rows[0].interval).valueOf();
   await pool.query(
-    "UPDATE subscriptions SET resume_payment_intent=$2 WHERE id=$1",
-    [subscription_id, paymentIntentId],
+    "UPDATE subscriptions SET resume_payment_intent=$2, payment=$3 WHERE id=$1",
+    [subscription_id, paymentIntentId, { new_expires_ms }],
   );
 }
 
