@@ -105,7 +105,7 @@ export default async function getCheckoutSession({
     mode: "payment",
     return_url,
     redirect_on_completion: "if_required",
-    automatic_tax: { enabled: true },
+    //    automatic_tax: { enabled: true },
     metadata,
     payment_intent_data: {
       description,

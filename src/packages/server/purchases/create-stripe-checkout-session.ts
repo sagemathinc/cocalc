@@ -105,9 +105,9 @@ export const createStripeCheckoutSession = async (
       },
     },
     tax_id_collection: { enabled: true },
-    automatic_tax: {
-      enabled: true,
-    },
+//     automatic_tax: {
+//       enabled: true,
+//     },
     customer_update: {
       address: "auto",
       name: "auto",

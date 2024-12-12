@@ -97,7 +97,7 @@ export default async function createPaymentIntent({
     auto_advance: false,
     description,
     metadata,
-    automatic_tax: { enabled: true },
+//    automatic_tax: { enabled: true },
     currency: "usd",
   });
   for (const { amount, description } of lineItemsWithoutCredit) {

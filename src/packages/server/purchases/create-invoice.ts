@@ -65,7 +65,7 @@ export default async function createInvoice({
     collection_method: "send_invoice",
     days_until_due: 21,
     metadata: { account_id, service: "credit" },
-    automatic_tax: { enabled: true },
+    // automatic_tax: { enabled: true },
   });
   await stripe.invoiceItems.create({
     invoice: invoice.id,
