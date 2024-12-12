@@ -6,6 +6,7 @@ It's the stripe name, address and email for now, but later could support updatin
 
 import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId } from "./util";
+import getName from "@cocalc/server/accounts/get-name";
 
 export async function setCustomer(
   account_id,
@@ -35,9 +36,12 @@ export async function getCustomer(account_id) {
     return {};
   }
   // obviously, don't return *everything*.  Later may return more.
+  // Bizarelly stripe's api absolutely can return customer.address === null, e.g., it does
+  // that for Andrey's admin account!  But if you leave that, then the frontend gives
+  // the error "defaultValues.address should be an object. You specified: null" and it crashes!
   return {
-    name: customer.name,
-    address: customer.address,
-    email: customer.email,
+    name: customer.name ?? (await getName(account_id)),
+    address: customer.address ?? {},
+    phone: customer.phone ?? undefined,
   };
 }
