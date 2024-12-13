@@ -205,7 +205,7 @@ Table({
   rules: {
     primary_key: "id",
     changefeed_keys: ["to_ids", "sent"],
-    pg_indexes: ["USING GIN (to_ids)"],
+    pg_indexes: ["USING GIN (to_ids)", "sent"],
     user_query: {
       get: {
         pg_where: [

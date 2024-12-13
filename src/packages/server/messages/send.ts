@@ -11,6 +11,9 @@ import { join } from "path";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { getSupportAccountId } from "./support-account";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("server:messages:send");
 
 export async function name(account_id: string) {
   const { name: name0, email_address } = await getUser(account_id);
@@ -23,10 +26,13 @@ export default async function send({
   subject,
   body,
   reply_id,
+  dedupMinutes,
 }: {
   // account_id's of user (or users) to send the message to.
   to_ids: string[];
-  // message comes from this -- if not set, then the support_account_id in server settings is used.  If that's not setup, then its an error.
+  // message comes from this -- if not set, then the support_account_id in server settings
+  // is used and dedupMinutes is set to 60 (if not given).  If support account is not setup
+  // then it gets automatically created.
   from_id?: string;
   // short plain text formatted subject
   subject: string;
@@ -35,7 +41,11 @@ export default async function send({
   // optional message id to reply to.  We do NOT enforce any consistency on the subject
   // being the same as what is being replied to, to avoid subtle security model issues.
   reply_id?: number;
+  // if given and nonzero, attempts to send an identical message (with identical from and to)
+  // within this interval of time is ignored.  Very useful for system notifications.
+  dedupMinutes?: number;
 }) {
+  logger.debug("send a message");
   if (to_ids?.length == 0) {
     // nothing to do
     return;
@@ -50,6 +60,7 @@ export default async function send({
   // from support or an admin
   if (!from_id) {
     from_id = await getSupportAccountId();
+    dedupMinutes = dedupMinutes ?? 60;
   }
   if (!from_id) {
     // this should be impossible, but just in case.
@@ -71,6 +82,21 @@ export default async function send({
       thread_id = null;
     } else {
       thread_id = replyRows[0].thread_id ?? reply_id;
+    }
+  }
+
+  if (dedupMinutes) {
+    const id = await getRecentMessage({
+      to_ids,
+      from_id,
+      subject,
+      body,
+      thread_id,
+      maxAgeMinutes: dedupMinutes,
+    });
+    if (id != null) {
+      logger.debug(`message is duplicate of id=${id}`);
+      return id;
     }
   }
 
@@ -112,4 +138,29 @@ export async function url(...args) {
 export const testMessages: Message[] = [];
 export async function resetTestMessages() {
   testMessages.length = 0;
+}
+
+// We implement this as a database query instead of in memory TTL cache,
+// since we need it to work across potentially many servers.
+export async function getRecentMessage({
+  to_ids,
+  from_id,
+  subject,
+  body,
+  thread_id,
+  maxAgeMinutes,
+}): Promise<number | undefined> {
+  const pool = getPool();
+  const query = `
+  SELECT id FROM messages where
+      to_ids=$1 AND from_id=$2 AND subject=$3 AND body=$4 AND coalesce(thread_id,0)=$5 AND
+      sent >= NOW()-interval '${parseInt(maxAgeMinutes)} minutes'`;
+  const { rows } = await pool.query(query, [
+    to_ids,
+    from_id,
+    subject,
+    body,
+    thread_id ?? 0,
+  ]);
+  return rows[0]?.id;
 }
