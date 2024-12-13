@@ -6,16 +6,24 @@
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Col, Dropdown, MenuProps, Row } from "antd";
+import { Button, Col, Dropdown, MenuProps, Modal, Row, Space } from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Gap, Icon, Loading, Text } from "@cocalc/frontend/components";
+import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  Gap,
+  Icon,
+  Loading,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
+import { useIntl } from "react-intl";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -39,7 +47,7 @@ const img_sorter = (a, b): number => {
 
 interface ComputeImageSelectorProps {
   selected_image: string;
-  layout: "vertical" | "horizontal" | "compact";
+  layout: "vertical" | "horizontal" | "compact" | "dialog";
   onBlur?: () => void;
   onFocus?: () => void;
   onSelect: (e) => void;
@@ -59,6 +67,10 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     disabled,
     size = "small",
   } = props;
+
+  const intl = useIntl();
+
+  const [showDialog, setShowDialog] = useState<boolean>(false);
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
@@ -187,6 +199,34 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     );
   }
 
+  function renderDialogButton() {
+    return (
+      <>
+        <Button onClick={() => setShowDialog(true)} disabled={showDialog}>
+          Change
+        </Button>
+
+        <Modal
+          open={showDialog}
+          title="Change Software Environment"
+          okText={intl.formatMessage({
+            id: "project.settings.compute-image-selector.button.save-restart",
+            defaultMessage: "Save and Restart",
+          })}
+          cancelText={<CancelText />}
+          onCancel={() => {}}
+          onOk={() => {}}
+        >
+          <>
+            <Paragraph>Select: {render_selector()}</Paragraph>
+            <Paragraph>{render_info(true)}</Paragraph>
+            <Paragraph>{render_doubt()}</Paragraph>
+          </>
+        </Modal>
+      </>
+    );
+  }
+
   switch (layout) {
     case "compact":
       return render_selector();
@@ -205,9 +245,6 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
             {render_selector()}
           </Col>
           <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
-            {render_doubt()}
-          </Col>
-          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
             {render_info(true)}
           </Col>
         </Row>
@@ -224,6 +261,27 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
             </span>
             <Gap />
             <span>{render_info(false)}</span>
+          </Col>
+        </Row>
+      );
+    // successor of "vertical", where there is a dialog with a clear indication to click a button
+    case "dialog":
+      return (
+        <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
+          <Col xs={24}>
+            <Space>
+              <Icon
+                name={SOFTWARE_ENVIRONMENT_ICON}
+                style={{ marginTop: "5px" }}
+              />{" "}
+              {selected_title} {renderDialogButton()}
+            </Space>
+          </Col>
+          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
+            {render_doubt()}
+          </Col>
+          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
+            {render_info(true)}
           </Col>
         </Row>
       );

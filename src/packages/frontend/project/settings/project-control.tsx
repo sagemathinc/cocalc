@@ -342,7 +342,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <div style={{ color: COLORS.GRAY }}>
         <ComputeImageSelector
           selected_image={selected_image}
-          layout={"vertical"}
+          layout={"dialog"}
           onFocus={() => set_compute_image_focused(true)}
           onBlur={onBlur}
           onSelect={(img) => set_compute_image(img)}
