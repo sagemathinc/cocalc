@@ -98,8 +98,8 @@ export default function BalanceModal({
 const LINKS = [
   { label: "Purchases", value: "purchases" },
   { label: "Payments", value: "payments" },
+  { label: "Methods", value: "payment-methods" },
   { label: "Statements", value: "statements" },
-  { label: "Subscriptions", value: "subscriptions" },
   { label: "Pay As You Go", value: "payg" },
 ];
 

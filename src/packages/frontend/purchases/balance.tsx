@@ -71,16 +71,8 @@ export default function Balance({
             <Icon name="credit-card" style={{ marginRight: "5px" }} />
             Deposit Money
           </Button>
-          <div style={{ marginTop: "15px" }}>
-            <Space>
-              <AutoBalance
-                type="link"
-                style={{ marginLeft: "-15px" /* so link looks centered */ }}
-              />
-              {showTransferLink && balance > 0 && (
-                <Next href={"store"}>Store</Next>
-              )}
-            </Space>
+          <div style={{ marginTop: "20px" }}>
+            <AutoBalance />
           </div>
         </div>
       );
