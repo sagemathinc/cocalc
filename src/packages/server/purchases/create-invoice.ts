@@ -1,4 +1,6 @@
 /*
+DEPRECATED!!!!
+
 Create a stripe invoice for a specific amount of money so that when paid
 this invoice counts toward your purchases balance.  It has
 metadata = {account_id, service:'credit'}
@@ -65,7 +67,7 @@ export default async function createInvoice({
     collection_method: "send_invoice",
     days_until_due: 21,
     metadata: { account_id, service: "credit" },
-    // automatic_tax: { enabled: true },
+    automatic_tax: { enabled: true },
   });
   await stripe.invoiceItems.create({
     invoice: invoice.id,

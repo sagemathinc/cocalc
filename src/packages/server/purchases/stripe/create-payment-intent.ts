@@ -37,6 +37,7 @@ export default async function createPaymentIntent({
   lineItems,
   return_url,
   metadata,
+  force,
 }: {
   account_id: string;
   purpose: string;
@@ -48,6 +49,10 @@ export default async function createPaymentIntent({
   // as a key.
   metadata?: { [key: string]: string };
   // Returns a finalized invoice object -- https://docs.stripe.com/api/invoices/object
+
+  // do not bother with sanity checking the amount, e.g., it can be below the
+  // min payg setting.
+  force?: boolean;
 }): Promise<{ payment_intent: string; hosted_invoice_url: string }> {
   logger.debug("createPaymentIntent", {
     account_id,
@@ -55,6 +60,7 @@ export default async function createPaymentIntent({
     description,
     lineItems,
     return_url,
+    force,
   });
   if (!purpose) {
     throw Error("purpose must be set");
@@ -70,7 +76,9 @@ export default async function createPaymentIntent({
   const { lineItemsWithoutCredit, total_excluding_tax_usd } =
     getStripeLineItems(lineItems);
 
-  await sanityCheckAmount(grandTotal(lineItemsWithoutCredit));
+  if (!force) {
+    await sanityCheckAmount(grandTotal(lineItemsWithoutCredit));
+  }
 
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: true });
@@ -92,14 +100,24 @@ export default async function createPaymentIntent({
     return_url = await defaultReturnUrl();
   }
 
-  let invoice = await stripe.invoices.create({
+  let invoice;
+  const invoiceCreateParams = {
     customer,
     auto_advance: false,
     description,
     metadata,
-//    automatic_tax: { enabled: true },
     currency: "usd",
-  });
+  };
+
+  try {
+    invoice = await stripe.invoices.create({
+      ...invoiceCreateParams,
+      automatic_tax: { enabled: true },
+    });
+  } catch (err) {
+    invoice = await stripe.invoices.create(invoiceCreateParams);
+  }
+
   for (const { amount, description } of lineItemsWithoutCredit) {
     await stripe.invoiceItems.create({
       customer,

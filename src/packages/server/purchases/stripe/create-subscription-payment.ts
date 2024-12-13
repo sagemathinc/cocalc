@@ -158,6 +158,7 @@ export default async function createSubscriptionPayment({
       metadata: {
         subscription_id: `${subscription_id}`,
       },
+      force: true,
     });
 
   const payment1 = {
