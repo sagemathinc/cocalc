@@ -1,3 +1,11 @@
+/*
+
+TODO/TODO: THIS IS NOT SUFFICIENT.  It should send one email per unread message, which to do
+robustly with grouping probably requires marking the message in the database, and
+that's just not implemented yet!
+
+*/
+
 import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
 import sendEmail from "@cocalc/server/email/send-email";
@@ -17,13 +25,13 @@ const HOUR = 1000 * 60 * 60; // hour in ms
 // The actual delete shouldn't take long.
 const DELETE_EXPIRED_MESSAGES_INTERVAL_MS = 0.9 * HOUR;
 
-// Periodically we send email summaries to users
+// Periodically we checkt to see if we should send email summaries to users
 // with new unread messages, for which we have NOT
 // sent a summary too recently.
-const SEND_EMAIL_SUMMARY_INTERVAL_MS = 31 * HOUR;
+const SEND_EMAIL_SUMMARY_INTERVAL_MS = 0.25 * HOUR;
 
 // For now, we'll try once every hours.  It means you have to
-// wait up to one hour to get an email notification of a new message.
+// wait up to this long to get an email notification of a new message.
 const MIN_INTERVAL_BETWEEN_SUMMARIES_MS = HOUR;
 
 export default async function initMaintenance() {
@@ -32,7 +40,9 @@ export default async function initMaintenance() {
     SEND_EMAIL_SUMMARY_INTERVAL_MS,
     MIN_INTERVAL_BETWEEN_SUMMARIES_MS,
   });
+  deleteExpiredMessages();
   setInterval(deleteExpiredMessages, DELETE_EXPIRED_MESSAGES_INTERVAL_MS);
+  sendAllEmailSummaries();
   setInterval(sendAllEmailSummaries, SEND_EMAIL_SUMMARY_INTERVAL_MS);
 }
 
@@ -139,15 +149,16 @@ GROUP BY a.account_id,
       }
 
       const messages = await get({ account_id, type: "new" });
-
-      await sendEmailSummary({
-        account_id,
-        first_name,
-        last_name,
-        unread_message_count,
-        email,
-        messages,
-      });
+      if (messages.length > 0) {
+        await sendEmailSummary({
+          account_id,
+          first_name,
+          last_name,
+          unread_message_count,
+          email,
+          messages,
+        });
+      }
     }
 
     // now mark everybody as notified -- if something failed, they will just have to wait until next time.
