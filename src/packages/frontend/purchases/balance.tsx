@@ -1,11 +1,10 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { Alert, Button, Card, Tooltip, Space, Spin } from "antd";
+import { Alert, Button, Card, Tooltip, Spin } from "antd";
 import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
-import Next from "@cocalc/frontend/components/next";
 import { Icon } from "@cocalc/frontend/components/icon";
 import AutoBalance from "./auto-balance";
 
@@ -15,7 +14,6 @@ interface Props {
   refresh?: Function;
   cost?: number; // optional amount of money we want right now
   pendingBalance?: number | null;
-  showTransferLink?: boolean;
   defaultAdd?: boolean;
 }
 
@@ -25,7 +23,6 @@ export default function Balance({
   refresh,
   cost,
   pendingBalance,
-  showTransferLink,
   defaultAdd,
 }: Props) {
   const [add, setAdd] = useState<boolean>(!!defaultAdd);

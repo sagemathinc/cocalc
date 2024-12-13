@@ -82,7 +82,6 @@ export default function BalanceModal({
             handleRefresh();
             setTimeout(handleRefresh, 15000);
           }}
-          showTransferLink
         />
       </div>
       <ShowError error={error} setError={setError} />
