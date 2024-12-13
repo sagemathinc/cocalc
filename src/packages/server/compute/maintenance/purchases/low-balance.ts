@@ -2,7 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { deprovision, stop } from "@cocalc/server/compute/control";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { setError } from "@cocalc/server/compute/util";
-import send, { support } from "@cocalc/server/messages/send";
+import send, { name, support } from "@cocalc/server/messages/send";
 import siteURL from "@cocalc/database/settings/site-url";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -101,14 +101,33 @@ async function checkAllowed(service, server) {
     callToAction = `Add credit to your account, to prevent other compute servers from being deleted.`;
     adminAlert({
       subject: "CRITICAL -- investigate low balance situation!!",
-      body: `- Account id: ${server.account_id}\n\n- Server id: ${server.id}\n\n`,
+      body: `
+- User: ${await name(server.account_id)}
+
+- Account id: ${server.account_id}
+
+- Global Server id: ${server.id}
+
+- Project Specific Server id: ${server.project_specific_id}
+
+- Action taken: ${action}`,
     });
   } else {
     action = "Computer Server Turned Off";
     callToAction = `Add credit to your account, so your compute server isn't deleted.`;
     adminAlert({
       subject: "WARNING -- low balance situation",
-      body: `- Account id: ${server.account_id}\n\n- Server id: ${server.id}\n\n\nServer automatically stopped, but not deleted.`,
+      body: `
+- User: ${await name(server.account_id)}
+
+- Account id: ${server.account_id}
+
+- Global Server id: ${server.id}
+
+- Project Specific Server id: ${server.project_specific_id}
+
+
+Server automatically stopped, but not deleted.`,
     });
   }
 
@@ -157,7 +176,7 @@ async function notifyUser({ server, service, action, callToAction }) {
     const body = `
 Hello ${name},
 
-Your Compute Server '${server.title}' (Id: ${server.id}) is
+Your Compute Server '${server.title}' (Id: ${server.project_specific_id}) is
 hitting your ${service} quota, or you are very low on funds.
 
 Action Taken: ${action}
