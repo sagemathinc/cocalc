@@ -177,6 +177,10 @@ export async function createCreditFromPaidStripeInvoice(
     return false;
   }
   let metadata = invoice?.metadata;
+  if (metadata?.purpose) {
+    // handled elsewhere (via polling)
+    return false;
+  }
   if (
     metadata == null ||
     metadata.service != "credit" ||
@@ -292,6 +296,7 @@ intent = {
   if (
     metadata == null ||
     metadata.service != "credit" ||
+    metadata.purpose ||
     !metadata.account_id
   ) {
     // Some other sort of intent, e.g, for a subscription or something else.

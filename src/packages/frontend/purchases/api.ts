@@ -385,12 +385,6 @@ export const getPayAsYouGoPricesProjectQuotas = longCache(
   "get-prices-project-quotas",
 );
 
-// returns number of invoices that resulted in new money
-export async function syncPaidInvoices(): Promise<number> {
-  const { count } = await api("purchases/sync-paid-invoices");
-  return count;
-}
-
 export async function syncSubscription(): Promise<boolean> {
   const { found } = await api("purchases/sync-subscription");
   return found;

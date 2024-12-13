@@ -133,7 +133,6 @@ export async function getCheckoutCart(
     processing,
     cart_ids,
   });
-  console.log({ cart });
   cart = cart.filter(
     filter ??
       ((item) =>

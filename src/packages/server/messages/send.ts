@@ -113,10 +113,18 @@ export default async function send({
     testMessages.push({ id, from_id, to_ids, subject, body, thread_id });
   }
 
-  for (const account_id of to_ids) {
-    await updateUnreadMessageCount({ account_id });
-  }
+  updateUnread(to_ids); // don't block on this...
   return id;
+}
+
+async function updateUnread(account_ids) {
+  for (const account_id of account_ids) {
+    try {
+      await updateUnreadMessageCount({ account_id });
+    } catch (err) {
+      logger.debug(`issue updating unread message count: ${err}`);
+    }
+  }
 }
 
 export async function support() {

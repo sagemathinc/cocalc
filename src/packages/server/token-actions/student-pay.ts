@@ -5,7 +5,6 @@ import type { Description } from "@cocalc/util/db-schema/token-actions";
 import getPool from "@cocalc/database/pool";
 import { getCost } from "@cocalc/server/purchases/student-pay";
 import getBalance from "@cocalc/server/purchases/get-balance";
-import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
@@ -82,11 +81,6 @@ export async function extraInfo(description: Description, account_id?: string) {
       signIn: true,
     };
   }
-  // If you just added cash to do student pay, then it's important to see
-  // it reflected in your balance, so you can then complete the purchase.
-  // NOTE: with webhooks this would already happen automatically -- this is
-  // just a backup.
-  await syncPaidInvoices(account_id);
 
   const balance = await getBalance({ account_id });
   const balanceAfterPay = decimalSubtract(balance, cost);
