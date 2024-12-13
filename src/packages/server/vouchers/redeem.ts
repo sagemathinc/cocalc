@@ -5,12 +5,10 @@ import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { getTransactionClient } from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { currency } from "@cocalc/util/misc";
-import { join } from "path";
-import basePath from "@cocalc/backend/base-path";
-import send, { support } from "@cocalc/server/messages/send";
+import send, { support, url } from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const log = getLogger("server:vouchers:redeem");
 
@@ -39,7 +37,7 @@ export default async function redeemVoucher({
     if (voucherCode.redeemed_by == account_id) {
       throw Error(`You already redeem the voucher '${code}'.`);
     } else {
-      throw Error(`Voucher '${code}' was already redeemed by somebody else.`);
+      throw Error(`Voucher '${code}' was already redeemed.`);
     }
   }
   const voucher = await getVoucher(voucherCode.id);
@@ -84,9 +82,19 @@ export default async function redeemVoucher({
     await client.query("COMMIT");
 
     try {
-      sendRedeemAlert({ account_id, voucher, code });
+      sendRedeemAlerts({ account_id, voucher, code, id });
     } catch (err) {
+      // this should never happen
+
       log.debug(`WARNING -- issue sending redeem alert: ${err}`);
+
+      adminAlert({
+        subject: `Something went wrong sending voucher redeem alert`,
+        body: `
+- Voucher Code ${code}
+- ERROR: ${err}
+`,
+      });
     }
 
     return createdItems;
@@ -100,30 +108,42 @@ export default async function redeemVoucher({
   }
 }
 
-async function sendRedeemAlert({ account_id, voucher, code }) {
-  const { name } = await getUser(voucher.created_by);
+async function sendRedeemAlerts({ account_id, voucher, code, id }) {
+  const { name: creator } = await getUser(voucher.created_by);
 
-  const { site_name: siteName, dns } = await getServerSettings();
-  const { name: userName, email_address: userEmail } =
-    await getUser(account_id);
-  const url = `https://${dns}${join(basePath, "vouchers")}`;
+  const { name: userName } = await getUser(account_id);
 
-  const subject = `${siteName} Voucher ${code} Redeemed for ${currency(voucher.cost)}`;
+  const subject = `Voucher ${code} Redeemed for ${currency(voucher.cost)}`;
 
-  const body = `
-Hello ${name},
+  // to creator of voucher
+  await send({
+    to_ids: [voucher.created_by],
+    subject,
+    body: `
+Hello ${creator},
 
 A voucher you created with the code '${code}' was redeemed
-by ${userName} (${userEmail}) for ${currency(voucher.cost)}.
-To browse the status of all voucher codes for this voucher, see
+by ${userName} for ${currency(voucher.cost)}.
 
-${url}
-
-
- -- ${siteName}
+- [Browse all codes for this voucher](${await url("vouchers", voucher.id)})
 
 ${await support()}
-`;
+`,
+  });
 
-  await send({ to_ids: [account_id], subject, body });
+  const purchaseUrl = await url("settings", `purchases#id=${id}`);
+  await send({
+    to_ids: [account_id],
+    subject,
+    body: `
+Hello ${userName},
+
+You successfully redeemed a voucher from ${creator} with the code '${code}'
+for ${currency(voucher.cost)}.
+
+- [View Account Credit Id = ${id}](${purchaseUrl})
+
+${await support()}
+`,
+  });
 }

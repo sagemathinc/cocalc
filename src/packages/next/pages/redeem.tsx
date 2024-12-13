@@ -249,10 +249,10 @@ function DisplayCreatedItem({ item }) {
     return (
       <li>
         {currency(item.amount)} was credited{" "}
-        <A href="/settings/purchases" external>
+        <A href={`/settings/purchases#id=${item.purchase_id}`} external>
           to your account
         </A>{" "}
-        (transaction id: {item.purchase_id})
+        (Id: {item.purchase_id})
       </li>
     );
   } else {
