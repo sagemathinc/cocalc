@@ -303,15 +303,20 @@ function getConf({
   }
 }
 
-/*
-ubuntu-2404-noble-amd64-v20241004
-ubuntu-2404-noble-arm64-v20241004
-*/
+function getSourceImage(arch: Architecture, IMAGES: Images) {
+  const version = IMAGES["google-cloud"]?.["base_image"]?.[arch];
+  if (version) {
+    return version;
+  }
 
-function getSourceImage(arch: Architecture) {
+  // hard coded fallback:
+  // ubuntu-2404-noble-arm64-v20241115
+  // ubuntu-2404-noble-amd64-v20241115
+  const GOOGLE_CLOUD_UBUNTU_VERSION = "20241115";
+
   return `projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-${
     arch == "arm64" ? "arm" : "amd"
-  }64-v20241004`;
+  }64-v${GOOGLE_CLOUD_UBUNTU_VERSION}`;
 }
 
 const LOGDIR = "logs";
@@ -504,16 +509,16 @@ function createBuildConfiguration({
           machineType: "n2-standard-8",
         } as const)
       : arch == "x86_64"
-      ? ({
-          region: "us-east1",
-          zone: "us-east1-b",
-          machineType: "c2-standard-4",
-        } as const)
-      : ({
-          region: "us-central1",
-          zone: "us-central1-a",
-          machineType: "t2a-standard-4",
-        } as const)),
+        ? ({
+            region: "us-east1",
+            zone: "us-east1-b",
+            machineType: "c2-standard-4",
+          } as const)
+        : ({
+            region: "us-central1",
+            zone: "us-central1-a",
+            machineType: "t2a-standard-4",
+          } as const)),
   } as const;
 
   // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
@@ -558,6 +563,6 @@ sync
     startupScript,
     maxTimeMinutes,
     arch,
-    sourceImage: getSourceImage(arch),
+    sourceImage: getSourceImage(arch, IMAGES),
   } as const;
 }
