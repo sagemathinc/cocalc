@@ -530,6 +530,9 @@ function createBuildConfiguration({
 #!/bin/bash
 set -ev
 
+apt-get update
+apt-get upgrade -y
+
 # Install docker daemon and client
 ${installDocker()}
 
