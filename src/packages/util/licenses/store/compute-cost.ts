@@ -17,7 +17,7 @@ function computeCashVoucherPrice(props: ComputeCostProps) {
   if (props.type != "cash-voucher") {
     throw Error("BUG");
   }
-  const cost_per_unit = props.whenPay == 'admin' ? 0 : props.amount;
+  const cost_per_unit = props.whenPay == "admin" ? 0 : props.amount;
   const quantity = props.numVouchers ?? 1;
   const cost = decimalMultiply(cost_per_unit, quantity);
   return {
@@ -38,6 +38,7 @@ function computeCashVoucherPrice(props: ComputeCostProps) {
 
 export function computeCost(
   props: ComputeCostProps,
+  noRangeShift?: boolean,
 ): CostInputPeriod | undefined {
   const type = props.type ?? "quota";
   switch (type) {
@@ -94,7 +95,7 @@ export function computeCost(
         custom_member: member,
         custom_uptime: uptime,
         boost,
-        ...fixRange(range, period),
+        ...fixRange(range, period, noRangeShift),
       };
       return {
         ...compute_cost(input),
