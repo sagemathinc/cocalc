@@ -22,12 +22,16 @@ import {
   ProductDescription,
 } from "@cocalc/util/db-schema/shopping-cart-items";
 import { getItem } from "./get";
+import dayjs from "dayjs";
+//import { getLogger } from "@cocalc/backend/logger";
+
+//const logger = getLogger("server:shopping:cart:add");
 
 export default async function addToCart(
   account_id: string,
   product: ProductType,
   description?: ProductDescription,
-  project_id?: string
+  project_id?: string,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -35,11 +39,29 @@ export default async function addToCart(
   if (typeof project_id !== "string" || !isValidUUID(project_id)) {
     project_id = undefined;
   }
+  const range = description?.["range"];
+  if (range != null && range.length == 2) {
+    // Here range is of type [Date, Date].
+    // subscriptions, etc.
+    // if start time is <= now, mutate range shifting interval
+    // over so that start = now.
+    // This often happens with "buy it again" below obviously.
+    const now = dayjs();
+    const v = range.map((x) => dayjs(x));
+    if (v[0] < now) {
+      const duration = v[1].diff(v[0]);
+      v[0] = now;
+      v[1] = v[0].add(duration);
+    }
+    range[0] = v[0].toISOString();
+    range[1] = v[1].toISOString();
+  }
+
   const pool = getPool();
   const { rowCount } = await pool.query(
     `INSERT INTO shopping_cart_items (account_id, added, product, description, checked, project_id)
     VALUES($1, NOW(), $2, $3, true, $4)`,
-    [account_id, product, description, project_id]
+    [account_id, product, description, project_id],
   );
   return rowCount ?? 0;
 }
@@ -48,7 +70,7 @@ export default async function addToCart(
 // - Mutates item that was actually removed and not purchased.
 export async function putBackInCart(
   account_id: string,
-  id: number
+  id: number,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -56,7 +78,7 @@ export async function putBackInCart(
   const pool = getPool();
   const { rowCount } = await pool.query(
     "UPDATE shopping_cart_items SET removed=NULL, checked=TRUE WHERE account_id=$1 AND id=$2 AND removed IS NOT NULL AND purchased IS NULL",
-    [account_id, id]
+    [account_id, id],
   );
   return rowCount ?? 0;
 }
@@ -64,12 +86,12 @@ export async function putBackInCart(
 // Makes copy of item that was purchased and puts it in the cart.
 export async function buyItAgain(
   account_id: string,
-  id: number
+  id: number,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }
-  // this errors if it doesn't return 1 item.
+  // this throws an error if it doesn't return 1 item.
   const item = await getItem({
     id,
     account_id,

@@ -99,7 +99,9 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     tab == "buy-it-again" ? { purchased: true } : { removed: true },
   );
   const items = useMemo(() => {
-    if (!get.result) return undefined;
+    if (!get.result) {
+      return undefined;
+    }
     const x: any[] = [];
     const v = search_split(search);
     for (const item of get.result) {
