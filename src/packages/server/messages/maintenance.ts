@@ -253,15 +253,25 @@ ${settings}
 `;
 
     await sendEmail({ from, to: email, subject, html, text });
-    let newestMessageTime = messages[0].sent; // newest is always first and message list is nonempty.
-
-    // now mark as notified -- if something failed above, this doesn't happen,
-    // so we will retry again next time.
-    const pool = getPool();
-    await pool.query(
-      "UPDATE accounts SET last_message_summary=$2 WHERE account_id=$1",
-      [account_id, newestMessageTime],
-    );
+    // newest is always first and message list is nonempty.
+    const newestMessageTime = messages[0].sent;
+    if (newestMessageTime != null) {
+      // Due to rounding, we always add 1 second. Yes, you can mutate
+      // a Date object by doing this, and it does wrap around properly.
+      newestMessageTime.setSeconds(newestMessageTime.getSeconds() + 1);
+      if (
+        last_message_summary == null ||
+        last_message_summary < newestMessageTime
+      ) {
+        // now mark as notified -- if something failed above, this doesn't happen,
+        // so we will retry again next time.
+        const pool = getPool();
+        await pool.query(
+          "UPDATE accounts SET last_message_summary=$2 WHERE account_id=$1",
+          [account_id, newestMessageTime],
+        );
+      }
+    }
   } catch (err) {
     log.debug(`sendEmailSummary: error -- ${err}`);
     adminAlert({
