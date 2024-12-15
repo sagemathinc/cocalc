@@ -55,7 +55,7 @@ export default async function adminAlert({
   body = "",
   errorOnFail,
   stackTrace,
-  dedupMinutes = 60,
+  dedupMinutes = 60*4,
 }: {
   subject: string;
   body?: any;

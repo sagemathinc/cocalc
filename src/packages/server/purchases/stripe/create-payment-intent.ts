@@ -109,28 +109,41 @@ export default async function createPaymentIntent({
     currency: "usd",
   };
 
+  const addLineItems = async (invoice) => {
+    for (const { amount, description } of lineItemsWithoutCredit) {
+      await stripe.invoiceItems.create({
+        customer,
+        amount: decimalToStripe(amount),
+        currency: "usd",
+        description,
+        invoice: invoice.id,
+      });
+    }
+  };
+
+  let finalizedInvoice;
   try {
+    // try with tax enabled
     invoice = await stripe.invoices.create({
       ...invoiceCreateParams,
       automatic_tax: { enabled: true },
     });
+    addLineItems(invoice);
+    finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
+      auto_advance: false,
+    });
   } catch (err) {
+    // failed, so do without tax enabled.  If a user has NO INFO in stripe, then
+    // tax will fail.  But there are rare situations where we need to auto generate an
+    // invoice, but there is no interactive session with the user, so we fallback
+    // here to not using tax in this case.  Once they enter payment information
+    // to pay this, next time tax will be properly charged.
     invoice = await stripe.invoices.create(invoiceCreateParams);
-  }
-
-  for (const { amount, description } of lineItemsWithoutCredit) {
-    await stripe.invoiceItems.create({
-      customer,
-      amount: decimalToStripe(amount),
-      currency: "usd",
-      description,
-      invoice: invoice.id,
+    addLineItems(invoice);
+    finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
+      auto_advance: false,
     });
   }
-
-  const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
-    auto_advance: false,
-  });
 
   const paymentIntentId = finalizedInvoice.payment_intent as string | undefined;
   if (!paymentIntentId) {
