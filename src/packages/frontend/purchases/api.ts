@@ -86,10 +86,6 @@ export async function getBalanceAdmin(account_id: string) {
   return await api("purchases/get-balance-admin", { account_id });
 }
 
-export const getPendingBalance = shortCache(async (): Promise<number> => {
-  return await api("purchases/get-pending-balance");
-}, "get-pending-balance");
-
 export async function getSpendRate(): Promise<number> {
   return await api("purchases/get-spend-rate");
 }

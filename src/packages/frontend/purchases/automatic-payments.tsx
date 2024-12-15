@@ -1,7 +1,4 @@
-/* Status
- */
-
-import { Flex } from "antd";
+import { Space } from "antd";
 import MinBalance from "./min-balance";
 import SpendRate from "./spend-rate";
 import { useEffect, useState } from "react";
@@ -11,9 +8,7 @@ import {
 } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 import { SectionDivider } from "./util";
-import AutoBalance from "./auto-balance";
-
-const MAX_WIDTH = "900px";
+import Balance from "./balance";
 
 export default function AutomaticPayments({
   compact,
@@ -61,21 +56,12 @@ export default function AutomaticPayments({
         setError={setError}
         style={{ marginBottom: "15px" }}
       />
-      <div>
-        <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
-          <Flex>
-            <AutoBalance style={{ color: "#666", height: "135px" }} />
-            <div style={{ flex: 1 }} />
-            <SpendRate spendRate={spendRate} />
-            <div style={{ flex: 1 }} />
-            {!compact && (
-              <>
-                <div style={{ width: "30px" }} />
-                <MinBalance minBalance={minBalance} />
-              </>
-            )}
-          </Flex>
-        </div>
+      <div style={{ textAlign: "center" }}>
+        <Space wrap size="large">
+          <Balance />
+          <SpendRate spendRate={spendRate} />
+          {!compact && <MinBalance minBalance={minBalance} />}
+        </Space>
       </div>
     </div>
   );

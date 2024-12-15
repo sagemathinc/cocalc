@@ -1,12 +1,9 @@
 import { Button, Flex, Modal, Space, Spin } from "antd";
 import Balance from "./balance";
 import { useEffect, useRef, useState } from "react";
-import {
-  getBalance as getBalanceUsingApi,
-  getPendingBalance as getPendingBalanceUsingApi,
-} from "./api";
+import { getBalance as getBalanceUsingApi } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import Payments from "@cocalc/frontend/purchases/payments";
 
 export default function BalanceModal({
@@ -17,31 +14,16 @@ export default function BalanceModal({
   onClose: Function;
 }) {
   const [loading, setLoading] = useState<boolean>(true);
-  const dbBalance = useTypedRedux("account", "balance");
-  const [balance, setBalance] = useState<number | null>(dbBalance ?? null);
-  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const refreshPaymentsRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (dbBalance != null) {
-      setBalance(dbBalance);
-    }
-  }, [dbBalance]);
-
-  const getBalance = async () => {
-    setBalance(await getBalanceUsingApi());
-  };
-  const getPendingBalance = async () => {
-    setPendingBalance(await getPendingBalanceUsingApi());
-  };
 
   const handleRefresh = async () => {
     try {
       onRefresh?.();
       setError("");
       setLoading(true);
-      await Promise.all([getBalance(), getPendingBalance()]);
+      // this triggers an update indirectly
+      await getBalanceUsingApi();
       await refreshPaymentsRef.current?.();
     } catch (err) {
       setError(`${err}`);
@@ -76,8 +58,6 @@ export default function BalanceModal({
     >
       <div style={{ textAlign: "center" }}>
         <Balance
-          balance={balance}
-          pendingBalance={pendingBalance}
           refresh={() => {
             handleRefresh();
             setTimeout(handleRefresh, 15000);
