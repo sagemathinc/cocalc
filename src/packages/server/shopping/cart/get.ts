@@ -78,7 +78,11 @@ export default async function getCart({
     params.push(cart_ids ?? []);
   }
   const { rows } = await pool.query(query, params);
-  await ensureValidLicenseIntervals(rows, pool);
+  if (!(purchased || removed)) {
+    // for non-historical items we adjust the interval to be valid, e.g., can't buy license in the past
+    await ensureValidLicenseIntervals(rows, pool);
+  }
+  console.log({ query, rows });
   return rows as any as Item[];
 }
 

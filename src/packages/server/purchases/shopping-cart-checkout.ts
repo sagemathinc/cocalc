@@ -42,11 +42,12 @@ export interface CheckoutParams {
   cart; // big object that describes actual contents of the cart
 }
 
-export const shoppingCartCheckout = async ({
+export async function shoppingCartCheckout({
   account_id,
   payment_intent,
   cart_ids,
   amount,
+  credit_id,
 }: {
   account_id: string;
   // in case items in the cart are partly paid for via stripe, this is the payment intent.
@@ -59,7 +60,9 @@ export const shoppingCartCheckout = async ({
   // stripe from the user.  If their total order is <= amount, then we will definitely
   // fullfill their order, even if their account balance is negative.
   amount?: number;
-}) => {
+  // if some credit was specifically used to buy items in cart, record that
+  credit_id?: number;
+}) {
   logger.debug("shoppingCartCheckout", {
     account_id,
     payment_intent,
@@ -86,7 +89,7 @@ export const shoppingCartCheckout = async ({
     try {
       // start atomic transaction
       for (const item of params.cart) {
-        await purchaseShoppingCartItem(item, client);
+        await purchaseShoppingCartItem(item, client, credit_id);
       }
       await client.query("COMMIT");
     } catch (err) {
@@ -105,21 +108,21 @@ export const shoppingCartCheckout = async ({
       `Insufficient credit on your account to complete the purchase (you need ${currency(params.chargeAmount)}). Please refresh your browser and try again or contact support.`,
     );
   }
-};
+}
 
 // payment canceled, so make the items available in the cart again
 export async function shoppingCartPutItemsBack({ cart_ids }) {
   await removeShoppingCartPaymentIntent({ cart_ids });
 }
 
-export const getCheckoutCart = async (
+export async function getCheckoutCart(
   account_id: string,
   // optional filter on shopping cart items; this is useful for the voucher checkout
   filter?: (item) => boolean,
   payment_intent?: string,
   processing?: boolean,
   cart_ids?: number[],
-) => {
+) {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
   let cart: ShoppingCartItem[] = await getCart({
@@ -154,16 +157,16 @@ export const getCheckoutCart = async (
     });
   }
   return { total: stripeToDecimal(totalStripe), cart: chargeableCart };
-};
+}
 
-export const getShoppingCartCheckoutParams = async (
+export async function getShoppingCartCheckoutParams(
   account_id: string,
   payment_intent?: string,
   processing?: boolean,
   cart_ids?: number[],
 ): Promise<
   CheckoutParams & { minimumPaymentCharge: number; cureAmount: number }
-> => {
+> {
   const { total, cart } = await getCheckoutCart(
     account_id,
     undefined,
@@ -193,4 +196,4 @@ export const getShoppingCartCheckoutParams = async (
     minimumPaymentCharge,
     cureAmount,
   };
-};
+}

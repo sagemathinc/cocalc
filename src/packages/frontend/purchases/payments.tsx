@@ -47,6 +47,7 @@ interface Props {
   canceled?: boolean;
   // if given, only show payments with the given purpose
   purpose?: string;
+  limit?: number;
 }
 
 export default function Payments({
@@ -58,6 +59,7 @@ export default function Payments({
   unfinished,
   canceled,
   purpose,
+  limit = DEFAULT_LIMIT,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [hasLoadedMore, setHasLoadedMore] = useState<boolean>(false);
@@ -71,7 +73,7 @@ export default function Payments({
     reset,
   }: { init?: boolean; reset?: boolean } = {}) => {
     const now = Date.now();
-    if (now - lastLoadRef.current < 500) {
+    if (now - lastLoadRef.current < 3000) {
       return;
     }
     lastLoadRef.current = now;
@@ -83,7 +85,7 @@ export default function Payments({
       if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
-          limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
+          limit: hasLoadedMore ? 100 : limit,
           created,
           unfinished,
           canceled,
@@ -145,7 +147,7 @@ export default function Payments({
               {!!unfinished && (data?.length ?? 0) > 0 && (
                 <Badge
                   count={data?.length}
-                  style={{ backgroundColor: "#688ff1", marginLeft: "15px" }}
+                  style={{ backgroundColor: "red", marginLeft: "15px" }}
                 />
               )}
             </Tooltip>
@@ -230,8 +232,14 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="credit-card"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
-                  Fill in details
+                <Tag
+                  style={{
+                    backgroundColor: "red",
+                    color: "white",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  Fill in Details
                 </Tag>
               </div>
             );
@@ -463,7 +471,7 @@ function InvoiceLink({ invoice }) {
       type="link"
       target="_blank"
     >
-      <Icon name="external-link" /> Invoice{" "}
+      <Icon name="external-link" /> Invoice and Receipt{" "}
       {isExpired ? " (expired)" : undefined}
     </Button>
   );

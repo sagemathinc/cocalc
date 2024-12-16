@@ -403,6 +403,7 @@ export default function Checkout() {
               {completingPurchase ||
               totalCost >= params.minPayment ||
               params == null ||
+              totalCost <= 0 ||
               paymentAmount >= params.minPayment ? null : (
                 <Alert
                   showIcon

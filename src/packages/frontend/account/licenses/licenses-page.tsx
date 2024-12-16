@@ -12,7 +12,7 @@ import { A } from "@cocalc/frontend/components/A";
 
 export function LicensesPage() {
   return (
-    <div style={{ maxWidth: "1000px", margin: "auto" }}>
+    <div style={{ margin: "auto" }}>
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically

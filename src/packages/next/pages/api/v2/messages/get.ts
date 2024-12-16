@@ -29,6 +29,6 @@ async function get(req) {
     account_id,
     endpoint: "messages/get",
   });
-  const { limit, offset, type } = getParams(req);
-  return await getMessages({ account_id, limit, offset, type });
+  const { limit, offset, type, cutoff } = getParams(req);
+  return await getMessages({ account_id, limit, offset, type, cutoff });
 }

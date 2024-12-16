@@ -48,63 +48,35 @@ import {
 import { capitalize, currency, round2up } from "@cocalc/util/misc";
 import {
   cancelSubscription,
-  costToResumeSubscription,
   getLicense,
   getSubscriptions as getSubscriptionsUsingApi,
-  renewSubscription,
-  resumeSubscription,
 } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 import { SubscriptionStatus } from "./subscriptions-util";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
-
-// Cancel immediately makes it pointless to ever buy a license without
-// buying a subscription, since you can just buy a license via a subscription,
-// get a big discount, and cancel exactly at the end of the period. Hence
-// disabling this for now, unless we come up with something better.  This
-// flag can be toggled to turn the functionality back on.
-const SUPPORT_CANCEL_IMMEDIATELY = false;
+import getSupportURL from "@cocalc/frontend/support/url";
+import ResumeSubscription from "./resume-subscription";
 
 function SubscriptionActions({
   subscription_id,
   license_id,
   status,
   refresh,
-  cost,
   interval,
 }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [license, setLicense] = useState<License | null>(null);
+  const [showResume, setShowResume] = useState<boolean>(false);
 
   const updateLicense = async () => {
     try {
       setLicense((await getLicense({ license_id })) as License);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  const [costToResume, setCostToResume] = useState<number | undefined>(
-    undefined,
-  );
-  const [periodicCost, setPeriodicCost] = useState<number | undefined>(
-    undefined,
-  );
-  const updateCostToResume = async () => {
-    try {
-      const { cost, periodicCost } =
-        await costToResumeSubscription(subscription_id);
-      setCostToResume(cost);
-      setPeriodicCost(periodicCost);
-      return cost;
     } catch (err) {
       setError(`${err}`);
     }
@@ -127,50 +99,21 @@ function SubscriptionActions({
     }
   };
 
-  const handleResume = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      try {
-        await resumeSubscription(subscription_id);
-      } catch (_) {
-        cost = await updateCostToResume();
-        await webapp_client.purchases_client.quotaModal({
-          service: "edit-license",
-          cost,
-        });
-        await resumeSubscription(subscription_id);
-      }
-      refresh();
-    } catch (error) {
-      setError(`${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRenewSubscription = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      try {
-        await renewSubscription(subscription_id);
-      } catch (_) {
-        await webapp_client.purchases_client.quotaModal({
-          service: "edit-license",
-          cost,
-        });
-        await renewSubscription(subscription_id);
-      }
-      refresh();
-    } catch (error) {
-      setError(`${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const footer = [
+    <Button
+      key="support"
+      type="link"
+      style={{ marginRight: "50px" }}
+      href={getSupportURL({
+        body: `I have a question about Subscription Id=${subscription_id}.\n\n`,
+        subject: `Question about Subscription Id=${subscription_id}`,
+        type: "question",
+        hideExtra: true,
+      })}
+      target="_blank"
+    >
+      <Icon name="medkit" /> Support
+    </Button>,
     <Button
       disabled={loading}
       key="nothing"
@@ -193,10 +136,11 @@ function SubscriptionActions({
             }
           />
           <br />
-          <Input
+          <Input.TextArea
+            rows={4}
             style={{ width: "100%", margin: "15px 0" }}
             onChange={(e) => (reasonRef.current = e.target.value)}
-            placeholder={"Why are you canceling this subscription..."}
+            placeholder={"Tell us why..."}
           />
         </div>
       }
@@ -219,24 +163,6 @@ function SubscriptionActions({
           closable
           onClose={() => setError("")}
         />
-      )}
-      {(status === "unpaid" || status === "past_due") && (
-        <Popconfirm
-          title={
-            <div style={{ maxWidth: "450px" }}>
-              Are you sure you want to pay for the next month of this
-              subscription? The corresponding license will be renewed and your
-              balance will be reduced by the subscription amount.
-            </div>
-          }
-          onConfirm={handleRenewSubscription}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button disabled={loading} type="primary">
-            Pay Now...
-          </Button>
-        </Popconfirm>
       )}
       {status !== "canceled" && (
         <Button
@@ -262,23 +188,15 @@ function SubscriptionActions({
             license will not be renewed.
             <ul style={{ margin: "15px 0" }}>
               <li>
+                Instead of cancelling, <b>you can edit your license</b>, which
+                will change the subscription price. Click the license code to
+                the left, then click "Edit License".
+              </li>
+              <li>
                 Select "Cancel at Period End" to cancel your subscription. You
                 have already paid for your license, so it will continue to the
                 end of the current period.
               </li>
-              <li>
-                You can always edit the license, which will change the
-                subscription price. Click the license code to the left, then
-                click "Edit License..."
-              </li>
-              {SUPPORT_CANCEL_IMMEDIATELY && (
-                <li>
-                  To receive a prorated credit for the remainder of this
-                  license, select "Cancel Now". You can spend your
-                  non-refundable credit on another license, pay-as-you-go
-                  project upgrades, etc.
-                </li>
-              )}
               <li>You can resume a canceled subscription later.</li>
             </ul>
             {license?.info?.purchased.type == "disk" && (
@@ -298,41 +216,27 @@ function SubscriptionActions({
         </Modal>
       )}
       {status == "canceled" && (
-        <Popconfirm
-          title={`Resume Subscription Id=${subscription_id}?`}
-          description={() => {
-            setTimeout(updateCostToResume, 1);
-            if (periodicCost == null) {
-              return <Spin />;
-            }
-            return (
-              <div style={{ maxWidth: "450px" }}>
-                {costToResume == 0 ? (
-                  <b>
-                    There is no charge to resume your subscription, since your
-                    license is still active.
-                  </b>
-                ) : (
-                  <b>
-                    To resume your subscription, you will be charged{" "}
-                    {currency(round2up(periodicCost))} for the next {interval}.
-                  </b>
-                )}{" "}
-                The current subscription rate is{" "}
-                {currency(round2up(periodicCost))}/{interval}. You will be
-                billed each {interval} {RENEW_DAYS_BEFORE_END} days before the
-                license would expire.
-              </div>
-            );
-          }}
-          onConfirm={handleResume}
-          okText="Yes, Resume Subscription"
-          cancelText="No"
-        >
-          <Button disabled={loading} type="default">
+        <>
+          <Button
+            disabled={loading}
+            type="default"
+            onClick={() => setShowResume(!showResume)}
+          >
             Resume...
           </Button>
-        </Popconfirm>
+          <ResumeSubscription
+            subscription_id={subscription_id}
+            interval={interval}
+            open={showResume}
+            status={status}
+            setOpen={(open) => {
+              setShowResume(open);
+              if (!open) {
+                refresh();
+              }
+            }}
+          />
+        </>
       )}
     </Space>
   );
@@ -344,7 +248,14 @@ function LicenseDescription({ license_id, refresh }) {
       items={[
         {
           key: "license",
-          label: `License: ${license_id}`,
+          label: (
+            <Flex>
+              <Icon name="key" style={{ marginRight: "15px" }} /> License Id:{" "}
+              {license_id}
+              <div style={{ flex: 1 }} />
+              <div>(expand to edit)</div>
+            </Flex>
+          ),
           children: (
             <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
           ),
@@ -445,7 +356,7 @@ export default function Subscriptions() {
         render: (_, subscription) => {
           return (
             <Button onClick={() => setCurrent(subscription)}>
-              <Icon name="external-link" />
+              <Icon name="expand" />
             </Button>
           );
         },
@@ -459,13 +370,14 @@ export default function Subscriptions() {
         width: "40%",
         title: "Description",
         key: "desc",
-        render: (_, { metadata }) => {
+        render: (_, subscription) => {
+          const { metadata } = subscription;
           if (metadata.type == "license" && metadata.license_id) {
             return (
-              <LicenseDescription
-                license_id={metadata.license_id}
-                refresh={getSubscriptions}
-              />
+              <Button onClick={() => setCurrent(subscription)}>
+                <Icon name="key" style={{ marginRight: "15px" }} />
+                License Id: {metadata.license_id}
+              </Button>
             );
           }
           return <>{JSON.stringify(metadata, undefined, 2)}</>;
@@ -533,14 +445,13 @@ export default function Subscriptions() {
       {
         title: "Manage",
         key: "manage",
-        render: (_, { cost, id, metadata, status, interval }) => (
+        render: (_, { id, metadata, status, interval }) => (
           <>
             <SubscriptionActions
               subscription_id={id}
               license_id={metadata.license_id}
               status={status}
               refresh={getSubscriptions}
-              cost={cost}
               interval={interval}
             />
           </>
@@ -584,36 +495,33 @@ export default function Subscriptions() {
           style={{ marginBottom: "15px" }}
         />
       )}
-      {loading ? (
-        <Spin />
-      ) : (
-        <div style={{ overflow: "auto", width: "100%" }}>
-          <UnpaidSubscriptions
-            size="large"
-            style={{ margin: "15px 0", textAlign: "center" }}
-            showWhen="unpaid"
-            counter={counter}
-            refresh={getSubscriptions}
+      {loading && <Spin />}
+      <div style={{ overflow: "auto", width: "100%" }}>
+        <UnpaidSubscriptions
+          size="large"
+          style={{ margin: "15px 0", textAlign: "center" }}
+          showWhen="unpaid"
+          counter={counter}
+          refresh={getSubscriptions}
+        />
+        <Table
+          rowKey={"id"}
+          pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
+          dataSource={subscriptions ?? undefined}
+          columns={columns}
+        />
+        {current != null && (
+          <SubscriptionModal
+            subscription={current}
+            getSubscriptions={getSubscriptions}
+            onClose={() => {
+              setCurrent(undefined);
+              Fragment.clear();
+              redux.getActions("account").setFragment(undefined);
+            }}
           />
-          <Table
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
-            dataSource={subscriptions ?? undefined}
-            columns={columns}
-          />
-          {current != null && (
-            <SubscriptionModal
-              subscription={current}
-              getSubscriptions={getSubscriptions}
-              onClose={() => {
-                setCurrent(undefined);
-                Fragment.clear();
-                redux.getActions("account").setFragment(undefined);
-              }}
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </SettingBox>
   );
 }
@@ -668,7 +576,6 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
               onClose();
               getSubscriptions();
             }}
-            cost={subscription.cost}
             interval={subscription.interval}
           />
         </div>

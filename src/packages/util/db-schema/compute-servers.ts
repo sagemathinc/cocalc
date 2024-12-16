@@ -78,7 +78,7 @@ export interface Image {
   // What we show the user to describe this image, e.g., in the image select menu.
   label: string;
   // The name of the package on npmjs or dockerhub:
-  package: string;
+  package?: string;
   // In case there is a different package name for ARM64, the name of it.
   package_arm64?: string;
   // Root filesystem image must be at least this big in GB.
@@ -90,9 +90,9 @@ export interface Image {
   dockerSizeGb?: number;
   description?: string;
   // Upstream URL for this image, e.g., https://julialang.org/ for the Julia image.
-  url: string;
+  url?: string;
   // Icon to show next to the label for this image.
-  icon: string;
+  icon?: string;
   // Link to a URL with the source for building this image.
   source: string;
   // optional list of links to videos about this image, ordered from lowest to highest priority.

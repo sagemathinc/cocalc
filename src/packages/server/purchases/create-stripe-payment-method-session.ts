@@ -68,9 +68,9 @@ export default async function createStripePaymentMethodSession(
     customer_email:
       customer == null ? await getEmailAddress(account_id) : undefined,
     tax_id_collection: { enabled: true },
-    automatic_tax: {
-      enabled: true,
-    },
+//     automatic_tax: {
+//       enabled: true,
+//     },
     customer_update: {
       address: "auto",
       name: "auto",

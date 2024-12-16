@@ -157,13 +157,13 @@ export default function CreateVouchers() {
     return (
       <Form layout="horizontal" form={form}>
         <div>
-          <Form.Item name="whenPay" initialValue={whenPay}>
-            {profile?.is_admin && (
-              <>
-                <h4 style={{ fontSize: "13pt", marginTop: "5px" }}>
-                  <Check done /> Admin: Pay or Free
-                </h4>
-                <div>
+          {profile?.is_admin && (
+            <>
+              <h4 style={{ fontSize: "13pt", marginTop: "5px" }}>
+                <Check done /> Admin: Pay or Free
+              </h4>
+              <div>
+                <Form.Item name="whenPay" initialValue={whenPay}>
                   <Radio.Group
                     value={whenPay}
                     onChange={(e) => {
@@ -182,21 +182,21 @@ export default function CreateVouchers() {
                       )}
                     </Space>
                   </Radio.Group>
-                  <br />
-                  <Paragraph style={STYLE}>
-                    {profile?.is_admin && (
-                      <>
-                        As an admin, you may select the "Free" option; this is
-                        useful for creating free trials, fulfilling complicated
-                        customer requirements and adding credit to your own
-                        account.
-                      </>
-                    )}
-                  </Paragraph>
-                </div>
-              </>
-            )}
-          </Form.Item>
+                </Form.Item>
+                <br />
+                <Paragraph style={STYLE}>
+                  {profile?.is_admin && (
+                    <>
+                      As an admin, you may select the "Free" option; this is
+                      useful for creating free trials, fulfilling complicated
+                      customer requirements and adding credit to your own
+                      account.
+                    </>
+                  )}
+                </Paragraph>
+              </div>
+            </>
+          )}
           <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
             <Check done={(numVouchers ?? 0) > 0} /> Value of Each Voucher
           </h4>

@@ -1,4 +1,6 @@
 /*
+DEPRECATED!!
+
 
 export interface MakePayment {
   type: "make-payment";

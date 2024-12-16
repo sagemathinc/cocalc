@@ -11,6 +11,8 @@ import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
+  isToMe,
+  isFromMe,
   isDeleted,
   isDraft,
   get,
@@ -24,7 +26,7 @@ import {
   participantsInThread,
   excludeSelfUnlessAlone,
 } from "./util";
-import { debounce, throttle } from "lodash";
+import { debounce } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 import { BITSET_FIELDS } from "@cocalc/util/db-schema/messages";
 import { once } from "@cocalc/util/async-utils";
@@ -77,6 +79,7 @@ export class MessagesActions extends Actions<MessagesState> {
     read?: boolean;
     saved?: boolean;
     starred?: boolean;
+    liked?: boolean;
     deleted?: boolean;
     expire?: boolean;
   }) => {
@@ -101,6 +104,11 @@ export class MessagesActions extends Actions<MessagesState> {
         if (message != null) {
           table.set(setMessage({ message, obj }));
           changed_table = true;
+        }
+
+        if (obj.liked && isToMe(message) && isFromMe(message)) {
+          // ensure like is only set once in this case.
+          obj = { ...obj, liked: false };
         }
 
         message = sent_table.get_one(`${id}`);
@@ -386,30 +394,26 @@ Body: ${message.get("body")}
     },
   );
 
-  search = throttle(
-    async (query: string) => {
-      if (!query.trim()) {
-        // easy special case
-        this.setState({ search: new Set(), searchWords: new Set() });
-        return;
-      }
-      // used for highlighting
-      const searchWords = new Set(
-        search_split(query, false).filter((x) => typeof x == "string"),
-      );
-      this.setState({ searchWords });
-      // update search index, if necessary
-      await this.updateSearchIndex();
-      // the matching results
-      const search = new Set(await this.searchIndex.filter(query));
-      this.setState({ search });
+  search = async (query: string) => {
+    if (!query.trim()) {
+      // easy special case
+      this.setState({ search: new Set(), searchWords: new Set() });
+      return;
+    }
+    // used for highlighting
+    const searchWords = new Set(
+      search_split(query, false).filter((x) => typeof x == "string"),
+    );
+    this.setState({ searchWords });
+    // update search index, if necessary
+    await this.updateSearchIndex();
+    // the matching results
+    const search = new Set(await this.searchIndex.filter(query));
+    this.setState({ search });
 
-      // change folder if necessary
-      this.redux.getActions("mentions").set_filter("messages-search");
-    },
-    300,
-    { leading: true, trailing: true },
-  );
+    // change folder if necessary
+    this.redux.getActions("mentions").set_filter("messages-search");
+  };
 
   setFontSize = (fontSize: number) => {
     fontSize = Math.max(5, Math.min(fontSize, 100));
@@ -443,6 +447,7 @@ class MessagesTable extends Table {
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },
@@ -484,6 +489,7 @@ class SentMessagesTable extends Table {
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },

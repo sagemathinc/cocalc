@@ -3,7 +3,6 @@ Purchases
 
 NOTES:
 
-
 - cost is by definition how much the thing costs the customer, e.g., -10 means a credit of $10.
 - amount is by definition the negative of cost.
 
@@ -21,11 +20,27 @@ import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 import type { LineItem } from "@cocalc/util/stripe/types";
 
-// various specific payment purposes -- todo: should probably rewrite to use typescript enum?
+// various specific payment purposes
+
+// buying items in the shopping cart
 export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
+
+// automatic balance top up
 export const AUTO_CREDIT = "auto-credit";
+
+// paying for a class
 export const STUDENT_PAY = "student-pay";
+
+// month-to-month payment for active subscription
 export const SUBSCRIPTION_RENEWAL = "subscription-renewal";
+
+// resuming a canceled subscription that has expired:
+export const RESUME_SUBSCRIPTION = "resume-subscription";
+
+// for paying a statement the purpose is `statement-${statement_id}`
+// (Maybe we should be usig metadata for this though?)
+
+
 
 export type Reason =
   | "duplicate"
@@ -135,6 +150,10 @@ export interface License {
   license_id: string;
   item?; // item in shopping cart
   course?: CourseInfo;
+  // if this license was bought using credit that was added, then record the id of that transaction here.
+  // it's mainly "psychological", but often money is added specifically to buy a license, and it is good
+  // to keep track of that flow.
+  credit_id?: number;
 }
 
 export interface Voucher {
@@ -143,6 +162,7 @@ export interface Voucher {
   cost: number; // per voucher
   title: string;
   voucher_id: number;
+  credit_id?: number;
 }
 
 export interface EditLicense {

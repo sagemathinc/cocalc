@@ -44,12 +44,18 @@ interface Options {
   // enough to cover the purchase -- irregardless of possible negative balance --
   // we always allow the purchase.
   amount?: number;
+
+  // noted when creating the actual purchase of the license, assuming some
+  // specific credit was added to the account for this purpose (which may or may not
+  // be the case, obviously)
+  credit_id?: number;
 }
 
 export default async function studentPay({
   account_id,
   project_id,
   amount,
+  credit_id,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
@@ -75,8 +81,8 @@ export default async function studentPay({
     const { title, description } = rows[0];
     const purchaseInfo = {
       ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
-      title,
-      description,
+      title: `Course License for ${title}`,
+      description: `License for the course "${title}".\n\n${description?.trim() != "No description" ? description : ""}`,
     };
     if (purchaseInfo.type != "quota") {
       // typescript wants this
@@ -128,6 +134,7 @@ export default async function studentPay({
         license_id,
         info: purchaseInfo,
         course: currentCourse,
+        credit_id,
       },
       client,
     });
@@ -272,7 +279,7 @@ export async function studentPayAssertNotPaying({ project_id }) {
   if (payment_intent_id) {
     const stripe = await getConn();
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
-    if (intent.status != "canceled") {
+    if (intent.status != "canceled" && intent.status != "succeeded") {
       throw Error(
         `There is an outstanding payment for this course right now.  Pay that invoice or cancel it.`,
       );

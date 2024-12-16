@@ -65,7 +65,7 @@ export interface StudentPay {
   type: "student-pay";
   account_id: string;
   project_id: string;
-  paid?: number; // time in ms since epoch when payment completed
+  // STEP 0:
   // If payment hasn't happened yet, this is the information needed to use
   // the StripePayment component to do the payment, and also ensure the
   // payment processing buys the license for the student project.
@@ -75,6 +75,10 @@ export interface StudentPay {
     metadata: object;
     purpose: string;
   };
+  // STEP 1: if payment started, then this will be set
+  paymentIntentId?: string;
+  // STEP 2: time in ms since epoch when payment completed
+  paid?: number;
 }
 
 export type Description =

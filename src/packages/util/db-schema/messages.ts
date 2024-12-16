@@ -15,7 +15,7 @@ A message has a subject and body.
 
 When it is read can be set, and a message can also be saved for later.
 
-That's it!  This is meant to be just enough to support things like:
+That's it!  This is meant to be just enough to support things liked:
 
  - the system sending messages to users, e.g., reminds about notification
  - a user replying and sending a message to the system (which admins could see).
@@ -80,6 +80,7 @@ export interface MessageMe extends Message0 {
   read?: boolean;
   saved?: boolean;
   starred?: boolean;
+  liked?: boolean;
   deleted?: boolean;
   expire?: boolean;
 }
@@ -90,6 +91,7 @@ export const BITSET_FIELDS = [
   "read",
   "saved",
   "starred",
+  "liked",
   "deleted",
   "expire",
 ] as const;
@@ -107,7 +109,8 @@ export interface ApiMessagesGet {
   // received = all messages to you (the default)
   // sent = all messages you sent
   // new = to you and not read or saved -- these are what the counter counts
-  type?: "received" | "sent" | "new" | "starred";
+  type?: "received" | "sent" | "new" | "starred" | "liked";
+  // strictly newer than cutoff
   cutoff?: Date;
 }
 
@@ -184,6 +187,11 @@ Table({
       pg_type: "bit varying",
       desc: "Users that starred this message so they can easily find it later",
     },
+    liked: {
+      type: "string",
+      pg_type: "bit varying",
+      desc: "Users liked this message, indicate to sender and other uses that is good. Thumbs up.",
+    },
     deleted: {
       type: "string",
       pg_type: "bit varying",
@@ -198,7 +206,7 @@ Table({
   rules: {
     primary_key: "id",
     changefeed_keys: ["to_ids", "sent"],
-    pg_indexes: ["USING GIN (to_ids)"],
+    pg_indexes: ["USING GIN (to_ids)", "sent"],
     user_query: {
       get: {
         pg_where: [
@@ -217,6 +225,7 @@ Table({
           read: null,
           saved: null,
           starred: null,
+          liked: null,
           deleted: null,
           expire: null,
         },
@@ -227,6 +236,7 @@ Table({
           read: true,
           saved: true,
           starred: true,
+          liked: true,
           deleted: true,
           expire: true,
         },
@@ -253,7 +263,7 @@ Table({
             // the number of users (so number of recipients + 1), and 3 is the position to flip (+1 since it is 1-indexed in postgres),
             // and it's `'x'::bit(1),3+1` to set the bit to x (=0 or 1), i.e., 0 in this example:
             //
-            // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20),'0'::bit(1),3+1) where id=61; select saved from messages where id=61;
+            // smc=# update messages set saved=overlay(coalesce(saved,'0'::bit(1))::bit(20) PLACING '0'::bit(1) FROM 3+1) where id=61; select saved from messages where id=61;
 
             const ids = new_val.to_ids ?? old_val.to_ids ?? [];
             const numUsers = ids.length + 1;
@@ -275,10 +285,7 @@ Table({
                 // be especially careful to avoid sql injection attack.
                 throw Error(`invalid bit '${bit}'`);
               }
-              // This only works with postgresql version 14:
-              //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),${userIndex}+1)`;
-
-              return `${field} = (coalesce(${field},'0'::bit(1))::bit(${numUsers})::bit(${userIndex})::int::text || '${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from ${userIndex + 2}))::bit(${numUsers})`;
+              return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}) PLACING '${bit}'::bit(1) FROM ${userIndex}+1)`;
             };
 
             const v: string[] = [];
@@ -335,6 +342,7 @@ Table({
           thread_id: true,
           saved: true,
           starred: true,
+          liked: true,
           read: true,
           deleted: true,
           expire: true,
@@ -378,9 +386,7 @@ Table({
                 if (bit != "0" && bit != "1") {
                   throw Error(`invalid bit '${bit}'`);
                 }
-                // this only works with postgresql 14+
-                //return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}),'${bit}'::bit(1),1)`;
-                return `${field} = ('${bit}'::bit(1)::text || substring(coalesce(${field},'0'::bit(1))::bit(${numUsers})::text from 2))::bit(${numUsers})`;
+                return `${field} = overlay(coalesce(${field},'0'::bit(1))::bit(${numUsers}) PLACING '${bit}'::bit(1) FROM 1)`;
               };
               const v: string[] = [];
               for (const field of BITSET_FIELDS) {

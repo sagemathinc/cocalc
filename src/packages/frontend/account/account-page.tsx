@@ -15,7 +15,6 @@ import { Flex, Menu, Space } from "antd";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import BalanceButton from "@cocalc/frontend/purchases/balance-button";
-import { AntdTabItem } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -30,6 +29,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
 import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
+import PaymentMethodsPage from "@cocalc/frontend/purchases/payment-methods-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -73,28 +73,70 @@ export const AccountPage: React.FC = () => {
     redux.getActions("account").push_state(`/${key}`);
   }
 
-  function render_account_tab(): AntdTabItem {
-    return {
-      key: "account",
-      label: (
-        <span>
-          <Icon name="address-card" /> {intl.formatMessage(labels.preferences)}
-        </span>
-      ),
-      children: (active_page == null || active_page === "account") && (
-        <AccountPreferences />
-      ),
-    };
-  }
-
-  function render_special_tabs(): AntdTabItem[] {
+  function getTabs(): any[] {
+    const items: any[] = [
+      {
+        key: "account",
+        label: (
+          <span>
+            <Icon name="address-card" />{" "}
+            {intl.formatMessage(labels.preferences)}
+          </span>
+        ),
+        children: (active_page == null || active_page === "account") && (
+          <AccountPreferences />
+        ),
+      },
+    ];
     // adds a few conditional tabs
     if (is_anonymous) {
-      // None of these make any sense for a temporary anonymous account.
-      return [];
+      // None of the rest make any sense for a temporary anonymous account.
+      return items;
     }
-    const items: AntdTabItem[] = [];
+    items.push({ type: "divider" });
+
     if (is_commercial) {
+      items.push({
+        key: "subscriptions",
+        label: (
+          <span>
+            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
+          </span>
+        ),
+        children: active_page === "subscriptions" && <SubscriptionsPage />,
+      });
+      items.push({
+        key: "licenses",
+        label: (
+          <span>
+            <Icon name="key" /> {intl.formatMessage(labels.licenses)}
+          </span>
+        ),
+        children: active_page === "licenses" && <LicensesPage />,
+      });
+      items.push({
+        key: "payg",
+        label: (
+          <span>
+            <Icon name="line-chart" /> Pay As You Go
+          </span>
+        ),
+        children: active_page === "payg" && <PayAsYouGoPage />,
+      });
+      if (is_commercial && kucalc === KUCALC_COCALC_COM) {
+        // these have been deprecated for ~ 5 years, but some customers still have them.
+        items.push({
+          key: "upgrades",
+          label: (
+            <span>
+              <Icon name="arrow-circle-up" />{" "}
+              {intl.formatMessage(labels.upgrades)}
+            </span>
+          ),
+          children: active_page === "upgrades" && <UpgradesPage />,
+        });
+      }
+      items.push({ type: "divider" });
       items.push({
         key: "purchases",
         label: (
@@ -114,6 +156,15 @@ export const AccountPage: React.FC = () => {
         children: active_page === "payments" && <PaymentsPage />,
       });
       items.push({
+        key: "payment-methods",
+        label: (
+          <span>
+            <Icon name="credit-card" /> Payment Methods
+          </span>
+        ),
+        children: active_page === "payment-methods" && <PaymentMethodsPage />,
+      });
+      items.push({
         key: "statements",
         label: (
           <span>
@@ -123,53 +174,9 @@ export const AccountPage: React.FC = () => {
         ),
         children: active_page === "statements" && <StatementsPage />,
       });
-      items.push({
-        key: "subscriptions",
-        label: (
-          <span>
-            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
-          </span>
-        ),
-        children: active_page === "subscriptions" && <SubscriptionsPage />,
-      });
-      items.push({
-        key: "payg",
-        label: (
-          <span>
-            <Icon name="line-chart" /> Pay As You Go
-          </span>
-        ),
-        children: active_page === "payg" && <PayAsYouGoPage />,
-      });
+      items.push({ type: "divider" });
     }
 
-    if (
-      kucalc === KUCALC_COCALC_COM ||
-      kucalc === KUCALC_ON_PREMISES ||
-      is_commercial
-    ) {
-      items.push({
-        key: "licenses",
-        label: (
-          <span>
-            <Icon name="key" /> {intl.formatMessage(labels.licenses)}
-          </span>
-        ),
-        children: active_page === "licenses" && <LicensesPage />,
-      });
-    }
-
-    if (is_commercial) {
-      items.push({
-        key: "support",
-        label: (
-          <span>
-            <Icon name="medkit" /> {intl.formatMessage(labels.support)}
-          </span>
-        ),
-        children: active_page === "support" && <SupportTickets />,
-      });
-    }
     items.push({
       key: "public-files",
       label: (
@@ -192,19 +199,27 @@ export const AccountPage: React.FC = () => {
         children: <CloudFilesystems noTitle />,
       });
     }
-    if (is_commercial && kucalc === KUCALC_COCALC_COM) {
-      // these have been deprecated for ~ 5 years, but some customers still have them.
+
+    if (
+      kucalc === KUCALC_COCALC_COM ||
+      kucalc === KUCALC_ON_PREMISES ||
+      is_commercial
+    ) {
+    }
+
+    if (is_commercial) {
+      items.push({ type: "divider" });
       items.push({
-        key: "upgrades",
+        key: "support",
         label: (
           <span>
-            <Icon name="arrow-circle-up" />{" "}
-            {intl.formatMessage(labels.upgrades)}
+            <Icon name="medkit" /> {intl.formatMessage(labels.support)}
           </span>
         ),
-        children: active_page === "upgrades" && <UpgradesPage />,
+        children: active_page === "support" && <SupportTickets />,
       });
     }
+
     return items;
   }
 
@@ -234,10 +249,7 @@ export const AccountPage: React.FC = () => {
       );
     }
 
-    const tabs: AntdTabItem[] = [
-      render_account_tab(),
-      ...render_special_tabs(),
-    ];
+    const tabs = getTabs();
 
     // NOTE: This is a bit weird, since I rewrote it form antd Tabs
     // to an antd Menu, but didn't change any of the above.
@@ -246,6 +258,9 @@ export const AccountPage: React.FC = () => {
     const children = {};
     const titles = {};
     for (const tab of tabs) {
+      if (tab.type == "divider") {
+        continue;
+      }
       children[tab.key] = tab.children;
       titles[tab.key] = tab.label;
       delete tab.children;

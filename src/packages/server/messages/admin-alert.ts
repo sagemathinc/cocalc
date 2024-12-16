@@ -14,6 +14,7 @@ IMPORTANT: it's safe to call this without awaiting.  It will never raise an exce
 unless you explicitly pass in errorOnFail, which you should do if you want to be very
 certain the message is delivered. This would only fail if the connection to our database
 is broken.
+
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -53,12 +54,19 @@ export default async function adminAlert({
   subject,
   body = "",
   errorOnFail,
+  stackTrace,
+  dedupMinutes = 60*4,
 }: {
   subject: string;
   body?: any;
   errorOnFail?: boolean;
-}) {
-  const stack = getStackTrace();
+  stackTrace?: boolean;
+  // If you try to send the exact same admin alert more often than this, then it is dropped
+  dedupMinutes?: number;
+}): Promise<number | undefined> {
+  const stack = stackTrace
+    ? "\n\n---\n" + "```js\n" + getStackTrace() + "\n```\n"
+    : "";
   try {
     logger.debug("mesg", { subject, body });
     const to_ids = await getAdmins();
@@ -68,11 +76,12 @@ export default async function adminAlert({
     }
     const { support_account_id } = await getServerSettings();
     const from_id = support_account_id ? support_account_id : to_ids[0];
-    await send({
+    return await send({
       subject: `Admin Alert - ${subject}`,
-      body: toString(body) + "\n\n---\n" + "```js\n" + stack + "\n```\n",
+      body: toString(body) + stack,
       from_id,
       to_ids,
+      dedupMinutes,
     });
   } catch (err) {
     if (errorOnFail) {

@@ -31,7 +31,7 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { license_id, start, end, current_period_end } =
+  const { license_id, start, end, current_period_end, periodicCost } =
     await getSubscriptionRenewalData(subscription_id);
   const client = await getTransactionClient();
   let purchase_id: number | undefined = undefined;
@@ -46,6 +46,7 @@ export default async function resumeSubscription({
           note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
           isSubscriptionRenewal: true,
           client,
+          cost: periodicCost,
         })
       ).purchase_id;
 
@@ -86,7 +87,7 @@ Thank you!
 ${await support()}`,
     });
     adminAlert({
-      subject: `User manually resumed cancelled subscription ${subscription_id}`,
+      subject: `User manually resumed canceled subscription ${subscription_id}`,
       body: `
 **Good news** - The user ${await name(account_id)} with account_id=${account_id}
 has manually resumed their canceled subscription id=${subscription_id}.
@@ -114,7 +115,7 @@ An unexpected error happened when manually resuming your subscription with id=${
 ${await support()}`,
     });
     adminAlert({
-      subject: `Unexpected error when user manually resumed cancelled subscription ${subscription_id}`,
+      subject: `Unexpected error when user manually resumed canceled subscription ${subscription_id}`,
       body: `
 PROBLEM: The user ${await name(account_id)} with account_id=${account_id} tried to manually resume
 their canceled subscription id=${subscription_id}, but there was an unexpected

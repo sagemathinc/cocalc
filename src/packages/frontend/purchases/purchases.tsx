@@ -612,7 +612,7 @@ function DetailedPurchaseTable({
               render: (_, purchase) => {
                 return (
                   <Button onClick={() => setCurrent(purchase)}>
-                    <Icon name="external-link" />
+                    <Icon name="expand" />
                   </Button>
                 );
               },
@@ -710,9 +710,16 @@ function DetailedPurchaseTable({
           admin={admin}
           purchase={current}
           onClose={() => {
-            setCurrent(undefined);
-            Fragment.clear();
+            console.log("calling on close and clearing all fragments");
             redux.getActions("account").setFragment(undefined);
+            Fragment.clear();
+            // have to setCurrent *after* the above stuff happens,
+            // since it updates 'fragment' via useTypedRedux, and if
+            // we don't wait, then when current because undefined we'll
+            // just pop this up again since fragment is still set.
+            setTimeout(() => {
+              setCurrent(undefined);
+            }, 1);
           }}
         />
       )}
@@ -736,6 +743,19 @@ function PurchaseDescription({
         description={description}
         period_end={period_end}
       />
+      {description.credit_id != null && (
+        <div>
+          <a
+            onClick={() => {
+              redux
+                .getActions("account")
+                .setFragment({ id: description.credit_id });
+            }}
+          >
+            Credit Id: {description.credit_id}
+          </a>
+        </div>
+      )}
       <Flex wrap style={{ marginLeft: "-8px" }}>
         {description?.["line_items"] != null && (
           <LineItemsButton

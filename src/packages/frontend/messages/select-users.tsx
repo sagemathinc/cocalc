@@ -6,10 +6,20 @@ import User from "./user";
 import { throttle } from "lodash";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp, search_match, search_split } from "@cocalc/util/misc";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 
 const AVATAR_SIZE = 22;
 
-function UserLabel({ account_id, knownUsers }) {
+function UserLabel({
+  account_id,
+  knownUsers,
+  last_active,
+}: {
+  account_id: string;
+  knownUsers;
+  last_active?;
+}) {
   const users = useTypedRedux("users", "user_map");
   return (
     <div
@@ -29,12 +39,19 @@ function UserLabel({ account_id, knownUsers }) {
         addonAfter={
           <span style={{ color: "#888", marginLeft: "10px" }}>
             {account_id == webapp_client.account_id
-              ? "(me)"
+              ? "(me"
               : users?.get(account_id)?.get("collaborator")
-                ? "(collaborator)"
+                ? "(collaborator"
                 : knownUsers.has(account_id)
-                  ? "(messaged)"
-                  : "(unrelated)"}
+                  ? "(messaged"
+                  : "(unrelated"}
+            {last_active ? (
+              <span>
+                , active <TimeAgo date={last_active} />)
+              </span>
+            ) : (
+              ")"
+            )}
           </span>
         }
       />
@@ -52,19 +69,26 @@ const handleSearch = throttle(
     setData;
     knownUsers: Set<string>;
   }) => {
-    // todo -- worry about sort order
+    const isEmail = query?.trim() && isValidEmailAddress(query?.trim());
+    // todo -- worry more about sort order
     const terms = search_split(query?.toLowerCase() ?? "");
-
     const v: { value: string; label; last_active?: Date }[] = [];
     const store = redux.getStore("users");
     const user_map = store.get("user_map");
     for (const account_id of knownUsers) {
       const name = store.get_name(account_id) ?? "";
       if (!name || search_match(name.toLowerCase(), terms)) {
+        const last_active = user_map.getIn([account_id, "last_active"]);
         v.push({
           value: account_id,
-          label: <UserLabel account_id={account_id} knownUsers={knownUsers} />,
-          last_active: user_map.getIn([account_id, "last_active"]),
+          label: (
+            <UserLabel
+              account_id={account_id}
+              knownUsers={knownUsers}
+              last_active={last_active}
+            />
+          ),
+          last_active,
         });
       }
     }
@@ -79,7 +103,7 @@ const handleSearch = throttle(
       limit: 50,
     });
     const found = select
-      .filter(({ account_id }) => !knownUsers.has(account_id))
+      .filter(({ account_id }) => isEmail || !knownUsers.has(account_id))
       .map((user) => {
         return {
           value: user.account_id,

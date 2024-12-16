@@ -34,12 +34,6 @@ export default function Main({ messages, threads, filter, search }) {
       // BUG -- should never happen!
       return "inbox" as Folder;
     }
-    if (folder != "search") {
-      // clear search when switching to any other folder -- in next update loop
-      setTimeout(() => {
-        redux.getActions("messages").search("");
-      }, 0);
-    }
     return folder;
   }, [filter]);
 
@@ -323,28 +317,37 @@ function ShowAllThreads({
       setCursor(Math.min(filteredMessages.length - 1, cursor + 1));
     },
     archive: () => {
-      redux.getActions("messages").mark({
-        ids: expandToThreads({
-          ids: new Set([filteredMessages[cursor].id]),
-          threads,
-          messages,
-        }),
-        saved: true,
-      });
+      const message = filteredMessages[cursor];
+      if (message) {
+        redux.getActions("messages").mark({
+          ids: expandToThreads({
+            ids: new Set([message.id]),
+            threads,
+            messages,
+          }),
+          saved: true,
+        });
+      }
     },
     ["delete"]: () => {
       if (checkedMessageIds.size > 0) {
         // handled by action button
         return;
       }
-      // current selected message
-      redux.getActions("messages").mark({
-        ids: new Set([filteredMessages[cursor].id]),
-        deleted: true,
-      });
+      const message = filteredMessages[cursor];
+      if (message) {
+        // current selected message
+        redux.getActions("messages").mark({
+          ids: new Set([message.id]),
+          deleted: true,
+        });
+      }
     },
     open: () => {
-      setShowThread(filteredMessages[cursor].id);
+      const message = filteredMessages[cursor];
+      if (message) {
+        setShowThread(message.id);
+      }
     },
   });
 

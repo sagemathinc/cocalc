@@ -1,4 +1,6 @@
 /*
+DEPRECATED!!!!
+
 Create a stripe invoice for a specific amount of money so that when paid
 this invoice counts toward your purchases balance.  It has
 metadata = {account_id, service:'credit'}
@@ -177,6 +179,10 @@ export async function createCreditFromPaidStripeInvoice(
     return false;
   }
   let metadata = invoice?.metadata;
+  if (metadata?.purpose) {
+    // handled elsewhere (via polling)
+    return false;
+  }
   if (
     metadata == null ||
     metadata.service != "credit" ||
@@ -292,6 +298,7 @@ intent = {
   if (
     metadata == null ||
     metadata.service != "credit" ||
+    metadata.purpose ||
     !metadata.account_id
   ) {
     // Some other sort of intent, e.g, for a subscription or something else.

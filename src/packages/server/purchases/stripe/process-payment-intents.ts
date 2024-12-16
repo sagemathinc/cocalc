@@ -14,12 +14,15 @@ import {
   SHOPPING_CART_CHECKOUT,
   STUDENT_PAY,
   SUBSCRIPTION_RENEWAL,
+  RESUME_SUBSCRIPTION,
 } from "@cocalc/util/db-schema/purchases";
 import {
   processSubscriptionRenewal,
   processSubscriptionRenewalFailure,
+  processResumeSubscription,
+  processResumeSubscriptionFailure,
 } from "./create-subscription-payment";
-import send, { support, url } from "@cocalc/server/messages/send";
+import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -198,6 +201,11 @@ customer.  So we don't know what to do with this.  Please manually investigate.
           await processSubscriptionRenewalFailure({
             paymentIntent,
           });
+        } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
+          result = `we did NOT sume subscription (id=${paymentIntent.metadata.subscription_id})`;
+          await processResumeSubscriptionFailure({
+            paymentIntent,
+          });
         } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
           const statement_id = parseInt(
             paymentIntent.metadata.purpose.split("-")[1],
@@ -216,11 +224,16 @@ customer.  So we don't know what to do with this.  Please manually investigate.
 
 ${await support()}`,
         });
+        const n = await name(account_id);
         adminAlert({
-          subject: `A User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
+          subject: `User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
           body: `
-The user with account_id=${account_id} had a canceled payment intent. We told them
+The user ${await name(account_id)} with account_id=${account_id} had a canceled payment intent. We told them
 the consequence is "${result}".  Admins might want to investigate.
+
+- User: ${n}, account_id=${account_id}
+
+
 `,
         });
       } catch (err) {
@@ -290,6 +303,7 @@ ${await support()}`;
           account_id,
           payment_intent: paymentIntent.id,
           amount,
+          credit_id,
           cart_ids:
             paymentIntent.metadata.cart_ids != null
               ? JSON.parse(paymentIntent.metadata.cart_ids)
@@ -302,10 +316,14 @@ ${await support()}`;
           account_id,
           project_id: paymentIntent.metadata.project_id,
           amount,
+          credit_id,
         });
       } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
         reason = `renew a subscription (id=${paymentIntent.metadata.subscription_id})`;
         await processSubscriptionRenewal({ account_id, paymentIntent, amount });
+      } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
+        reason = `resume a subscription (id=${paymentIntent.metadata.subscription_id})`;
+        await processResumeSubscription({ account_id, paymentIntent, amount });
       } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
         const statement_id = parseInt(
           paymentIntent.metadata.purpose.split("-")[1],
@@ -319,7 +337,7 @@ ${await support()}`;
       }
       send({
         to_ids: [account_id],
-        subject: `Successfully Processed ${currency(amount)} Payment (Credit id: ${credit_id})`,
+        subject: `You Made a ${currency(amount)} Payment (Credit id: ${credit_id})`,
         body: `
 You successfully made a payment of ${currency(amount)}, which was used to ${reason}.
 Thank you!

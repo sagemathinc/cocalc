@@ -67,6 +67,7 @@ export default function OtherItems({ onChange, cart }) {
             }}
           >
             <Input.Search
+              allowClear
               style={{ width: "100%" }}
               placeholder="Search..."
               value={search}
@@ -98,12 +99,15 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     tab == "buy-it-again" ? { purchased: true } : { removed: true },
   );
   const items = useMemo(() => {
-    if (!get.result) return undefined;
+    if (!get.result) {
+      return undefined;
+    }
     const x: any[] = [];
     const v = search_split(search);
     for (const item of get.result) {
-      if (search && !search_match(JSON.stringify(item).toLowerCase(), v))
+      if (search && !search_match(JSON.stringify(item).toLowerCase(), v)) {
         continue;
+      }
       try {
         item.cost = computeCost(item.description);
       } catch (_err) {
@@ -235,7 +239,7 @@ function DescriptionColumn({
   reload,
   tab,
 }) {
-  const { input } = cost;
+  const { input } = cost ?? {};
   return (
     <>
       <div style={{ fontSize: "12pt" }}>
@@ -245,7 +249,7 @@ function DescriptionColumn({
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describeItem({ info: input })}
+        {input != null && describeItem({ info: input })}
       </div>
       <div style={{ marginTop: "5px" }}>
         <Button
