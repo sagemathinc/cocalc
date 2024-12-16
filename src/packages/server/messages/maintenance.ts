@@ -1,11 +1,3 @@
-/*
-
-TODO/TODO: THIS IS NOT SUFFICIENT.  It should send one email per unread message, which to do
-robustly with grouping probably requires marking the message in the database, and
-that's just not implemented yet!
-
-*/
-
 import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
 import sendEmail from "@cocalc/server/email/send-email";
@@ -16,29 +8,26 @@ import { join } from "path";
 import markdownit from "markdown-it";
 import { getNames } from "@cocalc/server/accounts/get-name";
 import get from "./get";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const log = getLogger("server:messages:maintenance");
 
 const HOUR = 1000 * 60 * 60; // hour in ms
 
-// once ~ every hour, we purge mutually expired messages.
-// The actual delete shouldn't take long.
-const DELETE_EXPIRED_MESSAGES_INTERVAL_MS = 0.9 * HOUR;
+// We periodically purge mutually expired messages.
+// The actual delete shouldn't take long.  No need to do
+// this frequently since it is invisible to users.  It's
+// just to save space.
+const DELETE_EXPIRED_MESSAGES_INTERVAL_MS = 12.1 * HOUR;
 
-// Periodically we checkt to see if we should send email summaries to users
-// with new unread messages, for which we have NOT
-// sent a summary too recently.
-const SEND_EMAIL_SUMMARY_INTERVAL_MS = 0.25 * HOUR;
-
-// For now, we'll try once every hours.  It means you have to
-// wait up to this long to get an email notification of a new message.
-const MIN_INTERVAL_BETWEEN_SUMMARIES_MS = HOUR;
+// Every this often, if a user has new messages that they haven't seen
+// in the app, we send them an email with those messages and a link.
+const SEND_EMAIL_SUMMARY_INTERVAL_MS = 0.9 * HOUR;
 
 export default async function initMaintenance() {
   log.debug("initMaintenance", {
     DELETE_EXPIRED_MESSAGES_INTERVAL_MS,
     SEND_EMAIL_SUMMARY_INTERVAL_MS,
-    MIN_INTERVAL_BETWEEN_SUMMARIES_MS,
   });
   deleteExpiredMessages();
   setInterval(deleteExpiredMessages, DELETE_EXPIRED_MESSAGES_INTERVAL_MS);
@@ -79,7 +68,12 @@ export async function deleteExpiredMessages() {
   }
 }
 
-// if user has an email on file, send out an email about their new unread messages.
+// if user has an email on file, send out an email about their new unread messages
+// since last time this was called.
+// It's VERY VERY unlikely that something gets missed, but it's not totally impossible.
+// I think the one case where a notification could be lost is if a message is sent by a user
+// EXACTLY when we're doing notifications, and their clock is slightly off. All system messages
+// use the database clock, so should be fine.
 export async function sendAllEmailSummaries() {
   log.debug("sendAllEmailSummaries");
 
@@ -95,29 +89,31 @@ export async function sendAllEmailSummaries() {
       return;
     }
 
-    // For each user with verified email and at least 1 unread message and
-    // who we haven't contacted since MIN_INTERVAL_BETWEEN_SUMMARIES_MS,
-    // and having a message that was **RECENTLY RECEIVED** (i.e., the sent field is recent),
+    // For each user with verified email and at least 1 unread message,
+    // and having a message that was **RECENTLY RECEIVED** (i.e.,
+    // the sent field is more recent than last time they were notified),
     // we send them a message... unless they have other_settings.no_email_new_messages
     // set to true (i.e., they disabled messages).  We also only email users with
     // verified email accounts, assuming verification is setup.
+    // The hardcoded "1 week" below is just assuming that this service isn't down for more than a week.
     const pool = getPool();
     const query = `
 SELECT a.account_id, a.first_name, a.last_name, a.unread_message_count,
-       a.email_address_verified, a.email_address
+       a.email_address_verified, a.email_address, a.last_message_summary
 FROM accounts a
 JOIN messages m ON a.account_id = ANY(m.to_ids)
 WHERE a.unread_message_count > 0
-AND (a.last_message_summary IS NULL OR a.last_message_summary <= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds') ${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
+${verify_emails ? "AND a.email_address_verified IS NOT NULL" : ""}
 AND a.email_address IS NOT NULL
-AND m.sent >= NOW() - interval '${MIN_INTERVAL_BETWEEN_SUMMARIES_MS / 1000} seconds'
+AND m.sent > coalesce(a.last_message_summary, NOW() - interval '1 week')
 AND coalesce((a.other_settings#>'{no_email_new_messages}')::boolean, false) = false
 GROUP BY a.account_id,
          a.first_name,
          a.last_name,
          a.unread_message_count,
          a.email_address_verified,
-         a.email_address`;
+         a.email_address,
+         a.last_message_summary`;
 
     const { rows } = await pool.query(query);
     log.debug(
@@ -136,6 +132,7 @@ GROUP BY a.account_id,
       unread_message_count,
       email_address_verified,
       email_address,
+      last_message_summary,
     } of rows) {
       const email = getEmailAddress({
         email_address_verified,
@@ -147,25 +144,15 @@ GROUP BY a.account_id,
         );
         continue;
       }
-
-      const messages = await get({ account_id, type: "new" });
-      if (messages.length > 0) {
-        await sendEmailSummary({
-          account_id,
-          first_name,
-          last_name,
-          unread_message_count,
-          email,
-          messages,
-        });
-      }
+      await sendEmailSummary({
+        account_id,
+        first_name,
+        last_name,
+        unread_message_count,
+        email,
+        last_message_summary,
+      });
     }
-
-    // now mark everybody as notified -- if something failed, they will just have to wait until next time.
-    await pool.query(
-      "UPDATE accounts SET last_message_summary=NOW() WHERE account_id=ANY($1)",
-      [rows.map(({ account_id }) => account_id)],
-    );
   } catch (err) {
     log.debug(`sendAllEmailSummaries: error -- ${err}`);
   }
@@ -183,12 +170,29 @@ export async function sendEmailSummary({
   last_name,
   email,
   unread_message_count,
-  messages,
+  last_message_summary,
 }) {
   try {
     log.debug(
       `sendEmailSummary for ${account_id}, ${first_name}, ${last_name} to ${email}`,
     );
+
+    const messages = await get({
+      account_id,
+      type: "new",
+      cutoff: last_message_summary,
+    });
+
+    log.debug(`sendEmailSummary: got ${messages.length} new messages`);
+    console.log(messages);
+    if (messages.length == 0) {
+      const pool = getPool();
+      await pool.query(
+        "UPDATE accounts SET last_message_summary=NOW() WHERE account_id=$1",
+        [account_id],
+      );
+      return;
+    }
 
     const name = `${first_name} ${last_name}`;
 
@@ -215,9 +219,9 @@ export async function sendEmailSummary({
 Hello ${name},
 <br/>
 <br/>
-You have ${subject}.  To read them, visit the <a href="${url}">${siteName}</a>
-message center</a> after <a href="${signIn}">signing in to ${siteName}</a>,
-or read them below.
+You have ${subject}.  To read them, visit the <a href="${url}">${siteName}
+message center</a> after <a href="${signIn}">signing in to ${siteName}</a>.
+The new ones we haven't sent you are below:
 <br/>
 <br/>
  - ${siteName} (you can disable email alerts in <a href="${settings}">account settings</a>)
@@ -246,13 +250,48 @@ ${settings}
 
  ${messages.map((message) => messageToText(message, url, names)).join("\n\n---\n\n")}
 
-
 `;
 
-    console.log(text);
     await sendEmail({ from, to: email, subject, html, text });
+    // newest is always first and message list is nonempty.
+    const newestMessageTime = messages[0].sent;
+    if (newestMessageTime != null) {
+      // Due to rounding, we always add 1 second. Yes, you can mutate
+      // a Date object by doing this, and it does wrap around properly.
+      newestMessageTime.setSeconds(newestMessageTime.getSeconds() + 1);
+      if (
+        last_message_summary == null ||
+        last_message_summary < newestMessageTime
+      ) {
+        // now mark as notified -- if something failed above, this doesn't happen,
+        // so we will retry again next time.
+        const pool = getPool();
+        await pool.query(
+          "UPDATE accounts SET last_message_summary=$2 WHERE account_id=$1",
+          [account_id, newestMessageTime],
+        );
+      }
+    }
   } catch (err) {
     log.debug(`sendEmailSummary: error -- ${err}`);
+    adminAlert({
+      stackTrace: true,
+      subject: `Unexpected BUG/ERROR sending email summary to a user -- please investigate`,
+      body: `
+An unexpected bug occurred trying to send an email summary.  An admin should investigate.
+
+${JSON.stringify({
+  account_id,
+  first_name,
+  last_name,
+  email,
+  unread_message_count,
+  last_message_summary,
+})}
+
+${err}
+`,
+    });
   }
 }
 

@@ -34,12 +34,6 @@ export default function Main({ messages, threads, filter, search }) {
       // BUG -- should never happen!
       return "inbox" as Folder;
     }
-    if (folder != "search") {
-      // clear search when switching to any other folder -- in next update loop
-      setTimeout(() => {
-        redux.getActions("messages").search("");
-      }, 0);
-    }
     return folder;
   }, [filter]);
 

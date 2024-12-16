@@ -84,8 +84,9 @@ export default function getPurchaseInfo(
 export function fixRange(
   rangeOrig: readonly [Date0 | string, Date0 | string] | undefined | null,
   period: Period,
+  noRangeShift?: boolean,
 ): StartEndDates {
-  if (period != "range") {
+  if (period != "range" && !noRangeShift) {
     // ATTN! -- we messed up and didn't deal with this case before, and a user
     // could in theory:
     //  1. set the period to 'range', and put in a week period via start and end

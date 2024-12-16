@@ -27,6 +27,7 @@ import {
   studentPayAssertNotPaying,
 } from "@cocalc/server/purchases/student-pay";
 import { resumeSubscriptionSetPaymentIntent } from "./create-subscription-payment";
+import send, { name, support, url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -109,28 +110,61 @@ export default async function createPaymentIntent({
     currency: "usd",
   };
 
+  const addLineItems = async (invoice) => {
+    for (const { amount, description } of lineItemsWithoutCredit) {
+      await stripe.invoiceItems.create({
+        customer,
+        amount: decimalToStripe(amount),
+        currency: "usd",
+        description,
+        invoice: invoice.id,
+      });
+    }
+  };
+
+  let finalizedInvoice;
   try {
+    logger.debug("creating invoice with automatic_tax enabled");
+    // try with tax enabled
     invoice = await stripe.invoices.create({
       ...invoiceCreateParams,
       automatic_tax: { enabled: true },
     });
+    addLineItems(invoice);
+    finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
+      auto_advance: false,
+    });
   } catch (err) {
-    invoice = await stripe.invoices.create(invoiceCreateParams);
-  }
+    logger.debug(`creating invoice with automatic_tax enabled failed: ${err}`);
+    logger.debug("creating invoice WITHOUT automatic_tax enabled");
+    // failed, so do without tax enabled.  If a user has NO INFO in stripe, then
+    // tax will fail.  But there are rare situations where we need to auto generate an
+    // invoice, but there is no interactive session with the user, so we fallback
+    // here to not using tax in this case.  Once they enter payment information
+    // to pay this, next time tax will be properly charged.
+    // ALSO we explicitly send them an "ACTION REQUIRED" message asking them to
+    // enter their address for tax purposes, and when they do then things will work
+    // for all future purposes.  I think it is only likely that old customers would
+    // ever get in this situation.
+    await stripe.invoices.update(invoice.id, {
+      automatic_tax: { enabled: false },
+    });
+    finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
+      auto_advance: false,
+    });
+    send({
+      to_ids: [account_id],
+      subject: "ACTION REQUIRED: Enter your address for tax purposes",
+      body: `
+Dear ${await name(account_id)},
 
-  for (const { amount, description } of lineItemsWithoutCredit) {
-    await stripe.invoiceItems.create({
-      customer,
-      amount: decimalToStripe(amount),
-      currency: "usd",
-      description,
-      invoice: invoice.id,
+Please visit [Payment Methods](${await url("settings", "payment-methods")}) and enter
+your name and address so that for we can correctly charge tax.
+
+${await support()}
+      `,
     });
   }
-
-  const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
-    auto_advance: false,
-  });
 
   const paymentIntentId = finalizedInvoice.payment_intent as string | undefined;
   if (!paymentIntentId) {
@@ -190,8 +224,13 @@ export default async function createPaymentIntent({
   try {
     invoice = await stripe.invoices.pay(finalizedInvoice.id);
     success = true;
-  } catch (_err) {
-    logger.debug("attempt to use default payment method failed");
+  } catch (err) {
+    logger.debug(
+      `attempt to use default payment method failed (which is fine!): ${err}`,
+    );
+    logger.debug(
+      "instead we check for others or just let user fill something in",
+    );
 
     for (const payment_method of await getPaymentMethods({ customer })) {
       await stripe.invoices.update(invoice.id, {

@@ -110,6 +110,7 @@ export interface ApiMessagesGet {
   // sent = all messages you sent
   // new = to you and not read or saved -- these are what the counter counts
   type?: "received" | "sent" | "new" | "starred" | "liked";
+  // strictly newer than cutoff
   cutoff?: Date;
 }
 

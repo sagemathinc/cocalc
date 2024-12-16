@@ -60,7 +60,7 @@ export default async function send({
   // from support or an admin
   if (!from_id) {
     from_id = await getSupportAccountId();
-    dedupMinutes = dedupMinutes ?? 60;
+    dedupMinutes = dedupMinutes ?? 5 * 60;
   }
   if (!from_id) {
     // this should be impossible, but just in case.

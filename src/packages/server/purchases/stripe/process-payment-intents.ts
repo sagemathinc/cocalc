@@ -228,7 +228,7 @@ ${await support()}`,
         adminAlert({
           subject: `User's Payment (paymentIntent = ${paymentIntent.id}) was canceled`,
           body: `
-The user with  had a canceled payment intent. We told them
+The user ${await name(account_id)} with account_id=${account_id} had a canceled payment intent. We told them
 the consequence is "${result}".  Admins might want to investigate.
 
 - User: ${n}, account_id=${account_id}

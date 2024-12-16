@@ -178,15 +178,16 @@ export default async function createSubscriptionPayment({
     to_ids: [account_id],
     subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
     body: `
-${site_name} has started renewing your subscription (id=${subscription_id}).
+${site_name} has started renewing your ${currency(amount)}/${interval} subscription (id=${subscription_id}).
 
 - [Subscription Status](${await url(`/settings/subscriptions#id=${subscription_id}`)})
 
-- [Payments](${await url("settings", "payments")})
-
-- [Purchases](${await url("settings", "purchases")})
-
 - Hosted Invoice: ${hosted_invoice_url}
+
+- [All Payments](${await url("settings", "payments")})
+
+- [All Purchases](${await url("settings", "purchases")})
+
 
 ${await support()}`,
   });
