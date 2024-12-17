@@ -88,10 +88,6 @@ ${pay}
 
 <br/>
 
-${await support()}
-
-<br/>
-
 ${stop}
 
 <br/>
@@ -101,6 +97,11 @@ ${statementToMarkdown(statement, previousStatement, { siteName })}
 ---
 
 ${purchasesToMarkdown({ statement, purchases })}
+
+
+<br/>
+
+${await support()}
 
 `;
 
