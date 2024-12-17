@@ -26,7 +26,6 @@ purchases:
     "cost_per_hour": null,
     "period_start": null,
     "period_end": null,
-    "pending": null,
     "service": "credit",
     "description": {
       "type": "credit"

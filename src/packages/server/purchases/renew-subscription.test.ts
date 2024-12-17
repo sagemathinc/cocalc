@@ -12,7 +12,7 @@ import renewSubscription, { getSubscription } from "./renew-subscription";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
 import createCredit from "./create-credit";
-import getBalance, { getPendingBalance } from "./get-balance";
+import getBalance from "./get-balance";
 
 beforeAll(async () => {
   await initEphemeralDatabase({});
@@ -51,11 +51,9 @@ describe("create a subscription, then renew it", () => {
     expect(await getBalance({ account_id })).toBeCloseTo(0);
   });
 
-  it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money), but via a *pending* purchase", async () => {
+  it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money)", async () => {
     await renewSubscription({ account_id, subscription_id, force: true });
-    // purchase is pending
-    expect(await getBalance({ account_id })).toBeCloseTo(0);
-    expect(await getPendingBalance(account_id)).toBeCloseTo(-cost);
+    expect(await getBalance({ account_id })).toBeCloseTo(-cost);
     const sub = await getSubscription(subscription_id);
     expect(
       dayjs(sub.current_period_end).diff(dayjs(), "day"),

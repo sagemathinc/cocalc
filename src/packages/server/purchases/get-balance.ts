@@ -35,7 +35,7 @@ export default async function getBalance({
   //   - the arithmetic is probably done using 32-bit floats and there could be a slight rounding error eventually.
 
   const { rows } = await pool.query(
-    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
+    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id],
   );
   const balance = rows[0]?.balance ?? 0;
@@ -48,20 +48,7 @@ export default async function getBalance({
   return balance;
 }
 
-// get sum of the *pending* transactions only for this user.
-export async function getPendingBalance(
-  account_id: string,
-  client?: PoolClient,
-) {
-  const pool = client ?? getPool();
-  const { rows } = await pool.query(
-    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING=true`,
-    [account_id],
-  );
-  return rows[0]?.balance ?? 0;
-}
-
-// total balance right now including all pending and non-pending transactions
+// total balance right now
 export async function getTotalBalance(account_id: string, client?: PoolClient) {
   const pool = client ?? getPool();
   const { rows } = await pool.query(

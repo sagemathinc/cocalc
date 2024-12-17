@@ -2,7 +2,7 @@ import { FALLBACK_SOFTWARE_ENV } from "./compute-images";
 
 test("fallback name exists", () => {
   expect(
-    FALLBACK_SOFTWARE_ENV.environments[FALLBACK_SOFTWARE_ENV.default]
+    FALLBACK_SOFTWARE_ENV.environments[FALLBACK_SOFTWARE_ENV.default],
   ).toBeDefined();
 });
 
@@ -21,7 +21,7 @@ test("consistent naming", () => {
     switch (group) {
       case "Main":
         expect(
-          ["default", "ubuntu2004", "ubuntu2204", "ubuntu1804"].includes(base)
+          ["default", "ubuntu2004", "ubuntu2204", "ubuntu1804"].includes(base),
         ).toBe(true);
         break;
 
@@ -56,9 +56,18 @@ test("consistent naming", () => {
         }
         break;
 
+      case "Ubuntu 24.04":
+        expect(["ubuntu2404", "exp"].includes(base)).toBe(true);
+        expect(title?.indexOf(ts) ?? 0 > 0);
+        if (ts === "dev" || ts === "previous") {
+        } else if (base === "ubuntu2404") {
+          expect(ts.startsWith(short ?? "")).toBe(true);
+        }
+        break;
+
       default:
         expect(
-          ["stable", "old", "exp", "previous", "default", ""].includes(base)
+          ["stable", "old", "exp", "previous", "default", ""].includes(base),
         ).toBe(true);
     }
   }

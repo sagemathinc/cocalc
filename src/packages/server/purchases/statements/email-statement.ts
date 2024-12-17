@@ -88,10 +88,6 @@ ${pay}
 
 <br/>
 
-${await support()}
-
-<br/>
-
 ${stop}
 
 <br/>
@@ -101,6 +97,11 @@ ${statementToMarkdown(statement, previousStatement, { siteName })}
 ---
 
 ${purchasesToMarkdown({ statement, purchases })}
+
+
+<br/>
+
+${await support()}
 
 `;
 
@@ -152,7 +153,7 @@ async function getPurchasesOnStatement(
 ): Promise<Purchase[]> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, time, cost, cost_per_hour, period_start, period_end, pending, service, description, project_id FROM purchases WHERE day_statement_id=$1 OR month_statement_id=$1 ORDER BY time desc",
+    "SELECT id, time, cost, cost_per_hour, period_start, period_end, service, description, project_id FROM purchases WHERE day_statement_id=$1 OR month_statement_id=$1 ORDER BY time desc",
     [statement_id],
   );
   return rows;
