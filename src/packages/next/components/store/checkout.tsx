@@ -474,7 +474,6 @@ function GetAQuote({ items }) {
   const router = useRouter();
   const [more, setMore] = useState<boolean>(false);
   let isSub;
-  console.log(items);
   for (const item of items) {
     if (item.description.period != "range" && item.product == "site-license") {
       isSub = true;

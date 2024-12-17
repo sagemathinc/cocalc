@@ -4,6 +4,8 @@ import processPaymentIntents from "./process-payment-intents";
 import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
 import type { StripeData } from "@cocalc/util/stripe/types";
 import getPool from "@cocalc/database/pool";
+//import getLogger from "@cocalc/backend/logger";
+//const logger = getLogger("purchases:stripe:get-payments");
 
 export default async function getPayments({
   account_id,
@@ -51,8 +53,7 @@ export default async function getPayments({
   );
 
   if (!(created || ending_before || starting_after)) {
-    const numOpen = paymentIntents.data.filter(isOpenPaymentIntent).length;
-    await setBalanceAlert({ account_id, balance_alert: numOpen > 0 });
+    await setBalanceAlert({ account_id, data: paymentIntents.data });
   }
 
   // if any payments haven't been processed, i.e., credit added to cocalc, do that here:
@@ -102,7 +103,7 @@ export async function getAllOpenPayments(
     });
   }
 
-  await setBalanceAlert({ account_id, balance_alert: x.data.length > 0 });
+  await setBalanceAlert({ account_id, data: x.data });
 
   // We also include very recent (last 5 minutes) payments that haven't finished processing
   const y = await getPayments({
@@ -133,10 +134,23 @@ function isOpenPaymentIntent(intent) {
   return false;
 }
 
-async function setBalanceAlert({ account_id, balance_alert }) {
+async function setBalanceAlert({ account_id, data }) {
+  let n = 0;
+  for (const intent of data) {
+    if (
+      !intent.metadata.purpose ||
+      intent.metadata.deleted ||
+      !intent.status?.startsWith("requires")
+    ) {
+      continue;
+    }
+    // basically count anything that's not deleted and
+    // starts with "requires"
+    n += 1;
+  }
   const pool = getPool();
   await pool.query("UPDATE accounts SET balance_alert=$2 WHERE account_id=$1", [
     account_id,
-    balance_alert,
+    n > 0,
   ]);
 }
