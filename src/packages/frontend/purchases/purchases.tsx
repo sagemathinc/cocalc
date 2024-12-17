@@ -66,7 +66,7 @@ import {
   round4,
 } from "@cocalc/util/misc";
 import { decimalAdd } from "@cocalc/util/stripe/calc";
-import AdminRefund from "./admin-refund";
+import AdminRefund, { isRefundable } from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
 import Export from "./export";
@@ -688,7 +688,6 @@ function DetailedPurchaseTable({
               render: (_, record) => (
                 <>
                   <Amount record={record} />
-                  <Pending record={record} />
                 </>
               ),
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
@@ -735,6 +734,7 @@ function PurchaseDescription({
   period_end,
   service,
   admin,
+  cost,
 }) {
   return (
     <div>
@@ -763,9 +763,11 @@ function PurchaseDescription({
             style={{ marginBottom: "15px" }}
           />
         )}
+        {admin && id != null && isRefundable(service) && (
+          <AdminRefund purchase_id={id} service={service} cost={cost} />
+        )}
         {invoice_id && (
           <Space>
-            {admin && id != null && <AdminRefund purchase_id={id} />}
             {!admin && (
               <Button
                 size="small"
@@ -1180,28 +1182,6 @@ function Amount({ record }) {
     );
   }
   return <>-</>;
-}
-
-function Pending({ record }) {
-  if (!record.pending) return null;
-  return (
-    <div>
-      <Tooltip
-        title={
-          <>
-            The transaction has not yet completed and is{" "}
-            <b>thus not included in your running balance</b>. Ensure you have
-            automatic payments configured or add credit to your account to pay
-            this.
-          </>
-        }
-      >
-        <Tag style={{ marginRight: 0 }} color="red">
-          Pending
-        </Tag>
-      </Tooltip>
-    </div>
-  );
 }
 
 function Balance({ balance }) {
