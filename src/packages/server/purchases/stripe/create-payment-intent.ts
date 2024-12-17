@@ -28,6 +28,7 @@ import {
 } from "@cocalc/server/purchases/student-pay";
 import { resumeSubscriptionSetPaymentIntent } from "./create-subscription-payment";
 import send, { name, support, url } from "@cocalc/server/messages/send";
+import { delay } from "awaiting";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -166,9 +167,24 @@ ${await support()}
     });
   }
 
-  const paymentIntentId = finalizedInvoice.payment_intent as string | undefined;
+  let paymentIntentId;
+  paymentIntentId = finalizedInvoice.payment_intent as string | undefined;
+  // Usually paymentIntentId is set, but every so often it isn't, and I have
+  // no idea why or what is going on.  The api docs are not helpful:
+  //   https://docs.stripe.com/api/invoices/finalize
+  // For now at least retry up to 20s with exponential backoff:
+  const t0 = Date.now();
+  let d = 2000;
+  while (!paymentIntentId && Date.now() - t0 <= 30000) {
+    logger.debug("finalizing didn't produce invoice, so checking again");
+    await delay(d);
+    d *= 1.3 + Math.random();
+    finalizedInvoice = await stripe.invoices.retrieve(invoice.id);
+  }
   if (!paymentIntentId) {
-    throw Error("payment intent should have been created but wasn't");
+    throw Error(
+      "payment intent should have been created but wasn't, even after waiting 30s",
+    );
   }
 
   if (purpose == SHOPPING_CART_CHECKOUT) {
