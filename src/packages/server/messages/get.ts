@@ -77,7 +77,6 @@ export default async function get({
   }
 
   const pool = getPool();
-  console.log(query, params);
   const { rows } = await pool.query(query, params);
 
   return rows as unknown as MessageMe[];

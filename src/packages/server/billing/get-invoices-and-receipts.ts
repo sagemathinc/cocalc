@@ -46,7 +46,6 @@ export async function getInvoiceUrl(
     const charges = await stripe.charges.list({
       payment_intent: invoice_id,
     });
-    console.log(charges);
     return charges.data?.[0]?.receipt_url;
   }
   const invoice = await stripe.invoices.retrieve(invoice_id);
