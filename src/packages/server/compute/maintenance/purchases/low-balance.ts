@@ -114,7 +114,7 @@ async function checkAllowed(service, server) {
     });
   } else {
     action = "Computer Server Turned Off";
-    callToAction = `Add credit to your account, so your compute server isn't deleted.`;
+    callToAction = `[Add credit to your account or enable automatic deposits, so your compute server isn't deleted.](${await siteURL()}/settings/payg)`;
     adminAlert({
       subject: "WARNING -- low balance situation",
       body: `
@@ -179,17 +179,11 @@ Hello ${name},
 Your Compute Server '${server.title}' (Id: ${server.project_specific_id}) is
 hitting your ${service} quota, or you are very low on funds.
 
-Action Taken: ${action}
+- Action Taken: ${action}
 
-${callToAction}
+- ${callToAction}
 
-Add credit to your account and see all of your purchases:
-
-${await siteURL()}/settings/purchases
-
-Compute Servers in your project ${projectTitle}
-
-${await siteURL()}/projects/${server.project_id}/servers
+- [Compute Servers in your project "${projectTitle}"](${await siteURL()}/projects/${server.project_id}/servers)
 
 ${await support()}
 `;
