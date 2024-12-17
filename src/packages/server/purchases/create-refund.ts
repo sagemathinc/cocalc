@@ -10,6 +10,7 @@ import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
 import send, { support, url } from "@cocalc/server/messages/send";
+import { changeLicense } from "./edit-license";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -207,8 +208,8 @@ async function refundLicense(
   let refund_purchase_id;
   let action;
   try {
+    const { license_id } = description;
     if (service == "license") {
-      const { license_id } = description;
       // a purchase of a new license.  just set the expire to now, making this worthless
       action = `The license ${license_id} is now expired.`;
 
@@ -217,7 +218,7 @@ async function refundLicense(
       ]);
     } else if (service == "edit-license") {
       action = "The changes to the license have been reverted.";
-      throw Error("todo");
+      await changeLicense(license_id, description.origInfo, client);
     }
 
     refund_purchase_id = await createPurchase({

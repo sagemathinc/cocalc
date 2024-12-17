@@ -1023,8 +1023,10 @@ function Description({ description, period_end, service }) {
         )}
       >
         Edit License: <License license_id={license_id} />
-        {describeQuotaFromInfo(description.modifiedInfo)}{" "}
-        <LicenseDates info={description.modifiedInfo} />
+        <div>
+          {describeQuotaFromInfo(description.modifiedInfo)}
+          <LicenseDates info={description.modifiedInfo} />
+        </div>
       </Popover>
     );
   }
@@ -1327,9 +1329,7 @@ function License({ license_id }) {
 
   return (
     <span>
-      <Button onClick={() => setOpen(!open)}>
-        {license_id}
-      </Button>
+      <Button onClick={() => setOpen(!open)}>{license_id}</Button>
       {open && (
         <div style={{ maxWidth: "100%", minWidth: "700px" }}>
           <SiteLicensePublicInfo license_id={license_id} />
