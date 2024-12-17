@@ -37,7 +37,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { load_target } from "@cocalc/frontend/history";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
   ANTHROPIC_PREFIX,
@@ -913,35 +913,7 @@ function Description({ description, period_end, service }) {
   // <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (service === "license") {
     const { license_id } = description;
-    return (
-      <Popover
-        overlayStyle={{
-          maxHeight: "60vh",
-          overflow: "auto",
-          border: "1px solid #ccc",
-          borderRadius: "5px",
-          boxShadow: "4px 4px 2px #dfdfdf",
-        }}
-        title={
-          <>
-            Licenses:{" "}
-            {license_id && (
-              <Next href={`licenses/how-used?license_id=${license_id}`}>
-                {license_id}
-              </Next>
-            )}
-          </>
-        }
-        content={() => <>{license_id && <License license_id={license_id} />}</>}
-      >
-        License:{" "}
-        {license_id && (
-          <Next href={`licenses/how-used?license_id=${license_id}`}>
-            {license_id}
-          </Next>
-        )}
-      </Popover>
-    );
+    return <>License: {license_id && <License license_id={license_id} />}</>;
   }
   if (service === "credit") {
     return (
@@ -1030,10 +1002,7 @@ function Description({ description, period_end, service }) {
       <Popover
         title={
           <div style={{ fontSize: "13pt" }}>
-            <Icon name="pencil" /> Edited License:{" "}
-            <Next href={`licenses/how-used?license_id=${license_id}`}>
-              {license_id}
-            </Next>
+            <Icon name="pencil" /> Edited License
           </div>
         }
         content={() => (
@@ -1053,6 +1022,7 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
+        Edit License: <License license_id={license_id} />
         {describeQuotaFromInfo(description.modifiedInfo)}{" "}
         <LicenseDates info={description.modifiedInfo} />
       </Popover>
@@ -1350,4 +1320,21 @@ function getFilter(purchase) {
     purchase.filter = JSON.stringify(purchase).toLowerCase();
   }
   return purchase.filter;
+}
+
+function License({ license_id }) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  return (
+    <span>
+      <Button onClick={() => setOpen(!open)}>
+        {license_id}
+      </Button>
+      {open && (
+        <div style={{ maxWidth: "100%", minWidth: "700px" }}>
+          <SiteLicensePublicInfo license_id={license_id} />
+        </div>
+      )}
+    </span>
+  );
 }
