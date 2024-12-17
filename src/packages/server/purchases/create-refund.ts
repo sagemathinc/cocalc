@@ -8,9 +8,8 @@ import getConn from "@cocalc/server/stripe/connection";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
-import { getServerSettings } from "@cocalc/database/settings";
 import { currency } from "@cocalc/util/misc";
-import send, { support } from "@cocalc/server/messages/send";
+import send, { support, url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -40,8 +39,10 @@ export default async function createRefund(opts: {
 
   logger.debug("get the purchase");
   const pool = getPool();
+  // the fields listed below are the union of what is needed for various types
+  // of refunds.  This is a rarely done operation so speed isn't important.
   const { rows: purchases } = await pool.query(
-    "SELECT id, account_id, invoice_id, service, cost FROM purchases WHERE id=$1",
+    "SELECT id, account_id, invoice_id, service, cost, description FROM purchases WHERE id=$1",
     [purchase_id],
   );
   if (purchases.length == 0) {
@@ -153,15 +154,15 @@ async function refundCredit(
 
   // send confirmation message
   try {
-    const { site_name: siteName } = await getServerSettings();
-    const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
+    const subject = `Refund of Transaction ${purchase_id} for ${currency(
       Math.abs(cost),
     )} + tax`;
     const body = `
-${siteName} has refunded your credit of ${currency(
+Your credit of ${currency(
       Math.abs(cost),
-    )} + tax from transaction ${purchase_id}.
-This refund will appear immediately in [your ${siteName} account](/settings/purchases),
+    )} + tax from transaction ${purchase_id} has been refunded.
+
+This refund will appear immediately in [your account](${await url("settings", "purchases")}),
 and should post on your credit card or bank statement within 5-10 days.
 
 ---
@@ -184,7 +185,7 @@ async function refundLicense(
   admin_account_id,
   reason,
   notes,
-  { id: purchase_id, service, cost, account_id },
+  { description, id: purchase_id, service, cost, account_id },
 ) {
   logger.debug("refundLicense", admin_account_id, {
     notes,
@@ -194,6 +195,85 @@ async function refundLicense(
     cost,
     account_id,
   });
-  throw Error("todo");
-  return 0;
+
+  if (description.refund_purchase_id) {
+    // UI should never allow this, but just in case (or api mistake usage)
+    throw Error(
+      `this license purchase has already been refunded -- purchase_id=${description.refund_purchase_id}`,
+    );
+  }
+
+  const client = await getTransactionClient();
+  let refund_purchase_id;
+  let action;
+  try {
+    if (service == "license") {
+      const { license_id } = description;
+      // a purchase of a new license.  just set the expire to now, making this worthless
+      action = `The license ${license_id} is now expired.`;
+
+      await client.query("UPDATE site_licenses SET expires=NOW() WHERE id=$1", [
+        license_id,
+      ]);
+    } else if (service == "edit-license") {
+      action = "The changes to the license have been reverted.";
+      throw Error("todo");
+    }
+
+    refund_purchase_id = await createPurchase({
+      account_id,
+      service: "refund",
+      cost: -cost,
+      description: {
+        type: "refund",
+        purchase_id,
+        notes,
+        reason,
+      },
+      client,
+    });
+
+    // we also update license purchase to have refund_purchase_id set, so
+    // UI can clearly show this is already refunded and also so we can't
+    // refund the same thing twice!
+    await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
+      purchase_id,
+      { ...description, refund_purchase_id },
+    ]);
+
+    await client.query("COMMIT");
+  } catch (err) {
+    logger.debug("error creating refund", { account_id, purchase_id }, err);
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  // send confirmation message
+  try {
+    const subject = `Refund of Transaction ${purchase_id} for ${currency(
+      Math.abs(cost),
+    )} + tax`;
+    const body = `
+Your license purchase of ${currency(
+      Math.abs(cost),
+    )} + tax from transaction ${purchase_id} has been refunded.
+
+${action}
+
+---
+
+- REASON: ${reason}
+
+- NOTES: ${notes}
+
+${await support()}
+`;
+    await send({ to_ids: [account_id], subject, body });
+  } catch (err) {
+    logger.debug("WARNING -- issue sending email", err);
+  }
+
+  return refund_purchase_id;
 }

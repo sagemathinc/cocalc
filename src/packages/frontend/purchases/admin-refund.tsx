@@ -35,10 +35,12 @@ export default function AdminRefund({
   purchase_id,
   service,
   cost,
+  refresh,
 }: {
   purchase_id: number;
   service: Service;
   cost: number;
+  refresh?;
 }) {
   const [error, setError] = useState<string>("");
   const [refunding, setRefunding] = useState<boolean>(false);
@@ -56,6 +58,7 @@ export default function AdminRefund({
       setRefunding(true);
       await adminCreateRefund({ purchase_id, ...values });
       setIsModalVisible(false);
+      refresh?.();
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -93,7 +96,7 @@ export default function AdminRefund({
         )}
         {service == "license" && (
           <>
-            The license will have it expire time set to now, and the{" "}
+            The license will be immediately expired, and the{" "}
             <b>full amount {currency(amount, 2)} paid for this license</b> will
             be credited to the account as a new credit "Credit for Refunded
             Transaction {purchase_id}".

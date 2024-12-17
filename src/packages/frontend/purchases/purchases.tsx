@@ -481,6 +481,7 @@ export function PurchasesTable({
           <DetailedPurchaseTable
             purchases={filteredPurchases}
             admin={!!account_id}
+            refresh={refreshRecords}
           />
         )}
       </div>
@@ -575,9 +576,11 @@ function GroupedPurchaseTable({ purchases }) {
 function DetailedPurchaseTable({
   purchases,
   admin,
+  refresh,
 }: {
   purchases: PurchaseItem[] | null;
   admin: boolean;
+  refresh?;
 }) {
   const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
   const fragment = useTypedRedux("account", "fragment");
@@ -631,7 +634,11 @@ function DetailedPurchaseTable({
               key: "description",
               width: "35%",
               render: (_, purchase) => (
-                <PurchaseDescription {...(purchase as any)} admin={admin} />
+                <PurchaseDescription
+                  {...(purchase as any)}
+                  admin={admin}
+                  refresh={refresh}
+                />
               ),
             },
             {
@@ -735,6 +742,7 @@ function PurchaseDescription({
   service,
   admin,
   cost,
+  refresh,
 }) {
   return (
     <div>
@@ -772,7 +780,12 @@ function PurchaseDescription({
           description.refund_purchase_id == null &&
           id != null &&
           isRefundable(service, invoice_id) && (
-            <AdminRefund purchase_id={id} service={service} cost={cost} />
+            <AdminRefund
+              purchase_id={id}
+              service={service}
+              cost={cost}
+              refresh={refresh}
+            />
           )}
         {invoice_id && (
           <Space>
@@ -950,21 +963,18 @@ function Description({ description, period_end, service }) {
   if (service === "refund") {
     const { notes, reason, purchase_id } = description;
     return (
-      <Tooltip
-        title={
-          <div>
-            Reason: {capitalize(reason.replace(/_/g, " "))}
-            {!!notes && (
-              <>
-                <br />
-                Notes: {notes}
-              </>
-            )}
-          </div>
-        }
-      >
+      <div>
         Refund Transaction {purchase_id}
-      </Tooltip>
+        <div>
+          Reason: {capitalize(reason.replace(/_/g, " "))}
+          {!!notes && (
+            <>
+              <br />
+              Notes: {notes}
+            </>
+          )}
+        </div>
+      </div>
     );
   }
 
