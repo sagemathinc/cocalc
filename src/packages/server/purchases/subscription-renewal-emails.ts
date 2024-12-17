@@ -86,7 +86,7 @@ async function sendSubscriptionRenewalEmail(account_id, subs: Subscription[]) {
   }
   const usageSub = await getUsageSubscription(account_id);
 
-  let pay = `Your account balance, including all pending transactions, is ${currency(
+  let pay = `Your account balance is ${currency(
     totalBalance,
   )}. `;
   if (totalBalance - cost < 0) {

@@ -23,7 +23,7 @@ const logger = getLogger("purchases:renew-subscription");
 interface Options {
   account_id: string;
   subscription_id: number;
-  force?: boolean; // subscription renews even if we are out of money, but via a *pending* purchase
+  force?: boolean; // subscription renews even if we are out of money.
 }
 
 export default async function renewSubscription({

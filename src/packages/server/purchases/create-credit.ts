@@ -11,7 +11,6 @@ import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { Credit } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
-import updatePendingPurchases from "./update-pending-purchases";
 import getBalance from "./get-balance";
 
 const logger = getLogger("purchases:create-credit");
@@ -73,24 +72,9 @@ export default async function createCredit({
       service,
     ],
   );
-  await updatePending(account_id, client);
 
   // call getbalance to trigger update of the balance field in the accounts table.
   await getBalance({ account_id });
 
   return rows[0].id;
-}
-
-async function updatePending(account_id, client) {
-  try {
-    await updatePendingPurchases(account_id, client);
-  } catch (err) {
-    // if something goes wrong this just means some pending flags weren't flipped.
-    // They'll get flipped later, and this basically only gives the user a little
-    // bit of temporary credit.
-    logger.debug(
-      "createCredit -- WARNING -- nonfatal error updating pending purchases",
-      err,
-    );
-  }
 }

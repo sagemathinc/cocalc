@@ -28,7 +28,6 @@ interface Options {
   invoice_id?: string;
   notes?: string;
   tag?: string;
-  pending?: boolean;
 }
 
 export default async function createPurchase(opts: Options): Promise<number> {
@@ -46,7 +45,6 @@ export default async function createPurchase(opts: Options): Promise<number> {
     notes,
     tag,
     client,
-    pending,
     cost_so_far,
   } = opts;
   if (cost == null) {
@@ -76,7 +74,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
   }
 
   const { rows } = await (client ?? getPool()).query(
-    "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, cost_so_far, period_start, period_end, service, description, invoice_id, notes, tag, pending) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
+    "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, cost_so_far, period_start, period_end, service, description, invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
     [
       account_id,
       project_id,
@@ -90,7 +88,6 @@ export default async function createPurchase(opts: Options): Promise<number> {
       invoice_id,
       notes,
       tag,
-      pending,
     ],
   );
   const { id } = rows[0];
