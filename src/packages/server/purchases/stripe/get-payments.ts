@@ -48,8 +48,12 @@ export default async function getPayments({
     limit,
   });
 
+  // Only ever show users payment intents that will be redeemed for
+  // actual money, e.g., there might be old intents from long ago
+  // that are no longer meaningful, so do not show those.
   paymentIntents.data = paymentIntents.data.filter(
-    (intent) => !intent.metadata?.deleted,
+    (intent) =>
+      intent.metadata?.total_excluding_tax_usd && !intent.metadata?.deleted,
   );
 
   if (!(created || ending_before || starting_after)) {
@@ -85,7 +89,9 @@ export async function getAllOpenPayments(
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
   x.data = x.data.filter(
     (intent) =>
-      isOpenPaymentIntent(intent) || (canceled && intent.status == "canceled"),
+      intent.metadata?.total_excluding_tax_usd &&
+      (isOpenPaymentIntent(intent) ||
+        (canceled && intent.status == "canceled")),
   );
   const known = new Set<string>();
   for (const intent of x.data) {
