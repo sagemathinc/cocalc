@@ -34,33 +34,47 @@ export default async function createRefund(opts: {
   ) {
     // don't trust typescript, since used via api...
     throw Error(
-      `reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`,
+      `Reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`,
     );
   }
 
   logger.debug("get the purchase");
   const pool = getPool();
   const { rows: purchases } = await pool.query(
-    "SELECT account_id, invoice_id, service, cost FROM purchases WHERE id=$1",
+    "SELECT id, account_id, invoice_id, service, cost FROM purchases WHERE id=$1",
     [purchase_id],
   );
   if (purchases.length == 0) {
-    throw Error(`no purchase with id ${purchase_id}`);
+    throw Error(`No purchase with id ${purchase_id}`);
   }
+  const { service } = purchases[0];
   logger.debug("got ", purchases);
-  let {
-    invoice_id,
-    service,
-    cost,
-    account_id: customer_account_id,
-  } = purchases[0];
-  if (service != "credit") {
+  if (service == "credit" || service == "auto-credit") {
+    return await refundCredit(account_id, reason, notes, purchases[0]);
+  } else if (service == "license" || service == "edit-license") {
+    return await refundLicense(account_id, reason, notes, purchases[0]);
+  } else {
     throw Error(
-      `only credits can be refunded, but this purchase is of service type '${service}'`,
+      `Only credits and license purchases can be refunded, but this purchase is of service type '${service}'`,
     );
   }
+}
+
+async function refundCredit(
+  admin_account_id,
+  reason,
+  notes,
+  {
+    id: purchase_id,
+    invoice_id,
+    cost,
+    account_id,
+    description: orig_description,
+  },
+) {
+  logger.debug("refundCredit", purchase_id);
   if (!invoice_id) {
-    throw Error("only credits with an invoice_id can be refunded");
+    throw Error("Only credits with an invoice_id can be refunded");
   }
   const stripe = await getConn();
 
@@ -83,6 +97,7 @@ export default async function createRefund(opts: {
   }
 
   const client = await getTransactionClient();
+  let refund_purchase_id;
   try {
     const description = {
       type: "refund",
@@ -90,8 +105,8 @@ export default async function createRefund(opts: {
       notes,
       reason,
     } as Refund;
-    const id = await createPurchase({
-      account_id: customer_account_id,
+    refund_purchase_id = await createPurchase({
+      account_id,
       service: "refund",
       cost: -cost,
       description,
@@ -99,10 +114,9 @@ export default async function createRefund(opts: {
     });
     const refund = await stripe.refunds.create({
       charge,
-      metadata: { account_id, purchase_id, notes } as any,
+      metadata: { account_id: admin_account_id, purchase_id, notes } as any,
       reason: reason != "other" ? reason : undefined,
     });
-    await client.query("COMMIT");
 
     if (paymentIntentId) {
       await stripe.paymentIntents.update(paymentIntentId, {
@@ -118,21 +132,35 @@ export default async function createRefund(opts: {
     // It's fine doing this after the commit, since the refund.id
     // is not ever used; it just seems like a good idea to include
     // for our records, but we only know it *after* calling stripe.
-    description.refund_id = refund.id;
     await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
-      id,
-      description,
+      refund_purchase_id,
+      { ...description, refund_id: refund.id },
     ]);
-    // send confirmation message
-    try {
-      const { site_name: siteName } = await getServerSettings();
-      const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
-        Math.abs(cost),
-      )} + tax`;
-      const body = `
+    // we also set new purchase id
+    await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
+      purchase_id,
+      { ...orig_description, refund_purchase_id },
+    ]);
+
+    await client.query("COMMIT");
+  } catch (err) {
+    logger.debug("error creating refund", { account_id, invoice_id }, err);
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  // send confirmation message
+  try {
+    const { site_name: siteName } = await getServerSettings();
+    const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
+      Math.abs(cost),
+    )} + tax`;
+    const body = `
 ${siteName} has refunded your credit of ${currency(
-        Math.abs(cost),
-      )} + tax from transaction ${purchase_id}.
+      Math.abs(cost),
+    )} + tax from transaction ${purchase_id}.
 This refund will appear immediately in [your ${siteName} account](/settings/purchases),
 and should post on your credit card or bank statement within 5-10 days.
 
@@ -144,17 +172,28 @@ and should post on your credit card or bank statement within 5-10 days.
 
 ${await support()}
 `;
-      await send({ to_ids: [customer_account_id], subject, body });
-    } catch (err) {
-      logger.debug("WARNING -- issue sending email", err);
-    }
-
-    return id;
+    await send({ to_ids: [account_id], subject, body });
   } catch (err) {
-    logger.debug("error creating refund", { account_id, invoice_id }, err);
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
+    logger.debug("WARNING -- issue sending email", err);
   }
+
+  return refund_purchase_id;
+}
+
+async function refundLicense(
+  admin_account_id,
+  reason,
+  notes,
+  { id: purchase_id, service, cost, account_id },
+) {
+  logger.debug("refundLicense", admin_account_id, {
+    notes,
+    reason,
+    purchase_id,
+    service,
+    cost,
+    account_id,
+  });
+  throw Error("todo");
+  return 0;
 }

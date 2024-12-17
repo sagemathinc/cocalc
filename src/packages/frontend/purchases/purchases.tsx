@@ -763,12 +763,20 @@ function PurchaseDescription({
             style={{ marginBottom: "15px" }}
           />
         )}
-        {admin && id != null && isRefundable(service) && (
-          <AdminRefund purchase_id={id} service={service} cost={cost} />
+        {description.refund_purchase_id && (
+          <b style={{ marginLeft: "8px" }}>
+            REFUNDED: Transaction {description.refund_purchase_id}
+          </b>
         )}
+        {admin &&
+          description.refund_purchase_id == null &&
+          id != null &&
+          isRefundable(service, invoice_id) && (
+            <AdminRefund purchase_id={id} service={service} cost={cost} />
+          )}
         {invoice_id && (
           <Space>
-            {!admin && (
+            {!admin && !description.refund_purchase_id && (
               <Button
                 size="small"
                 type="link"

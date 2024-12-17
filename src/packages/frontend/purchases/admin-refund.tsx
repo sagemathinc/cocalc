@@ -20,15 +20,13 @@ import { BigSpin } from "./stripe-payment";
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
 
-const REFUNDABLE_CREDITS = new Set([
-  "license",
-  "edit-license",
-  "credit",
-  "auto-credit",
-]);
+const DEFAULT_REASON = "requested_by_customer";
 
-export function isRefundable(service) {
-  return REFUNDABLE_CREDITS.has(service);
+export function isRefundable(service, invoice_id) {
+  if (service == "credit" || service == "auto-credit") {
+    return !!invoice_id;
+  }
+  return service == "license" || service == "edit-license";
 }
 
 const labelStyle = { width: "60px" } as const;
@@ -53,7 +51,7 @@ export default function AdminRefund({
   };
 
   const handleOk = async () => {
-    const values = form.getFieldsValue(); // Get the form data
+    const values = { ...form.getFieldsValue(), reason: DEFAULT_REASON }; // Get the form data
     try {
       setRefunding(true);
       await adminCreateRefund({ purchase_id, ...values });
@@ -112,7 +110,11 @@ export default function AdminRefund({
         <Divider />
         <Form form={form}>
           <Form.Item name="reason" label={<div style={labelStyle}>Reason</div>}>
-            <Select style={{ width: "100%" }} placeholder="Select Reason...">
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Select Reason..."
+              defaultValue={DEFAULT_REASON}
+            >
               <Select.Option value="duplicate">Duplicate</Select.Option>
               <Select.Option value="fraudulent">Fraudulent</Select.Option>
               <Select.Option value="requested_by_customer">
@@ -126,7 +128,7 @@ export default function AdminRefund({
           </Form.Item>
           <div style={{ color: "#666" }}>
             <Divider>What Happens: more details</Divider>
-            The above information is visible to the user.
+            The above information will be visible to the user.
             {(service == "credit" || service == "auto-credit") && (
               <>
                 When you click OK, their money will be refunded in 5-10 days,
@@ -143,7 +145,11 @@ export default function AdminRefund({
           </div>
         </Form>
         {refunding && <BigSpin />}
-        <ShowError error={error} setError={setError} />
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "15px 0" }}
+        />
       </Modal>
     </>
   );
