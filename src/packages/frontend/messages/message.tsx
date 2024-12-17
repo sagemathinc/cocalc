@@ -299,6 +299,7 @@ function MessageFull({
   setShowThread,
   showThread,
   focused,
+  style,
 }: Props) {
   const read = isRead(message);
   const readRef = useRef<boolean>(read);
@@ -348,6 +349,7 @@ function MessageFull({
         paddingRight: "15px",
         /* overflowY is so when threads are expanded we can scroll and see them*/
         overflowY: "auto",
+        ...style,
       }}
       className={inThread ? undefined : "smc-vfill"}
     >

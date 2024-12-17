@@ -8,7 +8,6 @@ import { Set } from "immutable";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
