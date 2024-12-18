@@ -7,6 +7,18 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 
+interface CodemirrorPosition {
+  line: number;
+  ch: number;
+}
+
+interface CodemirrorRange {
+  from: CodemirrorPosition;
+  to: CodemirrorPosition;
+}
+
+type Position = CodemirrorRange;
+
 export class Comments {
   private syncdoc: SyncDoc;
   private project_id: string;
@@ -23,17 +35,14 @@ export class Comments {
   }
 
   setComment = ({
-    pos,
     id,
-    hide,
+    pos,
+    done,
     noSave,
   }: {
-    pos?: {
-      from: { line: number; ch: number };
-      to: { line: number; ch: number };
-    };
     id: string;
-    hide?: boolean;
+    pos?: Position;
+    done?: boolean;
     noSave?: boolean;
   }) => {
     const doc = this.getDoc();
@@ -59,9 +68,10 @@ export class Comments {
     }
     // create the mark
     doc.markText(pos.from, pos.to, {
-      css: hide ? "" : "background:#fef2cd",
+      css: done ? "" : "background:#fef2cd",
       shared: true,
       attributes: { style: id },
+      clearWhenEmpty: false,
     });
     if (!noSave) {
       this.saveCommentsDebounce();
@@ -78,14 +88,14 @@ export class Comments {
       .filter((mark) => mark.attributes?.style)
       .map((mark) => {
         const id = mark.attributes!.style;
-        const hide = !mark.css;
+        const done = !mark.css;
         // @ts-ignore
         const { from, to } = mark.find();
         return {
           id,
           time,
           hash,
-          hide,
+          done,
           pos: { from, to },
         };
       });
@@ -176,8 +186,8 @@ export class Comments {
       console.log(comment.toJS());
       if (comment.get("hash") == hash || force) {
         console.log("using it!");
-        const { id, hide, pos } = comment.toJS();
-        this.setComment({ pos, id, hide, noSave: true });
+        const { id, done, pos } = comment.toJS();
+        this.setComment({ id, pos, done, noSave: true });
       } else {
         console.log("NOT using it -- need algorithm to transform");
       }

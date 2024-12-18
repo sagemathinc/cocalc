@@ -206,9 +206,9 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
       return () => {
         if (elt.current != null) {
           if (root.current != null) {
-            try {
+            setTimeout(() => {
               root.current.unmount();
-            } catch (_err) {}
+            }, 0);
             root.current = null;
           }
           elt.current.remove();
