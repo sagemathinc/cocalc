@@ -1418,9 +1418,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2261,8 +2260,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2447,20 +2446,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // return true if exists and is a directory
-  private async isdir(path: string): Promise<boolean> {
-    if (path == "") return true; // easy special case
-    try {
-      await webapp_client.project_client.exec({
-        project_id: this.project_id,
-        command: "test",
-        args: ["-d", path],
-        err_on_exit: true,
-      });
-      return true;
-    } catch (_) {
-      return false;
+  isdir = async (path: string): Promise<boolean> => {
+    if (path == "") {
+      return true; // special case
     }
-  }
+    const { exit_code } = await webapp_client.project_client.exec({
+      project_id: this.project_id,
+      command: "test",
+      args: ["-d", path],
+      err_on_exit: false,
+    });
+    return exit_code == 0;
+  };
+
+  // true if the given file or directory exists, relative to home directory
+  // (same implementation as isdir above but just testing for existence)
+  path_exists = async (path: string): Promise<boolean> => {
+    if (path == "") {
+      return true; // special case
+    }
+    const { exit_code } = await webapp_client.project_client.exec({
+      project_id: this.project_id,
+      command: "test",
+      args: ["-e", path],
+      err_on_exit: false,
+    });
+    return exit_code == 0;
+  };
 
   public async move_files(opts: {
     src: string[];

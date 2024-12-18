@@ -384,6 +384,8 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
+
+      this.initComments();
     });
 
     this._syncstring.on("before-change", () =>
@@ -3118,6 +3120,7 @@ export class Actions<
     pos,
     id,
     hide,
+    noSave,
   }: {
     pos?: {
       from: { line: number; ch: number };
@@ -3125,6 +3128,7 @@ export class Actions<
     };
     id: string;
     hide?: boolean;
+    noSave?: boolean;
   }) => {
     const doc = this._get_doc();
     if (!doc) {
@@ -3153,13 +3157,13 @@ export class Actions<
       shared: true,
       attributes: { style: id },
     });
+    if (!noSave) {
+      this.saveCommentsDebounce();
+    }
   };
 
-  getComments = () => {
+  private getComments = () => {
     const doc = this._get_doc();
-    if (this._syncstring.has_unsaved_changes()) {
-      return;
-    }
     // @ts-ignore  (TODO)
     const time = this._syncstring.patch_list.newest_patch_time().valueOf();
     const hash = this._syncstring.hash_of_live_version();
@@ -3181,11 +3185,15 @@ export class Actions<
       });
   };
 
+  private commentsPath = () => {
+    return aux_file(this.path, "comments");
+  };
+
   getCommentsDB = async () => {
     if (this.commentsDB == null) {
       this.commentsDB = await webapp_client.sync_client.sync_db({
         project_id: this.project_id,
-        path: aux_file(this.path, "comments"),
+        path: this.commentsPath(),
         primary_keys: ["id"],
         ephemeral: true,
         cursors: true,
@@ -3194,6 +3202,16 @@ export class Actions<
         console.log("closing comments db");
         this.commentsDB?.close();
       });
+      this.commentsDB.on(
+        "change",
+        debounce(
+          () => {
+            this.loadComments();
+          },
+          3000,
+          { leading: true, trailing: true },
+        ),
+      );
       if (this.commentsDB.get_state() != "ready") {
         await once(this.commentsDB, "ready");
       }
@@ -3201,28 +3219,76 @@ export class Actions<
     return this.commentsDB;
   };
 
-  saveComments = async () => {
-    const db = await this.getCommentsDB();
+  private hasComments = () => {
+    try {
+      const doc = this._get_doc();
+      return (
+        doc.getAllMarks().filter((mark) => mark.attributes?.style).length > 0
+      );
+    } catch (_) {
+      // expected when no cm is open or document is closed
+      return false;
+    }
+  };
+
+  saveComments = reuseInFlight(async () => {
+    if (!this.hasComments()) {
+      return;
+    }
+    let d = 100;
+    while (this._syncstring.has_unsaved_changes()) {
+      if (d >= 30000) {
+        console.warn(
+          "something is going wrong waiting for document to stabilize",
+        );
+      }
+      await delay(d);
+      if (this._syncstring.get_state() == "closed") {
+        return;
+      }
+      d = Math.min(30000, 1.3 * d);
+      await this._syncstring.save();
+    }
+    // due to above loop, right now there are no unsaved changes, so we can safely
+    // get the comments and write them out:
     const comments = this.getComments();
     if (comments == null) {
       return;
     }
+    const db = await this.getCommentsDB();
     for (const comment of comments) {
       db.set(comment);
     }
     await db.save_to_disk();
-  };
+  });
 
-  loadComments = async () => {
+  saveCommentsDebounce = debounce(this.saveComments, 3000);
+
+  loadComments = async (force?) => {
     const db = await this.getCommentsDB();
     const hash = this._syncstring.hash_of_live_version();
     for (const comment of db.get()) {
       console.log(comment.toJS());
-      if (comment.get("hash") == hash) {
+      if (comment.get("hash") == hash || force) {
         console.log("using it!");
         const { id, hide, pos } = comment.toJS();
-        this.setComment({ pos, id, hide });
+        this.setComment({ pos, id, hide, noSave: true });
+      } else {
+        console.log("NOT using it -- need algorithm to transform");
       }
     }
+  };
+
+  initComments = async () => {
+    if (
+      await this.redux
+        .getProjectActions(this.project_id)
+        .path_exists(this.commentsPath())
+    ) {
+      // probably comments, so load them
+      await this.loadComments();
+    }
+    // also periodically save comments out when activity stops
+    this._syncstring.on("change", this.saveCommentsDebounce);
   };
 }
