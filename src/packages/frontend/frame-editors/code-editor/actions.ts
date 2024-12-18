@@ -429,6 +429,12 @@ export class Actions<
     });
 
     this._syncstring.on("change", this.activity);
+
+    this._syncstring.on(
+      "change",
+      debounce(this.syncMarks, 3000, { leading: false, trailing: true }),
+    );
+    this._syncstring.once("ready", this.syncMarks);
   }
 
   // NOTE: I am exposing this only so editors cna listen for
@@ -3116,35 +3122,66 @@ export class Actions<
     }
   }
 
-  markText = ({ from, to, id }) => {
+  /*
+  Marks used for collaborative commenting.
+  These are the marks in the codemirror document that have attributes.style set to a
+  string id.  Since attributes.style is officialy not supported:
+
+     "When given, add the attributes in the given object to the elements created for
+     the marked text. Adding class or style attributes this way is not supported."
+
+  we can use it to store an id, and ALSO keep these marks separate from any other
+  marks that might be in the document.
+  */
+  // create a mark or change its position or update hide state (don't give from to change hide)
+  markText = ({
+    from,
+    to,
+    id,
+    hide,
+    noSend,
+  }: {
+    from?: { line: number; ch: number };
+    to?: { line: number; ch: number };
+    id: string;
+    hide?: boolean;
+    noSend?: boolean;
+  }) => {
     const doc = this._get_doc();
     if (!doc) {
       throw Error("no cm doc, so can't mark");
     }
     for (const mark of doc.getAllMarks()) {
       if (mark.attributes?.style == id) {
+        if (from == null || to == null) {
+          // also locate it
+          const pos = mark.find();
+          if (pos != null) {
+            // @ts-ignore
+            ({ from, to } = pos);
+          }
+        }
         // overwriting existing mark, so remove that one (gets created again below)
         mark.clear();
       }
     }
+    if (from == null || to == null) {
+      throw Error("unable to find mark");
+    }
     // create the mark
     doc.markText(from, to, {
-      css: "background:#fef2cd",
+      css: hide ? "" : "background:#fef2cd",
       shared: true,
-      // The docs say "When given, add the attributes in the given object to the elements
-      // created for the marked text. Adding class or style attributes this way is not supported."
-      // Thus as a hack we *use* style as a place to store the id!
       attributes: { style: id },
     });
 
-    this.sendMarks();
+    if (!noSend) {
+      this.sendMarks();
+    }
   };
 
   sendMarks = () => {
     const doc = this._get_doc();
-    if (!doc) {
-      return;
-    }
     const chatActions = this.getSideChatActions();
     if (chatActions == null) {
       return;
@@ -3158,19 +3195,29 @@ export class Actions<
     }
     chatActions.syncdb.set_cursor_locs([
       hash,
-      doc.getAllMarks().map((mark) => {
-        return { ...mark.find(), id: mark.attributes?.style };
-      }),
+      doc
+        .getAllMarks()
+        .filter((mark) => mark.attributes?.style)
+        .map((mark) => {
+          return {
+            ...mark.find(),
+            id: mark.attributes!.style,
+            hide: !mark.css,
+          };
+        }),
     ]);
   };
 
+  // This merges in marks from the newest *identical* remote with published marks.
   receiveMarks = () => {
     const syncdb = this.getSideChatActions()?.syncdb;
     if (syncdb == null) {
+      console.log("no sidechat syncdb");
       return;
     }
     const hash = this._syncstring?.hash_of_live_version();
     if (hash == null) {
+      //console.log("no doc hash");
       return;
     }
     const cursors = syncdb.get_cursors({
@@ -3178,6 +3225,7 @@ export class Actions<
       maxAge: 9999999999,
     });
     if (cursors.size == 0) {
+      //console.log("no cursors");
       return;
     }
     let best: any = null;
@@ -3191,9 +3239,21 @@ export class Actions<
       }
     }
     if (best != null) {
+      //console.log(best.toJS());
       for (const mark of best.get("locs").get(1).toJS()) {
-        this.markText(mark);
+        this.markText({ ...mark, noSend: true });
       }
+    } else {
+      //console.log("no match");
+    }
+  };
+
+  syncMarks = () => {
+    try {
+      this.receiveMarks();
+      this.sendMarks();
+    } catch (_err) {
+      console.log("sync ", _err);
     }
   };
 }
