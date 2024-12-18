@@ -19,7 +19,7 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
-
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { TourProps } from "antd";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -211,6 +211,8 @@ export class Actions<
 
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
+
+  private commentsDB?: SyncDB = undefined;
 
   _init(
     project_id: string,
@@ -3111,4 +3113,116 @@ export class Actions<
       }
     }
   }
+
+  setComment = ({
+    pos,
+    id,
+    hide,
+  }: {
+    pos?: {
+      from: { line: number; ch: number };
+      to: { line: number; ch: number };
+    };
+    id: string;
+    hide?: boolean;
+  }) => {
+    const doc = this._get_doc();
+    if (!doc) {
+      throw Error("no cm doc, so can't mark");
+    }
+    for (const mark of doc.getAllMarks()) {
+      if (mark.attributes?.style == id) {
+        if (pos == null) {
+          // also locate it
+          const pos1 = mark.find();
+          if (pos1 != null) {
+            // @ts-ignore
+            pos = pos1;
+          }
+        }
+        // overwriting existing mark, so remove that one (gets created again below)
+        mark.clear();
+      }
+    }
+    if (pos == null) {
+      throw Error("unable to find mark");
+    }
+    // create the mark
+    doc.markText(pos.from, pos.to, {
+      css: hide ? "" : "background:#fef2cd",
+      shared: true,
+      attributes: { style: id },
+    });
+  };
+
+  getComments = () => {
+    const doc = this._get_doc();
+    if (this._syncstring.has_unsaved_changes()) {
+      return;
+    }
+    // @ts-ignore  (TODO)
+    const time = this._syncstring.patch_list.newest_patch_time().valueOf();
+    const hash = this._syncstring.hash_of_live_version();
+    return doc
+      .getAllMarks()
+      .filter((mark) => mark.attributes?.style)
+      .map((mark) => {
+        const id = mark.attributes!.style;
+        const hide = !mark.css;
+        // @ts-ignore
+        const { from, to } = mark.find();
+        return {
+          id,
+          time,
+          hash,
+          hide,
+          pos: { from, to },
+        };
+      });
+  };
+
+  getCommentsDB = async () => {
+    if (this.commentsDB == null) {
+      this.commentsDB = await webapp_client.sync_client.sync_db({
+        project_id: this.project_id,
+        path: aux_file(this.path, "comments"),
+        primary_keys: ["id"],
+        ephemeral: true,
+        cursors: true,
+      });
+      this._syncstring.on("close", () => {
+        console.log("closing comments db");
+        this.commentsDB?.close();
+      });
+      if (this.commentsDB.get_state() != "ready") {
+        await once(this.commentsDB, "ready");
+      }
+    }
+    return this.commentsDB;
+  };
+
+  saveComments = async () => {
+    const db = await this.getCommentsDB();
+    const comments = this.getComments();
+    if (comments == null) {
+      return;
+    }
+    for (const comment of comments) {
+      db.set(comment);
+    }
+    await db.save_to_disk();
+  };
+
+  loadComments = async () => {
+    const db = await this.getCommentsDB();
+    const hash = this._syncstring.hash_of_live_version();
+    for (const comment of db.get()) {
+      console.log(comment.toJS());
+      if (comment.get("hash") == hash) {
+        console.log("using it!");
+        const { id, hide, pos } = comment.toJS();
+        this.setComment({ pos, id, hide });
+      }
+    }
+  };
 }
