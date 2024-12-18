@@ -3084,6 +3084,13 @@ export class Actions<
     return this.videoChat;
   };
 
+  getSideChatActions = () => {
+    return getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+  };
+
   // NOTE: can't be an arrow function because gets called in derived classes
   async gotoFragment(fragmentId: FragmentId) {
     if (fragmentId == null) {
@@ -3102,13 +3109,91 @@ export class Actions<
         .open_chat({ path: this.path });
       this.show_focused_frame_of_type(chat.type);
       for (const d of [1, 10, 50, 500, 1000]) {
-        const actions = getSideChatActions({
-          project_id: this.project_id,
-          path: this.path,
-        });
+        const actions = this.getSideChatActions();
         actions?.scrollToDate(fragmentId.chat);
         await delay(d);
       }
     }
   }
+
+  markText = ({ from, to, id }) => {
+    const doc = this._get_doc();
+    if (!doc) {
+      throw Error("no cm doc, so can't mark");
+    }
+    for (const mark of doc.getAllMarks()) {
+      if (mark.attributes?.style == id) {
+        // overwriting existing mark, so remove that one (gets created again below)
+        mark.clear();
+      }
+    }
+    // create the mark
+    doc.markText(from, to, {
+      css: "background:#fef2cd",
+      shared: true,
+      // The docs say "When given, add the attributes in the given object to the elements
+      // created for the marked text. Adding class or style attributes this way is not supported."
+      // Thus as a hack we *use* style as a place to store the id!
+      attributes: { style: id },
+    });
+
+    this.sendMarks();
+  };
+
+  sendMarks = () => {
+    const doc = this._get_doc();
+    if (!doc) {
+      return;
+    }
+    const chatActions = this.getSideChatActions();
+    if (chatActions == null) {
+      return;
+    }
+    if (chatActions.syncdb == null) {
+      return;
+    }
+    const hash = this._syncstring?.hash_of_live_version();
+    if (hash == null) {
+      return;
+    }
+    chatActions.syncdb.set_cursor_locs([
+      hash,
+      doc.getAllMarks().map((mark) => {
+        return { ...mark.find(), id: mark.attributes?.style };
+      }),
+    ]);
+  };
+
+  receiveMarks = () => {
+    const syncdb = this.getSideChatActions()?.syncdb;
+    if (syncdb == null) {
+      return;
+    }
+    const hash = this._syncstring?.hash_of_live_version();
+    if (hash == null) {
+      return;
+    }
+    const cursors = syncdb.get_cursors({
+      excludeSelf: "never",
+      maxAge: 9999999999,
+    });
+    if (cursors.size == 0) {
+      return;
+    }
+    let best: any = null;
+    for (const [_, x] of cursors) {
+      const locs = x.get("locs");
+      if (locs.get(0) != hash) {
+        continue;
+      }
+      if (best == null || best.get("time") < x.get("time")) {
+        best = x;
+      }
+    }
+    if (best != null) {
+      for (const mark of best.get("locs").get(1).toJS()) {
+        this.markText(mark);
+      }
+    }
+  };
 }

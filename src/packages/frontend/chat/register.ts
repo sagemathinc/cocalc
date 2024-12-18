@@ -32,6 +32,9 @@ export function initChat(project_id: string, path: string): ChatActions {
     primary_keys: ["date", "sender_id", "event"],
     // used only for drafts, since store lots of versions as user types:
     string_cols: ["input"],
+    // we use side-chat cursors for marks; they aren't otherwise needed because people do not like
+    // for other people to see them typing chat messages.
+    cursors: true,
   });
 
   syncdb.once("error", (err) => {

@@ -59,6 +59,11 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         return;
       }
 
+      case "mark": {
+        // TODO: don't know if this needs anything
+        return;
+      }
+
       default:
         console.warn("unknown chat event: ", obj.event);
     }
