@@ -34,19 +34,19 @@ export function GutterMarker(props: Props) {
     root.render(
       <FrameContext.Provider value={frameContext}>
         <div>{props.children}</div>
-      </FrameContext.Provider>
+      </FrameContext.Provider>,
     );
 
     const handle = (handleRef.current = props.codemirror.setGutterMarker(
       props.line,
       props.gutter_id,
-      el
+      el,
     ));
     props.set_handle(handle);
 
     return () => {
       if (eltRef.current != null) {
-        rootRef.current?.unmount();
+        setTimeout(() => rootRef.current?.unmount(), 0);
         eltRef.current.remove();
         eltRef.current = null;
       }
@@ -54,7 +54,7 @@ export function GutterMarker(props: Props) {
         props.codemirror.setGutterMarker(
           handleRef.current,
           props.gutter_id,
-          null
+          null,
         );
         handleRef.current = null;
       }

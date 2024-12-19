@@ -19,7 +19,6 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
-
 import type { TourProps } from "antd";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -110,6 +109,7 @@ import {
   chat,
   getSideChatActions,
 } from "@cocalc/frontend/frame-editors/generic/chat";
+import { Comments } from "@cocalc/frontend/frame-editors/generic/comments";
 
 interface gutterMarkerParams {
   line: number;
@@ -204,6 +204,8 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+
+  public comments: Comments;
 
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
@@ -382,6 +384,8 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
+
+      this.initComments();
     });
 
     this._syncstring.on("before-change", () =>
@@ -1420,6 +1424,8 @@ export class Actions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+
+    this.comments?.update();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1448,9 +1454,9 @@ export class Actions<
   }
 
   // Get the underlying codemirror doc that editors are using.
-  _get_doc(): CodeMirror.Doc {
+  _get_doc = (): CodeMirror.Doc => {
     return cm_doc_cache.get_doc(this.project_id, this.path);
-  }
+  };
 
   _recent_cm(): CodeMirror.Editor | undefined {
     if (this._state === "closed") return;
@@ -3111,4 +3117,19 @@ export class Actions<
       }
     }
   }
+
+  initComments = () => {
+    this.comments = new Comments({
+      getDoc: () => {
+        try {
+          return this._get_doc();
+        } catch (_) {
+          return null;
+        }
+      },
+      path: this.path,
+      project_id: this.project_id,
+      syncdoc: this._syncstring,
+    });
+  };
 }
