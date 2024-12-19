@@ -58,7 +58,7 @@ export default function SoftwareLibraries(props: Props) {
       debounce((e) => {
         setSearch(e.target.value);
       }, 500),
-    []
+    [],
   );
 
   let data: Item[];
@@ -74,7 +74,7 @@ export default function SoftwareLibraries(props: Props) {
     }
   }
 
-  const columns = useMemo((): Columns => {
+  function columns(): Columns {
     const envs = Object.entries(spec);
     const width = (100 - libWidthPct) / envs.length;
 
@@ -98,7 +98,7 @@ export default function SoftwareLibraries(props: Props) {
     }
 
     return columns;
-  }, [libWidthPct]);
+  }
 
   return (
     <div>
@@ -112,7 +112,7 @@ export default function SoftwareLibraries(props: Props) {
       />
       <div style={{ overflowX: "auto", width: "100%" }}>
         <Table
-          columns={columns}
+          columns={columns()}
           bordered
           pagination={false}
           rowKey={"index"}

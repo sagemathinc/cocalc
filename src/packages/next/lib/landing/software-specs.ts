@@ -56,7 +56,6 @@ async function downloadInventoryJson(name: SoftwareEnvNames): Promise<EnvData> {
 }
 
 // load the current version of the software specs – if there is a problem, use the locally stored files as fallback.
-// both files go hand-in-hand, hence either both work or both are the fallback!
 async function fetchInventory(): Promise<SoftwareEnvironments> {
   // for development, set the env variable to directory, where this files are
   const localSpec = process.env.COCALC_SOFTWARE_ENVIRONMENTS;
