@@ -6,6 +6,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import type { Doc } from "codemirror";
 
 interface CodemirrorPosition {
   line: number;
@@ -23,7 +24,7 @@ export class Comments {
   private syncdoc: SyncDoc;
   private project_id: string;
   private path: string;
-  private getDoc: Function;
+  private getDoc: () => Doc | null;
   private commentsDB?: SyncDoc;
 
   constructor({ getDoc, path, project_id, syncdoc }) {
@@ -47,6 +48,7 @@ export class Comments {
   }) => {
     const doc = this.getDoc();
     if (!doc) {
+      // todo: we could actually safely set in db...
       throw Error("no cm doc, so can't mark");
     }
     for (const mark of doc.getAllMarks()) {
@@ -80,6 +82,9 @@ export class Comments {
 
   private getComments = () => {
     const doc = this.getDoc();
+    if (!doc) {
+      return null;
+    }
     // @ts-ignore  (TODO)
     const time = this.syncdoc.patch_list.newest_patch_time().valueOf();
     const hash = this.syncdoc.hash_of_live_version();
@@ -137,6 +142,9 @@ export class Comments {
   private hasComments = () => {
     try {
       const doc = this.getDoc();
+      if (doc == null) {
+        return false;
+      }
       return (
         doc.getAllMarks().filter((mark) => mark.attributes?.style).length > 0
       );
@@ -177,9 +185,13 @@ export class Comments {
     await db.save_to_disk();
   });
 
-  saveCommentsDebounce = debounce(this.saveComments, 3000);
+  private saveCommentsDebounce = debounce(this.saveComments, 3000);
 
   loadComments = async (force?) => {
+    const doc = this.getDoc();
+    if (doc == null) {
+      return;
+    }
     const db = await this.getCommentsDB();
     const hash = this.syncdoc.hash_of_live_version();
     for (const comment of db.get()) {

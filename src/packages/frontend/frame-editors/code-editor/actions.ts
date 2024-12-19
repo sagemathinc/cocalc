@@ -3118,7 +3118,13 @@ export class Actions<
 
   initComments = () => {
     this.comments = new Comments({
-      getDoc: this._get_doc,
+      getDoc: () => {
+        try {
+          return this._get_doc();
+        } catch (_) {
+          return null;
+        }
+      },
       path: this.path,
       project_id: this.project_id,
       syncdoc: this._syncstring,
