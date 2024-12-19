@@ -7,18 +7,9 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import type { Doc } from "codemirror";
-
-interface CodemirrorPosition {
-  line: number;
-  ch: number;
-}
-
-interface CodemirrorRange {
-  from: CodemirrorPosition;
-  to: CodemirrorPosition;
-}
-
-type Position = CodemirrorRange;
+import type { Mark, Position } from "./types";
+import { transformMarks } from "./transform";
+import { getPos } from "./util";
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -94,14 +85,12 @@ export class Comments {
       .map((mark) => {
         const id = mark.attributes!.style;
         const done = !mark.css;
-        // @ts-ignore
-        const { from, to } = mark.find();
         return {
           id,
           time,
           hash,
           done,
-          pos: { from, to },
+          pos: getPos(mark),
         };
       });
   };
@@ -179,29 +168,67 @@ export class Comments {
       return;
     }
     const db = await this.getCommentsDB();
+    let changes = false;
     for (const comment of comments) {
+      const cur = db.get({ id: comment.id });
+      if (cur.get("time") >= comment.time) {
+        // there is already a newer version
+        continue;
+      }
+      changes = true;
       db.set(comment);
     }
-    await db.save_to_disk();
+    if (changes) {
+      // save to disk is important since comments syncdb is ephemeral
+      await db.save_to_disk();
+    }
   });
 
   private saveCommentsDebounce = debounce(this.saveComments, 3000);
 
-  loadComments = async (force?) => {
+  loadComments = async () => {
     const doc = this.getDoc();
     if (doc == null) {
       return;
     }
     const db = await this.getCommentsDB();
     const hash = this.syncdoc.hash_of_live_version();
-    for (const comment of db.get()) {
-      // console.log(comment.toJS());
-      if (comment.get("hash") == hash || force) {
-        // console.log("using it!");
-        const { id, done, pos } = comment.toJS();
+    const toTransform: { [time: string]: Mark[] } = {};
+    for (const mark of db.get()) {
+      if (mark.get("hash") == hash) {
+        const { id, done, pos } = mark.toJS();
         this.setComment({ id, pos, done, noSave: true });
       } else {
-        // console.log("NOT using it -- need algorithm to transform");
+        const time = `${mark.get("time")}`;
+        if (toTransform[time] == null) {
+          toTransform[time] = [mark.toJS()];
+        } else {
+          toTransform[time].push(mark.toJS());
+        }
+      }
+    }
+
+    let v1: string | undefined;
+    for (const msTimeString in toTransform) {
+      if (v1 == null) {
+        v1 = this.syncdoc.to_str();
+      }
+      const time = new Date(parseInt(msTimeString));
+      const v0 = this.syncdoc.version(time)?.to_str();
+      if (v0 == null) {
+        // TODO: try loading full history or waiting a few seconds, depending on timestamp.
+        // it should just work automatically because when everything syncs up loadComments
+        // is run again and then this works.
+        // console.log("unknonwn document at time:", time);
+        continue;
+      }
+      const marks1 = transformMarks({
+        marks: toTransform[msTimeString],
+        v0,
+        v1,
+      });
+      for (const mark of marks1) {
+        this.setComment({ ...mark, noSave: true });
       }
     }
   };
@@ -214,8 +241,6 @@ export class Comments {
     ) {
       // initialize database
       await this.getCommentsDB();
-      // probably comments, so load them
-      await this.loadComments();
     }
     // also periodically save comments out when activity stops
     this.syncdoc.on("change", this.saveCommentsDebounce);
