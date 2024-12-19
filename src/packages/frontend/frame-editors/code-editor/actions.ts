@@ -1424,6 +1424,8 @@ export class Actions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+
+    this.comments?.update();
   }
 
   // 1. if id given, returns cm with given id if id

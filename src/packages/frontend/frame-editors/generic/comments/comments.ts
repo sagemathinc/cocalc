@@ -212,10 +212,19 @@ export class Comments {
         .getProjectActions(this.project_id)
         .path_exists(this.commentsPath())
     ) {
+      // initialize database
+      await this.getCommentsDB();
       // probably comments, so load them
       await this.loadComments();
     }
     // also periodically save comments out when activity stops
     this.syncdoc.on("change", this.saveCommentsDebounce);
+  };
+
+  update = () => {
+    if (this.commentsDB == null) {
+      return;
+    }
+    this.loadComments();
   };
 }
