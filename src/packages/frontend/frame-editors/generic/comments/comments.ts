@@ -195,13 +195,13 @@ export class Comments {
     const db = await this.getCommentsDB();
     const hash = this.syncdoc.hash_of_live_version();
     for (const comment of db.get()) {
-      console.log(comment.toJS());
+      // console.log(comment.toJS());
       if (comment.get("hash") == hash || force) {
-        console.log("using it!");
+        // console.log("using it!");
         const { id, done, pos } = comment.toJS();
         this.setComment({ id, pos, done, noSave: true });
       } else {
-        console.log("NOT using it -- need algorithm to transform");
+        // console.log("NOT using it -- need algorithm to transform");
       }
     }
   };
