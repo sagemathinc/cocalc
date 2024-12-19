@@ -75,7 +75,7 @@
     "cookies": "^0.8.0",
     "csv-stringify": "^6.3.0",
     "dayjs": "^1.11.11",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "ms": "2.1.2",
