@@ -36,7 +36,7 @@
     "cors": "^2.8.5",
     "debug": "^4.3.2",
     "escape-html": "^1.0.3",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "formidable": "^3.5.1",
     "http-proxy": "^1.18.1",
     "immutable": "^4.3.0",
