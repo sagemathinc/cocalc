@@ -501,11 +501,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     return (
       <DropdownMenu
         key={"switch-to-file"}
-        button={true}
         style={{
+          margin: "0 -5px",
           height: button_height(),
         }}
-        title={path_split(props.path).tail}
+        title={<>File: {path_split(props.path).tail}</>}
         items={items}
       />
     );
@@ -708,8 +708,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -782,8 +782,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       }
       v.push(renderPage());
       v.push(renderNewAI());
-      v.push(renderMenus());
       v.push(renderSwitchToFile());
+      v.push(renderMenus());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1019,7 +1019,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       >
         Halt the server and close this?
         <Button onClick={() => set_close_and_halt_confirm(false)}>
-        {intl.formatMessage(labels.cancel)}
+          {intl.formatMessage(labels.cancel)}
         </Button>
         <Button
           danger
