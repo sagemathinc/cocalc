@@ -331,7 +331,7 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
   return false;
 }
 
-async function changeLicense(
+export async function changeLicense(
   license_id: string,
   info: PurchaseInfo,
   client: PoolClient,

@@ -192,5 +192,6 @@ export function getStripeLineItems(lineItems: LineItem[]): {
       });
     }
   }
+
   return { lineItemsWithoutCredit: newLineItems, total_excluding_tax_usd };
 }

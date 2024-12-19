@@ -231,14 +231,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       license_status != null
         ? license_status === "expired"
         : info?.expires != null
-        ? new Date() >= info.expires
-        : false;
+          ? new Date() >= info.expires
+          : false;
     if (!expired && info?.subscription_id) {
       // no need to say anything because it is not expired and
       // a subscription will extend it (unless it is canceled)
       return null;
     }
-    const word = expired ? "EXPIRED" : "Valid through";
+    const word = expired ? "EXPIRED" : "Fully prepaid through";
     const when =
       info?.expires != null ? (
         <TimeAgo date={info.expires} />
@@ -253,14 +253,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       <li
         style={expired ? { fontSize: "110%", fontWeight: "bold" } : undefined}
       >
-        {word} {when}
-        {!!info?.expires && !expired && (
-          <>
-            {info?.subscription_id
-              ? " depending on subscription status."
-              : " unless it is edited."}
-          </>
-        )}
+        <b>
+          {word} {when}.
+        </b>
       </li>
     );
   }
@@ -664,13 +659,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       if (!info?.is_manager) return;
       return (
         <Button
-          style={{ marginBottom: "5px" }}
+          type="link"
+          style={{ marginBottom: "5px", marginLeft: "-15px" }}
           onClick={() => {
             set_is_editing_title(true);
             set_title(info?.title);
           }}
         >
-          Set title...
+          Title...
         </Button>
       );
     }
@@ -730,12 +726,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       if (!info?.is_manager) return;
       return (
         <Button
+          type="link"
+          style={{ marginLeft: "-15px" }}
           onClick={() => {
             set_is_editing_description(true);
             set_description(info?.description);
           }}
         >
-          Set description...
+          Description...
         </Button>
       );
     }

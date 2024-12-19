@@ -31,7 +31,7 @@ const winston = getLogger("project-control-kubernetes");
 
 class Project extends BaseProject {
   async state(): Promise<ProjectState> {
-    console.log("state");
+    winston.debug("state ", this.project_id);
     throw Error("implement me");
   }
 

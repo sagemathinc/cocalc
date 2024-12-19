@@ -184,7 +184,6 @@ export async function sendEmailSummary({
     });
 
     log.debug(`sendEmailSummary: got ${messages.length} new messages`);
-    console.log(messages);
     if (messages.length == 0) {
       const pool = getPool();
       await pool.query(

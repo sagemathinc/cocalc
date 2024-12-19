@@ -17,10 +17,31 @@ import { Button, Modal, Input, Select, Form, Divider } from "antd";
 import { adminCreateRefund } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 import { BigSpin } from "./stripe-payment";
+import type { Service } from "@cocalc/util/db-schema/purchases";
+import { currency } from "@cocalc/util/misc";
+
+const DEFAULT_REASON = "requested_by_customer";
+
+export function isRefundable(service, invoice_id) {
+  if (service == "credit" || service == "auto-credit") {
+    return !!invoice_id;
+  }
+  return service == "license" || service == "edit-license";
+}
 
 const labelStyle = { width: "60px" } as const;
 
-export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
+export default function AdminRefund({
+  purchase_id,
+  service,
+  cost,
+  refresh,
+}: {
+  purchase_id: number;
+  service: Service;
+  cost: number;
+  refresh?;
+}) {
   const [error, setError] = useState<string>("");
   const [refunding, setRefunding] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -32,11 +53,12 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
   };
 
   const handleOk = async () => {
-    const values = form.getFieldsValue(); // Get the form data
+    const values = { ...form.getFieldsValue(), reason: DEFAULT_REASON }; // Get the form data
     try {
       setRefunding(true);
       await adminCreateRefund({ purchase_id, ...values });
       setIsModalVisible(false);
+      refresh?.();
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -49,13 +71,14 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
     setIsModalVisible(false);
   };
 
+  const amount = Math.abs(cost);
+
   return (
     <>
-      <Button onClick={showModal}>Refund...</Button>
+      <Button onClick={showModal}>Admin Refund</Button>
       <Modal
         title=<>
-          <Icon name="reply" style={{ marginRight: "8px" }} /> Refund Account
-          Credit
+          <Icon name="reply" style={{ marginRight: "8px" }} /> Admin Refund
         </>
         visible={isModalVisible}
         onOk={handleOk}
@@ -63,10 +86,38 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
         okText="Refund"
         okButtonProps={{ disabled: refunding }}
       >
+        {(service == "credit" || service == "auto-credit") && (
+          <>
+            The corresponding payment intent will be fully refunded and the
+            amount {currency(amount, 2)} of this credit will be deducted from
+            the account and listed as a new refund transaction "Refund
+            Transaction {purchase_id}".
+          </>
+        )}
+        {service == "license" && (
+          <>
+            The license will be immediately expired, and the{" "}
+            <b>full amount {currency(amount, 2)} paid for this license</b> will
+            be credited to the account as a new credit "Credit for Refunded
+            Transaction {purchase_id}".
+          </>
+        )}
+        {service == "edit-license" && (
+          <>
+            The effect of this edit to the license will be fully reversed, and
+            the <b>full cost {currency(amount, 2)} of this edit</b> will be
+            credited to the account as a new credit "Credit for Refunded
+            Transaction {purchase_id}".
+          </>
+        )}
         <Divider />
         <Form form={form}>
           <Form.Item name="reason" label={<div style={labelStyle}>Reason</div>}>
-            <Select style={{ width: "100%" }} placeholder="Select Reason...">
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Select Reason..."
+              defaultValue={DEFAULT_REASON}
+            >
               <Select.Option value="duplicate">Duplicate</Select.Option>
               <Select.Option value="fraudulent">Fraudulent</Select.Option>
               <Select.Option value="requested_by_customer">
@@ -79,20 +130,29 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
             <Input.TextArea rows={3} />
           </Form.Item>
           <div style={{ color: "#666" }}>
-            <Divider>What Happens</Divider>
-            The above information is visible to the user. When you click OK,
-            their money will be refunded in 5-10 days, and their CoCalc
-            transactions log and statement will include a new "Refund" entry
-            immediately (click Refresh to confirm). If they have an email
-            address configured, they will also be sent an email. Stripe's fees
-            for the original payment won't be returned, but there are no
-            additional fees for the refund. This refund will use the latest
-            Stripe-provided exchange rate, which may differ from the original
-            rate. (Partial refunds are not implemented.)
+            <Divider>What Happens: more details</Divider>
+            The above information will be visible to the user.
+            {(service == "credit" || service == "auto-credit") && (
+              <>
+                When you click OK, their money will be refunded in 5-10 days,
+                and their CoCalc transactions log and statement will include a
+                new "Refund" entry immediately (click Refresh to confirm). They
+                will also be sent a message. Stripe's fees for the original
+                payment won't be returned, but there are no additional fees for
+                the refund. This refund will use the latest Stripe-provided
+                exchange rate, which may differ from the original rate. (Partial
+                refunds are not implemented.)
+              </>
+            )}
+            {!(service == "credit" || service == "auto-credit") && <></>}
           </div>
         </Form>
         {refunding && <BigSpin />}
-        <ShowError error={error} setError={setError} />
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "15px 0" }}
+        />
       </Modal>
     </>
   );

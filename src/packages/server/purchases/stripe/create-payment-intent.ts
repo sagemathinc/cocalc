@@ -78,6 +78,11 @@ export default async function createPaymentIntent({
   const { lineItemsWithoutCredit, total_excluding_tax_usd } =
     getStripeLineItems(lineItems);
 
+  logger.debug("createPaymentIntent -- ", {
+    lineItemsWithoutCredit,
+    total_excluding_tax_usd,
+  });
+
   if (!force) {
     await sanityCheckAmount(grandTotal(lineItemsWithoutCredit));
   }
@@ -113,6 +118,13 @@ export default async function createPaymentIntent({
 
   const addLineItems = async (invoice) => {
     for (const { amount, description } of lineItemsWithoutCredit) {
+      logger.debug("creating and add invoice item", {
+        customer,
+        amount: decimalToStripe(amount),
+        currency: "usd",
+        description,
+        invoice: invoice.id,
+      });
       await stripe.invoiceItems.create({
         customer,
         amount: decimalToStripe(amount),
@@ -124,14 +136,14 @@ export default async function createPaymentIntent({
   };
 
   let finalizedInvoice;
+  logger.debug("creating invoice with automatic_tax enabled");
+  // try with tax enabled
+  invoice = await stripe.invoices.create({
+    ...invoiceCreateParams,
+    automatic_tax: { enabled: true },
+  });
+  await addLineItems(invoice);
   try {
-    logger.debug("creating invoice with automatic_tax enabled");
-    // try with tax enabled
-    invoice = await stripe.invoices.create({
-      ...invoiceCreateParams,
-      automatic_tax: { enabled: true },
-    });
-    addLineItems(invoice);
     finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
       auto_advance: false,
     });
@@ -176,7 +188,7 @@ ${await support()}
   const t0 = Date.now();
   let d = 2000;
   while (!paymentIntentId && Date.now() - t0 <= 30000) {
-    logger.debug("finalizing didn't produce invoice, so checking again");
+    logger.debug("finalizing didn't produce payment intent, so checking again");
     await delay(d);
     d *= 1.3 + Math.random();
     finalizedInvoice = await stripe.invoices.retrieve(invoice.id);

@@ -1041,7 +1041,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.table
             tables = [opts.table]
         else
-            tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
+            tables = (k for k, v of SCHEMA when v.fields?.expire?.type == 'timestamp' and not v.virtual)
         async.map(tables, f, opts.cb)
 
     # count number of entries in a table

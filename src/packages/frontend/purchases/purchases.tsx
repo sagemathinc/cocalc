@@ -37,7 +37,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { load_target } from "@cocalc/frontend/history";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
   ANTHROPIC_PREFIX,
@@ -66,7 +66,7 @@ import {
   round4,
 } from "@cocalc/util/misc";
 import { decimalAdd } from "@cocalc/util/stripe/calc";
-import AdminRefund from "./admin-refund";
+import AdminRefund, { isRefundable } from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
 import Export from "./export";
@@ -481,6 +481,7 @@ export function PurchasesTable({
           <DetailedPurchaseTable
             purchases={filteredPurchases}
             admin={!!account_id}
+            refresh={refreshRecords}
           />
         )}
       </div>
@@ -575,9 +576,11 @@ function GroupedPurchaseTable({ purchases }) {
 function DetailedPurchaseTable({
   purchases,
   admin,
+  refresh,
 }: {
   purchases: PurchaseItem[] | null;
   admin: boolean;
+  refresh?;
 }) {
   const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
   const fragment = useTypedRedux("account", "fragment");
@@ -631,7 +634,11 @@ function DetailedPurchaseTable({
               key: "description",
               width: "35%",
               render: (_, purchase) => (
-                <PurchaseDescription {...(purchase as any)} admin={admin} />
+                <PurchaseDescription
+                  {...(purchase as any)}
+                  admin={admin}
+                  refresh={refresh}
+                />
               ),
             },
             {
@@ -688,7 +695,6 @@ function DetailedPurchaseTable({
               render: (_, record) => (
                 <>
                   <Amount record={record} />
-                  <Pending record={record} />
                 </>
               ),
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
@@ -735,6 +741,8 @@ function PurchaseDescription({
   period_end,
   service,
   admin,
+  cost,
+  refresh,
 }) {
   return (
     <div>
@@ -763,10 +771,25 @@ function PurchaseDescription({
             style={{ marginBottom: "15px" }}
           />
         )}
+        {description.refund_purchase_id && (
+          <b style={{ marginLeft: "8px" }}>
+            REFUNDED: Transaction {description.refund_purchase_id}
+          </b>
+        )}
+        {admin &&
+          description.refund_purchase_id == null &&
+          id != null &&
+          isRefundable(service, invoice_id) && (
+            <AdminRefund
+              purchase_id={id}
+              service={service}
+              cost={cost}
+              refresh={refresh}
+            />
+          )}
         {invoice_id && (
           <Space>
-            {admin && id != null && <AdminRefund purchase_id={id} />}
-            {!admin && (
+            {!admin && !description.refund_purchase_id && (
               <Button
                 size="small"
                 type="link"
@@ -890,35 +913,7 @@ function Description({ description, period_end, service }) {
   // <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (service === "license") {
     const { license_id } = description;
-    return (
-      <Popover
-        overlayStyle={{
-          maxHeight: "60vh",
-          overflow: "auto",
-          border: "1px solid #ccc",
-          borderRadius: "5px",
-          boxShadow: "4px 4px 2px #dfdfdf",
-        }}
-        title={
-          <>
-            Licenses:{" "}
-            {license_id && (
-              <Next href={`licenses/how-used?license_id=${license_id}`}>
-                {license_id}
-              </Next>
-            )}
-          </>
-        }
-        content={() => <>{license_id && <License license_id={license_id} />}</>}
-      >
-        License:{" "}
-        {license_id && (
-          <Next href={`licenses/how-used?license_id=${license_id}`}>
-            {license_id}
-          </Next>
-        )}
-      </Popover>
-    );
+    return <>License: {license_id && <License license_id={license_id} />}</>;
   }
   if (service === "credit") {
     return (
@@ -940,21 +935,18 @@ function Description({ description, period_end, service }) {
   if (service === "refund") {
     const { notes, reason, purchase_id } = description;
     return (
-      <Tooltip
-        title={
-          <div>
-            Reason: {capitalize(reason.replace(/_/g, " "))}
-            {!!notes && (
-              <>
-                <br />
-                Notes: {notes}
-              </>
-            )}
-          </div>
-        }
-      >
+      <div>
         Refund Transaction {purchase_id}
-      </Tooltip>
+        <div>
+          Reason: {capitalize(reason.replace(/_/g, " "))}
+          {!!notes && (
+            <>
+              <br />
+              Notes: {notes}
+            </>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -1010,10 +1002,7 @@ function Description({ description, period_end, service }) {
       <Popover
         title={
           <div style={{ fontSize: "13pt" }}>
-            <Icon name="pencil" /> Edited License:{" "}
-            <Next href={`licenses/how-used?license_id=${license_id}`}>
-              {license_id}
-            </Next>
+            <Icon name="pencil" /> Edited License
           </div>
         }
         content={() => (
@@ -1033,8 +1022,11 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        {describeQuotaFromInfo(description.modifiedInfo)}{" "}
-        <LicenseDates info={description.modifiedInfo} />
+        Edit License: <License license_id={license_id} />
+        <div>
+          {describeQuotaFromInfo(description.modifiedInfo)}
+          <LicenseDates info={description.modifiedInfo} />
+        </div>
       </Popover>
     );
   }
@@ -1180,28 +1172,6 @@ function Amount({ record }) {
     );
   }
   return <>-</>;
-}
-
-function Pending({ record }) {
-  if (!record.pending) return null;
-  return (
-    <div>
-      <Tooltip
-        title={
-          <>
-            The transaction has not yet completed and is{" "}
-            <b>thus not included in your running balance</b>. Ensure you have
-            automatic payments configured or add credit to your account to pay
-            this.
-          </>
-        }
-      >
-        <Tag style={{ marginRight: 0 }} color="red">
-          Pending
-        </Tag>
-      </Tooltip>
-    </div>
-  );
 }
 
 function Balance({ balance }) {
@@ -1352,4 +1322,19 @@ function getFilter(purchase) {
     purchase.filter = JSON.stringify(purchase).toLowerCase();
   }
   return purchase.filter;
+}
+
+function License({ license_id }) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  return (
+    <span>
+      <Button onClick={() => setOpen(!open)}>{license_id}</Button>
+      {open && (
+        <div style={{ maxWidth: "100%", minWidth: "700px" }}>
+          <SiteLicensePublicInfo license_id={license_id} />
+        </div>
+      )}
+    </span>
+  );
 }

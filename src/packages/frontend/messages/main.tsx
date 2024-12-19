@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Popconfirm, Space, Spin } from "antd";
+import { Button, Flex, Popconfirm, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range, plural } from "@cocalc/util/misc";
 import Message from "./message";
@@ -19,6 +19,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Zoom from "./zoom";
 import useCommand from "./use-command";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 export default function Main({ messages, threads, filter, search }) {
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
@@ -351,6 +352,61 @@ function ShowAllThreads({
     },
   });
 
+  const itemContent = (index) => {
+    const message = filteredMessages[index];
+    const focused = message.index == cursor;
+    return (
+      <div
+        style={{
+          margin: "5px 15px",
+          paddingRight: "20px",
+          background: focused ? "#eee" : index % 2 ? "#f2f6fc" : "white",
+          border: focused ? `1px solid #ccc` : `1px solid transparent`,
+          borderRadius: "5px",
+        }}
+      >
+        <Message
+          style={{ margin: "5px 10px" }}
+          focused={focused}
+          threads={threads}
+          checked={checkedMessageIds.has(message.id)}
+          setChecked={({ checked, shiftKey }) => {
+            if (shiftKey && mostRecentChecked != null) {
+              // set the range of id's between this message and the most recent one
+              // to be checked.  This matches the algorithm I think in gmail and our file explorer.
+              const v = get_array_range(
+                filteredMessages.map(({ id }) => id),
+                mostRecentChecked,
+                message.id,
+              );
+              if (checked) {
+                for (const id of v) {
+                  checkedMessageIds.add(id);
+                }
+              } else {
+                for (const id of v) {
+                  checkedMessageIds.delete(id);
+                }
+              }
+            } else {
+              if (checked) {
+                checkedMessageIds.add(message.id);
+              } else {
+                checkedMessageIds.delete(message.id);
+              }
+            }
+            setCheckedMessageIds(new Set(checkedMessageIds));
+            setMostRecentChecked(message.id);
+          }}
+          message={message}
+          showThread={showThread}
+          setShowThread={setShowThread}
+          folder={folder}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       <Flex style={{ minHeight: "37px" }}>
@@ -390,60 +446,18 @@ function ShowAllThreads({
         <div style={{ flex: 1 }} />
         <Zoom />
       </Flex>
-      <List
-        style={{ overflowY: "auto" }}
-        bordered
-        dataSource={filteredMessages}
-        renderItem={(message) => {
-          const focused = message.index == cursor;
-          return (
-            <List.Item
-              style={{
-                background: focused ? "#eee" : "#f2f6fc",
-                border: focused ? `1px solid #ccc` : `1px solid transparent`,
-              }}
-            >
-              <Message
-                focused={focused}
-                threads={threads}
-                checked={checkedMessageIds.has(message.id)}
-                setChecked={({ checked, shiftKey }) => {
-                  if (shiftKey && mostRecentChecked != null) {
-                    // set the range of id's between this message and the most recent one
-                    // to be checked.  This matches the algorithm I think in gmail and our file explorer.
-                    const v = get_array_range(
-                      filteredMessages.map(({ id }) => id),
-                      mostRecentChecked,
-                      message.id,
-                    );
-                    if (checked) {
-                      for (const id of v) {
-                        checkedMessageIds.add(id);
-                      }
-                    } else {
-                      for (const id of v) {
-                        checkedMessageIds.delete(id);
-                      }
-                    }
-                  } else {
-                    if (checked) {
-                      checkedMessageIds.add(message.id);
-                    } else {
-                      checkedMessageIds.delete(message.id);
-                    }
-                  }
-                  setCheckedMessageIds(new Set(checkedMessageIds));
-                  setMostRecentChecked(message.id);
-                }}
-                message={message}
-                showThread={showThread}
-                setShowThread={setShowThread}
-                folder={folder}
-              />
-            </List.Item>
-          );
-        }}
-      />
+      <div
+        className="smc-vfill"
+        style={{ border: "1px solid #ccc", borderRadius: "3px" }}
+      >
+        <ScrollableList
+          virtualize
+          rowCount={filteredMessages.length}
+          rowRenderer={({ index }) => itemContent(index)}
+          rowKey={(index) => `${filteredMessages[index]?.id}`}
+          cacheId={`messages-${folder}`}
+        />
+      </div>
     </>
   );
 }
