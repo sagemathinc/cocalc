@@ -13,7 +13,7 @@ import type { Mark } from "./types";
 import { Doc } from "codemirror";
 import { diff_main } from "@cocalc/sync/editor/generic/util";
 import { diffApply } from "@cocalc/frontend/codemirror/extensions/diff-apply";
-import { getPos } from "./util";
+import { getLocation } from "./util";
 
 export function transformMarks({
   marks,
@@ -29,23 +29,25 @@ export function transformMarks({
   const diff = diff_main(v0, v1);
   // apply the marks
   for (const mark of marks) {
-    const { pos, id } = mark;
-    idToMark[id] = mark;
-    doc.markText(pos.from, pos.to, {
-      clearWhenEmpty: false,
-      attributes: { style: id },
-    });
+    const { loc, id } = mark;
+    if (loc != null) {
+      idToMark[id] = mark;
+      doc.markText(loc.from, loc.to, {
+        clearWhenEmpty: false,
+        attributes: { style: id },
+      });
+    }
   }
   diffApply(doc, diff);
   // read the transformed marks
   const marks1: Mark[] = [];
   for (const mark of doc.getAllMarks()) {
-    const pos = getPos(mark);
-    if (pos == null) {
+    const loc = getLocation(mark);
+    if (loc == null) {
       continue;
     }
     const id = mark.attributes!.style;
-    marks1.push({ ...idToMark[id], pos });
+    marks1.push({ ...idToMark[id], loc });
   }
   // console.log("transformMarks", { marks, marks1, v0, v1 });
   return marks1;

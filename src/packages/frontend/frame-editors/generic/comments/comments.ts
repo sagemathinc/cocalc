@@ -7,9 +7,9 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import type { Doc } from "codemirror";
-import type { Mark, Position } from "./types";
 import { transformMarks } from "./transform";
-import { getPos } from "./util";
+import { getLocation } from "./util";
+import type { Mark, Location } from "./types";
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -28,12 +28,12 @@ export class Comments {
 
   setComment = ({
     id,
-    pos,
+    loc,
     done,
     noSave,
   }: {
     id: string;
-    pos?: Position;
+    loc?: Location;
     done?: boolean;
     noSave?: boolean;
   }) => {
@@ -44,23 +44,23 @@ export class Comments {
     }
     for (const mark of doc.getAllMarks()) {
       if (mark.attributes?.style == id) {
-        if (pos == null) {
+        if (loc == null) {
           // also locate it
-          const pos1 = mark.find();
-          if (pos1 != null) {
+          const loc1 = getLocation(mark);
+          if (loc1 != null) {
             // @ts-ignore
-            pos = pos1;
+            loc = loc1;
           }
         }
         // overwriting existing mark, so remove that one (gets created again below)
         mark.clear();
       }
     }
-    if (pos == null) {
+    if (loc == null) {
       throw Error("unable to find mark");
     }
     // create the mark
-    doc.markText(pos.from, pos.to, {
+    doc.markText(loc.from, loc.to, {
       css: done ? "" : "background:#fef2cd",
       shared: true,
       attributes: { style: id },
@@ -71,7 +71,7 @@ export class Comments {
     }
   };
 
-  private getComments = () => {
+  private getComments = (): Mark[] | null => {
     const doc = this.getDoc();
     if (!doc) {
       return null;
@@ -85,12 +85,13 @@ export class Comments {
       .map((mark) => {
         const id = mark.attributes!.style;
         const done = !mark.css;
+        const loc = getLocation(mark)!;
         return {
           id,
           time,
           hash,
           done,
-          pos: getPos(mark),
+          loc,
         };
       });
   };
@@ -170,10 +171,14 @@ export class Comments {
     const db = await this.getCommentsDB();
     let changes = false;
     for (const comment of comments) {
-      const cur = db.get({ id: comment.id });
-      if (cur.get("time") >= comment.time) {
+      const cur = db.get_one({ id: comment.id });
+      console.log({ cur, comment });
+      if (cur != null && cur.get("time") >= (comment.time ?? 0)) {
         // there is already a newer version
         continue;
+      }
+      if (cur == null) {
+        comment.created = comment.time;
       }
       changes = true;
       db.set(comment);
@@ -196,8 +201,15 @@ export class Comments {
     const toTransform: { [time: string]: Mark[] } = {};
     for (const mark of db.get()) {
       if (mark.get("hash") == hash) {
-        const { id, done, pos } = mark.toJS();
-        this.setComment({ id, pos, done, noSave: true });
+        const { id, done, loc } = mark.toJS();
+        try {
+          this.setComment({ id, loc, done, noSave: true });
+        } catch (err) {
+          console.warn("Deleting invalid comment", { id, loc, err });
+          // can't set - shouldn't be fatal.
+          // delete from DB to avoid wasting time in future.
+          await db.delete({ id });
+        }
       } else {
         const time = `${mark.get("time")}`;
         if (toTransform[time] == null) {
