@@ -26,10 +26,17 @@ export class Comments {
     this.project_id = project_id;
     this.syncdoc = syncdoc;
     this.db = new DB(this.getCommentsDB);
-    this.initComments();
+    this.init();
   }
 
-  setComment = ({
+  update = () => {
+    if (this.commentsDB == null) {
+      return;
+    }
+    this.loadComments();
+  };
+
+  set = ({
     id,
     loc,
     done,
@@ -74,29 +81,63 @@ export class Comments {
     }
   };
 
+  // Return most up to date info about given comment.
+  get_one = async (id: string) => {
+    const doc = this.getDoc();
+    let comment = await this.db.get_one(id);
+    if (comment == null) {
+      return undefined;
+    }
+    if (doc != null) {
+      for (const mark of doc.getAllMarks()) {
+        if (mark.attributes?.style == id) {
+          // found it!
+          comment = { ...comment, ...markToComment(mark) };
+          break;
+        }
+      }
+    }
+    delete comment.hash;
+    delete comment.time;
+    return comment;
+  };
+
+  get = async () => {
+    const x = this.getComments() ?? (await this.db.get()) ?? [];
+    // we use the database instead
+    return x.map((y) => {
+      delete y.hash;
+      delete y.time;
+      return y;
+    });
+    // TODO: y.created may be missing, but probably needed!
+    // maybe can store it in the CM Mark somehow?
+  };
+
+  private init = async () => {
+    if (
+      await redux
+        .getProjectActions(this.project_id)
+        .path_exists(this.commentsPath())
+    ) {
+      // initialize database
+      await this.getCommentsDB();
+    }
+    // also periodically save comments out when activity stops
+    this.syncdoc.on("change", this.saveCommentsDebounce);
+  };
+
   private getComments = (): Comment[] | null => {
     const doc = this.getDoc();
     if (!doc) {
       return null;
     }
-    // @ts-ignore  (TODO)
-    const time = this.syncdoc.patch_list.newest_patch_time().valueOf();
+    const time = this.syncdoc.newest_patch_time()?.valueOf();
     const hash = this.syncdoc.hash_of_live_version();
     return doc
       .getAllMarks()
       .filter((mark) => mark.attributes?.style)
-      .map((mark) => {
-        const id = mark.attributes!.style;
-        const done = !mark.css;
-        const loc = getLocation(mark)!;
-        return {
-          id,
-          time,
-          hash,
-          done,
-          loc,
-        };
-      });
+      .map((mark) => markToComment(mark, hash, time));
   };
 
   private commentsPath = () => {
@@ -147,7 +188,7 @@ export class Comments {
     }
   };
 
-  saveComments = reuseInFlight(async () => {
+  private saveComments = reuseInFlight(async () => {
     if (!this.hasComments()) {
       return;
     }
@@ -193,7 +234,7 @@ export class Comments {
 
   private saveCommentsDebounce = debounce(this.saveComments, 3000);
 
-  loadComments = async () => {
+  private loadComments = async () => {
     const doc = this.getDoc();
     if (doc == null) {
       return;
@@ -203,7 +244,7 @@ export class Comments {
     for (const comment of await this.db.get()) {
       if (comment.hash == hash) {
         try {
-          this.setComment({ ...comment, noSave: true });
+          this.set({ ...comment, noSave: true });
         } catch (err) {
           console.warn("Deleting invalid comment", comment);
           // can't set - shouldn't be fatal.
@@ -240,28 +281,21 @@ export class Comments {
         v1,
       });
       for (const comment of comments1) {
-        this.setComment({ ...comment, noSave: true });
+        this.set({ ...comment, noSave: true });
       }
     }
   };
+}
 
-  initComments = async () => {
-    if (
-      await redux
-        .getProjectActions(this.project_id)
-        .path_exists(this.commentsPath())
-    ) {
-      // initialize database
-      await this.getCommentsDB();
-    }
-    // also periodically save comments out when activity stops
-    this.syncdoc.on("change", this.saveCommentsDebounce);
-  };
-
-  update = () => {
-    if (this.commentsDB == null) {
-      return;
-    }
-    this.loadComments();
+function markToComment(mark, hash?, time?) {
+  const id = mark.attributes!.style;
+  const done = !mark.css;
+  const loc = getLocation(mark)!;
+  return {
+    id,
+    time,
+    hash,
+    done,
+    loc,
   };
 }
