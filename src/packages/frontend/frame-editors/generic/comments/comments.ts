@@ -8,8 +8,9 @@ import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import type { Doc } from "codemirror";
 import { transformComments } from "./transform";
-import { getLocation, toComment, toCompactComment } from "./util";
+import { getLocation } from "./util";
 import type { Comment, Location } from "./types";
+import DB from "./db";
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -17,12 +18,14 @@ export class Comments {
   private path: string;
   private getDoc: () => Doc | null;
   private commentsDB?: SyncDoc;
+  private db: DB;
 
   constructor({ getDoc, path, project_id, syncdoc }) {
     this.getDoc = getDoc;
     this.path = path;
     this.project_id = project_id;
     this.syncdoc = syncdoc;
+    this.db = new DB(this.getCommentsDB);
     this.initComments();
   }
 
@@ -100,7 +103,7 @@ export class Comments {
     return aux_file(this.path, "comments");
   };
 
-  getCommentsDB = async () => {
+  private getCommentsDB = async () => {
     if (this.commentsDB == null) {
       this.commentsDB = await webapp_client.sync_client.sync_db({
         project_id: this.project_id,
@@ -171,7 +174,7 @@ export class Comments {
     const db = await this.getCommentsDB();
     let changes = false;
     for (const comment of comments) {
-      const cur = await this.dbGetComment(comment.id);
+      const cur = await this.db.get_one(comment.id);
       if (cur?.time != null && cur.time >= (comment.time ?? 0)) {
         // there is already a newer version
         continue;
@@ -180,41 +183,13 @@ export class Comments {
         comment.created = comment.time;
       }
       changes = true;
-      await this.dbSetComment(comment);
+      await this.db.set(comment);
     }
     if (changes) {
       // save to disk is important since comments syncdb is ephemeral
       await db.save_to_disk();
     }
   });
-
-  private dbGetAll = async (): Promise<Comment[]> => {
-    const db = await this.getCommentsDB();
-    const v: Comment[] = [];
-    for (const immutableCompactComment of db.get()) {
-      v.push(toComment(immutableCompactComment.toJS()));
-    }
-    return v;
-  };
-
-  private dbGetComment = async (id: string): Promise<Comment | undefined> => {
-    const db = await this.getCommentsDB();
-    const x = db.get_one({ i: id });
-    if (x == null) {
-      return undefined;
-    }
-    return toComment(x.toJS());
-  };
-
-  private dbSetComment = async (comment: Comment) => {
-    const db = await this.getCommentsDB();
-    db.set(toCompactComment(comment));
-  };
-
-  private dbDeleteComment = async (id: string) => {
-    const db = await this.getCommentsDB();
-    db.delete({ i: id });
-  };
 
   private saveCommentsDebounce = debounce(this.saveComments, 3000);
 
@@ -225,7 +200,7 @@ export class Comments {
     }
     const hash = this.syncdoc.hash_of_live_version();
     const toTransform: { [time: string]: Comment[] } = {};
-    for (const comment of await this.dbGetAll()) {
+    for (const comment of await this.db.get()) {
       if (comment.hash == hash) {
         try {
           this.setComment({ ...comment, noSave: true });
@@ -233,7 +208,7 @@ export class Comments {
           console.warn("Deleting invalid comment", comment);
           // can't set - shouldn't be fatal.
           // delete from DB to avoid wasting time in future.
-          await this.dbDeleteComment(comment.id);
+          await this.db.delete(comment.id);
         }
       } else {
         const time = `${comment.time}`;
