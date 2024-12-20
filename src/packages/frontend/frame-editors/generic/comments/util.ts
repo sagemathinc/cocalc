@@ -1,4 +1,9 @@
-import type { Location, CompactLocation, Mark, CompactMark } from "./types";
+import type {
+  Location,
+  CompactLocation,
+  Comment,
+  CompactComment,
+} from "./types";
 
 export function getLocation(mark): null | Location {
   const x = mark.find();
@@ -14,7 +19,20 @@ export function getLocation(mark): null | Location {
 
 export function toCompactLocation(r: Location): CompactLocation {
   const { from, to, id, field } = r;
-  return [from.line, from.ch, to.line, to.ch, id, field];
+  const v: CompactLocation = [from.line, from.ch, to.line, to.ch];
+  if (id != null) {
+    v.push(id);
+    if (field != null) {
+      v.push(field);
+    }
+    return v;
+  }
+  if (field == null) {
+    return v;
+  }
+  v.push(id);
+  v.push(field);
+  return v;
 }
 
 export function toLocation(c: CompactLocation): Location {
@@ -27,7 +45,7 @@ export function toLocation(c: CompactLocation): Location {
   };
 }
 
-export function toCompactMark(x: Mark): CompactMark {
+export function toCompactComment(x: Comment): CompactComment {
   const { id, loc, time, hash, created, done } = x;
   return {
     i: id,
@@ -39,7 +57,7 @@ export function toCompactMark(x: Mark): CompactMark {
   };
 }
 
-export function toMark(x: CompactMark): Mark {
+export function toComment(x: CompactComment): Comment {
   const { i, l, t, h, c, d } = x;
   return { id: i, loc: toLocation(l), time: t, hash: h, created: c, done: d };
 }

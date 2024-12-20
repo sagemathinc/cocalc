@@ -7,9 +7,9 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import type { Doc } from "codemirror";
-import { transformMarks } from "./transform";
-import { getLocation } from "./util";
-import type { Mark, Location } from "./types";
+import { transformComments } from "./transform";
+import { getLocation, toComment, toCompactComment } from "./util";
+import type { Comment, Location } from "./types";
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -71,7 +71,7 @@ export class Comments {
     }
   };
 
-  private getComments = (): Mark[] | null => {
+  private getComments = (): Comment[] | null => {
     const doc = this.getDoc();
     if (!doc) {
       return null;
@@ -105,7 +105,7 @@ export class Comments {
       this.commentsDB = await webapp_client.sync_client.sync_db({
         project_id: this.project_id,
         path: this.commentsPath(),
-        primary_keys: ["id"],
+        primary_keys: ["i"],
         ephemeral: true,
         cursors: true,
       });
@@ -171,9 +171,8 @@ export class Comments {
     const db = await this.getCommentsDB();
     let changes = false;
     for (const comment of comments) {
-      const cur = db.get_one({ id: comment.id });
-      console.log({ cur, comment });
-      if (cur != null && cur.get("time") >= (comment.time ?? 0)) {
+      const cur = await this.dbGetComment(comment.id);
+      if (cur?.time != null && cur.time >= (comment.time ?? 0)) {
         // there is already a newer version
         continue;
       }
@@ -181,13 +180,41 @@ export class Comments {
         comment.created = comment.time;
       }
       changes = true;
-      db.set(comment);
+      await this.dbSetComment(comment);
     }
     if (changes) {
       // save to disk is important since comments syncdb is ephemeral
       await db.save_to_disk();
     }
   });
+
+  private dbGetAll = async (): Promise<Comment[]> => {
+    const db = await this.getCommentsDB();
+    const v: Comment[] = [];
+    for (const immutableCompactComment of db.get()) {
+      v.push(toComment(immutableCompactComment.toJS()));
+    }
+    return v;
+  };
+
+  private dbGetComment = async (id: string): Promise<Comment | undefined> => {
+    const db = await this.getCommentsDB();
+    const x = db.get_one({ i: id });
+    if (x == null) {
+      return undefined;
+    }
+    return toComment(x.toJS());
+  };
+
+  private dbSetComment = async (comment: Comment) => {
+    const db = await this.getCommentsDB();
+    db.set(toCompactComment(comment));
+  };
+
+  private dbDeleteComment = async (id: string) => {
+    const db = await this.getCommentsDB();
+    db.delete({ i: id });
+  };
 
   private saveCommentsDebounce = debounce(this.saveComments, 3000);
 
@@ -196,26 +223,24 @@ export class Comments {
     if (doc == null) {
       return;
     }
-    const db = await this.getCommentsDB();
     const hash = this.syncdoc.hash_of_live_version();
-    const toTransform: { [time: string]: Mark[] } = {};
-    for (const mark of db.get()) {
-      if (mark.get("hash") == hash) {
-        const { id, done, loc } = mark.toJS();
+    const toTransform: { [time: string]: Comment[] } = {};
+    for (const comment of await this.dbGetAll()) {
+      if (comment.hash == hash) {
         try {
-          this.setComment({ id, loc, done, noSave: true });
+          this.setComment({ ...comment, noSave: true });
         } catch (err) {
-          console.warn("Deleting invalid comment", { id, loc, err });
+          console.warn("Deleting invalid comment", comment);
           // can't set - shouldn't be fatal.
           // delete from DB to avoid wasting time in future.
-          await db.delete({ id });
+          await this.dbDeleteComment(comment.id);
         }
       } else {
-        const time = `${mark.get("time")}`;
+        const time = `${comment.time}`;
         if (toTransform[time] == null) {
-          toTransform[time] = [mark.toJS()];
+          toTransform[time] = [comment];
         } else {
-          toTransform[time].push(mark.toJS());
+          toTransform[time].push(comment);
         }
       }
     }
@@ -234,13 +259,13 @@ export class Comments {
         // console.log("unknonwn document at time:", time);
         continue;
       }
-      const marks1 = transformMarks({
-        marks: toTransform[msTimeString],
+      const comments1 = transformComments({
+        comments: toTransform[msTimeString],
         v0,
         v1,
       });
-      for (const mark of marks1) {
-        this.setComment({ ...mark, noSave: true });
+      for (const comment of comments1) {
+        this.setComment({ ...comment, noSave: true });
       }
     }
   };

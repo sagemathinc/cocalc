@@ -28,7 +28,7 @@ export type CompactLocation = [
 ];
 
 // These are what is sync'd around:
-export interface Mark {
+export interface Comment {
   // globally unique id of the mark
   id: string;
   // location of the mark
@@ -39,7 +39,7 @@ export interface Mark {
   done?: boolean;
 }
 
-export interface CompactMark {
+export interface CompactComment {
   i: string;
   l: CompactLocation;
   t?: number;

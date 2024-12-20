@@ -9,29 +9,29 @@ information to do this is fully available... but this is also an edge case
 and will hardly come up.  So we will do this, but later.
 */
 
-import type { Mark } from "./types";
+import type { Comment } from "./types";
 import { Doc } from "codemirror";
 import { diff_main } from "@cocalc/sync/editor/generic/util";
 import { diffApply } from "@cocalc/frontend/codemirror/extensions/diff-apply";
 import { getLocation } from "./util";
 
-export function transformMarks({
-  marks,
+export function transformComments({
+  comments,
   v0,
   v1,
 }: {
-  marks: Mark[];
+  comments: Comment[];
   v0: string;
   v1: string;
 }) {
-  const idToMark: { [id: string]: Mark } = {};
+  const idToComment: { [id: string]: Comment } = {};
   const doc = new Doc(v0);
   const diff = diff_main(v0, v1);
-  // apply the marks
-  for (const mark of marks) {
-    const { loc, id } = mark;
+  // apply the comments
+  for (const comment of comments) {
+    const { loc, id } = comment;
     if (loc != null) {
-      idToMark[id] = mark;
+      idToComment[id] = comment;
       doc.markText(loc.from, loc.to, {
         clearWhenEmpty: false,
         attributes: { style: id },
@@ -39,16 +39,16 @@ export function transformMarks({
     }
   }
   diffApply(doc, diff);
-  // read the transformed marks
-  const marks1: Mark[] = [];
-  for (const mark of doc.getAllMarks()) {
-    const loc = getLocation(mark);
+  // read the transformed comments
+  const comments1: Comment[] = [];
+  for (const comment of doc.getAllMarks()) {
+    const loc = getLocation(comment);
     if (loc == null) {
       continue;
     }
-    const id = mark.attributes!.style;
-    marks1.push({ ...idToMark[id], loc });
+    const id = comment.attributes!.style;
+    comments1.push({ ...idToComment[id], loc });
   }
-  // console.log("transformMarks", { marks, marks1, v0, v1 });
-  return marks1;
+  // console.log("transformComments", { comments, comments1, v0, v1 });
+  return comments1;
 }
