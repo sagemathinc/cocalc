@@ -3,10 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CSS, React, redux } from "../../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { filename_extension } from "@cocalc/util/misc";
-import { file_associations } from "../../file-associations";
-import { Icon } from "../../components";
+import { file_associations } from "@cocalc/frontend/file-associations";
+import React from "react";
+import { AddCommentTitleBarButton } from "@cocalc/frontend/frame-editors/generic/comments/add-comment";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   is_current?: boolean;
@@ -24,12 +26,12 @@ const STYLE = {
   cursor: "pointer",
   width: "100%",
   fontSize: "10pt",
-} as CSS;
+} as const;
 
 const CURRENT_STYLE = {
   ...STYLE,
   ...{ background: "#337ab7", color: "white" },
-} as CSS;
+} as const;
 
 export const Path: React.FC<Props> = React.memo(
   ({ is_current, path, project_id }) => {
@@ -46,7 +48,8 @@ export const Path: React.FC<Props> = React.memo(
         }}
       >
         {x?.icon && <Icon name={x.icon} />} {path}
+        <AddCommentTitleBarButton />
       </div>
     );
-  }
+  },
 );

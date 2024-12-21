@@ -3333,4 +3333,8 @@ export class SyncDoc extends EventEmitter {
       await this.syncstring_table.save();
     }
   };
+
+  newest_patch_time = () => {
+    return this.patch_list?.newest_patch_time();
+  };
 }

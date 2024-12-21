@@ -19,7 +19,6 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
-
 import type { TourProps } from "antd";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -110,6 +109,7 @@ import {
   chat,
   getSideChatActions,
 } from "@cocalc/frontend/frame-editors/generic/chat";
+import { Comments } from "@cocalc/frontend/frame-editors/generic/comments";
 
 interface gutterMarkerParams {
   line: number;
@@ -160,6 +160,8 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  // set of id's of frames with an active selection to enable some comment ui
+  comment_selection?: iSet<string>;
 }
 
 export class Actions<
@@ -204,6 +206,8 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+
+  public comments: Comments;
 
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
@@ -382,6 +386,8 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
+
+      this.initComments();
     });
 
     this._syncstring.on("before-change", () =>
@@ -1420,6 +1426,8 @@ export class Actions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+
+    this.comments?.update();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1448,9 +1456,9 @@ export class Actions<
   }
 
   // Get the underlying codemirror doc that editors are using.
-  _get_doc(): CodeMirror.Doc {
+  _get_doc = (): CodeMirror.Doc => {
     return cm_doc_cache.get_doc(this.project_id, this.path);
-  }
+  };
 
   _recent_cm(): CodeMirror.Editor | undefined {
     if (this._state === "closed") return;
@@ -3111,4 +3119,82 @@ export class Actions<
       }
     }
   }
+
+  getComments = () => {
+    if (this.comments == null) {
+      this.initComments();
+    }
+    return this.comments!;
+  };
+
+  initComments = () => {
+    this.comments = new Comments({
+      getDoc: () => {
+        try {
+          return this._get_doc();
+        } catch (_) {
+          return null;
+        }
+      },
+      path: this.path,
+      project_id: this.project_id,
+      syncdoc: this._syncstring,
+    });
+  };
+
+  // add a comment to the document in the given frame (or the focused one)
+  // unless there is no selection, in which case no-op.  Returns id of the
+  // comment if created or null if not.
+  addComment = async (frameId?: string): Promise<string | null> => {
+    const cm = this._get_cm(frameId);
+    if (cm == null) {
+      return null;
+    }
+    const doc = cm.getDoc();
+    for (const c of doc.listSelections()) {
+      if (c.anchor.ch != c.head.ch || c.anchor.line != c.head.line) {
+        let from = getPos(c.anchor);
+        let to = getPos(c.head);
+        if (to.line < from.line || (to.line == from.line && to.ch < from.ch)) {
+          [from, to] = [to, from];
+        }
+        const loc = { from, to };
+        const actions =
+          this.get_code_editor(frameId ?? "")?.get_actions() ?? this;
+        const id = await actions.getComments().create({ loc });
+        cm.setSelection(loc.from, loc.from);
+        return id;
+      }
+    }
+    return null;
+  };
+
+  // when user selects text, this gets updated so UI can provide
+  // some elements in **response** to user selecting a range of
+  // text.  This is NOT a way to set the selection directly from
+  // outside -- it's how the user-selected selection gets reported.
+  // See addComment above.
+  setCommentSelection = debounce(
+    (id: string, enabled: boolean) => {
+      let comment_selection: any = this.store.get("comment_selection");
+      const cur = comment_selection?.has(id);
+      if (enabled == !!cur) {
+        return;
+      }
+      if (comment_selection == null) {
+        comment_selection = iSet([id]);
+      } else if (enabled) {
+        comment_selection = comment_selection.add(id);
+      } else {
+        comment_selection = comment_selection.delete(id);
+      }
+      this.setState({ comment_selection });
+    },
+    200,
+    { leading: true, trailing: true },
+  );
+}
+
+function getPos({ line, ch }) {
+  return { line, ch };
 }
