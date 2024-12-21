@@ -39,6 +39,11 @@ export default class DB {
     return v;
   };
 
+  has = async (id: string): Promise<boolean> => {
+    const db = await this.getDB();
+    return db.get_one({ i: id }) != null;
+  };
+
   get_one = async (id: string): Promise<Comment | undefined> => {
     const db = await this.getDB();
     const x = db.get_one({ i: id });

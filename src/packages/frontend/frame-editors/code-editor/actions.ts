@@ -3120,6 +3120,13 @@ export class Actions<
     }
   }
 
+  getComments = () => {
+    if (this.comments == null) {
+      this.initComments();
+    }
+    return this.comments!;
+  };
+
   initComments = () => {
     this.comments = new Comments({
       getDoc: () => {
@@ -3135,32 +3142,59 @@ export class Actions<
     });
   };
 
-  addComment = async ({ loc }) => {
-    const id = uuid().slice(0, 8);
-    if (this.comments == null) {
-      this.initComments();
+  // add a comment to the document in the given frame (or the focused one)
+  // unless there is no selection, in which case no-op.  Returns id of the
+  // comment if created or null if not.
+  addComment = async (frameId?: string): Promise<string | null> => {
+    const cm = this._get_cm(frameId);
+    if (cm == null) {
+      return null;
     }
-    await this.comments.set({ id, loc });
-    return id;
+    const doc = cm.getDoc();
+    for (const c of doc.listSelections()) {
+      if (c.anchor.ch != c.head.ch || c.anchor.line != c.head.line) {
+        let from = getPos(c.anchor);
+        let to = getPos(c.head);
+        if (to.line < from.line || (to.line == from.line && to.ch < from.ch)) {
+          [from, to] = [to, from];
+        }
+        const loc = { from, to };
+        const actions =
+          this.get_code_editor(frameId ?? "")?.get_actions() ?? this;
+        const id = await actions.getComments().create({ loc });
+        cm.setSelection(loc.from, loc.from);
+        return id;
+      }
+    }
+    return null;
   };
 
   // when user selects text, this gets updated so UI can provide
   // some elements in **response** to user selecting a range of
   // text.  This is NOT a way to set the selection directly from
   // outside -- it's how the user-selected selection gets reported.
-  setCommentSelection = (id: string, enabled: boolean) => {
-    let comment_selection: any = this.store.get("comment_selection");
-    const cur = comment_selection?.has(id);
-    if (enabled == !!cur) {
-      return;
-    }
-    if (comment_selection == null) {
-      comment_selection = iSet([id]);
-    } else if (enabled) {
-      comment_selection = comment_selection.add(id);
-    } else {
-      comment_selection = comment_selection.delete(id);
-    }
-    this.setState({ comment_selection });
-  };
+  // See addComment above.
+  setCommentSelection = debounce(
+    (id: string, enabled: boolean) => {
+      let comment_selection: any = this.store.get("comment_selection");
+      const cur = comment_selection?.has(id);
+      if (enabled == !!cur) {
+        return;
+      }
+      if (comment_selection == null) {
+        comment_selection = iSet([id]);
+      } else if (enabled) {
+        comment_selection = comment_selection.add(id);
+      } else {
+        comment_selection = comment_selection.delete(id);
+      }
+      this.setState({ comment_selection });
+    },
+    200,
+    { leading: true, trailing: true },
+  );
+}
+
+function getPos({ line, ch }) {
+  return { line, ch };
 }

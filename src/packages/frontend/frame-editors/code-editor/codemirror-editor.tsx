@@ -365,7 +365,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     });
 
     cm.on("cursorActivity", (cm) => {
-      console.log("cursorActivity");
       // side_effect is whether or not the cursor move is being
       // caused by an  external setValueNoJump, so just a side
       // effect of something another user did.
@@ -380,6 +379,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         .listSelections()
         .map((c) => {
           if (
+            props.actions != null &&
             commentSelectionEnabled == false &&
             (c.anchor.ch != c.head.ch || c.anchor.line != c.head.line)
           ) {
@@ -391,11 +391,10 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       const actions = editor_actions();
       if (actions != null) {
         actions.set_cursor_locs(locs);
-        console.log("setCommmentSelection", props.id, commentSelectionEnabled);
-        actions.setCommentSelection(props.id, commentSelectionEnabled);
-      } else {
-        console.log("actions are NULL");
       }
+      // For commentSelectionEnabled we want prop.actions, i.e., what controls
+      // the visible frame we're looking at, since this is used for UI.
+      props.actions?.setCommentSelection(props.id, commentSelectionEnabled);
       throttled_save_editor_state(cm);
     });
 

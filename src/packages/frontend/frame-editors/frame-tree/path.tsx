@@ -3,17 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
-import { CSS, React, redux } from "../../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { filename_extension } from "@cocalc/util/misc";
-import { file_associations } from "../../file-associations";
-import { Icon } from "../../components";
+import { file_associations } from "@cocalc/frontend/file-associations";
+import React from "react";
+import { AddCommentTitleBarButton } from "@cocalc/frontend/frame-editors/generic/comments/add-comment";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   is_current?: boolean;
   project_id: string;
   path: string;
-  commentSelection?;
 }
 
 const STYLE = {
@@ -26,16 +26,15 @@ const STYLE = {
   cursor: "pointer",
   width: "100%",
   fontSize: "10pt",
-} as CSS;
+} as const;
 
 const CURRENT_STYLE = {
   ...STYLE,
   ...{ background: "#337ab7", color: "white" },
-} as CSS;
+} as const;
 
 export const Path: React.FC<Props> = React.memo(
-  ({ is_current, path, project_id, commentSelection }) => {
-    console.log("Path", is_current, commentSelection);
+  ({ is_current, path, project_id }) => {
     const ext = filename_extension(path);
     const x = file_associations[ext];
     return (
@@ -49,18 +48,7 @@ export const Path: React.FC<Props> = React.memo(
         }}
       >
         {x?.icon && <Icon name={x.icon} />} {path}
-        {is_current && commentSelection != null && (
-          <Button
-            size="small"
-            style={{ position: "absolute", right: "1px", height: "19px" }}
-            onClick={() => {
-              const actions = redux.getEditorActions(project_id, path);
-              actions.addComment({ loc: commentSelection });
-            }}
-          >
-            <Icon name="comment" /> Add comment
-          </Button>
-        )}
+        <AddCommentTitleBarButton />
       </div>
     );
   },

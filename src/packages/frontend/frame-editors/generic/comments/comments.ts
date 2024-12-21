@@ -11,6 +11,7 @@ import { transformComments } from "./transform";
 import { getLocation } from "./util";
 import type { Comment, Location } from "./types";
 import DB from "./db";
+import { generate } from "randomstring";
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -36,6 +37,26 @@ export class Comments {
     this.loadComments();
   };
 
+  create = async ({ loc }) => {
+    // start with 4-character random id, so have enough entropy that
+    // collisions between different clients generating a new id at
+    // once is highly unlikely
+    let n = 4;
+    let k = 0;
+    while (true) {
+      const id = generate(n);
+      if (!(await this.db.has(id))) {
+        await this.set({ id, loc });
+        return id;
+      }
+      k += 1;
+      if (k >= 5) {
+        // extremely unlikely, but just in case
+        n += 1;
+      }
+    }
+  };
+
   // Create or edit an existing comment.
   // - You *CANNOT* change the loc of an existing comment -- it's gets updated
   //   only in response to the document changing.
@@ -50,8 +71,9 @@ export class Comments {
     done?: boolean;
     noSave?: boolean;
   }) => {
+    // console.log("set", { id, loc });
     const doc = this.getDoc();
-    if (!doc) {
+    if (doc == null) {
       // just set in db directly.
       const comment = await this.db.get_one(id);
       if (comment != null) {
@@ -109,6 +131,7 @@ export class Comments {
       throw Error("unable to find mark");
     }
     // create the mark
+    // console.log("markText", { id, loc });
     doc.markText(loc.from, loc.to, {
       css: done ? "" : "background:#fef2cd",
       shared: true,
