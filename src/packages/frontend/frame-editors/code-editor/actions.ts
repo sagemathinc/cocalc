@@ -3162,7 +3162,8 @@ export class Actions<
         const actions =
           this.get_code_editor(frameId ?? "")?.get_actions() ?? this;
         const id = await actions.getComments().create({ loc });
-        cm.setSelection(loc.from, loc.from);
+        cm.setCursor(loc.from);
+        cm.refresh();
         return id;
       }
     }

@@ -13,6 +13,8 @@ import type { Comment, Location } from "./types";
 import DB from "./db";
 import { generate } from "randomstring";
 
+const DEBOUNCE_MS = 1000;
+
 export class Comments {
   private syncdoc: SyncDoc;
   private project_id: string;
@@ -214,9 +216,9 @@ export class Comments {
     return aux_file(this.path, "comments");
   };
 
-  private getCommentsDB = async () => {
+  private getCommentsDB = reuseInFlight(async () => {
     if (this.commentsDB == null) {
-      this.commentsDB = await webapp_client.sync_client.sync_db({
+      const commentsDB = await webapp_client.sync_client.sync_db({
         project_id: this.project_id,
         path: this.commentsPath(),
         primary_keys: ["i"],
@@ -224,24 +226,25 @@ export class Comments {
         cursors: true,
       });
       this.syncdoc.on("close", () => {
-        this.commentsDB?.close();
+        commentsDB?.close();
       });
-      this.commentsDB.on(
+      commentsDB.on(
         "change",
         debounce(
           () => {
             this.loadComments();
           },
-          3000,
+          DEBOUNCE_MS,
           { leading: true, trailing: true },
         ),
       );
-      if (this.commentsDB.get_state() != "ready") {
-        await once(this.commentsDB, "ready");
+      if (commentsDB.get_state() != "ready") {
+        await once(commentsDB, "ready");
       }
+      this.commentsDB = commentsDB;
     }
     return this.commentsDB;
-  };
+  });
 
   private hasComments = () => {
     try {
@@ -300,7 +303,7 @@ export class Comments {
     }
   });
 
-  private saveCommentsDebounce = debounce(this.saveComments, 3000);
+  private saveCommentsDebounce = debounce(this.saveComments, DEBOUNCE_MS);
 
   private loadComments = async () => {
     const doc = this.getDoc();
