@@ -36,7 +36,10 @@ export class Comments {
     this.loadComments();
   };
 
-  set = ({
+  // Create or edit an existing comment.
+  // - You *CANNOT* change the loc of an existing comment -- it's gets updated
+  //   only in response to the document changing.
+  set = async ({
     id,
     loc,
     done,
@@ -49,11 +52,39 @@ export class Comments {
   }) => {
     const doc = this.getDoc();
     if (!doc) {
-      // todo: we could actually safely set in db...
-      throw Error("no cm doc, so can't mark");
+      // just set in db directly.
+      const comment = await this.db.get_one(id);
+      if (comment != null) {
+        // already in db
+        if (!!comment.done == !!done) {
+          // nothing changed
+        } else {
+          this.db.set({ id, done });
+          if (!noSave) {
+            await this.db.save();
+          }
+        }
+        return;
+      }
+      if (loc == null) {
+        throw Error("unable to find mark");
+      }
+      const created = this.syncdoc.newest_patch_time()?.valueOf();
+      this.db.set({ id, created, time: created, loc, done });
+      if (!noSave) {
+        await this.db.save();
+      }
+      return;
     }
     for (const mark of doc.getAllMarks()) {
       if (mark.attributes?.style == id) {
+        // the mark is already in the document -- the only thing we may
+        // need to do is change the done status for that mark.
+        const comment = markToComment(mark);
+        if (!!comment.done == !!done) {
+          // nothing to do
+          return;
+        }
         if (loc == null) {
           // also locate it
           const loc1 = getLocation(mark);
@@ -61,9 +92,17 @@ export class Comments {
             // @ts-ignore
             loc = loc1;
           }
+        } else {
+          // mark exists and you're explicitly trying to set loc; shouldn't be doing that.
+          // only thing you can do is change done status.
+          throw Error(
+            `do not try to set the location of an already exisiting comment -- id ${id}`,
+          );
         }
-        // overwriting existing mark, so remove that one (gets created again below)
+        // Overwriting existing mark, so remove current one (gets created again below)
+        // I think there is no way to edit a mark without just removing and adding it (?).
         mark.clear();
+        break;
       }
     }
     if (loc == null) {
@@ -140,6 +179,14 @@ export class Comments {
       .map((mark) => markToComment(mark, hash, time));
   };
 
+  private getCommentsMap = (): { [id: string]: Comment } => {
+    const v: { [id: string]: Comment } = {};
+    for (const comment of this.getComments() ?? []) {
+      v[comment.id] = comment;
+    }
+    return v;
+  };
+
   private commentsPath = () => {
     return aux_file(this.path, "comments");
   };
@@ -212,11 +259,10 @@ export class Comments {
     if (comments == null) {
       return;
     }
-    const db = await this.getCommentsDB();
     let changes = false;
     for (const comment of comments) {
       const cur = await this.db.get_one(comment.id);
-      if (cur?.time != null && cur.time >= (comment.time ?? 0)) {
+      if (cur?.time != null && cur.time > (comment.time ?? 0)) {
         // there is already a newer version
         continue;
       }
@@ -227,8 +273,7 @@ export class Comments {
       await this.db.set(comment);
     }
     if (changes) {
-      // save to disk is important since comments syncdb is ephemeral
-      await db.save_to_disk();
+      await this.db.save();
     }
   });
 
@@ -241,10 +286,26 @@ export class Comments {
     }
     const hash = this.syncdoc.hash_of_live_version();
     const toTransform: { [time: string]: Comment[] } = {};
+    const curComments = this.getCommentsMap();
     for (const comment of await this.db.get()) {
+      // we only require the hash to match, not the time, because
+      // e.g., imagine a jupyter notebook with lots of cells -- the
+      // time of last change could be old.  Just matching the hash
+      // has a VERY, VERY small chance of being wrong, but is much
+      // more flexible/powerful/etc. For annotations this is the
+      // right tradeoff.
+      const cur = curComments[comment.id];
+      if (cur != null) {
+        // this comment is ALREADY in our document -- the only allowed change is "done".
+        if (!!cur.done != !!comment.done) {
+          await this.set({ id: comment.id, done: comment.done, noSave: true });
+        }
+        continue;
+      }
+
       if (comment.hash == hash) {
         try {
-          this.set({ ...comment, noSave: true });
+          await this.set({ ...comment, noSave: true });
         } catch (err) {
           console.warn("Deleting invalid comment", comment);
           // can't set - shouldn't be fatal.
@@ -281,7 +342,7 @@ export class Comments {
         v1,
       });
       for (const comment of comments1) {
-        this.set({ ...comment, noSave: true });
+        await this.set({ ...comment, noSave: true });
       }
     }
   };

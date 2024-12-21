@@ -45,16 +45,16 @@ export function toLocation(c: CompactLocation): Location {
   };
 }
 
-export function toCompactComment(x: Comment): CompactComment {
-  const { id, loc, time, hash, created, done } = x;
-  return {
-    i: id,
-    l: toCompactLocation(loc),
-    t: time,
-    h: hash,
-    c: created,
-    d: done,
-  };
+const FIELDS = ["id", "loc", "time", "hash", "created", "done"];
+
+export function toCompactComment(x: Partial<Comment>): Partial<CompactComment> {
+  const y: any = {};
+  for (const field of FIELDS) {
+    if (x[field] != null) {
+      y[field[0]] = field == "loc" ? toCompactLocation(x[field]) : x[field];
+    }
+  }
+  return y;
 }
 
 export function toComment(x: CompactComment): Comment {

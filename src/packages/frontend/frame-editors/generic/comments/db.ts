@@ -24,6 +24,12 @@ export default class DB {
     this.getDB = getDB;
   }
 
+  save = async () => {
+    const db = await this.getDB();
+    // save to disk is important since comments syncdb is ephemeral
+    await db.save_to_disk();
+  };
+
   get = async (): Promise<Comment[]> => {
     const db = await this.getDB();
     const v: Comment[] = [];
@@ -42,7 +48,7 @@ export default class DB {
     return toComment(x.toJS());
   };
 
-  set = async (comment: Comment) => {
+  set = async (comment: Partial<Comment>) => {
     const db = await this.getDB();
     db.set(toCompactComment(comment));
   };
