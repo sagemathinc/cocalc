@@ -160,6 +160,8 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  // set of id's of frames with an active selection to enable some comment ui
+  comment_selection?: iSet<string>;
 }
 
 export class Actions<
@@ -3131,5 +3133,34 @@ export class Actions<
       project_id: this.project_id,
       syncdoc: this._syncstring,
     });
+  };
+
+  addComment = async ({ loc }) => {
+    const id = uuid().slice(0, 8);
+    if (this.comments == null) {
+      this.initComments();
+    }
+    await this.comments.set({ id, loc });
+    return id;
+  };
+
+  // when user selects text, this gets updated so UI can provide
+  // some elements in **response** to user selecting a range of
+  // text.  This is NOT a way to set the selection directly from
+  // outside -- it's how the user-selected selection gets reported.
+  setCommentSelection = (id: string, enabled: boolean) => {
+    let comment_selection: any = this.store.get("comment_selection");
+    const cur = comment_selection?.has(id);
+    if (enabled == !!cur) {
+      return;
+    }
+    if (comment_selection == null) {
+      comment_selection = iSet([id]);
+    } else if (enabled) {
+      comment_selection = comment_selection.add(id);
+    } else {
+      comment_selection = comment_selection.delete(id);
+    }
+    this.setState({ comment_selection });
   };
 }
