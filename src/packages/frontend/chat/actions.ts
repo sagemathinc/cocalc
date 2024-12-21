@@ -47,6 +47,7 @@ import { ChatState, ChatStore } from "./store";
 import type {
   ChatMessage,
   ChatMessageTyped,
+  Comment,
   Feedback,
   MessageHistory,
 } from "./types";
@@ -156,8 +157,7 @@ export class ChatActions extends Actions<ChatState> {
 
   // The second parameter is used for sending a message by
   // chatgpt, which is currently managed by the frontend
-  // (not the project).  Also the async doesn't finish until
-  // chatgpt is totally done.
+  // (not the project).
   sendChat = ({
     input,
     sender_id = this.redux.getStore("account").get_account_id(),
@@ -165,6 +165,8 @@ export class ChatActions extends Actions<ChatState> {
     tag,
     noNotification,
     submitMentionsRef,
+    comment,
+    editing,
   }: {
     input?: string;
     sender_id?: string;
@@ -172,6 +174,10 @@ export class ChatActions extends Actions<ChatState> {
     tag?: string;
     noNotification?: boolean;
     submitMentionsRef?;
+    // set this field if this message thread is comment on a document.
+    comment?: Comment;
+    // if true, start with sender editing
+    editing?: boolean;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -183,9 +189,9 @@ export class ChatActions extends Actions<ChatState> {
     if (submitMentionsRef?.current != null) {
       input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
     }
-    input = input?.trim();
-    if (!input) {
-      // do not send when there is nothing to send.
+    input = input?.trim() ?? "";
+    if (!input && comment == null) {
+      // do not send when there is nothing to send (except if it is a comment)
       return "";
     }
     const message: ChatMessage = {
@@ -200,7 +206,8 @@ export class ChatActions extends Actions<ChatState> {
       ],
       date: time_stamp_str,
       reply_to: reply_to?.toISOString(),
-      editing: {},
+      editing: editing ? { [sender_id]: "FUTURE" } : {},
+      comment,
     };
     this.syncdb.set(message);
     if (!reply_to) {
@@ -517,7 +524,7 @@ export class ChatActions extends Actions<ChatState> {
     this.scrollToIndex(Number.MAX_SAFE_INTEGER);
   };
 
-// this scrolls the message with given date into view and sets it as the selected message.
+  // this scrolls the message with given date into view and sets it as the selected message.
   scrollToDate = (date) => {
     this.clearScrollRequest();
     this.frameTreeActions?.set_frame_data({

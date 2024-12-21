@@ -74,7 +74,7 @@ interface FrameTreeProps {
   local_view_state: Map<string, any>;
   misspelled_words: Set<string>;
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
-  path: string; // assumed to never change -- all frames in same project
+  path: string;
   project_id: string; // assumed to never change -- all frames in same project
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   reload: Map<string, number>;
@@ -399,6 +399,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             isFocused: active_id == desc.get("id"),
             isVisible: tab_is_visible,
             redux,
+            ambientActions: actions,
           }}
         >
           <div

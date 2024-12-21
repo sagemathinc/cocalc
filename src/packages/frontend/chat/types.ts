@@ -29,6 +29,14 @@ export interface MessageHistory {
   date: string; // date.toISOString()
 }
 
+export interface Comment {
+  id: string;
+  // The optional path is needed to disambiguate in the context of
+  // multifile editing, e.g., if you are commenting on macros.tex
+  // while editing main.tex.
+  path?: string;
+}
+
 export interface ChatMessage {
   event: "chat";
   sender_id: string;
@@ -39,6 +47,7 @@ export interface ChatMessage {
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
+  comment?: Comment;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just

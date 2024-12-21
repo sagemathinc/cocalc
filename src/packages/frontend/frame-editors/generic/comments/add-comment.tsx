@@ -6,7 +6,8 @@ import { useState } from "react";
 
 export function AddCommentTitleBarButton() {
   const [adding, setAdding] = useState<boolean>(false);
-  const { actions, id, project_id, path, isFocused } = useFrameContext();
+  const { id, project_id, path, isFocused, actions, ambientActions } =
+    useFrameContext();
   const commentSelection = useRedux(
     ["comment_selection"],
     project_id,
@@ -19,8 +20,23 @@ export function AddCommentTitleBarButton() {
   const addComment = async () => {
     try {
       setAdding(true);
+      // create the marked range in the document
       const commentId = await actions.addComment(id);
-      console.log({ commentId });
+      if (commentId == null) {
+        throw Error("unable to create comment");
+      }
+      // create the side chat that references the marked range
+      const sideChat = await ambientActions.getSideChatActions();
+      await sideChat.sendChat({
+        noNotification: true,
+        comment: {
+          id: commentId,
+          ...(path != actions.path ? { path: actions.path } : undefined),
+        },
+        editing: true,
+      });
+    } catch (err) {
+      ambientActions.set_error(`Error creating comment: ${err}`);
     } finally {
       setAdding(false);
     }

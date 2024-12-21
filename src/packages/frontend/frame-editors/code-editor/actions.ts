@@ -109,6 +109,7 @@ import {
   chat,
   getSideChatActions,
 } from "@cocalc/frontend/frame-editors/generic/chat";
+import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { Comments } from "@cocalc/frontend/frame-editors/generic/comments";
 
 interface gutterMarkerParams {
@@ -3105,20 +3106,45 @@ export class Actions<
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
       // open side chat
-      this.redux
-        .getProjectActions(this.project_id)
-        .open_chat({ path: this.path });
-      this.show_focused_frame_of_type(chat.type);
+      const actions = await this.getSideChatActions();
+      actions.scrollToDate(fragmentId.chat);
       for (const d of [1, 10, 50, 500, 1000]) {
-        const actions = getSideChatActions({
-          project_id: this.project_id,
-          path: this.path,
-        });
-        actions?.scrollToDate(fragmentId.chat);
         await delay(d);
       }
     }
   }
+
+  getSideChatActions = async (): Promise<ChatActions> => {
+    // open side chat, then get the actions
+    this.redux
+      .getProjectActions(this.project_id)
+      .open_chat({ path: this.path });
+    this.show_focused_frame_of_type(chat.type);
+    // the show focused frame causes side chat to
+    // appear and actions be created; it's fast, but
+    // I think not guaranteed to be instant, hence
+    // this ugly code:
+    let d = 25;
+    for (let i = 0; i < 30; i++) {
+      await delay(0);
+      const a = getSideChatActions({
+        project_id: this.project_id,
+        path: this.path,
+      });
+      if (a?.syncdb != null) {
+        if (a.syncdb.get_state() != "ready") {
+          await once(a.syncdb, "state");
+        }
+        if (a.syncdb.get_state() != "ready") {
+          throw Error("failed to open side chat");
+        }
+        return a;
+      }
+      d = Math.min(d * 1.2, 250);
+      await delay(d);
+    }
+    throw Error(`bug -- error creating side chat actions for '${this.path}'`);
+  };
 
   getComments = () => {
     if (this.comments == null) {

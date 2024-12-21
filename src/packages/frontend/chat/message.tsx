@@ -1038,6 +1038,7 @@ export default function Message({
 
   return (
     <Row style={getStyle()}>
+      {JSON.stringify(message.get("comment"))}
       {renderCols()}
       {renderFoldedRow()}
       {renderReplyRow()}
