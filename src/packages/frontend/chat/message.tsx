@@ -125,6 +125,9 @@ interface Props {
   // for the root of a folded thread, optionally give this number of a
   // more informative message to the user.
   numChildren?: number;
+
+  // highlighted if provided (when in non-edit mode)
+  searchWords?;
 }
 
 export default function Message({
@@ -150,6 +153,7 @@ export default function Message({
   costEstimate,
   selected,
   numChildren,
+  searchWords,
 }: Props) {
   const intl = useIntl();
 
@@ -649,6 +653,7 @@ export default function Message({
               value={value}
               className={message_class}
               selectedHashtags={selectedHashtags}
+              searchWords={searchWords}
               toggleHashtag={
                 selectedHashtags != null && actions != null
                   ? (tag) =>
