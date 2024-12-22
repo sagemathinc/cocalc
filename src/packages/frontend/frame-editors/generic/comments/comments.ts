@@ -427,8 +427,7 @@ function markToComment(mark, hash?, time?) {
 export function setMarkLocation({ mark, doc, loc }) {
   doc.markText(loc.from, loc.to, {
     ...MARK_OPTIONS,
-    css: mark.css,
-    attributes: mark.attributes,
+    ...mark,
   });
   mark.clear();
 }

@@ -1,12 +1,9 @@
-interface CodemirrorPosition {
-  line: number;
-  ch: number;
-}
+import type { Position } from "codemirror";
 
 // range of text in a codemirror editor
 export interface Range {
-  from: CodemirrorPosition;
-  to: CodemirrorPosition;
+  from: Position;
+  to: Position;
 }
 
 export interface Location extends Range {
