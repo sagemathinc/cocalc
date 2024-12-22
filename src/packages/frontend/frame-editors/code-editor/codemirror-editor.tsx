@@ -330,7 +330,15 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
         save_syncstring();
+      } else if (changeObj.origin == "cut") {
+        editor_actions()?.comments.saveComments();
       }
+    });
+
+    cm.on("paste", () => {
+      setTimeout(() => {
+        editor_actions()?.comments.update();
+      }, 0);
     });
 
     cm.on("change", (_, changeObj) => {

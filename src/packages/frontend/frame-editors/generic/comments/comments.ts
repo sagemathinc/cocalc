@@ -4,7 +4,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-import { aux_file } from "@cocalc/util/misc";
+import { aux_file, hash_string } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import type { Doc } from "codemirror";
 import { transformComments } from "./transform";
@@ -13,7 +13,13 @@ import type { Comment, Location } from "./types";
 import DB from "./db";
 import { generate } from "randomstring";
 
-const DEBOUNCE_MS = 1000;
+const DEBOUNCE_MS = 500;
+
+const MARK_OPTIONS = {
+  shared: true,
+  clearWhenEmpty: false,
+  inclusiveRight: true,
+};
 
 export class Comments {
   private syncdoc: SyncDoc;
@@ -32,11 +38,11 @@ export class Comments {
     this.init();
   }
 
-  update = () => {
+  update = async () => {
     if (this.commentsDB == null) {
       return;
     }
-    this.loadComments();
+    await this.loadComments();
   };
 
   create = async ({ loc }) => {
@@ -135,13 +141,12 @@ export class Comments {
     // create the mark
     // console.log("markText", { id, loc });
     doc.markText(loc.from, loc.to, {
+      ...MARK_OPTIONS,
       css: done ? "" : "background:#fef2cd",
-      shared: true,
       attributes: { style: id },
-      clearWhenEmpty: false,
     });
     if (!noSave) {
-      this.saveCommentsDebounce();
+      this.syncCommentsDebounce();
     }
   };
 
@@ -202,7 +207,7 @@ export class Comments {
       await this.getCommentsDB();
     }
     // also periodically save comments out when activity stops
-    this.syncdoc.on("change", this.saveCommentsDebounce);
+    this.syncdoc.on("change", this.syncCommentsDebounce);
   };
 
   private getComments = (): Comment[] | null => {
@@ -275,7 +280,7 @@ export class Comments {
     }
   };
 
-  private saveComments = reuseInFlight(async () => {
+  saveComments = reuseInFlight(async () => {
     if (!this.hasComments()) {
       return;
     }
@@ -317,14 +322,24 @@ export class Comments {
     }
   });
 
-  private saveCommentsDebounce = debounce(this.saveComments, DEBOUNCE_MS);
+  sync = reuseInFlight(async () => {
+    await this.saveComments();
+    await this.loadComments();
+  });
+
+  private syncCommentsDebounce = debounce(this.sync, DEBOUNCE_MS);
 
   private loadComments = async () => {
     const doc = this.getDoc();
     if (doc == null) {
       return;
     }
-    const hash = this.syncdoc.hash_of_live_version();
+    // get current version of document *not* from syncdoc from actual editor,
+    // since there obviously can be a delay, e.g., this.syncdoc.hash_of_live_version()
+    // can't possibly always be the same as this, since we don't save editor to
+    // syncstring on every keystroke (as that would make the UI laggy).
+    const v1 = doc.getValue();
+    const hash = hash_string(v1);
     const toTransform: { [time: string]: Comment[] } = {};
     const curComments = this.getCommentsMap();
     for (const comment of await this.db.get()) {
@@ -362,11 +377,7 @@ export class Comments {
       }
     }
 
-    let v1: string | undefined;
     for (const msTimeString in toTransform) {
-      if (v1 == null) {
-        v1 = this.syncdoc.to_str();
-      }
       const time = new Date(parseInt(msTimeString));
       const v0 = this.syncdoc.version(time)?.to_str();
       if (v0 == null) {
@@ -407,10 +418,9 @@ function setMarkColor({ mark, doc, color }) {
     return;
   }
   doc.markText(loc.from, loc.to, {
+    ...MARK_OPTIONS,
     css: mark.done ? "" : `background:${color}`,
-    shared: true,
     attributes: mark.attributes,
-    clearWhenEmpty: false,
   });
   mark.clear();
 }
