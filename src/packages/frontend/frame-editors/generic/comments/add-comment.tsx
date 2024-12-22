@@ -26,8 +26,8 @@ export function AddCommentTitleBarButton() {
         throw Error("unable to create comment");
       }
       // create the side chat that references the marked range
-      const sideChat = await ambientActions.getSideChatActions();
-      await sideChat.sendChat({
+      const sideChatActions = await ambientActions.getSideChatActions();
+      await sideChatActions.sendChat({
         noNotification: true,
         comment: {
           id: commentId,
@@ -35,6 +35,7 @@ export function AddCommentTitleBarButton() {
         },
         editing: true,
       });
+      sideChatActions.scrollToBottom();
     } catch (err) {
       ambientActions.set_error(`Error creating comment: ${err}`);
     } finally {
