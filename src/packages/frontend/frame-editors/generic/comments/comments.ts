@@ -194,6 +194,16 @@ export class Comments {
     // maybe can store it in the CM Mark somehow?
   };
 
+  // TODO: this is just a quick hack for now; we'll restructure data
+  // so this is in a store, etc., so UI can properly depend on it!
+  getNotDone = () => {
+    const c = this.getComments();
+    if (c == null) {
+      return new Set([]);
+    }
+    return new Set(c.filter((x) => !x.done).map((x) => x.id));
+  };
+
   select = (id) => {
     const doc = this.getDoc();
     if (!doc) {
@@ -433,7 +443,8 @@ function markToComment(mark, hash?, time?) {
 export function setMarkLocation({ mark, doc, loc }) {
   doc.markText(loc.from, loc.to, {
     ...MARK_OPTIONS,
-    ...mark,
+    css: mark.css,
+    attributes: mark.attributes,
   });
   mark.clear();
 }
@@ -444,10 +455,9 @@ function setMarkColor({ mark, doc, color }) {
     return;
   }
   doc.markText(loc.from, loc.to, {
-    ...mark,
+    ...MARK_OPTIONS,
     css: mark.css ? `background:${color}` : "",
+    attributes: mark.attributes,
   });
   mark.clear();
 }
-
-

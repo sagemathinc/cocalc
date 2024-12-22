@@ -649,7 +649,15 @@ export default function Message({
                 <Tooltip title="Mark as resolved and hide discussion">
                   <Button
                     onClick={() => {
-                      console.log("TODO: mark resolved");
+                      const id = message.getIn(["comment", "id"]);
+                      if (id) {
+                        const actions = getEditorActions({
+                          project_id,
+                          path,
+                          message,
+                        });
+                        actions.comments.set({ id, done: true });
+                      }
                     }}
                     type={"text"}
                     style={{
@@ -1065,16 +1073,11 @@ export default function Message({
       onClick={
         message.get("comment") && path && project_id
           ? () => {
-              const comment = message.get("comment")?.toJS();
-              if (comment == null) {
-                return;
+              const id = message.getIn(["comment", "id"]);
+              if (id) {
+                const actions = getEditorActions({ project_id, path, message });
+                actions.selectComment(id);
               }
-              const origPath = auxFileToOriginal(path);
-              const actions = redux.getEditorActions(
-                project_id,
-                comment.path ?? origPath,
-              );
-              actions.selectComment(comment.id);
             }
           : undefined
       }
@@ -1093,4 +1096,13 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+// If this is a side chat message, this gets the main editor that this
+// is next to, or possibly a different file in case of comments and
+// multifile editing.
+function getEditorActions({ project_id, path, message }) {
+  const commentPath = message.getIn(["comment", "path"]);
+  const origPath = auxFileToOriginal(path);
+  return redux.getEditorActions(project_id, commentPath ?? origPath);
 }
