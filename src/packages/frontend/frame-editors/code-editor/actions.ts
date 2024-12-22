@@ -3196,6 +3196,22 @@ export class Actions<
     return null;
   };
 
+  selectComment = async (id: string) => {
+    const comments = await this.getComments();
+    const comment = await comments.get_one(id);
+    if (comment == null) {
+      return;
+    }
+    const frameId = this.show_recently_focused_frame_of_type("cm");
+    const cm = this._get_cm(frameId);
+    if (cm == null) {
+      return;
+    }
+    cm.setCursor(comment.loc.from);
+    cm.scrollIntoView(comment.loc.from);
+    comments.select(id);
+  };
+
   // when user selects text, this gets updated so UI can provide
   // some elements in **response** to user selecting a range of
   // text.  This is NOT a way to set the selection directly from

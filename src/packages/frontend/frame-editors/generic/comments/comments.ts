@@ -178,6 +178,20 @@ export class Comments {
     // maybe can store it in the CM Mark somehow?
   };
 
+  select = (id) => {
+    const doc = this.getDoc();
+    if (!doc) {
+      return null;
+    }
+    for (const mark of doc.getAllMarks()) {
+      if (mark.attributes?.style == id) {
+        setMarkColor({ mark, doc, color: "#fbbd04" });
+      } else if (mark.css == "background:#fbbd04" && mark.attributes?.style) {
+        setMarkColor({ mark, doc, color: "#fef2cd" });
+      }
+    }
+  };
+
   private init = async () => {
     if (
       await redux
@@ -385,4 +399,18 @@ function markToComment(mark, hash?, time?) {
     done,
     loc,
   };
+}
+
+function setMarkColor({ mark, doc, color }) {
+  const loc = getLocation(mark);
+  if (loc == null) {
+    return;
+  }
+  doc.markText(loc.from, loc.to, {
+    css: mark.done ? "" : `background:${color}`,
+    shared: true,
+    attributes: mark.attributes,
+    clearWhenEmpty: false,
+  });
+  mark.clear();
 }

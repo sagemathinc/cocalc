@@ -78,6 +78,7 @@ export type ChatMessageTyped = TypedMap<{
   }>;
   folding?: List<string>;
   feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
+  comment?: TypedMap<Comment>;
 }>;
 
 export type ChatMessages = TypedMap<{

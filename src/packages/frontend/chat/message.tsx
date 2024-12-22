@@ -24,7 +24,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
-import { plural, unreachable } from "@cocalc/util/misc";
+import { auxFileToOriginal, plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -627,7 +627,7 @@ export default function Message({
                     </Tooltip>
                   </Button>
                 </Tooltip>
-              )}{" "}
+              )}
               <Tooltip title="Select message. Copy URL to link to this message.">
                 <Button
                   onClick={() => {
@@ -645,6 +645,24 @@ export default function Message({
                   <Icon name="link" />
                 </Button>
               </Tooltip>
+              {message.get("comment") != null && (
+                <Tooltip title="Mark as resolved and hide discussion">
+                  <Button
+                    onClick={() => {
+                      console.log("TODO: mark resolved");
+                    }}
+                    type={"text"}
+                    style={{
+                      float: "right",
+                      marginTop: "-8px",
+                      fontSize: "15px",
+                      color: is_viewers_message ? "white" : "#888",
+                    }}
+                  >
+                    <Icon name="check" />
+                  </Button>
+                </Tooltip>
+              )}
             </span>
           )}
           {!isEditing && (
@@ -1042,8 +1060,25 @@ export default function Message({
   }
 
   return (
-    <Row style={getStyle()}>
-      {JSON.stringify(message.get("comment"))}
+    <Row
+      style={getStyle()}
+      onClick={
+        message.get("comment") && path && project_id
+          ? () => {
+              const comment = message.get("comment")?.toJS();
+              if (comment == null) {
+                return;
+              }
+              const origPath = auxFileToOriginal(path);
+              const actions = redux.getEditorActions(
+                project_id,
+                comment.path ?? origPath,
+              );
+              actions.selectComment(comment.id);
+            }
+          : undefined
+      }
+    >
       {renderCols()}
       {renderFoldedRow()}
       {renderReplyRow()}
