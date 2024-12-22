@@ -326,13 +326,15 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       SAVE_DEBOUNCE_MS,
     );
 
-    let cutCopyBuffer: null | { text: string; marks: any[] } = null;
+    let cutCopyBuffer: { [text: string]: any[] } = {};
+
     cm.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
         save_syncstring();
       } else if (changeObj.origin == "cut") {
         const text = cm.getRange(changeObj.from, changeObj.to);
+        console.log("cut", changeObj);
         const marks: any[] = [];
         const lines = cm.getValue().split("\n");
         let start = positionToLinear(lines, changeObj.from);
@@ -348,22 +350,30 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
           }
         }
         if (marks.length > 0) {
-          cutCopyBuffer = { text, marks };
-        } else {
-          cutCopyBuffer = null;
+          cutCopyBuffer[text] = marks;
         }
+        console.log({ cutCopyBuffer });
         editor_actions()?.comments.saveComments();
       }
     });
 
     cm.on("changes", (_, v) => {
+      let pasted = false;
+      let k = 0;
       for (const changeObj of v) {
         if (changeObj.origin == "paste") {
+          pasted = true;
           if (cutCopyBuffer != null) {
-            if (changeObj.text.join("\n") == cutCopyBuffer?.text) {
+            console.log({
+              a: changeObj.text.join("\n"),
+              cutCopyBuffer,
+            });
+            const marks = cutCopyBuffer[changeObj.text.join("\n")];
+            console.log("paste", { marks });
+            if (marks != null) {
               const lines = cm.getValue().split("\n");
-              const start = positionToLinear(lines, changeObj.from);
-              for (const { from, to, mark } of cutCopyBuffer.marks) {
+              const start = k + positionToLinear(lines, changeObj.from);
+              for (const { from, to, mark } of marks) {
                 const cur = mark.find();
                 if (cur != null) {
                   // it didn't get removed
@@ -376,8 +386,14 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
                 setMarkLocation({ doc: cm.getDoc(), loc, mark });
               }
             }
-            cutCopyBuffer = null;
+            k += changeObj.text.join("\n").length;
           }
+        }
+      }
+      console.log("after paste", pasted);
+      if (pasted) {
+        for (const prop in cutCopyBuffer) {
+          delete cutCopyBuffer[prop];
         }
       }
     });
