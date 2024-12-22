@@ -31,11 +31,13 @@ export class Comments {
   private project_id: string;
   private path: string;
   private getDoc: () => Doc | null;
+  private setSyncDocToLive: () => void;
   private commentsDB?: SyncDoc;
   private db: DB;
 
-  constructor({ getDoc, path, project_id, syncdoc }) {
+  constructor({ getDoc, setSyncDocToLive, path, project_id, syncdoc }) {
     this.getDoc = getDoc;
+    this.setSyncDocToLive = setSyncDocToLive;
     this.path = path;
     this.project_id = project_id;
     this.syncdoc = syncdoc;
@@ -293,6 +295,7 @@ export class Comments {
       return;
     }
     let d = 100;
+    this.setSyncDocToLive();
     while (this.syncdoc.has_unsaved_changes()) {
       if (d >= 30000) {
         console.warn(
@@ -305,6 +308,7 @@ export class Comments {
       }
       d = Math.min(30000, 1.3 * d);
       await this.syncdoc.save();
+      this.setSyncDocToLive();
     }
     // due to above loop, right now there are no unsaved changes, so we can safely
     // get the comments and write them out:
@@ -420,6 +424,15 @@ function markToComment(mark, hash?, time?) {
   };
 }
 
+export function setMarkLocation({ mark, doc, loc }) {
+  doc.markText(loc.from, loc.to, {
+    ...MARK_OPTIONS,
+    css: mark.css,
+    attributes: mark.attributes,
+  });
+  mark.clear();
+}
+
 function setMarkColor({ mark, doc, color }) {
   const loc = getLocation(mark);
   if (loc == null) {
@@ -427,7 +440,7 @@ function setMarkColor({ mark, doc, color }) {
   }
   doc.markText(loc.from, loc.to, {
     ...MARK_OPTIONS,
-    css: mark.done ? "" : `background:${color}`,
+    css: mark.css ? `background:${color}` : "",
     attributes: mark.attributes,
   });
   mark.clear();

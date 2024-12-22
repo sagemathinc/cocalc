@@ -61,3 +61,4 @@ export function toComment(x: CompactComment): Comment {
   const { i, l, t, h, c, d } = x;
   return { id: i, loc: toLocation(l), time: t, hash: h, created: c, done: d };
 }
+

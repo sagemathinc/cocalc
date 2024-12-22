@@ -3162,6 +3162,9 @@ export class Actions<
           return null;
         }
       },
+      setSyncDocToLive: () => {
+        this.set_syncstring_to_codemirror();
+      },
       path: this.path,
       project_id: this.project_id,
       syncdoc: this._syncstring,

@@ -326,19 +326,60 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       SAVE_DEBOUNCE_MS,
     );
 
+    let cutCopyBuffer: null | { text: string; marks: any[] } = null;
     cm.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
         save_syncstring();
       } else if (changeObj.origin == "cut") {
+        const text = cm.getRange(changeObj.from, changeObj.to);
+        const marks: any[] = [];
+        const lines = cm.getValue().split("\n");
+        let start = positionToLinear(lines, changeObj.from);
+        for (const mark of cm.getAllMarks()) {
+          const loc = mark.find() as null | CodeMirror.MarkerRange;
+          if (loc == null) {
+            continue;
+          }
+          if (isInRange(loc.from, changeObj) && isInRange(loc.to, changeObj)) {
+            const from = positionToLinear(lines, loc.from) - start;
+            const to = positionToLinear(lines, loc.to) - start;
+            marks.push({ from, to, mark });
+          }
+        }
+        if (marks.length > 0) {
+          cutCopyBuffer = { text, marks };
+        } else {
+          cutCopyBuffer = null;
+        }
         editor_actions()?.comments.saveComments();
       }
     });
 
-    cm.on("paste", () => {
-      setTimeout(() => {
-        editor_actions()?.comments.update();
-      }, 0);
+    cm.on("changes", (_, v) => {
+      for (const changeObj of v) {
+        if (changeObj.origin == "paste") {
+          if (cutCopyBuffer != null) {
+            if (changeObj.text.join("\n") == cutCopyBuffer?.text) {
+              const lines = cm.getValue().split("\n");
+              const start = positionToLinear(lines, changeObj.from);
+              for (const { from, to, mark } of cutCopyBuffer.marks) {
+                const cur = mark.find();
+                if (cur != null) {
+                  // it didn't get removed
+                  continue;
+                }
+                const loc = {
+                  from: linearToPosition(lines, from + start),
+                  to: linearToPosition(lines, to + start),
+                };
+                setMarkLocation({ doc: cm.getDoc(), loc, mark });
+              }
+            }
+            cutCopyBuffer = null;
+          }
+        }
+      }
     });
 
     cm.on("change", (_, changeObj) => {
@@ -529,4 +570,44 @@ if ((CodeMirror as any).commands.save == null) {
       f(true);
     }
   };
+}
+
+import { setMarkLocation } from "@cocalc/frontend/frame-editors/generic/comments/comments";
+import { cmp } from "@cocalc/util/misc";
+function cmp_pos(a: CodeMirror.Position, b: CodeMirror.Position) {
+  const c = cmp(a.line, b.line);
+  if (c) {
+    return c;
+  }
+  return cmp(a.ch, b.ch);
+}
+
+function isInRange(
+  a: CodeMirror.Position,
+  range: { from: CodeMirror.Position; to: CodeMirror.Position },
+): boolean {
+  return cmp_pos(range.from, a) <= 0 && cmp_pos(a, range.to) <= 0;
+}
+
+function positionToLinear(lines: string[], pos: CodeMirror.Position): number {
+  if (pos.line >= lines.length) {
+    throw Error("invalid position");
+  }
+  let n = 0;
+  for (let i = 0; i < pos.line; i++) {
+    n += lines[i].length + 1;
+  }
+  return n + pos.ch;
+}
+
+function linearToPosition(lines: string[], n: number): CodeMirror.Position {
+  for (let line = 0; line < lines.length; line++) {
+    const m = lines[line].length;
+    if (n > m) {
+      n -= m + 1;
+    } else {
+      return { line, ch: n };
+    }
+  }
+  return { line: lines.length, ch: 0 };
 }
