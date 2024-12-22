@@ -15,6 +15,11 @@ import { generate } from "randomstring";
 
 const DEBOUNCE_MS = 500;
 
+const COLORS = {
+  selected: "#ffc00099",
+  comment: "#fffd7b99",
+} as const;
+
 const MARK_OPTIONS = {
   shared: true,
   clearWhenEmpty: false,
@@ -142,7 +147,7 @@ export class Comments {
     // console.log("markText", { id, loc });
     doc.markText(loc.from, loc.to, {
       ...MARK_OPTIONS,
-      css: done ? "" : "background:#fef2cd",
+      css: done ? "" : `background:${COLORS.comment}`,
       attributes: { style: id },
     });
     if (!noSave) {
@@ -190,9 +195,12 @@ export class Comments {
     }
     for (const mark of doc.getAllMarks()) {
       if (mark.attributes?.style == id) {
-        setMarkColor({ mark, doc, color: "#fbbd04" });
-      } else if (mark.css == "background:#fbbd04" && mark.attributes?.style) {
-        setMarkColor({ mark, doc, color: "#fef2cd" });
+        setMarkColor({ mark, doc, color: COLORS.selected });
+      } else if (
+        mark.css == `background:${COLORS.selected}` &&
+        mark.attributes?.style
+      ) {
+        setMarkColor({ mark, doc, color: COLORS.comment });
       }
     }
   };
