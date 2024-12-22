@@ -23,7 +23,11 @@ const COLORS = {
 const MARK_OPTIONS = {
   shared: true,
   clearWhenEmpty: false,
-  inclusiveRight: true,
+  // inclusive right would be like bold in a rich text
+  // editor... BUT if the last character in the file
+  // is part of a mark, then it is impossible to put anything
+  // after it, which is very annoying.
+  // inclusiveRight: false,
 };
 
 export class Comments {
@@ -291,7 +295,8 @@ export class Comments {
   };
 
   saveComments = reuseInFlight(async () => {
-    if (!this.hasComments()) {
+    if (!this.hasComments() || this.syncdoc.in_undo_mode()) {
+      // IMPORTANT: can't save in undo mode since that breaks undo mode
       return;
     }
     let d = 100;
@@ -303,7 +308,8 @@ export class Comments {
         );
       }
       await delay(d);
-      if (this.syncdoc.get_state() == "closed") {
+      if (this.syncdoc.get_state() == "closed" || this.syncdoc.in_undo_mode()) {
+        // can't save in undo mode!
         return;
       }
       d = Math.min(30000, 1.3 * d);
@@ -438,9 +444,10 @@ function setMarkColor({ mark, doc, color }) {
     return;
   }
   doc.markText(loc.from, loc.to, {
-    ...MARK_OPTIONS,
+    ...mark,
     css: mark.css ? `background:${color}` : "",
-    attributes: mark.attributes,
   });
   mark.clear();
 }
+
+
