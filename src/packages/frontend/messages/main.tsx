@@ -353,6 +353,9 @@ function ShowAllThreads({
   });
 
   const itemContent = (index) => {
+    if (filteredMessages == null) {
+      return null;
+    }
     const message = filteredMessages[index];
     const focused = message.index == cursor;
     return (
@@ -450,13 +453,15 @@ function ShowAllThreads({
         className="smc-vfill"
         style={{ border: "1px solid #ccc", borderRadius: "3px" }}
       >
-        <ScrollableList
-          virtualize
-          rowCount={filteredMessages.length}
-          rowRenderer={({ index }) => itemContent(index)}
-          rowKey={(index) => `${filteredMessages[index]?.id}`}
-          cacheId={`messages-${folder}`}
-        />
+        {filteredMessages != null && (
+          <ScrollableList
+            virtualize
+            rowCount={filteredMessages.length}
+            rowRenderer={({ index }) => itemContent(index)}
+            rowKey={(index) => `${filteredMessages[index]?.id}`}
+            cacheId={`messages-${folder}`}
+          />
+        )}
       </div>
     </>
   );
