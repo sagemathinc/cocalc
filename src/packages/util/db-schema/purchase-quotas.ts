@@ -12,7 +12,7 @@ export type { Service };
 const SERVICE_CATEGORIES = ["money", "compute", "license", "ai"];
 type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
 
-interface Spec {
+export interface Spec {
   display: string; // what to show user to describe this service
   noSet?: boolean; // if true, then no spend limits are set for this.
   color: string;

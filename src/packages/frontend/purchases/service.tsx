@@ -5,10 +5,15 @@ Show tag for each service
 */
 
 import { Tag, Tooltip } from "antd";
-import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { AutoBalanceModal } from "./auto-balance";
 import { useState } from "react";
+
 import Next from "@cocalc/frontend/components/next";
+import {
+  QUOTA_SPEC,
+  Service,
+  Spec,
+} from "@cocalc/util/db-schema/purchase-quotas";
+import { AutoBalanceModal } from "./auto-balance";
 
 export default function ServiceTag({
   service,
@@ -20,7 +25,15 @@ export default function ServiceTag({
   const [showAutoCreditModal, setShowAutoCreditModal] =
     useState<boolean>(false);
 
-  const spec = QUOTA_SPEC[service];
+  // safeguard for https://github.com/sagemathinc/cocalc/issues/8074
+  const spec = QUOTA_SPEC[service] satisfies Spec as Spec | null;
+
+  if (spec == null) {
+    console.warn(
+      `ServiceTag: service=${service} has no known Spec for the quota.`,
+    );
+  }
+
   let tag = (
     <Tag
       style={{
@@ -48,10 +61,12 @@ export default function ServiceTag({
       )}
     </Tag>
   );
+
   if (service == "voucher") {
     tag = <Next href={"vouchers"}>{tag}</Next>;
   }
-  if (spec.description) {
+
+  if (spec?.description) {
     return <Tooltip title={spec.description}>{tag}</Tooltip>;
   } else {
     return tag;
