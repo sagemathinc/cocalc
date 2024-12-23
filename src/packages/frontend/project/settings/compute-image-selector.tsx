@@ -9,21 +9,23 @@ import { DownOutlined } from "@ant-design/icons";
 import { Button, Col, Dropdown, MenuProps, Modal, Row, Space } from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
+import { useIntl } from "react-intl";
 
 import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Gap,
+  HelpIcon,
   Icon,
   Loading,
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
-import { useIntl } from "react-intl";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -203,18 +205,22 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     return (
       <>
         <Button onClick={() => setShowDialog(true)} disabled={showDialog}>
-          Change
+          Change...
         </Button>
 
         <Modal
           open={showDialog}
-          title="Change Software Environment"
+          title={`${intl.formatMessage(labels.change)} ${intl.formatMessage(
+            labels.software_environment,
+          )}`}
           okText={intl.formatMessage({
             id: "project.settings.compute-image-selector.button.save-restart",
             defaultMessage: "Save and Restart",
           })}
           cancelText={<CancelText />}
-          onCancel={() => {}}
+          onCancel={() => {
+            setShowDialog(false);
+          }}
           onOk={() => {}}
         >
           <>
@@ -274,14 +280,12 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
                 name={SOFTWARE_ENVIRONMENT_ICON}
                 style={{ marginTop: "5px" }}
               />{" "}
-              {selected_title} {renderDialogButton()}
+              {selected_title}{" "}
+              <HelpIcon title={intl.formatMessage(labels.software_environment)}>
+                <Text strong>{selected_title}</Text>: {render_info(false)}
+              </HelpIcon>{" "}
+              {renderDialogButton()}
             </Space>
-          </Col>
-          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
-            {render_doubt()}
-          </Col>
-          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
-            {render_info(true)}
           </Col>
         </Row>
       );
