@@ -4,7 +4,8 @@ Codemirror integration helpers.
 
 import type { MarkerRange, Position } from "codemirror";
 import { cmp } from "@cocalc/util/misc";
-import { setMarkLocation } from "./comments";
+import { setMarkLocation, COLORS, MARK_OPTIONS } from "./comments";
+import { getLocation } from "./util";
 
 export function cmp_pos(a: Position, b: Position) {
   const c = cmp(a.line, b.line);
@@ -104,4 +105,113 @@ export function initCommentCutPasteSupport(cm) {
       }
     }
   });
+}
+
+export function markToComment(mark) {
+  const id = mark.attributes!.style;
+  const done = !mark.css;
+  const loc = getLocation(mark)!;
+  return {
+    id,
+    done,
+    loc,
+  };
+}
+
+export interface DeltaComment {
+  id: string;
+  next?: string;
+  prev?: string;
+  delta: number;
+  length: number;
+  resolved?: boolean;
+}
+
+export function getComments(doc) {
+  const marks = doc
+    .getAllMarks()
+    .filter((mark) => mark.attributes?.style)
+    .map(markToComment);
+  const lines = doc.getValue().split("\n");
+  const comments: DeltaComment[] = [];
+  let offset = 0;
+  for (const { id, done: resolved, loc } of marks) {
+    const n = positionToLinear(lines, loc.from);
+    const m = positionToLinear(lines, loc.to);
+    const length = m - n;
+    const delta = n - offset;
+    offset = m;
+    if (comments.length > 0) {
+      comments[comments.length - 1].next = id;
+    }
+    comments.push({
+      id,
+      resolved,
+      delta,
+      length,
+      prev: comments[comments.length - 1]?.id,
+    });
+  }
+  return comments;
+}
+
+export function setComments(doc, comments) {
+  const byId: { [id: string]: DeltaComment } = {};
+  const heads = comments.filter((x) => {
+    byId[x.id] = x;
+    return !x.next;
+  });
+  for (const mark of doc
+    .getAllMarks()
+    .filter((mark) => mark.attributes?.style)) {
+    mark.clear();
+  }
+  if (heads.length == 0) {
+    // no marks -- nothing to do
+    return;
+  }
+  let head;
+  if (heads.length > 1) {
+    // have to select exactly one head. choose one that has something pointed to it.
+    const heads1 = heads.filter((head) => {
+      const n = comments.filter((y) => y.next == head.id).length;
+      return n > 0;
+    });
+    if (heads1.length > 0) {
+      head = heads1[0];
+    } else {
+      head = heads[0];
+    }
+  } else {
+    head = heads[0];
+  }
+  let node = head;
+  // this seen is just to prevent any possibility of an infinite loop, in case graph is has a loop...
+  const seen = new Set<string>();
+
+  // first find the root:
+  let root = node;
+  while (node != null && !seen.has(node?.id ?? "")) {
+    seen.add(node.id);
+    root = node;
+    node = byId[node.prev];
+  }
+
+  // now starting at the root mark everything.
+  const lines = doc.getValue().split("\n");
+  let start = 0;
+  seen.clear();
+  node = root;
+  while (node != null && !seen.has(node?.id ?? "")) {
+    start += node.delta;
+    const from = linearToPosition(lines, start);
+    const to = linearToPosition(lines, start + node.length);
+    start += node.length;
+    doc.markText(from, to, {
+      ...MARK_OPTIONS,
+      css: node.done ? "" : `background:${COLORS.comment}`,
+      attributes: { style: node.id },
+    });
+    node = byId[node.next];
+  }
 }

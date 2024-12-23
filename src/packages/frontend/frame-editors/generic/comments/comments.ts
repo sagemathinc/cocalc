@@ -12,15 +12,21 @@ import { getLocation } from "./util";
 import type { Comment, Location } from "./types";
 import DB from "./db";
 import { generate } from "randomstring";
+import {
+  getComments,
+  setComments,
+  markToComment,
+  type DeltaComment,
+} from "./codemirror";
 
 const DEBOUNCE_MS = 500;
 
-const COLORS = {
+export const COLORS = {
   selected: "#ffc00099",
   comment: "#fffd7b99",
 } as const;
 
-const MARK_OPTIONS = {
+export const MARK_OPTIONS = {
   shared: true,
   clearWhenEmpty: false,
   // inclusive right would be like bold in a rich text
@@ -244,7 +250,9 @@ export class Comments {
     return doc
       .getAllMarks()
       .filter((mark) => mark.attributes?.style)
-      .map((mark) => markToComment(mark, hash, time));
+      .map((mark) => {
+        return { ...markToComment(mark), hash, time };
+      });
   };
 
   private getCommentsMap = (): { [id: string]: Comment } => {
@@ -425,18 +433,21 @@ export class Comments {
       }
     }
   };
-}
 
-function markToComment(mark, hash?, time?) {
-  const id = mark.attributes!.style;
-  const done = !mark.css;
-  const loc = getLocation(mark)!;
-  return {
-    id,
-    time,
-    hash,
-    done,
-    loc,
+  getComments2 = (): DeltaComment[] | null => {
+    const doc = this.getDoc();
+    if (doc == null) {
+      return null;
+    }
+    return getComments(doc);
+  };
+
+  setComments2 = (comments: DeltaComment[]) => {
+    const doc = this.getDoc();
+    if (doc == null) {
+      throw Error("doc must be defined");
+    }
+    return setComments(doc, comments);
   };
 }
 
