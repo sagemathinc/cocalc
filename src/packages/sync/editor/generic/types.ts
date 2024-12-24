@@ -23,7 +23,7 @@ export interface Patch {
   sent?: Date; // when patch actually sent, which may be later than when made
   prev?: Date; // timestamp of previous patch sent from this session
   size: number; // size of the patch (by defn length of string representation)
-  heads?: number[]; // heads known by this client when patch was created
+  heads: number[]; // heads known by this client when patch was created
 }
 
 export interface Document {

@@ -10,6 +10,7 @@
 import { SortedPatchList } from "../sorted-patch-list";
 import { make_patch } from "../util";
 import { StringDocument } from "../../string/doc";
+import type { Patch } from "../types";
 
 function from_str(s: string): StringDocument {
   return new StringDocument(s);
@@ -82,7 +83,9 @@ describe("Test empty sorted patch list -- call all public methods", () => {
 
   it("close it, and check that it is seriously broken", () => {
     patches.close();
-    expect(() => patches.versions()).toThrow("Cannot read properties of undefined (reading 'map')");
+    expect(() => patches.versions()).toThrow(
+      "Cannot read properties of undefined (reading 'map')",
+    );
   });
 });
 
@@ -99,6 +102,7 @@ describe("Test sorted patch list with one patch", () => {
     patch: make_patch("", "CoCalc"),
     user_id: 0,
     size: JSON.stringify(make_patch("", "CoCalc")).length,
+    heads: [],
   };
   it("adds a patch", () => {
     patches.add([patch]);
@@ -154,7 +158,7 @@ describe("Test sorted patch list with several patches", () => {
     make_patch("CoCalc", "CoCalc -- Collaborative Calculation"),
     make_patch(
       "CoCalc -- Collaborative Calculation",
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     ),
   ];
 
@@ -179,7 +183,7 @@ describe("Test sorted patch list with several patches", () => {
       user_id: 0,
       size: JSON.stringify(w[2]).length,
     },
-  ];
+  ] as Patch[];
 
   it("adds the patches", () => {
     patches.add(v);
@@ -187,19 +191,19 @@ describe("Test sorted patch list with several patches", () => {
 
   it("gets the current value", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value again (will use a cache)", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value without cache", () => {
     expect(patches.value_no_cache().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
@@ -247,7 +251,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
     make_patch("SageMathCloud -- ", "CoCalc -- "),
     make_patch(
       "SageMathCloud -- ",
-      "SageMathCloud -- Collaborative Calculation"
+      "SageMathCloud -- Collaborative Calculation",
     ),
   ];
 
@@ -273,7 +277,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
       sent: new Date("2019-01-03T20:35"),
       size: JSON.stringify(w[1]).length,
     },
-  ];
+  ] as Patch[];
 
   it("adds some patches", () => {
     patches.add([v[0], v[2]]);
@@ -281,7 +285,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
 
   it("gets the current value", () => {
     expect(patches.value().to_str()).toBe(
-      "SageMathCloud -- Collaborative Calculation"
+      "SageMathCloud -- Collaborative Calculation",
     );
   });
 
@@ -299,13 +303,13 @@ describe("Test inserting missing patches (thus changing history)", () => {
 
   it("gets the current value again, which changes", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value without cache as double check", () => {
     expect(patches.value_no_cache().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 

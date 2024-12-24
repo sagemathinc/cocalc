@@ -8,7 +8,7 @@ Sorted list of patches applied to a starting string/object.
 */
 
 import { EventEmitter } from "events";
-import { isEqual } from "lodash";
+import { isEqual, sortedIndexOf } from "lodash";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
@@ -74,6 +74,8 @@ export class SortedPatchList extends EventEmitter {
     return new Date(t);
   };
 
+  // note: patches may be modified for backward compat by adding
+  // in the heads field.
   add = (patches: Patch[]): void => {
     if (patches.length === 0) {
       // nothing to do
@@ -124,6 +126,28 @@ export class SortedPatchList extends EventEmitter {
       delete this.versions_cache;
       this.patches = this.patches.concat(v);
       this.patches.sort(patch_cmp);
+      // NOTE: for backward compat, we modify the objects
+      // in v directly below, so subtly using the reference semantics
+      // of javascript here!
+    }
+
+    // Backward compatibility -- heads won't be set for older patches, so we
+    // fill it in by using prev if it is set, or the previous timestamp if prev
+    // is not set.
+    for (const patch of v) {
+      if (patch.heads == null) {
+        if (patch.prev != null) {
+          patch.heads = [patch.prev.valueOf()];
+          continue;
+        }
+        const v = this.versions();
+        const i = sortedIndexOf(v, patch.time);
+        if (i == 0) {
+          patch.heads = [];
+          continue;
+        }
+        patch.heads = [v[i - 1].valueOf()];
+      }
     }
   };
 
@@ -630,14 +654,27 @@ export class SortedPatchList extends EventEmitter {
   > new Date(1735049686724) == new Date(1735049686724)
   false
 
+  COMPLEXITY: I think the code below is O(n*log(n)) where n
+  is the number of patches in memory with timestamp >= the
+  last snapshot.  The number of patches after a snapshot is
+  bounded (by at most a few hundred), so "constant time".
+  This is done every time a patch is created, and creating a
+  patch has worse complexity.  So probably not a lot to
+  optimize here.   In practice, I made a patch list of size
+  about 200, the called heads 1000 times and it took 70ms.  So
+  each call takes less than a tenth of a millisecond, so 
+  acceptable!
   */
-  nonHeads = (): Set<number> => {
+
+  // All non-heads since the last snapshot.
+  private nonHeads = (): Set<number> => {
     const nonHeads = new Set<number>();
     if (this.patches.length === 0) {
       return nonHeads;
     }
+    const snapshot = this.newest_snapshot_time();
     for (const patch of this.patches) {
-      if (patch.heads != null) {
+      if (snapshot <= patch.time && patch.heads != null) {
         for (const time of patch.heads) {
           nonHeads.add(time);
         }
@@ -646,6 +683,7 @@ export class SortedPatchList extends EventEmitter {
     return nonHeads;
   };
 
+  // All current heads since the last snapshot.
   heads = (): number[] => {
     if (this.patches.length === 0) {
       return [];
