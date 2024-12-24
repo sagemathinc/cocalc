@@ -319,7 +319,7 @@ export class SyncDoc extends EventEmitter {
   until it is (however long, etc.).  If this fails, it closes
   this SyncDoc.
   */
-  private async init(): Promise<void> {
+  private init = async (): Promise<void> => {
     this.assert_not_closed("init");
     const log = this.dbg("init");
 
@@ -351,7 +351,7 @@ export class SyncDoc extends EventEmitter {
     this.set_state("ready");
     this.init_watch();
     this.emit_change(); // from nothing to something.
-  }
+  };
 
   // True if this client is responsible for managing
   // the state of this document with respect to
@@ -1661,6 +1661,8 @@ export class SyncDoc extends EventEmitter {
       // (optional) timestamp of previous patch sent
       // from this session
       prev: null,
+      // 0 or more heads at point when this patch was made
+      heads: null,
     };
     if (this.doctype.patch_format != null) {
       (query as any).format = this.doctype.patch_format;
@@ -2040,7 +2042,7 @@ export class SyncDoc extends EventEmitter {
     await this.patches_table.save();
   });
 
-  private next_patch_time(): Date {
+  private next_patch_time = (): Date => {
     let time = this.client.server_time();
     assertDefined(this.patch_list);
     const min_time = this.patch_list.newest_patch_time();
@@ -2053,9 +2055,9 @@ export class SyncDoc extends EventEmitter {
       this.users.length,
     );
     return time;
-  }
+  };
 
-  private commit_patch(time: Date, patch: XPatch): void {
+  private commit_patch = (time: Date, patch: XPatch): void => {
     this.assert_not_closed("commit_patch");
     const obj: any = {
       // version for database
@@ -2063,6 +2065,7 @@ export class SyncDoc extends EventEmitter {
       time,
       patch: JSON.stringify(patch),
       user_id: this.my_user_id,
+      heads: this.heads(),
     };
 
     this.my_patches[time.valueOf()] = obj;
@@ -2090,13 +2093,16 @@ export class SyncDoc extends EventEmitter {
       assertDefined(this.patch_list);
       this.patch_list.add([y]);
     }
-  }
+  };
 
   /* Create and store in the database a snapshot of the state
      of the string at the given point in time.  This should
      be the time of an existing patch.
   */
-  private async snapshot(time: Date, force: boolean = false): Promise<void> {
+  private snapshot = async (
+    time: Date,
+    force: boolean = false,
+  ): Promise<void> => {
     assertDefined(this.patch_list);
     const x = this.patch_list.patch(time);
     if (x == null) {
@@ -2198,11 +2204,11 @@ export class SyncDoc extends EventEmitter {
       last_snapshot: time,
     });
     this.last_snapshot = time;
-  }
+  };
 
   // Have a snapshot every this.snapshot_interval patches, except
   // for the very last interval.
-  private async snapshot_if_necessary(): Promise<void> {
+  private snapshot_if_necessary = async (): Promise<void> => {
     if (this.get_state() !== "ready") return;
     const dbg = this.dbg("snapshot_if_necessary");
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
@@ -2219,7 +2225,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("no need to make a snapshot yet");
     }
-  }
+  };
 
   /*- x - patch object
     - time0, time1: optional range of times
@@ -2227,12 +2233,12 @@ export class SyncDoc extends EventEmitter {
     - patch: if given will be used as an actual patch
         instead of x.patch, which is a JSON string.
   */
-  private process_patch(
+  private process_patch = (
     x: Map<string, any>,
     time0?: Date,
     time1?: Date,
     patch?: any,
-  ): Patch | undefined {
+  ): Patch | undefined => {
     let t = x.get("time");
     if (!is_date(t)) {
       // who knows what is in the database...
@@ -2293,18 +2299,22 @@ export class SyncDoc extends EventEmitter {
     if (prev != null) {
       obj.prev = prev;
     }
+    const heads = x.get("heads");
+    if (heads != null) {
+      obj.heads = heads.toJS();
+    }
     if (snapshot != null) {
       obj.snapshot = snapshot;
     }
     return obj;
-  }
+  };
 
   /* Return all patches with time such that
             time0 <= time <= time1;
      If time0 undefined then sets time0 equal to time of last_snapshot.
      If time1 undefined treated as +oo.
   */
-  private get_patches(time0?: Date, time1?: Date): Patch[] {
+  private get_patches = (time0?: Date, time1?: Date): Patch[] => {
     this.assert_table_is_ready("patches");
 
     if (time0 == null) {
@@ -2327,7 +2337,7 @@ export class SyncDoc extends EventEmitter {
     });
     v.sort(patch_cmp);
     return v;
-  }
+  };
 
   public has_full_history = (): boolean => {
     return !this.last_snapshot || this.load_full_history_done;
@@ -3336,5 +3346,12 @@ export class SyncDoc extends EventEmitter {
 
   newest_patch_time = () => {
     return this.patch_list?.newest_patch_time();
+  };
+
+  heads = () : number[] => {
+    if (this.patch_list == null) {
+      throw Error("patch_list not defined");
+    }
+    return this.patch_list?.heads();
   };
 }
