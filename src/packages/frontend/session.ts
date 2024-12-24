@@ -287,7 +287,6 @@ function restoreSessionState(redux: AppRedux, state: State[]): void {
         continue;
       }
       if (paths.length > 0) {
-        console.log({ paths });
         const project = redux.getProjectActions(project_id);
         for (const path of paths) {
           try {
