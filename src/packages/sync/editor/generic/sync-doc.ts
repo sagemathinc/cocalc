@@ -648,23 +648,23 @@ export class SyncDoc extends EventEmitter {
     this.emit(state);
   }
 
-  public get_state = (): State => {
+  get_state = (): State => {
     return this.state;
   };
 
-  public get_project_id = (): string => {
+  get_project_id = (): string => {
     return this.project_id;
   };
 
-  public get_path = (): string => {
+  get_path = (): string => {
     return this.path;
   };
 
-  public get_string_id = (): string => {
+  get_string_id = (): string => {
     return this.string_id;
   };
 
-  public get_my_user_id = (): number => {
+  get_my_user_id = (): number => {
     return this.my_user_id != null ? this.my_user_id : 0;
   };
 
@@ -672,7 +672,7 @@ export class SyncDoc extends EventEmitter {
   // with state in the project (e.g., jupyter).  Basically this
   // is a special websocket channel just for this syncdoc, which
   // uses the cursors table.
-  public sendMessageToProject = async (data) => {
+  sendMessageToProject = async (data) => {
     const send = this.patches_table?.sendMessageToProject;
     if (send == null || this.patches_table.channel == null) {
       throw Error("sending messages to project not available");
@@ -690,7 +690,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public set_doc = (doc: Document, exit_undo_mode: boolean = true): void => {
+  set_doc = (doc: Document, exit_undo_mode: boolean = true): void => {
     if (doc.is_equal(this.doc)) {
       // no change.
       return;
@@ -706,25 +706,25 @@ export class SyncDoc extends EventEmitter {
 
   // Convenience function to avoid having to do
   // get_doc and set_doc constantly.
-  public set = (x: any): void => {
+  set = (x: any): void => {
     this.set_doc(this.doc.set(x));
   };
 
-  public delete = (x?: any): void => {
+  delete = (x?: any): void => {
     this.set_doc(this.doc.delete(x));
   };
 
-  public get = (x?: any): any => {
+  get = (x?: any): any => {
     return this.doc.get(x);
   };
 
-  public get_one(x?: any): any {
+  get_one(x?: any): any {
     return this.doc.get_one(x);
   }
 
   // Return underlying document, or undefined if document
   // hasn't been set yet.
-  public get_doc = (): Document => {
+  get_doc = (): Document => {
     if (this.doc == null) {
       throw Error("doc must be set");
     }
@@ -732,28 +732,28 @@ export class SyncDoc extends EventEmitter {
   };
 
   // Set this doc from its string representation.
-  public from_str = (value: string): void => {
+  from_str = (value: string): void => {
     // console.log(`sync-doc.from_str("${value}")`);
     this.doc = this._from_str(value);
   };
 
   // Return string representation of this doc,
   // or exception if not yet ready.
-  public to_str = (): string => {
+  to_str = (): string => {
     if (this.doc == null) {
       throw Error("doc must be set");
     }
     return this.doc.to_str();
   };
 
-  public count = (): number => {
+  count = (): number => {
     return this.doc.count();
   };
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
-  public version = (time?: Date): Document => {
+  version = (time?: Date): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value(time);
@@ -762,7 +762,7 @@ export class SyncDoc extends EventEmitter {
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
-  public version_without = (times: Date[]): Document => {
+  version_without = (times: Date[]): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value(undefined, undefined, times);
@@ -772,7 +772,7 @@ export class SyncDoc extends EventEmitter {
   // There doesn't have to be a patch at exactly that point in
   // time -- if there isn't it just uses the patch before that
   // point in time.
-  public revert = (time: Date): void => {
+  revert = (time: Date): void => {
     this.set_doc(this.version(time));
   };
 
@@ -800,14 +800,14 @@ export class SyncDoc extends EventEmitter {
 
   Doing any set_doc explicitly exits undo mode automatically.
   */
-  public undo = (): Document => {
+  undo = (): Document => {
     const prev = this._undo();
     this.set_doc(prev, false);
     this.commit();
     return prev;
   };
 
-  public redo = (): Document => {
+  redo = (): Document => {
     const next = this._redo();
     this.set_doc(next, false);
     this.commit();
@@ -884,11 +884,11 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public in_undo_mode = (): boolean => {
+  in_undo_mode = (): boolean => {
     return this.undo_state != null;
   };
 
-  public exit_undo_mode = (): void => {
+  exit_undo_mode = (): void => {
     this.undo_state = undefined;
   };
 
@@ -943,7 +943,7 @@ export class SyncDoc extends EventEmitter {
 
   // account_id of the user who made the edit at
   // the given point in time.
-  public account_id = (time: Date): string => {
+  account_id = (time: Date): string => {
     this.assert_is_ready("account_id");
     return this.users[this.user_id(time)];
   };
@@ -953,7 +953,7 @@ export class SyncDoc extends EventEmitter {
      sent is approximately the timestamp time.  Only defined
      when there is a significant difference, due to editing
      when offline! */
-  public time_sent = (time: Date): Date | undefined => {
+  time_sent = (time: Date): Date | undefined => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.time_sent(time);
@@ -961,7 +961,7 @@ export class SyncDoc extends EventEmitter {
 
   // Integer index of user who made the edit at given
   // point in time.
-  public user_id = (time: Date): number => {
+  user_id = (time: Date): number => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.user_id(time);
@@ -1003,7 +1003,7 @@ export class SyncDoc extends EventEmitter {
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
-  public versions = (): Date[] => {
+  versions = (): Date[] => {
     this.assert_table_is_ready("patches");
     const v: Date[] = [];
     const s: Map<string, any> | undefined = this.patches_table.get();
@@ -1022,13 +1022,13 @@ export class SyncDoc extends EventEmitter {
      possibly much older versions than returned by this.versions(), in
      case the full history has been loaded.  The list of timestamps
      is sorted from oldest to newest. */
-  public all_versions = (): Date[] => {
+  all_versions = (): Date[] => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.versions();
   };
 
-  public last_changed = (): Date => {
+  last_changed = (): Date => {
     const v = this.versions();
     if (v.length > 0) {
       return v[v.length - 1];
@@ -1048,7 +1048,7 @@ export class SyncDoc extends EventEmitter {
 
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
-  public close = reuseInFlight(async () => {
+  close = reuseInFlight(async () => {
     if (this.state == "closed") {
       return;
     }
@@ -1481,13 +1481,13 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public assert_is_ready = (desc: string): void => {
+  assert_is_ready = (desc: string): void => {
     if (this.state != "ready") {
       throw Error(`must be ready -- ${desc}`);
     }
   };
 
-  public wait_until_ready = async (): Promise<void> => {
+  wait_until_ready = async (): Promise<void> => {
     this.assert_not_closed("wait_until_ready");
     if (this.state !== ("ready" as State)) {
       // wait for a state change to ready.
@@ -1500,7 +1500,7 @@ export class SyncDoc extends EventEmitter {
      until it is defined, then calls wait.  Timeout only starts
      when patches_table is already initialized.
   */
-  public wait = async (until: Function, timeout: number = 30): Promise<any> => {
+  wait = async (until: Function, timeout: number = 30): Promise<any> => {
     await this.wait_until_ready();
     //console.trace("SYNC WAIT -- start...");
     const result = await wait({
@@ -1531,7 +1531,7 @@ export class SyncDoc extends EventEmitter {
      WORRY: Race condition where constructor might write stuff as
      it is being deleted?
   */
-  public delete_from_database = async (): Promise<void> => {
+  delete_from_database = async (): Promise<void> => {
     const queries: object[] = this.ephemeral
       ? []
       : [
@@ -1603,7 +1603,7 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  private async load_from_disk_if_newer(): Promise<boolean> {
+  private load_from_disk_if_newer = async (): Promise<boolean> => {
     const last_changed = this.last_changed();
     const firstLoad = this.versions().length == 0;
     const dbg = this.dbg("load_from_disk_if_newer");
@@ -1643,9 +1643,9 @@ export class SyncDoc extends EventEmitter {
     await this.set_initialized(error, is_read_only, size);
     dbg("done");
     return !!error;
-  }
+  };
 
-  private patch_table_query(cutoff?: Date) {
+  private patch_table_query = (cutoff?: Date) => {
     const query = {
       string_id: this.string_id,
       time: cutoff ? { ">=": cutoff } : null,
@@ -1668,9 +1668,9 @@ export class SyncDoc extends EventEmitter {
       (query as any).format = this.doctype.patch_format;
     }
     return query;
-  }
+  };
 
-  private async init_patch_list(): Promise<void> {
+  private init_patch_list = async (): Promise<void> => {
     this.assert_not_closed("init_patch_list - start");
     const dbg = this.dbg("init_patch_list");
     dbg();
@@ -1743,7 +1743,7 @@ export class SyncDoc extends EventEmitter {
           this.patches_table.save () =>
               this.check_for_timestamp_collision(t)
     */
-  }
+  };
 
   /*
     _check_for_timestamp_collision: (t) =>
@@ -1760,7 +1760,7 @@ export class SyncDoc extends EventEmitter {
             this._save_patch(new_time, JSON.parse(obj.patch))
     */
 
-  private async init_evaluator(): Promise<void> {
+  private init_evaluator = async (): Promise<void> => {
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext !== "sagews") {
@@ -1775,9 +1775,9 @@ export class SyncDoc extends EventEmitter {
     );
     await this.evaluator.init();
     dbg("done");
-  }
+  };
 
-  private async init_ipywidgets(): Promise<void> {
+  private init_ipywidgets = async (): Promise<void> => {
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext != "sage-jupyter2") {
@@ -1792,9 +1792,9 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-  }
+  };
 
-  private async init_cursors(): Promise<void> {
+  private init_cursors = async (): Promise<void> => {
     const dbg = this.dbg("init_cursors");
     if (!this.cursors) {
       dbg("done -- do not care about cursors for this syncdoc.");
@@ -1857,9 +1857,9 @@ export class SyncDoc extends EventEmitter {
     }
 
     dbg("done");
-  }
+  };
 
-  private handle_cursors_change(keys): void {
+  private handle_cursors_change = (keys): void => {
     if (this.state === "closed") {
       return;
     }
@@ -1883,7 +1883,7 @@ export class SyncDoc extends EventEmitter {
       }
       this.emit("cursor_activity", account_id);
     }
-  }
+  };
 
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
@@ -1965,7 +1965,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   // get settings object
-  public get_settings = (): Map<string, any> => {
+  get_settings = (): Map<string, any> => {
     this.assert_is_ready("get_settings");
     return this.syncstring_table_get_one().get("settings", Map());
   };
@@ -1978,7 +1978,7 @@ export class SyncDoc extends EventEmitter {
 
   Save any changes we have as a new patch.
   */
-  public save = reuseInFlight(async () => {
+  save = reuseInFlight(async () => {
     const dbg = this.dbg("save");
     dbg();
     if (this.client.is_deleted(this.path, this.project_id)) {
@@ -2097,7 +2097,8 @@ export class SyncDoc extends EventEmitter {
 
   /* Create and store in the database a snapshot of the state
      of the string at the given point in time.  This should
-     be the time of an existing patch.
+     be the time of an existing patch such that this.heads(time)
+     has length at most 1.
   */
   private snapshot = async (
     time: Date,
@@ -2107,6 +2108,9 @@ export class SyncDoc extends EventEmitter {
     const x = this.patch_list.patch(time);
     if (x == null) {
       throw Error(`no patch at time ${time}`);
+    }
+    if (this.heads(time).length >= 2) {
+      throw Error(`there is more than one HEAD at time ${time}`);
     }
     if (x.snapshot != null && !force) {
       // there is already a snapshot at this point in time,
@@ -2211,14 +2215,11 @@ export class SyncDoc extends EventEmitter {
   private snapshot_if_necessary = async (): Promise<void> => {
     if (this.get_state() !== "ready") return;
     const dbg = this.dbg("snapshot_if_necessary");
-    const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
+    const maxSize = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
-    dbg("check if we need to make a snapshot:", { interval, max_size });
+    dbg("check if we need to make a snapshot:", { interval, maxSize });
     assertDefined(this.patch_list);
-    const time = this.patch_list.time_of_unmade_periodic_snapshot(
-      interval,
-      max_size,
-    );
+    const time = this.patch_list.timeOfUnmadeSnapshot({ interval, maxSize });
     if (time != null) {
       dbg("yes, make a snapshot at time", time);
       await this.snapshot(time);
@@ -2339,11 +2340,11 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
-  public has_full_history = (): boolean => {
+  has_full_history = (): boolean => {
     return !this.last_snapshot || this.load_full_history_done;
   };
 
-  public load_full_history = async (): Promise<void> => {
+  load_full_history = async (): Promise<void> => {
     if (this.has_full_history() || this.ephemeral) {
       return;
     }
@@ -2366,12 +2367,12 @@ export class SyncDoc extends EventEmitter {
     return;
   };
 
-  public show_history = (opts = {}): void => {
+  show_history = (opts = {}): void => {
     assertDefined(this.patch_list);
     this.patch_list.show_history(opts);
   };
 
-  public set_snapshot_interval = async (n: number): Promise<void> => {
+  set_snapshot_interval = async (n: number): Promise<void> => {
     await this.set_syncstring_table({
       snapshot_interval: n,
     });
@@ -2382,7 +2383,7 @@ export class SyncDoc extends EventEmitter {
      are relatively old; if so, we mark them as such and
      also possibly recompute snapshots.
   */
-  private async handle_offline(data): Promise<void> {
+  private handle_offline = async (data): Promise<void> => {
     this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
@@ -2412,9 +2413,9 @@ export class SyncDoc extends EventEmitter {
         }
       }
     }
-  }
+  };
 
-  public get_last_save_to_disk_time = (): Date => {
+  get_last_save_to_disk_time = (): Date => {
     return this.last_save_to_disk_time;
   };
 
@@ -2768,12 +2769,12 @@ export class SyncDoc extends EventEmitter {
     await this.set_syncstring_table({ read_only });
   };
 
-  public is_read_only = (): boolean => {
+  is_read_only = (): boolean => {
     this.assert_table_is_ready("syncstring");
     return this.syncstring_table_get_one().get("read_only");
   };
 
-  public wait_until_read_only_known = async (): Promise<void> => {
+  wait_until_read_only_known = async (): Promise<void> => {
     await this.wait_until_ready();
     function read_only_defined(t: SyncTable): boolean {
       const x = t.get_one();
@@ -2792,7 +2793,7 @@ export class SyncDoc extends EventEmitter {
      for determining whether there are changes that haven't been
      commited to the database yet.  Returns *undefined* if
      initialization not even done yet. */
-  public has_unsaved_changes = (): boolean | undefined => {
+  has_unsaved_changes = (): boolean | undefined => {
     if (this.state !== "ready") {
       return;
     }
@@ -2812,7 +2813,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   // Returns hash of last version saved to disk (as far as we know).
-  public hash_of_saved_version = (): number | undefined => {
+  hash_of_saved_version = (): number | undefined => {
     if (this.state !== "ready") {
       return;
     }
@@ -2825,7 +2826,7 @@ export class SyncDoc extends EventEmitter {
      or undefined if the document isn't loaded yet.
      (TODO: write faster version of this for syncdb, which
      avoids converting to a string, which is a waste of time.) */
-  public hash_of_live_version = (): number | undefined => {
+  hash_of_live_version = (): number | undefined => {
     if (this.state !== "ready") {
       return;
     }
@@ -2838,7 +2839,7 @@ export class SyncDoc extends EventEmitter {
      written to disk; however, it does mean that it safe for
      the user to close their browser.
   */
-  public has_uncommitted_changes = (): boolean => {
+  has_uncommitted_changes = (): boolean => {
     if (this.state !== "ready") {
       return false;
     }
@@ -2850,7 +2851,7 @@ export class SyncDoc extends EventEmitter {
   // were changes and false otherwise.   This works
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
-  public commit = (emitChangeImmediately = false): boolean => {
+  commit = (emitChangeImmediately = false): boolean => {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
@@ -2878,7 +2879,7 @@ export class SyncDoc extends EventEmitter {
 
   /* Initiates a save of file to disk, then waits for the
      state to change. */
-  public save_to_disk = async (): Promise<void> => {
+  save_to_disk = async (): Promise<void> => {
     if (this.state != "ready") {
       // We just make save_to_disk a successful
       // no operation, if the document is either
@@ -2946,9 +2947,7 @@ export class SyncDoc extends EventEmitter {
 
   /* Export the (currently loaded) history of editing of this
      document to a simple JSON-able object. */
-  public export_history = (
-    options: HistoryExportOptions = {},
-  ): HistoryEntry[] => {
+  export_history = (options: HistoryExportOptions = {}): HistoryEntry[] => {
     this.assert_is_ready("export_history");
     const info = this.syncstring_table.get_one();
     if (info == null || !info.has("users")) {
@@ -3251,16 +3250,16 @@ export class SyncDoc extends EventEmitter {
      else in the codebase, so don't trust that it works.
   */
 
-  public disable_sync = (): void => {
+  disable_sync = (): void => {
     this.sync_is_disabled = true;
   };
 
-  public enable_sync = (): void => {
+  enable_sync = (): void => {
     this.sync_is_disabled = false;
     this.sync_remote_and_doc(true);
   };
 
-  public delay_sync = (timeout_ms = 2000): void => {
+  delay_sync = (timeout_ms = 2000): void => {
     clearTimeout(this.delay_sync_timer);
     this.disable_sync();
     this.delay_sync_timer = setTimeout(() => {
@@ -3348,10 +3347,10 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list?.newest_patch_time();
   };
 
-  heads = () : number[] => {
+  heads = (cutoff?): number[] => {
     if (this.patch_list == null) {
       throw Error("patch_list not defined");
     }
-    return this.patch_list?.heads();
+    return this.patch_list?.heads(cutoff);
   };
 }

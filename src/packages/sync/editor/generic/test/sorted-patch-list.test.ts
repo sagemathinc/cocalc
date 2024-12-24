@@ -66,7 +66,9 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("time of next snapshot (none since nothing yet)", () => {
-    expect(patches.time_of_unmade_periodic_snapshot(100, 9999)).toBe(undefined);
+    expect(patches.timeOfUnmadeSnapshot({ interval: 100, maxSize: 9999 })).toBe(
+      undefined,
+    );
   });
 
   it("time of snapshots (none of course)", () => {
