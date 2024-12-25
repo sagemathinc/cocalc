@@ -18,12 +18,16 @@ import { DeleteAllStudents } from "./delete-all-students";
 import EmptyTrash from "./empty-trash";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { TerminalCommandPanel } from "./terminal-command";
+import { ComputeServerActions } from "./compute-server";
+import type { CourseSettingsRecord } from "../store";
 
 interface Props {
   name: string;
   project_map: ProjectMap;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
+  project_id: string;
+  settings: CourseSettingsRecord;
 }
 
 export function ActionsPanel({
@@ -31,6 +35,8 @@ export function ActionsPanel({
   project_map,
   configuring_projects,
   reinviting_students,
+  project_id,
+  settings,
 }: Props) {
   const actions = useActions<CourseActions>({ name });
 
@@ -46,6 +52,12 @@ export function ActionsPanel({
           />
           <br />
           <TerminalCommandPanel name={name} />
+          <br />
+          <ComputeServerActions
+            actions={actions}
+            project_id={project_id}
+            settings={settings}
+          />
           <br />
           <ExportGrades actions={actions} />
         </Col>

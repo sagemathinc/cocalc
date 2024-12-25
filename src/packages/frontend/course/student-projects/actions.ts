@@ -25,6 +25,14 @@ import type { StudentRecord } from "../store";
 // for tasks that are "easy" to run in parallel, e.g. starting projects
 export const MAX_PARALLEL_TASKS = 30;
 
+type ComputeServerAction =
+  | "start"
+  | "stop"
+  | "create"
+  | "delete"
+  | "deprovision"
+  | "transfer-to-students";
+
 export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
   private course_actions: CourseActions;
@@ -939,5 +947,13 @@ export class StudentProjectsActions {
           .remove_collaborator(shared_id, account_id);
       }
     }
+  };
+
+  actionAllComputeServers = (action: ComputeServerAction) => {
+    console.log("actionAllComputeServers", { action });
+  };
+
+  actionComputeServer = (action: ComputeServerAction, student_id: string) => {
+    console.log("actionComputeServers", { action, student_id });
   };
 }

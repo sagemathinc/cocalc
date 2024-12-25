@@ -23,7 +23,7 @@ import {
   useRedux,
 } from "@cocalc/frontend/app-framework";
 
-import { Gap, Icon, Paragraph } from "@cocalc/frontend/components";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { course, labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
@@ -51,7 +51,11 @@ export function TerminalCommandPanel({ name }: Props) {
         onClick={() => run_terminal_command()}
         disabled={running}
       >
-        <Icon name={running ? "cocalc-ring" : "play"} spin={running} /> <Gap />{" "}
+        <Icon
+          name={running ? "cocalc-ring" : "play"}
+          spin={running}
+          style={{ marginRight: "15px" }}
+        />
         Run
       </Button>
     );
@@ -90,7 +94,7 @@ export function TerminalCommandPanel({ name }: Props) {
         <InputNumber
           value={timeout}
           onChange={(t) => setTimeout(t ?? null)}
-          min={0}
+          min={1}
           max={30}
           addonAfter={"minute timeout"}
         />

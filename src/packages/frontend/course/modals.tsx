@@ -31,6 +31,7 @@ import {
   TitleAndDescription,
   UpgradeConfiguration,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
+import { ComputeServerActions } from "@cocalc/frontend/course/configuration/compute-server";
 import EmptyTrash from "@cocalc/frontend/course/configuration/empty-trash";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
@@ -102,7 +103,7 @@ export default function Modals(props: Props) {
 }
 
 function getModal(modal: string): {
-  Body: (props) => JSX.Element;
+  Body: (props) => JSX.Element | null;
   title?: string | IntlMessage;
   icon?: IconName;
 } {
@@ -179,6 +180,8 @@ function getModal(modal: string): {
       return { Body: ConfigureSoftwareEnvironment };
     case "compute-server":
       return { Body: ComputeServer };
+    case "compute-server-actions":
+      return { Body: ComputeServerActions };
     case "configuration-copying":
       return { Body: ConfigurationCopying };
 

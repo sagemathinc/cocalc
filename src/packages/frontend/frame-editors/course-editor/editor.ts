@@ -76,10 +76,11 @@ const COURSE_MENUS = {
         "course-reconfigure-all-projects",
       ],
       exportGrades: ["course-export-grades"],
-      constrolStudents: [
+      controlStudents: [
         "course-resend-invites",
         "course-copy-missing-handouts-and-assignments",
       ],
+      computeServer: ["course-compute-server-actions"],
       courseDelete: [
         "course-empty-trash",
         "course-delete-student-projects",

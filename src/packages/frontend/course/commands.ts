@@ -178,6 +178,16 @@ export const COMMANDS: { [name: string]: Command } = {
       actions.setModal("compute-server");
     },
   },
+  "compute-server-actions": {
+    icon: "server",
+    label: "Compute Server Actions",
+    button: "Compute",
+    title: "Start, stop or run commands on all compute all servers",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("compute-server-actions");
+    },
+  },
   "software-environment": {
     icon: "laptop",
     label: labels.software_environment,
