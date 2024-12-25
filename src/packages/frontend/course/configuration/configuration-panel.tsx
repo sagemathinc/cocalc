@@ -31,6 +31,7 @@ import { CustomizeStudentProjectFunctionality } from "./customize-student-projec
 import { DatastoreConfig } from "./datastore-config";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
 import { EnvironmentVariablesConfig } from "./envvars-config";
+import ComputeServerConfig from "./compute-server";
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
 import StudentPay from "./student-pay";
@@ -83,6 +84,12 @@ export function ConfigurationPanel({
           />
           <br />
           <Nbgrader name={name} />
+          <br />
+          <ComputeServer
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
         </Col>
         <Col md={12} style={{ padding: "15px" }}>
           <CollaboratorPolicy settings={settings} actions={actions} />
@@ -371,6 +378,27 @@ export function EnvVariables({
     <EnvironmentVariablesConfig
       actions={actions.configuration}
       envvars={settings.get("envvars")}
+      project_id={project_id}
+      close={close}
+    />
+  );
+}
+
+export function ComputeServer({
+  settings,
+  actions,
+  project_id,
+  close,
+}: {
+  settings;
+  actions;
+  project_id;
+  close?;
+}) {
+  return (
+    <ComputeServerConfig
+      actions={actions.configuration}
+      settings={settings}
       project_id={project_id}
       close={close}
     />

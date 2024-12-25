@@ -57,6 +57,7 @@ const COURSE_MENUS = {
         "course-restrict-student-projects",
       ],
       nbgraderConfig: ["course-nbgrader"],
+      computeServerConfig: ["course-compute-server"],
       environmentConfig: [
         "course-software-environment",
         "course-network-file-systems",

@@ -168,6 +168,16 @@ export const COMMANDS: { [name: string]: Command } = {
       actions.setModal("nbgrader");
     },
   },
+  "compute-server": {
+    icon: "server",
+    label: "Configure Compute Server",
+    button: "Compute",
+    title: "Configure compute server for each student in course",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("compute-server");
+    },
+  },
   "software-environment": {
     icon: "laptop",
     label: labels.software_environment,

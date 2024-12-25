@@ -23,6 +23,7 @@ import ConfigurationCopying from "@cocalc/frontend/course/configuration/configur
 import {
   CollaboratorPolicy,
   ConfigureSoftwareEnvironment,
+  ComputeServer,
   EmailInvitation,
   EnvVariables,
   NetworkFilesystem,
@@ -86,7 +87,7 @@ export default function Modals(props: Props) {
           </>
         ) : undefined
       }
-      width={800}
+      width={900}
     >
       <br />
       <Body
@@ -176,6 +177,8 @@ function getModal(modal: string): {
       return { Body: UpgradeConfiguration };
     case "software-environment":
       return { Body: ConfigureSoftwareEnvironment };
+    case "compute-server":
+      return { Body: ComputeServer };
     case "configuration-copying":
       return { Body: ConfigurationCopying };
 
