@@ -391,7 +391,7 @@ export class CourseStore extends Store<CourseState> {
       if (users != null) {
         const name = users.get_name(student.get("account_id"));
         if (name != null) {
-          extra = ` (You call them "${student.has("first_name")} ${student.has(
+          extra = ` (You call them "${student.get("first_name")} ${student.get(
             "last_name",
           )}", but they call themselves "${name}".)`;
         }
