@@ -24,7 +24,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
-import { plural, unreachable } from "@cocalc/util/misc";
+import { auxFileToOriginal, plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -125,6 +125,9 @@ interface Props {
   // for the root of a folded thread, optionally give this number of a
   // more informative message to the user.
   numChildren?: number;
+
+  // highlighted if provided (when in non-edit mode)
+  searchWords?;
 }
 
 export default function Message({
@@ -150,6 +153,7 @@ export default function Message({
   costEstimate,
   selected,
   numChildren,
+  searchWords,
 }: Props) {
   const intl = useIntl();
 
@@ -623,7 +627,7 @@ export default function Message({
                     </Tooltip>
                   </Button>
                 </Tooltip>
-              )}{" "}
+              )}
               <Tooltip title="Select message. Copy URL to link to this message.">
                 <Button
                   onClick={() => {
@@ -641,6 +645,32 @@ export default function Message({
                   <Icon name="link" />
                 </Button>
               </Tooltip>
+              {message.get("comment") != null && (
+                <Tooltip title="Mark as resolved and hide discussion">
+                  <Button
+                    onClick={() => {
+                      const id = message.getIn(["comment", "id"]);
+                      if (id) {
+                        const actions = getEditorActions({
+                          project_id,
+                          path,
+                          message,
+                        });
+                        actions.comments.set({ id, done: true });
+                      }
+                    }}
+                    type={"text"}
+                    style={{
+                      float: "right",
+                      marginTop: "-8px",
+                      fontSize: "15px",
+                      color: is_viewers_message ? "white" : "#888",
+                    }}
+                  >
+                    <Icon name="check" />
+                  </Button>
+                </Tooltip>
+              )}
             </span>
           )}
           {!isEditing && (
@@ -649,6 +679,7 @@ export default function Message({
               value={value}
               className={message_class}
               selectedHashtags={selectedHashtags}
+              searchWords={searchWords}
               toggleHashtag={
                 selectedHashtags != null && actions != null
                   ? (tag) =>
@@ -1037,7 +1068,20 @@ export default function Message({
   }
 
   return (
-    <Row style={getStyle()}>
+    <Row
+      style={getStyle()}
+      onClick={
+        message.get("comment") && path && project_id
+          ? () => {
+              const id = message.getIn(["comment", "id"]);
+              if (id) {
+                const actions = getEditorActions({ project_id, path, message });
+                actions.selectComment(id);
+              }
+            }
+          : undefined
+      }
+    >
       {renderCols()}
       {renderFoldedRow()}
       {renderReplyRow()}
@@ -1052,4 +1096,13 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+// If this is a side chat message, this gets the main editor that this
+// is next to, or possibly a different file in case of comments and
+// multifile editing.
+function getEditorActions({ project_id, path, message }) {
+  const commentPath = message.getIn(["comment", "path"]);
+  const origPath = auxFileToOriginal(path);
+  return redux.getEditorActions(project_id, commentPath ?? origPath);
 }

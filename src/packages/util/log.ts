@@ -7,6 +7,9 @@ declare var window;
 
 import { RUNNING_IN_NODE, seconds2hms } from "./misc";
 
+// set to true if there is a mystery console.log and you want to figure out where it came from.
+const TRACE = false;
+
 let smc_logger_timestamp, smc_logger_timestamp_last, smc_start_time;
 smc_logger_timestamp =
   smc_logger_timestamp_last =
@@ -25,11 +28,12 @@ export function log(..._args): void {
   // support for string interpolation for the actual console.log
   const [msg, ...args] = Array.from(Array.prototype.slice.call(arguments));
   let prompt = `[${t} Δ ${dt} - ${new Date().toISOString()}]`;
+  const f = TRACE ? (console as any).trace : (console as any).log_original;
   if (typeof msg == "string") {
     prompt = `${prompt} ${msg}`;
-    (console as any).log_original(prompt, ...Array.from(args));
+    f(prompt, ...Array.from(args));
   } else {
-    (console as any).log_original(prompt, msg, ...Array.from(args));
+    f(prompt, msg, ...Array.from(args));
   }
   smc_logger_timestamp_last = smc_logger_timestamp;
 }

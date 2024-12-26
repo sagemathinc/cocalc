@@ -65,7 +65,7 @@ describe("test doing a 3-way merge", () => {
     const merge = three_way_merge({ base, local, remote });
     // Merging captures both changes.
     expect(merge).toBe(
-      "CoCalc is software for collaborative calculation in the cloud."
+      "CoCalc is software for collaborative calculation in the cloud.",
     );
   });
 });
@@ -76,18 +76,21 @@ describe("Test comparison of patch log entries (compares time and user)", () => 
     patch: [],
     user_id: 0,
     size: 2,
+    heads: [],
   };
   const p1 = {
     time: new Date("2019-01-01T22:15:40Z"),
     patch: [],
     user_id: 1,
     size: 2,
+    heads: [],
   };
   const p2 = {
     time: new Date("2019-01-01T22:15:31.539Z"),
     patch: [],
     user_id: 1,
     size: 2,
+    heads: [],
   };
 
   it("compares some patch log entries", () => {

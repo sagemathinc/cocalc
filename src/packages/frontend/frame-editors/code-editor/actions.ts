@@ -19,7 +19,6 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
-
 import type { TourProps } from "antd";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -110,6 +109,8 @@ import {
   chat,
   getSideChatActions,
 } from "@cocalc/frontend/frame-editors/generic/chat";
+import type { ChatActions } from "@cocalc/frontend/chat/actions";
+import { Comments } from "@cocalc/frontend/frame-editors/generic/comments";
 
 interface gutterMarkerParams {
   line: number;
@@ -160,6 +161,8 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  // set of id's of frames with an active selection to enable some comment ui
+  comment_selection?: iSet<string>;
 }
 
 export class Actions<
@@ -204,6 +207,8 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+
+  public comments: Comments;
 
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
@@ -382,6 +387,8 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
+
+      this.initComments();
     });
 
     this._syncstring.on("before-change", () =>
@@ -1420,6 +1427,8 @@ export class Actions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+
+    this.comments?.update();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1448,9 +1457,9 @@ export class Actions<
   }
 
   // Get the underlying codemirror doc that editors are using.
-  _get_doc(): CodeMirror.Doc {
+  _get_doc = (): CodeMirror.Doc => {
     return cm_doc_cache.get_doc(this.project_id, this.path);
-  }
+  };
 
   _recent_cm(): CodeMirror.Editor | undefined {
     if (this._state === "closed") return;
@@ -3097,18 +3106,141 @@ export class Actions<
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
       // open side chat
-      this.redux
-        .getProjectActions(this.project_id)
-        .open_chat({ path: this.path });
-      this.show_focused_frame_of_type(chat.type);
+      const actions = await this.getSideChatActions();
+      actions.scrollToDate(fragmentId.chat);
       for (const d of [1, 10, 50, 500, 1000]) {
-        const actions = getSideChatActions({
-          project_id: this.project_id,
-          path: this.path,
-        });
-        actions?.scrollToDate(fragmentId.chat);
         await delay(d);
       }
     }
   }
+
+  getSideChatActions = async (): Promise<ChatActions> => {
+    // open side chat, then get the actions
+    this.redux
+      .getProjectActions(this.project_id)
+      .open_chat({ path: this.path });
+    this.show_focused_frame_of_type(chat.type);
+    // the show focused frame causes side chat to
+    // appear and actions be created; it's fast, but
+    // I think not guaranteed to be instant, hence
+    // this ugly code:
+    let d = 25;
+    for (let i = 0; i < 30; i++) {
+      await delay(0);
+      const a = getSideChatActions({
+        project_id: this.project_id,
+        path: this.path,
+      });
+      if (a?.syncdb != null) {
+        if (a.syncdb.get_state() != "ready") {
+          await once(a.syncdb, "state");
+        }
+        if (a.syncdb.get_state() != "ready") {
+          throw Error("failed to open side chat");
+        }
+        return a;
+      }
+      d = Math.min(d * 1.2, 250);
+      await delay(d);
+    }
+    throw Error(`bug -- error creating side chat actions for '${this.path}'`);
+  };
+
+  getComments = () => {
+    if (this.comments == null) {
+      this.initComments();
+    }
+    return this.comments!;
+  };
+
+  initComments = () => {
+    this.comments = new Comments({
+      getDoc: () => {
+        try {
+          return this._get_doc();
+        } catch (_) {
+          return null;
+        }
+      },
+      setSyncDocToLive: () => {
+        this.set_syncstring_to_codemirror();
+      },
+      path: this.path,
+      project_id: this.project_id,
+      syncdoc: this._syncstring,
+    });
+  };
+
+  // add a comment to the document in the given frame (or the focused one)
+  // unless there is no selection, in which case no-op.  Returns id of the
+  // comment if created or null if not.
+  addComment = async (frameId?: string): Promise<string | null> => {
+    const cm = this._get_cm(frameId);
+    if (cm == null) {
+      return null;
+    }
+    const doc = cm.getDoc();
+    for (const c of doc.listSelections()) {
+      if (c.anchor.ch != c.head.ch || c.anchor.line != c.head.line) {
+        let from = getPos(c.anchor);
+        let to = getPos(c.head);
+        if (to.line < from.line || (to.line == from.line && to.ch < from.ch)) {
+          [from, to] = [to, from];
+        }
+        const loc = { from, to };
+        const actions =
+          this.get_code_editor(frameId ?? "")?.get_actions() ?? this;
+        const id = await actions.getComments().create({ loc });
+        cm.setCursor(loc.from);
+        cm.refresh();
+        return id;
+      }
+    }
+    return null;
+  };
+
+  selectComment = async (id: string) => {
+    const comments = await this.getComments();
+    const comment = await comments.get_one(id);
+    if (comment == null) {
+      return;
+    }
+    const frameId = this.show_recently_focused_frame_of_type("cm");
+    const cm = this._get_cm(frameId);
+    if (cm == null) {
+      return;
+    }
+    cm.setCursor(comment.loc.from);
+    cm.scrollIntoView(comment.loc.from);
+    comments.select(id);
+  };
+
+  // when user selects text, this gets updated so UI can provide
+  // some elements in **response** to user selecting a range of
+  // text.  This is NOT a way to set the selection directly from
+  // outside -- it's how the user-selected selection gets reported.
+  // See addComment above.
+  setCommentSelection = debounce(
+    (id: string, enabled: boolean) => {
+      let comment_selection: any = this.store.get("comment_selection");
+      const cur = comment_selection?.has(id);
+      if (enabled == !!cur) {
+        return;
+      }
+      if (comment_selection == null) {
+        comment_selection = iSet([id]);
+      } else if (enabled) {
+        comment_selection = comment_selection.add(id);
+      } else {
+        comment_selection = comment_selection.delete(id);
+      }
+      this.setState({ comment_selection });
+    },
+    200,
+    { leading: true, trailing: true },
+  );
+}
+
+function getPos({ line, ch }) {
+  return { line, ch };
 }

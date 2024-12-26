@@ -992,7 +992,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         }}
       >
         {!hidePath && (
-          <Path is_current={is_current} path={path} project_id={project_id} />
+          <Path
+            is_current={is_current}
+            path={path}
+            project_id={project_id}
+          />
         )}
         <EditBar
           Search={search.Search}

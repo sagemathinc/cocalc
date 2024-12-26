@@ -311,7 +311,12 @@ Table({
     },
     prev: {
       type: "timestamp",
-      desc: "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied.",
+      desc: "timestamp of previous patch that this user sent from this session",
+    },
+    heads: {
+      type: "array",
+      pg_type: "bigint[]",
+      desc: "timestamps of heads when this patch was made. It's an array due to merges.  Note that bigint (8 bytes) is big enough for this, but integer is NOT.",
     },
     format: {
       type: "integer",
@@ -332,6 +337,7 @@ Table({
           snapshot: null,
           sent: null,
           prev: null,
+          heads: null,
           format: null,
         },
         check_hook(db, obj, account_id, project_id, cb) {
@@ -353,6 +359,7 @@ Table({
           snapshot: true,
           sent: true,
           prev: true,
+          heads: true,
           format: true,
         },
         required_fields: {

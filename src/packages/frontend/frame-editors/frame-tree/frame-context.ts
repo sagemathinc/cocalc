@@ -22,6 +22,7 @@ export interface IFrameContext<T = Actions> {
   project_id: string;
   path: string;
   actions: T;
+  ambientActions;
   desc: Map<string, any>; // frame tree description for this particular frame, e.g., things like scroll, font size, etc.
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
   isVisible: boolean; // true if the entire editor tab that contains this frame is visible.
@@ -34,6 +35,7 @@ export const defaultFrameContext = {
   project_id: "",
   path: "",
   actions: {} as unknown as Actions, // why is there a default context... we always set it?
+  ambientActions: {} as unknown as Actions,
   desc: Map<string, any>(),
   isFocused: false,
   isVisible: false,

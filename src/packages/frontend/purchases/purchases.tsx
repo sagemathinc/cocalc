@@ -716,7 +716,6 @@ function DetailedPurchaseTable({
           admin={admin}
           purchase={current}
           onClose={() => {
-            console.log("calling on close and clearing all fragments");
             redux.getActions("account").setFragment(undefined);
             Fragment.clear();
             // have to setCurrent *after* the above stuff happens,

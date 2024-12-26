@@ -30,6 +30,7 @@ import { getSelectedHashtagsSearch, newest_content } from "./utils";
 import { getRootMessage, getThreadRootDate } from "./utils";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import { filterMessages } from "./filter-messages";
+import { search_split } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -39,7 +40,7 @@ interface Props {
   setLastVisible?: (x: Date | null) => void;
   fontSize?: number;
   actions: ChatActions;
-  search;
+  search: string;
   filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
@@ -76,14 +77,17 @@ export function ChatLog({
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
+
   const {
     dates: sortedDates,
     numFolded,
     numChildren,
+    searchWords,
   } = useMemo<{
     dates: string[];
     numFolded: number;
     numChildren;
+    searchWords;
   }>(() => {
     const { dates, numFolded, numChildren } = getSortedDates(
       messages,
@@ -101,7 +105,12 @@ export function ChatLog({
           : new Date(parseFloat(dates[dates.length - 1])),
       );
     }, 1);
-    return { dates, numFolded, numChildren };
+    return {
+      dates,
+      numFolded,
+      numChildren,
+      searchWords: search ? search_split(search) : undefined,
+    };
   }, [messages, search, project_id, path, filterRecentH]);
 
   useEffect(() => {
@@ -242,6 +251,7 @@ export function ChatLog({
           mode,
           selectedDate,
           numChildren,
+          searchWords,
         }}
       />
       <Composing
@@ -485,6 +495,7 @@ export function MessageList({
   mode,
   selectedDate,
   numChildren,
+  searchWords,
 }: {
   messages;
   account_id;
@@ -502,6 +513,7 @@ export function MessageList({
   manualScrollRef?;
   selectedDate?: string;
   numChildren?;
+  searchWords?;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -589,6 +601,7 @@ export function MessageList({
                   messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
                 costEstimate={costEstimate}
+                searchWords={searchWords}
               />
             </DivTempHeight>
           </div>

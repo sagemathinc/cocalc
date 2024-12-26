@@ -36,6 +36,7 @@ import { Actions } from "./actions";
 import { EditorState } from "../frame-tree/types";
 import { Path } from "../frame-tree/path";
 import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
+import { initCommentCutPasteSupport } from "@cocalc/frontend/frame-editors/generic/comments/codemirror";
 
 const STYLE = {
   width: "100%",
@@ -69,15 +70,11 @@ export interface Props {
 
 export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   const [has_cm, set_has_cm] = useState<boolean>(false);
-
   const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
-  const propsRef = useRef<Props>(props);
-  propsRef.current = props;
   const styleActiveLineRef = useRef<boolean>(false);
   const textareaRef = useRef<any>(null);
   const divRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
-
   function editor_actions(): Actions | undefined {
     if (props.is_subframe && props.actions != null) {
       // in this case props.actions is the frame tree actions, not the actions for the particular file.
@@ -286,7 +283,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     const foldKey = `${props.path}\\${props.id}`;
     const saveFoldState = () => {
       if (cmRef.current != null) {
-        saveFold(cmRef.current,foldKey);
+        saveFold(cmRef.current, foldKey);
       }
     };
     cmRef.current.on("fold" as any, saveFoldState);
@@ -330,6 +327,8 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       SAVE_DEBOUNCE_MS,
     );
 
+    initCommentCutPasteSupport(cm);
+
     cm.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
@@ -369,10 +368,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     });
 
     cm.on("cursorActivity", (cm) => {
-      if (!propsRef.current.is_current) {
-        // not in focus, so any cursor movement is not to be broadcast.
-        return;
-      }
       // side_effect is whether or not the cursor move is being
       // caused by an  external setValueNoJump, so just a side
       // effect of something another user did.
@@ -381,13 +376,28 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         // cursor movement is a side effect of upstream change, so ignore.
         return;
       }
+      let commentSelectionEnabled: boolean = false;
       const locs = cm
         .getDoc()
         .listSelections()
-        .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
+        .map((c) => {
+          if (
+            props.actions != null &&
+            commentSelectionEnabled == false &&
+            (c.anchor.ch != c.head.ch || c.anchor.line != c.head.line)
+          ) {
+            commentSelectionEnabled = true;
+          }
+          return { x: c.anchor.ch, y: c.anchor.line };
+        });
 
       const actions = editor_actions();
-      actions?.set_cursor_locs(locs);
+      if (actions != null) {
+        actions.set_cursor_locs(locs);
+      }
+      // For commentSelectionEnabled we want prop.actions, i.e., what controls
+      // the visible frame we're looking at, since this is used for UI.
+      props.actions?.setCommentSelection(props.id, commentSelectionEnabled);
       throttled_save_editor_state(cm);
     });
 
