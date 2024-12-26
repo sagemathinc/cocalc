@@ -8,7 +8,10 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import type { CopyConfigurationOptions, CopyConfigurationTargets } from "./configuration/configuration-copying";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -47,6 +50,10 @@ export interface SyncDBRecordSettings {
   copy_config_options?: CopyConfigurationOptions;
 }
 
+export interface ComputeServerConfig {
+  id: number;
+}
+
 // This is closely related to store.AssignmentRecord...
 
 export interface SyncDBRecordAssignment {
@@ -75,6 +82,7 @@ export interface SyncDBRecordAssignment {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordHandout {
@@ -88,6 +96,7 @@ export interface SyncDBRecordHandout {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordStudent {

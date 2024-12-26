@@ -36,6 +36,7 @@ import {
   AssignmentStatus,
   SiteLicenseStrategy,
   UpgradeGoal,
+  ComputeServerConfig,
 } from "./types";
 
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
@@ -116,6 +117,7 @@ export type AssignmentRecord = TypedMap<{
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
   nbgrader_score_ids?: { [ipynb: string]: string[] };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -127,6 +129,7 @@ export type HandoutRecord = TypedMap<{
   path: string;
   note: string;
   status: { [student_id: string]: LastCopyInfo };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type HandoutsMap = Map<string, HandoutRecord>;

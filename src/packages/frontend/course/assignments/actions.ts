@@ -12,7 +12,6 @@ import { delay, map } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   exec,
@@ -52,6 +51,7 @@ import {
 } from "../store";
 import {
   AssignmentCopyType,
+  ComputeServerConfig,
   copy_type_to_last,
   LastAssignmentCopyType,
   SyncDBRecord,
@@ -374,6 +374,13 @@ export class AssignmentsActions {
 
   set_assignment_note = (assignment_id: string, note: string): void => {
     this.set_assignment_field(assignment_id, "note", note);
+  };
+
+  setComputeServerConfig = (
+    assignment_id: string,
+    compute_server: ComputeServerConfig,
+  ) => {
+    this.set_assignment_field(assignment_id, "compute_server", compute_server);
   };
 
   set_peer_grade = (assignment_id: string, config): void => {
@@ -1682,9 +1689,8 @@ ${details}
     ungraded_only?: boolean,
   ): Promise<void> => {
     // console.log("run_nbgrader_for_all_students", assignment_id);
-    const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
-      assignment_id,
-    );
+    const instructor_ipynb_files =
+      await this.nbgrader_instructor_ipynb_files(assignment_id);
     if (this.course_actions.is_closed()) return;
     const store = this.get_store();
     const nbgrader_scores = store.getIn([
@@ -1935,9 +1941,8 @@ ${details}
       : `${store.get_student_name(student_id)}'s project`;
 
     if (instructor_ipynb_files == null) {
-      instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
-        assignment_id,
-      );
+      instructor_ipynb_files =
+        await this.nbgrader_instructor_ipynb_files(assignment_id);
       if (this.course_actions.is_closed()) return;
     }
     if (len(instructor_ipynb_files) == 0) {

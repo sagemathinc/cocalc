@@ -13,7 +13,7 @@ import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import { uuid } from "@cocalc/util/misc";
 import { map } from "awaiting";
-import type { SyncDBRecordHandout } from "../types";
+import type { SyncDBRecordHandout, ComputeServerConfig } from "../types";
 import { exec } from "../../frame-editors/generic/client";
 import { export_student_file_use_times } from "../export/file-use-times";
 import { COPY_TIMEOUT_MS } from "../consts";
@@ -111,6 +111,13 @@ export class HandoutsActions {
 
   set_handout_note = (handout, note): void => {
     this.set_handout_field(handout, "note", note);
+  };
+
+  setComputeServerConfig = (
+    handout_id: string,
+    compute_server: ComputeServerConfig,
+  ) => {
+    this.set_handout_field(handout_id, "compute_server", compute_server);
   };
 
   private handout_finish_copy = (

@@ -125,8 +125,8 @@ export function Assignment({
 
   function render_due() {
     return (
-      <Row>
-        <Col xs={2} style={{ marginTop: "8px", color: "#666" }}>
+      <Space>
+        <div style={{ marginTop: "8px", color: "#666" }}>
           <Tip
             placement="top"
             title="Set the due date"
@@ -134,15 +134,13 @@ export function Assignment({
           >
             Due
           </Tip>
-        </Col>
-        <Col xs={22}>
-          <DateTimePicker
-            placeholder={"Set Due Date"}
-            value={assignment.get("due_date")}
-            onChange={date_change}
-          />
-        </Col>
-      </Row>
+        </div>
+        <DateTimePicker
+          placeholder={"Set Due Date"}
+          value={assignment.get("due_date")}
+          onChange={date_change}
+        />
+      </Space>
     );
   }
 
@@ -277,13 +275,17 @@ export function Assignment({
         <Col md={4}>{render_open_button()}</Col>
         <Col md={20}>
           <Row>
-            <Col md={12} style={{ fontSize: "14px" }} key="due">
+            <Col md={8} style={{ fontSize: "14px" }} key="due">
               {render_due()}
             </Col>
-            <Col md={12} key="delete">
+            <Col md={16} key="delete">
               <Row>
-                <Col md={14}>{render_peer_button()}</Col>
-                <Col md={10}>
+                <Col md={10}>{render_peer_button()}</Col>
+                <Col md={14}>
+                  <ComputeServerButton
+                    actions={actions}
+                    assignment_or_handout={assignment}
+                  />
                   <span className="pull-right">{render_delete_button()}</span>
                 </Col>
               </Row>
@@ -1277,10 +1279,7 @@ export function Assignment({
         <Col md={12}>
           <h5>{render_assignment_title_link()}</h5>
         </Col>
-        <Col md={8}>{render_summary_due_date()}</Col>
-        <Col md={4}>
-          <ComputeServerButton style={{ marginTop: "4px" }} />
-        </Col>
+        <Col md={12}>{render_summary_due_date()}</Col>
       </Row>
     );
   }
