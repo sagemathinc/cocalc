@@ -7,7 +7,6 @@ import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { ReactElement, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
 import {
   DateTimePicker,
@@ -43,6 +42,7 @@ import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { STUDENT_SUBDIR } from "./consts";
 import { SkipCopy } from "./skip";
+import { ComputeServerButton } from "../compute";
 
 interface AssignmentProps {
   active_feedback_edits: IsGradingMap;
@@ -1277,7 +1277,10 @@ export function Assignment({
         <Col md={12}>
           <h5>{render_assignment_title_link()}</h5>
         </Col>
-        <Col md={12}>{render_summary_due_date()}</Col>
+        <Col md={8}>{render_summary_due_date()}</Col>
+        <Col md={4}>
+          <ComputeServerButton style={{ marginTop: "4px" }} />
+        </Col>
       </Row>
     );
   }

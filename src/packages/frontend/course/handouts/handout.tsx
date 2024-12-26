@@ -16,6 +16,7 @@ import { CourseActions } from "../actions";
 import { CourseStore, HandoutRecord, StudentsMap } from "../store";
 import * as styles from "../styles";
 import { StudentListForHandout } from "./handout-student-list";
+import { ComputeServerButton } from "../compute";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -586,10 +587,13 @@ export function Handout({
           </Row>
           <Row style={{ marginLeft: "8px" }}>{render_copy_all(status)}</Row>
         </Col>
-        <Col md={8}>
+        <Col md={4}>
           <Row>
             <span className="pull-right">{render_delete_button()}</span>
           </Row>
+        </Col>
+        <Col md={4}>
+          <ComputeServerButton style={{ marginTop: "4px" }} />
         </Col>
       </Row>
     );

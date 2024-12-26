@@ -173,3 +173,11 @@ export interface AssignmentStatus {
   not_peer_collect: number;
   not_return_graded: number;
 }
+
+export type ComputeServerAction =
+  | "start"
+  | "stop"
+  | "create"
+  | "delete"
+  | "deprovision"
+  | "transfer-to-students";
