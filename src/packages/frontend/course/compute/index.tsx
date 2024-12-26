@@ -1,12 +1,11 @@
-import { Button, Modal } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Button } from "antd";
+import { useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import SelectServer from "@cocalc/frontend/compute/select-server";
 import type { ComputeServerConfig } from "../types";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { CourseActions } from "../actions";
 import type { HandoutRecord, AssignmentRecord } from "../store";
 import ComputeServer from "@cocalc/frontend/compute/inline";
+import ComputeServerModal from "./modal";
 
 interface Props {
   style?;
@@ -63,42 +62,5 @@ export function ComputeServerButton({
         />
       )}
     </>
-  );
-}
-
-function ComputeServerModal({
-  onClose,
-  actions,
-  config,
-  setConfig,
-}) {
-  const { project_id } = useFrameContext();
-  const [id, setId] = useState<number | undefined>(config.id);
-  useEffect(() => {
-    setId(config.id);
-  }, [config]);
-
-  () => console.log(actions);
-
-  return (
-    <Modal
-      width={800}
-      open
-      title="Compute Server"
-      onOk={onClose}
-      onCancel={onClose}
-    >
-      <SelectServer
-        title="A compute server with identical configuration to the selected one will be created in each student project."
-        fullLabel
-        style={{ borderRadius: "5px" }}
-        project_id={project_id}
-        value={id}
-        setValue={(id) => {
-          setId(id);
-          setConfig({ ...config, id });
-        }}
-      />
-    </Modal>
   );
 }
