@@ -114,20 +114,20 @@ export class CourseActions extends Actions<CourseState> {
   };
 
   // Set one object in the syncdb
-  set = (obj: SyncDBRecord, commit: boolean = true): void => {
+  set = (
+    obj: SyncDBRecord,
+    commit: boolean = true,
+    emitChangeImmediately: boolean = false,
+  ): void => {
     if (
       !this.is_loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
     ) {
       return;
     }
-    // put in similar checks for other tables?
-    if (obj.table == "students" && obj.student_id == null) {
-      console.warn("course: setting student without primary key", obj);
-    }
     this.syncdb.set(obj);
     if (commit) {
-      this.syncdb.commit();
+      this.syncdb.commit(emitChangeImmediately);
     }
   };
 

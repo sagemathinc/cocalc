@@ -79,11 +79,11 @@ function StudentControl({ student, actions, unit }) {
     v.push(
       <Button
         disabled={disabled}
-        onClick={() => {
+        onClick={async () => {
           try {
             setLoading(true);
             const unit_id = getUnitId(unit);
-            actions.compute.createComputeServer({ student_id, unit_id });
+            await actions.compute.createComputeServer({ student_id, unit_id });
           } catch (err) {
             setError(`${err}`);
           } finally {
@@ -92,7 +92,8 @@ function StudentControl({ student, actions, unit }) {
         }}
         key={action}
       >
-        {icon != null ? <Icon name={icon as any} /> : undefined} {capitalize(action)}
+        {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
+        {capitalize(action)}
       </Button>,
     );
   }

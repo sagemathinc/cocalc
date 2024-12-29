@@ -3,7 +3,11 @@ import { createServer } from "@cocalc/frontend/compute/api";
 import { cloneConfiguration } from "@cocalc/frontend/compute/clone";
 import type { Unit } from "../store";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { ComputeServerConfig } from "../types";
+import type { ComputeServerConfig } from "../types";
+import { merge } from "lodash";
+
+// const log = (..._args)=>{};
+const log = console.log;
 
 export class ComputeActions {
   private course_actions: CourseActions;
@@ -47,12 +51,10 @@ export class ComputeActions {
     unit_id: string;
     compute_server: ComputeServerConfig;
   }) => {
-    const { table } = this.getUnit(unit_id);
-    this.course_actions.set({
-      compute_server,
-      table,
-      [`${table.slice(0, -1)}_id`]: unit_id,
-    });
+    let { table, unit } = this.getUnit(unit_id);
+    const obj = { ...unit.toJS(), table };
+    obj.compute_server = merge(compute_server, obj.compute_server);
+    this.course_actions.set(obj, true, true);
   };
 
   // Create and compute server associated to a given assignment or handout
@@ -67,14 +69,19 @@ export class ComputeActions {
       unit_id: string;
     }): Promise<number | undefined> => {
       // what compute server is configured for this assignment or handout?
-      const { unit, table } = this.getUnit(unit_id);
+      const { unit } = this.getUnit(unit_id);
       const compute_server = unit.get("compute_server");
       if (compute_server == null) {
-        // nothing to do - nothing configured.
+        log("createComputeServer -- nothing to do - nothing configured.", {
+          student_id,
+        });
         return;
       }
       const id = compute_server.get("server_id");
       if (!id) {
+        log("createComputeServer -- nothing to do - id not set.", {
+          student_id,
+        });
         return;
       }
       const cur_id = compute_server.getIn([
@@ -83,7 +90,7 @@ export class ComputeActions {
         "server_id",
       ]);
       if (cur_id != null) {
-        // compute server already exists
+        log("compute server already exists", { cur_id, student_id });
         return cur_id;
       }
       const store = this.getStore();
@@ -94,12 +101,11 @@ export class ComputeActions {
         noChange: true,
       });
       const student_project_id = store.get_student_project_id(student_id);
-      const server_id = await createServer({
-        ...server,
-        project_id: student_project_id,
-      });
-      this.course_actions.set({
-        table,
+      const studentServer = { ...server, project_id: student_project_id };
+      const server_id = await createServer(studentServer);
+      log("created new compute server", { studentServer, server_id });
+      this.setComputeServerConfig({
+        unit_id,
         compute_server: { students: { [student_id]: { server_id } } },
       });
       return server_id;

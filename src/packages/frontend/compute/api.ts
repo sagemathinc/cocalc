@@ -1,5 +1,4 @@
 import api from "@cocalc/frontend/client/api";
-("");
 import type {
   Action,
   ComputeServerTemplate,
