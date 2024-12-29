@@ -1,5 +1,5 @@
 import { ACTION_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Space } from "antd";
+import { Button, Space, Spin } from "antd";
 import { useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
@@ -40,10 +40,10 @@ const ACTIONS = [
   "delete",
   "deprovision",
   "transfer",
-];
+] as const;
 
 function StudentControl({ student, actions, unit }) {
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<null | (typeof ACTIONS)[number]>(null);
   const [error, setError] = useState<string>("");
   const student_id = student.get("student_id");
   const name = actions.get_store().get_student_name(student.get("student_id"));
@@ -61,10 +61,27 @@ function StudentControl({ student, actions, unit }) {
     </div>,
   ];
   for (const action of ACTIONS) {
-    let disabled = loading;
+    const server_id = unit.getIn([
+      "compute_server",
+      "students",
+      student_id,
+      "server_id",
+    ]);
+    if (action == "create") {
+      if (server_id) {
+        // already created
+        continue;
+      }
+    } else {
+      if (!server_id) {
+        // doesn't exist, so no need for these buttons
+        continue;
+      }
+    }
+    let disabled = loading == action;
     if (!disabled) {
       // disable some buttons depending on state info...
-      if (unit.getIn(["compute_server", "students", student_id, "server_id"])) {
+      if (server_id) {
         if (action == "create") {
           disabled = true;
         } else {
@@ -81,19 +98,20 @@ function StudentControl({ student, actions, unit }) {
         disabled={disabled}
         onClick={async () => {
           try {
-            setLoading(true);
+            setLoading(action);
             const unit_id = getUnitId(unit);
             await actions.compute.createComputeServer({ student_id, unit_id });
           } catch (err) {
             setError(`${err}`);
           } finally {
-            setLoading(false);
+            setLoading(null);
           }
         }}
         key={action}
       >
         {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
         {capitalize(action)}
+        {loading == action && <Spin style={{ marginLeft: "15px" }} />}
       </Button>,
     );
   }
