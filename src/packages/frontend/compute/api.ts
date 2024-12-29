@@ -6,6 +6,7 @@ import type {
   Cloud,
   Images,
   GoogleCloudImages,
+  ComputeServerUserInfo,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
@@ -36,7 +37,23 @@ export async function computeServerAction(opts: {
   await api("compute/compute-server-action", opts);
 }
 
-export async function getServers(opts: { id?: number; project_id: string }) {
+// Get servers across potentially different projects by their global unique id.
+// Use the fields parameter to restrict to a much smaller subset of information
+// about each server (e.g., just the state field).  Caller must be a collaborator
+// on each project containing the servers.
+// If you give an id of a server that doesn't exist, it'll just be excluded in the result.
+// Similarly, if you give a field that doesn't exist, it is excluded.
+export async function getServersById(opts: {
+  ids: number[];
+  fields?: string[];
+}): Promise<Partial<ComputeServerUserInfo>[]> {
+  return await api("compute/get-servers-by-id", opts);
+}
+
+export async function getServers(opts: {
+  id?: number;
+  project_id: string;
+}): Promise<ComputeServerUserInfo[]> {
   return await api("compute/get-servers", opts);
 }
 

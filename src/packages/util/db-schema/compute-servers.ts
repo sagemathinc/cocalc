@@ -191,7 +191,7 @@ export type Action =
 export const ACTION_INFO: {
   [action: string]: {
     label: string;
-    icon: Icon;
+    icon: string;
     tip: string;
     description: string;
     confirm?: boolean;
@@ -837,7 +837,7 @@ Table({
     data: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *IS* returned to the user.",
+      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *MAY BE* returned to the user -- do not put secrets here the user can't see.",
     },
     avatar_image_tiny: {
       title: "Image",
