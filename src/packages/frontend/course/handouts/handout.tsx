@@ -115,12 +115,9 @@ export function Handout({
         <Button onClick={open_handout_path}>
           <Icon name="folder-open" /> Open
         </Button>
-        <div style={{flex:1}}/>
-        <ComputeServerButton
-          assignment_or_handout={handout}
-          actions={actions}
-        />
-        <div style={{flex:1}}/>
+        <div style={{ flex: 1 }} />
+        <ComputeServerButton unit={handout as any} actions={actions} />
+        <div style={{ flex: 1 }} />
         {render_delete_button()}
       </div>
     );

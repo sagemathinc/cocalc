@@ -7,12 +7,17 @@ import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ComputeServerTerminalCommand from "./terminal-command";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { capitalize } from "@cocalc/util/misc";
+import ShowError from "@cocalc/frontend/components/error";
+
+import { getUnitId } from "./util";
 
 interface Props {
   onClose: () => void;
   actions: CourseActions;
   config: ComputeServerConfig;
   setConfig: (config: ComputeServerConfig) => void;
+  unit;
 }
 
 export default function ComputeServerModal({
@@ -20,12 +25,15 @@ export default function ComputeServerModal({
   actions,
   config,
   setConfig,
+  unit,
 }: Props) {
   const { project_id } = useFrameContext();
   const [terminalCommand, setTerminalCommand] = useState<boolean>(false);
-  const [id, setId] = useState<number | undefined>(config.id);
+  const [server_id, setServerId] = useState<number | undefined>(
+    config.server_id,
+  );
   useEffect(() => {
-    setId(config.id);
+    setServerId(config.server_id);
   }, [config]);
 
   return (
@@ -51,26 +59,26 @@ export default function ComputeServerModal({
             fullLabel
             style={{ borderRadius: "5px" }}
             project_id={project_id}
-            value={id}
-            setValue={(id) => {
-              setId(id);
-              setConfig({ ...config, id });
+            value={server_id}
+            setValue={(server_id) => {
+              setServerId(server_id);
+              setConfig({ ...config, server_id });
             }}
           />
           <div style={{ flex: 1 }} />
           <Button
-            disabled={!id}
+            disabled={!server_id}
             onClick={() => setTerminalCommand(!terminalCommand)}
           >
             <Icon name="terminal" /> Terminal Command
           </Button>
         </Flex>
 
-        {terminalCommand && !!id && <ComputeServerTerminalCommand />}
-        {!!id && (
+        {terminalCommand && !!server_id && <ComputeServerTerminalCommand />}
+        {!!server_id && (
           <>
             <Divider orientation="left">Students</Divider>
-            <Students actions={actions} config={config} setConfig={setConfig} />
+            <Students actions={actions} config={config} unit={unit} />
           </>
         )}
       </Space>
@@ -78,7 +86,7 @@ export default function ComputeServerModal({
   );
 }
 
-function Students({ actions, config, setConfig }) {
+function Students({ actions, config, unit }) {
   const students = useRedux(actions.name, "students");
   const v: JSX.Element[] = [];
   for (const [_, student] of students) {
@@ -91,14 +99,26 @@ function Students({ actions, config, setConfig }) {
         student={student}
         actions={actions}
         config={config}
-        setConfig={setConfig}
+        unit={unit}
       />,
     );
   }
   return <Space direction="vertical">{v}</Space>;
 }
 
-function StudentControl({ student, actions, config, setConfig }) {
+const ACTIONS = [
+  "create",
+  "start",
+  "stop",
+  "delete",
+  "deprovision",
+  "transfer",
+];
+
+function StudentControl({ student, actions, config, unit }) {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  console.log({ config });
   const student_id = student.get("student_id");
   const name = actions.get_store().get_student_name(student.get("student_id"));
   const v = [
@@ -114,33 +134,31 @@ function StudentControl({ student, actions, config, setConfig }) {
       {name}
     </div>,
   ];
-  const status = config.status?.[student_id] ?? {};
-  () => console.log(setConfig, status);
-  v.push(<Button key="create">Create</Button>);
-  v.push(
-    <Button key="start" disabled>
-      Start
-    </Button>,
+  for (const action of ACTIONS) {
+    v.push(
+      <Button
+        disabled={loading}
+        onClick={() => {
+          try {
+            setLoading(true);
+            const unit_id = getUnitId(unit);
+            actions.compute.createComputeServer({ student_id, unit_id });
+          } catch (err) {
+            setError(`${err}`);
+          } finally {
+            setLoading(false);
+          }
+        }}
+        key={action}
+      >
+        {capitalize(action)}
+      </Button>,
+    );
+  }
+  return (
+    <>
+      <Space>{v}</Space>{" "}
+      <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
+    </>
   );
-  v.push(
-    <Button key="stop" disabled>
-      Stop
-    </Button>,
-  );
-  v.push(
-    <Button key="delete" disabled>
-      Delete
-    </Button>,
-  );
-  v.push(
-    <Button key="deprovision" disabled>
-      Deprovision
-    </Button>,
-  );
-  v.push(
-    <Button key="transfer" disabled>
-      Transfer
-    </Button>,
-  );
-  return <Space>{v}</Space>;
 }

@@ -284,7 +284,7 @@ export function Assignment({
                 <Col md={14}>
                   <ComputeServerButton
                     actions={actions}
-                    assignment_or_handout={assignment}
+                    unit={assignment as any}
                   />
                   <span className="pull-right">{render_delete_button()}</span>
                 </Col>

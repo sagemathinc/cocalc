@@ -62,18 +62,16 @@ export default function Clone({ id, project_id, close }) {
   );
 }
 
-async function createClone({
+export async function cloneConfiguration({
   id,
   project_id,
+  noChange,
 }: {
   id: number;
   project_id: string;
+  noChange?: boolean;
 }) {
   const servers = await getServers({ project_id });
-  const titles = new Set(servers.map((x) => x.title));
-  const allDns = new Set(
-    servers.filter((x) => x.configuration.dns).map((x) => x.configuration.dns),
-  );
   let server;
   let done = false;
   for (const s of servers) {
@@ -87,18 +85,30 @@ async function createClone({
     throw Error(`no such compute server ${id}`);
   }
   let n = 1;
-  let title = `Clone of ${server.title}`;
-  if (titles.has(title)) {
-    while (titles.has(title + ` (${n})`)) {
-      n += 1;
+  let title;
+  if (noChange) {
+    title = server.title;
+  } else {
+    title = `Clone of ${server.title}`;
+    const titles = new Set(servers.map((x) => x.title));
+    if (titles.has(title)) {
+      while (titles.has(title + ` (${n})`)) {
+        n += 1;
+      }
+      title = title + ` (${n})`;
     }
-    title = title + ` (${n})`;
   }
   server.title = title;
 
   delete server.configuration.authToken;
 
-  if (server.configuration.dns) {
+  if (!noChange && server.configuration.dns) {
+    // TODO: this needs to be global on the backend, not local-to-this-project on the frontend!
+    const allDns = new Set(
+      servers
+        .filter((x) => x.configuration.dns)
+        .map((x) => x.configuration.dns),
+    );
     n = 1;
     while (allDns.has(server.configuration.dns + `-${n}`)) {
       n += 1;
@@ -106,5 +116,16 @@ async function createClone({
     server.configuration.dns = server.configuration.dns + `-${n}`;
   }
 
+  return server;
+}
+
+async function createClone({
+  id,
+  project_id,
+}: {
+  id: number;
+  project_id: string;
+}) {
+  const server = await cloneConfiguration({ id, project_id });
   await createServer({ ...server });
 }

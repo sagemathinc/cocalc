@@ -134,6 +134,13 @@ export type HandoutRecord = TypedMap<{
 
 export type HandoutsMap = Map<string, HandoutRecord>;
 
+// unit = record or assignment...
+export type Unit = TypedMap<{
+  compute_server?: ComputeServerConfig;
+  assignment_id?: string;
+  handout_id?: string;
+}>;
+
 export type SortDescription = TypedMap<{
   column_name: string;
   is_descending: boolean;

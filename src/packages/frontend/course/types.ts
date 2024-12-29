@@ -50,10 +50,6 @@ export interface SyncDBRecordSettings {
   copy_config_options?: CopyConfigurationOptions;
 }
 
-export interface ComputeServerConfig {
-  id: number;
-}
-
 // This is closely related to store.AssignmentRecord...
 
 export interface SyncDBRecordAssignment {
@@ -181,6 +177,11 @@ export interface AssignmentStatus {
   not_peer_assignment: number;
   not_peer_collect: number;
   not_return_graded: number;
+}
+
+export interface ComputeServerConfig {
+  server_id?: number;
+  students?: { [student_id: string]: { server_id?: number } };
 }
 
 export type ComputeServerAction =

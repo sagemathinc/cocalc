@@ -24,7 +24,8 @@ export default function ComputeServerTerminalCommand({ style }: { style? }) {
     <Card
       title={
         <>
-          <Icon name="terminal"/> Run Terminal Command on all <b>Compute Servers</b>
+          <Icon name="terminal" /> Run Terminal Command on all Student Compute
+          Servers
         </>
       }
       style={style}
