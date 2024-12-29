@@ -6,7 +6,6 @@ import type { CourseActions } from "../actions";
 import type { Unit } from "../store";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import ComputeServerModal from "./modal";
-import { getUnitId } from "./util";
 
 interface Props {
   style?;
@@ -40,10 +39,6 @@ export function ComputeServerButton({ style, actions, unit }: Props) {
           unit={unit}
           onClose={() => setOpen(false)}
           actions={actions}
-          config={config}
-          setConfig={(config: ComputeServerConfig) => {
-            actions.handouts.setComputeServerConfig(getUnitId(unit), config);
-          }}
         />
       )}
     </>

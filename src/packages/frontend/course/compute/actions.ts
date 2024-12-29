@@ -2,6 +2,8 @@ import type { CourseActions } from "../actions";
 import { createServer } from "@cocalc/frontend/compute/api";
 import { cloneConfiguration } from "@cocalc/frontend/compute/clone";
 import type { Unit } from "../store";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { ComputeServerConfig } from "../types";
 
 export class ComputeActions {
   private course_actions: CourseActions;
@@ -38,48 +40,69 @@ export class ComputeActions {
     throw Error(`no assignment or handout with id '${unit_id}'`);
   };
 
+  setComputeServerConfig = ({
+    unit_id,
+    compute_server,
+  }: {
+    unit_id: string;
+    compute_server: ComputeServerConfig;
+  }) => {
+    const { table } = this.getUnit(unit_id);
+    this.course_actions.set({
+      compute_server,
+      table,
+      [`${table.slice(0, -1)}_id`]: unit_id,
+    });
+  };
+
   // Create and compute server associated to a given assignment or handout
   // for a specific student.  Does nothing if (1) the compute server already
   // exists, or (2) no compute server is configured for the given assignment.
-  createComputeServer = async ({
-    student_id,
-    unit_id,
-  }: {
-    student_id: string;
-    unit_id: string;
-  }): Promise<number | undefined> => {
-    // what compute server is configured for this assignment or handout?
-    const { unit, table } = this.getUnit(unit_id);
-    const compute_server = unit.get("compute_server");
-    if (compute_server == null) {
-      // nothing to do - nothing configured.
-      return;
-    }
-    const id = compute_server.get("server_id");
-    if (!id) {
-      return;
-    }
-    const cur_id = compute_server.getIn(["students", student_id, "server_id"]);
-    if (cur_id) {
-      // compute server already exists
-      return cur_id;
-    }
-    const store = this.getStore();
-    const project_id = store.get("course_project_id");
-    const server = await cloneConfiguration({
-      id,
-      project_id,
-      noChange: true,
-    });
-    const student_project_id = store.get_student_project_id(student_id);
-    const server_id = await createServer({
-      ...server,
-      project_id: student_project_id,
-    });
-    this.course_actions.set({
-      table,
-      compute_server: { students: { [student_id]: { server_id } } },
-    });
-    return server_id;
-  };
+  createComputeServer = reuseInFlight(
+    async ({
+      student_id,
+      unit_id,
+    }: {
+      student_id: string;
+      unit_id: string;
+    }): Promise<number | undefined> => {
+      // what compute server is configured for this assignment or handout?
+      const { unit, table } = this.getUnit(unit_id);
+      const compute_server = unit.get("compute_server");
+      if (compute_server == null) {
+        // nothing to do - nothing configured.
+        return;
+      }
+      const id = compute_server.get("server_id");
+      if (!id) {
+        return;
+      }
+      const cur_id = compute_server.getIn([
+        "students",
+        student_id,
+        "server_id",
+      ]);
+      if (cur_id != null) {
+        // compute server already exists
+        return cur_id;
+      }
+      const store = this.getStore();
+      const project_id = store.get("course_project_id");
+      const server = await cloneConfiguration({
+        id,
+        project_id,
+        noChange: true,
+      });
+      const student_project_id = store.get_student_project_id(student_id);
+      const server_id = await createServer({
+        ...server,
+        project_id: student_project_id,
+      });
+      this.course_actions.set({
+        table,
+        compute_server: { students: { [student_id]: { server_id } } },
+      });
+      return server_id;
+    },
+  );
 }

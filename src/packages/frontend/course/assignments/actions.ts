@@ -51,7 +51,6 @@ import {
 } from "../store";
 import {
   AssignmentCopyType,
-  ComputeServerConfig,
   copy_type_to_last,
   LastAssignmentCopyType,
   SyncDBRecord,
@@ -374,13 +373,6 @@ export class AssignmentsActions {
 
   set_assignment_note = (assignment_id: string, note: string): void => {
     this.set_assignment_field(assignment_id, "note", note);
-  };
-
-  setComputeServerConfig = (
-    assignment_id: string,
-    compute_server: ComputeServerConfig,
-  ) => {
-    this.set_assignment_field(assignment_id, "compute_server", compute_server);
   };
 
   set_peer_grade = (assignment_id: string, config): void => {

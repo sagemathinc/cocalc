@@ -191,7 +191,7 @@ export type Action =
 export const ACTION_INFO: {
   [action: string]: {
     label: string;
-    icon: string;
+    icon: Icon;
     tip: string;
     description: string;
     confirm?: boolean;
