@@ -43,6 +43,8 @@ export async function computeServerAction(opts: {
 // on each project containing the servers.
 // If you give an id of a server that doesn't exist, it'll just be excluded in the result.
 // Similarly, if you give a field that doesn't exist, it is excluded.
+// The order of the returned servers and count probably will NOT match that in
+// ids, so you should include 'id' in fields.
 export async function getServersById(opts: {
   ids: number[];
   fields?: string[];
