@@ -246,7 +246,7 @@ function StudentControl({ student, actions, unit, servers, updateServers }) {
   }
   return (
     <>
-      <Space>{v}</Space>{" "}
+      <Space wrap>{v}</Space>{" "}
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
     </>
   );

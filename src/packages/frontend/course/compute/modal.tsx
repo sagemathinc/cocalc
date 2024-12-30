@@ -28,7 +28,7 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
 
   return (
     <Modal
-      width={800}
+      width={900}
       open
       title={<>Compute Server Configuration</>}
       onOk={onClose}
