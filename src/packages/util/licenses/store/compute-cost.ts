@@ -95,7 +95,15 @@ export function computeCost(
         custom_member: member,
         custom_uptime: uptime,
         boost,
-        ...fixRange(range, period, noRangeShift),
+        // For computing the *shopping cart checkout price* of a subscription,
+        // we remove the endpoints data.  Otherwise, compute_cost(input).cost
+        // returns the price for that exact interval, not the generic monthly
+        // cost, since compute_cost is also used for refunds/value computations
+        // (though we never do prorated refunds of subscriptions anymore!).
+        // In particular, we only include start/end dates for explicit ranges.
+        ...(period == "range"
+          ? fixRange(range, period, noRangeShift)
+          : { start: null, end: null }),
       };
       return {
         ...compute_cost(input),
