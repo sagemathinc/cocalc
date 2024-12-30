@@ -384,12 +384,6 @@ export default function Subscriptions() {
         },
       },
       {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        render: (status) => <SubscriptionStatus status={status} />,
-      },
-      {
         title: "Period",
         dataIndex: "interval",
         key: "interval",
@@ -409,14 +403,34 @@ export default function Subscriptions() {
         key: "cost",
         render: (cost, record) => {
           // in prod we hit a case where cost was null, hence the if here.
-          if (record.status == "active" && cost != null) {
+          if (cost != null) {
             return `${currency(round2up(cost))}/${record.interval}`;
           } else {
             return "-";
           }
         },
       },
-
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status) => <SubscriptionStatus status={status} />,
+      },
+      {
+        title: "Manage",
+        key: "manage",
+        render: (_, { id, metadata, status, interval }) => (
+          <>
+            <SubscriptionActions
+              subscription_id={id}
+              license_id={metadata.license_id}
+              status={status}
+              refresh={getSubscriptions}
+              interval={interval}
+            />
+          </>
+        ),
+      },
       {
         width: "15%",
         title: "Paid Through",
@@ -442,21 +456,7 @@ export default function Subscriptions() {
         dataIndex: "latest_purchase_id",
         key: "latest_purchase_id",
       },
-      {
-        title: "Manage",
-        key: "manage",
-        render: (_, { id, metadata, status, interval }) => (
-          <>
-            <SubscriptionActions
-              subscription_id={id}
-              license_id={metadata.license_id}
-              status={status}
-              refresh={getSubscriptions}
-              interval={interval}
-            />
-          </>
-        ),
-      },
+
       {
         title: "Created",
         dataIndex: "created",
