@@ -1,10 +1,16 @@
 import type { CourseActions } from "../actions";
-import { createServer } from "@cocalc/frontend/compute/api";
 import { cloneConfiguration } from "@cocalc/frontend/compute/clone";
 import type { Unit } from "../store";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { ComputeServerConfig } from "../types";
 import { merge } from "lodash";
+import type { Command } from "./students";
+import { getUnitId } from "./util";
+import {
+  computeServerAction,
+  createServer,
+  deleteServer,
+} from "@cocalc/frontend/compute/api";
 
 // const log = (..._args)=>{};
 const log = console.log;
@@ -53,7 +59,7 @@ export class ComputeActions {
   }) => {
     let { table, unit } = this.getUnit(unit_id);
     const obj = { ...unit.toJS(), table };
-    obj.compute_server = merge(compute_server, obj.compute_server);
+    obj.compute_server = merge(obj.compute_server, compute_server);
     this.course_actions.set(obj, true, true);
   };
 
@@ -89,7 +95,7 @@ export class ComputeActions {
         student_id,
         "server_id",
       ]);
-      if (cur_id != null) {
+      if (cur_id) {
         log("compute server already exists", { cur_id, student_id });
         return cur_id;
       }
@@ -111,4 +117,48 @@ export class ComputeActions {
       return server_id;
     },
   );
+
+  computeServerCommand = async ({
+    command,
+    unit,
+    student_id,
+  }: {
+    command: Command;
+    unit: Unit;
+    student_id: string;
+  }) => {
+    if (command == "create") {
+      const unit_id = getUnitId(unit);
+      await this.createComputeServer({ student_id, unit_id });
+      return;
+    }
+    const id = unit.getIn([
+      "compute_server",
+      "students",
+      student_id,
+      "server_id",
+    ]) as number | undefined;
+    if (!id) {
+      throw Error("compute server doesn't exist");
+    }
+    switch (command) {
+      case "start":
+      case "stop":
+      case "deprovision":
+        await computeServerAction({ id, action: command });
+        return;
+      case "delete":
+        await deleteServer(id);
+        const unit_id = getUnitId(unit);
+        this.setComputeServerConfig({
+          unit_id,
+          compute_server: { students: { [student_id]: { server_id: 0 } } },
+        });
+        return;
+      case "transfer":
+      // todo
+      default:
+        throw Error(`command '${command}' not implemented`);
+    }
+  };
 }

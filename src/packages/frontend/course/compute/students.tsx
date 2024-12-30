@@ -1,14 +1,19 @@
-import { ACTION_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Space, Spin } from "antd";
+import {
+  ACTION_INFO,
+  STATE_INFO,
+} from "@cocalc/util/db-schema/compute-servers";
+import { Button, Popconfirm, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
-import { getUnitId } from "./util";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
+import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
+import { getUnitId } from "./util";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 interface Props {
   actions: CourseActions;
@@ -19,40 +24,58 @@ type ServersMap = {
   [id: number]: { id?: number; state?; deleted?: boolean };
 };
 
+const getStudentServers = reuseInFlight(
+  async (unit: Unit) => {
+    const students = unit
+      .getIn(["compute_server", "students"]) // @ts-ignore
+      ?.valueSeq()
+      .toJS();
+    if (students == null) {
+      return {};
+    }
+    const ids = students
+      .map(({ server_id }) => server_id)
+      .filter((id) => !!id && typeof id == "number"); // typeof is just to make this robust against .course file being messed up...
+    const serverArray = await getServersById({
+      ids,
+      fields: ["id", "state", "deleted"],
+    });
+    const servers: ServersMap = {};
+    for (const server of serverArray) {
+      servers[server.id!] = server;
+    }
+    return servers;
+  },
+  { createKey: (args) => getUnitId(args[0]) },
+);
+
 export default function Students({ actions, unit }: Props) {
   const [servers, setServers] = useState<ServersMap | null>(null);
   const students = useRedux(actions.name, "students");
   const [error, setError] = useState<string>("");
 
-  console.log({ servers });
+  const updateServers = async () => {
+    try {
+      setServers(await getStudentServers(unit));
+      setError("");
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
 
   useEffect(() => {
     if (error) {
       return;
     }
-    (async () => {
-      const students = unit
-        .getIn(["compute_server", "students"]) // @ts-ignore
-        ?.valueSeq()
-        .toJS();
-      if (students == null) {
-        return [];
-      }
-      try {
-        const serverArray = await getServersById({
-          ids: students.map(({ server_id }) => server_id).filter((id) => !!id),
-          fields: ["id", "state", "deleted"],
-        });
-        const servers: ServersMap = {};
-        for (const server of serverArray) {
-          servers[server.id!] = server;
-        }
-        setServers(servers);
-      } catch (err) {
-        setError(`${err}`);
-      }
-    })();
+    updateServers();
   }, [unit, error]);
+
+  if (servers == null) {
+    if (error) {
+      return <ShowError error={error} setError={setError} />;
+    }
+    return <BigSpin />;
+  }
 
   const v: JSX.Element[] = [];
   for (const [_, student] of students) {
@@ -66,6 +89,7 @@ export default function Students({ actions, unit }: Props) {
         actions={actions}
         unit={unit}
         servers={servers}
+        updateServers={updateServers}
       />,
     );
   }
@@ -78,18 +102,18 @@ export default function Students({ actions, unit }: Props) {
   );
 }
 
-const ACTIONS = [
+const COMMANDS = [
   "create",
   "start",
   "stop",
   "deprovision",
-  "transfer",
   "delete",
+  "transfer",
 ] as const;
 
-type Action = (typeof ACTIONS)[number];
+export type Command = (typeof COMMANDS)[number];
 
-const VALID_ACTIONS: { [state: string]: Action[] } = {
+const VALID_COMMANDS: { [state: string]: Command[] } = {
   off: ["start", "deprovision", "transfer", "delete"],
   starting: [],
   running: ["stop"],
@@ -99,8 +123,8 @@ const VALID_ACTIONS: { [state: string]: Action[] } = {
   suspended: ["start"],
 };
 
-function StudentControl({ student, actions, unit, servers }) {
-  const [loading, setLoading] = useState<null | Action>(null);
+function StudentControl({ student, actions, unit, servers, updateServers }) {
+  const [loading, setLoading] = useState<null | Command>(null);
   const [error, setError] = useState<string>("");
   const student_id = student.get("student_id");
   const server_id = unit.getIn([
@@ -111,6 +135,7 @@ function StudentControl({ student, actions, unit, servers }) {
   ]);
   const server = servers?.[server_id];
   const name = actions.get_store().get_student_name(student.get("student_id"));
+
   const v = [
     <div
       key="name"
@@ -124,13 +149,64 @@ function StudentControl({ student, actions, unit, servers }) {
       {name}
     </div>,
   ];
-  v.push(
-    <div key="state" style={{ width: "100px" }}>
-      {capitalize(server?.state ?? "-")}
-    </div>,
-  );
-  for (const action of ACTIONS) {
-    if (action == "create") {
+  if (server?.state) {
+    v.push(
+      <div key="state" style={{ width: "125px" }}>
+        <Icon name={STATE_INFO[server.state].icon as any} />{" "}
+        {capitalize(server.state)}
+      </div>,
+    );
+  } else {
+    v.push(
+      <div key="state" style={{ width: "125px" }}>
+        -
+      </div>,
+    );
+  }
+  const getButton = ({ command, disabled, icon }) => {
+    const confirm = command == "delete" || command == "deprovision";
+    const doIt = async () => {
+      try {
+        setLoading(command);
+        await actions.compute.computeServerCommand({
+          command,
+          unit,
+          student_id,
+        });
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setLoading(null);
+        updateServers();
+      }
+    };
+    const btn = (
+      <Button
+        disabled={disabled}
+        onClick={confirm ? undefined : doIt}
+        key={command}
+      >
+        {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
+        {capitalize(command)}
+        {loading == command && <Spin style={{ marginLeft: "15px" }} />}
+      </Button>
+    );
+    if (confirm) {
+      return (
+        <Popconfirm
+          key={command}
+          onConfirm={doIt}
+          title={`${capitalize(command)} this compute server?`}
+        >
+          {btn}
+        </Popconfirm>
+      );
+    } else {
+      return btn;
+    }
+  };
+  for (const command of COMMANDS) {
+    if (command == "create") {
       if (server_id) {
         // already created
         continue;
@@ -142,51 +218,31 @@ function StudentControl({ student, actions, unit, servers }) {
       }
     }
     if (server?.state != null) {
-      if (!VALID_ACTIONS[server.state]?.includes(action)) {
+      if (!VALID_COMMANDS[server.state]?.includes(command)) {
         continue;
       }
     }
-    let disabled = loading == action;
+    let disabled = loading == command;
     if (!disabled) {
       // disable some buttons depending on state info...
       if (server_id) {
-        if (action == "create") {
+        if (command == "create") {
           disabled = true;
         } else {
         }
       } else {
-        if (action != "create") {
+        if (command != "create") {
           disabled = true;
         }
       }
     }
-    let icon = ACTION_INFO[action]?.icon;
-    if (action == "delete") {
+    let icon = ACTION_INFO[command]?.icon;
+    if (command == "delete") {
       icon = "trash";
-    } else if (action == "transfer") {
+    } else if (command == "transfer") {
       icon = "user-check";
     }
-    v.push(
-      <Button
-        disabled={disabled}
-        onClick={async () => {
-          try {
-            setLoading(action);
-            const unit_id = getUnitId(unit);
-            await actions.compute.createComputeServer({ student_id, unit_id });
-          } catch (err) {
-            setError(`${err}`);
-          } finally {
-            setLoading(null);
-          }
-        }}
-        key={action}
-      >
-        {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
-        {capitalize(action)}
-        {loading == action && <Spin style={{ marginLeft: "15px" }} />}
-      </Button>,
-    );
+    v.push(getButton({ command, icon, disabled }));
   }
   return (
     <>
