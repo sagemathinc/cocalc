@@ -96,7 +96,7 @@ export default function Students({ actions, unit }: Props) {
 
   const v: JSX.Element[] = [];
   v.push(
-    <div key="all">
+    <div key="all" style={{ height: "32px" }}>
       <Space>
         <div
           key="check-all"
@@ -494,7 +494,7 @@ function CommandsOnSelected({
   }
   v.push(
     <div key="what">
-      Apply command to selected {plural(selected.size, "server")}
+      {selected.size} selected {plural(selected.size, "server")}
     </div>,
   );
 

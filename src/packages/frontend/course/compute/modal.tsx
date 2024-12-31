@@ -61,7 +61,7 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
         </Flex>
         {!!server_id && (
           <>
-            <Divider orientation="left">Students</Divider>
+            <Divider orientation="left">Student Compute Servers</Divider>
             <Students actions={actions} unit={unit} />
           </>
         )}
