@@ -2,12 +2,12 @@ import {
   ACTION_INFO,
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Popconfirm, Space, Spin } from "antd";
+import { Button, Checkbox, Popconfirm, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize, get_array_range } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
@@ -53,7 +53,10 @@ export default function Students({ actions, unit }: Props) {
   const [servers, setServers] = useState<ServersMap | null>(null);
   const students = useRedux(actions.name, "students");
   const [error, setError] = useState<string>("");
-
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [mostRecentSelected, setMostRecentSelected] = useState<string | null>(
+    null,
+  );
   const updateServers = async () => {
     try {
       setServers(await getStudentServers(unit));
@@ -77,25 +80,101 @@ export default function Students({ actions, unit }: Props) {
     return <BigSpin />;
   }
 
+  const nonDeletedStudents = students.filter(
+    (student) => !student.get("deleted"),
+  );
+
   const v: JSX.Element[] = [];
-  for (const [_, student] of students) {
+  v.push(
+    <div key="all">
+      <div
+        key="check-all"
+        style={{
+          width: "30px",
+          marginLeft: "14px",
+          fontSize: "14pt",
+          cursor: "pointer",
+        }}
+        onClick={() => {
+          const ids = nonDeletedStudents
+            .valueSeq()
+            .toJS()
+            .map(({ student_id }) => student_id);
+          if (selected.size == 0) {
+            setSelected(new Set(ids));
+          } else {
+            setSelected(new Set());
+          }
+        }}
+      >
+        <Icon
+          style={{ marginRight: "30px" }}
+          name={
+            selected.size == 0
+              ? "square"
+              : selected.size == nonDeletedStudents.size
+                ? "check-square"
+                : "minus-square"
+          }
+        />
+      </div>
+    </div>,
+  );
+  let i = 0;
+  for (const [_, student] of nonDeletedStudents) {
     if (student.get("deleted")) {
       continue;
     }
+    const student_id = student.get("student_id");
     v.push(
       <StudentControl
-        key={student.get("student_id")}
+        key={student_id}
         student={student}
         actions={actions}
         unit={unit}
         servers={servers}
         updateServers={updateServers}
+        style={i % 2 ? { background: "#f2f6fc" } : undefined}
+        selected={selected.has(student_id)}
+        setSelected={(checked, shift) => {
+          if (!shift || !mostRecentSelected) {
+            if (checked) {
+              selected.add(student_id);
+            } else {
+              selected.delete(student_id);
+            }
+          } else {
+            // set the range of id's between this message and the most recent one
+            // to be checked.  See also similar code in messages and our explorer,
+            // e.g., frontend/messages/main.tsx
+            const v = get_array_range(
+              students
+                .valueSeq()
+                .toJS()
+                .map(({ student_id }) => student_id),
+              mostRecentSelected,
+              student_id,
+            );
+            if (checked) {
+              for (const student_id of v) {
+                selected.add(student_id);
+              }
+            } else {
+              for (const student_id of v) {
+                selected.delete(student_id);
+              }
+            }
+          }
+          setSelected(new Set(selected));
+          setMostRecentSelected(student_id);
+        }}
       />,
     );
+    i += 1;
   }
 
   return (
-    <Space direction="vertical">
+    <Space direction="vertical" style={{ width: "100%" }}>
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
       {v}
     </Space>
@@ -123,7 +202,16 @@ const VALID_COMMANDS: { [state: string]: Command[] } = {
   suspended: ["start"],
 };
 
-function StudentControl({ student, actions, unit, servers, updateServers }) {
+function StudentControl({
+  student,
+  actions,
+  unit,
+  servers,
+  updateServers,
+  style,
+  selected,
+  setSelected,
+}) {
   const [loading, setLoading] = useState<null | Command>(null);
   const [error, setError] = useState<string>("");
   const student_id = student.get("student_id");
@@ -136,7 +224,21 @@ function StudentControl({ student, actions, unit, servers, updateServers }) {
   const server = servers?.[server_id];
   const name = actions.get_store().get_student_name(student.get("student_id"));
 
-  const v = [
+  const v: JSX.Element[] = [];
+
+  v.push(
+    <Checkbox
+      key="checkbox"
+      style={{ width: "30px" }}
+      checked={selected}
+      onChange={(e) => {
+        const shiftKey = e.nativeEvent.shiftKey;
+        setSelected(e.target.checked, shiftKey);
+      }}
+    />,
+  );
+
+  v.push(
     <div
       key="name"
       style={{
@@ -148,7 +250,7 @@ function StudentControl({ student, actions, unit, servers, updateServers }) {
     >
       {name}
     </div>,
-  ];
+  );
   if (server?.state) {
     v.push(
       <div key="state" style={{ width: "125px" }}>
@@ -245,9 +347,17 @@ function StudentControl({ student, actions, unit, servers, updateServers }) {
     v.push(getButton({ command, icon, disabled }));
   }
   return (
-    <>
-      <Space wrap>{v}</Space>{" "}
+    <div
+      style={{
+        borderRadius: "5px",
+        padding: "5px 15px",
+        ...style,
+      }}
+    >
+      <Space wrap style={{ width: "100%" }}>
+        {v}
+      </Space>
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
-    </>
+    </div>
   );
 }
