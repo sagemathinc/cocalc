@@ -58,8 +58,13 @@ export default function Students({ actions, unit }: Props) {
     null,
   );
   const updateServers = async () => {
+    const store = actions.get_store();
+    // get latest version since it might not have updated just yet.
+    const unit1 =
+      store?.getUnit((unit.get("assignment_id") ?? unit.get("handout_id"))!) ??
+      unit;
     try {
-      setServers(await getStudentServers(unit));
+      setServers(await getStudentServers(unit1));
     } catch (err) {
       setError(`${err}`);
     }
@@ -415,8 +420,11 @@ function getIcon(command: Command) {
     return "trash";
   } else if (command == "transfer") {
     return "user-check";
+  } else if (command == "create") {
+    return "plus-circle";
+  } else {
+    return ACTION_INFO[command]?.icon;
   }
-  return ACTION_INFO[command]?.icon;
 }
 
 function getServerId({ unit, student_id }) {

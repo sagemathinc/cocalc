@@ -1002,6 +1002,10 @@ export class CourseStore extends Store<CourseState> {
     }
     return licenses;
   }
+
+  getUnit = (id: string) => {
+    return this.getIn(["assignments", id]) ?? this.getIn(["handouts", id]);
+  };
 }
 
 export function get_nbgrader_score(scores: {
