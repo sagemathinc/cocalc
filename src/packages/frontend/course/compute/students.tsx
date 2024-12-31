@@ -393,6 +393,11 @@ function CommandButton({
 function getCommands(server): Command[] {
   const v: Command[] = [];
   for (const command of COMMANDS) {
+    if (command == "transfer") {
+      // this is a can of worms to implement (see packages/server/compute/transfer-ownership.ts),
+      // so we will wait until later.
+      continue;
+    }
     if (command == "create") {
       if (server != null) {
         // already created
