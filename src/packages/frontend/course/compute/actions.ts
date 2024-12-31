@@ -107,7 +107,13 @@ export class ComputeActions {
         noChange: true,
       });
       const student_project_id = store.get_student_project_id(student_id);
-      const studentServer = { ...server, project_id: student_project_id };
+      const studentServer = {
+        ...server,
+        project_id: student_project_id,
+      };
+      // we must enable allowCollaboratorControl since it's needed for the
+      // student to start/stop the compute server.
+      studentServer.configuration.allowCollaboratorControl = true;
       const server_id = await createServer(studentServer);
       log("created new compute server", { studentServer, server_id });
       this.setComputeServerConfig({

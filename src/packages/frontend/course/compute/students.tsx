@@ -339,12 +339,12 @@ function CommandButton({
     try {
       setLoading(command);
       await Promise.all(
-        studentIds.map((student_id) => {
+        studentIds.map(async (student_id) => {
           const server_id = getServerId({ unit, student_id });
           if (!getCommands(servers[server_id]).includes(command)) {
             return;
           }
-          return actions.compute.computeServerCommand({
+          await actions.compute.computeServerCommand({
             command,
             unit,
             student_id,
