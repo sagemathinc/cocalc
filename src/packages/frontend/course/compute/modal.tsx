@@ -1,13 +1,11 @@
-import { Button, Divider, Flex, Modal, Space } from "antd";
+import { Divider, Flex, Modal, Space } from "antd";
 import { useEffect, useState } from "react";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { CourseActions } from "../actions";
-import { Icon } from "@cocalc/frontend/components/icon";
 import Students from "./students";
 import type { Unit } from "../store";
 import { getUnitId } from "./util";
-import ComputeServerTerminalCommand from "./terminal-command";
 
 interface Props {
   onClose: () => void;
@@ -17,7 +15,6 @@ interface Props {
 
 export default function ComputeServerModal({ onClose, actions, unit }: Props) {
   const { project_id } = useFrameContext();
-  const [terminalCommand, setTerminalCommand] = useState<boolean>(false);
   const config = unit?.get("compute_server");
   const [server_id, setServerId] = useState<number | undefined>(
     config?.get("server_id"),
@@ -61,15 +58,7 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
             }}
           />
           <div style={{ flex: 1 }} />
-          <Button
-            disabled={!server_id}
-            onClick={() => setTerminalCommand(!terminalCommand)}
-          >
-            <Icon name="terminal" /> Terminal Command
-          </Button>
         </Flex>
-
-        {terminalCommand && !!server_id && <ComputeServerTerminalCommand />}
         {!!server_id && (
           <>
             <Divider orientation="left">Students</Divider>

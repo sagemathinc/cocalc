@@ -3,7 +3,17 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 
-export default function ComputeServerTerminalCommand({ style }: { style? }) {
+export function TerminalButton({ terminal, setTerminal }) {
+  return (
+    <>
+      <Button onClick={() => setTerminal(!terminal)}>
+        <Icon name="terminal" /> Terminal
+      </Button>
+    </>
+  );
+}
+
+export function TerminalCommand({ style }: { style? }) {
   const [timeout, setTimeout] = useState<number | null>(1);
   const [input, setInput] = useState<string>("");
   const [running, setRunning] = useState<boolean>(false);
@@ -24,8 +34,8 @@ export default function ComputeServerTerminalCommand({ style }: { style? }) {
     <Card
       title={
         <>
-          <Icon name="terminal" /> Run Terminal Command on all Student Compute
-          Servers
+          <Icon name="terminal" style={{ marginRight: "5px" }} /> Run Terminal
+          Command on all Running Student Compute Servers
         </>
       }
       style={style}

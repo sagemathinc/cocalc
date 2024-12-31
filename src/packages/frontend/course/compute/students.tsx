@@ -14,6 +14,7 @@ import { getServersById } from "@cocalc/frontend/compute/api";
 import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
 import { getUnitId } from "./util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { TerminalButton, TerminalCommand } from "./terminal-command";
 
 interface Props {
   actions: CourseActions;
@@ -54,6 +55,7 @@ export default function Students({ actions, unit }: Props) {
   const students = useRedux(actions.name, "students");
   const [error, setError] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [terminal, setTerminal] = useState<boolean>(false);
   const [mostRecentSelected, setMostRecentSelected] = useState<string | null>(
     null,
   );
@@ -133,10 +135,13 @@ export default function Students({ actions, unit }: Props) {
               unit,
               setError,
               updateServers,
+              terminal,
+              setTerminal,
             }}
           />
         )}
       </Space>
+      {terminal && <TerminalCommand style={{ marginTop: "15px" }} />}
     </div>,
   );
   let i = 0;
@@ -443,6 +448,8 @@ function CommandsOnSelected({
   unit,
   setError,
   updateServers,
+  terminal,
+  setTerminal,
 }) {
   const [loading, setLoading] = useState<null | Command>(null);
 
@@ -478,11 +485,22 @@ function CommandsOnSelected({
       />,
     );
   }
+  if (X.has("stop")) {
+    v.push(<TerminalButton terminal={terminal} setTerminal={setTerminal} />);
+  } else if (terminal) {
+    setTimeout(() => {
+      setTerminal(false);
+    }, 0);
+  }
   v.push(
     <div key="what">
       Apply command to selected {plural(selected.size, "server")}
     </div>,
   );
 
-  return <Space wrap>{v}</Space>;
+  return (
+    <>
+      <Space wrap>{v}</Space>
+    </>
+  );
 }
