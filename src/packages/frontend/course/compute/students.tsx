@@ -1,8 +1,9 @@
 import {
   ACTION_INFO,
   STATE_INFO,
+  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Checkbox, Popconfirm, Space, Spin } from "antd";
+import { Alert, Button, Checkbox, Popconfirm, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
@@ -15,6 +16,9 @@ import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
 import { getUnitId } from "./util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
+import ComputeServer from "@cocalc/frontend/compute/inline";
+
+declare var DEBUG: boolean;
 
 interface Props {
   actions: CourseActions;
@@ -22,7 +26,12 @@ interface Props {
 }
 
 type ServersMap = {
-  [id: number]: { id?: number; state?; deleted?: boolean };
+  [id: number]: {
+    id?: number;
+    state?;
+    deleted?: boolean;
+    configuration?: Configuration;
+  };
 };
 
 const getStudentServers = reuseInFlight(
@@ -37,10 +46,18 @@ const getStudentServers = reuseInFlight(
     const ids = students
       .map(({ server_id }) => server_id)
       .filter((id) => !!id && typeof id == "number"); // typeof is just to make this robust against .course file being messed up...
+
+    // also get the instructor's compute server
+    const instructor_server_id = unit.getIn(["compute_server", "server_id"]);
+    if (instructor_server_id) {
+      ids.push(instructor_server_id);
+    }
+
     const serverArray = await getServersById({
       ids,
-      fields: ["id", "state", "deleted"],
+      fields: ["id", "state", "deleted", "configuration"],
     });
+
     const servers: ServersMap = {};
     for (const server of serverArray) {
       servers[server.id!] = server;
@@ -59,6 +76,7 @@ export default function Students({ actions, unit }: Props) {
   const [mostRecentSelected, setMostRecentSelected] = useState<string | null>(
     null,
   );
+  const instructor_server_id = unit.getIn(["compute_server", "server_id"]);
   const updateServers = async () => {
     const store = actions.get_store();
     // get latest version since it might not have updated just yet.
@@ -84,6 +102,36 @@ export default function Students({ actions, unit }: Props) {
       return <ShowError error={error} setError={setError} />;
     }
     return <BigSpin />;
+  }
+
+  let extra: JSX.Element | null = null;
+
+  if (
+    instructor_server_id &&
+    servers[instructor_server_id]?.configuration?.cloud == "onprem"
+  ) {
+    extra = (
+      <Alert
+        type="warning"
+        showIcon
+        message={"Self Hosted Compute Server"}
+        description={
+          <>
+            Self hosted compute servers are currently not supported for courses.
+            The compute server <ComputeServer id={instructor_server_id} /> is
+            self hosted. Please select a non-self-hosted compute server instead.
+            {DEBUG ? (
+              <b> You are in DEBUG mode, so we still allow this.</b>
+            ) : (
+              ""
+            )}
+          </>
+        }
+      />
+    );
+    if (!DEBUG) {
+      return extra;
+    }
   }
 
   const nonDeletedStudents = students.filter(
@@ -193,6 +241,7 @@ export default function Students({ actions, unit }: Props) {
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
+      {extra}
       {v}
     </Space>
   );

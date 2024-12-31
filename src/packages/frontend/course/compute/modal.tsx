@@ -1,4 +1,4 @@
-import { Divider, Flex, Modal, Space } from "antd";
+import { Divider, Modal, Space } from "antd";
 import { useEffect, useState } from "react";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -39,26 +39,29 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
         just has the same configuration (e.g., cpu, RAM, disk size).
       </p>
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Flex style={{ width: "100%", alignItems: "center" }}>
-          <div style={{ marginRight: "30px" }}>Compute Server:</div>
-          <SelectServer
-            title="A compute server with identical configuration to the selected one will be created in each student project."
-            fullLabel
-            style={{ borderRadius: "5px" }}
-            project_id={project_id}
-            value={server_id}
-            setValue={(server_id) => {
-              setServerId(server_id);
-              actions.compute.setComputeServerConfig({
-                unit_id: getUnitId(unit),
-                compute_server: {
-                  server_id,
-                },
-              });
-            }}
-          />
-          <div style={{ flex: 1 }} />
-        </Flex>
+        <div style={{ textAlign: "center" }}>
+          <Space style={{ alignItems: "center" }}>
+            <div style={{ marginRight: "30px" }}>
+              {server_id ? "" : "Select "}Compute Server:
+            </div>
+            <SelectServer
+              title="A compute server with identical configuration to the selected one will be created in each student project."
+              fullLabel
+              style={{ borderRadius: "5px" }}
+              project_id={project_id}
+              value={server_id}
+              setValue={(server_id) => {
+                setServerId(server_id);
+                actions.compute.setComputeServerConfig({
+                  unit_id: getUnitId(unit),
+                  compute_server: {
+                    server_id,
+                  },
+                });
+              }}
+            />
+          </Space>
+        </div>
         {!!server_id && (
           <>
             <Divider orientation="left">Student Compute Servers</Divider>
