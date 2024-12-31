@@ -1,7 +1,11 @@
 import { Button, Card, Input, InputNumber, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
+import { plural } from "@cocalc/util/misc";
+import { getServerId } from "./students";
+import type { SelectedStudents, ServersMap } from "./students";
+import type { StudentsMap, Unit } from "../store";
 
 export function TerminalButton({ terminal, setTerminal }) {
   return (
@@ -13,16 +17,33 @@ export function TerminalButton({ terminal, setTerminal }) {
   );
 }
 
-export function TerminalCommand({ style }: { style? }) {
+export function TerminalCommand({
+  style,
+  servers,
+  selected,
+  students,
+  unit,
+}: {
+  style?: CSSProperties;
+  servers: ServersMap;
+  selected: SelectedStudents;
+  students: StudentsMap;
+  unit: Unit;
+}) {
   const [timeout, setTimeout] = useState<number | null>(1);
   const [input, setInput] = useState<string>("");
   const [running, setRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  const runningStudentIds: string[] = Array.from(selected).filter(
+    (student_id) =>
+      servers[getServerId({ unit, student_id })]?.state == "running",
+  );
+
   const runTerminalCommand = () => {
     try {
       setRunning(true);
-      console.log("would run ", { input });
+      console.log("would run ", { input, students });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -35,7 +56,8 @@ export function TerminalCommand({ style }: { style? }) {
       title={
         <>
           <Icon name="terminal" style={{ marginRight: "5px" }} /> Run Terminal
-          Command on all Running Student Compute Servers
+          Command on the {runningStudentIds.length} Running Student Compute{" "}
+          {plural(runningStudentIds.length, "Server")}
         </>
       }
       style={style}
@@ -44,7 +66,7 @@ export function TerminalCommand({ style }: { style? }) {
         style={{
           display: "flex",
           whiteSpace: "nowrap",
-          marginBottom: "5px",
+          marginBottom: "15px",
         }}
       >
         <Input
@@ -61,7 +83,7 @@ export function TerminalCommand({ style }: { style? }) {
         <Button
           style={{ width: "6em" }}
           onClick={runTerminalCommand}
-          disabled={running}
+          disabled={running || runningStudentIds.length == 0}
         >
           <Icon
             name={running ? "cocalc-ring" : "play"}

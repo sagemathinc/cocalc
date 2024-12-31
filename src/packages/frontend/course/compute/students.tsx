@@ -17,6 +17,7 @@ import { getUnitId } from "./util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
 import ComputeServer from "@cocalc/frontend/compute/inline";
+import type { StudentsMap } from "../store";
 
 declare var DEBUG: boolean;
 
@@ -25,7 +26,7 @@ interface Props {
   unit: Unit;
 }
 
-type ServersMap = {
+export type ServersMap = {
   [id: number]: {
     id?: number;
     state?;
@@ -35,7 +36,7 @@ type ServersMap = {
 };
 
 const getStudentServers = reuseInFlight(
-  async (unit: Unit) => {
+  async (unit: Unit): Promise<ServersMap> => {
     const students = unit
       .getIn(["compute_server", "students"]) // @ts-ignore
       ?.valueSeq()
@@ -67,11 +68,13 @@ const getStudentServers = reuseInFlight(
   { createKey: (args) => getUnitId(args[0]) },
 );
 
+export type SelectedStudents = Set<string>;
+
 export default function Students({ actions, unit }: Props) {
   const [servers, setServers] = useState<ServersMap | null>(null);
-  const students = useRedux(actions.name, "students");
+  const students: StudentsMap = useRedux(actions.name, "students");
   const [error, setError] = useState<string>("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<SelectedStudents>(new Set());
   const [terminal, setTerminal] = useState<boolean>(false);
   const [mostRecentSelected, setMostRecentSelected] = useState<string | null>(
     null,
@@ -112,6 +115,7 @@ export default function Students({ actions, unit }: Props) {
   ) {
     extra = (
       <Alert
+        style={{ margin: "15px 0" }}
         type="warning"
         showIcon
         message={"Self Hosted Compute Server"}
@@ -139,12 +143,17 @@ export default function Students({ actions, unit }: Props) {
   );
   const studentIds = nonDeletedStudents
     .valueSeq()
-    .toJS()
+    .toJS() // @ts-ignore
     .map(({ student_id }) => student_id);
 
   const v: JSX.Element[] = [];
   v.push(
-    <div key="all" style={{ height: "32px" }}>
+    <div
+      key="all"
+      style={{
+        height: terminal ? undefined : "32px" /* this avoids a flicker */,
+      }}
+    >
       <Space>
         <div
           key="check-all"
@@ -189,7 +198,15 @@ export default function Students({ actions, unit }: Props) {
           />
         )}
       </Space>
-      {terminal && <TerminalCommand style={{ marginTop: "15px" }} />}
+      {terminal && (
+        <TerminalCommand
+          style={{ marginTop: "15px" }}
+          servers={servers}
+          selected={selected}
+          students={students}
+          unit={unit}
+        />
+      )}
     </div>,
   );
   let i = 0;
@@ -486,7 +503,7 @@ function getIcon(command: Command) {
   }
 }
 
-function getServerId({ unit, student_id }) {
+export function getServerId({ unit, student_id }) {
   return unit.getIn(["compute_server", "students", student_id, "server_id"]);
 }
 
