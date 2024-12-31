@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize, get_array_range } from "@cocalc/util/misc";
+import { capitalize, get_array_range, plural } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
@@ -60,7 +60,6 @@ export default function Students({ actions, unit }: Props) {
   const updateServers = async () => {
     try {
       setServers(await getStudentServers(unit));
-      setError("");
     } catch (err) {
       setError(`${err}`);
     }
@@ -83,53 +82,64 @@ export default function Students({ actions, unit }: Props) {
   const nonDeletedStudents = students.filter(
     (student) => !student.get("deleted"),
   );
+  const studentIds = nonDeletedStudents
+    .valueSeq()
+    .toJS()
+    .map(({ student_id }) => student_id);
 
   const v: JSX.Element[] = [];
   v.push(
     <div key="all">
-      <div
-        key="check-all"
-        style={{
-          width: "30px",
-          marginLeft: "14px",
-          fontSize: "14pt",
-          cursor: "pointer",
-        }}
-        onClick={() => {
-          const ids = nonDeletedStudents
-            .valueSeq()
-            .toJS()
-            .map(({ student_id }) => student_id);
-          if (selected.size == 0) {
-            setSelected(new Set(ids));
-          } else {
-            setSelected(new Set());
-          }
-        }}
-      >
-        <Icon
-          style={{ marginRight: "30px" }}
-          name={
-            selected.size == 0
-              ? "square"
-              : selected.size == nonDeletedStudents.size
-                ? "check-square"
-                : "minus-square"
-          }
-        />
-      </div>
+      <Space>
+        <div
+          key="check-all"
+          style={{
+            width: "30px",
+            marginLeft: "14px",
+            fontSize: "14pt",
+            cursor: "pointer",
+          }}
+          onClick={() => {
+            if (selected.size == 0) {
+              setSelected(new Set(studentIds));
+            } else {
+              setSelected(new Set());
+            }
+          }}
+        >
+          <Icon
+            style={{ marginRight: "30px" }}
+            name={
+              selected.size == 0
+                ? "square"
+                : selected.size == nonDeletedStudents.size
+                  ? "check-square"
+                  : "minus-square"
+            }
+          />
+        </div>
+        {selected.size > 0 && servers != null && (
+          <CommandsOnSelected
+            key="commands-on-selected"
+            {...{
+              selected,
+              servers,
+              actions,
+              unit,
+              setError,
+              updateServers,
+            }}
+          />
+        )}
+      </Space>
     </div>,
   );
   let i = 0;
-  for (const [_, student] of nonDeletedStudents) {
-    if (student.get("deleted")) {
-      continue;
-    }
-    const student_id = student.get("student_id");
+  for (const student_id of studentIds) {
     v.push(
       <StudentControl
         key={student_id}
-        student={student}
+        student={students.get(student_id)}
         actions={actions}
         unit={unit}
         servers={servers}
@@ -148,10 +158,7 @@ export default function Students({ actions, unit }: Props) {
             // to be checked.  See also similar code in messages and our explorer,
             // e.g., frontend/messages/main.tsx
             const v = get_array_range(
-              students
-                .valueSeq()
-                .toJS()
-                .map(({ student_id }) => student_id),
+              studentIds,
               mostRecentSelected,
               student_id,
             );
@@ -215,12 +222,7 @@ function StudentControl({
   const [loading, setLoading] = useState<null | Command>(null);
   const [error, setError] = useState<string>("");
   const student_id = student.get("student_id");
-  const server_id = unit.getIn([
-    "compute_server",
-    "students",
-    student_id,
-    "server_id",
-  ]);
+  const server_id = getServerId({ unit, student_id });
   const server = servers?.[server_id];
   const name = actions.get_store().get_student_name(student.get("student_id"));
 
@@ -265,65 +267,27 @@ function StudentControl({
       </div>,
     );
   }
-  const getButton = ({ command, disabled, icon }) => {
-    const confirm = command == "delete" || command == "deprovision";
-    const doIt = async () => {
-      try {
-        setLoading(command);
-        await actions.compute.computeServerCommand({
+  const getButton = ({ command, disabled }) => {
+    return (
+      <CommandButton
+        key={command}
+        {...{
           command,
+          disabled,
+          loading,
+          setLoading,
+          actions,
           unit,
           student_id,
-        });
-      } catch (err) {
-        setError(`${err}`);
-      } finally {
-        setLoading(null);
-        updateServers();
-      }
-    };
-    const btn = (
-      <Button
-        disabled={disabled}
-        onClick={confirm ? undefined : doIt}
-        key={command}
-      >
-        {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
-        {capitalize(command)}
-        {loading == command && <Spin style={{ marginLeft: "15px" }} />}
-      </Button>
+          setError,
+          updateServers,
+          servers,
+        }}
+      />
     );
-    if (confirm) {
-      return (
-        <Popconfirm
-          key={command}
-          onConfirm={doIt}
-          title={`${capitalize(command)} this compute server?`}
-        >
-          {btn}
-        </Popconfirm>
-      );
-    } else {
-      return btn;
-    }
   };
-  for (const command of COMMANDS) {
-    if (command == "create") {
-      if (server_id) {
-        // already created
-        continue;
-      }
-    } else {
-      if (!server_id) {
-        // doesn't exist, so no need for these buttons
-        continue;
-      }
-    }
-    if (server?.state != null) {
-      if (!VALID_COMMANDS[server.state]?.includes(command)) {
-        continue;
-      }
-    }
+
+  for (const command of getCommands(server)) {
     let disabled = loading == command;
     if (!disabled) {
       // disable some buttons depending on state info...
@@ -338,13 +302,7 @@ function StudentControl({
         }
       }
     }
-    let icon = ACTION_INFO[command]?.icon;
-    if (command == "delete") {
-      icon = "trash";
-    } else if (command == "transfer") {
-      icon = "user-check";
-    }
-    v.push(getButton({ command, icon, disabled }));
+    v.push(getButton({ command, disabled }));
   }
   return (
     <div
@@ -360,4 +318,158 @@ function StudentControl({
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
     </div>
   );
+}
+
+function CommandButton({
+  command,
+  disabled,
+  loading,
+  setLoading,
+  actions,
+  unit,
+  student_id,
+  setError,
+  updateServers,
+  servers,
+}) {
+  const confirm = command == "delete" || command == "deprovision";
+  const studentIds =
+    typeof student_id == "string" ? [student_id] : Array.from(student_id);
+  const doIt = async () => {
+    try {
+      setLoading(command);
+      await Promise.all(
+        studentIds.map((student_id) => {
+          const server_id = getServerId({ unit, student_id });
+          if (!getCommands(servers[server_id]).includes(command)) {
+            return;
+          }
+          return actions.compute.computeServerCommand({
+            command,
+            unit,
+            student_id,
+          });
+        }),
+      );
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setLoading(null);
+      updateServers();
+    }
+  };
+  const icon = getIcon(command);
+  const btn = (
+    <Button
+      disabled={disabled}
+      onClick={confirm ? undefined : doIt}
+      key={command}
+    >
+      {icon != null ? <Icon name={icon as any} /> : undefined}{" "}
+      {capitalize(command)}
+      {loading == command && <Spin style={{ marginLeft: "15px" }} />}
+    </Button>
+  );
+  if (confirm) {
+    return (
+      <Popconfirm
+        key={command}
+        onConfirm={doIt}
+        title={`${capitalize(command)} ${studentIds.length == 1 ? "this compute server" : "these compute servers"}?`}
+      >
+        {btn}
+      </Popconfirm>
+    );
+  } else {
+    return btn;
+  }
+}
+
+function getCommands(server): Command[] {
+  const v: Command[] = [];
+  for (const command of COMMANDS) {
+    if (command == "create") {
+      if (server != null) {
+        // already created
+        continue;
+      }
+    } else {
+      if (server == null) {
+        // doesn't exist, so no need for other buttons
+        continue;
+      }
+    }
+    if (server?.state != null) {
+      if (!VALID_COMMANDS[server.state]?.includes(command)) {
+        continue;
+      }
+    }
+
+    v.push(command);
+  }
+  return v;
+}
+
+function getIcon(command: Command) {
+  if (command == "delete") {
+    return "trash";
+  } else if (command == "transfer") {
+    return "user-check";
+  }
+  return ACTION_INFO[command]?.icon;
+}
+
+function getServerId({ unit, student_id }) {
+  return unit.getIn(["compute_server", "students", student_id, "server_id"]);
+}
+
+function CommandsOnSelected({
+  selected,
+  servers,
+  actions,
+  unit,
+  setError,
+  updateServers,
+}) {
+  const [loading, setLoading] = useState<null | Command>(null);
+
+  if (selected.size == 0) {
+    return null;
+  }
+
+  const X = new Set<string>();
+  for (const student_id of selected) {
+    const server_id = getServerId({ unit, student_id });
+    for (const command of getCommands(servers[server_id])) {
+      X.add(command);
+    }
+  }
+
+  const v: JSX.Element[] = [];
+  for (const command of X) {
+    v.push(
+      <CommandButton
+        key={command}
+        {...{
+          command,
+          disabled: loading,
+          loading,
+          setLoading,
+          actions,
+          unit,
+          student_id: selected,
+          setError,
+          updateServers,
+          servers,
+        }}
+      />,
+    );
+  }
+  v.push(
+    <div key="what">
+      Apply command to selected {plural(selected.size, "server")}
+    </div>,
+  );
+
+  return <Space wrap>{v}</Space>;
 }
