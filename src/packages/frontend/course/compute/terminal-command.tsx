@@ -5,7 +5,9 @@ import ShowError from "@cocalc/frontend/components/error";
 import { plural } from "@cocalc/util/misc";
 import { getServerId } from "./students";
 import type { SelectedStudents, ServersMap } from "./students";
-import type { StudentsMap, Unit } from "../store";
+import type { Unit } from "../store";
+import type { CourseActions } from "../actions";
+import { RenderOutput } from "../configuration/terminal-command";
 
 export function TerminalButton({ terminal, setTerminal }) {
   return (
@@ -21,29 +23,46 @@ export function TerminalCommand({
   style,
   servers,
   selected,
-  students,
   unit,
+  actions,
 }: {
   style?: CSSProperties;
   servers: ServersMap;
   selected: SelectedStudents;
-  students: StudentsMap;
   unit: Unit;
+  actions: CourseActions;
 }) {
-  const [timeout, setTimeout] = useState<number | null>(1);
-  const [input, setInput] = useState<string>("");
+  const [timeout, setTimeout] = useState<number | null>(30);
+  const [command, setCommand] = useState<string>("");
   const [running, setRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [outputs, setOutputs] = useState<
+    {
+      stdout?: string;
+      stderr?: string;
+      exit_code?: number;
+      student_id: string;
+      total_time: number;
+    }[]
+  >([]);
 
   const runningStudentIds: string[] = Array.from(selected).filter(
     (student_id) =>
       servers[getServerId({ unit, student_id })]?.state == "running",
   );
 
-  const runTerminalCommand = () => {
+  const runTerminalCommand = async () => {
     try {
       setRunning(true);
-      console.log("would run ", { input, students });
+      setOutputs([]);
+      await actions.compute.runTerminalCommand({
+        setOutputs,
+        unit,
+        student_ids: runningStudentIds,
+        command,
+        timeout: timeout ?? 30,
+        err_on_exit: false,
+      });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -70,11 +89,12 @@ export function TerminalCommand({
         }}
       >
         <Input
+          disabled={running}
           style={{ fontFamily: "monospace" }}
           placeholder={"Terminal command to run on compute servers..."}
-          value={input}
+          value={command}
           onChange={(e) => {
-            setInput(e.target.value);
+            setCommand(e.target.value);
           }}
           onPressEnter={() => {
             runTerminalCommand();
@@ -94,14 +114,29 @@ export function TerminalCommand({
         </Button>
       </Space.Compact>
       <InputNumber
+        disabled={running}
         style={{ maxWidth: "300px" }}
         value={timeout}
         onChange={(t) => setTimeout(t ?? null)}
-        min={1}
-        max={60 * 24}
-        addonAfter={"minute timeout"}
+        min={15}
+        max={60 * 60}
+        addonAfter={"seconds timeout"}
       />
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
+      {outputs.map((output) => {
+        return (
+          <RenderOutput
+            key={output.student_id}
+            title={
+              actions.get_store()?.get_student_name(output.student_id) ?? "---"
+            }
+            stdout={output.stdout}
+            stderr={output.stderr}
+            timeout={timeout}
+            total_time={output.total_time}
+          />
+        );
+      })}
     </Card>
   );
 }

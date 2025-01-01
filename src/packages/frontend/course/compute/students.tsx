@@ -201,10 +201,7 @@ export default function Students({ actions, unit }: Props) {
       {terminal && (
         <TerminalCommand
           style={{ marginTop: "15px" }}
-          servers={servers}
-          selected={selected}
-          students={students}
-          unit={unit}
+          {...{ servers, selected, students, unit, actions }}
         />
       )}
     </div>,
@@ -552,7 +549,7 @@ function CommandsOnSelected({
     );
   }
   if (X.has("stop")) {
-    v.push(<TerminalButton terminal={terminal} setTerminal={setTerminal} />);
+    v.push(<TerminalButton key="terminal" terminal={terminal} setTerminal={setTerminal} />);
   } else if (terminal) {
     setTimeout(() => {
       setTerminal(false);

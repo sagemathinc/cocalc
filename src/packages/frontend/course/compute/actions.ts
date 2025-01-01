@@ -11,6 +11,11 @@ import {
   createServer,
   deleteServer,
 } from "@cocalc/frontend/compute/api";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { map as awaitMap } from "awaiting";
+
+// for tasks that are "easy" to run in parallel, e.g. run code in compute servers
+export const MAX_PARALLEL_TASKS = 30;
 
 // const log = (..._args)=>{};
 const log = console.log;
@@ -123,6 +128,16 @@ export class ComputeActions {
     },
   );
 
+  // returns GLOBAL id of compute server for the given unit, or undefined if one isn't configured.
+  getComputeServerId = ({ unit, student_id }): number | undefined => {
+    return unit.getIn([
+      "compute_server",
+      "students",
+      student_id,
+      "server_id",
+    ]) as number | undefined;
+  };
+
   computeServerCommand = async ({
     command,
     unit,
@@ -137,12 +152,7 @@ export class ComputeActions {
       await this.createComputeServer({ student_id, unit_id });
       return;
     }
-    const id = unit.getIn([
-      "compute_server",
-      "students",
-      student_id,
-      "server_id",
-    ]) as number | undefined;
+    const id = this.getComputeServerId({ unit, student_id });
     if (!id) {
       throw Error("compute server doesn't exist");
     }
@@ -165,5 +175,74 @@ export class ComputeActions {
       default:
         throw Error(`command '${command}' not implemented`);
     }
+  };
+
+  private runTerminalCommandOneStudent = async ({
+    unit,
+    student_id,
+    ...terminalOptions
+  }) => {
+    const store = this.getStore();
+    const project_id = store.get_student_project_id(student_id);
+    if (!project_id) {
+      throw Error("student project doesn't exist");
+    }
+    const compute_server_id = this.getComputeServerId({ unit, student_id });
+    if (!compute_server_id) {
+      throw Error("compute server doesn't exist");
+    }
+    return await webapp_client.project_client.exec({
+      ...terminalOptions,
+      project_id,
+      compute_server_id,
+    });
+  };
+
+  // Run a terminal command in parallel on the compute servers of the given students.
+  // This does not throw an exception on error; instead, some entries in the output
+  // will have nonzero exit_code.
+  runTerminalCommand = async ({
+    unit,
+    student_ids,
+    setOutputs,
+    ...terminalOptions
+  }) => {
+    let outputs: {
+      stdout?: string;
+      stderr?: string;
+      exit_code?: number;
+      student_id: string;
+      total_time: number;
+    }[] = [];
+    const timeout = terminalOptions.timeout;
+    const start = Date.now();
+    const task = async (student_id) => {
+      let result;
+      try {
+        result = {
+          ...(await this.runTerminalCommandOneStudent({
+            unit,
+            student_id,
+            ...terminalOptions,
+            err_on_exit: false,
+          })),
+          student_id,
+          total_time: (Date.now() - start) / 1000,
+        };
+      } catch (err) {
+        result = {
+          student_id,
+          stdout: "",
+          stderr: `${err}`,
+          exit_code: -1,
+          total_time: (Date.now() - start) / 1000,
+          timeout,
+        };
+      }
+      outputs = [...outputs, result];
+      setOutputs(outputs);
+    };
+    await awaitMap(student_ids, MAX_PARALLEL_TASKS, task);
+    return outputs;
   };
 }

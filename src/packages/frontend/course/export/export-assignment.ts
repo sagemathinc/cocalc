@@ -74,7 +74,7 @@ async function export_one_directory(
   try {
     listing = await api.listing(source);
   } catch (err) {
-    if (err.toString().indexOf("ENOENT") != -1) {
+    if (`${err}`.indexOf("ENOENT") != -1) {
       // ignore completely missing directories -- no problem.
       return;
     }
