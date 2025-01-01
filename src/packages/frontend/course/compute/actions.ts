@@ -5,7 +5,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { ComputeServerConfig } from "../types";
 import { merge } from "lodash";
 import type { Command } from "./students";
-import { getUnitId } from "./util";
+import { getUnitId, MAX_PARALLEL_TASKS } from "./util";
 import {
   computeServerAction,
   createServer,
@@ -14,9 +14,6 @@ import {
 } from "@cocalc/frontend/compute/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
-
-// for tasks that are "easy" to run in parallel, e.g. run code in compute servers
-export const MAX_PARALLEL_TASKS = 30;
 
 declare var DEBUG: boolean;
 

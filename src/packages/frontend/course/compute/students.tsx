@@ -13,11 +13,12 @@ import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
 import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
-import { getUnitId } from "./util";
+import { getUnitId, MAX_PARALLEL_TASKS } from "./util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import type { StudentsMap } from "../store";
+import { map as awaitMap } from "awaiting";
 
 declare var DEBUG: boolean;
 
@@ -412,19 +413,18 @@ function CommandButton({
   const doIt = async () => {
     try {
       setLoading(command);
-      await Promise.all(
-        studentIds.map(async (student_id) => {
-          const server_id = getServerId({ unit, student_id });
-          if (!getCommands(servers[server_id]).includes(command)) {
-            return;
-          }
-          await actions.compute.computeServerCommand({
-            command,
-            unit,
-            student_id,
-          });
-        }),
-      );
+      const task = async (student_id) => {
+        const server_id = getServerId({ unit, student_id });
+        if (!getCommands(servers[server_id]).includes(command)) {
+          return;
+        }
+        await actions.compute.computeServerCommand({
+          command,
+          unit,
+          student_id,
+        });
+      };
+      await awaitMap(studentIds, MAX_PARALLEL_TASKS, task);
     } catch (err) {
       setError(`${err}`);
     } finally {
