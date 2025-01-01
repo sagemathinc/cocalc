@@ -158,8 +158,6 @@ export default function Students({ actions, unit }: Props) {
         <div
           key="check-all"
           style={{
-            width: "30px",
-            marginLeft: "14px",
             fontSize: "14pt",
             cursor: "pointer",
           }}
@@ -171,16 +169,18 @@ export default function Students({ actions, unit }: Props) {
             }
           }}
         >
-          <Icon
-            style={{ marginRight: "30px" }}
-            name={
-              selected.size == 0
-                ? "square"
-                : selected.size == nonDeletedStudents.size
-                  ? "check-square"
-                  : "minus-square"
-            }
-          />
+          <Button>
+            <Icon
+              name={
+                selected.size == 0
+                  ? "square"
+                  : selected.size == nonDeletedStudents.size
+                    ? "check-square"
+                    : "minus-square"
+              }
+            />
+            {selected.size == 0 ? "Check All" : "Uncheck All"}
+          </Button>
         </div>
         {selected.size > 0 && servers != null && (
           <CommandsOnSelected
@@ -200,6 +200,7 @@ export default function Students({ actions, unit }: Props) {
       </Space>
       {terminal && (
         <TerminalCommand
+          onClose={() => setTerminal(false)}
           style={{ marginTop: "15px" }}
           {...{ servers, selected, students, unit, actions }}
         />
@@ -549,7 +550,13 @@ function CommandsOnSelected({
     );
   }
   if (X.has("stop")) {
-    v.push(<TerminalButton key="terminal" terminal={terminal} setTerminal={setTerminal} />);
+    v.push(
+      <TerminalButton
+        key="terminal"
+        terminal={terminal}
+        setTerminal={setTerminal}
+      />,
+    );
   } else if (terminal) {
     setTimeout(() => {
       setTerminal(false);

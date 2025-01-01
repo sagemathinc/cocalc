@@ -1,4 +1,4 @@
-import { Button, Card, Input, InputNumber, Space } from "antd";
+import { Button, Card, Input, InputNumber, List, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { type CSSProperties, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
@@ -25,12 +25,14 @@ export function TerminalCommand({
   selected,
   unit,
   actions,
+  onClose,
 }: {
   style?: CSSProperties;
   servers: ServersMap;
   selected: SelectedStudents;
   unit: Unit;
   actions: CourseActions;
+  onClose;
 }) {
   const [timeout, setTimeout] = useState<number | null>(30);
   const [command, setCommand] = useState<string>("");
@@ -73,11 +75,14 @@ export function TerminalCommand({
   return (
     <Card
       title={
-        <>
-          <Icon name="terminal" style={{ marginRight: "5px" }} /> Run Terminal
-          Command on the {runningStudentIds.length} Running Student Compute{" "}
-          {plural(runningStudentIds.length, "Server")}
-        </>
+        <div>
+          <Icon name="terminal" style={{ marginRight: "5px" }} /> Run
+          {running ? "ning" : ""} Command on the {runningStudentIds.length}{" "}
+          Running Student Compute {plural(runningStudentIds.length, "Server")}
+          <Button onClick={onClose} style={{ float: "right" }}>
+            Close
+          </Button>
+        </div>
       }
       style={style}
     >
@@ -89,9 +94,10 @@ export function TerminalCommand({
         }}
       >
         <Input
+          allowClear
           disabled={running}
           style={{ fontFamily: "monospace" }}
-          placeholder={"Terminal command to run on compute servers..."}
+          placeholder={"Command to run on compute servers..."}
           value={command}
           onChange={(e) => {
             setCommand(e.target.value);
@@ -103,7 +109,7 @@ export function TerminalCommand({
         <Button
           style={{ width: "6em" }}
           onClick={runTerminalCommand}
-          disabled={running || runningStudentIds.length == 0}
+          disabled={running || runningStudentIds.length == 0 || !command.trim()}
         >
           <Icon
             name={running ? "cocalc-ring" : "play"}
@@ -123,20 +129,29 @@ export function TerminalCommand({
         addonAfter={"seconds timeout"}
       />
       <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
-      {outputs.map((output) => {
-        return (
-          <RenderOutput
-            key={output.student_id}
-            title={
-              actions.get_store()?.get_student_name(output.student_id) ?? "---"
-            }
-            stdout={output.stdout}
-            stderr={output.stderr}
-            timeout={timeout}
-            total_time={output.total_time}
-          />
-        );
-      })}
+      {outputs.length > 0 && (
+        <List
+          size="small"
+          style={{ marginTop: "15px", maxHeight: "400px", overflowY: "auto" }}
+          bordered
+          dataSource={outputs}
+          renderItem={(output) => (
+            <List.Item style={{ padding: "5px 5px 5px 30px" }}>
+              <RenderOutput
+                key={output.student_id}
+                title={
+                  actions.get_store()?.get_student_name(output.student_id) ??
+                  "---"
+                }
+                stdout={output.stdout}
+                stderr={output.stderr}
+                timeout={timeout}
+                total_time={output.total_time}
+              />
+            </List.Item>
+          )}
+        />
+      )}
     </Card>
   );
 }

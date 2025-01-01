@@ -10,6 +10,7 @@ import {
   computeServerAction,
   createServer,
   deleteServer,
+  getServersById,
 } from "@cocalc/frontend/compute/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
@@ -17,11 +18,17 @@ import { map as awaitMap } from "awaiting";
 // for tasks that are "easy" to run in parallel, e.g. run code in compute servers
 export const MAX_PARALLEL_TASKS = 30;
 
+declare var DEBUG: boolean;
+
 // const log = (..._args)=>{};
-const log = console.log;
+const log = DEBUG ? console.log : (..._args) => {};
 
 export class ComputeActions {
   private course_actions: CourseActions;
+  private debugComputeServer?: {
+    project_id: string;
+    compute_server_id: number;
+  };
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
@@ -177,20 +184,41 @@ export class ComputeActions {
     }
   };
 
+  private getDebugComputeServer = reuseInFlight(async () => {
+    if (this.debugComputeServer == null) {
+      const compute_server_id = 1;
+      const project_id = (
+        await getServersById({
+          ids: [compute_server_id],
+          fields: ["project_id"],
+        })
+      )[0].project_id as string;
+      this.debugComputeServer = { compute_server_id, project_id };
+    }
+    return this.debugComputeServer;
+  });
+
   private runTerminalCommandOneStudent = async ({
     unit,
     student_id,
     ...terminalOptions
   }) => {
     const store = this.getStore();
-    const project_id = store.get_student_project_id(student_id);
+    let project_id = store.get_student_project_id(student_id);
     if (!project_id) {
       throw Error("student project doesn't exist");
     }
-    const compute_server_id = this.getComputeServerId({ unit, student_id });
+    let compute_server_id = this.getComputeServerId({ unit, student_id });
     if (!compute_server_id) {
       throw Error("compute server doesn't exist");
     }
+    if (DEBUG) {
+      log(
+        "runTerminalCommandOneStudent: in DEBUG mode, so actually using debug compute server",
+      );
+      ({ compute_server_id, project_id } = await this.getDebugComputeServer());
+    }
+
     return await webapp_client.project_client.exec({
       ...terminalOptions,
       project_id,

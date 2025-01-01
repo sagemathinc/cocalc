@@ -78,6 +78,7 @@ export function TerminalCommandPanel({ name }: Props) {
           }}
         >
           <Input
+            allowClear
             style={{ fontFamily: "monospace" }}
             placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
             onChange={(e) => {
@@ -280,10 +281,10 @@ function Output({ result }: { result: TerminalCommandOutput }) {
 export function RenderOutput({ title, stdout, stderr, total_time, timeout }) {
   const noresult = !stdout && !stderr;
   return (
-    <div style={{ padding: 0, width: "100%" }}>
+    <div style={{ padding: 0, width: "100%", marginTop: "15px" }}>
       <b>{title}</b>
-      {stdout && <pre style={CODE_STYLE}>{stdout}</pre>}
-      {stderr && <pre style={ERR_STYLE}>{stderr}</pre>}
+      {stdout && <pre style={CODE_STYLE}>{stdout.trim()}</pre>}
+      {stderr && <pre style={ERR_STYLE}>{stderr.trim()}</pre>}
       {noresult && (
         <div>
           No output{" "}
