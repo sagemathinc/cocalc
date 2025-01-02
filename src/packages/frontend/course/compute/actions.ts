@@ -168,6 +168,7 @@ export class ComputeActions {
     switch (command) {
       case "start":
       case "stop":
+      case "reboot":
       case "deprovision":
         await computeServerAction({ id, action: command });
         return;

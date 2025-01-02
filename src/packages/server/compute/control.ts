@@ -576,6 +576,12 @@ async function doReboot(server: ComputeServer) {
       return await googleCloud.reboot(server);
     case "hyperstack":
       return await hyperstackCloud.reboot(server);
+    case "onprem":
+      // for now: just switch back to running: useful for dev at least.
+      setTimeout(() => {
+        setState(server.id, "running");
+      }, 100);
+      return;
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'reboot'`,

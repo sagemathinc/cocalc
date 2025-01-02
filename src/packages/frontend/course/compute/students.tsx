@@ -249,6 +249,7 @@ const COMMANDS = [
   "create",
   "start",
   "stop",
+  "reboot",
   "deprovision",
   "delete",
   "transfer",
@@ -256,10 +257,12 @@ const COMMANDS = [
 
 export type Command = (typeof COMMANDS)[number];
 
+const REQUIRES_CONFIRM = new Set(["stop", "deprovision", "reboot", "delete"]);
+
 const VALID_COMMANDS: { [state: string]: Command[] } = {
   off: ["start", "deprovision", "transfer", "delete"],
   starting: [],
-  running: ["stop"],
+  running: ["stop", "reboot"],
   stopping: [],
   deprovisioned: ["start", "transfer", "delete"],
   suspending: [],
@@ -386,7 +389,7 @@ function CommandButton({
   setError,
   servers,
 }) {
-  const confirm = command == "delete" || command == "deprovision";
+  const confirm = REQUIRES_CONFIRM.has(command);
   const studentIds =
     typeof student_id == "string" ? [student_id] : Array.from(student_id);
   const doIt = async () => {
