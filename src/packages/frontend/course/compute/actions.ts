@@ -92,11 +92,14 @@ export class ComputeActions {
         });
         return;
       }
-      const id = compute_server.get("server_id");
-      if (!id) {
-        log("createComputeServer -- nothing to do - id not set.", {
-          student_id,
-        });
+      const course_server_id = compute_server.get("server_id");
+      if (!course_server_id) {
+        log(
+          "createComputeServer -- nothing to do - compute server not configured for this unit.",
+          {
+            student_id,
+          },
+        );
         return;
       }
       const cur_id = compute_server.getIn([
@@ -109,16 +112,18 @@ export class ComputeActions {
         return cur_id;
       }
       const store = this.getStore();
-      const project_id = store.get("course_project_id");
+      const course_project_id = store.get("course_project_id");
       const server = await cloneConfiguration({
-        id,
-        project_id,
+        id: course_server_id,
+        project_id: course_project_id,
         noChange: true,
       });
       const student_project_id = store.get_student_project_id(student_id);
       const studentServer = {
         ...server,
         project_id: student_project_id,
+        course_server_id,
+        course_project_id,
       };
       // we must enable allowCollaboratorControl since it's needed for the
       // student to start/stop the compute server.

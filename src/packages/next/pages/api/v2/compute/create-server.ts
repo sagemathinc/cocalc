@@ -5,13 +5,11 @@ Create a compute server
 import getAccountId from "lib/account/get-account";
 import createServer from "@cocalc/server/compute/create-server";
 import getParams from "lib/api/get-params";
-
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   CreateServerInputSchema,
-  CreateServerOutputSchema
+  CreateServerOutputSchema,
 } from "lib/api/schema/compute/create-server";
-
 
 async function handle(req, res) {
   try {
@@ -36,6 +34,8 @@ async function get(req) {
     cloud,
     configuration,
     notes,
+    course_project_id,
+    course_server_id,
   } = getParams(req);
   return await createServer({
     account_id,
@@ -47,6 +47,8 @@ async function get(req) {
     cloud,
     configuration,
     notes,
+    course_project_id,
+    course_server_id,
   });
 }
 
@@ -54,7 +56,7 @@ export default apiRoute({
   createServer: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

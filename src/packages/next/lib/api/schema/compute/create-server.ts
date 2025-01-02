@@ -27,15 +27,15 @@ export const CreateServerInputSchema = z
       .number()
       .describe(
         `The idle timeout in seconds of this compute server. If set to 0, the server will
-        never turn off automatically. The compute server idle timeouts if none of the tabs 
+        never turn off automatically. The compute server idle timeouts if none of the tabs
         it is providing are actively touched through the web UI. _Not yet implemented._`,
       )
       .optional(),
     autorestart: z
       .boolean()
       .describe(
-        `If true and the compute server stops for any reason, then it 
-        will be automatically started again. This is primarily useful for 
+        `If true and the compute server stops for any reason, then it
+        will be automatically started again. This is primarily useful for
         stopping instances.`,
       )
       .optional(),
@@ -43,6 +43,14 @@ export const CreateServerInputSchema = z
       .string()
       .describe("Open-ended text in markdown about this item.")
       .optional(),
+    course_project_id: ProjectIdSchema.describe(
+      "Set if this is a computer server in a student project associated to a course in the project with id course_project_id.",
+    ),
+    course_server_id: z
+      .number()
+      .describe(
+        "Set if this is a computer server in a student project associated to a course, where the *global* compute server id is this.",
+      ),
   })
   .describe("Create a new compute server with the provided configuration.");
 

@@ -33,10 +33,12 @@ interface Options {
   autorestart?: boolean;
   position?: number;
   notes?: string;
+  course_project_id?: string;
+  course_server_id?: string;
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes,lock".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes,lock,course_project_id,course_server_id".split(
     ",",
   );
 
@@ -51,7 +53,9 @@ export default async function createServer(opts: Options): Promise<number> {
   if (!(await isCollaborator(opts))) {
     throw Error("user must be a collaborator on project");
   }
-
+  if (opts.course_project_id != null && !isValidUUID(opts.course_project_id)) {
+    throw Error("if given, course_project_id must be a valid uuid");
+  }
   if (opts.configuration != null) {
     if (opts.configuration.cloud != opts.cloud) {
       throw Error(

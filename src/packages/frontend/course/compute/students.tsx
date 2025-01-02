@@ -19,6 +19,20 @@ import { TerminalButton, TerminalCommand } from "./terminal-command";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import type { StudentsMap } from "../store";
 import { map as awaitMap } from "awaiting";
+import { useInterval } from "react-interval-hook";
+
+// TODO: for first release we just update the data about student compute
+// servers every SERVER_UPDATE_INTERVAL_S seconds.
+// This is one API call which involves a couple of database queries.
+// I would never do this with something that every user might use, but
+// this happens only when this modal is open by a *course instructor*,
+// and for now, that definitely isn't happening frequently.
+// Likely the right way to do this is to make a virtual compute_servers
+// table that supports changefeeds and is defined by a list of compute
+// server id's.
+//  ** this is horrible and very temporary **
+
+const SERVER_UPDATE_INTERVAL_S = 5;
 
 declare var DEBUG: boolean;
 
@@ -93,6 +107,11 @@ export default function Students({ actions, unit }: Props) {
       setError(`${err}`);
     }
   };
+
+  useInterval(() => {
+    // cause an update
+    updateServers();
+  }, SERVER_UPDATE_INTERVAL_S * 1000);
 
   useEffect(() => {
     if (error) {

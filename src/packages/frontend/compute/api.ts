@@ -26,6 +26,8 @@ export async function createServer(opts: {
   cloud?: Cloud;
   configuration?: Configuration;
   notes?: string;
+  course_project_id?: string;
+  course_server_id?: number;
 }): Promise<number> {
   return await api("compute/create-server", opts);
 }
