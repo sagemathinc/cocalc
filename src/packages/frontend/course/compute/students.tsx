@@ -1,10 +1,9 @@
 import {
   ACTION_INFO,
   STATE_INFO,
-  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Alert, Button, Checkbox, Popconfirm, Space, Spin } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CourseActions } from "../actions";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -13,26 +12,13 @@ import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
 import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
-import { getUnitId, MAX_PARALLEL_TASKS } from "./util";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { MAX_PARALLEL_TASKS } from "./util";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import type { StudentsMap } from "../store";
 import { map as awaitMap } from "awaiting";
-import { useInterval } from "react-interval-hook";
-
-// TODO: for first release we just update the data about student compute
-// servers every SERVER_UPDATE_INTERVAL_S seconds.
-// This is one API call which involves a couple of database queries.
-// I would never do this with something that every user might use, but
-// this happens only when this modal is open by a *course instructor*,
-// and for now, that definitely isn't happening frequently.
-// Likely the right way to do this is to make a virtual compute_servers
-// table that supports changefeeds and is defined by a list of compute
-// server id's.
-//  ** this is horrible and very temporary **
-
-const SERVER_UPDATE_INTERVAL_S = 5;
+import type { SyncTable } from "@cocalc/sync/table";
+import { getSyncTable } from "./synctable";
 
 declare var DEBUG: boolean;
 
@@ -46,42 +32,8 @@ export type ServersMap = {
     id?: number;
     state?;
     deleted?: boolean;
-    configuration?: Configuration;
   };
 };
-
-const getStudentServers = reuseInFlight(
-  async (unit: Unit): Promise<ServersMap> => {
-    const students = unit
-      .getIn(["compute_server", "students"]) // @ts-ignore
-      ?.valueSeq()
-      .toJS();
-    if (students == null) {
-      return {};
-    }
-    const ids = students
-      .map(({ server_id }) => server_id)
-      .filter((id) => !!id && typeof id == "number"); // typeof is just to make this robust against .course file being messed up...
-
-    // also get the instructor's compute server
-    const instructor_server_id = unit.getIn(["compute_server", "server_id"]);
-    if (instructor_server_id) {
-      ids.push(instructor_server_id);
-    }
-
-    const serverArray = await getServersById({
-      ids,
-      fields: ["id", "state", "deleted", "configuration"],
-    });
-
-    const servers: ServersMap = {};
-    for (const server of serverArray) {
-      servers[server.id!] = server;
-    }
-    return servers;
-  },
-  { createKey: (args) => getUnitId(args[0]) },
-);
 
 export type SelectedStudents = Set<string>;
 
@@ -94,31 +46,47 @@ export default function Students({ actions, unit }: Props) {
   const [mostRecentSelected, setMostRecentSelected] = useState<string | null>(
     null,
   );
-  const instructor_server_id = unit.getIn(["compute_server", "server_id"]);
-  const updateServers = async () => {
-    const store = actions.get_store();
-    // get latest version since it might not have updated just yet.
-    const unit1 =
-      store?.getUnit((unit.get("assignment_id") ?? unit.get("handout_id"))!) ??
-      unit;
-    try {
-      setServers(await getStudentServers(unit1));
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  useInterval(() => {
-    // cause an update
-    updateServers();
-  }, SERVER_UPDATE_INTERVAL_S * 1000);
-
+  const course_server_id = unit.getIn(["compute_server", "server_id"]);
+  const [courseServer, setCourseServer] = useState<any>(null);
   useEffect(() => {
-    if (error) {
+    if (!course_server_id) {
+      setCourseServer(null);
+    }
+    (async () => {
+      const v = await getServersById({
+        ids: [course_server_id!],
+        fields: ["configuration"],
+      });
+      setCourseServer(v[0] ?? null);
+    })();
+  }, [course_server_id]);
+
+  const studentServersRef = useRef<null | SyncTable>(null);
+  useEffect(() => {
+    const course_project_id = actions.get_store().get("course_project_id");
+    if (!course_server_id || !course_project_id) {
+      studentServersRef.current = null;
       return;
     }
-    updateServers();
-  }, [unit, error]);
+    (async () => {
+      studentServersRef.current = await getSyncTable({
+        course_server_id,
+        course_project_id,
+        fields: ["state", "deleted"],
+      });
+      studentServersRef.current.on("change", () => {
+        setServers(studentServersRef.current?.get()?.toJS() ?? null);
+      });
+    })();
+
+    return () => {
+      const table = studentServersRef.current;
+      if (table != null) {
+        studentServersRef.current = null;
+        table.close();
+      }
+    };
+  }, [course_server_id]);
 
   if (servers == null) {
     if (error) {
@@ -129,10 +97,7 @@ export default function Students({ actions, unit }: Props) {
 
   let extra: JSX.Element | null = null;
 
-  if (
-    instructor_server_id &&
-    servers[instructor_server_id]?.configuration?.cloud == "onprem"
-  ) {
+  if (!!course_server_id && courseServer?.configuration?.cloud == "onprem") {
     extra = (
       <Alert
         style={{ margin: "15px 0" }}
@@ -142,8 +107,8 @@ export default function Students({ actions, unit }: Props) {
         description={
           <>
             Self hosted compute servers are currently not supported for courses.
-            The compute server <ComputeServer id={instructor_server_id} /> is
-            self hosted. Please select a non-self-hosted compute server instead.
+            The compute server <ComputeServer id={course_server_id} /> is self
+            hosted. Please select a non-self-hosted compute server instead.
             {DEBUG ? (
               <b> You are in DEBUG mode, so we still allow this.</b>
             ) : (
@@ -211,7 +176,6 @@ export default function Students({ actions, unit }: Props) {
               actions,
               unit,
               setError,
-              updateServers,
               terminal,
               setTerminal,
             }}
@@ -236,7 +200,6 @@ export default function Students({ actions, unit }: Props) {
         actions={actions}
         unit={unit}
         servers={servers}
-        updateServers={updateServers}
         style={i % 2 ? { background: "#f2f6fc" } : undefined}
         selected={selected.has(student_id)}
         setSelected={(checked, shift) => {
@@ -308,7 +271,6 @@ function StudentControl({
   actions,
   unit,
   servers,
-  updateServers,
   style,
   selected,
   setSelected,
@@ -374,7 +336,6 @@ function StudentControl({
           unit,
           student_id,
           setError,
-          updateServers,
           servers,
         }}
       />
@@ -423,7 +384,6 @@ function CommandButton({
   unit,
   student_id,
   setError,
-  updateServers,
   servers,
 }) {
   const confirm = command == "delete" || command == "deprovision";
@@ -448,7 +408,6 @@ function CommandButton({
       setError(`${err}`);
     } finally {
       setLoading(null);
-      updateServers();
     }
   };
   const icon = getIcon(command);
@@ -530,7 +489,6 @@ function CommandsOnSelected({
   actions,
   unit,
   setError,
-  updateServers,
   terminal,
   setTerminal,
 }) {
@@ -562,7 +520,6 @@ function CommandsOnSelected({
           unit,
           student_id: selected,
           setError,
-          updateServers,
           servers,
         }}
       />,
