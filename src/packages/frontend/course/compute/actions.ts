@@ -14,6 +14,7 @@ import {
 } from "@cocalc/frontend/compute/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
+import { getComputeServers } from "./synctable";
 
 declare var DEBUG: boolean;
 
@@ -113,22 +114,51 @@ export class ComputeActions {
       }
       const store = this.getStore();
       const course_project_id = store.get("course_project_id");
-      const server = await cloneConfiguration({
-        id: course_server_id,
-        project_id: course_project_id,
-        noChange: true,
-      });
-      const student_project_id = store.get_student_project_id(student_id);
-      const studentServer = {
-        ...server,
+      let student_project_id = store.get_student_project_id(student_id);
+      if (!student_project_id) {
+        student_project_id =
+          await this.course_actions.student_projects.create_student_project(
+            student_id,
+          );
+      }
+      if (!student_project_id) {
+        throw Error("unable to create the student's project");
+      }
+
+      // Is there already a compute server in the target project
+      // with this course_server_id and course_project_id?  If so,
+      // we use that one, since we don't want to have multiple copies
+      // of the *same* source compute server for multiple handouts
+      // or assignments.
+      const v = await getComputeServers({
         project_id: student_project_id,
-        course_server_id,
         course_project_id,
-      };
-      // we must enable allowCollaboratorControl since it's needed for the
-      // student to start/stop the compute server.
-      studentServer.configuration.allowCollaboratorControl = true;
-      const server_id = await createServer(studentServer);
+        course_server_id,
+      });
+
+      let server_id;
+      if (v.length > 0) {
+        // compute server already exists -- use it
+        server_id = v[0].id;
+      } else {
+        // create new compute server
+        const server = await cloneConfiguration({
+          id: course_server_id,
+          project_id: course_project_id,
+          noChange: true,
+        });
+        const studentServer = {
+          ...server,
+          project_id: student_project_id,
+          course_server_id,
+          course_project_id,
+        };
+        // we must enable allowCollaboratorControl since it's needed for the
+        // student to start/stop the compute server.
+        studentServer.configuration.allowCollaboratorControl = true;
+        server_id = await createServer(studentServer);
+      }
+
       this.setComputeServerConfig({
         unit_id,
         compute_server: { students: { [student_id]: { server_id } } },
@@ -161,8 +191,8 @@ export class ComputeActions {
       await this.createComputeServer({ student_id, unit_id });
       return;
     }
-    const id = this.getComputeServerId({ unit, student_id });
-    if (!id) {
+    const server_id = this.getComputeServerId({ unit, student_id });
+    if (!server_id) {
       throw Error("compute server doesn't exist");
     }
     switch (command) {
@@ -170,21 +200,55 @@ export class ComputeActions {
       case "stop":
       case "reboot":
       case "deprovision":
-        await computeServerAction({ id, action: command });
+        await computeServerAction({ id: server_id, action: command });
         return;
       case "delete":
-        await deleteServer(id);
         const unit_id = getUnitId(unit);
         this.setComputeServerConfig({
           unit_id,
           compute_server: { students: { [student_id]: { server_id: 0 } } },
         });
+        // only actually delete the server from the backend if no other
+        // units also refer to it:
+        if (
+          this.getUnitsUsingComputeServer({ student_id, server_id }).length == 0
+        ) {
+          await deleteServer(server_id);
+        }
         return;
       case "transfer":
       // todo
       default:
         throw Error(`command '${command}' not implemented`);
     }
+  };
+
+  private getUnitIds = () => {
+    const store = this.getStore();
+    if (store == null) {
+      throw Error("store must be defined");
+    }
+    return store.get_assignment_ids().concat(store.get_handout_ids());
+  };
+
+  private getUnitsUsingComputeServer = ({
+    student_id,
+    server_id,
+  }: {
+    student_id: string;
+    server_id: number;
+  }): string[] => {
+    const v: string[] = [];
+    for (const id of this.getUnitIds()) {
+      const { unit } = this.getUnit(id);
+      if (
+        unit.getIn(["compute_server", "students", student_id, "server_id"]) ==
+        server_id
+      ) {
+        v.push(id);
+      }
+    }
+    return v;
   };
 
   private getDebugComputeServer = reuseInFlight(async () => {
