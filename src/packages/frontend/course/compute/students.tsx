@@ -3,9 +3,9 @@ import {
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Alert, Button, Checkbox, Popconfirm, Space, Spin } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CourseActions } from "../actions";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, get_array_range, plural } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
@@ -19,6 +19,7 @@ import type { StudentsMap } from "../store";
 import { map as awaitMap } from "awaiting";
 import type { SyncTable } from "@cocalc/sync/table";
 import { getSyncTable } from "./synctable";
+import { parse_students, pick_student_sorter } from "../util";
 
 declare var DEBUG: boolean;
 
@@ -88,6 +89,21 @@ export default function Students({ actions, unit }: Props) {
     };
   }, [course_server_id]);
 
+  const active_student_sort = useRedux(actions.name, "active_student_sort");
+  const user_map = useTypedRedux("users", "user_map");
+  const studentIds = useMemo(() => {
+    const v0 = parse_students(students, user_map, redux);
+    // Remove deleted students
+    const v1: any[] = [];
+    for (const x of v0) {
+      if (!x.deleted) {
+        v1.push(x);
+      }
+    }
+    v1.sort(pick_student_sorter(active_student_sort.toJS()));
+    return v1.map((x) => x.student_id) as string[];
+  }, [students, user_map, active_student_sort]);
+
   if (servers == null) {
     if (error) {
       return <ShowError error={error} setError={setError} />;
@@ -123,14 +139,6 @@ export default function Students({ actions, unit }: Props) {
     }
   }
 
-  const nonDeletedStudents = students.filter(
-    (student) => !student.get("deleted"),
-  );
-  const studentIds = nonDeletedStudents
-    .valueSeq()
-    .toJS() // @ts-ignore
-    .map(({ student_id }) => student_id);
-
   const v: JSX.Element[] = [];
   v.push(
     <div
@@ -159,7 +167,7 @@ export default function Students({ actions, unit }: Props) {
               name={
                 selected.size == 0
                   ? "square"
-                  : selected.size == nonDeletedStudents.size
+                  : selected.size == studentIds.length
                     ? "check-square"
                     : "minus-square"
               }

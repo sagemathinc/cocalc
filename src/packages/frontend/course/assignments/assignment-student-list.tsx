@@ -30,7 +30,6 @@ interface StudentListForAssignmentProps {
   assignment: AssignmentRecord;
   students: any;
   user_map: any;
-  background?: string;
   active_feedback_edits: IsGradingMap;
   nbgrader_run_info?: NBgraderRunInfo;
   search: string;
@@ -43,7 +42,6 @@ export function StudentListForAssignment({
   assignment,
   students,
   user_map,
-  background,
   active_feedback_edits,
   nbgrader_run_info,
   search,
@@ -74,16 +72,10 @@ export function StudentListForAssignment({
 
     v1.sort(pick_student_sorter(active_student_sort.toJS()));
 
-    if (active_student_sort.get("is_descending")) {
-      v1.reverse();
-    }
-
     return v1.map((x) => x.student_id);
   }, [
-    assignment,
     students,
     user_map,
-    background,
     active_student_sort,
     active_feedback_edits,
     nbgrader_run_info,

@@ -55,7 +55,7 @@ export function StudentListForHandout({
     v1.sort(util.pick_student_sorter(active_student_sort.toJS()));
     const student_list: string[] = v1.map((x) => x.student_id);
     return student_list;
-  }, [students, user_map]);
+  }, [students, user_map, active_student_sort]);
 
   function get_store(): CourseStore {
     const store = redux.getStore(name);
