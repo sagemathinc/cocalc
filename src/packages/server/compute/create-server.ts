@@ -68,6 +68,7 @@ export default async function createServer(opts: Options): Promise<number> {
     // dns is NOT case sensitive, so just in case, we make sure.
     opts.configuration.dns = opts.configuration.dns.toLowerCase();
     if (!(await isDnsAvailable(opts.configuration.dns))) {
+      
       throw Error(
         `Subdomain '${opts.configuration.dns}' is not available.  Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
       );
