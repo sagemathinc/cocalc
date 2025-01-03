@@ -48,26 +48,6 @@ export class ComputeActions {
   } => {
     // this code below is reasonable since the id is a random uuidv4, so no
     // overlap between assignments and handouts in practice.
-    const store = this.getStore();
-    const assignment = store.get_assignment(unit_id);
-    if (assignment != null) {
-      return { unit: assignment as unknown as Unit, table: "assignments" };
-    }
-    const handout = store.get_handout(unit_id);
-    if (handout != null) {
-      return { unit: handout as unknown as Unit, table: "handouts" };
-    }
-    throw Error(`no assignment or handout with id '${unit_id}'`);
-  };
-
-  private getUnitFromSyncDB = (
-    unit_id: string,
-  ): {
-    unit: Unit;
-    table: "assignments" | "handouts";
-  } => {
-    // this code below is reasonable since the id is a random uuidv4, so no
-    // overlap between assignments and handouts in practice.
     const assignment = this.course_actions.syncdb.get_one({
       assignment_id: unit_id,
       table: "assignments",
@@ -92,7 +72,7 @@ export class ComputeActions {
     unit_id: string;
     compute_server: ComputeServerConfig;
   }) => {
-    let { table, unit } = this.getUnitFromSyncDB(unit_id);
+    let { table, unit } = this.getUnit(unit_id);
     const obj = { ...unit.toJS(), table };
     obj.compute_server = merge(obj.compute_server, compute_server);
     this.course_actions.set(obj, true, true);
@@ -101,7 +81,7 @@ export class ComputeActions {
   // Create and compute server associated to a given assignment or handout
   // for a specific student.  Does nothing if (1) the compute server already
   // exists, or (2) no compute server is configured for the given assignment.
-  createComputeServer = reuseInFlight(
+  private createComputeServer = reuseInFlight(
     async ({
       student_id,
       unit_id,
@@ -155,11 +135,14 @@ export class ComputeActions {
       // we use that one, since we don't want to have multiple copies
       // of the *same* source compute server for multiple handouts
       // or assignments.
-      const v = await getComputeServers({
-        project_id: student_project_id,
-        course_project_id,
-        course_server_id,
-      });
+      const v = (
+        await getComputeServers({
+          project_id: student_project_id,
+          course_project_id,
+          course_server_id,
+          fields: ["id", "deleted"],
+        })
+      ).filter(({ deleted }) => !deleted);
 
       let server_id;
       if (v.length > 0) {
@@ -169,7 +152,6 @@ export class ComputeActions {
         // create new compute server
         const server = await cloneConfiguration({
           id: course_server_id,
-          project_id: course_project_id,
           noChange: true,
         });
         const studentServer = {

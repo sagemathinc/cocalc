@@ -58,6 +58,7 @@ export async function getServers(opts: {
   id?: number;
   project_id: string;
 }): Promise<ComputeServerUserInfo[]> {
+  console.trace("get-servers");
   return await api("compute/get-servers", opts);
 }
 

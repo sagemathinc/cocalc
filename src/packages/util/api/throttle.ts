@@ -25,6 +25,16 @@ const THROTTLE = {
     minute: 50,
     hour: 500,
   },
+  "compute/get-servers": {
+    second: 5,
+    minute: 50,
+    hour: 500,
+  },
+  "compute/get-servers-by-id": {
+    second: 15,
+    minute: 100,
+    hour: 1000,
+  },
   "purchases/is-purchase-allowed": {
     second: 7,
     minute: 30,

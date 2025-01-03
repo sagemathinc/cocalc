@@ -459,9 +459,7 @@ export default function Menu({
             break;
 
           case "clone":
-            setModal(
-              <CloneModal id={id} project_id={project_id} close={close} />,
-            );
+            setModal(<CloneModal id={id} close={close} />);
             break;
 
           case "serial-console-log":
