@@ -1,22 +1,52 @@
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Input, Typography } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { currency } from "@cocalc/util/misc";
+import { debounce } from "lodash";
+import { isDnsAvailable } from "@cocalc/frontend/compute/api";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+async function checkDns(dns, setDnsError) {
+  try {
+    checkValidDomain(dns);
+  } catch (err) {
+    setDnsError(`${err}.
+                  Please enter a valid subdomain name. Subdomains can consist of
+                  letters (a-z, A-Z), numbers (0-9), and hyphens (-). They
+                  cannot start or end with a hyphen.`);
+    return false;
+  }
+  try {
+    if (!(await isDnsAvailable(dns))) {
+      setDnsError(
+        `${dns} is not available -- in use by another compute server`,
+      );
+      return false;
+    }
+    setDnsError("");
+    return true;
+  } catch (err) {
+    setDnsError(`${err}`);
+  }
+}
 
 export default function DNS({ setConfig, configuration, loading }) {
   const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
   const [showDns, setShowDns] = useState<boolean>(!!configuration.dns);
   const [dnsError, setDnsError] = useState<string>("");
   const [dns, setDns] = useState<string | undefined>(configuration.dns);
+  const checkValid = useMemo(() => {
+    const f = reuseInFlight(async (dns) => {
+      await checkDns(dns, setDnsError);
+    });
+    return debounce(f, 1000);
+  }, [setDnsError]);
+
   useEffect(() => {
-    if (!dns) return;
-    try {
-      checkValidDomain(dns);
-      setDnsError("");
-    } catch (err) {
-      setDnsError(`${err}`);
+    if (dns) {
+      checkValid(dns);
     }
   }, [dns]);
 
@@ -69,10 +99,12 @@ export default function DNS({ setConfig, configuration, loading }) {
 
           <Button
             disabled={configuration.dns == dns || dnsError || loading}
-            onClick={() => {
-              const s = (dns ?? "").toLowerCase();
-              setConfig({ dns: s });
-              setDns(s);
+            onClick={async () => {
+              if (await checkDns(dns, setDnsError)) {
+                const s = (dns ?? "").toLowerCase();
+                setConfig({ dns: s });
+                setDns(s);
+              }
             }}
           >
             {!dns || configuration.dns != dns
@@ -100,7 +132,7 @@ export default function DNS({ setConfig, configuration, loading }) {
               time.
             </Typography.Paragraph>
           </div>
-          {dnsError && dns && (
+          {dns && dnsError && (
             <div
               style={{
                 background: "red",
@@ -109,10 +141,7 @@ export default function DNS({ setConfig, configuration, loading }) {
                 margin: "10px 0",
               }}
             >
-              <div>{dnsError}</div>
-              Please enter a valid subdomain name. Subdomains can consist of
-              letters (a-z, A-Z), numbers (0-9), and hyphens (-). They cannot
-              start or end with a hyphen.
+              {dnsError}
             </div>
           )}
         </div>

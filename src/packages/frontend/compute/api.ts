@@ -58,7 +58,6 @@ export async function getServers(opts: {
   id?: number;
   project_id: string;
 }): Promise<ComputeServerUserInfo[]> {
-  console.trace("get-servers");
   return await api("compute/get-servers", opts);
 }
 
@@ -71,7 +70,12 @@ export async function getSerialPortOutput(id: number) {
 }
 
 export async function deleteServer(id: number) {
-  await api("compute/delete-server", { id });
+  return await api("compute/delete-server", { id });
+}
+
+export async function isDnsAvailable(dns: string) {
+  const { isAvailable } = await api("compute/is-dns-available", { dns });
+  return isAvailable;
 }
 
 export async function undeleteServer(id: number) {

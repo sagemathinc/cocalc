@@ -7,13 +7,13 @@ export const DNS_COST_PER_HOUR = DNS_COST_PER_MONTH / 730;
 
 export function checkValidDomain(name) {
   if (isReserved(name)) {
-    throw Error(`${name} is not available`);
+    throw Error(`${name} is reserved for system use`);
   }
   if (typeof name != "string") {
     throw Error("name must be a string");
   }
   if (!valid_dns_name(name)) {
-    throw Error("letters and dashes are allowed");
+    throw Error("ONLY letters and dashes are allowed");
   }
   if (name.includes(".")) {
     throw Error("dots . are not allowed");
@@ -22,6 +22,6 @@ export function checkValidDomain(name) {
     throw Error("name must be between 1 and 63 characters");
   }
   if (name[0] == "-" || name[name.length - 1] == "-") {
-    throw Error("name must not start or end with a dash");
+    throw Error("name must NOT start or end with a dash");
   }
 }
