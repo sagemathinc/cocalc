@@ -3,13 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { useIntl } from "react-intl";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { useMemo } from "react";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import { cmp, trunc_middle } from "@cocalc/util/misc";
-import { UserMap } from "../../todo-types";
-import { CourseActions } from "../actions";
-import { CourseStore, HandoutRecord, StudentsMap } from "../store";
+import { trunc_middle } from "@cocalc/util/misc";
+import type { UserMap } from "../../todo-types";
+import type { CourseActions } from "../actions";
+import type {
+  CourseStore,
+  HandoutRecord,
+  SortDescription,
+  StudentsMap,
+} from "../store";
 import * as util from "../util";
 import { StudentHandoutInfoHeader } from "./handout-info-header";
 import { StudentHandoutInfo } from "./handouts-info-panel";
@@ -31,23 +37,22 @@ export function StudentListForHandout({
   handout,
   actions,
 }: StudentListForHandoutProps) {
+  const intl = useIntl();
+  const active_student_sort: SortDescription = useRedux(
+    name,
+    "active_student_sort",
+  );
   const student_list = useMemo(() => {
-    const v0: any[] = util.immutable_to_list(students, "student_id");
+    const v0 = util.parse_students(students, user_map, redux, intl);
 
     // Remove deleted students
     const v1: any[] = [];
     for (const x of v0) {
-      if (!x.deleted) v1.push(x);
-      const user = user_map.get(x.account_id);
-      if (user != null) {
-        const first_name = user.get("first_name", "");
-        const last_name = user.get("last_name", "");
-        x.sort = (last_name + " " + first_name).toLowerCase();
-      } else if (x.email_address != null) {
-        x.sort = x.email_address.toLowerCase();
+      if (!x.deleted) {
+        v1.push(x);
       }
     }
-    v1.sort((a, b) => cmp(a.sort, b.sort));
+    v1.sort(util.pick_student_sorter(active_student_sort.toJS()));
     const student_list: string[] = v1.map((x) => x.student_id);
     return student_list;
   }, [students, user_map]);

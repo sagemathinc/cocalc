@@ -6,18 +6,22 @@
 import { useIntl } from "react-intl";
 
 // CoCalc libraries
-import { AppRedux, useMemo } from "@cocalc/frontend/app-framework";
+import { AppRedux, useMemo, useRedux } from "@cocalc/frontend/app-framework";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { search_match, search_split, trunc_middle } from "@cocalc/util/misc";
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
-import {
+import type {
   AssignmentRecord,
   CourseStore,
   IsGradingMap,
   NBgraderRunInfo,
   SortDescription,
 } from "../store";
-import * as util from "../util";
+import {
+  assignment_identifier,
+  parse_students,
+  pick_student_sorter,
+} from "../util";
 
 interface StudentListForAssignmentProps {
   frame_id?: string;
@@ -27,7 +31,6 @@ interface StudentListForAssignmentProps {
   students: any;
   user_map: any;
   background?: string;
-  active_student_sort: SortDescription;
   active_feedback_edits: IsGradingMap;
   nbgrader_run_info?: NBgraderRunInfo;
   search: string;
@@ -41,15 +44,18 @@ export function StudentListForAssignment({
   students,
   user_map,
   background,
-  active_student_sort,
   active_feedback_edits,
   nbgrader_run_info,
   search,
 }: StudentListForAssignmentProps) {
   const intl = useIntl();
 
+  const active_student_sort: SortDescription = useRedux(
+    name,
+    "active_student_sort",
+  );
   const student_list: string[] = useMemo(() => {
-    const v0 = util.parse_students(students, user_map, redux, intl);
+    const v0 = parse_students(students, user_map, redux, intl);
     const store = get_store();
 
     // Remove deleted students or students not matching the search
@@ -66,7 +72,7 @@ export function StudentListForAssignment({
       v1.push(x);
     }
 
-    v1.sort(util.pick_student_sorter(active_student_sort.toJS()));
+    v1.sort(pick_student_sorter(active_student_sort.toJS()));
 
     if (active_student_sort.get("is_descending")) {
       v1.reverse();
@@ -97,7 +103,7 @@ export function StudentListForAssignment({
     const store = get_store();
     const student = store.get_student(student_id);
     if (student == null) return; // no such student
-    const key = util.assignment_identifier(
+    const key = assignment_identifier(
       assignment.get("assignment_id"),
       student_id,
     );

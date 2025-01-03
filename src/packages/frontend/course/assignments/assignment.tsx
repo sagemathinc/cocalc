@@ -22,12 +22,11 @@ import { CourseActions } from "../actions";
 import { BigTime, Progress } from "../common";
 import { STEP_NAMES, STEPS_INTL } from "../common/consts";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
-import {
+import type {
   AssignmentRecord,
   CourseStore,
   IsGradingMap,
   NBgraderRunInfo,
-  SortDescription,
 } from "../store";
 import * as styles from "../styles";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
@@ -46,7 +45,6 @@ import { ComputeServerButton } from "../compute";
 
 interface AssignmentProps {
   active_feedback_edits: IsGradingMap;
-  active_student_sort: SortDescription;
   assignment: AssignmentRecord;
   background?: string;
   expand_peer_config?: boolean;
@@ -81,7 +79,6 @@ function useCopyConfirmState() {
 
 export function Assignment({
   active_feedback_edits,
-  active_student_sort,
   assignment,
   background,
   expand_peer_config,
@@ -387,7 +384,6 @@ export function Assignment({
             assignment={assignment}
             students={students}
             user_map={user_map}
-            active_student_sort={active_student_sort}
             active_feedback_edits={active_feedback_edits}
             nbgrader_run_info={nbgrader_run_info}
             search={student_search}
