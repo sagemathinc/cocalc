@@ -44,6 +44,7 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 misc_node = require('@cocalc/backend/misc_node')
 { sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
 
+{ recordConnected, recordDisconnected } = require("./postgres/record-connect-error")
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -191,6 +192,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if not err
                     @_state = 'connected'
                     @emit('connect')
+                    recordConnected()
 
     disconnect: () =>
         if @_clients?
@@ -280,6 +282,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                             # already started connecting
                             return
                         @emit('disconnect')
+                        recordDisconnected()
                         dbg("error -- #{err}")
                         @disconnect()
                         @connect()  # start trying to reconnect
@@ -355,6 +358,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 mesg = "Failed to connect to database -- #{err}"
                 dbg(mesg)
                 console.warn(mesg)  # make it clear for interactive users with debugging off -- common mistake with env not setup right.
+                # If we're unable to connect (or all clients fail), we are disconnected. This tells postgres/record-connect-error.ts about this problem.
+                # See https://github.com/sagemathinc/cocalc/issues/5997 for some logs related to that.
+                @emit('disconnect')
+                recordDisconnected()
                 cb?(err)
             else
                 @_clients = locals.clients
