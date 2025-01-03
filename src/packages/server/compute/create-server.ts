@@ -14,7 +14,10 @@ import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 import { isDnsAvailable } from "./dns";
 import { getAvailableVpnIp } from "./vpn";
 import { getProjectSpecificId } from "./project-specific-id";
+import { nanoid } from "nanoid";
 import getLogger from "@cocalc/backend/logger";
+import { checkValidDomain } from "@cocalc/util/compute/dns";
+
 const logger = getLogger("server:compute:create-server");
 
 import type {
@@ -68,14 +71,28 @@ export default async function createServer(opts: Options): Promise<number> {
     // dns is NOT case sensitive, so just in case, we make sure.
     opts.configuration.dns = opts.configuration.dns.toLowerCase();
     if (!(await isDnsAvailable(opts.configuration.dns))) {
-      
-      throw Error(
-        `Subdomain '${opts.configuration.dns}' is not available.  Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
-      );
+      checkValidDomain(opts.configuration.dns);
+      // this should never happen due to frontend UI preventing it, etc.
+      // however -- just in case -- make it work robustly by adding some random string.
+      let n = 0;
+      while (true) {
+        const dns = `${opts.configuration.dns}-${nanoid(6).toLowerCase()}`;
+        if (await isDnsAvailable(dns)) {
+          opts.configuration.dns = dns;
+          break;
+        }
+        n += 1;
+        if (n > 25) {
+          // really weird bug if this doesn't work immediately... but if configuration.dns itself was invalid
+          // it would fail, though we do check that above.  In any case, nobody wants an infinite loop on
+          // their server, so put this here.
+          throw Error(
+            `Subdomain '${opts.configuration.dns}' is not available.  Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
+          );
+        }
+      }
     }
   }
-  // TODO: We should probably do a lot more consistency when creating and sanity checks than just dns;
-  // see set-server-configuration.ts.
 
   if (opts.position == null) {
     opts.position = await getPositionAtTop(opts.project_id);

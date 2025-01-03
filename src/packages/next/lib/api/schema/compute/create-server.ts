@@ -45,12 +45,13 @@ export const CreateServerInputSchema = z
       .optional(),
     course_project_id: ProjectIdSchema.describe(
       "Set if this is a computer server in a student project associated to a course in the project with id course_project_id.",
-    ),
+    ).optional(),
     course_server_id: z
       .number()
       .describe(
         "Set if this is a computer server in a student project associated to a course, where the *global* compute server id is this.",
-      ),
+      )
+      .optional(),
   })
   .describe("Create a new compute server with the provided configuration.");
 
