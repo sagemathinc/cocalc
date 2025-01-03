@@ -60,6 +60,31 @@ export class ComputeActions {
     throw Error(`no assignment or handout with id '${unit_id}'`);
   };
 
+  private getUnitFromSyncDB = (
+    unit_id: string,
+  ): {
+    unit: Unit;
+    table: "assignments" | "handouts";
+  } => {
+    // this code below is reasonable since the id is a random uuidv4, so no
+    // overlap between assignments and handouts in practice.
+    const assignment = this.course_actions.syncdb.get_one({
+      assignment_id: unit_id,
+      table: "assignments",
+    });
+    if (assignment != null) {
+      return { unit: assignment as unknown as Unit, table: "assignments" };
+    }
+    const handout = this.course_actions.syncdb.get_one({
+      handout_id: unit_id,
+      table: "handouts",
+    });
+    if (handout != null) {
+      return { unit: handout as unknown as Unit, table: "handouts" };
+    }
+    throw Error(`no assignment or handout with id '${unit_id}'`);
+  };
+
   setComputeServerConfig = ({
     unit_id,
     compute_server,
@@ -67,7 +92,7 @@ export class ComputeActions {
     unit_id: string;
     compute_server: ComputeServerConfig;
   }) => {
-    let { table, unit } = this.getUnit(unit_id);
+    let { table, unit } = this.getUnitFromSyncDB(unit_id);
     const obj = { ...unit.toJS(), table };
     obj.compute_server = merge(obj.compute_server, compute_server);
     this.course_actions.set(obj, true, true);
