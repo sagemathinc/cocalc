@@ -43,30 +43,30 @@ export class SyncClient {
 
   public sync_table(
     query: Query,
-    options: QueryOptions,
+    options?: QueryOptions,
     throttle_changes?: number,
   ): SyncTable {
-    return synctable(query, options, this.client, throttle_changes);
+    return synctable(query, options ?? [], this.client, throttle_changes);
   }
 
   public async synctable_database(
     query: Query,
-    options: QueryOptions,
+    options?: QueryOptions,
     throttle_changes?: number,
   ): Promise<SyncTable> {
-    const s = this.sync_table(query, options, throttle_changes);
+    const s = this.sync_table(query, options ?? [], throttle_changes);
     await once(s, "connected");
     return s;
   }
 
   public synctable_no_changefeed(
     query: Query,
-    options: QueryOptions,
+    options?: QueryOptions,
     throttle_changes?: number,
   ): SyncTable {
     return synctable_no_changefeed(
       query,
-      options,
+      options ?? [],
       this.client,
       throttle_changes,
     );
@@ -75,14 +75,14 @@ export class SyncClient {
   public async synctable_project(
     project_id: string,
     query: Query,
-    options: QueryOptions,
-    throttle_changes: number | undefined = undefined,
+    options?: QueryOptions,
+    throttle_changes?: number,
     id: string = "",
   ): Promise<SyncTable> {
     return await synctable_project({
       project_id,
       query,
-      options,
+      options: options ?? [],
       client: this.client,
       throttle_changes,
       id,

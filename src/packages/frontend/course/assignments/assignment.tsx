@@ -7,7 +7,6 @@ import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { ReactElement, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
 import {
   DateTimePicker,
@@ -23,12 +22,11 @@ import { CourseActions } from "../actions";
 import { BigTime, Progress } from "../common";
 import { STEP_NAMES, STEPS_INTL } from "../common/consts";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
-import {
+import type {
   AssignmentRecord,
   CourseStore,
   IsGradingMap,
   NBgraderRunInfo,
-  SortDescription,
 } from "../store";
 import * as styles from "../styles";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
@@ -43,10 +41,10 @@ import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { STUDENT_SUBDIR } from "./consts";
 import { SkipCopy } from "./skip";
+import { ComputeServerButton } from "../compute";
 
 interface AssignmentProps {
   active_feedback_edits: IsGradingMap;
-  active_student_sort: SortDescription;
   assignment: AssignmentRecord;
   background?: string;
   expand_peer_config?: boolean;
@@ -81,7 +79,6 @@ function useCopyConfirmState() {
 
 export function Assignment({
   active_feedback_edits,
-  active_student_sort,
   assignment,
   background,
   expand_peer_config,
@@ -125,8 +122,8 @@ export function Assignment({
 
   function render_due() {
     return (
-      <Row>
-        <Col xs={2} style={{ marginTop: "8px", color: "#666" }}>
+      <Space>
+        <div style={{ marginTop: "8px", color: "#666" }}>
           <Tip
             placement="top"
             title="Set the due date"
@@ -134,15 +131,13 @@ export function Assignment({
           >
             Due
           </Tip>
-        </Col>
-        <Col xs={22}>
-          <DateTimePicker
-            placeholder={"Set Due Date"}
-            value={assignment.get("due_date")}
-            onChange={date_change}
-          />
-        </Col>
-      </Row>
+        </div>
+        <DateTimePicker
+          placeholder={"Set Due Date"}
+          value={assignment.get("due_date")}
+          onChange={date_change}
+        />
+      </Space>
     );
   }
 
@@ -277,13 +272,17 @@ export function Assignment({
         <Col md={4}>{render_open_button()}</Col>
         <Col md={20}>
           <Row>
-            <Col md={12} style={{ fontSize: "14px" }} key="due">
+            <Col md={8} style={{ fontSize: "14px" }} key="due">
               {render_due()}
             </Col>
-            <Col md={12} key="delete">
+            <Col md={16} key="delete">
               <Row>
-                <Col md={14}>{render_peer_button()}</Col>
-                <Col md={10}>
+                <Col md={10}>{render_peer_button()}</Col>
+                <Col md={14}>
+                  <ComputeServerButton
+                    actions={actions}
+                    unit={assignment as any}
+                  />
                   <span className="pull-right">{render_delete_button()}</span>
                 </Col>
               </Row>
@@ -385,7 +384,6 @@ export function Assignment({
             assignment={assignment}
             students={students}
             user_map={user_map}
-            active_student_sort={active_student_sort}
             active_feedback_edits={active_feedback_edits}
             nbgrader_run_info={nbgrader_run_info}
             search={student_search}

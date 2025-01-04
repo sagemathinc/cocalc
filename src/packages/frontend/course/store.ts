@@ -36,6 +36,7 @@ import {
   AssignmentStatus,
   SiteLicenseStrategy,
   UpgradeGoal,
+  ComputeServerConfig,
 } from "./types";
 
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
@@ -116,6 +117,7 @@ export type AssignmentRecord = TypedMap<{
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
   nbgrader_score_ids?: { [ipynb: string]: string[] };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -127,9 +129,17 @@ export type HandoutRecord = TypedMap<{
   path: string;
   note: string;
   status: { [student_id: string]: LastCopyInfo };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type HandoutsMap = Map<string, HandoutRecord>;
+
+// unit = record or assignment...
+export type Unit = TypedMap<{
+  compute_server?: ComputeServerConfig;
+  assignment_id?: string;
+  handout_id?: string;
+}>;
 
 export type SortDescription = TypedMap<{
   column_name: string;
@@ -388,7 +398,7 @@ export class CourseStore extends Store<CourseState> {
       if (users != null) {
         const name = users.get_name(student.get("account_id"));
         if (name != null) {
-          extra = ` (You call them "${student.has("first_name")} ${student.has(
+          extra = ` (You call them "${student.get("first_name")} ${student.get(
             "last_name",
           )}", but they call themselves "${name}".)`;
         }
@@ -569,11 +579,15 @@ export class CourseStore extends Store<CourseState> {
     return this.getIn(["assignments", assignment_id]);
   }
 
-  // if deleted is true return only deleted assignments
-  public get_assignment_ids(opts: { deleted?: boolean } = {}): string[] {
+  public get_assignment_ids({
+    deleted = false,
+  }: {
+    // if deleted is true return only deleted assignments
+    deleted?: boolean;
+  } = {}): string[] {
     const v: string[] = [];
     for (const [assignment_id, val] of this.get_assignments()) {
-      if (!!val.get("deleted") == opts.deleted) {
+      if (!!val.get("deleted") == deleted) {
         v.push(assignment_id);
       }
     }
@@ -797,10 +811,12 @@ export class CourseStore extends Store<CourseState> {
     return this.getIn(["handouts", handout_id]);
   }
 
-  public get_handout_ids(opts: { deleted?: boolean } = {}): string[] {
+  public get_handout_ids({
+    deleted = false,
+  }: { deleted?: boolean } = {}): string[] {
     const v: string[] = [];
     for (const [handout_id, val] of this.get_handouts()) {
-      if (!!val.get("deleted") == opts.deleted) {
+      if (!!val.get("deleted") == deleted) {
         v.push(handout_id);
       }
     }
@@ -992,6 +1008,10 @@ export class CourseStore extends Store<CourseState> {
     }
     return licenses;
   }
+
+  getUnit = (id: string) => {
+    return this.getIn(["assignments", id]) ?? this.getIn(["handouts", id]);
+  };
 }
 
 export function get_nbgrader_score(scores: {

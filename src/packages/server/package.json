@@ -98,6 +98,7 @@
     "lru-cache": "^7.18.3",
     "markdown-it": "^13.0.1",
     "ms": "2.1.2",
+    "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
     "nodemailer": "^6.9.14",
     "openai": "^4.52.1",

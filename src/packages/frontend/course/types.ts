@@ -8,7 +8,10 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import type { CopyConfigurationOptions, CopyConfigurationTargets } from "./configuration/configuration-copying";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -75,6 +78,7 @@ export interface SyncDBRecordAssignment {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordHandout {
@@ -88,6 +92,7 @@ export interface SyncDBRecordHandout {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordStudent {
@@ -173,3 +178,16 @@ export interface AssignmentStatus {
   not_peer_collect: number;
   not_return_graded: number;
 }
+
+export interface ComputeServerConfig {
+  server_id?: number;
+  students?: { [student_id: string]: { server_id?: number } };
+}
+
+export type ComputeServerAction =
+  | "start"
+  | "stop"
+  | "create"
+  | "delete"
+  | "deprovision"
+  | "transfer-to-students";

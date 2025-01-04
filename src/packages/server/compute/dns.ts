@@ -9,6 +9,7 @@ import getLogger from "@cocalc/backend/logger";
 import CloudFlare from "cloudflare";
 import getPool from "@cocalc/database/pool";
 import { setData } from "@cocalc/server/compute/util";
+import { checkValidDomain } from "@cocalc/util/compute/dns";
 
 // TTL seems ignored by the api and in the UI it shows as "Auto" because
 // we're proxying everything and TTL isn't relevant.
@@ -185,6 +186,13 @@ export async function get({ name }: { name: string }) {
 // Throw error if the given dns name is currently set for any compute server's configuration.
 // TODO: we may someday need an index on the configuration jsonb?
 export async function isDnsAvailable(dns: string) {
+  try {
+    checkValidDomain(dns);
+  } catch (_) {
+    // invalid dns is never available
+    return false;
+  }
+  // no caching, obviously.
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS count FROM compute_servers WHERE configuration->>'dns' = $1 AND (deleted = false OR deleted is NULL)",

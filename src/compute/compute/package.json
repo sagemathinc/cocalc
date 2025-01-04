@@ -8,8 +8,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "make": "pnpm install && pnpm run build",
-    "build": "../../packages/node_modules/.bin/tsc --build",
+    "make": "pnpm run build",
+    "build": "../../packages/node_modules/.bin/tsc",
     "tsc": "../../packages/node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "bin": {

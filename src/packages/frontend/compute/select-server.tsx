@@ -28,11 +28,12 @@ interface Option {
 interface Props {
   project_id: string;
   value: number | undefined;
-  setValue: (number) => void;
+  setValue?: (number) => void;
   disabled?: boolean;
   size?;
   style?: CSSProperties;
   noLabel?: boolean;
+  fullLabel?: boolean;
   title?: ReactNode;
 }
 
@@ -44,6 +45,7 @@ export default function SelectServer({
   size,
   style,
   noLabel,
+  fullLabel,
   title,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
@@ -51,7 +53,7 @@ export default function SelectServer({
     value0 == 0 ? null : value0,
   );
   const setValue = (value) => {
-    setValue0(value ?? 0);
+    setValue0?.(value ?? 0);
     setValue1(value);
   };
   useEffect(() => {
@@ -292,7 +294,11 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={!open || value == 0 || value == null ? null : `${value}`}
+        value={
+          !(fullLabel || open) || value == 0 || value == null
+            ? null
+            : `${value}`
+        }
         onDropdownVisibleChange={setOpen}
         style={{
           width: open ? "300px" : undefined,

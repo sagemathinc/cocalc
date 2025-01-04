@@ -70,7 +70,9 @@ function User_map_given(props: Props) {
           title="User Name"
           tip="The name this user has given their account."
         >
-          <span style={{ color: "#666" }}> ({full_name})</span>
+          <span style={{ color: "#666", marginLeft: "5px" }}>
+            ({full_name})
+          </span>
         </Tip>
       );
     }

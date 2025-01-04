@@ -98,7 +98,7 @@ function getItems({
     key: "automatic-shutdown",
     icon: <Icon name="stopwatch" />,
     disabled: server.cloud == "onprem",
-    label: "Edit Automatic Shutdown",
+    label: "Automatic Shutdown",
   };
   const jupyterlab = {
     key: "top-jupyterlab",
@@ -459,9 +459,7 @@ export default function Menu({
             break;
 
           case "clone":
-            setModal(
-              <CloneModal id={id} project_id={project_id} close={close} />,
-            );
+            setModal(<CloneModal id={id} close={close} />);
             break;
 
           case "serial-console-log":

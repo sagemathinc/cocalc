@@ -45,6 +45,8 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
+export const IDLE_TIMEOUT_DEFAULT_MINUTES = 30;
+
 export const AUTOMATIC_SHUTDOWN_DEFAULTS = {
   INTERVAL_MINUTES: 1,
   ATTEMPTS: 3,
@@ -66,6 +68,9 @@ export interface AutomaticShutdown {
   exit_code?: number;
   // action: 'shtudown', 'deprovision', 'restart'
   action?: "shutdown" | "deprovision" | "restart" | "suspend";
+  // if false, then above not used -- this makes it easy to enable/disable
+  // without having to delete the command or other settings.
+  disabled?: boolean;
 }
 
 interface ProxyRoute {
@@ -728,6 +733,8 @@ Table({
           notes: null,
           vpn_ip: null,
           project_specific_id: null,
+          course_project_id: null,
+          course_server_id: null,
         },
       },
       set: {
@@ -742,6 +749,7 @@ Table({
           error: true, // easily clear the error
           notes: true,
           automatic_shutdown: true,
+          idle_timeout: true,
         },
       },
     },
@@ -813,7 +821,7 @@ Table({
     automatic_shutdown: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task.",
+      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task. See AutomaticShutdown",
     },
     autorestart: {
       type: "boolean",
@@ -837,7 +845,7 @@ Table({
     data: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *IS* returned to the user.",
+      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *MAY BE* returned to the user -- do not put secrets here the user can't see.",
     },
     avatar_image_tiny: {
       title: "Image",
@@ -897,6 +905,40 @@ Table({
     project_specific_id: {
       type: "integer",
       desc: "A unique project-specific id assigned to this compute server.  This is a positive integer that is guaranteed to be unique for compute servers *in a given project* and minimal when assigned (so it is as small as possible).   This number is useful for distributed algorithms, since it can be used to ensure distinct sequence without any additional coordination.   This is also useful to display to users so that the id number they see everywhere is not huge.",
+    },
+    course_project_id: {
+      type: "uuid",
+      desc: "If this is a compute server created for a student in a course, then this is the id of the project that the instructor(s) are using to host the course.  IMPORTANT: Our security model is that a user can read info about a compute server if they are a collaborator on *either* the compute server's project_id OR on the course_project_id, if set (but then only via the compute_servers_by_course virtual table).",
+    },
+    course_server_id: {
+      type: "integer",
+      desc: "If this compute server is a clone of an instructor server in a course, this is the id of that instructor server.",
+    },
+  },
+});
+
+// The compute_servers_by_course table is exactly like the compute_servers
+// table, but instead of having to specify
+Table({
+  name: "compute_servers_by_course",
+  fields: schema.compute_servers.fields,
+  rules: {
+    primary_key: schema.compute_servers.primary_key,
+    virtual: "compute_servers",
+    user_query: {
+      get: {
+        // only allow read access when course_project_id is a project
+        // that client user is a collaborator on.
+        pg_where: [
+          {
+            "course_project_id = ANY(select project_id from projects where users ? $::TEXT)":
+              "account_id",
+          },
+        ],
+        fields: {
+          ...schema.compute_servers.user_query?.get?.fields,
+        },
+      },
     },
   },
 });

@@ -6,16 +6,16 @@
 import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, MarkdownInput, Tip } from "@cocalc/frontend/components";
 import { course, labels } from "@cocalc/frontend/i18n";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { CourseActions } from "../actions";
+import type { CourseActions } from "../actions";
 import { CourseStore, HandoutRecord, StudentsMap } from "../store";
 import * as styles from "../styles";
 import { StudentListForHandout } from "./handout-student-list";
+import { ComputeServerButton } from "../compute";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -115,6 +115,10 @@ export function Handout({
         <Button onClick={open_handout_path}>
           <Icon name="folder-open" /> Open
         </Button>
+        <div style={{ flex: 1 }} />
+        <ComputeServerButton unit={handout as any} actions={actions} />
+        <div style={{ flex: 1 }} />
+        {render_delete_button()}
       </div>
     );
   }
@@ -466,7 +470,7 @@ export function Handout({
           title="Undelete handout"
           tip="Make the handout visible again in the handout list and in student grade lists."
         >
-          <Button onClick={undelete_handout} style={outside_button_style}>
+          <Button onClick={undelete_handout}>
             <Icon name="trash" /> Undelete
           </Button>
         </Tip>
@@ -490,7 +494,7 @@ export function Handout({
             </div>
           }
         >
-          <Button style={outside_button_style}>
+          <Button>
             <Icon name="trash" /> Delete...
           </Button>
         </Popconfirm>
@@ -574,7 +578,7 @@ export function Handout({
         <Col md={8} style={{ paddingRight: "0px" }}>
           {render_handout_name()}
         </Col>
-        <Col md={8}>
+        <Col md={16}>
           <Row style={{ marginLeft: "8px" }}>
             {render_handout_button(status)}
             <span
@@ -585,11 +589,6 @@ export function Handout({
             </span>
           </Row>
           <Row style={{ marginLeft: "8px" }}>{render_copy_all(status)}</Row>
-        </Col>
-        <Col md={8}>
-          <Row>
-            <span className="pull-right">{render_delete_button()}</span>
-          </Row>
         </Col>
       </Row>
     );
