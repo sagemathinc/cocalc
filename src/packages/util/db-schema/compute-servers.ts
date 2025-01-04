@@ -45,6 +45,8 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
+export const IDLE_TIMEOUT_DEFAULT_MINUTES = 30;
+
 export const AUTOMATIC_SHUTDOWN_DEFAULTS = {
   INTERVAL_MINUTES: 1,
   ATTEMPTS: 3,
@@ -66,6 +68,9 @@ export interface AutomaticShutdown {
   exit_code?: number;
   // action: 'shtudown', 'deprovision', 'restart'
   action?: "shutdown" | "deprovision" | "restart" | "suspend";
+  // if false, then above not used -- this makes it easy to enable/disable
+  // without having to delete the command or other settings.
+  disabled?: boolean;
 }
 
 interface ProxyRoute {
@@ -744,6 +749,7 @@ Table({
           error: true, // easily clear the error
           notes: true,
           automatic_shutdown: true,
+          idle_timeout: true,
         },
       },
     },
@@ -815,7 +821,7 @@ Table({
     automatic_shutdown: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task.",
+      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task. See AutomaticShutdown",
     },
     autorestart: {
       type: "boolean",

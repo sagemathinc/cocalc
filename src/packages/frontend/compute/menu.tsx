@@ -98,7 +98,7 @@ function getItems({
     key: "automatic-shutdown",
     icon: <Icon name="stopwatch" />,
     disabled: server.cloud == "onprem",
-    label: "Edit Automatic Shutdown",
+    label: "Idle Timeout and Automatic Shutdown",
   };
   const jupyterlab = {
     key: "top-jupyterlab",
