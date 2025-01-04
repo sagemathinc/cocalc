@@ -612,7 +612,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string) {}
+  touch_project(_project_id: string, _compute_server_id?:number) {}
 
   async get_syncdoc_history(string_id: string, patches = false) {
     const dbg = this.dbg("get_syncdoc_history");

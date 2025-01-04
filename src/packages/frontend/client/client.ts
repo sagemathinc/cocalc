@@ -76,8 +76,8 @@ export interface WebappClient extends EventEmitter {
   synctable_project: Function;
   project_websocket: Function;
   prettier: Function;
-  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => void;
+  exec: Function;
+  touch_project: (project_id: string, compute_server_id?: number) => void;
   ipywidgetsGetBuffer: (
     project_id: string,
     path: string,
@@ -99,7 +99,6 @@ export interface WebappClient extends EventEmitter {
   is_deleted: (filename: string, project_id: string) => boolean;
   set_deleted: Function;
   mark_file: (opts: any) => Promise<void>;
-
   set_connected?: Function;
   version: Function;
 }
@@ -157,8 +156,8 @@ class Client extends EventEmitter implements WebappClient {
   synctable_project: Function;
   project_websocket: Function;
   prettier: Function;
-  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => void;
+  exec: Function;
+  touch_project: (project_id: string, compute_server_id?: number) => void;
   ipywidgetsGetBuffer: (
     project_id: string,
     path: string,
@@ -242,7 +241,7 @@ class Client extends EventEmitter implements WebappClient {
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
     this.exec = this.project_client.exec.bind(this.project_client);
-    this.touch_project = this.project_client.touch.bind(this.project_client);
+    this.touch_project = this.project_client.touch_project.bind(this.project_client);
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );

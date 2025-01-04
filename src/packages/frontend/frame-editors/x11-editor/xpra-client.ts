@@ -468,6 +468,8 @@ export class XpraClient extends EventEmitter {
   async touch_if_active(): Promise<void> {
     if (Date.now() - this.last_active < 70000) {
       try {
+        // NOTE/TODO: we don't support compute servers yet with xpra, but if we do, then
+        // we would pass second argument that is the compute server id below:
         await touch_project(this.options.project_id);
         await touch(this.options.project_id, this.options.path);
       } catch (err) {
@@ -518,10 +520,7 @@ export class XpraClient extends EventEmitter {
     if (this.idle_timed_out) {
       return;
     }
-    if (
-      Date.now() - this.last_active >=
-      this.options.idle_timeout_ms
-    ) {
+    if (Date.now() - this.last_active >= this.options.idle_timeout_ms) {
       // inactive
       this.idle_timed_out = true;
       this.emit("ws:idle", true);

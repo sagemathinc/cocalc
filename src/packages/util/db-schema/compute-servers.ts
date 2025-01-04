@@ -680,6 +680,7 @@ export interface ComputeServerUserInfo {
   data?: Data;
   purchase_id?: number;
   last_edited?: Date;
+  last_edited_user?: Date;
   position?: number; // used for UI sorting.
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
@@ -726,6 +727,7 @@ Table({
           provisioned_configuration: null,
           avatar_image_tiny: null,
           last_edited: null,
+          last_edited_user: null,
           purchase_id: null,
           position: null,
           detailed_state: null,
@@ -750,6 +752,7 @@ Table({
           notes: true,
           automatic_shutdown: true,
           idle_timeout: true,
+          last_edited_user: true,
         },
       },
     },
@@ -878,6 +881,10 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "Last time the configuration, state, etc., changed.",
+    },
+    last_edited_user: {
+      type: "timestamp",
+      desc: "Last time a user explicitly edited a file or used an application (e.g., terminal) on the compute server via the UI. This is like last_edited for projects, and is used to implement idle_timeout.",
     },
     detailed_state: {
       type: "map",
