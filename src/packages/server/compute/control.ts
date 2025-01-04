@@ -94,10 +94,10 @@ export const start: (opts: {
     throw err;
   }
   runTasks({ account_id, id }, async () => {
-    await updateLastEditedUser(id);
     await setState(id, "starting");
     await doStart(server);
     await setState(id, "running");
+    await updateLastEditedUser(id);
     await saveProvisionedConfiguration(server);
     await setDetailedState({
       project_id: server.project_id,

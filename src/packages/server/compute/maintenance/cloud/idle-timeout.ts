@@ -29,7 +29,7 @@ async function update() {
   // last_edited_user is at least idle_timeout minutes in the past
   const { rows } = await pool.query(
     `
-SELECT id, account_id, project_id, idle_timeout, last_edited_user,
+SELECT id, account_id, project_id, idle_timeout, last_edited_user
 FROM compute_servers
 WHERE state = 'running'
   AND idle_timeout IS NOT NULL
