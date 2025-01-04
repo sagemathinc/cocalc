@@ -40,7 +40,7 @@ async function saveStateControl(obj) {
   await webapp_client.async_query({ query });
 }
 
-function AutomaticShutdown({ id, project_id, help }) {
+function CommandBased({ id, project_id, help }) {
   const server = useServer({ id, project_id });
   const [error, setError] = useState<string>("");
   const [test, setTest] = useState<string>("");
@@ -51,7 +51,7 @@ function AutomaticShutdown({ id, project_id, help }) {
       AUTOMATIC_SHUTDOWN_DEFAULTS.ATTEMPTS,
   );
   const [interval_minutes, setIntervalMinutes] = useState<number | null>(
-    server.automatic_shutdown.interval_minutes ??
+    server.automatic_shutdown?.interval_minutes ??
       AUTOMATIC_SHUTDOWN_DEFAULTS.INTERVAL_MINUTES,
   );
   const [disabled, setDisabled] = useState<boolean>(
@@ -123,11 +123,10 @@ function AutomaticShutdown({ id, project_id, help }) {
   };
 
   return (
-    <Card title="Automatic Shutdown">
+    <Card title="Arbitrary Command">
       {help && (
         <p style={{ marginBottom: "15px" }}>
-          CoCalc will run this bash command line on your compute server in
-          /home/user every{" "}
+          Run this bash command on your compute server in /home/user every{" "}
           {interval_minutes ?? AUTOMATIC_SHUTDOWN_DEFAULTS.INTERVAL_MINUTES}{" "}
           {plural(
             interval_minutes ?? AUTOMATIC_SHUTDOWN_DEFAULTS.INTERVAL_MINUTES,
@@ -135,7 +134,7 @@ function AutomaticShutdown({ id, project_id, help }) {
           )}
           . If the command fails{" "}
           {`${attempts ?? 1} ${plural(attempts ?? 1, "time")} in a row`}, then
-          CoCalc will turn off the compute server.
+          turn off the compute server.
         </p>
       )}
       <Space direction="vertical" size="large">
@@ -171,7 +170,7 @@ function AutomaticShutdown({ id, project_id, help }) {
         <div style={{ textAlign: "center" }}>
           <Space>
             <Checkbox
-              disabled={saving}
+              disabled={saving || (!disabled && !command)}
               checked={!disabled}
               onChange={(e) => {
                 setDisabled(!e.target.checked);
@@ -268,10 +267,10 @@ function IdleTimeout({ id, project_id, help }) {
       {help && (
         <div style={{ marginBottom: "15px" }}>
           <p>
-            CoCalc will automatically stop the compute server if no terminal or
-            file (e.g., Jupyter notebook) on this compute server is used through
-            the web interface for a given numbers of minutes. CPU and GPU usage
-            is not taken into account.
+            Automatically stop the compute server if no terminal or file (e.g.,
+            Jupyter notebook) on this compute server is used through the main
+            CoCalc web interface for a given numbers of minutes. CPU and GPU
+            usage is not taken into account.
           </p>
           <ul>
             <li>
@@ -283,7 +282,7 @@ function IdleTimeout({ id, project_id, help }) {
               Compute server idle timeout is unrelated to your home base's idle
               timeout. Any time a compute server is running, it keeps the home
               base project running, which effectively gives the home base a long
-              idle timeout (so no need to buy one using a license).
+              idle timeout.
             </li>
           </ul>
         </div>
@@ -356,7 +355,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
       title={
         <div>
           <Flex style={{ marginRight: "20px", alignItems: "center" }}>
-            <div>Idle Timeout and Automatic Shutdown</div>
+            <div>Configure Automatic Shutdown Strategies</div>
             <div style={{ width: "25px" }} />
             <Switch
               size="small"
@@ -372,7 +371,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
     >
       <IdleTimeout id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />
-      <AutomaticShutdown id={id} project_id={project_id} help={help} />
+      <CommandBased id={id} project_id={project_id} help={help} />
     </Modal>
   );
 }

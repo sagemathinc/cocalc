@@ -38,7 +38,7 @@ const numAttempts: { [id: number]: number } = {};
 async function update() {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, automatic_shutdown, account_id, project_id FROM compute_servers WHERE cloud!='onprem' AND state='running' AND automatic_shutdown#>>'{command}' != ''",
+    "SELECT id, automatic_shutdown, account_id, project_id FROM compute_servers WHERE cloud!='onprem' AND state='running' AND automatic_shutdown#>>'{command}' != '' AND automatic_shutdown#>>'{disabled}'!='true'",
   );
   const now = Date.now();
   await Promise.all(
