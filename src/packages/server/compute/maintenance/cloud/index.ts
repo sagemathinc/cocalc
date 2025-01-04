@@ -33,6 +33,7 @@ async function startMaintenance() {
 
   setInterval(automaticShutdown, 60 * 1000);
 
+  // once per minute makes sense
   setInterval(idleTimeout, 60 * 1000);
 }
 

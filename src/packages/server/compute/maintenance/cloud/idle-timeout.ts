@@ -24,6 +24,7 @@ export default async function idleTimeout() {
 }
 
 async function update() {
+  logger.debug("update");
   const pool = getPool();
   // finds all rows where: state is "running", idle_timeout is defined and positive,
   // last_edited_user is at least idle_timeout minutes in the past
@@ -37,7 +38,9 @@ WHERE state = 'running'
   AND last_edited_user <= NOW() - (idle_timeout * INTERVAL '1 minute')
 `,
   );
+  logger.debug(`got ${rows.length} servers that need to be stopped:`, rows);
   const f = async (row) => {
+    logger.debug("stopping compute server", row);
     try {
       await createProjectLogEntry(row);
       const { account_id, id } = row;
@@ -48,7 +51,7 @@ WHERE state = 'running'
       );
     }
   };
-  await map(rows, f, 20);
+  await map(rows, 20, f);
 }
 
 async function createProjectLogEntry({
@@ -62,6 +65,7 @@ async function createProjectLogEntry({
   project_id: string;
   idle_timeout: number;
 }) {
+  logger.debug("log entry that we idle timed out compute server", { id });
   const pool = getPool();
   await pool.query(
     "INSERT INTO project_log(id, project_id, account_id, time, event) VALUES($1,$2,$3,NOW(),$4)",
