@@ -69,7 +69,7 @@ export default function LogEntry({
       return (
         <>
           {cs} - Idle Timeout Shutdown (inactive for at least{" "}
-          {event.idle_timeout} minutes) {tag}
+          {event.idle_timeout} {plural(event.idle_timeout, "minute")}) {tag}
         </>
       );
     default:

@@ -112,11 +112,13 @@ export const start: (opts: {
 });
 
 // call this to ensure that the idle timeout doesn't kill the server
-// before the user even gets a chance to use it.
+// before the user even gets a chance to use it.  We always set the
+// initial edited time to a few minutes in the future to allow for
+// startup configuration, before user can trigger last_edited_user updates.
 async function updateLastEditedUser(id: number) {
   const pool = getPool();
   await pool.query(
-    "UPDATE compute_servers SET last_edited_user = NOW() WHERE id=$1",
+    "UPDATE compute_servers SET last_edited_user = NOW() + interval '15 minutes' WHERE id=$1",
     [id],
   );
 }
