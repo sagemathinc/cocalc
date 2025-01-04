@@ -32,6 +32,7 @@ import {
   AUTOMATIC_SHUTDOWN_DEFAULTS,
   IDLE_TIMEOUT_DEFAULT_MINUTES,
 } from "@cocalc/util/db-schema/compute-servers";
+import IdleTimeoutMessage from "./idle-timeout-message";
 
 async function saveStateControl(obj) {
   const query = {
@@ -263,9 +264,24 @@ function IdleTimeout({ id, project_id, help }) {
   };
 
   return (
-    <Card title="Idle Timeout">
+    <Card
+      title={
+        <>
+          Idle Timeout
+          <IdleTimeoutMessage
+            minimal
+            project_id={project_id}
+            id={id}
+            style={{ float: "right" }}
+          />
+        </>
+      }
+    >
       {help && (
         <div style={{ marginBottom: "15px" }}>
+          <p>
+            <IdleTimeoutMessage project_id={project_id} id={id} />
+          </p>
           <p>
             Automatically stop the compute server if no terminal or file (e.g.,
             Jupyter notebook) on this compute server is used through the main

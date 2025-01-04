@@ -57,6 +57,7 @@ class ComputeServersTable extends Table {
           data: null,
           avatar_image_tiny: null,
           last_edited: null,
+          last_edited_user: null,
           purchase_id: null,
           detailed_state: null,
           position: null,

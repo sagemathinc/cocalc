@@ -24,6 +24,7 @@ import { DisplayImage } from "./select-image";
 import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
+import IdleTimeoutMessage from "./idle-timeout-message";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -389,6 +390,20 @@ export default function ComputeServer({
                   />
                 )}
             </div>
+            {cloud != "onprem" &&
+              server.idle_timeout &&
+              state == "running" &&
+              id && (
+                <div
+                  style={{
+                    display: "flex",
+                    marginLeft: "-10px",
+                    color: "#666",
+                  }}
+                >
+                  <IdleTimeoutMessage id={id} project_id={project_id} minimal />
+                </div>
+              )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
