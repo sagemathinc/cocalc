@@ -94,6 +94,7 @@ export const start: (opts: {
     throw err;
   }
   runTasks({ account_id, id }, async () => {
+    await updateLastEditedUser(id);
     await setState(id, "starting");
     await doStart(server);
     await setState(id, "running");
@@ -109,6 +110,16 @@ export const start: (opts: {
     updateDNS(server, "running");
   });
 });
+
+// call this to ensure that the idle timeout doesn't kill the server
+// before the user even gets a chance to use it.
+async function updateLastEditedUser(id: number) {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE compute_servers SET last_edited_user = NOW() WHERE id=$1",
+    [id],
+  );
+}
 
 async function doStart(server: ComputeServer) {
   if (server.data?.cloud != server.cloud) {

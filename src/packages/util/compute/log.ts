@@ -23,6 +23,11 @@ export interface AutomaticShutdownEntry {
   automatic_shutdown: AutomaticShutdown;
 }
 
+export interface IdleTimeoutEntry {
+  action: "idle-timeout";
+  idle_timeout: number;
+}
+
 interface Error {
   action: "error";
   error: string;
@@ -33,6 +38,7 @@ export type ComputeServerEvent = (
   | StateChange
   | Error
   | AutomaticShutdownEntry
+  | IdleTimeoutEntry
 ) &
   Event;
 
@@ -40,4 +46,5 @@ export type ComputeServerEventLogEntry =
   | ConfigurationChange
   | StateChange
   | AutomaticShutdownEntry
+  | IdleTimeoutEntry
   | Error;

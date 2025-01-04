@@ -65,6 +65,13 @@ export default function LogEntry({
           {capitalize(event.automatic_shutdown?.action ?? "Stop")} {tag}
         </>
       );
+    case "idle-timeout":
+      return (
+        <>
+          {cs} - Idle Timeout Shutdown (inactive for at least{" "}
+          {event.idle_timeout} minutes) {tag}
+        </>
+      );
     default:
       return (
         <>

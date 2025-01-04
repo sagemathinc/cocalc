@@ -10,6 +10,7 @@ import getLogger from "@cocalc/backend/logger";
 import { hyperstackMaintenance } from "./hyperstack";
 
 import automaticShutdown from "./automatic-shutdown";
+import idleTimeout from "./idle-timeout";
 
 const logger = getLogger("server:compute:maintenance:cloud");
 
@@ -31,6 +32,8 @@ async function startMaintenance() {
   setInterval(hyperstackMaintenance, HYPERSTACK_SYNC_INTERVAL_MS);
 
   setInterval(automaticShutdown, 60 * 1000);
+
+  setInterval(idleTimeout, 60 * 1000);
 }
 
 let running = false;
