@@ -15,6 +15,7 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
 import { getComputeServers } from "./synctable";
+import { join } from "path";
 
 declare var DEBUG: boolean;
 
@@ -346,5 +347,56 @@ export class ComputeActions {
     };
     await awaitMap(student_ids, MAX_PARALLEL_TASKS, task);
     return outputs;
+  };
+
+  setComputeServerAssociations = async ({
+    src_path,
+    target_project_id,
+    target_path,
+    student_id,
+    unit_id,
+  }: {
+    src_path: string;
+    target_project_id: string;
+    target_path: string;
+    student_id: string;
+    unit_id: string;
+  }) => {
+    const { unit } = this.getUnit(unit_id);
+    const compute_server_id = this.getComputeServerId({ unit, student_id });
+    if (!compute_server_id) {
+      // If no compute server is configured for this student and unit,
+      // then nothing to do.
+      return;
+    }
+
+    // Figure out which subdirectories in the src_path of the course project
+    // are on a compute server, and set them to be on THE compute server for
+    // this student/unit.
+    const store = this.getStore();
+    if (store == null) {
+      return;
+    }
+    const course_project_id = store.get("course_project_id");
+
+    const courseAssociations =
+      webapp_client.project_client.computeServers(course_project_id);
+
+    const studentAssociations =
+      webapp_client.project_client.computeServers(target_project_id);
+
+    const ids = await courseAssociations.getServerIdForSubtree(src_path);
+    for (const source in ids) {
+      if (ids[source]) {
+        const tail = source.slice(src_path.length + 1);
+        const path = join(target_path, tail);
+        await studentAssociations.waitUntilReady();
+        // path is on a compute server.
+        studentAssociations.connectComputeServerToPath({
+          id: compute_server_id,
+          path,
+        });
+      }
+    }
   };
 }

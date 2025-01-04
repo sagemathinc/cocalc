@@ -852,7 +852,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await webapp_client.project_client.copy_path_between_projects({
+      const opts = {
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -861,6 +861,14 @@ ${details}
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
         timeout: COPY_TIMEOUT_MS / 1000,
+      };
+      await webapp_client.project_client.copy_path_between_projects(opts);
+      await this.course_actions.compute.setComputeServerAssociations({
+        student_id,
+        src_path: opts.src_path,
+        target_project_id: opts.target_project_id,
+        target_path: opts.target_path,
+        unit_id: assignment_id,
       });
 
       // successful finish
