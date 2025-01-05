@@ -28,8 +28,14 @@ export const GetPurchasesInputSchema = z
       .describe("Number of purchases by which to offset results.")
       .nullish(),
     service: PurchaseServiceSchema.nullish(),
+    compute_server_id: z
+      .number()
+      .describe(
+        "Only get purchases involving this compute server.  The id must be the *global* compute server id, not the one local to this project.   NOTE: This gets purchases for whoever is the *owner* of the compute server, which might not be the user requesting the purchases.",
+      )
+      .nullish(),
     project_id: ProjectIdSchema.describe(
-      "The project id associated with this purchase, if one exists.",
+      "Only get purchases involving this project made by the client making this request.  This does not get purchases by other collaborators in this project.",
     ).nullish(),
     group: z
       .boolean()

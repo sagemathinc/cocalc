@@ -482,7 +482,7 @@ function getCommands(server): Command[] {
   const v: Command[] = [];
   for (const command of COMMANDS) {
     if (command == "transfer") {
-      // this is a can of worms to implement (see packages/server/compute/transfer-ownership.ts),
+      // this is a can of worms to implement (see packages/server/compute/owner.ts),
       // so we will wait until later.
       continue;
     }

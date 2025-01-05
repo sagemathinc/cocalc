@@ -24,6 +24,7 @@ The only safe thing would be transfering a deprovisioned server, which is pointl
 */
 
 import getPool from "@cocalc/database/pool";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function transferOwnership({
   account_id,
@@ -46,4 +47,34 @@ export default async function transferOwnership({
   }
   // TODO
   throw Error(`transfer to ${target_account_id} not implemented`);
+}
+
+// checks that account_id is a collab on the project that contains the compute server,
+// and if so, returns the owner of the compute server.
+export async function getOwner({
+  compute_server_id,
+  account_id,
+}: {
+  compute_server_id: number;
+  account_id: string;
+}): Promise<string> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT account_id, project_id FROM compute_servers WHERE id=$1`,
+    [compute_server_id],
+  );
+  if (rows.length == 0) {
+    // no such server, so nothing to do
+    return account_id;
+  }
+  if (rows[0].account_id != account_id) {
+    const { project_id } = rows[0];
+    // check that requesting user has access to compute server's project:
+    if (!(await isCollaborator({ project_id, account_id }))) {
+      throw Error(
+        "user must be collaborator on project that contains the compute server",
+      );
+    }
+  }
+  return rows[0].account_id;
 }
