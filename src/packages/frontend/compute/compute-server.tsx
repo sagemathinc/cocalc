@@ -25,6 +25,7 @@ import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
 import IdleTimeoutMessage from "./idle-timeout-message";
+import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -437,6 +438,7 @@ export default function ComputeServer({
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   flex: 1,
+                  display: "flex",
                 }}
               >
                 <State
@@ -450,6 +452,17 @@ export default function ComputeServer({
                   cost_per_hour={cost_per_hour}
                   purchase_id={purchase_id}
                 />
+                {state == "running" && id && (
+                  <div
+                    style={{
+                      width: "75px",
+                      marginTop: "2.5px",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    <RunningProgress server={{ ...server, id }} />
+                  </div>
+                )}
               </div>
               <Title
                 title={title}

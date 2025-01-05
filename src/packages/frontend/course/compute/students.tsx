@@ -21,6 +21,7 @@ import { map as awaitMap } from "awaiting";
 import type { SyncTable } from "@cocalc/sync/table";
 import { getSyncTable } from "./synctable";
 import { parse_students, pick_student_sorter } from "../util";
+import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
 
 declare var DEBUG: boolean;
 
@@ -74,7 +75,13 @@ export default function Students({ actions, unit }: Props) {
       studentServersRef.current = await getSyncTable({
         course_server_id,
         course_project_id,
-        fields: ["state", "deleted", "cost_per_hour"],
+        fields: [
+          "state",
+          "deleted",
+          "cost_per_hour",
+          "detailed_state",
+          "account_id",
+        ],
       });
       studentServersRef.current.on("change", () => {
         setServers(studentServersRef.current?.get()?.toJS() ?? null);
@@ -273,11 +280,11 @@ const REQUIRES_CONFIRM = new Set(["stop", "deprovision", "reboot", "delete"]);
 const VALID_COMMANDS: { [state: string]: Command[] } = {
   off: ["start", "deprovision", "transfer", "delete"],
   starting: [],
-  running: ["stop", "reboot"],
+  running: ["stop", "reboot", "deprovision"],
   stopping: [],
   deprovisioned: ["start", "transfer", "delete"],
   suspending: [],
-  suspended: ["start"],
+  suspended: ["start", "deprovision"],
 };
 
 function StudentControl({
@@ -330,6 +337,13 @@ function StudentControl({
         {capitalize(server.state)}
       </div>,
     );
+    if (server.state == "running") {
+      v.push(
+        <div style={{ width: "100px", paddingTop: "5px" }}>
+          <RunningProgress server={server} />
+        </div>,
+      );
+    }
   } else {
     v.push(
       <div key="state" style={{ width: "125px" }}>
