@@ -136,11 +136,22 @@ export default function SelectComputeServerForFile({
         style={style}
         value={value}
         setValue={(newValue) => {
-          setIdNum(newValue ?? 0);
+          const idNum = newValue ?? 0;
+          setIdNum(idNum);
           lastValueRef.current = value;
-          setValue(newValue);
-          if (value != newValue) {
-            setConfirmSwitch(true);
+          if (value != idNum) {
+            if (idNum) {
+              computeServerAssociations.connectComputeServerToPath({
+                id: idNum,
+                path: getPath(path),
+              });
+              setValue(idNum);
+            } else {
+              computeServerAssociations.disconnectComputeServer({
+                path: getPath(path),
+              });
+              setValue(undefined);
+            }
           }
         }}
         noLabel={noLabel}
@@ -240,7 +251,7 @@ export function modalParams({ current, target, path }) {
         >
           Stay {sourceDesc}
         </div>
-        <InlineComputeServer noColor key="current-id" id={current} idOnly />
+        <InlineComputeServer key="current-id" id={current} idOnly />
       </div>
     ),
     okText: (
@@ -256,7 +267,7 @@ export function modalParams({ current, target, path }) {
         >
           {what} {targetDesc}
         </div>
-        <InlineComputeServer noColor key="target-id" id={target} idOnly />
+        <InlineComputeServer key="target-id" id={target} idOnly />
       </div>
     ),
     description: (
