@@ -339,7 +339,10 @@ function StudentControl({
     );
     if (server.state == "running") {
       v.push(
-        <div style={{ width: "100px", paddingTop: "5px" }}>
+        <div
+          key="running-progress"
+          style={{ width: "100px", paddingTop: "5px" }}
+        >
           <RunningProgress server={server} />
         </div>,
       );

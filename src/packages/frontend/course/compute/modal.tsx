@@ -26,7 +26,7 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
 
   return (
     <Modal
-      width={900}
+      width={"90%"}
       open
       title={
         <>
