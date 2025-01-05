@@ -472,7 +472,7 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
           </div>
         )}
         {!apiKey && !error && <Spin />}
-        {error && <ShowError error={error} setError={setError} />}
+        <ShowError error={error} setError={setError} />
       </div>
       {action == "stop" && (
         <div>

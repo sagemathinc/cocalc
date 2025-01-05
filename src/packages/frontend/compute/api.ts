@@ -211,7 +211,7 @@ export async function deleteApiKey(opts: { id }): Promise<string> {
 }
 
 // Get the project log entries directly for just one compute server
-export async function getLog(opts: { id }) {
+export async function getLog(opts: { id; type: "activity" | "files" }) {
   return await api("compute/get-log", opts);
 }
 
