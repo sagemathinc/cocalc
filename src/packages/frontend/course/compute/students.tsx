@@ -15,6 +15,7 @@ import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
 import { MAX_PARALLEL_TASKS } from "./util";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
 import ComputeServer from "@cocalc/frontend/compute/inline";
+import CurrentCost from "@cocalc/frontend/compute/current-cost";
 import type { StudentsMap } from "../store";
 import { map as awaitMap } from "awaiting";
 import type { SyncTable } from "@cocalc/sync/table";
@@ -73,7 +74,7 @@ export default function Students({ actions, unit }: Props) {
       studentServersRef.current = await getSyncTable({
         course_server_id,
         course_project_id,
-        fields: ["state", "deleted"],
+        fields: ["state", "deleted", "cost_per_hour"],
       });
       studentServersRef.current.on("change", () => {
         setServers(studentServersRef.current?.get()?.toJS() ?? null);
@@ -144,7 +145,9 @@ export default function Students({ actions, unit }: Props) {
     <div
       key="all"
       style={{
-        height: terminal ? undefined : "32px" /* this avoids a flicker */,
+        minHeight: "32px" /* this avoids a flicker */,
+        borderBottom: "1px solid #ccc",
+        paddingBottom: "15px",
       }}
     >
       <Space>
@@ -331,6 +334,16 @@ function StudentControl({
     v.push(
       <div key="state" style={{ width: "125px" }}>
         -
+      </div>,
+    );
+  }
+  if (server?.cost_per_hour) {
+    v.push(
+      <div key="cost" style={{ width: "80px" }}>
+        <CurrentCost
+          state={server.state}
+          cost_per_hour={server.cost_per_hour}
+        />
       </div>,
     );
   }
