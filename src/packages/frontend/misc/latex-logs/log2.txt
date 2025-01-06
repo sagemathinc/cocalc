@@ -1,0 +1,70 @@
+Latexmk: applying rule 'bibtex livre1'...
+This is BibTeX, Version 0.99d (TeX Live 2022/dev/Debian)
+The top-level auxiliary file: livre1.aux
+The style file: livre1.bst
+Database file #1: master.bib
+Latexmk: applying rule 'makeindex /tmp/8783dd204d3d37d431ff4cfcf210a1a75dccadff/livre1.idx'...
+Latexmk: Change directory to '/tmp/8783dd204d3d37d431ff4cfcf210a1a75dccadff/'.
+Latexmk: Change directory back to '/home/user/TopicsBook/Edition1'
+Latexmk: applying rule 'pdflatex'...
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex)
+restricted \write18 enabled.
+entering extended mode
+(./livre1.tex
+LaTeX2e <2021-11-15> patch level 1
+L3 programming layer <2022-01-21> (./livre1.cls
+Document Class: livre1 2007/06/25 v5.4
+Springer Verlag global LaTeX document class for monographs
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2021/10/04 v1.4n Standard LaTeX document class
+
+LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <16> not available
+(Font) size <17.28> substituted on input line 3.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/stmaryrd/Ustmry.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/jknapltx/ursfs.fd)
+
+LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
+(Font) using `U/stmry/m/n' instead on input line 3.
+
+
+LaTeX Font Warning: Font shape `OT1/cmtt/m/n' in size <8.5> not available
+(Font) size <8> substituted on input line 15.
+
+) [3]
+:<-
+[4] (/tmp/8783dd204d3d37d431ff4cfcf210a1a75dccadff/livre1.toc [5] [6] [7]
+[8]) [9]
+:<+ ch_Euclidean.tex
+(./ch_Euclidean.tex [0]
+Chapter 1.
+
+LaTeX Warning: Marginpar on page 1 moved.
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
+been already used, duplicate ignored
+<to be read again>
+\relax
+l.48 \end{equation}
+[1] [2] [3] [4] [5] [6] [7]
+
+
+Latexmk: Examining '/tmp/8783dd204d3d37d431ff4cfcf210a1a75dccadff/livre1.log'
+=== TeX engine is 'pdfTeX'
+Latexmk: Errors, in force_mode: so I tried finishing targets
+#===Dependents, and related info, for livre1.tex:
+/tmp/8783dd204d3d37d431ff4cfcf210a1a75dccadff/livre1.pdf :\
+./livre1.bst\
+/etc/texmf/web2c/texmf.cnf\
+/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty\
+/usr/share/texlive/texmf-dist/web2c/texmf.cnf\
+/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc\
+/usr/share/texmf/fonts/type1/public/cm-super/sfrm1000.pfb\
+/usr/share/texmf/web2c/texmf.cnf\
+/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map\
+/var/lib/texmf/web2c/pdftex/pdflatex.fmt\
+01.tex\
+02.5.tex
+#===End dependents for livre1.tex:
