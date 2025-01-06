@@ -22,11 +22,13 @@ export default function CurrentCost({ state, cost_per_hour }) {
           )}
           placement="right"
         >
-          {currency(cost_per_hour)}/hour
+          <span style={{ textWrap: "nowrap" }}>
+            {currency(cost_per_hour)}/hour
+          </span>
         </Tooltip>
       );
     }
   }
 
-  return <span style={{ color }}>{cost}</span>;
+  return <span style={{ color, textWrap: "nowrap" }}>{cost}</span>;
 }

@@ -670,7 +670,7 @@ function TotalCost({ server }) {
   return (
     <Tooltip title="Total spent on this compute server.">
       <span>
-        {currency(total)}{" "}
+        <span style={{ textWrap: "nowrap" }}>{currency(total)}</span>{" "}
         <Progress
           showInfo={false}
           percent={(total * 100) / 20}
