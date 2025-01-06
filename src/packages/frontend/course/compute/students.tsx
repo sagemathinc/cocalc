@@ -2,15 +2,30 @@ import {
   ACTION_INFO,
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Alert, Button, Checkbox, Popconfirm, Space, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Popconfirm,
+  Progress,
+  Space,
+  Spin,
+  Tooltip,
+} from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CourseActions } from "../actions";
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize, get_array_range, plural } from "@cocalc/util/misc";
+import {
+  capitalize,
+  currency,
+  get_array_range,
+  plural,
+} from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
+import { getPurchases } from "@cocalc/frontend/purchases/api";
 import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
 import { MAX_PARALLEL_TASKS } from "./util";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
@@ -28,6 +43,7 @@ declare var DEBUG: boolean;
 interface Props {
   actions: CourseActions;
   unit: Unit;
+  onClose?: () => void;
 }
 
 export type ServersMap = {
@@ -40,7 +56,7 @@ export type ServersMap = {
 
 export type SelectedStudents = Set<string>;
 
-export default function Students({ actions, unit }: Props) {
+export default function Students({ actions, unit, onClose }: Props) {
   const [servers, setServers] = useState<ServersMap | null>(null);
   const students: StudentsMap = useRedux(actions.name, "students");
   const [error, setError] = useState<string>("");
@@ -76,11 +92,13 @@ export default function Students({ actions, unit }: Props) {
         course_server_id,
         course_project_id,
         fields: [
+          "id",
           "state",
           "deleted",
           "cost_per_hour",
           "detailed_state",
           "account_id",
+          "project_specific_id",
         ],
       });
       studentServersRef.current.on("change", () => {
@@ -214,6 +232,7 @@ export default function Students({ actions, unit }: Props) {
     v.push(
       <StudentControl
         key={student_id}
+        onClose={onClose}
         student={students.get(student_id)}
         actions={actions}
         unit={unit}
@@ -288,6 +307,7 @@ const VALID_COMMANDS: { [state: string]: Command[] } = {
 };
 
 function StudentControl({
+  onClose,
   student,
   actions,
   unit,
@@ -318,18 +338,42 @@ function StudentControl({
   );
 
   v.push(
-    <div
+    <a
       key="name"
-      style={{
-        width: "150px",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
+      onClick={() => {
+        const project_id = student.get("project_id");
+        if (project_id) {
+          redux.getActions("projects").open_project({
+            project_id,
+          });
+          redux.getProjectActions(project_id).showComputeServers();
+          onClose?.();
+        }
       }}
     >
-      {name}
-    </div>,
+      <div
+        style={{
+          width: "150px",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {name}
+      </div>
+    </a>,
   );
+  if (server?.project_specific_id) {
+    v.push(
+      <div key="id" style={{ width: "50px" }}>
+        <Tooltip
+          title={`Compute server has id ${server.project_specific_id} in the student's project, and global id ${server.id}.`}
+        >
+          Id: {server.project_specific_id}
+        </Tooltip>
+      </div>,
+    );
+  }
   if (server?.state) {
     v.push(
       <div key="state" style={{ width: "125px" }}>
@@ -356,7 +400,7 @@ function StudentControl({
   }
   if (server?.cost_per_hour) {
     v.push(
-      <div key="cost" style={{ width: "80px" }}>
+      <div key="cost" style={{ width: "75px" }}>
         <CurrentCost
           state={server.state}
           cost_per_hour={server.cost_per_hour}
@@ -364,6 +408,14 @@ function StudentControl({
       </div>,
     );
   }
+  if (server?.id) {
+    v.push(
+      <div key="cost" style={{ width: "75px" }}>
+        <TotalCost server={server} />
+      </div>,
+    );
+  }
+
   const getButton = ({ command, disabled }) => {
     return (
       <CommandButton
@@ -589,5 +641,42 @@ function CommandsOnSelected({
     <>
       <Space wrap>{v}</Space>
     </>
+  );
+}
+
+const LIMIT = 500;
+
+function TotalCost({ server }) {
+  const [total, setTotal] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { purchases } = await getPurchases({
+        compute_server_id: server.id,
+        limit: LIMIT,
+        group: true,
+      });
+      let total = 0;
+      for (const { cost, cost_so_far } of purchases) {
+        total += cost ?? cost_so_far ?? 0;
+      }
+      setTotal(total);
+    })();
+  }, [server.id]);
+
+  if (total == null) {
+    return null;
+  }
+  return (
+    <Tooltip title="Total spent on this compute server.">
+      <span>
+        {currency(total)}{" "}
+        <Progress
+          showInfo={false}
+          percent={(total * 100) / 20}
+          strokeWidth={14}
+        />
+      </span>
+    </Tooltip>
   );
 }

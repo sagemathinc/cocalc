@@ -107,7 +107,7 @@ export default function ComputeServerModal({ onClose, actions, unit }: Props) {
         {!!server_id && (
           <>
             <Divider orientation="left">Student Compute Servers</Divider>
-            <Students actions={actions} unit={unit} />
+            <Students actions={actions} unit={unit} onClose={onClose} />
           </>
         )}
       </Space>

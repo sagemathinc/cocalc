@@ -779,7 +779,7 @@ function PurchaseDescription({
         description={description}
         period_end={period_end}
       />
-      {description.credit_id != null && (
+      {description?.credit_id != null && (
         <div>
           <a
             onClick={() => {
@@ -799,13 +799,13 @@ function PurchaseDescription({
             style={{ marginBottom: "15px" }}
           />
         )}
-        {description.refund_purchase_id && (
+        {description?.refund_purchase_id && (
           <b style={{ marginLeft: "8px" }}>
             REFUNDED: Transaction {description.refund_purchase_id}
           </b>
         )}
         {admin &&
-          description.refund_purchase_id == null &&
+          description?.refund_purchase_id == null &&
           id != null &&
           isRefundable(service, invoice_id) && (
             <AdminRefund
@@ -817,7 +817,7 @@ function PurchaseDescription({
           )}
         {invoice_id && (
           <Space>
-            {!admin && !description.refund_purchase_id && (
+            {!admin && !description?.refund_purchase_id && (
               <Button
                 size="small"
                 type="link"
