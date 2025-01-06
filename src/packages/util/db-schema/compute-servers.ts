@@ -428,6 +428,9 @@ interface BaseConfiguration {
   // Allow collaborators to control the state of the compute server.
   // They cannot change any other configuration.  User still pays for everything and owns compute server.
   allowCollaboratorControl?: boolean;
+  // turn compute server off if spend more then dollars during the last hours.
+  // this can only be set by the owner.
+  spend_limit?: { hours: number; dollars: number };
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
