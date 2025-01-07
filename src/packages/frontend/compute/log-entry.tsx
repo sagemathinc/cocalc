@@ -2,8 +2,11 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { capitalize, plural } from "@cocalc/util/misc";
+import {
+  STATE_INFO,
+  spendLimitPeriod,
+} from "@cocalc/util/db-schema/compute-servers";
+import { capitalize, currency, plural } from "@cocalc/util/misc";
 
 export default function LogEntry({
   project_id,
@@ -70,6 +73,15 @@ export default function LogEntry({
         <>
           {cs} - Idle Timeout Shutdown (inactive for at least{" "}
           {event.idle_timeout} {plural(event.idle_timeout, "minute")}) {tag}
+        </>
+      );
+    case "spend-limit":
+      return (
+        <>
+          {cs} - Spend Limit Shutdown (total spend during the last{" "}
+          {spendLimitPeriod(event.spendLimit?.hours)} hit{" "}
+          {currency(event.total)} which exceeded limit of{" "}
+          {currency(event.spendLimit?.dollars)}) {tag}
         </>
       );
     default:

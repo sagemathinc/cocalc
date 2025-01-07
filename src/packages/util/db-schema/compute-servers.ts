@@ -421,12 +421,28 @@ export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
     dollars = 1;
   }
   if (!isFinite(hours)) {
-    throw Error("hours must be finite");
+    throw Error(`hours (=${hours}) must be finite`);
   }
   if (!isFinite(dollars)) {
-    throw Error("dollars must be finite");
+    throw Error(`dollars (=${dollars}) must be finite`);
   }
   return { enabled, hours, dollars };
+}
+
+export function spendLimitPeriod(hours) {
+  if (hours == 24) {
+    return "day";
+  }
+  if (hours == 24 * 7) {
+    return "week";
+  }
+  if (hours == 30.5 * 24 * 7) {
+    return "month";
+  }
+  if (hours == 12 * 30.5 * 24 * 7) {
+    return "year";
+  }
+  return `${hours} hours`;
 }
 
 interface BaseConfiguration {
@@ -727,6 +743,7 @@ export interface ComputeServerUserInfo {
   update_purchase?: boolean;
   last_purchase_update?: Date;
   template?: ComputeServerTemplate;
+  spend?: number;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -778,6 +795,7 @@ Table({
           project_specific_id: null,
           course_project_id: null,
           course_server_id: null,
+          spend: null,
         },
       },
       set: {
@@ -961,6 +979,10 @@ Table({
     course_server_id: {
       type: "integer",
       desc: "If this compute server is a clone of an instructor server in a course, this is the id of that instructor server.",
+    },
+    spend: {
+      type: "number",
+      desc: "If configuration.spendLimit is enabled, then the spend during the current period gets recorded here every few minutes.  This is useful to efficiently provide a UI element showing the current spend status.  It is cleared whenever configuration.spendLimit is changed, to avoid confusion.",
     },
   },
 });

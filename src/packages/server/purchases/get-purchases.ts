@@ -20,7 +20,8 @@ import { getOwner } from "@cocalc/server/compute/owner";
 
 interface Options {
   account_id: string;
-  cutoff?: Date; // returns purchases back to this date (limit/offset NOT ignored)
+  // returns purchases back to this date (limit/offset NOT ignored); never excludes unfinished purchases (i.e., with cost not set)
+  cutoff?: Date;
   thisMonth?: boolean;
   limit?: number;
   offset?: number;
@@ -121,7 +122,7 @@ export default async function getPurchases({
   }
   if (cutoff) {
     params.push(cutoff);
-    conditions.push(`p.time >= $${params.length}`);
+    conditions.push(`(p.time >= $${params.length} OR p.cost IS NULL)`);
   }
   if (no_statement) {
     conditions.push("p.day_statement_id IS NULL");

@@ -25,6 +25,7 @@ import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
 import { setConfiguration } from "./util";
 import { validatedSpendLimit } from "@cocalc/util/db-schema/compute-servers";
+import { isEqual } from "lodash";
 
 export default async function setServerConfiguration({
   account_id,
@@ -65,6 +66,12 @@ export default async function setServerConfiguration({
       ...configuration,
       spendLimit: validatedSpendLimit(configuration.spendLimit),
     };
+    if (!isEqual(currentConfiguration.spendLimit, configuration.spendLimit)) {
+      // changing spendLimit invalidates "spend during the given period".
+      await pool.query("UPDATE compute_servers SET spend=NULL where id=$1", [
+        id,
+      ]);
+    }
   }
 
   await validateConfigurationChange({
