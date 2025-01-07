@@ -393,19 +393,27 @@ export function getMinDiskSizeGb({
 }
 
 // This means "you can spend at most dollars every hours on a RUNNING compute server"
-interface SpendLimit {
+export interface SpendLimit {
   hours: number;
   dollars: number;
+  enabled: boolean;
 }
+
+export const SPEND_LIMIT_DEFAULTS = {
+  hours: 24 * 7,
+  dollars: 25,
+  enabled: false,
+};
 
 // may throw an error if input is not valid
 export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
   if (spendLimit == null) {
     return undefined;
   }
-  let { hours, dollars } = spendLimit;
+  let { hours, dollars, enabled } = spendLimit;
   hours = parseFloat(hours);
   dollars = parseFloat(dollars);
+  enabled = !!enabled;
   if (hours < 1) {
     hours = 1;
   }
@@ -418,7 +426,7 @@ export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
   if (!isFinite(dollars)) {
     throw Error("dollars must be finite");
   }
-  return { hours, dollars };
+  return { enabled, hours, dollars };
 }
 
 interface BaseConfiguration {

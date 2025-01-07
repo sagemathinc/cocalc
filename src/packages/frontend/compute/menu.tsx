@@ -22,6 +22,7 @@ import { AppLauncherModal } from "./launcher";
 import { SerialLogModal } from "./serial-port-output";
 import { TitleColorModal } from "./title-color";
 import { AutomaticShutdownModal } from "./automatic-shutdown";
+import { SpendLimitModal } from "./spend-limit";
 
 function getServer({ id, project_id }) {
   return redux
@@ -99,6 +100,12 @@ function getItems({
     icon: <Icon name="stopwatch" />,
     disabled: server.cloud == "onprem",
     label: "Automatic Shutdown",
+  };
+  const spendLimit = {
+    key: "spend-limit",
+    icon: <Icon name="vertical-align-bottom" rotate="180" />,
+    disabled: server.cloud == "onprem",
+    label: "Limit Spending Rate",
   };
   const jupyterlab = {
     key: "top-jupyterlab",
@@ -305,6 +312,7 @@ function getItems({
     settings,
     options,
     clone,
+    spendLimit,
     automaticShutdown,
     {
       type: "divider",
@@ -498,6 +506,12 @@ export default function Menu({
                 project_id={project_id}
                 close={close}
               />,
+            );
+            break;
+
+          case "spend-limit":
+            setModal(
+              <SpendLimitModal id={id} project_id={project_id} close={close} />,
             );
             break;
 

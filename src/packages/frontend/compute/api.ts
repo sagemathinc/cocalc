@@ -94,7 +94,7 @@ export async function setServerTitle(opts: { id: number; title: string }) {
 
 export async function setServerConfiguration(opts: {
   id: number;
-  configuration;
+  configuration: Partial<Configuration>;
 }) {
   return await api("compute/set-server-configuration", opts);
 }
