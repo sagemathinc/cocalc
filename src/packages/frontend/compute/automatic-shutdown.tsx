@@ -33,6 +33,7 @@ import {
   IDLE_TIMEOUT_DEFAULT_MINUTES,
 } from "@cocalc/util/db-schema/compute-servers";
 import IdleTimeoutMessage from "./idle-timeout-message";
+import { SpendLimit } from "./spend-limit";
 
 async function saveStateControl(obj) {
   const query = {
@@ -362,7 +363,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
   const [help, setHelp] = useState<boolean>(false);
   return (
     <Modal
-      width={700}
+      width={800}
       open
       onCancel={close}
       onOk={close}
@@ -386,6 +387,8 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
       }
     >
       <IdleTimeout id={id} project_id={project_id} help={help} />
+      <div style={{ height: "15px" }} />
+      <SpendLimit id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />
       <CommandBased id={id} project_id={project_id} help={help} />
     </Modal>

@@ -26,7 +26,7 @@ import {
   SPEND_LIMIT_DEFAULTS,
 } from "@cocalc/util/db-schema/compute-servers";
 
-function SpendLimit({
+export function SpendLimit({
   id,
   project_id,
   help,
@@ -69,73 +69,127 @@ function SpendLimit({
   };
 
   return (
-    <Card title={<>Spending Limit</>}>
+    <Card
+      styles={{
+        body: spendLimit.enabled ? undefined : { display: "none" },
+      }}
+      title={
+        <Flex style={{ alignItems: "center" }}>
+          <div>Spending Limit</div>
+          <div style={{ flex: 1 }} />
+          <Space>
+            <Checkbox
+              disabled={saving}
+              checked={spendLimit.enabled}
+              onChange={(e) => {
+                setSpendLimit({ ...spendLimit, enabled: e.target.checked });
+              }}
+            >
+              Enable{spendLimit.enabled ? "d" : ""}
+            </Checkbox>
+            <Button
+              type="primary"
+              disabled={
+                saving ||
+                isEqual(server.configuration?.spendLimit, spendLimit) ||
+                spendLimit.dollars == null
+              }
+              onClick={save}
+            >
+              Save {saving && <Spin style={{ marginLeft: "5px" }} />}
+            </Button>
+          </Space>
+          <div style={{ flex: 1 }} />
+          {server.configuration?.spendLimit?.enabled ? (
+            <Alert
+              style={{ marginLeft: "15px" }}
+              type="success"
+              showIcon
+              message="Spending Limit is Enabled"
+            />
+          ) : (
+            <Alert
+              style={{ marginLeft: "15px" }}
+              type="info"
+              showIcon
+              message="Spending Limit is NOT Enabled"
+            />
+          )}
+        </Flex>
+      }
+    >
       {help && (
-        <div style={{ marginBottom: "15px" }}>Explain spending limits</div>
+        <div style={{ marginBottom: "15px" }}>
+          Automatically stop the compute server if the configured spending limit
+          is hit.
+          <ul>
+            <li>
+              <b>WARNING:</b> It is still possible to spend more since you pay
+              for disk when a compute server is off, and network egress charges
+              can take up to 2 days to be known.
+            </li>
+          </ul>
+        </div>
       )}
-      <Space direction="vertical">
-        <Checkbox
-          disabled={saving}
-          checked={spendLimit.enabled}
-          onChange={(e) => {
-            setSpendLimit({ ...spendLimit, enabled: e.target.checked });
-          }}
-        >
-          Enable{spendLimit.enabled ? "d" : ""}
-        </Checkbox>
-        <Radio.Group
-          disabled={saving || !spendLimit.enabled}
-          options={[
-            { label: "Day", value: 24 },
-            { label: "Week", value: 24 * 7 },
-            { label: "Month", value: 30.5 * 24 * 7 },
-            { label: "Year", value: 12 * 30.5 * 24 * 7 },
-          ]}
-          optionType="button"
-          buttonStyle="solid"
-          value={spendLimit?.hours ?? SPEND_LIMIT_DEFAULTS.hours}
-          onChange={(e) => {
-            setSpendLimit({ ...spendLimit, hours: e.target.value });
-          }}
-        />
-        <InputNumber
-          disabled={saving || !spendLimit.enabled}
-          min={1}
-          step={20}
-          addonBefore="$"
-          addonAfter="dollars"
-          placeholder="Dollars..."
-          value={spendLimit?.dollars ?? SPEND_LIMIT_DEFAULTS.dollars}
-          onChange={(dollars) =>
-            setSpendLimit({ ...spendLimit, dollars: dollars ?? undefined })
-          }
-        />
-        <Button
-          type="primary"
-          disabled={
-            saving || isEqual(server.configuration?.spendLimit, spendLimit)
-          }
-          onClick={save}
-        >
-          Save {saving && <Spin style={{ marginLeft: "5px" }} />}
-        </Button>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {spendLimit.enabled && (
+          <>
+            <Flex style={{ alignItems: "center" }}>
+              <div
+                style={{ flex: 0.5, textAlign: "right", marginRight: "15px" }}
+              >
+                Limit spend during a given:{" "}
+              </div>
+              <Radio.Group
+                style={{ flex: 0.5 }}
+                disabled={saving || !spendLimit.enabled}
+                options={[
+                  { label: "Day", value: 24 },
+                  { label: "Week", value: 24 * 7 },
+                  { label: "Month", value: 30.5 * 24 * 7 },
+                  { label: "Year", value: 12 * 30.5 * 24 * 7 },
+                ]}
+                optionType="button"
+                buttonStyle="solid"
+                value={spendLimit.hours ?? SPEND_LIMIT_DEFAULTS.hours}
+                onChange={(e) => {
+                  setSpendLimit({ ...spendLimit, hours: e.target.value });
+                }}
+              />
+            </Flex>
+            <Flex style={{ alignItems: "center" }}>
+              <div
+                style={{ flex: 0.5, textAlign: "right", marginRight: "15px" }}
+              >
+                Maximum amount to spend per {period(spendLimit.hours)}:{" "}
+              </div>
+              <div style={{ flex: 0.5 }}>
+                <InputNumber
+                  style={{ width: "256px" }}
+                  disabled={saving || !spendLimit.enabled}
+                  min={1}
+                  step={20}
+                  addonBefore="$"
+                  addonAfter="dollars"
+                  placeholder="Max spend..."
+                  value={spendLimit.dollars}
+                  onChange={(dollars) =>
+                    setSpendLimit({
+                      ...spendLimit,
+                      dollars: dollars ?? undefined,
+                    })
+                  }
+                />
+              </div>
+            </Flex>
+          </>
+        )}
       </Space>
-      <ShowError error={error} setError={setError} style={{ width: "100%" }} />
-      {server.configuration?.spendLimit?.enabled ? (
-        <Alert
-          style={{ marginTop: "15px" }}
-          type="success"
-          showIcon
-          message="Spending Limit is Enabled"
-        />
-      ) : (
-        <Alert
-          style={{ marginTop: "15px" }}
-          type="info"
-          showIcon
-          message="Spending Limit is NOT Enabled"
-        />
-      )}
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ width: "100%", marginTop: "15px" }}
+      />
     </Card>
   );
 }
@@ -170,4 +224,20 @@ export function SpendLimitModal({ id, project_id, close }) {
       <SpendLimit id={id} project_id={project_id} help={help} />
     </Modal>
   );
+}
+
+function period(hours) {
+  if (hours == 24) {
+    return "day";
+  }
+  if (hours == 24 * 7) {
+    return "week";
+  }
+  if (hours == 30.5 * 24 * 7) {
+    return "month";
+  }
+  if (hours == 12 * 30.5 * 24 * 7) {
+    return "year";
+  }
+  return `${hours} hours`;
 }

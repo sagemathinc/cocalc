@@ -22,7 +22,7 @@ import { AppLauncherModal } from "./launcher";
 import { SerialLogModal } from "./serial-port-output";
 import { TitleColorModal } from "./title-color";
 import { AutomaticShutdownModal } from "./automatic-shutdown";
-import { SpendLimitModal } from "./spend-limit";
+//import { SpendLimitModal } from "./spend-limit";
 
 function getServer({ id, project_id }) {
   return redux
@@ -101,12 +101,12 @@ function getItems({
     disabled: server.cloud == "onprem",
     label: "Automatic Shutdown",
   };
-  const spendLimit = {
-    key: "spend-limit",
-    icon: <Icon name="vertical-align-bottom" rotate="180" />,
-    disabled: server.cloud == "onprem",
-    label: "Limit Spending Rate",
-  };
+  //   const spendLimit = {
+  //     key: "spend-limit",
+  //     icon: <Icon name="vertical-align-bottom" rotate="180" />,
+  //     disabled: server.cloud == "onprem",
+  //     label: "Limit Spending Rate",
+  //   };
   const jupyterlab = {
     key: "top-jupyterlab",
     label: "JupyterLab",
@@ -312,7 +312,7 @@ function getItems({
     settings,
     options,
     clone,
-    spendLimit,
+    //spendLimit,
     automaticShutdown,
     {
       type: "divider",
@@ -509,11 +509,11 @@ export default function Menu({
             );
             break;
 
-          case "spend-limit":
-            setModal(
-              <SpendLimitModal id={id} project_id={project_id} close={close} />,
-            );
-            break;
+          //           case "spend-limit":
+          //             setModal(
+          //               <SpendLimitModal id={id} project_id={project_id} close={close} />,
+          //             );
+          //             break;
 
           case "ephemeral":
           case "allowCollaboratorControl":
