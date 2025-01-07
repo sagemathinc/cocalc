@@ -6,9 +6,6 @@ between editing sessions of a draft.  It could be, e.g., via json
 to the database or something...
 */
 
-import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
-import SelectUsers from "./select-users";
-import { useRef, useState } from "react";
 import {
   redux,
   useActions,
@@ -16,16 +13,20 @@ import {
 } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
-import { useAsyncEffect } from "use-async-effect";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
-import Zoom from "./zoom";
+import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
 import { isEqual } from "lodash";
+import { useRef, useState } from "react";
+import { FormattedMessage } from "react-intl";
+import { useAsyncEffect } from "use-async-effect";
+import SelectUsers from "./select-users";
+import Zoom from "./zoom";
 
 export default function Compose({
   onCancel,
@@ -289,7 +290,11 @@ export default function Compose({
         <Zoom style={{ margin: "0 5px" }} />
         <Tooltip
           placement="right"
-          title={`${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}.  Edit this message later before sending it.`}
+          title={`${
+            body == draft.body && subject == draft.subject
+              ? "Saved"
+              : "Not Saved"
+          }.  Edit this message later before sending it.`}
         >
           <Button
             onClick={() => saveDraft({ subject, body })}
@@ -396,8 +401,12 @@ export default function Compose({
             )}
             {(state == "saving" || state == "compose") && (
               <>
-                Send (shift+enter){" "}
-                {!subject.trim() ? " - enter subject above" : ""}
+                <FormattedMessage
+                  id="messages.send.label"
+                  defaultMessage={`Send (shift+enter){nosubject, select, true { - enter subject above} other {}}`}
+                  values={{ nosubject: !subject.trim() }}
+                  description={"Send button for sending a message to someone."}
+                />
               </>
             )}
             {state == "sent" && <>Sent</>}
@@ -415,7 +424,11 @@ export default function Compose({
               onCancel?.();
             }}
           >
-            <Icon name="trash" /> Discard Draft
+            <Icon name="trash" />{" "}
+            <FormattedMessage
+              id="messages.discard_draft.label"
+              defaultMessage="Discard Draft"
+            />
           </Button>
         </Flex>
       </div>
@@ -437,7 +450,8 @@ export function ComposeButton(props) {
         }
       }}
     >
-      <Icon name="pencil" /> Compose
+      <Icon name="pencil" />{" "}
+      <FormattedMessage id="messages.compose.label" defaultMessage="Compose" />
     </Button>
   );
 }

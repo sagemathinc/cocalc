@@ -698,6 +698,14 @@ export const labels = defineMessages({
     defaultMessage: "Trash",
   },
   empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
+  draft: {
+    id: "labels.draft",
+    defaultMessage: "Draft",
+  },
+  drafts: {
+    id: "labels.drafts",
+    defaultMessage: "Drafts",
+  },
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
     defaultMessage: "Keyboard shortcuts",
@@ -728,6 +736,46 @@ export const labels = defineMessages({
     id: "labels.item_plural",
     defaultMessage: `{total, plural, one {item} other {items}}`,
     description: "e.g. zero, one, or more items in a listing",
+  },
+  starred: {
+    id: "labels.starred",
+    defaultMessage: "Starred",
+    description: "Items marked with a star",
+  },
+  back: {
+    id: "labels.back",
+    defaultMessage: "Back",
+    description: "Button label to navigate back",
+  },
+  messages_title: {
+    id: "labels.messages.title",
+    defaultMessage: "Messages, Mentions and News",
+    description:
+      "Title of the panel where user messages, messages about a user being mentioned, and general news of the platform are shown",
+  },
+  messages: {
+    id: "labels.messages",
+    defaultMessage: "Messages",
+  },
+  messages_inbox: {
+    id: "labels.messages.inbox",
+    defaultMessage: "Inbox",
+    description: "Inbox where all incoming messages are",
+  },
+  messages_sent: {
+    id: "labels.messages.sent",
+    defaultMessage: "Sent",
+    description: "All sent messages are here",
+  },
+  messages_all_messages: {
+    id: "labels.messages.all_messages",
+    defaultMessage: "All Messages",
+    description: "All messages are here",
+  },
+  messages_archive: {
+    id: "labels.messages.archive",
+    defaultMessage: "Archive",
+    description: "Archive a message",
   },
 });
 
