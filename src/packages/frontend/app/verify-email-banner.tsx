@@ -150,6 +150,8 @@ export function useShowVerifyEmail(): boolean {
     setLoaded(true);
   }, []);
 
+  const emailSendingEnabled = useTypedRedux("customize", "email_enabled");
+
   const created = useTypedRedux("account", "created");
 
   const dismissedTS = LS.get<number>(DISMISSED_KEY_LS);
@@ -166,5 +168,11 @@ export function useShowVerifyEmail(): boolean {
   const dismissed =
     typeof dismissedTS === "number" && now < dismissedTS + 7 * oneDay;
 
-  return show_verify_email && loaded && notTooNew && !dismissed;
+  return (
+    show_verify_email &&
+    loaded &&
+    notTooNew &&
+    !dismissed &&
+    emailSendingEnabled
+  );
 }
