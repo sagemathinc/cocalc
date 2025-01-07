@@ -5,11 +5,13 @@
 
 import { Alert, Card } from "antd";
 import { join } from "path";
+
 import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 
 interface Props {
   account_id: string;
@@ -21,11 +23,13 @@ export function Impersonate({ first_name, last_name, account_id }: Props) {
   const [auth_token, set_auth_token] = useState<string | null>(null);
   const [err, set_err] = useState<string | null>(null);
   const [extraWarning, setExtraWarning] = useState<boolean>(false);
+  const { locale } = useLocalizationCtx();
 
   async function get_token(): Promise<void> {
     try {
-      const auth_token =
-        await webapp_client.admin_client.get_user_auth_token(account_id);
+      const auth_token = await webapp_client.admin_client.get_user_auth_token(
+        account_id,
+      );
       set_auth_token(auth_token);
       set_err(null);
     } catch (err) {
@@ -43,9 +47,10 @@ export function Impersonate({ first_name, last_name, account_id }: Props) {
       return <Loading />;
     }
 
+    // The lang_temp temporarily sets the interface language of the user to impersonate to the one of the admin
     const link = join(
       appBasePath,
-      `auth/impersonate?auth_token=${auth_token}&lang_temp=en`,
+      `auth/impersonate?auth_token=${auth_token}&lang_temp=${locale}`,
     );
 
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
