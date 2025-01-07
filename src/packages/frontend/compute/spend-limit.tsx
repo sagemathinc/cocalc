@@ -40,6 +40,7 @@ export function SpendLimit({
   return (
     <AutomaticShutdownCard
       title="Spending Limit"
+      icon="line-chart"
       enabled={spendLimit.enabled}
       setEnabled={(enabled) => setSpendLimit({ ...spendLimit, enabled })}
       saving={saving}

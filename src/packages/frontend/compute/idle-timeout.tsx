@@ -32,6 +32,7 @@ export function IdleTimeout({
   return (
     <AutomaticShutdownCard
       title="Idle Timeout"
+      icon="stopwatch"
       setEnabled={(enabled) => {
         setEnabled(enabled);
         if (enabled) {

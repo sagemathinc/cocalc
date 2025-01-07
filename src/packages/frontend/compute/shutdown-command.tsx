@@ -70,6 +70,7 @@ export function ShutdownCommand({ id, project_id, help }) {
   return (
     <AutomaticShutdownCard
       title="Shell Command"
+      icon="terminal"
       setEnabled={(enabled) => {
         setDisabled(!enabled);
       }}

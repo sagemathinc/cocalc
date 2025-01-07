@@ -52,6 +52,7 @@ export function AutomaticShutdownCard(props) {
 }
 
 function CardTitle({
+  icon,
   title,
   enabled,
   setEnabled,
@@ -86,7 +87,7 @@ function CardTitle({
           textOverflow: "ellipsis",
         }}
       >
-        {title}
+        <Icon name={icon as any} style={{ marginRight: "10px" }} /> {title}
       </div>
       <div style={{ flex: 1 }} />
       <Space>
@@ -149,7 +150,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
           />
           <Flex style={{ marginRight: "20px", alignItems: "center" }}>
             <div style={{ fontSize: "18px", margin: "15px 0" }}>
-              <Icon name="stopwatch" /> Configure Automatic Shutdown Strategies
+              Configure Automatic Shutdown Strategies
             </div>
             <div style={{ flex: 1 }} />
             <Switch
