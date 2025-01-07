@@ -387,6 +387,35 @@ export function getMinDiskSizeGb({
   }
 }
 
+// This means "you can spend at most dollars every hours on a RUNNING compute server"
+interface SpendLimit {
+  hours: number;
+  dollars: number;
+}
+
+// may throw an error if input is not valid
+export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
+  if (spendLimit == null) {
+    return undefined;
+  }
+  let { hours, dollars } = spendLimit;
+  hours = parseFloat(hours);
+  dollars = parseFloat(dollars);
+  if (hours < 1) {
+    hours = 1;
+  }
+  if (dollars < 1) {
+    dollars = 1;
+  }
+  if (!isFinite(hours)) {
+    throw Error("hours must be finite");
+  }
+  if (!isFinite(dollars)) {
+    throw Error("dollars must be finite");
+  }
+  return { hours, dollars };
+}
+
 interface BaseConfiguration {
   // image: name of the image to use, e.g. 'python' or 'pytorch'.
   // images are managed in src/packages/server/compute/images.ts
@@ -423,6 +452,8 @@ interface BaseConfiguration {
   // Allow collaborators to control the state of the compute server.
   // They cannot change any other configuration.  User still pays for everything and owns compute server.
   allowCollaboratorControl?: boolean;
+  // Limit spending
+  spendLimit?: SpendLimit;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
