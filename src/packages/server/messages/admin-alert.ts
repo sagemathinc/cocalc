@@ -56,7 +56,7 @@ export default async function adminAlert({
   body = "",
   errorOnFail,
   stackTrace,
-  dedupMinutes = 60*4,
+  dedupMinutes = 60 * 4,
 }: {
   subject: string;
   body?: any;
@@ -93,5 +93,7 @@ export default async function adminAlert({
   }
 }
 
-// Set adminAlerts on the db singleton (which is implemented in coffeescript).
-db().adminAlert = adminAlert;
+export function enableDbAdminAlerts() {
+  // Set adminAlerts on the db singleton (which is implemented in coffeescript).
+  db().adminAlert = adminAlert;
+}
