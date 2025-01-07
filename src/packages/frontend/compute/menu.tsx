@@ -5,7 +5,6 @@ Compute server hamburger menu.
 import type { MenuProps } from "antd";
 import { Button, Dropdown, Spin } from "antd";
 import { useMemo, useState } from "react";
-
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";

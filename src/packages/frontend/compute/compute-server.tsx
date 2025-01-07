@@ -24,7 +24,7 @@ import { DisplayImage } from "./select-image";
 import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
-import IdleTimeoutMessage from "./idle-timeout-message";
+import { IdleTimeoutMessage } from "./idle-timeout";
 import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
