@@ -21,6 +21,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import send from "./send";
 import getAdmins from "@cocalc/server/accounts/admins";
 import { getLogger } from "@cocalc/backend/logger";
+import { db } from "@cocalc/database";
 
 const logger = getLogger("server:messages:admin");
 
@@ -91,3 +92,6 @@ export default async function adminAlert({
     }
   }
 }
+
+// Set adminAlerts on the db singleton (which is implemented in coffeescript).
+db().adminAlert = adminAlert;
