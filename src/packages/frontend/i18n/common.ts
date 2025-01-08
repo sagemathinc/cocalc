@@ -539,6 +539,11 @@ export const labels = defineMessages({
     defaultMessage: "Undelete",
     comment: "Short label on a button, to undo a deletion",
   },
+  delete_forever: {
+    id: "labels.delete_forever",
+    defaultMessage: "Delete Forever",
+    comment: "Short label on a button, to delete an item forever",
+  },
   downloaded: {
     id: "labels.downloaded",
     defaultMessage: "downloaded",
@@ -775,7 +780,50 @@ export const labels = defineMessages({
   messages_archive: {
     id: "labels.messages.archive",
     defaultMessage: "Archive",
-    description: "Archive a message",
+    description: "Short labels on a button, to archive a message",
+  },
+  messages_read: {
+    id: "labels.messages.read",
+    defaultMessage: "Read",
+    description: "Short labels on a button, to mark a message read",
+  },
+  messages_unread: {
+    id: "labels.messages.unread",
+    defaultMessage: "Unread",
+    description: "Short labels on a button, to mark a message unread",
+  },
+  messages_to_inbox: {
+    id: "labels.messages.to_inbox",
+    defaultMessage: "To Inbox",
+    description: "Short labels on a button, to move a message into the inbox",
+  },
+  messages_body: {
+    id: "labels.messages.body",
+    defaultMessage: "Body",
+    description: "Text of the message",
+  },
+  messages_to: {
+    id: "labels.messages.to",
+    defaultMessage: "To",
+    description: "Where to send the message to",
+  },
+  messages_subject: {
+    id: "labels.messages.subject",
+    defaultMessage: "Subject",
+    description: "Subject line of the message",
+  },
+  increase_font_size: {
+    id: "labels.increase_font_size",
+    defaultMessage: "Increase font size.",
+  },
+  decrease_font_size: {
+    id: "labels.decrease_font_size",
+    defaultMessage: "Decrease font size.",
+  },
+  n_of_m: {
+    id: "labels.n_of_m",
+    defaultMessage: "{n} of {m}",
+    description: "item n in a list of m items.",
   },
 });
 

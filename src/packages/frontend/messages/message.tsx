@@ -10,6 +10,7 @@ import MostlyStaticMarkdown, {
 } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
+import { COLORS } from "@cocalc/util/theme";
 import Compose from "./compose";
 import Like from "./like";
 import Read from "./read";
@@ -305,6 +306,7 @@ function MessageFull({
   focused,
   style,
 }: Props) {
+  const intl = useIntl();
   const read = isRead(message);
   const readRef = useRef<boolean>(read);
   const searchWords = useTypedRedux("messages", "searchWords");
@@ -380,14 +382,19 @@ function MessageFull({
             <div
               style={{
                 marginLeft: LEFT_OFFSET,
-                color: "#666",
+                color: COLORS.GRAY_M,
               }}
             >
               {isToMe(message) && message.to_ids.length == 1 ? (
-                "to me"
+                intl.formatMessage({
+                  id: "messages.message.to_me",
+                  defaultMessage: "to me",
+                  description: "Message is sent to myself",
+                })
               ) : (
                 <>
-                  to <User id={message.to_ids} message={message} />
+                  {intl.formatMessage(labels.messages_to).toLowerCase()}{" "}
+                  <User id={message.to_ids} message={message} />
                 </>
               )}
             </div>

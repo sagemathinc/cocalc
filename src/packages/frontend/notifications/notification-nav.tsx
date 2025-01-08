@@ -6,7 +6,7 @@
 import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge, Menu } from "antd";
 import React, { useMemo } from "react";
-import { defineMessage, defineMessages, useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, MenuItems, Text } from "@cocalc/frontend/components";
@@ -17,6 +17,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Channel, CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
 import { NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
+import { MSGS } from "./notification-i18n";
 
 export const NewsCounter = () => {
   const news_unread = useTypedRedux("news", "unread");
@@ -44,40 +45,6 @@ const MentionsCounter = () => {
     />
   );
 };
-
-const MSGS = defineMessages({
-  mentions: {
-    id: "notifications.nav.mentions",
-    defaultMessage: "Mentions",
-  },
-  unread: {
-    id: "notifications.nav.unread",
-    defaultMessage: "Unread",
-    description: "Label for unread messages",
-  },
-  read: {
-    id: "notifications.nav.read",
-    defaultMessage: "Read",
-    description: "Label for messages that have been read",
-  },
-  saved: {
-    id: "notifications.nav.saved",
-    defaultMessage: "Saved for Later",
-    description: "Label for messages saved for later",
-  },
-  all: {
-    id: "notifications.nav.all",
-    defaultMessage: "All Mentions",
-  },
-  news: {
-    id: "notifications.nav.news",
-    defaultMessage: "News",
-  },
-  allNews: {
-    id: "notifications.nav.allNews",
-    defaultMessage: "All News",
-  },
-});
 
 const CHANNELS_NAMES: { [name in Channel]: IntlMessage } = {
   announcement: defineMessage({

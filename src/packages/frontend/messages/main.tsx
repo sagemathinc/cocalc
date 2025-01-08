@@ -128,7 +128,7 @@ function Actions({
   setShowThread,
   threads,
 }) {
-  const intl = useIntl()
+  const intl = useIntl();
 
   const archive = () => {
     if (folder != "inbox") {
@@ -202,7 +202,7 @@ function Actions({
             type="text"
             disabled={!hasNotExpire({ checkedMessageIds, messages })}
           >
-            <Icon name="trash" /> Delete Forever
+            <Icon name="trash" /> {intl.formatMessage(labels.delete_forever)}
           </Button>
         </Popconfirm>
       )}
@@ -223,7 +223,7 @@ function Actions({
             });
           }}
         >
-          <Icon name="eye" /> Read
+          <Icon name="eye" /> {intl.formatMessage(labels.messages_read)}
         </Button>
       )}
       {folder != "trash" && (
@@ -241,7 +241,7 @@ function Actions({
             });
           }}
         >
-          <Icon name="eye-slash" /> Unread
+          <Icon name="eye-slash" /> {intl.formatMessage(labels.messages_unread)}
         </Button>
       )}
       {folder != "trash" && folder != "search" && folder != "sent" && (
@@ -268,7 +268,8 @@ function Actions({
             setShowThread(null);
           }}
         >
-          <Icon name="container" /> To Inbox
+          <Icon name="container" />{" "}
+          {intl.formatMessage(labels.messages_to_inbox)}
         </Button>
       )}
       {(folder == "trash" || folder == "search") && (
@@ -286,7 +287,7 @@ function Actions({
             setShowThread(null);
           }}
         >
-          <Icon name="undo" /> Undelete
+          <Icon name="undo" /> {intl.formatMessage(labels.undelete)}
         </Button>
       )}
     </Space>
@@ -439,7 +440,7 @@ function ShowAllThreads({
           }
           style={{
             fontSize: "14pt",
-            color: "#666",
+            color: COLORS.GRAY_M,
             marginLeft: "24px",
             marginRight: "30px",
           }}
@@ -590,7 +591,12 @@ function ShowOneThread({
         {mesgIndex != -1 && (
           <Space>
             <Zoom style={{ marginRight: "15px" }} />
-            {mesgIndex + 1} of {filteredMessages.length}
+            <span style={{ whiteSpace: "nowrap" }}>
+              {intl.formatMessage(labels.n_of_m, {
+                n: mesgIndex + 1,
+                m: filteredMessages.length,
+              })}
+            </span>
             <Button
               size="large"
               type="text"
