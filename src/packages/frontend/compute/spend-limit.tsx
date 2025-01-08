@@ -222,7 +222,7 @@ export function SpendLimitButton(props) {
   );
 }
 
-export function SpendLimitStatus({ server }) {
+export function SpendLimitStatus({ server, horizontal = false }) {
   const [total, setTotal] = useState<number | null>(null);
   const [desc, setDesc] = useState<string>("");
 
@@ -273,10 +273,22 @@ export function SpendLimitStatus({ server }) {
         );
       }}
     >
-      <span>
-        <span style={{ textWrap: "nowrap" }}>{currency(total)}</span>{" "}
+      <span
+        style={
+          horizontal ? { display: "flex", alignItems: "center" } : undefined
+        }
+      >
+        <span
+          style={{
+            textWrap: "nowrap",
+            margin: horizontal ? "0 5px" : undefined,
+          }}
+        >
+          {currency(total)}
+        </span>{" "}
         {!!server.configuration.spendLimit?.enabled && (
           <Progress
+            style={{ width: "60px", height: horizontal ? "19px" : undefined }}
             showInfo={false}
             percent={(total * 100) / server.configuration.spendLimit.dollars}
             strokeWidth={14}

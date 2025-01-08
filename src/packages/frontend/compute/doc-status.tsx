@@ -28,6 +28,7 @@ import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { DisplayImage } from "./select-image";
 import Menu from "./menu";
+import { SpendLimitStatus } from "./spend-limit";
 
 interface Props {
   project_id: string;
@@ -55,6 +56,10 @@ export function ComputeServerDocStatus({
   }, [id, requestedId]);
 
   const requestedServer = computeServers?.get(`${requestedId}`);
+  const server: ComputeServerUserInfo | undefined = useMemo(
+    () => requestedServer?.toJS(),
+    [requestedServer],
+  );
   const syncExclude = requestedServer?.getIn([
     "configuration",
     "excludeFromSync",
@@ -186,6 +191,9 @@ export function ComputeServerDocStatus({
           />
         </div>
       </Tooltip>
+      {requestedServer != null && (
+        <SpendLimitStatus server={server} horizontal />
+      )}
       <Menu
         fontSize={"13pt"}
         size="small"
@@ -196,9 +204,6 @@ export function ComputeServerDocStatus({
     </div>
   );
 
-  const server: ComputeServerUserInfo | undefined = computeServers
-    ?.get(`${requestedId}`)
-    ?.toJS();
   const { progress, message, status } = getProgress(
     server,
     account_id,
