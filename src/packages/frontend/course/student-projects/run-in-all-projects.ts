@@ -50,7 +50,7 @@ export async function run_in_all_projects(
       result = {
         project_id,
         stdout: "",
-        stderr: err.toString(),
+        stderr: `${err}`,
         exit_code: -1,
         total_time: (Date.now() - start) / 1000,
         timeout,

@@ -1220,7 +1220,7 @@
     "description": "Label for a collection of projects, label on a button, title, etc."
   },
   "labels.published_files": {
-    "defaultMessage": "Published Files"
+    "defaultMessage": "Published"
   },
   "labels.purchases": {
     "defaultMessage": "Purchases"
@@ -1490,7 +1490,7 @@
     "defaultMessage": "Search for projects (use /re/ for regexp)..."
   },
   "purchases.automatic-payments-warning.description": {
-    "defaultMessage": "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get cancelled</b> by accident."
+    "defaultMessage": "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get canceled</b> by accident."
   },
   "purchases.automatic-payments-warning.title": {
     "defaultMessage": "Automatic payments are NOT required to have a subscription"

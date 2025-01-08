@@ -11,6 +11,23 @@ export interface LicenseMetadata {
 }
 export type Metadata = LicenseMetadata;
 
+export const RENEW_DAYS_BEFORE_END = 5;
+
+export interface SubscriptionPayment {
+  // id of the payment intent in stripe
+  payment_intent_id: string;
+  // the cost of the subscription renewal; this is usually the same as the cost of the subscription,
+  // but could be different, e.g,. if part of the renewal is paid from the user's balance.
+  amount: number;
+  // timestamp in ms since epoch of when this payment was created.
+  created: number;
+  // status of this payment: "active" --> "paid" or "active" --> "canceled"
+  status: "active" | "paid" | "canceled";
+  // when this payment gets paid, we change the expire date on the
+  // license to this (which is stored in ms since epoch):
+  new_expires_ms: number;
+}
+
 export interface Subscription {
   id: number;
   account_id: string;
@@ -22,16 +39,21 @@ export interface Subscription {
   latest_purchase_id?: number;
   status: Status;
   canceled_at?: Date;
+  canceled_reason?: string;
   resumed_at?: Date;
   metadata: Metadata;
   renewal_email?: Date;
   notes?: string;
   cost_per_hour?: number;
+  payment?: SubscriptionPayment;
+  // if resuming this is the payment intent
+  resume_payment_intent?: string;
 }
 
 export const STATUS_TO_COLOR = {
-  active: "green",
-  canceled: "blue",
+  active: "blue",
+  canceled: "grey",
+  paid: "green",
   unpaid: "red",
   past_due: "red",
 };
@@ -74,12 +96,17 @@ Table({
       type: "timestamp",
       desc: "When subscription was canceled",
     },
+    canceled_reason: {
+      type: "string",
+      desc: "Why subscription was canceled",
+    },
     resumed_at: {
       type: "timestamp",
       desc: "When subscription was resumed",
     },
     metadata: {
       title: "Metadata",
+      // the ONLY type of subscriptions we have are for upgrade licenses:
       desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'}",
       type: "map",
       pg_type: "jsonb",
@@ -89,6 +116,14 @@ Table({
       desc: "Timestamp when we last sent a reminder that this subscription will renew soon.",
     },
     notes: NOTES, // for admins to make notes about this subscription
+    payment: {
+      type: "map",
+      desc: "Data about the most recent payment intent for a subscription. The type is SubscriptionPayment (see typescript above).",
+    },
+    resume_payment_intent: {
+      type: "string",
+      desc: "When resuming a canceled subscription and paying, this is the payment intent.  This is used to prevent any possibility of double payment.",
+    },
   },
   rules: {
     desc: "Subscriptions",
@@ -111,6 +146,7 @@ Table({
           current_period_end: null,
           latest_purchase_id: null,
           renewal_email: null,
+          payment: null,
         },
       },
     },
@@ -141,6 +177,7 @@ Table({
           metadata: null,
           renewal_email: null,
           notes: null,
+          payment: null,
         },
       },
       set: {

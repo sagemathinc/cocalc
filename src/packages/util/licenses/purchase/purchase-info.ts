@@ -84,8 +84,9 @@ export default function getPurchaseInfo(
 export function fixRange(
   rangeOrig: readonly [Date0 | string, Date0 | string] | undefined | null,
   period: Period,
+  noRangeShift?: boolean,
 ): StartEndDates {
-  if (period != "range") {
+  if (period != "range" && !noRangeShift) {
     // ATTN! -- we messed up and didn't deal with this case before, and a user
     // could in theory:
     //  1. set the period to 'range', and put in a week period via start and end
@@ -103,7 +104,12 @@ export function fixRange(
         "if period is 'range', then start and end dates must be explicitly given",
       );
     }
-    return { start: now, end: addPeriod(now, period) };
+    // we expand the dates to be as inclusive as possible for subscriptions, since
+    // that doesn't result in any more charge to the user.
+    return {
+      start: dayjs(now).startOf("day").toDate(),
+      end: dayjs(addPeriod(now, period)).endOf("day").toDate(),
+    };
   }
 
   return {

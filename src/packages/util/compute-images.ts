@@ -18,6 +18,7 @@ const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
 // this array defines their ordering
 const GROUPS = [
   "Main",
+  "Ubuntu 24.04",
   "Ubuntu 22.04",
   "Ubuntu 20.04",
   "Ubuntu 18.04",
@@ -33,6 +34,8 @@ export const DISMISS_IMG_2004 = "ubuntu2004-eol";
 export const UBUNTU2004_DEPRECATED = "ubuntu2004";
 export const UBUNTU2004_DEV = "ubuntu2004-dev";
 export const UBUNTU2204_DEV = "ubuntu2204-dev";
+// new Ubuntu 24.04 image, for development
+export const UBUNTU2404_DEV = "ubuntu2404-dev";
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
@@ -63,6 +66,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 22.04 (Default)",
     descr: "Ubuntu 22.04 based software stack, regularly updated",
     group: "Main",
+  },
+  [UBUNTU2404_DEV]: {
+    title: "Ubuntu 24.04 (Testing)",
+    short: "Ubuntu 24.04 (Testing)",
+    descr: "Upcoming Ubuntu 24.04 based software stack",
+    group: "Ubuntu 24.04",
   },
   [UBUNTU2204_DEV]: {
     title: "Ubuntu 22.04 (Testing)",

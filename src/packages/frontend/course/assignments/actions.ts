@@ -12,7 +12,6 @@ import { delay, map } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   exec,
@@ -853,7 +852,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await webapp_client.project_client.copy_path_between_projects({
+      const opts = {
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -862,6 +861,14 @@ ${details}
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
         timeout: COPY_TIMEOUT_MS / 1000,
+      };
+      await webapp_client.project_client.copy_path_between_projects(opts);
+      await this.course_actions.compute.setComputeServerAssociations({
+        student_id,
+        src_path: opts.src_path,
+        target_project_id: opts.target_project_id,
+        target_path: opts.target_path,
+        unit_id: assignment_id,
       });
 
       // successful finish
@@ -1682,9 +1689,8 @@ ${details}
     ungraded_only?: boolean,
   ): Promise<void> => {
     // console.log("run_nbgrader_for_all_students", assignment_id);
-    const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
-      assignment_id,
-    );
+    const instructor_ipynb_files =
+      await this.nbgrader_instructor_ipynb_files(assignment_id);
     if (this.course_actions.is_closed()) return;
     const store = this.get_store();
     const nbgrader_scores = store.getIn([
@@ -1935,9 +1941,8 @@ ${details}
       : `${store.get_student_name(student_id)}'s project`;
 
     if (instructor_ipynb_files == null) {
-      instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
-        assignment_id,
-      );
+      instructor_ipynb_files =
+        await this.nbgrader_instructor_ipynb_files(assignment_id);
       if (this.course_actions.is_closed()) return;
     }
     if (len(instructor_ipynb_files) == 0) {

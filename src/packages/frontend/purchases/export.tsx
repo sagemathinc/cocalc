@@ -64,7 +64,7 @@ export default function ExportPurchases({ name, data, style }: Props) {
         trigger="click"
       >
         <Button disabled={data == null} type="link">
-          <Icon name="cloud-download" /> Download...
+          <Icon name="cloud-download" /> Download
         </Button>
       </Popover>
     </div>

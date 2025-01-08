@@ -219,9 +219,7 @@ function getQuery(
 }
 
 // Gets the charges or credits for the given interval, which aren't on any statement
-// already.  These always include pending charges, which are NOT treated differently.
-// This EXCLUDES anything where the cost field is not yet set, which is not considered
-// a "pending" purchase, but one that is still open.
+// already.  This EXCLUDES anything where the cost field is not yet set.
 async function getData(
   time: Date,
   pool,

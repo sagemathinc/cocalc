@@ -1,0 +1,127 @@
+Rc files read:
+/etc/LatexMk
+Latexmk: This is Latexmk, John Collins, 31 Jan. 2024. Version 4.83.
+Force everything to be remade.
+Latexmk: applying rule 'pdflatex'...
+Rule 'pdflatex': Reasons for rerun
+Category 'other':
+Rerun of 'pdflatex' forced or previously required:
+Reason or flag: 'go_mode'
+
+------------
+Run number 1 of rule 'pdflatex'
+------------
+------------
+Running 'pdflatex -synctex=1 -interaction=nonstopmode -recorder "master.tex"'
+------------
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex)
+restricted \write18 enabled.
+entering extended mode
+(./master.tex
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-22>
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2023/05/17 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo))
+(/usr/share/texmf/tex/latex/lm/t1lmr.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def)
+(./master.aux (./subfile.aux) (./subfile.aux) (./subfile.aux) (./subfile.aux))
+(./master.out) (./master.out) [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.
+map}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}] (./subfile.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [2] (./subfile2.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [3] (./subfile3.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [4] (./subfile4.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [5] (./master.aux (./subfile.aux) (./subfile2.aux) (./subfile3.aux)
+(./subfile4.aux)) )
+(see the transcript file for additional information)</usr/share/texmf/fonts/typ
+e1/public/lm/lmr10.pfb>
+Output written on master.pdf (5 pages, 26772 bytes).
+SyncTeX written on master.synctex.gz.
+Transcript written on master.log.
+Latexmk: Getting log file 'master.log'
+Latexmk: Examining 'master.fls'
+Latexmk: Examining 'master.log'
+Latexmk: Log file says output to 'master.pdf'
+Latexmk: applying rule 'pdflatex'...
+Rule 'pdflatex': Reasons for rerun
+Changed files or newly in use/created:
+master.aux
+subfile.aux
+subfile2.aux
+subfile3.aux
+subfile4.aux
+
+------------
+Run number 2 of rule 'pdflatex'
+------------
+------------
+Running 'pdflatex -synctex=1 -interaction=nonstopmode -recorder "master.tex"'
+------------
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex)
+restricted \write18 enabled.
+entering extended mode
+(./master.tex
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-22>
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2023/05/17 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo))
+(/usr/share/texmf/tex/latex/lm/t1lmr.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def)
+(./master.aux (./subfile.aux) (./subfile2.aux) (./subfile3.aux) (./subfile4.aux
+)) (./master.out) (./master.out) [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdft
+ex.map}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}] (./subfile.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [2] (./subfile2.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [3] (./subfile3.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [4] (./subfile4.tex
+! Undefined control sequence.
+l.1 test \oiwjfe
+{}
+) [5] (./master.aux (./subfile.aux) (./subfile2.aux) (./subfile3.aux)
+(./subfile4.aux)) )
+(see the transcript file for additional information)</usr/share/texmf/fonts/typ
+e1/public/lm/lmr10.pfb>
+Output written on master.pdf (5 pages, 26772 bytes).
+SyncTeX written on master.synctex.gz.
+Transcript written on master.log.
+Latexmk: Getting log file 'master.log'
+Latexmk: Examining 'master.fls'
+Latexmk: Examining 'master.log'
+Latexmk: Log file says output to 'master.pdf'
+Latexmk: Errors, in force_mode: so I tried finishing targets
+#===Dependents, and related info, for master.tex:
+master.pdf :\
+/etc/texmf/web2c/texmf.cnf\
+/usr/share/texmf/web2c/texmf.cnf\
+/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map\
+/var/lib/texmf/web2c/pdftex/pdflatex.fmt\
+master.tex\
+subfile.tex\
+subfile2.tex\
+subfile3.tex\
+subfile4.tex
+#===End dependents for master.tex:
+Collected error summary (may duplicate other messages):
+pdflatex: Command for 'pdflatex' gave return code 1
+Refer to 'master.log' and/or above output for details

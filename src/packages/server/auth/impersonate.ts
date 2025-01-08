@@ -1,12 +1,14 @@
 /* Sign in using an impersonation auth_token. */
 
-import getPool from "@cocalc/database/pool";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import Cookies from "cookies";
+
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import base_path from "@cocalc/backend/base-path";
+import getPool from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
+import { isLocale } from "@cocalc/util/i18n/const";
 
 export async function signInUsingImpersonateToken({ req, res }) {
   try {
@@ -17,7 +19,7 @@ export async function signInUsingImpersonateToken({ req, res }) {
 }
 
 async function doIt({ req, res }) {
-  const { auth_token } = req.query;
+  const { auth_token, lang_temp } = req.query;
   if (!auth_token) {
     throw Error("invalid empty token");
   }
@@ -33,13 +35,20 @@ async function doIt({ req, res }) {
 
   const { value, ttl_s } = await createRememberMeCookie(account_id, 12 * 3600);
   const cookies = new Cookies(req, res);
+  const { samesite_remember_me } = await getServerSettings();
   cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
     maxAge: ttl_s * 1000,
-    sameSite: "strict",
+    sameSite: samesite_remember_me,
   });
 
   const { dns } = await getServerSettings();
-  const target = `https://${dns}${base_path}`;
+  let target = `https://${dns}${base_path}app`;
+
+  // if lang_temp is a locale, then append it as a query parameter.
+  // This is usally "en" to help admins understanding the UI without changing the user's language preferences.
+  if (isLocale(lang_temp)) {
+    target += `?lang_temp=${encodeURIComponent(lang_temp)}`;
+  }
 
   clientSideRedirect({ res, target });
 }

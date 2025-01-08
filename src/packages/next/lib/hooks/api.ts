@@ -12,8 +12,9 @@ interface Options {
 export default function useAPI(
   endpoint?: string,
   params?: object,
-  cache_s?: number
+  cache_s?: number,
 ) {
+  const [counter, setCounter] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<any>(undefined);
   const [calling, setCalling] = useState<boolean>(false);
@@ -23,7 +24,7 @@ export default function useAPI(
   async function call(
     endpoint1: string | undefined = endpoint,
     params1: object | undefined = params,
-    cache_s1: number | undefined = cache_s
+    cache_s1: number | undefined = cache_s,
   ): Promise<any> {
     if (endpoint1 == undefined) return;
     if (calling) {
@@ -37,6 +38,7 @@ export default function useAPI(
     setCalling(true);
     let result;
     try {
+      setError("");
       result = await apiPost(endpoint1, params1, cache_s);
     } catch (err) {
       if (!isMounted.current) return;
@@ -63,7 +65,15 @@ export default function useAPI(
     if (endpoint) {
       call(endpoint, params, cache_s);
     }
-  }, [endpoint + JSON.stringify(params)]);
+  }, [counter, endpoint + JSON.stringify(params)]);
 
-  return { error, result, calling, call };
+  return {
+    error,
+    result,
+    calling,
+    call,
+    refresh: () => {
+      setCounter(counter + 1);
+    },
+  };
 }

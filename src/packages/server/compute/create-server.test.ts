@@ -72,7 +72,6 @@ describe("creates account, project and then compute servers in various ways", ()
     const s = {
       title: "myserver",
       color: "red",
-      idle_timeout: 60 * 15,
       autorestart: true,
       cloud: "google-cloud",
     } as const;

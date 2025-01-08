@@ -17,6 +17,7 @@ import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 
 // this is incomplete...
 
@@ -52,6 +53,8 @@ export interface AccountState {
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;
     [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
+    no_email_new_messages?: boolean;
+    use_balance_toward_subscriptions?: boolean;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -98,4 +101,10 @@ export interface AccountState {
   email_daily_statements?: boolean;
   [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
   i18n: Locale;
+  balance?: number;
+  min_balance?: number;
+  balance_alert?: boolean;
+  auto_balance?: TypedMap<AutoBalance>;
+  unread_message_count?: number;
+  fragment?: TypedMap<{ id?: string }>;
 }

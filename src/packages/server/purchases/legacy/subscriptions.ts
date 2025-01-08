@@ -1,26 +1,27 @@
 import getConn from "@cocalc/server/stripe/connection";
-import { getStripeCustomerId } from "../create-stripe-checkout-session";
+import { getStripeCustomerId } from "../stripe/util";
 import createSubscription from "../create-subscription";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { getNextClosingDateAfter } from "../closing-date";
 import dayjs from "dayjs";
 import getLogger from "@cocalc/backend/logger";
 import cancelSubscription from "../cancel-subscription";
+import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:legacy:subscriptions");
 
 export async function migrateAllActiveLicenseSubscriptions() {
   const pool = getPool();
   logger.debug(
-    "migrateAllActiveLicenseSubscriptions: getting all accounts that touched stripe..."
+    "migrateAllActiveLicenseSubscriptions: getting all accounts that touched stripe...",
   );
   const { rows } = await pool.query(
-    "SELECT account_id FROM accounts WHERE stripe_customer_id IS NOT NULL"
+    "SELECT account_id FROM accounts WHERE stripe_customer_id IS NOT NULL",
   );
   logger.debug(
     "migrateAllActiveLicenseSubscriptions: got ",
     rows.length,
-    "accounts"
+    "accounts",
   );
   let i = 1;
   for (const { account_id } of rows) {
@@ -39,7 +40,7 @@ export async function migrateActiveLicenseSubscriptions(account_id: string) {
     { account_id },
     "got ",
     subs.length,
-    " active subscriptions to migrate"
+    " active subscriptions to migrate",
   );
   for (const sub of subs) {
     logger.debug("migrating", sub.metadata);
@@ -69,7 +70,7 @@ export async function getNonCanceledLicenseSubscriptions(account_id: string) {
     (sub) =>
       (sub as any).plan?.product.startsWith("license") &&
       sub.metadata.license_id &&
-      !sub.canceled_at // because it might still be canceled.
+      !sub.canceled_at, // because it might still be canceled.
   );
 }
 
@@ -102,7 +103,7 @@ export async function migrateSubscription(sub) {
   // we give them up to almost a free month in the conversion
   const current_period_end = await getNextClosingDateAfter(
     account_id,
-    new Date(sub.current_period_end * 1000)
+    new Date(sub.current_period_end * 1000),
   );
   const current_period_start = dayjs(current_period_end)
     .subtract(1, sub.plan.interval)
@@ -113,7 +114,7 @@ export async function migrateSubscription(sub) {
     logger.debug("create the new subscription that manages this license", {
       license_id,
     });
-    const cost_per_unit = sub.plan.amount / 100;
+    const cost_per_unit = stripeToDecimal(sub.plan.amount);
     const cost = cost_per_unit * (sub.quantity ?? 1);
 
     const subscription_id = await createSubscription(
@@ -126,18 +127,18 @@ export async function migrateSubscription(sub) {
         status: "active",
         metadata: { type: "license", license_id },
       },
-      client
+      client,
     );
     logger.debug("created the new subscription that manages this license", {
       subscription_id,
     });
     logger.debug(
       "set the expire date and subscription_id for the license (no cost)",
-      { current_period_end }
+      { current_period_end },
     );
     await client.query(
       "UPDATE site_licenses SET expires=$1, subscription_id=$2 WHERE id=$3",
-      [current_period_end, subscription_id, license_id]
+      [current_period_end, subscription_id, license_id],
     );
     await client.query("UPDATE subscriptions SET notes=$1 WHERE id=$2", [
       `Created by migrating legacy stripe license subscription ${sub.id}.`,
@@ -146,12 +147,14 @@ export async function migrateSubscription(sub) {
 
     if (sub.cancel_at_period_end) {
       logger.debug(
-        "subscription was set to cancel_at_period_end so we cancel ours"
+        "subscription was set to cancel_at_period_end so we cancel ours",
       );
       await cancelSubscription({
         account_id,
         subscription_id,
         client,
+        reason:
+          "subscription was set by the user to cancel at period end so we cancel it now",
       });
     }
 
@@ -168,12 +171,12 @@ export async function migrateSubscription(sub) {
 }
 
 async function licenseHasModernSubscription(
-  license_id: string
+  license_id: string,
 ): Promise<boolean> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT subscription_id FROM site_licenses WHERE id=$1",
-    [license_id]
+    [license_id],
   );
   return rows[0].subscription_id != null;
 }
@@ -187,12 +190,12 @@ export async function cancelStripeSubscription(id: string) {
 export async function updateAllMigratedSubscriptionPrices() {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'"
+    "SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'",
   );
   logger.debug(
     "updateAllMigratedSubscriptionPrices: got ",
     rows.length,
-    " subscriptions"
+    " subscriptions",
   );
   for (const row of rows) {
     await updateMigratedSubscriptionPrice(row.id);
@@ -222,13 +225,13 @@ export async function updateMigratedSubscriptionPrice(subscription_id: number) {
   const sub = await stripe.subscriptions.retrieve(stripe_id);
   logger.debug({ sub });
   // @ts-ignore
-  const cost_per_unit = sub.plan.amount / 100;
+  const cost_per_unit = stripeToDecimal(sub.plan.amount);
   if (Math.abs(cost - cost_per_unit) > 0.1) {
     logger.debug(
-      "cost changed substantially from what we set during migration"
+      "cost changed substantially from what we set during migration",
     );
     logger.debug(
-      "so nothing to do -- it would have been properly fixed already."
+      "so nothing to do -- it would have been properly fixed already.",
     );
   }
   // @ts-ignore
@@ -245,7 +248,7 @@ export async function updateMigratedSubscriptionPrice(subscription_id: number) {
   ]);
 
   logger.debug(
-    "Also set the type:'quota' and end date of the corresponding license."
+    "Also set the type:'quota' and end date of the corresponding license.",
   );
   await updateLicense(metadata.license_id);
 }

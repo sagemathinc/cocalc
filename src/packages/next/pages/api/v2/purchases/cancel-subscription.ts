@@ -23,11 +23,11 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { subscription_id, now } = getParams(req);
+  const { subscription_id, reason } = getParams(req);
   await cancelSubscription({
     account_id,
     subscription_id,
-    cancelImmediately: now,
+    reason,
   });
   return OkStatus;
 }

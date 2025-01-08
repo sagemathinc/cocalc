@@ -79,7 +79,7 @@ export async function open_file(
 
   if (opts.line != null && !opts.fragmentId) {
     // backward compat
-    opts.fragmentId = { line: opts.line };
+    opts.fragmentId = { line: `${opts.line}` };
   }
 
   const is_kiosk = () =>
@@ -96,7 +96,10 @@ export async function open_file(
   }
 
   // ensure the project is opened -- otherwise the modal to start the project won't appear.
-  redux.getActions("projects").open_project({ project_id: actions.project_id });
+  redux.getActions("projects").open_project({
+    project_id: actions.project_id,
+    switch_to: opts.foreground_project,
+  });
 
   const tabIsOpened = () =>
     !!actions.get_store()?.get("open_files")?.has(opts.path);

@@ -360,8 +360,7 @@ function Body() {
       }}
     >
       <Title level={1} style={{ textAlign: "center" }}>
-        <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc - On
-        Premises
+        <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc On-Premises
       </Title>
 
       <div>{cloud()}</div>

@@ -1798,13 +1798,16 @@ export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  let s = `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  let s = `$${to_money(Math.abs(n) ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  if (n < 0) {
+    s = `-${s}`;
+  }
   if (d == null || d <= 2) {
     return s;
   }
   // strip excessive 0's off the end
   const i = s.indexOf(".");
-  while (s[s.length - 1] == "0" && i <= s.length - 2) {
+  while (s[s.length - 1] == "0" && i <= s.length - (d ?? 2)) {
     s = s.slice(0, s.length - 1);
   }
   return s;
@@ -2441,13 +2444,23 @@ export function test_valid_jsonpatch(patch: any): boolean {
     return false;
   }
   for (const op of patch) {
-    if (!is_object(op)) return false;
-    if (op.op == null) return false;
-    if (!["add", "remove", "replace", "move", "copy", "test"].includes(op.op)) {
+    if (!is_object(op)) {
       return false;
     }
-    if (op.path == null) return false;
-    if (op.from != null && typeof op.from !== "string") return false;
+    if (op["op"] == null) {
+      return false;
+    }
+    if (
+      !["add", "remove", "replace", "move", "copy", "test"].includes(op["op"])
+    ) {
+      return false;
+    }
+    if (op["path"] == null) {
+      return false;
+    }
+    if (op["from"] != null && typeof op["from"] !== "string") {
+      return false;
+    }
     // we don't test on value
   }
   return true;

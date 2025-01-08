@@ -62,6 +62,7 @@ read = require('read')
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
 getStrategiesSSO = require("@cocalc/database/settings/get-sso-strategies").default;
+{updateUnreadMessageCount} = require('./postgres/messages');
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
@@ -341,7 +342,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     Creating an account using SSO only.
     This needs to be rewritten in @cocalc/server like
     all the other account creation.  This is horrible
-    because 
+    because
     ###
     create_sso_account: (opts={}) =>
         opts = defaults opts,
@@ -2615,3 +2616,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async
     registrationTokens: (options, query) =>
         return await registrationTokens(@, options, query)
+
+    updateUnreadMessageCount: (opts) =>
+        return await updateUnreadMessageCount(opts)

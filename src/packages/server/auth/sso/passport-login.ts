@@ -35,6 +35,7 @@ import {
   PassportLoginOpts,
   PassportStrategyDB,
 } from "@cocalc/database/settings/auth-sso-types";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import isBanned from "@cocalc/server/accounts/is-banned";
@@ -609,9 +610,10 @@ export class PassportLogin {
     );
 
     L(`actually set remember_me cookie in client. ttl=${ttl_s}s`);
+    const { samesite_remember_me } = await getServerSettings();
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
-      sameSite: "strict",
+      sameSite: samesite_remember_me,
     });
   }
 }

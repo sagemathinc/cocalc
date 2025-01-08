@@ -55,9 +55,10 @@ export default function Overview() {
         <Product
           icon="credit-card"
           title="Payment Methods"
-          href="/billing/cards"
+          href="/settings/payments-methods"
         >
-          Add, remove, or change your <Text strong>credit cards</Text>
+          Add, remove, or change your <Text strong>credit cards</Text> and other
+          payment methods.
         </Product>
       </OverviewRow>
 

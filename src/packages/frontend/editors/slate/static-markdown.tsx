@@ -10,7 +10,6 @@ application.
 */
 
 import { CSSProperties, useEffect, useState } from "react";
-
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import Leaf from "./leaf";

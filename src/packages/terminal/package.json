@@ -35,7 +35,7 @@
     "debug": "^4.3.2",
     "lodash": "^4.17.21",
     "node-pty": "^1.0.0",
-    "primus": "^8.0.7"
+    "primus": "^8.0.9"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/terminal",
   "repository": {
@@ -45,6 +45,6 @@
   "devDependencies": {
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "@types/primus": "^7.3.6"
+    "@types/primus": "^7.3.9"
   }
 }

@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Footer } from "@cocalc/frontend/customize";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { ManagedLicenses } from "./managed-licenses";
@@ -13,7 +12,7 @@ import { A } from "@cocalc/frontend/components/A";
 
 export function LicensesPage() {
   return (
-    <div style={{ maxWidth: "1000px", margin: "auto" }}>
+    <div style={{ margin: "auto" }}>
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically
@@ -47,7 +46,6 @@ export function LicensesPage() {
           </li>
         </ul>
       </div>
-      <Footer />
     </div>
   );
 }

@@ -62,7 +62,7 @@ describe("product id and compute cost", () => {
     [7, 12737, 100],
     [8, 14329, 5],
     [9, 15921, 10],
-    [10, 17500, 1],
+    [10, 17600, 1],
     [15, 25500, 1],
   ])("compute price days %p → price %p", (days, price, quantity) => {
     price /= 100;
@@ -78,7 +78,7 @@ describe("product id and compute cost", () => {
     // console.log(days, info2, Math.round(info2.cost.cost_per_unit * 10000));
     const unit_amount = unitAmount(info2);
 
-    expect(unit_amount).toEqual(Math.round(price));
+    expect(unit_amount).toEqual(Math.ceil(price));
   });
 
   it("specific start/end date", () => {
@@ -90,7 +90,7 @@ describe("product id and compute cost", () => {
     };
     // @ts-ignore
     info2.cost = compute_cost(info2);
-    expect(unitAmount(info2)).toEqual(111);
+    expect(unitAmount(info2)).toEqual(112);
   });
 });
 

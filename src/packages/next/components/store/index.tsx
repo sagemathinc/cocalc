@@ -5,7 +5,6 @@
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
@@ -15,11 +14,10 @@ import { StoreBalanceContext } from "lib/balance";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
-import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
+import Processing from "./processing";
 import Congrats from "./congrats";
-import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
@@ -35,6 +33,7 @@ interface Props {
     | "dedicated"
     | "cart"
     | "checkout"
+    | "processing"
     | "congrats"
     | "vouchers"
     | undefined
@@ -46,6 +45,8 @@ export default function StoreLayout({ page }: Props) {
   const router = useRouter();
   const profile = useProfile({ noCache: true });
 
+  const [loading, setLoading] = useState<boolean>(false);
+
   const [balance, setBalance] = useState<number>();
 
   const refreshBalance = async () => {
@@ -56,7 +57,14 @@ export default function StoreLayout({ page }: Props) {
 
     // Set balance if user is logged in
     //
-    setBalance(await purchasesApi.getBalance());
+    try {
+      setLoading(true);
+      setBalance(await purchasesApi.getBalance());
+    } catch (err) {
+      console.warn("Error updating balance", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -124,14 +132,12 @@ export default function StoreLayout({ page }: Props) {
     switch (main) {
       case "site-license":
         return <SiteLicense noAccount={noAccount} />;
-      case "boost":
-        return <Boost />;
-      case "dedicated":
-        return <DedicatedResource noAccount={noAccount} />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
+      case "processing":
+        return requireAccount(Processing);
       case "vouchers":
         return requireAccount(Vouchers);
       case "congrats":
@@ -158,7 +164,9 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <StoreBalanceContext.Provider value={{ balance, refreshBalance }}>
+            <StoreBalanceContext.Provider
+              value={{ balance, refreshBalance, loading }}
+            >
               <Menu main={main} />
               {body()}
             </StoreBalanceContext.Provider>

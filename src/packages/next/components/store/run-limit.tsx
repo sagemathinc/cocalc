@@ -7,7 +7,7 @@ import { Divider, Form } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 
-export const MAX_ALLOWED_RUN_LIMIT = 10000
+export const MAX_ALLOWED_RUN_LIMIT = 10000;
 
 export function RunLimit({
   showExplanations,
@@ -36,7 +36,11 @@ export function RunLimit({
         </A>
         ,{" "}
         <b>
-          <i>the run limit is typically 2 more than the number of students</i>
+          <i>
+            the run limit is typically 2 more than the number of students (one
+            for each student, one for the shared project and one for the
+            instructor project)
+          </i>
         </b>
         .
       </div>
@@ -45,9 +49,7 @@ export function RunLimit({
 
   return (
     <>
-      <Divider plain>
-        Simultaneous Project Upgrades
-      </Divider>
+      <Divider plain>Simultaneous Project Upgrades</Divider>
       <Form.Item
         label="Run Limit"
         name="run_limit"

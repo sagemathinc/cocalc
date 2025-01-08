@@ -186,10 +186,11 @@ export default function Software({ customize }) {
         <A href="https://en.wikipedia.org/wiki/Ubuntu">
           Ubuntu {SOFTWARE_ENV_DEFAULT}
         </A>
-        , but there are also {SOFTWARE_ENV_NAMES.length - 1} older variants
-        available. Only the newest variant is actively maintained and regularly
-        updated. The older ones are deprected and contain older software for
-        backwards compatibility and historic purposes.
+        , but there are also {SOFTWARE_ENV_NAMES.length - 1} other variants
+        available. The default variant is actively maintained and regularly
+        updated – others are for testing or are deprected. The reason to pick an
+        older environment is backwards compatibility with older software,
+        running an older project of yours, or for historic purposes.
       </p>
     </>
   );

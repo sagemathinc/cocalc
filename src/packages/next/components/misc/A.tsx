@@ -22,7 +22,11 @@ export default function A(props: any) {
       />
     );
   }
-  if (props.external) {
+  if (
+    props.external ||
+    href.startsWith("/projects") ||
+    href.startsWith("/settings")
+  ) {
     const props2 = copyWithout(props, new Set(["external"]));
     if (!href.startsWith(basePath)) {
       // @ts-ignore

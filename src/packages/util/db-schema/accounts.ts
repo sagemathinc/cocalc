@@ -19,6 +19,123 @@ import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
 import { Strategy } from "@cocalc/util/types/sso";
 
+export const USER_SEARCH_LIMIT = 250;
+export const ADMIN_SEARCH_LIMIT = 2500;
+
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS =
+  "use_balance_toward_subscriptions";
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT = false;
+
+// AutoBalance: Every parameter is in dollars.
+export interface AutoBalance {
+  // deposit money when the balance goes below this
+  trigger: number;
+  // amount to automatically add
+  amount: number;
+  // max amount of money to add per day
+  max_day: number;
+  // max amount of money to add per week
+  max_week: number;
+  // max amount of money to add per month
+  max_month: number;
+  // period -- which of max_day, max_week, or max_month to actually enforce.
+  // we always enforce **exactly one of them**.
+  period: "day" | "week" | "month";
+  // switch to disable/enable this.
+  enabled: boolean;
+  // if credit was not added, last reason why (at most 1024 characters)
+  reason?: string;
+  // ms since epoch of last attempt
+  time?: number;
+  // how much has been added at the moment when we last updated.
+  status?: { day: number; week: number; month: number };
+}
+
+// each of the parameters above must be a number in the
+// given interval below.
+// All fields should always be explicitly specified.
+export const AUTOBALANCE_RANGES = {
+  trigger: [5, 250],
+  amount: [10, 250],
+  max_day: [5, 1000],
+  max_week: [5, 5000],
+  max_month: [5, 10000],
+};
+
+export const AUTOBALANCE_DEFAULTS = {
+  trigger: 10,
+  amount: 20,
+  max_day: 200,
+  max_week: 1000,
+  max_month: 2500,
+  period: "week",
+  enabled: true,
+} as AutoBalance;
+
+// throw error if not valid
+export function ensureAutoBalanceValid(obj) {
+  if (obj == null) {
+    return;
+  }
+  if (typeof obj != "object") {
+    throw Error("must be an object");
+  }
+  for (const key in AUTOBALANCE_RANGES) {
+    if (obj[key] == null) {
+      throw Error(`${key} must be specified`);
+    }
+  }
+  for (const key in obj) {
+    if (key == "period") {
+      if (!["day", "week", "month"].includes(obj[key])) {
+        throw Error(`${key} must be 'day', 'week' or 'month'`);
+      }
+      continue;
+    }
+    if (key == "enabled") {
+      if (typeof obj[key] != "boolean") {
+        throw Error(`${key} must be boolean`);
+      }
+      continue;
+    }
+    if (key == "reason") {
+      if (typeof obj[key] != "string") {
+        throw Error(`${key} must be a string`);
+      }
+      if (obj[key].length > 1024) {
+        throw Error(`${key} must be at most 1024 characters`);
+      }
+      continue;
+    }
+    if (key == "time") {
+      if (typeof obj[key] != "number") {
+        throw Error(`${key} must be a number`);
+      }
+      continue;
+    }
+    if (key == "status") {
+      if (typeof obj[key] != "object") {
+        throw Error(`${key} must be an object`);
+      }
+      continue;
+    }
+    const range = AUTOBALANCE_RANGES[key];
+    if (range == null) {
+      throw Error(`invalid key '${key}'`);
+    }
+    const value = obj[key];
+    if (typeof value != "number") {
+      throw Error("every value must be a number");
+    }
+    if (value < range[0]) {
+      throw Error(`${key} must be at least ${range[0]}`);
+    }
+    if (value > range[1]) {
+      throw Error(`${key} must be at most ${range[1]}`);
+    }
+  }
+}
+
 Table({
   name: "accounts",
   fields: {
@@ -227,6 +344,29 @@ Table({
         max: 0,
       },
     },
+    balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "Last computed balance for this user.  NOT a source of truth.  Meant to ensure all frontend clients show the same thing.  Probably also useful for db queries and maybe analytics.",
+      render: {
+        title: "Account Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: false,
+      },
+    },
+    balance_alert: {
+      type: "boolean",
+      desc: "If true, the UI will very strongly encourage user to open their balance modal.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
+    },
+    auto_balance: {
+      type: "map",
+      desc: "Determines protocol for automatically adding money to account.  This is relevant for pay as you go users.  The interface AutoBalance describes the parameters.  The user can in theory set this to anything, but ]",
+    },
     stripe_checkout_session: {
       type: "map",
       desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
@@ -238,7 +378,7 @@ Table({
     },
     email_daily_statements: {
       type: "boolean",
-      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      desc: "If true, try to send daily statements to user showing all of their purchases.  If false or not set, then do not.  NOTE: we always try to email monthly statements to users.",
       render: {
         type: "boolean",
         editable: true,
@@ -249,6 +389,19 @@ Table({
       desc: "If one user (owner_id) creates an account for another user via the API, then this records who created the account.  They may have special privileges at some point.",
       render: { type: "account" },
       title: "Owner",
+    },
+    unread_message_count: {
+      type: "integer",
+      desc: "Number of unread messages in the messages table for this user.  This gets updated whenever the messages table for this user gets changed, making it easier to have UI etc when there are unread messages.",
+      render: {
+        type: "number",
+        editable: false,
+        min: 0,
+      },
+    },
+    last_message_summary: {
+      type: "timestamp",
+      desc: "The last time the system sent an email to this user with a summary about new messages (see messages.ts).",
     },
   },
   rules: {
@@ -354,6 +507,9 @@ Table({
             hide_button_tooltips: false,
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
+            no_email_new_messages: false,
+            [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
+              USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
           },
           name: null,
           first_name: "",
@@ -381,9 +537,13 @@ Table({
           tags: null,
           tours: null,
           min_balance: null,
+          balance: null,
+          balance_alert: null,
+          auto_balance: null,
           purchase_closing_day: null,
           stripe_usage_subscription: null,
           email_daily_statements: null,
+          unread_message_count: null,
         },
       },
       set: {
@@ -406,6 +566,7 @@ Table({
           tours: true,
           email_daily_statements: true,
           // obviously min_balance can't be set!
+          auto_balance: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           // db is of type PostgreSQL defined in @cocalc/database/postgres/types
@@ -436,6 +597,16 @@ Table({
                 cb(`${field} must be nonempty`);
                 return;
               }
+            }
+          }
+          
+          // Make sure auto_balance is valid.
+          if (obj["auto_balance"] != null) {
+            try {
+              ensureAutoBalanceValid(obj["auto_balance"]);
+            } catch (err) {
+              cb(`${err}`);
+              return;
             }
           }
 
@@ -471,6 +642,7 @@ Table({
               }
             }
           }
+
           cb();
         },
       },
