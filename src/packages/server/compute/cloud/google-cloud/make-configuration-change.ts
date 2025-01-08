@@ -29,6 +29,8 @@ export const SUPPORTED_CHANGES = [
   "authToken",
   "proxy",
   "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
 ];
 
 export const RUNNING_CHANGES = [
@@ -39,6 +41,8 @@ export const RUNNING_CHANGES = [
   "authToken",
   "proxy",
   "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
 ];
 
 export async function makeConfigurationChange({
