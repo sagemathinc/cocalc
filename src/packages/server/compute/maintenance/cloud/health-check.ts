@@ -89,7 +89,7 @@ async function updateComputeServer({
     let success;
     try {
       logger.debug("run check on ", { compute_server_id: id, project_id });
-      await callProject({
+      const resp = await callProject({
         account_id,
         project_id,
         mesg: {
@@ -102,6 +102,9 @@ async function updateComputeServer({
           err_on_exit: true,
         },
       });
+      if (resp.event == "error" || !!resp.exit_code) {
+        throw Error("fail");
+      }
       logger.debug("health check worked", { id });
       success = true;
     } catch (err) {
