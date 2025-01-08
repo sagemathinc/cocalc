@@ -1,12 +1,12 @@
 import api from "@cocalc/frontend/client/api";
 import type {
   Action,
-  ComputeServerTemplate,
-  Configuration,
   Cloud,
+  ComputeServerTemplate,
+  ComputeServerUserInfo,
+  Configuration,
   Images,
   GoogleCloudImages,
-  ComputeServerUserInfo,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
@@ -21,7 +21,6 @@ export async function createServer(opts: {
   project_id: string;
   title?: string;
   color?: string;
-  idle_timeout?: number;
   autorestart?: boolean;
   cloud?: Cloud;
   configuration?: Configuration;

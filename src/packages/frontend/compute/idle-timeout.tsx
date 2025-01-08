@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useServer } from "./compute-server";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import dayjs from "dayjs";
-import duration from "dayjs/plugin/duration";
-dayjs.extend(duration);
 import { InputNumber, Tooltip } from "antd";
 import { useInterval } from "react-interval-hook";
-import { IDLE_TIMEOUT_DEFAULT_MINUTES } from "@cocalc/util/db-schema/compute-servers";
-import { AutomaticShutdownCard, saveComputeServer } from "./automatic-shutdown";
+import { IDLE_TIMEOUT_MINUTES_DEFAULT } from "@cocalc/util/db-schema/compute-servers";
+import { AutomaticShutdownCard } from "./automatic-shutdown";
+import { setServerConfiguration } from "./api";
+import duration from "dayjs/plugin/duration";
+dayjs.extend(duration);
 
 export function IdleTimeout({
   id,
@@ -21,13 +22,16 @@ export function IdleTimeout({
   const server = useServer({ id, project_id });
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
-  const [enabled, setEnabled] = useState<boolean>(!!server.idle_timeout);
-  const [idle_timeout, set_idle_timeout] = useState<number | null>(
-    server.idle_timeout ?? null,
+  const [enabled, setEnabled] = useState<boolean>(
+    !!server.configuration?.idleTimeoutMinutes,
+  );
+  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number | null>(
+    server.configuration?.idleTimeoutMinutes ?? null,
   );
   useEffect(() => {
-    set_idle_timeout(server.idle_timeout);
-  }, [server.idle_timeout]);
+    setIdleTimeoutMinutes(server.configuration?.idleTimeoutMinutes ?? null);
+    setEnabled(!!server.configuration?.idleTimeoutMinutes);
+  }, [server.configuration?.idleTimeoutMinutes]);
 
   return (
     <AutomaticShutdownCard
@@ -36,20 +40,24 @@ export function IdleTimeout({
       setEnabled={(enabled) => {
         setEnabled(enabled);
         if (enabled) {
-          set_idle_timeout(IDLE_TIMEOUT_DEFAULT_MINUTES);
+          setIdleTimeoutMinutes(IDLE_TIMEOUT_MINUTES_DEFAULT);
         } else {
-          set_idle_timeout(0);
+          setIdleTimeoutMinutes(0);
         }
       }}
       save={async () => {
-        await saveComputeServer({
+        await setServerConfiguration({
           id,
-          project_id,
-          idle_timeout,
+          configuration: {
+            idleTimeoutMinutes: idleTimeoutMinutes ?? undefined,
+          },
         });
       }}
-      savable={(server.idle_timeout ?? 0) != idle_timeout}
-      savedEnabled={server.idle_timeout}
+      hasUnsavedChanges={
+        (server.configuration?.idleTimeoutMinutes ?? 0) !=
+        (idleTimeoutMinutes ?? 0)
+      }
+      savedEnabled={!!server.configuration?.idleTimeoutMinutes}
       enabled={enabled}
       saving={saving}
       setSaving={setSaving}
@@ -89,8 +97,8 @@ export function IdleTimeout({
           disabled={saving || !enabled}
           min={0}
           step={15}
-          value={idle_timeout}
-          onChange={(value) => set_idle_timeout(value)}
+          value={idleTimeoutMinutes}
+          onChange={(value) => setIdleTimeoutMinutes(value)}
           addonAfter="timeout minutes"
           placeholder="Idle timeout..."
         />
@@ -116,12 +124,13 @@ export function IdleTimeoutMessage({ id, project_id, style, minimal }: Props) {
   if (!server) {
     return null;
   }
-  const { state, last_edited_user, idle_timeout } = server;
-  if (!idle_timeout || state != "running" || !last_edited_user) {
+  const { state, last_edited_user } = server;
+  const idleTimeoutMinutes = server.configuration?.idleTimeoutMinutes;
+  if (!idleTimeoutMinutes || state != "running" || !last_edited_user) {
     return null;
   }
   const last = dayjs(last_edited_user);
-  const date = last.add(idle_timeout, "minutes");
+  const date = last.add(idleTimeoutMinutes, "minutes");
   const mesg = (
     <>
       Server will stop <TimeAgo date={date.toDate()} /> unlesss somebody

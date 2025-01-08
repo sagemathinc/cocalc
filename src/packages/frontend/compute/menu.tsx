@@ -21,7 +21,6 @@ import { AppLauncherModal } from "./launcher";
 import { SerialLogModal } from "./serial-port-output";
 import { TitleColorModal } from "./title-color";
 import { AutomaticShutdownModal } from "./automatic-shutdown";
-//import { SpendLimitModal } from "./spend-limit";
 
 function getServer({ id, project_id }) {
   return redux
@@ -100,12 +99,6 @@ function getItems({
     disabled: server.cloud == "onprem",
     label: "Automatic Shutdown",
   };
-  //   const spendLimit = {
-  //     key: "spend-limit",
-  //     icon: <Icon name="vertical-align-bottom" rotate="180" />,
-  //     disabled: server.cloud == "onprem",
-  //     label: "Limit Spending Rate",
-  //   };
   const jupyterlab = {
     key: "top-jupyterlab",
     label: "JupyterLab",
@@ -144,16 +137,6 @@ function getItems({
     //               icon: <Icon name="network" />,
     //             },
     {
-      key: "ephemeral",
-      label: "Ephemeral",
-      icon: (
-        <Icon
-          style={{ fontSize: "12pt" }}
-          name={server.configuration?.ephemeral ? "check-square" : "square"}
-        />
-      ),
-    },
-    {
       key: "allowCollaboratorControl",
       label: "Collaborator Control",
       icon: (
@@ -164,6 +147,16 @@ function getItems({
               ? "check-square"
               : "square"
           }
+        />
+      ),
+    },
+    {
+      key: "ephemeral",
+      label: "Ephemeral",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={server.configuration?.ephemeral ? "check-square" : "square"}
         />
       ),
     },
@@ -309,10 +302,9 @@ function getItems({
       type: "divider",
     },
     settings,
-    options,
-    clone,
-    //spendLimit,
     automaticShutdown,
+    //spendLimit,
+    options,
     {
       type: "divider",
     },
@@ -330,6 +322,10 @@ function getItems({
       icon: <Icon name="laptop" />,
       label: "Serial Console",
     },
+    {
+      type: "divider",
+    },
+    clone,
     {
       type: "divider",
     },
@@ -452,6 +448,7 @@ export default function Menu({
     return {
       items: getItems({ id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
+        console.log("obj = ", obj);
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
@@ -507,12 +504,6 @@ export default function Menu({
               />,
             );
             break;
-
-          //           case "spend-limit":
-          //             setModal(
-          //               <SpendLimitModal id={id} project_id={project_id} close={close} />,
-          //             );
-          //             break;
 
           case "ephemeral":
           case "allowCollaboratorControl":

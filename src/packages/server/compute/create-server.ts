@@ -10,7 +10,9 @@ It's of course easy to make a compute serve that can't be started due to invalid
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
+import {
+  CLOUDS_BY_NAME,
+} from "@cocalc/util/db-schema/compute-servers";
 import { isDnsAvailable } from "./dns";
 import { getAvailableVpnIp } from "./vpn";
 import { getProjectSpecificId } from "./project-specific-id";
@@ -32,7 +34,6 @@ interface Options {
   configuration?: Configuration;
   title?: string;
   color?: string;
-  idle_timeout?: number;
   autorestart?: boolean;
   position?: number;
   notes?: string;
@@ -41,7 +42,7 @@ interface Options {
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes,lock,course_project_id,course_server_id".split(
+  "project_id,title,account_id,color,autorestart,cloud,configuration,position,notes,lock,course_project_id,course_server_id".split(
     ",",
   );
 

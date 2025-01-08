@@ -30,12 +30,21 @@ async function update() {
   // last_edited_user is at least idle_timeout minutes in the past
   const { rows } = await pool.query(
     `
-SELECT id, account_id, project_id, idle_timeout, last_edited_user
-FROM compute_servers
-WHERE state = 'running'
-  AND idle_timeout IS NOT NULL
-  AND idle_timeout > 0
-  AND last_edited_user <= NOW() - (idle_timeout * INTERVAL '1 minute')
+WITH servers AS (
+  SELECT
+    id,
+    account_id,
+    project_id,
+    last_edited_user,
+    (configuration#>'{idleTimeoutMinutes}')::integer AS idle_timeout
+  FROM compute_servers
+  WHERE state = 'running'
+    AND (configuration#>'{idleTimeoutMinutes}') IS NOT NULL
+)
+SELECT *
+FROM servers
+WHERE idle_timeout > 0
+  AND last_edited_user <= NOW() - (idle_timeout * INTERVAL '1 minute');
 `,
   );
   logger.debug(`got ${rows.length} servers that need to be stopped:`, rows);

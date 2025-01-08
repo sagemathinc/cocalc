@@ -48,8 +48,6 @@ class ComputeServersTable extends Table {
           error: null,
           state: null,
           state_changed: null,
-          idle_timeout: null,
-          automatic_shutdown: null,
           autorestart: null,
           cloud: null,
           configuration: null,

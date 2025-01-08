@@ -1,7 +1,7 @@
 import type {
   State,
-  AutomaticShutdown,
   SpendLimit,
+  HealthCheck,
 } from "@cocalc/util/db-schema/compute-servers";
 
 interface Event {
@@ -19,9 +19,15 @@ interface ConfigurationChange {
   changes: { [param: string]: { from: any; to: any } };
 }
 
+// DEPRECATED: for backward compatibility only...
 export interface AutomaticShutdownEntry {
   action: "automatic-shutdown";
-  automatic_shutdown: AutomaticShutdown;
+  automatic_shutdown: any;
+}
+
+export interface HealthCheckFailureEntry {
+  action: "health-check-failure";
+  healthCheck: HealthCheck;
 }
 
 export interface IdleTimeoutEntry {
@@ -45,6 +51,7 @@ export type ComputeServerEvent = (
   | StateChange
   | Error
   | AutomaticShutdownEntry
+  | HealthCheckFailureEntry
   | IdleTimeoutEntry
   | SpendLimitEntry
 ) &
@@ -54,6 +61,7 @@ export type ComputeServerEventLogEntry =
   | ConfigurationChange
   | StateChange
   | AutomaticShutdownEntry
+  | HealthCheckFailureEntry
   | IdleTimeoutEntry
   | SpendLimitEntry
   | Error;

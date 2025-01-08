@@ -392,7 +392,7 @@ export default function ComputeServer({
                 )}
             </div>
             {cloud != "onprem" &&
-              server.idle_timeout &&
+              server.configuration?.idleTimeoutMinutes &&
               state == "running" &&
               id && (
                 <div

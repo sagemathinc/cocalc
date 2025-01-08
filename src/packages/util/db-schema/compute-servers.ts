@@ -45,32 +45,88 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
-export const IDLE_TIMEOUT_DEFAULT_MINUTES = 30;
+export const IDLE_TIMEOUT_MINUTES_DEFAULT = 30;
 
-export const AUTOMATIC_SHUTDOWN_DEFAULTS = {
-  INTERVAL_MINUTES: 1,
-  ATTEMPTS: 3,
+export const HEALTH_CHECK_DEFAULTS = {
+  command: "pwd",
+  timeoutSeconds: 30,
+  periodSeconds: 60,
+  failureThreshold: 3,
+  enabled: false,
+  action: "reboot",
 };
 
-export interface AutomaticShutdown {
+export const HEALTH_CHECK_ACTIONS = [
+  "reboot",
+  "stop",
+  "suspend",
+  "deprovision",
+];
+type HealthCheckAction = (typeof HEALTH_CHECK_ACTIONS)[number];
+
+export function validatedHealthCheck(
+  healthCheck?: any,
+): HealthCheck | undefined {
+  if (healthCheck == null) {
+    return undefined;
+  }
+  let {
+    command,
+    periodSeconds,
+    failureThreshold,
+    enabled,
+    action,
+    timeoutSeconds,
+  } = healthCheck;
+  command = `${command}`;
+  periodSeconds = parseFloat(
+    periodSeconds ?? HEALTH_CHECK_DEFAULTS.periodSeconds,
+  );
+  if (periodSeconds < 0 || !isFinite(periodSeconds)) {
+    periodSeconds = HEALTH_CHECK_DEFAULTS.periodSeconds;
+  }
+  failureThreshold = parseFloat(
+    failureThreshold ?? HEALTH_CHECK_DEFAULTS.failureThreshold,
+  );
+  if (failureThreshold < 1 || !isFinite(failureThreshold)) {
+    failureThreshold = HEALTH_CHECK_DEFAULTS.failureThreshold;
+  }
+  timeoutSeconds = parseFloat(
+    timeoutSeconds ?? HEALTH_CHECK_DEFAULTS.timeoutSeconds,
+  );
+  if (timeoutSeconds < 5 || !isFinite(timeoutSeconds)) {
+    timeoutSeconds = HEALTH_CHECK_DEFAULTS.timeoutSeconds;
+  }
+  enabled = !!enabled;
+  if (!HEALTH_CHECK_ACTIONS.includes(action)) {
+    action = HEALTH_CHECK_DEFAULTS.action;
+  }
+  return {
+    command,
+    timeoutSeconds,
+    periodSeconds,
+    failureThreshold,
+    enabled,
+    action,
+  };
+}
+
+export interface HealthCheck {
   // run the command with given args on the compute server.
-  // if the output contains the the trigger string, then the
-  // compute server turns off. If it contains the deprovision
+  // If the command fails (nonzero exit code) failureThreshold times, then the
+  // action happens. If it contains the deprovision
   // string, then it deprovisions.
   command: string;
-  // timeout in seconds for running the command
-  timeout?: number;
-  // how often to run the command
-  interval_minutes?: number;
-  // try this many times before giving up on running the command and turning machine off.
-  attempts?: number;
-  // turn server off when the script exits with this code.
-  exit_code?: number;
-  // action: 'shtudown', 'deprovision', 'restart'
-  action?: "shutdown" | "deprovision" | "restart" | "suspend";
-  // if false, then above not used -- this makes it easy to enable/disable
-  // without having to delete the command or other settings.
-  disabled?: boolean;
+  // timeout for running the command
+  timeoutSeconds: number;
+
+  // period in seconds to wait between running the command
+  periodSeconds: number;
+  // When a probe fails, CoCalc will try failureThreshold times before doing the action.
+  failureThreshold: number;
+
+  action: HealthCheckAction;
+  enabled: boolean;
 }
 
 interface ProxyRoute {
@@ -185,6 +241,23 @@ for (const state of ORDERED_STATES) {
   n += 1;
 }
 
+function supportsSuspend(configuration: Configuration) {
+  if (configuration.cloud != "google-cloud") {
+    return false;
+  }
+  if (configuration.machineType.startsWith("t2a-")) {
+    // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
+    // figured out a workaround, so don't support it for now.  I guess this
+    // is a GCP bug.
+    return false;
+  }
+  // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance
+  if (configuration.acceleratorType) {
+    return false;
+  }
+  return true;
+}
+
 export type Action =
   | "start"
   | "resume"
@@ -204,6 +277,7 @@ export const ACTION_INFO: {
     danger?: boolean;
     target: State; // target stable state after doing this action.
     clouds?: Cloud[];
+    isSupported?: (configuration: Configuration) => boolean;
   };
 } = {
   start: {
@@ -220,6 +294,7 @@ export const ACTION_INFO: {
     tip: "Resume",
     description: "Resume the compute server from suspend.",
     target: "running",
+    isSupported: supportsSuspend,
   },
   stop: {
     label: "Stop",
@@ -264,6 +339,7 @@ export const ACTION_INFO: {
     description:
       "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
     target: "suspended",
+    isSupported: supportsSuspend,
   },
 };
 
@@ -405,26 +481,19 @@ export const SPEND_LIMIT_DEFAULTS = {
   enabled: false,
 };
 
-// may throw an error if input is not valid
 export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
   if (spendLimit == null) {
     return undefined;
   }
   let { hours, dollars, enabled } = spendLimit;
-  hours = parseFloat(hours);
-  dollars = parseFloat(dollars);
+  hours = parseFloat(hours ?? 0);
+  dollars = parseFloat(dollars ?? 0);
   enabled = !!enabled;
-  if (hours < 1) {
-    hours = 1;
+  if (hours < 0 || !isFinite(hours)) {
+    hours = SPEND_LIMIT_DEFAULTS.hours;
   }
-  if (dollars < 1) {
-    dollars = 1;
-  }
-  if (!isFinite(hours)) {
-    throw Error(`hours (=${hours}) must be finite`);
-  }
-  if (!isFinite(dollars)) {
-    throw Error(`dollars (=${dollars}) must be finite`);
+  if (dollars < 0 || !isFinite(dollars)) {
+    dollars = SPEND_LIMIT_DEFAULTS.dollars;
   }
   return { enabled, hours, dollars };
 }
@@ -481,10 +550,14 @@ interface BaseConfiguration {
   // Allow collaborators to control the state of the compute server.
   // They cannot change any other configuration.  User still pays for everything and owns compute server.
   allowCollaboratorControl?: boolean;
+
+  // AUTOMATIC SHUTDOWN configuration:
   // turn compute server off if spend more then dollars during the last hours.
   // this can only be set by the owner.
   // Limit spending
   spendLimit?: SpendLimit;
+  idleTimeoutMinutes?: number;
+  healthCheck?: HealthCheck;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
@@ -726,8 +799,6 @@ export interface ComputeServerUserInfo {
   started_by?: string;
   error?: string;
   state?: State;
-  idle_timeout?: number;
-  automatic_shutdown?: AutomaticShutdown;
   // google-cloud has a new "Time limit" either by hour or by date, which seems like a great idea!
   // time_limit
   autorestart?: boolean;
@@ -776,8 +847,6 @@ Table({
           state_changed: null,
           error: null,
           state: null,
-          idle_timeout: null,
-          automatic_shutdown: null,
           autorestart: null,
           cloud: null,
           configuration: null,
@@ -809,8 +878,6 @@ Table({
           position: true,
           error: true, // easily clear the error
           notes: true,
-          automatic_shutdown: true,
-          idle_timeout: true,
           last_edited_user: true,
         },
       },
@@ -876,15 +943,6 @@ Table({
       desc: "One of - 'off', 'starting', 'running', 'stopping'.  This is the underlying VM's state.",
       pg_type: "VARCHAR(16)",
     },
-    idle_timeout: {
-      type: "number",
-      desc: "The idle timeout in seconds of this compute server. If set to 0, never turn it off automatically.  The compute server idle timeouts if none of the tabs it is providing are actively touched through the web UI.",
-    },
-    automatic_shutdown: {
-      type: "map",
-      pg_type: "jsonb",
-      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task. See AutomaticShutdown",
-    },
     autorestart: {
       type: "boolean",
       desc: "If true and the compute server stops for any reason, then it will be automatically started again.  This is primarily useful for stop instances.",
@@ -943,7 +1001,7 @@ Table({
     },
     last_edited_user: {
       type: "timestamp",
-      desc: "Last time a user explicitly edited a file or used an application (e.g., terminal) on the compute server via the UI. This is like last_edited for projects, and is used to implement idle_timeout.",
+      desc: "Last time a user explicitly edited a file or used an application (e.g., terminal) on the compute server via the UI. This is like last_edited for projects, and is used to implement configuration.idleTimeoutMinutes.",
     },
     detailed_state: {
       type: "map",

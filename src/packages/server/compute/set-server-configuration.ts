@@ -24,7 +24,10 @@ import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
 import { setConfiguration } from "./util";
-import { validatedSpendLimit } from "@cocalc/util/db-schema/compute-servers";
+import {
+  validatedHealthCheck,
+  validatedSpendLimit,
+} from "@cocalc/util/db-schema/compute-servers";
 import { isEqual } from "lodash";
 
 export default async function setServerConfiguration({
@@ -72,6 +75,14 @@ export default async function setServerConfiguration({
         id,
       ]);
     }
+  }
+
+  if (configuration.healthCheck != null) {
+    // ensure the healthCheck is formatted in a valid way
+    configuration = {
+      ...configuration,
+      healthCheck: validatedHealthCheck(configuration.healthCheck),
+    };
   }
 
   await validateConfigurationChange({

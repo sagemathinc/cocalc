@@ -11,7 +11,8 @@ import { setServerConfiguration } from "./api";
 import {
   type SpendLimit as ISpendLimit,
   SPEND_LIMIT_DEFAULTS,
-  spendLimitPeriod
+  spendLimitPeriod,
+  validatedSpendLimit,
 } from "@cocalc/util/db-schema/compute-servers";
 import { AutomaticShutdownCard } from "./automatic-shutdown";
 
@@ -56,9 +57,11 @@ export function SpendLimit({
           },
         });
       }}
-      savable={
-        !isEqual(server.configuration?.spendLimit, spendLimit) &&
-        spendLimit.dollars != null
+      hasUnsavedChanges={
+        !isEqual(
+          validatedSpendLimit(server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS),
+          validatedSpendLimit(spendLimit),
+        ) && spendLimit.dollars != null
       }
       savedEnabled={server.configuration?.spendLimit?.enabled}
     >
@@ -105,7 +108,8 @@ export function SpendLimit({
               <div
                 style={{ flex: 0.5, textAlign: "right", marginRight: "15px" }}
               >
-                Maximum amount to spend per {spendLimitPeriod(spendLimit.hours)}:{" "}
+                Maximum amount to spend per {spendLimitPeriod(spendLimit.hours)}
+                :{" "}
               </div>
               <div style={{ flex: 0.5 }}>
                 <InputNumber
@@ -164,5 +168,3 @@ export function SpendLimitModal({ id, project_id, close }) {
     </Modal>
   );
 }
-
-

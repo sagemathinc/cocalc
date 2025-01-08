@@ -4,7 +4,6 @@ different rules:
 
 - idle timeout
 - spend limit
-- shutdown command
 
 */
 
@@ -15,22 +14,18 @@ import {
   Checkbox,
   Flex,
   Modal,
+  Popconfirm,
   Space,
   Spin,
   Switch,
 } from "antd";
 import { useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import Inline from "./inline";
 import { IdleTimeout } from "./idle-timeout";
 import { SpendLimit } from "./spend-limit";
-import { ShutdownCommand } from "./shutdown-command";
+import { HealthCheck } from "./health-check";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components";
-
-export async function saveComputeServer(compute_servers) {
-  await webapp_client.async_query({ query: { compute_servers } });
-}
 
 export function AutomaticShutdownCard(props) {
   return (
@@ -60,8 +55,9 @@ function CardTitle({
   setSaving,
   setError,
   save,
-  savable,
+  hasUnsavedChanges,
   savedEnabled,
+  confirmSave = false,
 }) {
   const [justSaved, setJustSaved] = useState<boolean>(false);
   const doSave = async () => {
@@ -78,6 +74,23 @@ function CardTitle({
       }, 1000);
     }
   };
+  let saveButton = (
+    <Button
+      type="primary"
+      disabled={saving || !hasUnsavedChanges || justSaved}
+      onClick={confirmSave ? undefined : doSave}
+    >
+      <Icon name="save" /> Save{" "}
+      {saving && <Spin style={{ marginLeft: "5px" }} delay={500} />}
+    </Button>
+  );
+  if (confirmSave) {
+    saveButton = (
+      <Popconfirm title={confirmSave} onConfirm={doSave}>
+        {saveButton}
+      </Popconfirm>
+    );
+  }
   return (
     <Flex style={{ alignItems: "center" }}>
       <div
@@ -100,13 +113,7 @@ function CardTitle({
         >
           Enable{enabled ? "d" : ""}
         </Checkbox>
-        <Button
-          type="primary"
-          disabled={saving || !savable || justSaved}
-          onClick={doSave}
-        >
-          Save {saving && <Spin style={{ marginLeft: "5px" }} delay={500} />}
-        </Button>
+        {saveButton}
       </Space>
       <div style={{ flex: 1 }} />
       {savedEnabled ? (
@@ -175,7 +182,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
       <div style={{ height: "15px" }} />
       <SpendLimit id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />
-      <ShutdownCommand id={id} project_id={project_id} help={help} />
+      <HealthCheck id={id} project_id={project_id} help={help} />
     </Modal>
   );
 }

@@ -62,12 +62,22 @@ export default function LogEntry({
         </>
       );
     case "automatic-shutdown":
+      // DEPRECATED: for backward compatibility only...
       return (
         <>
           {cs} - Automatic{" "}
           {capitalize(event.automatic_shutdown?.action ?? "Stop")} {tag}
         </>
       );
+
+    case "health-check-failure":
+      return (
+        <>
+          {cs} - Health check failure{" "}
+          {capitalize(event.healthCheck?.action ?? "Stop")} {tag}
+        </>
+      );
+
     case "idle-timeout":
       return (
         <>

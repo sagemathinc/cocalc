@@ -19,6 +19,7 @@ export default function Clone({ id, close }) {
 
   return (
     <Modal
+      width={700}
       open
       confirmLoading={loading}
       onCancel={close}
