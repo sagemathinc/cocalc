@@ -1,6 +1,8 @@
 import {
   ACTION_INFO,
   STATE_INFO,
+  spendLimitPeriod,
+  validatedSpendLimit,
 } from "@cocalc/util/db-schema/compute-servers";
 import {
   Alert,
@@ -37,6 +39,7 @@ import type { SyncTable } from "@cocalc/sync/table";
 import { getSyncTable } from "./synctable";
 import { parse_students, pick_student_sorter } from "../util";
 import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
+import { SpendLimitButton } from "@cocalc/frontend/compute/spend-limit";
 
 declare var DEBUG: boolean;
 
@@ -98,7 +101,10 @@ export default function Students({ actions, unit, onClose }: Props) {
           "cost_per_hour",
           "detailed_state",
           "account_id",
+          "project_id",
           "project_specific_id",
+          "configuration",
+          "spend",
         ],
       });
       studentServersRef.current.on("change", () => {
@@ -452,6 +458,7 @@ function StudentControl({
     }
     v.push(getButton({ command, disabled }));
   }
+
   return (
     <div
       style={{
@@ -632,6 +639,10 @@ function CommandsOnSelected({
     }, 0);
   }
   v.push(
+    <MultiSpendLimitButton selected={selected} servers={servers} unit={unit} />,
+  );
+
+  v.push(
     <div key="what">
       {selected.size} selected {plural(selected.size, "server")}
     </div>,
@@ -648,8 +659,23 @@ const LIMIT = 500;
 
 function TotalCost({ server }) {
   const [total, setTotal] = useState<number | null>(null);
+  const [desc, setDesc] = useState<string>("");
 
   useEffect(() => {
+    if (server.configuration.spendLimit?.enabled) {
+      const { hours, dollars } = validatedSpendLimit(
+        server.configuration.spendLimit,
+      )!;
+      let desc = "";
+      if (server.spend != null) {
+        desc += `${currency(server.spend)} was spent on this compute server in the last ${spendLimitPeriod(hours)}.  `;
+      }
+      desc += `Spend limit for this server is ${currency(dollars)}/${spendLimitPeriod(hours)}.`;
+      setDesc(desc);
+      setTotal(server.spend ?? 0);
+      return;
+    }
+    // spend limit not enabled, so put total spend over all time:
     (async () => {
       const { purchases } = await getPurchases({
         compute_server_id: server.id,
@@ -661,22 +687,67 @@ function TotalCost({ server }) {
         total += cost ?? cost_so_far ?? 0;
       }
       setTotal(total);
+      setDesc(
+        `${currency(total)} was spent on this compute server since it was created.  No spend limit is set.`,
+      );
     })();
-  }, [server.id]);
+  }, [server.id, server.configuration.spendLimit, server.spend]);
 
   if (total == null) {
     return null;
   }
   return (
-    <Tooltip title="Total spent on this compute server.">
+    <Tooltip
+      title={() => {
+        return (
+          <div>
+            {desc}
+            <div style={{ textAlign: "center" }}>
+              <SpendLimitButton id={server.id} project_id={server.project_id} />
+            </div>
+          </div>
+        );
+      }}
+    >
       <span>
         <span style={{ textWrap: "nowrap" }}>{currency(total)}</span>{" "}
-        <Progress
-          showInfo={false}
-          percent={(total * 100) / 20}
-          strokeWidth={14}
-        />
+        {!!server.configuration.spendLimit?.enabled && (
+          <Progress
+            showInfo={false}
+            percent={(total * 100) / server.configuration.spendLimit.dollars}
+            strokeWidth={14}
+            strokeColor={
+              total >= 0.8 * server.configuration.spendLimit.dollars
+                ? "red"
+                : undefined
+            }
+          />
+        )}
       </span>
     </Tooltip>
+  );
+}
+
+function MultiSpendLimitButton({ selected, servers, unit }) {
+  const extra = useMemo(() => {
+    const extra: { project_id: string; id: number }[] = [];
+    for (const student_id of selected) {
+      const id = getServerId({ unit, student_id });
+      if (servers?.[id] != null) {
+        const { project_id } = servers[id];
+        extra.push({ id, project_id });
+      }
+    }
+    return extra;
+  }, [selected]);
+  if (extra.length == 0) {
+    return null;
+  }
+  return (
+    <SpendLimitButton
+      id={extra[0].id}
+      project_id={extra[0].project_id}
+      extra={extra.slice(1)}
+    />
   );
 }

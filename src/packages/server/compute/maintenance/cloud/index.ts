@@ -38,11 +38,8 @@ async function startMaintenance() {
   // once per minute makes sense
   setInterval(idleTimeout, 60 * 1000);
 
-  // once per 5 minutes seems like enough for spend limits, since
-  // it is potentially more computational expensive, but also doesn't
-  // need to be as precise.
   setTimeout(spendLimit, 30 * 1000); // also 30s after startup
-  setInterval(spendLimit, 3 * 60 * 1000);
+  setInterval(spendLimit, 60 * 1000);
 }
 
 let running = false;

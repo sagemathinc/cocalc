@@ -2,7 +2,16 @@
 Configuration to limit spending on a particular compute server.
 */
 
-import { Flex, Modal, InputNumber, Radio, Space, Spin, Switch } from "antd";
+import {
+  Button,
+  Flex,
+  Modal,
+  InputNumber,
+  Radio,
+  Space,
+  Spin,
+  Switch,
+} from "antd";
 import { useEffect, useState } from "react";
 import { useServer } from "./compute-server";
 import Inline from "./inline";
@@ -20,10 +29,12 @@ export function SpendLimit({
   id,
   project_id,
   help,
+  extra = [],
 }: {
   id: number;
   project_id: string;
   help?: boolean;
+  extra?: { id: number; project_id: string }[];
 }) {
   const server = useServer({ id, project_id });
   const [error, setError] = useState<string>("");
@@ -56,10 +67,22 @@ export function SpendLimit({
             spendLimit: { ...SPEND_LIMIT_DEFAULTS, ...spendLimit },
           },
         });
+        if ((extra?.length ?? 0) > 0) {
+          for (const { id } of extra) {
+            await setServerConfiguration({
+              id,
+              configuration: {
+                spendLimit: { ...SPEND_LIMIT_DEFAULTS, ...spendLimit },
+              },
+            });
+          }
+        }
       }}
       hasUnsavedChanges={
         !isEqual(
-          validatedSpendLimit(server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS),
+          validatedSpendLimit(
+            server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS,
+          ),
           validatedSpendLimit(spendLimit),
         ) && spendLimit.dollars != null
       }
@@ -137,7 +160,7 @@ export function SpendLimit({
   );
 }
 
-export function SpendLimitModal({ id, project_id, close }) {
+export function SpendLimitModal({ id, project_id, close, extra = [] }) {
   const [help, setHelp] = useState<boolean>(false);
   return (
     <Modal
@@ -149,22 +172,48 @@ export function SpendLimitModal({ id, project_id, close }) {
       okButtonProps={{ style: { display: "none" } }}
       title={
         <div>
-          <Flex style={{ marginRight: "20px", alignItems: "center" }}>
-            <div>Limit Spending Rate</div>
-            <div style={{ width: "25px" }} />
+          <Inline
+            id={id}
+            style={{
+              display: "block",
+              textAlign: "center",
+              margin: "-5px 15px 5px 0",
+            }}
+          />
+          <Flex style={{ alignItems: "center" }}>
+            <div>
+              Limit Spending Rate{" "}
+              {extra.length > 0 ? ` for ${extra.length + 1} Servers` : ""}{" "}
+            </div>
+            <div style={{ flex: 1 }} />
             <Switch
-              size="small"
               checkedChildren={"Help"}
               unCheckedChildren={"Help"}
               checked={help}
               onChange={(val) => setHelp(val)}
             />
           </Flex>
-          <Inline id={id} />
         </div>
       }
     >
-      <SpendLimit id={id} project_id={project_id} help={help} />
+      <SpendLimit id={id} project_id={project_id} help={help} extra={extra} />
     </Modal>
+  );
+}
+
+export function SpendLimitButton(props) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  return (
+    <>
+      <Button
+        onClick={() => {
+          setOpen(!open);
+        }}
+      >
+        Spend Limit
+      </Button>
+      {open && <SpendLimitModal {...props} close={() => setOpen(false)} />}
+    </>
   );
 }
