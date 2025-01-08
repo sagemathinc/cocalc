@@ -24,7 +24,10 @@ import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
 import { setConfiguration } from "./util";
-import { validatedSpendLimit } from "@cocalc/util/db-schema/compute-servers";
+import {
+  validatedHealthCheck,
+  validatedSpendLimit,
+} from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
   account_id,
@@ -64,6 +67,14 @@ export default async function setServerConfiguration({
     configuration = {
       ...configuration,
       spendLimit: validatedSpendLimit(configuration.spendLimit),
+    };
+  }
+
+  if (configuration.healthCheck != null) {
+    // ensure the healthCheck is formatted in a valid way
+    configuration = {
+      ...configuration,
+      healthCheck: validatedHealthCheck(configuration.healthCheck),
     };
   }
 

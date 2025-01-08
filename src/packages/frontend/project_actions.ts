@@ -9,10 +9,9 @@ declare let window, document, $;
 import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
-import { isEqual } from "lodash";
+import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
-
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -323,9 +322,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
   // This is throttled, so multiple calls are spaced out.
-  touch = async (): Promise<void> => {
+  touch = async (compute_server_id?: number): Promise<void> => {
     try {
-      await webapp_client.project_client.touch(this.project_id);
+      await webapp_client.project_client.touch_project(
+        this.project_id,
+        compute_server_id,
+      );
     } catch (err) {
       // nonfatal.
       console.warn(`unable to touch ${this.project_id} -- ${err}`);
@@ -1243,7 +1245,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
 
     this.open_files.set(filename, "has_activity", true);
+    this.touchActiveFileIfOnComputeServer(filename);
   }
+
+  private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const compute_server_id =
+      await computeServerAssociations.getServerIdForPath(path);
+    if (compute_server_id) {
+      await this.touch(compute_server_id);
+    }
+  }, 15000);
 
   private async convert_docx_file(filename): Promise<string> {
     const conf = await this.init_configuration("main");
@@ -1418,9 +1432,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2261,8 +2274,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {

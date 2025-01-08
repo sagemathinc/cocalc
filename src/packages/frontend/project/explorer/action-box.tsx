@@ -420,7 +420,7 @@ export function ActionBox(props: ReactProps) {
               }}
               options={[
                 { label: "Compute Server", value: "compute-server" },
-                { label: "Project", value: "project" },
+                { label: "Home Base", value: "project" },
               ]}
             />
           </h4>
@@ -490,7 +490,7 @@ export function ActionBox(props: ReactProps) {
                     `Destination ${
                       copy_from_compute_server_to == "compute-server"
                         ? "on the Compute Server"
-                        : "in the Project"
+                        : "in the Home Base"
                     }`
                   ) : (
                     <div style={{ display: "flex" }}>
@@ -498,6 +498,7 @@ export function ActionBox(props: ReactProps) {
                       {compute_server_id == 0 && !show_different_project && (
                         <div style={{ flex: 1, textAlign: "right" }}>
                           <SelectServer
+                            fullLabel
                             project_id={props.project_id}
                             value={dest_compute_server_id}
                             setValue={(dest_compute_server_id) =>

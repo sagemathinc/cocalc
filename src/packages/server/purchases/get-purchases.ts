@@ -16,10 +16,12 @@ import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getLastClosingDate } from "./closing-date";
 import { COST_OR_METERED_COST } from "./get-balance";
 import getBalance from "./get-balance";
+import { getOwner } from "@cocalc/server/compute/owner";
 
 interface Options {
   account_id: string;
-  cutoff?: Date; // returns purchases back to this date (limit/offset NOT ignored)
+  // returns purchases back to this date (limit/offset NOT ignored); never excludes unfinished purchases (i.e., with cost not set)
+  cutoff?: Date;
   thisMonth?: boolean;
   limit?: number;
   offset?: number;
@@ -35,6 +37,11 @@ interface Options {
   // For admins - if true, include email_address, first_name, and last_name
   // fields from the accounts table, for each user. Ignored if group is true.
   includeName?: boolean;
+  // if a global compute server is specified, get ONLY purchases involving
+  // that compute server.  account_id must be a collaborator on the project
+  // containing this compute server.  This is one case where a user can
+  // get purchases that are owned by a different user.
+  compute_server_id?: number;
 }
 
 interface PurchaseData extends Purchase {
@@ -56,6 +63,7 @@ export default async function getPurchases({
   month_statement_id,
   no_statement,
   includeName,
+  compute_server_id,
 }: Options): Promise<{ balance: number; purchases: PurchaseData[] }> {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
@@ -63,6 +71,13 @@ export default async function getPurchases({
   const params: any[] = [];
   const conditions: string[] = [];
   let query;
+
+  if (compute_server_id) {
+    // switch account_id to account that owns the compute server. This
+    // throws error if requesting account_id is not a collab on project
+    // that contains the compute server.
+    account_id = await getOwner({ compute_server_id, account_id });
+  }
 
   if (group) {
     query = `
@@ -107,11 +122,17 @@ export default async function getPurchases({
   }
   if (cutoff) {
     params.push(cutoff);
-    conditions.push(`p.time >= $${params.length}`);
+    conditions.push(`(p.time >= $${params.length} OR p.cost IS NULL)`);
   }
   if (no_statement) {
     conditions.push("p.day_statement_id IS NULL");
     conditions.push("p.month_statement_id IS NULL");
+  }
+  if (compute_server_id) {
+    params.push(compute_server_id);
+    conditions.push(
+      `(p.description#>'{compute_server_id}')::integer = $${params.length}`,
+    );
   }
 
   if (conditions.length > 0) {

@@ -24,6 +24,8 @@ import { DisplayImage } from "./select-image";
 import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
+import { IdleTimeoutMessage } from "./idle-timeout";
+import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -389,6 +391,20 @@ export default function ComputeServer({
                   />
                 )}
             </div>
+            {cloud != "onprem" &&
+              server.configuration?.idleTimeoutMinutes &&
+              state == "running" &&
+              id && (
+                <div
+                  style={{
+                    display: "flex",
+                    marginLeft: "-10px",
+                    color: "#666",
+                  }}
+                >
+                  <IdleTimeoutMessage id={id} project_id={project_id} minimal />
+                </div>
+              )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
@@ -422,6 +438,7 @@ export default function ComputeServer({
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   flex: 1,
+                  display: "flex",
                 }}
               >
                 <State
@@ -435,6 +452,17 @@ export default function ComputeServer({
                   cost_per_hour={cost_per_hour}
                   purchase_id={purchase_id}
                 />
+                {state == "running" && id && (
+                  <div
+                    style={{
+                      width: "75px",
+                      marginTop: "2.5px",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    <RunningProgress server={{ ...server, id }} />
+                  </div>
+                )}
               </div>
               <Title
                 title={title}

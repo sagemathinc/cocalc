@@ -162,6 +162,7 @@ interface PurchasesOptions {
   day_statement_id?: number;
   month_statement_id?: number;
   no_statement?: boolean;
+  compute_server_id?: number;
 }
 
 function parsePurchaseDates(v) {

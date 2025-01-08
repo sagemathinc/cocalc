@@ -41,6 +41,7 @@ async function callApi(
   args?: object,
   numRetriesOnFail?: number,
 ) {
+  // console.log("callApi", { endpoint, args });
   const url = join(appBasePath, "api", endpoint);
   const resp = await fetch(url, {
     method: "POST",
@@ -73,5 +74,13 @@ async function callApi(
   if (typeof json == "object" && json.error) {
     throw Error(json.error);
   }
+  if (typeof json == "object" && json.errors) {
+    // This is what happens when the api request fails due to schema validation issues.
+    // I.e., this is soemthing we only see in dev mode since the schema stuff is disabled in production.
+    throw Error(
+      `API Schema Error: ${json.message} ${JSON.stringify(json.errors)}`,
+    );
+  }
+  // console.log("got ", json);
   return json;
 }

@@ -1,10 +1,10 @@
 import api from "@cocalc/frontend/client/api";
-("");
 import type {
   Action,
-  ComputeServerTemplate,
-  Configuration,
   Cloud,
+  ComputeServerTemplate,
+  ComputeServerUserInfo,
+  Configuration,
   Images,
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
@@ -21,11 +21,12 @@ export async function createServer(opts: {
   project_id: string;
   title?: string;
   color?: string;
-  idle_timeout?: number;
   autorestart?: boolean;
   cloud?: Cloud;
   configuration?: Configuration;
   notes?: string;
+  course_project_id?: string;
+  course_server_id?: number;
 }): Promise<number> {
   return await api("compute/create-server", opts);
 }
@@ -37,7 +38,25 @@ export async function computeServerAction(opts: {
   await api("compute/compute-server-action", opts);
 }
 
-export async function getServers(opts: { id?: number; project_id: string }) {
+// Get servers across potentially different projects by their global unique id.
+// Use the fields parameter to restrict to a much smaller subset of information
+// about each server (e.g., just the state field).  Caller must be a collaborator
+// on each project containing the servers.
+// If you give an id of a server that doesn't exist, it'll just be excluded in the result.
+// Similarly, if you give a field that doesn't exist, it is excluded.
+// The order of the returned servers and count probably will NOT match that in
+// ids, so you should include 'id' in fields.
+export async function getServersById(opts: {
+  ids: number[];
+  fields?: string[];
+}): Promise<Partial<ComputeServerUserInfo>[]> {
+  return await api("compute/get-servers-by-id", opts);
+}
+
+export async function getServers(opts: {
+  id?: number;
+  project_id: string;
+}): Promise<ComputeServerUserInfo[]> {
   return await api("compute/get-servers", opts);
 }
 
@@ -50,7 +69,12 @@ export async function getSerialPortOutput(id: number) {
 }
 
 export async function deleteServer(id: number) {
-  await api("compute/delete-server", { id });
+  return await api("compute/delete-server", { id });
+}
+
+export async function isDnsAvailable(dns: string) {
+  const { isAvailable } = await api("compute/is-dns-available", { dns });
+  return isAvailable;
 }
 
 export async function undeleteServer(id: number) {
@@ -69,7 +93,7 @@ export async function setServerTitle(opts: { id: number; title: string }) {
 
 export async function setServerConfiguration(opts: {
   id: number;
-  configuration;
+  configuration: Partial<Configuration>;
 }) {
   return await api("compute/set-server-configuration", opts);
 }
@@ -186,7 +210,7 @@ export async function deleteApiKey(opts: { id }): Promise<string> {
 }
 
 // Get the project log entries directly for just one compute server
-export async function getLog(opts: { id }) {
+export async function getLog(opts: { id; type: "activity" | "files" }) {
   return await api("compute/get-log", opts);
 }
 

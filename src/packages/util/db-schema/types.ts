@@ -148,15 +148,17 @@ export interface Fields {
     | FieldSpec;
 }
 
+type PgWhere =
+  | (string | { [key: string]: any })[]
+  | ((obj: any, db: any) => any[]);
+
 export interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
     allow_field_deletes?: boolean; // if true, allow deleting of field in record to be reported.  Do NOT do this if there are any default values (e.g., the projects and accounts tables have default values), since it's just not implemented yet!  This *is* used by all the crm tables.
-    pg_where?:
-      | (string | { [key: string]: any })[]
-      | ((obj: any, db: any) => any[]);
+    pg_where?: PgWhere;
     pg_where_load?: (string | { [key: string]: any })[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string | Function;
     remove_from_query?: string[];

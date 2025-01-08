@@ -45,27 +45,88 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
-export const AUTOMATIC_SHUTDOWN_DEFAULTS = {
-  INTERVAL_MINUTES: 1,
-  ATTEMPTS: 3,
+export const IDLE_TIMEOUT_MINUTES_DEFAULT = 30;
+
+export const HEALTH_CHECK_DEFAULTS = {
+  command: "pwd",
+  timeoutSeconds: 30,
+  periodSeconds: 60,
+  failureThreshold: 3,
+  enabled: false,
+  action: "reboot",
 };
 
-export interface AutomaticShutdown {
+export const HEALTH_CHECK_ACTIONS = [
+  "reboot",
+  "stop",
+  "suspend",
+  "deprovision",
+];
+type HealthCheckAction = (typeof HEALTH_CHECK_ACTIONS)[number];
+
+export function validatedHealthCheck(
+  healthCheck?: any,
+): HealthCheck | undefined {
+  if (healthCheck == null) {
+    return undefined;
+  }
+  let {
+    command,
+    periodSeconds,
+    failureThreshold,
+    enabled,
+    action,
+    timeoutSeconds,
+  } = healthCheck;
+  command = `${command}`;
+  periodSeconds = parseFloat(
+    periodSeconds ?? HEALTH_CHECK_DEFAULTS.periodSeconds,
+  );
+  if (periodSeconds < 0 || !isFinite(periodSeconds)) {
+    periodSeconds = HEALTH_CHECK_DEFAULTS.periodSeconds;
+  }
+  failureThreshold = parseFloat(
+    failureThreshold ?? HEALTH_CHECK_DEFAULTS.failureThreshold,
+  );
+  if (failureThreshold < 1 || !isFinite(failureThreshold)) {
+    failureThreshold = HEALTH_CHECK_DEFAULTS.failureThreshold;
+  }
+  timeoutSeconds = parseFloat(
+    timeoutSeconds ?? HEALTH_CHECK_DEFAULTS.timeoutSeconds,
+  );
+  if (timeoutSeconds < 5 || !isFinite(timeoutSeconds)) {
+    timeoutSeconds = HEALTH_CHECK_DEFAULTS.timeoutSeconds;
+  }
+  enabled = !!enabled;
+  if (!HEALTH_CHECK_ACTIONS.includes(action)) {
+    action = HEALTH_CHECK_DEFAULTS.action;
+  }
+  return {
+    command,
+    timeoutSeconds,
+    periodSeconds,
+    failureThreshold,
+    enabled,
+    action,
+  };
+}
+
+export interface HealthCheck {
   // run the command with given args on the compute server.
-  // if the output contains the the trigger string, then the
-  // compute server turns off. If it contains the deprovision
+  // If the command fails (nonzero exit code) failureThreshold times, then the
+  // action happens. If it contains the deprovision
   // string, then it deprovisions.
   command: string;
-  // timeout in seconds for running the command
-  timeout?: number;
-  // how often to run the command
-  interval_minutes?: number;
-  // try this many times before giving up on running the command and turning machine off.
-  attempts?: number;
-  // turn server off when the script exits with this code.
-  exit_code?: number;
-  // action: 'shtudown', 'deprovision', 'restart'
-  action?: "shutdown" | "deprovision" | "restart" | "suspend";
+  // timeout for running the command
+  timeoutSeconds: number;
+
+  // period in seconds to wait between running the command
+  periodSeconds: number;
+  // When a probe fails, CoCalc will try failureThreshold times before doing the action.
+  failureThreshold: number;
+
+  action: HealthCheckAction;
+  enabled: boolean;
 }
 
 interface ProxyRoute {
@@ -180,6 +241,23 @@ for (const state of ORDERED_STATES) {
   n += 1;
 }
 
+function supportsSuspend(configuration: Configuration) {
+  if (configuration.cloud != "google-cloud") {
+    return false;
+  }
+  if (configuration.machineType.startsWith("t2a-")) {
+    // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
+    // figured out a workaround, so don't support it for now.  I guess this
+    // is a GCP bug.
+    return false;
+  }
+  // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance
+  if (configuration.acceleratorType) {
+    return false;
+  }
+  return true;
+}
+
 export type Action =
   | "start"
   | "resume"
@@ -199,6 +277,7 @@ export const ACTION_INFO: {
     danger?: boolean;
     target: State; // target stable state after doing this action.
     clouds?: Cloud[];
+    isSupported?: (configuration: Configuration) => boolean;
   };
 } = {
   start: {
@@ -215,6 +294,7 @@ export const ACTION_INFO: {
     tip: "Resume",
     description: "Resume the compute server from suspend.",
     target: "running",
+    isSupported: supportsSuspend,
   },
   stop: {
     label: "Stop",
@@ -259,6 +339,7 @@ export const ACTION_INFO: {
     description:
       "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
     target: "suspended",
+    isSupported: supportsSuspend,
   },
 };
 
@@ -388,32 +469,49 @@ export function getMinDiskSizeGb({
 }
 
 // This means "you can spend at most dollars every hours on a RUNNING compute server"
-interface SpendLimit {
+export interface SpendLimit {
   hours: number;
   dollars: number;
+  enabled: boolean;
 }
 
-// may throw an error if input is not valid
+export const SPEND_LIMIT_DEFAULTS = {
+  hours: 24 * 7,
+  dollars: 25,
+  enabled: false,
+};
+
 export function validatedSpendLimit(spendLimit?: any): SpendLimit | undefined {
   if (spendLimit == null) {
     return undefined;
   }
-  let { hours, dollars } = spendLimit;
-  hours = parseFloat(hours);
-  dollars = parseFloat(dollars);
-  if (hours < 1) {
-    hours = 1;
+  let { hours, dollars, enabled } = spendLimit;
+  hours = parseFloat(hours ?? 0);
+  dollars = parseFloat(dollars ?? 0);
+  enabled = !!enabled;
+  if (hours < 0 || !isFinite(hours)) {
+    hours = SPEND_LIMIT_DEFAULTS.hours;
   }
-  if (dollars < 1) {
-    dollars = 1;
+  if (dollars < 0 || !isFinite(dollars)) {
+    dollars = SPEND_LIMIT_DEFAULTS.dollars;
   }
-  if (!isFinite(hours)) {
-    throw Error("hours must be finite");
+  return { enabled, hours, dollars };
+}
+
+export function spendLimitPeriod(hours) {
+  if (hours == 24) {
+    return "day";
   }
-  if (!isFinite(dollars)) {
-    throw Error("dollars must be finite");
+  if (hours == 24 * 7) {
+    return "week";
   }
-  return { hours, dollars };
+  if (hours == 30.5 * 24 * 7) {
+    return "month";
+  }
+  if (hours == 12 * 30.5 * 24 * 7) {
+    return "year";
+  }
+  return `${hours} hours`;
 }
 
 interface BaseConfiguration {
@@ -452,8 +550,14 @@ interface BaseConfiguration {
   // Allow collaborators to control the state of the compute server.
   // They cannot change any other configuration.  User still pays for everything and owns compute server.
   allowCollaboratorControl?: boolean;
+
+  // AUTOMATIC SHUTDOWN configuration:
+  // turn compute server off if spend more then dollars during the last hours.
+  // this can only be set by the owner.
   // Limit spending
   spendLimit?: SpendLimit;
+  idleTimeoutMinutes?: number;
+  healthCheck?: HealthCheck;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
@@ -695,8 +799,6 @@ export interface ComputeServerUserInfo {
   started_by?: string;
   error?: string;
   state?: State;
-  idle_timeout?: number;
-  automatic_shutdown?: AutomaticShutdown;
   // google-cloud has a new "Time limit" either by hour or by date, which seems like a great idea!
   // time_limit
   autorestart?: boolean;
@@ -706,11 +808,13 @@ export interface ComputeServerUserInfo {
   data?: Data;
   purchase_id?: number;
   last_edited?: Date;
+  last_edited_user?: Date;
   position?: number; // used for UI sorting.
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
   last_purchase_update?: Date;
   template?: ComputeServerTemplate;
+  spend?: number;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -743,8 +847,6 @@ Table({
           state_changed: null,
           error: null,
           state: null,
-          idle_timeout: null,
-          automatic_shutdown: null,
           autorestart: null,
           cloud: null,
           configuration: null,
@@ -752,6 +854,7 @@ Table({
           provisioned_configuration: null,
           avatar_image_tiny: null,
           last_edited: null,
+          last_edited_user: null,
           purchase_id: null,
           position: null,
           detailed_state: null,
@@ -759,6 +862,9 @@ Table({
           notes: null,
           vpn_ip: null,
           project_specific_id: null,
+          course_project_id: null,
+          course_server_id: null,
+          spend: null,
         },
       },
       set: {
@@ -772,7 +878,7 @@ Table({
           position: true,
           error: true, // easily clear the error
           notes: true,
-          automatic_shutdown: true,
+          last_edited_user: true,
         },
       },
     },
@@ -837,15 +943,6 @@ Table({
       desc: "One of - 'off', 'starting', 'running', 'stopping'.  This is the underlying VM's state.",
       pg_type: "VARCHAR(16)",
     },
-    idle_timeout: {
-      type: "number",
-      desc: "The idle timeout in seconds of this compute server. If set to 0, never turn it off automatically.  The compute server idle timeouts if none of the tabs it is providing are actively touched through the web UI.",
-    },
-    automatic_shutdown: {
-      type: "map",
-      pg_type: "jsonb",
-      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task.",
-    },
     autorestart: {
       type: "boolean",
       desc: "If true and the compute server stops for any reason, then it will be automatically started again.  This is primarily useful for stop instances.",
@@ -868,7 +965,7 @@ Table({
     data: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *IS* returned to the user.",
+      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *MAY BE* returned to the user -- do not put secrets here the user can't see.",
     },
     avatar_image_tiny: {
       title: "Image",
@@ -902,6 +999,10 @@ Table({
       type: "timestamp",
       desc: "Last time the configuration, state, etc., changed.",
     },
+    last_edited_user: {
+      type: "timestamp",
+      desc: "Last time a user explicitly edited a file or used an application (e.g., terminal) on the compute server via the UI. This is like last_edited for projects, and is used to implement configuration.idleTimeoutMinutes.",
+    },
     detailed_state: {
       type: "map",
       pg_type: "jsonb",
@@ -928,6 +1029,44 @@ Table({
     project_specific_id: {
       type: "integer",
       desc: "A unique project-specific id assigned to this compute server.  This is a positive integer that is guaranteed to be unique for compute servers *in a given project* and minimal when assigned (so it is as small as possible).   This number is useful for distributed algorithms, since it can be used to ensure distinct sequence without any additional coordination.   This is also useful to display to users so that the id number they see everywhere is not huge.",
+    },
+    course_project_id: {
+      type: "uuid",
+      desc: "If this is a compute server created for a student in a course, then this is the id of the project that the instructor(s) are using to host the course.  IMPORTANT: Our security model is that a user can read info about a compute server if they are a collaborator on *either* the compute server's project_id OR on the course_project_id, if set (but then only via the compute_servers_by_course virtual table).",
+    },
+    course_server_id: {
+      type: "integer",
+      desc: "If this compute server is a clone of an instructor server in a course, this is the id of that instructor server.",
+    },
+    spend: {
+      type: "number",
+      desc: "If configuration.spendLimit is enabled, then the spend during the current period gets recorded here every few minutes.  This is useful to efficiently provide a UI element showing the current spend status.  It is cleared whenever configuration.spendLimit is changed, to avoid confusion.",
+    },
+  },
+});
+
+// The compute_servers_by_course table is exactly like the compute_servers
+// table, but instead of having to specify
+Table({
+  name: "compute_servers_by_course",
+  fields: schema.compute_servers.fields,
+  rules: {
+    primary_key: schema.compute_servers.primary_key,
+    virtual: "compute_servers",
+    user_query: {
+      get: {
+        // only allow read access when course_project_id is a project
+        // that client user is a collaborator on.
+        pg_where: [
+          {
+            "course_project_id = ANY(select project_id from projects where users ? $::TEXT)":
+              "account_id",
+          },
+        ],
+        fields: {
+          ...schema.compute_servers.user_query?.get?.fields,
+        },
+      },
     },
   },
 });

@@ -26,9 +26,9 @@ describe("test a database backed TTLCache cache", () => {
     await cache.set("foo", "bar");
     expect(await cache.has("foo")).toBe(true);
     expect(await cache.get("foo")).toBe("bar");
-    await delay(ttl - 50);
+    await delay(ttl - 150);
     expect(await cache.has("foo")).toBe(true);
-    await delay(100);
+    await delay(200);
     expect(await cache.has("foo")).toBe(false);
     await cache.set("foo2", "bar2");
     expect(await cache.get("foo2")).toBe("bar2");

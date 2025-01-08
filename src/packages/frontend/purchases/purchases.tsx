@@ -506,12 +506,20 @@ export function PurchasesTable({
   );
 }
 
-function GroupedPurchaseTable({ purchases }) {
+export function GroupedPurchaseTable({
+  purchases,
+  hideColumns,
+  style,
+}: {
+  purchases: PurchaseItem[] | null;
+  hideColumns?: Set<string>;
+  style?;
+}) {
   if (purchases == null) {
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "600px" }}>
         <Table
           pagination={false}
@@ -519,6 +527,7 @@ function GroupedPurchaseTable({ purchases }) {
           rowKey={({ service, project_id }) => `${service}-${project_id}`}
           columns={[
             {
+              hidden: hideColumns?.has("service"),
               title: "Service",
               dataIndex: "service",
               key: "service",
@@ -528,6 +537,7 @@ function GroupedPurchaseTable({ purchases }) {
               render: (service) => <ServiceTag service={service} />,
             },
             {
+              hidden: hideColumns?.has("amount"),
               title: "Amount (USD)",
               dataIndex: "cost",
               key: "cost",
@@ -538,6 +548,7 @@ function GroupedPurchaseTable({ purchases }) {
             },
 
             {
+              hidden: hideColumns?.has("items"),
               title: "Items",
               dataIndex: "count",
               key: "count",
@@ -546,6 +557,7 @@ function GroupedPurchaseTable({ purchases }) {
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("project"),
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
@@ -573,21 +585,34 @@ function GroupedPurchaseTable({ purchases }) {
   );
 }
 
-function DetailedPurchaseTable({
+export function DetailedPurchaseTable({
   purchases,
   admin,
   refresh,
+  hideColumns,
+  style,
 }: {
   purchases: PurchaseItem[] | null;
-  admin: boolean;
+  admin?: boolean;
   refresh?;
+  hideColumns?: Set<string>;
+  style?;
 }) {
   const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
   const fragment = useTypedRedux("account", "fragment");
+  const [hideBalance, setHideBalance] = useState<boolean>(false);
   useEffect(() => {
     if (purchases == null) {
       return;
     }
+    let hideBalance = true;
+    for (const purchase of purchases) {
+      if (purchase.balance != null) {
+        hideBalance = false;
+        break;
+      }
+    }
+    setHideBalance(hideBalance);
     const id = parseInt(fragment?.get("id") ?? Fragment.get()?.id ?? "-1");
     if (id == -1) {
       return;
@@ -604,7 +629,7 @@ function DetailedPurchaseTable({
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
           pagination={false}
@@ -629,6 +654,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("description"),
               title: "Description",
               dataIndex: "description",
               key: "description",
@@ -642,6 +668,7 @@ function DetailedPurchaseTable({
               ),
             },
             {
+              hidden: hideColumns?.has("time"),
               title: "Time",
               dataIndex: "time",
               key: "time",
@@ -654,6 +681,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("period_start"),
               title: "Period",
               dataIndex: "period_start",
               key: "period",
@@ -669,6 +697,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("project"),
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
@@ -679,6 +708,7 @@ function DetailedPurchaseTable({
             },
 
             {
+              hidden: hideColumns?.has("service"),
               title: "Service",
               dataIndex: "service",
               key: "service",
@@ -688,6 +718,7 @@ function DetailedPurchaseTable({
               render: (service) => <ServiceTag service={service} />,
             },
             {
+              hidden: hideColumns?.has("amount"),
               title: "Amount (USD)",
               align: "right" as "right",
               dataIndex: "cost",
@@ -701,6 +732,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideBalance || hideColumns?.has("balance"),
               title: "Balance (USD)",
               align: "right" as "right",
               dataIndex: "balance",
@@ -751,7 +783,7 @@ function PurchaseDescription({
         description={description}
         period_end={period_end}
       />
-      {description.credit_id != null && (
+      {description?.credit_id != null && (
         <div>
           <a
             onClick={() => {
@@ -771,13 +803,13 @@ function PurchaseDescription({
             style={{ marginBottom: "15px" }}
           />
         )}
-        {description.refund_purchase_id && (
+        {description?.refund_purchase_id && (
           <b style={{ marginLeft: "8px" }}>
             REFUNDED: Transaction {description.refund_purchase_id}
           </b>
         )}
         {admin &&
-          description.refund_purchase_id == null &&
+          description?.refund_purchase_id == null &&
           id != null &&
           isRefundable(service, invoice_id) && (
             <AdminRefund
@@ -789,7 +821,7 @@ function PurchaseDescription({
           )}
         {invoice_id && (
           <Space>
-            {!admin && !description.refund_purchase_id && (
+            {!admin && !description?.refund_purchase_id && (
               <Button
                 size="small"
                 type="link"

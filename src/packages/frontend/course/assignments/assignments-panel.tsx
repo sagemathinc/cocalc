@@ -6,7 +6,6 @@
 import { Alert, Button, Col, Row } from "antd";
 import { Map, Set } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   AppRedux,
   useActions,
@@ -67,10 +66,6 @@ export function AssignmentsPanel(props: Props) {
   const active_assignment_sort: SortDescription = useRedux(
     name,
     "active_assignment_sort",
-  );
-  const active_student_sort: SortDescription = useRedux(
-    name,
-    "active_student_sort",
   );
   const expanded_peer_configs: Set<string> = useRedux(
     name,
@@ -204,7 +199,6 @@ export function AssignmentsPanel(props: Props) {
         students={students}
         user_map={user_map}
         is_expanded={expanded_assignments.has(assignment_id)}
-        active_student_sort={active_student_sort}
         expand_peer_config={expanded_peer_configs.has(assignment_id)}
         active_feedback_edits={active_feedback_edits}
         nbgrader_run_info={nbgrader_run_info}

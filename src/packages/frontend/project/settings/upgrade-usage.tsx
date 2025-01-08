@@ -386,7 +386,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     }
 
     return (
-      <div style={{ maxWidth: "1000px" }}>
+      <div>
         <Title level={4}>
           <FormattedMessage
             id="project.settings.upgrade-usage.header"

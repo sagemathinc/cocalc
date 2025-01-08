@@ -201,7 +201,6 @@ export function FileTab(props: Readonly<Props>) {
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
-
   const intl = useIntl();
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
