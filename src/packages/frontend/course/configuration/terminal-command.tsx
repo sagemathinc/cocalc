@@ -78,6 +78,7 @@ export function TerminalCommandPanel({ name }: Props) {
           }}
         >
           <Input
+            allowClear
             style={{ fontFamily: "monospace" }}
             placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
             onChange={(e) => {
@@ -259,17 +260,31 @@ function Output({ result }: { result: TerminalCommandOutput }) {
 
   const stdout = result.get("stdout");
   const stderr = result.get("stderr");
-  const noresult = !stdout && !stderr;
   const timeout = result.get("timeout");
   const total_time = result.get("total_time");
 
   return (
-    <div style={{ padding: 0, width: "100%" }}>
-      <a style={PROJECT_LINK_STYLE} onClick={open_project}>
-        {title}
-      </a>
-      {stdout && <pre style={CODE_STYLE}>{stdout}</pre>}
-      {stderr && <pre style={ERR_STYLE}>{stderr}</pre>}
+    <RenderOutput
+      title={
+        <a style={PROJECT_LINK_STYLE} onClick={open_project}>
+          {title}
+        </a>
+      }
+      stdout={stdout}
+      stderr={stderr}
+      timeout={timeout}
+      total_time={total_time}
+    />
+  );
+}
+
+export function RenderOutput({ title, stdout, stderr, total_time, timeout }) {
+  const noresult = !stdout && !stderr;
+  return (
+    <div style={{ padding: 0, width: "100%", marginTop: "15px" }}>
+      <b>{title}</b>
+      {stdout && <pre style={CODE_STYLE}>{stdout.trim()}</pre>}
+      {stderr && <pre style={ERR_STYLE}>{stderr.trim()}</pre>}
       {noresult && (
         <div>
           No output{" "}

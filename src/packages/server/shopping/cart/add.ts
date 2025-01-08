@@ -11,6 +11,8 @@ number of items in their cart, which would be bad for the database.
 We need to worry about that at some point, e.g., by throttling or
 checking periodically, then blacklisting...?  This isn't something of
 any value to a spammer so it's very unlikely to be exploited maliciously.
+
+I did add throttling to the api handler.
 */
 
 import getPool from "@cocalc/database/pool";
@@ -20,6 +22,10 @@ import {
 } from "@cocalc/util/db-schema/shopping-cart-items";
 import { isValidUUID } from "@cocalc/util/misc";
 import { getItem } from "./get";
+import dayjs from "dayjs";
+//import { getLogger } from "@cocalc/backend/logger";
+
+//const logger = getLogger("server:shopping:cart:add");
 
 export default async function addToCart(
   account_id: string,
@@ -33,6 +39,24 @@ export default async function addToCart(
   if (typeof project_id !== "string" || !isValidUUID(project_id)) {
     project_id = undefined;
   }
+  const range = description?.["range"];
+  if (range != null && range.length == 2) {
+    // Here range is of type [Date, Date].
+    // subscriptions, etc.
+    // if start time is <= now, mutate range shifting interval
+    // over so that start = now.
+    // This often happens with "buy it again" below obviously.
+    const now = dayjs();
+    const v = range.map((x) => dayjs(x));
+    if (v[0] < now) {
+      const duration = v[1].diff(v[0]);
+      v[0] = now;
+      v[1] = v[0].add(duration);
+    }
+    range[0] = v[0].toISOString();
+    range[1] = v[1].toISOString();
+  }
+
   const pool = getPool();
   const { rowCount } = await pool.query(
     `INSERT INTO shopping_cart_items (account_id, added, product, description, checked, project_id)
@@ -67,7 +91,7 @@ export async function buyItAgain(
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }
-  // this errors if it doesn't return 1 item.
+  // this throws an error if it doesn't return 1 item.
   const item = await getItem({
     id,
     account_id,

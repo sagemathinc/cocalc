@@ -153,7 +153,7 @@ export default class Client extends EventEmitter implements AppClient {
     }
   });
 
-  touch_project = (project_id: string) => {
+  touch_project = (project_id: string, _compute_server_id?: number) => {
     this._touchProject(project_id);
   };
 }

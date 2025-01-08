@@ -61,6 +61,7 @@ export class AppRedux extends AppReduxBase {
   getActions(name: "admin-users"): types.AdminUsersActions;
   getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
   getActions(name: "mentions"): types.MentionsActions;
+  getActions(name: "messages"): types.MessagesActions;
   getActions(name: "file_use"): types.FileUseActions;
   getActions(name: typeof NEWS): types.NewsActions;
   getActions(name: { project_id: string }): ProjectActions;
@@ -89,6 +90,7 @@ export class AppRedux extends AppReduxBase {
   getStore(name: "admin-users"): types.AdminUsersStore;
   getStore(name: "admin-site-licenses"): types.SiteLicensesStore;
   getStore(name: "mentions"): types.MentionsStore;
+  getStore(name: "messages"): types.MessagesStore;
   getStore(name: "file_use"): types.FileUseStore;
   getStore(name: "customize"): types.CustomizeStore;
   getStore(name: "users"): types.UsersStore;

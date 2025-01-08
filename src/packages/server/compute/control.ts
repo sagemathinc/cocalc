@@ -97,6 +97,7 @@ export const start: (opts: {
     await setState(id, "starting");
     await doStart(server);
     await setState(id, "running");
+    await updateLastEditedUser(id);
     await saveProvisionedConfiguration(server);
     await setDetailedState({
       project_id: server.project_id,
@@ -109,6 +110,18 @@ export const start: (opts: {
     updateDNS(server, "running");
   });
 });
+
+// call this to ensure that the idle timeout doesn't kill the server
+// before the user even gets a chance to use it.  We always set the
+// initial edited time to a few minutes in the future to allow for
+// startup configuration, before user can trigger last_edited_user updates.
+async function updateLastEditedUser(id: number) {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE compute_servers SET last_edited_user = NOW() + interval '15 minutes' WHERE id=$1",
+    [id],
+  );
+}
 
 async function doStart(server: ComputeServer) {
   if (server.data?.cloud != server.cloud) {
@@ -576,6 +589,12 @@ async function doReboot(server: ComputeServer) {
       return await googleCloud.reboot(server);
     case "hyperstack":
       return await hyperstackCloud.reboot(server);
+    case "onprem":
+      // for now: just switch back to running: useful for dev at least.
+      setTimeout(() => {
+        setState(server.id, "running");
+      }, 100);
+      return;
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'reboot'`,

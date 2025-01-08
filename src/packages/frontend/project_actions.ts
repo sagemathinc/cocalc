@@ -9,9 +9,9 @@ declare let window, document, $;
 import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
-import { isEqual } from "lodash";
+import { isEqual, throttle } from "lodash";
 import { join } from "path";
-
+import { defineMessage } from "react-intl";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -33,7 +33,7 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { dialogs } from "@cocalc/frontend/i18n";
+import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
@@ -176,7 +176,7 @@ const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
 interface FileAction {
-  name: string;
+  name: IntlMessage;
   icon: IconName;
   allows_multiple_files?: boolean;
   hideFlyout?: boolean;
@@ -184,52 +184,92 @@ interface FileAction {
 
 export const FILE_ACTIONS: { [key: string]: FileAction } = {
   compress: {
-    name: "Compress",
+    name: defineMessage({
+      id: "file_actions.compress.name",
+      defaultMessage: "Compress",
+      description: "Compress a file",
+    }),
     icon: "compress" as IconName,
     allows_multiple_files: true,
   },
   delete: {
-    name: "Delete",
+    name: defineMessage({
+      id: "file_actions.delete.name",
+      defaultMessage: "Delete",
+      description: "Delete a file",
+    }),
     icon: "trash" as IconName,
     allows_multiple_files: true,
   },
   rename: {
-    name: "Rename",
+    name: defineMessage({
+      id: "file_actions.rename.name",
+      defaultMessage: "Rename",
+      description: "Rename a file",
+    }),
     icon: "swap" as IconName,
     allows_multiple_files: false,
   },
   duplicate: {
-    name: "Duplicate",
+    name: defineMessage({
+      id: "file_actions.duplicate.name",
+      defaultMessage: "Duplicate",
+      description: "Duplicate a file",
+    }),
     icon: "clone" as IconName,
     allows_multiple_files: false,
   },
   move: {
-    name: "Move",
+    name: defineMessage({
+      id: "file_actions.move.name",
+      defaultMessage: "Move",
+      description: "Move a file",
+    }),
     icon: "move" as IconName,
     allows_multiple_files: true,
   },
   copy: {
-    name: "Copy",
+    name: defineMessage({
+      id: "file_actions.copy.name",
+      defaultMessage: "Copy",
+      description: "Copy a file",
+    }),
     icon: "files" as IconName,
     allows_multiple_files: true,
   },
   share: {
-    name: "Publish",
+    name: defineMessage({
+      id: "file_actions.publish.name",
+      defaultMessage: "Publish",
+      description: "Publish a file",
+    }),
     icon: "share-square" as IconName,
     allows_multiple_files: false,
   },
   download: {
-    name: "Download",
+    name: defineMessage({
+      id: "file_actions.download.name",
+      defaultMessage: "Download",
+      description: "Download a file",
+    }),
     icon: "cloud-download" as IconName,
     allows_multiple_files: true,
   },
   upload: {
-    name: "Upload",
+    name: defineMessage({
+      id: "file_actions.upload.name",
+      defaultMessage: "Upload",
+      description: "Upload a file",
+    }),
     icon: "upload" as IconName,
     hideFlyout: true,
   },
   create: {
-    name: "Create",
+    name: defineMessage({
+      id: "file_actions.create.name",
+      defaultMessage: "Create",
+      description: "Create a file",
+    }),
     icon: "plus-circle" as IconName,
     hideFlyout: true,
   },
@@ -282,9 +322,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
   // This is throttled, so multiple calls are spaced out.
-  touch = async (): Promise<void> => {
+  touch = async (compute_server_id?: number): Promise<void> => {
     try {
-      await webapp_client.project_client.touch(this.project_id);
+      await webapp_client.project_client.touch_project(
+        this.project_id,
+        compute_server_id,
+      );
     } catch (err) {
       // nonfatal.
       console.warn(`unable to touch ${this.project_id} -- ${err}`);
@@ -1202,7 +1245,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
 
     this.open_files.set(filename, "has_activity", true);
+    this.touchActiveFileIfOnComputeServer(filename);
   }
+
+  private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const compute_server_id =
+      await computeServerAssociations.getServerIdForPath(path);
+    if (compute_server_id) {
+      await this.touch(compute_server_id);
+    }
+  }, 15000);
 
   private async convert_docx_file(filename): Promise<string> {
     const conf = await this.init_configuration("main");
@@ -1377,9 +1432,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2220,8 +2274,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {

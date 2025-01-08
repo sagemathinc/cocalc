@@ -28,7 +28,6 @@ import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
 import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
-import initStripeWebhook from "./app/webhooks/stripe";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
@@ -126,7 +125,6 @@ export default async function init(opts: Options): Promise<{
 
   initBlobs(router);
   initBlobUpload(router);
-  initStripeWebhook(router);
   initSetCookies(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);

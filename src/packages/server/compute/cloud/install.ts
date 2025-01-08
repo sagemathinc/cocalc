@@ -62,7 +62,7 @@ export function installDocker() {
 apt-get remove -y  docker.io docker-doc docker-compose podman-docker containerd runc || true
 
 # Add Docker's official GPG key:
-apt-get update -y
+apt-get update
 apt-get install -y ca-certificates curl gnupg
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -363,9 +363,14 @@ export function installCuda() {
 curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
 rm cuda-keyring.deb
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 apt-get update -y
-export CUDA_VERSION=$(apt-cache madison cuda | awk '{ print $3 }' | head -1)
-apt-get -y install cuda=$CUDA_VERSION nvidia-container-toolkit
+apt-get -y install nvidia-container-toolkit
+
 export NVIDIA_KERNEL_SOURCE=$(apt-cache search nvidia-kernel-source | awk '{ print $1 }' | tail -1)
 apt-get --purge -y remove  $NVIDIA_KERNEL_SOURCE
 apt-get -y autoremove

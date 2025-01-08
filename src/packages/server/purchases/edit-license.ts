@@ -51,9 +51,7 @@ interface Options {
   isSubscriptionRenewal?: boolean;
   client?: PoolClient;
   // If force is true, we allow the purchase even if it exceeds any quotas.
-  // Used for automatic subscription renewal. Such forced purchases are marked as
-  // "pending" if they would have otherwise failed.  This is so they don't count
-  // against quota for a couple of days, giving the user time to pay for subscriptions.
+  // Used for automatic subscription renewal.
   force?: boolean;
 }
 
@@ -132,7 +130,6 @@ export default async function editLicense(
   let purchase_id;
   try {
     // Is it possible for this user to purchase this change?
-    let pending = false;
     if (cost > 0) {
       try {
         await assertPurchaseAllowed({ account_id, service, cost, client });
@@ -140,8 +137,6 @@ export default async function editLicense(
         if (!force) {
           throw err;
         }
-        // allow anyways as a "pending" purchase.
-        pending = true;
       }
     }
 
@@ -182,7 +177,6 @@ export default async function editLicense(
         client,
         period_start,
         period_end,
-        pending,
         tag: isSubscriptionRenewal ? "subscription" : "edit",
       });
     }
@@ -199,7 +193,9 @@ export default async function editLicense(
       );
     }
 
-    await client.query("COMMIT");
+    if (opts.client == null) {
+      await client.query("COMMIT");
+    }
   } catch (err) {
     if (opts.client == null) {
       logger.debug("editLicense -- error -- reverting transaction", err);
@@ -335,7 +331,7 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
   return false;
 }
 
-async function changeLicense(
+export async function changeLicense(
   license_id: string,
   info: PurchaseInfo,
   client: PoolClient,

@@ -35,9 +35,10 @@ export type CloudFilesystems = {
 interface Props {
   // if not given, shows global list across all projects you collab on
   project_id?: string;
+  noTitle?: boolean;
 }
 
-export default function CloudFilesystems({ project_id }: Props) {
+export default function CloudFilesystems({ project_id, noTitle }: Props) {
   const { val: counter, inc: refresh } = useCounter();
   const [error, setError] = useState<string>("");
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -152,39 +153,13 @@ export default function CloudFilesystems({ project_id }: Props) {
     <div>
       <RefreshButton
         refresh={refresh}
-        style={{ position: "absolute", right: 0 }}
+        style={{ float: "right" }}
         refreshing={refreshing}
       />
-      <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>
-      <div style={{ textAlign: "center" }}>
-        <Button
-          href="https://youtu.be/zYoldE2yS3I"
-          target="_new"
-          style={{ marginRight: "15px" }}
-        >
-          <Icon name="youtube" style={{ color: "red" }} />
-          Short Demo
-        </Button>
-        <Button
-          href="https://youtu.be/uk5eA5piQEo"
-          target="_new"
-          style={{ marginRight: "15px" }}
-        >
-          <Icon name="youtube" style={{ color: "red" }} />
-          Long Demo
-        </Button>
-        <Button
-          href="https://doc.cocalc.com/cloud_file_system.html"
-          target="_new"
-        >
-          <Icon name="external-link" />
-          Docs
-        </Button>
-      </div>
-      <p
+      {!noTitle && <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>}
+      <div
         style={{
-          maxWidth: "700px",
-          margin: "15px auto",
+          margin: "15px auto 30px auto",
           fontSize: "11pt",
           color: "#666",
         }}
@@ -198,7 +173,35 @@ export default function CloudFilesystems({ project_id }: Props) {
         specify the size of a cloud file system in advance. The cost per GB is
         typically much less than a compute server disk, but you pay network
         usage and operations.
-      </p>
+        <div style={{ float: "right" }}>
+          <Button
+            href="https://youtu.be/zYoldE2yS3I"
+            target="_new"
+            type="link"
+            style={{ marginRight: "15px" }}
+          >
+            <Icon name="youtube" style={{ color: "red" }} />
+            Short Demo
+          </Button>
+          <Button
+            href="https://youtu.be/uk5eA5piQEo"
+            target="_new"
+            type="link"
+            style={{ marginRight: "15px" }}
+          >
+            <Icon name="youtube" style={{ color: "red" }} />
+            Long Demo
+          </Button>
+          <Button
+            href="https://doc.cocalc.com/cloud_file_system.html"
+            target="_new"
+            type="link"
+          >
+            <Icon name="external-link" />
+            Docs
+          </Button>
+        </div>
+      </div>
 
       <div style={{ margin: "5px 0" }}>
         {project_id

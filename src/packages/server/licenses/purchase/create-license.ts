@@ -29,8 +29,10 @@ export default async function createLicense(
   if (info.start == null || info.end == null) {
     throw Error("start and end must be defined");
   }
+  // if start is slightly in the past, this shifts things over, leaving the
+  // price unchanged, but maximizing value for the user.
   const [start, end] =
-    info.type !== "disk"
+    info.subscription == "no"
       ? adjustDateRangeEndOnSameDay([info.start, info.end])
       : [info.start, info.end];
 

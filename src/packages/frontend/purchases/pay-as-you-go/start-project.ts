@@ -15,10 +15,7 @@ import {
 
 // when checking user has sufficient credits to run project with
 // upgrade, require that they have enough for this many hours.
-// Otherwise, it is way too easy to start project with upgrades,
-// then have it just stop again an hour or less later, which is
-// just annoying.
-const MIN_HOURS = 12;
+const MIN_HOURS = 1;
 
 export default async function startProject({
   project_id,

@@ -14,7 +14,6 @@ import ShowError from "@cocalc/frontend/components/error";
 import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { to_json } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
@@ -127,12 +126,12 @@ export function StudentHandoutInfo({
 
   function render_error(name, error) {
     if (typeof error !== "string") {
-      error = to_json(error);
+      error = `${error}`;
     }
     if (error.indexOf("No such file or directory") !== -1) {
       error = `Somebody may have moved the folder that should have contained the handout.\n${error}`;
     } else {
-      error = `Try to ${name.toLowerCase()} again:\n` + error;
+      error = `Try to ${name.toLowerCase()} again:\n${error}`;
     }
     return (
       <ShowError

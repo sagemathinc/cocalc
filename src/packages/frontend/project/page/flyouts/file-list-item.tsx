@@ -43,6 +43,7 @@ import {
 } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
+import { useIntl } from "react-intl";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 
 // make sure two types of borders are of the same width
@@ -181,6 +182,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const isActive = mode === "active";
   // only in files mode, we show the publish icon
   const showPublish = mode === "files";
+  const intl = useIntl();
   const { project_id } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -311,9 +313,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function renderStarred(): JSX.Element | undefined {
     if (isStarred == null) return;
 
+    const icon: IconName = isStarred ? "star-filled" : "star";
+
     return (
       <Icon
-        name={isStarred ? "star-filled" : "star-o"}
+        name={icon}
         style={{
           ...ICON_STYLE,
           color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,
@@ -412,18 +416,18 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       : isdir
       ? ACTION_BUTTONS_DIR
       : ACTION_BUTTONS_FILE;
-    for (const name of actionNames) {
-      if (name === "download" && !item.isdir) continue;
+    for (const key of actionNames) {
+      if (key === "download" && !item.isdir) continue;
       const disabled =
-        isDisabledSnapshots(name) &&
+        isDisabledSnapshots(key) &&
         (current_path?.startsWith(".snapshots") ?? false);
 
-      const { name: nameStr, icon, hideFlyout } = FILE_ACTIONS[name];
+      const { name, icon, hideFlyout } = FILE_ACTIONS[key];
       if (hideFlyout) return;
 
       ctx.push({
-        key: nameStr,
-        label: nameStr,
+        key,
+        label: intl.formatMessage(name),
         icon: <Icon name={icon} />,
         disabled,
         onClick: () => {
@@ -440,7 +444,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             }
           }
           actions?.set_active_tab("files");
-          actions?.set_file_action(name);
+          actions?.set_file_action(key);
         },
       });
     }

@@ -35,6 +35,9 @@ import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 
+// see https://github.com/sagemathinc/cocalc/issues/8060
+const MAX_OUTPUT_SAVE_DELAY = 30000;
+
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
@@ -748,6 +751,25 @@ export class JupyterActions extends JupyterActions0 {
     dbg(`using max_output_length=${this.store.get("max_output_length")}`);
     const handler = this._output_handler(cell);
 
+    // exponentiallyThrottledSaved calls this.syncdb?.save, but
+    // it throttles the calls, and does so using exponential backoff
+    // up to MAX_OUTPUT_SAVE_DELAY milliseconds.   Basically every
+    // time exponentiallyThrottledSaved is called it increases the
+    // interval used for throttling by multiplying saveThrottleMs by 1.3
+    // until saveThrottleMs gets to MAX_OUTPUT_SAVE_DELAY.  There is no
+    // need at all to do a trailing call, since other code handles that.
+    let saveThrottleMs = 1;
+    let lastCall = 0;
+    const exponentiallyThrottledSaved = () => {
+      const now = Date.now();
+      if (now - lastCall < saveThrottleMs) {
+        return;
+      }
+      lastCall = now;
+      saveThrottleMs = Math.min(1.3 * saveThrottleMs, MAX_OUTPUT_SAVE_DELAY);
+      this.syncdb?.save();
+    };
+
     handler.on("change", (save) => {
       if (!this.store.getIn(["cells", id])) {
         // The cell was deleted, but we just got some output
@@ -762,7 +784,7 @@ export class JupyterActions extends JupyterActions0 {
       // doing low level debugging:
       //dbg(`change (save=${save}): cell='${JSON.stringify(cell)}'`);
       if (save) {
-        this.syncdb.save();
+        exponentiallyThrottledSaved();
       }
     });
 
@@ -773,7 +795,7 @@ export class JupyterActions extends JupyterActions0 {
       if (this._running_cells != null) {
         delete this._running_cells[id];
       }
-      this.syncdb.save();
+      this.syncdb?.save();
       setTimeout(() => this.syncdb?.save(), 100);
     });
 

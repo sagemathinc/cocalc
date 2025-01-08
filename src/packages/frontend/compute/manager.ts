@@ -11,6 +11,7 @@ cc.client.project_client.computeServers('...project_id...')
 
 import { SYNCDB_PARAMS, decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
 import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
 import { EventEmitter } from "events";
@@ -37,6 +38,20 @@ export class ComputeServersManager extends EventEmitter {
     log("created", this.project_id);
   }
 
+  waitUntilReady = async () => {
+    const { sync_db } = this;
+    if (sync_db.get_state() == "init") {
+      // make sure project is running
+      redux.getActions("projects").start_project(this.project_id);
+
+      // now wait for syncdb to be ready
+      await once(sync_db, "ready");
+    }
+    if (sync_db.get_state() != "ready") {
+      throw Error("syncdb not ready");
+    }
+  };
+
   close = () => {
     delete computeServerManagerCache[this.project_id];
     this.sync_db.close();
@@ -53,7 +68,7 @@ export class ComputeServersManager extends EventEmitter {
 
   getComputeServers = () => {
     const servers = {};
-    const cursors = this.sync_db.get_cursors({ excludeSelf: 'never' }).toJS();
+    const cursors = this.sync_db.get_cursors({ excludeSelf: "never" }).toJS();
     for (const client_id in cursors) {
       const server = cursors[client_id];
       servers[decodeUUIDtoNum(client_id)] = {
@@ -92,6 +107,16 @@ export class ComputeServersManager extends EventEmitter {
   // path, if one is set. Otherwise, return undefined
   // if nothing is explicitly set for this path.
   getServerIdForPath = async (path: string): Promise<number | undefined> => {
+    await this.waitUntilReady();
+    const { sync_db } = this;
+    return sync_db.get_one({ path })?.get("id");
+  };
+
+  // Get the server ids (as a map) for every file and every directory contained in path.
+  // NOTE/TODO: this just does a linear search through all paths with a server id; nothing clever.
+  getServerIdForSubtree = async (
+    path: string,
+  ): Promise<{ [path: string]: number }> => {
     const { sync_db } = this;
     if (sync_db.get_state() == "init") {
       await once(sync_db, "ready");
@@ -99,7 +124,19 @@ export class ComputeServersManager extends EventEmitter {
     if (sync_db.get_state() != "ready") {
       throw Error("syncdb not ready");
     }
-    return sync_db.get_one({ path })?.get("id");
+    const x = sync_db.get();
+    const v: { [path: string]: number } = {};
+    if (x == null) {
+      return v;
+    }
+    const slash = path.endsWith("/") ? path : path + "/";
+    for (const y of x) {
+      const p = y.get("path");
+      if (p == path || p.startsWith(slash)) {
+        v[p] = y.get("id");
+      }
+    }
+    return v;
   };
 }
 

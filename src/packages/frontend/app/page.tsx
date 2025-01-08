@@ -10,7 +10,6 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
-import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -31,21 +30,24 @@ import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { COLORS } from "@cocalc/util/theme";
+import { useIntl } from "react-intl";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
 import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
+import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
+import InsecureTestModeBanner from "./insecure-test-mode-banner";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
-import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
-import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 import SettingsModal from "./settings-modal";
-import InsecureTestModeBanner from "./insecure-test-mode-banner";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
+import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
+import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
+import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -111,6 +113,7 @@ export const Page: React.FC = () => {
   );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
+  const show_verify_email: boolean = useShowVerifyEmail();
   const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
@@ -161,7 +164,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = intl.formatMessage(labels.account);
+      label = <>{intl.formatMessage(labels.account)}</>;
       style = undefined;
     }
 
@@ -292,6 +295,7 @@ export const Page: React.FC = () => {
         {render_sign_in_tab()}
         {render_support()}
         {is_logged_in && render_account_tab()}
+        <BalanceButton minimal />
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (
@@ -341,7 +345,7 @@ export const Page: React.FC = () => {
         type: "info",
         title: "File Drop Rejected",
         message:
-          'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.',
+          'To upload a file, drop it onto a file you are editing, the file explorer listing or the "Drop files to upload" area in the +New page.',
       });
     }
   }
@@ -384,6 +388,7 @@ export const Page: React.FC = () => {
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
+      {show_verify_email && <VerifyEmail />}
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />

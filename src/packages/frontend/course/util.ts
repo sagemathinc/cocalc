@@ -125,7 +125,7 @@ export function parse_students(
   student_map: StudentsMap,
   user_map: UserMap,
   redux,
-  intl: IntlShape,
+  intl?: IntlShape,
 ) {
   const v = immutable_to_list(student_map, "student_id");
   for (const x of v) {
@@ -147,8 +147,10 @@ export function parse_students(
         }
       }
     }
-    const { description, state } = projectStatus(x.project_id, redux, intl);
-    x.hosting = description + state;
+    if (intl != null) {
+      const { description, state } = projectStatus(x.project_id, redux, intl);
+      x.hosting = description + state;
+    }
 
     if (x.first_name == null) {
       x.first_name = "";
@@ -177,8 +179,8 @@ export function immutable_to_list<T, P>(
 ): T extends TypedMap<infer S>
   ? S[]
   : T extends Map<string, infer S>
-  ? S[]
-  : any;
+    ? S[]
+    : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;
@@ -286,20 +288,33 @@ type StudentField =
   | "last_active"
   | "hosting";
 
-export function pick_student_sorter<T extends { column_name: StudentField }>(
-  sort: T,
-) {
-  switch (sort.column_name) {
+export function pick_student_sorter({
+  column_name,
+  is_descending,
+}: {
+  column_name: StudentField;
+  is_descending?: boolean;
+}) {
+  const cmp = getSorter(column_name);
+  if (is_descending) {
+    return (a, b) => cmp(b, a);
+  }
+  return cmp;
+}
+
+function getSorter(column_name) {
+  switch (column_name) {
     case "email":
       return sort_on_string_field("email_address", "last_name");
     case "first_name":
       return sort_on_string_field("first_name", "last_name");
-    case "last_name":
-      return sort_on_string_field("last_name", "first_name");
     case "last_active":
       return sort_on_numerical_field("last_active", "last_name");
     case "hosting":
       return sort_on_string_field("hosting", "email_address");
+    case "last_name":
+    default:
+      return sort_on_string_field("last_name", "first_name");
   }
 }
 

@@ -235,7 +235,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     <div
       style={{
         padding: "15px",
-        width: "800px",
+        width: "1100px",
         maxWidth: "100%",
         margin: "auto",
       }}

@@ -18,10 +18,11 @@ server.  It does the following:
 
 import Inline from "./inline";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import ComputeServer from "./compute-server";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
@@ -274,6 +275,7 @@ export function ComputeServerDocStatus({
   );
 }
 
+// gets progress of starting the compute server with given id and having it actively available to host this file.
 function getProgress(
   server: ComputeServerUserInfo | undefined,
   account_id,
@@ -325,8 +327,7 @@ function getProgress(
   if (server.state == "deprovisioned") {
     return {
       progress: 0,
-      message:
-        "Please start the compute server by clicking the Start button below.",
+      message: "Please start the compute server.",
       status: "exception",
     };
   }
@@ -334,16 +335,14 @@ function getProgress(
   if (server.state == "off") {
     return {
       progress: 10,
-      message:
-        "Please start the compute server by clicking the Start button below.",
+      message: "Please start the compute server.",
       status: "exception",
     };
   }
   if (server.state == "suspended") {
     return {
       progress: 15,
-      message:
-        "Please resume the compute server by clicking the Resume button below.",
+      message: "Please resume the compute server.",
       status: "exception",
     };
   }
@@ -412,6 +411,38 @@ function getProgress(
       "Compute server is running, but filesystem and compute components aren't connected. Waiting...",
     status: "active",
   };
+}
+
+// This is useful elsewhere to give a sense of how the compute server
+// is doing as it progresses from running to really being fully available.
+function getRunningStatus(server) {
+  if (server == null) {
+    return { progress: 0, message: "Loading...", status: "exception" };
+  }
+  return getProgress(server, webapp_client.account_id, server.id, server.id);
+}
+
+export function RunningProgress({
+  server,
+  style,
+}: {
+  server: ComputeServerUserInfo | undefined;
+  style?;
+}) {
+  const { progress, message } = useMemo(() => {
+    return getRunningStatus(server);
+  }, [server]);
+
+  return (
+    <Tooltip title={message}>
+      <Progress
+        trailColor="#e6f4ff"
+        percent={progress}
+        strokeWidth={14}
+        style={style}
+      />
+    </Tooltip>
+  );
 }
 
 function isRecent(expire = 0) {

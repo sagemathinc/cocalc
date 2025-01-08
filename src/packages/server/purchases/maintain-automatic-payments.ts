@@ -1,16 +1,9 @@
 /*
-For each account that has automatic payments setup (so stripe_usage_subscription is
-set in the accounts table), and their most recent recent statement with interval "month"
-has both fields automatic_payment and paid_purchase_id null and a negative balance,
-we charge for the amount of the negative balance.
+For each account where the most recent recent statement with interval "month"
+has a negative balance, we automatically create a payment intent for the
+amount of the negative balance and message the account.
 
-We restrict to automatic_payment null to ensure a payment didn't get attempted
-and paid_purchase_id null in case somehow the user manually made the payment.
-E.g., you could imagine a situation where automatic payments aren't setup,
-user makes a payment, then sets up automatic payments.
-
-If the charge goes through, then the user will get credited to the account and
-the subscriptions, etc. will get renewed.
+If the charge goes through, then the user will get credited to the account.
 
 The relevant database schemas:
 
@@ -38,8 +31,16 @@ smc=# \d accounts
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { collectPayment } from "./stripe-usage-based-subscription";
+import {
+  collectPayment,
+  hasUsageSubscription,
+} from "./stripe-usage-based-subscription";
 import { getServerSettings } from "@cocalc/database/settings";
+import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
+import { hasPaymentMethod } from "@cocalc/server/purchases/stripe/get-payment-methods";
+import { currency } from "@cocalc/util/misc";
+import send, { support, url } from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("purchase:maintain-automatic-payments");
 
@@ -60,6 +61,7 @@ WITH latest_statements AS (
     s.balance,
     s.time,
     s.automatic_payment,
+    s.automatic_payment_intent_id,
     s.paid_purchase_id,
     ROW_NUMBER() OVER(PARTITION BY a.account_id ORDER BY s.time DESC) AS rn
   FROM
@@ -81,73 +83,122 @@ FROM
 WHERE
   rn = 1
   AND automatic_payment IS NULL
+  AND automatic_payment_intent_id IS NULL
   AND paid_purchase_id IS NULL
   AND balance < 0;
 `;
 
 export default async function maintainAutomaticPayments() {
-  const { pay_as_you_go_min_payment } = await getServerSettings();
+  const { pay_as_you_go_min_payment, site_name } = await getServerSettings();
 
   const pool = getPool();
   const { rows } = await pool.query(QUERY);
   logger.debug("Got ", rows.length, " statements to automatically pay");
   for (const { time, account_id, balance, statement_id } of rows) {
-    logger.debug(
-      "Paying statement ",
-      { statement_id },
-      " with balance ",
-      balance,
-      " from ",
-      time,
-    );
+    const description = `Pay statement ${statement_id} with balance ${currency(balance)} from ${time}`;
+    logger.debug(description);
+    const amount = -balance;
     try {
-      // disabling this since it seems potentially very confusing:
-      //       // Determine sum of credits that user explicitly paid *after* the statement date.
-      //       // We deduct this from their automatic payment.  Usually the automatic payment happens
-      //       // very quickly after the statement is made, so it's highly unlikely the user paid
-      //       // anything manually, but just in case we check.
-      //       const x = await pool.query(
-      //         "SELECT -SUM(cost) AS credit FROM purchases WHERE account_id=$1 AND service='credit' AND time >= $2 AND cost < 0",
-      //         [account_id, time]
-      //       );
-      //       // Records that we are attempted to set collecting of payment into motion.
-      //       const { credit } = x.rows[0];
-      //       logger.debug("User has ", credit, " in credit from after the statement");
-      //       const amount = -(balance + credit);
-
       // Set that automatic_payment has been *processed* for this statement.
       // This only means there was an actual payment attempt if the balance was negative.
       await pool.query(
         "UPDATE statements SET automatic_payment=NOW() WHERE id=$1",
         [statement_id],
       );
-      if (balance < 0) {
-        let amount = -balance;
+      if (balance >= 0) {
+        // should never happen
+        continue;
+      }
+      logger.debug(
+        "Since amount ",
+        amount,
+        " is positive, may try to collect automatically",
+      );
+
+      if (amount < pay_as_you_go_min_payment) {
         logger.debug(
-          "Since amount ",
-          amount,
-          " is positive, may try to collect automatically",
+          "amount is below min payment, so we do not charge anything for now. the min payment amount is ",
+          pay_as_you_go_min_payment,
         );
+        await send({
+          to_ids: [account_id],
+          subject: "Payment for Monthly Statement",
+          body: `
+The amount due on your monthly statement is ${currency(amount)}.
+However, this is below the minimum payment size of ${currency(pay_as_you_go_min_payment)}.
+You will not be billed this month, and your balance will roll over to your next statement.
 
-        if (amount < pay_as_you_go_min_payment) {
-          logger.debug(
-            "amount is below min payment, so we do not charge anything for now. the min payment amount is ",
-            pay_as_you_go_min_payment,
-          );
-          // amount = pay_as_you_go_min_payment;
-          continue;
-        }
+- [Your Statements](${await url("settings", "statements")})
 
-        // Now make the attempt.  This might work quickly, it might take a day, it might
-        // never succeed, it might throw an error.  That's all ok.
-        if (mockCollectPayment != null) {
-          await mockCollectPayment({ account_id, amount });
-        } else {
-          await collectPayment({ account_id, amount });
-        }
+${await support()}
+`,
+        });
+        continue;
+      }
+
+      // Now make the attempt.  This might work quickly, it might take a day, it might
+      // never succeed, it might throw an error.  That's all ok.
+      if (mockCollectPayment != null) {
+        await mockCollectPayment({ account_id, amount });
+      } else {
+        // This should  eventually "work", but we might not get the money until later.
+        const { payment_intent, hosted_invoice_url } =
+          await createPaymentIntent({
+            account_id,
+            lineItems: [
+              {
+                description: `Credit account to cover balance on statement ${statement_id}`,
+                amount,
+              },
+            ],
+            // this purpose format is assumed in server/purchases/stripe/process-payment-intents.ts
+            purpose: `statement-${statement_id}`,
+            description,
+          });
+
+        // Inform user that this happened.
+        await send({
+          to_ids: [account_id],
+          subject: "Payment for Monthly Statement",
+          body: `
+${site_name} issued an invoice for the balance of ${currency(amount)} that is due on your monthly statement id=${statement_id}.
+
+- Statements: ${await url("settings", "statements")}
+
+- Hosted Invoice: ${hosted_invoice_url}
+
+${await support()}`,
+        });
+        await pool.query(
+          "UPDATE statements SET automatic_payment_intent_id=$1 WHERE id=$2",
+          [payment_intent, statement_id],
+        );
       }
     } catch (err) {
       logger.debug(`WARNING - error trying to collect payment: ${err}`);
+      await send({
+        to_ids: [account_id],
+        subject: "Payment for Monthly Statement -- Error",
+        body: `
+The amount due on your monthly statement is ${currency(amount)}.
+When attempting to automatically charge you, an error occured.
+
+${err}
+
+- [Your Statements](${await url("settings", "statements")})
+
+${await support()}
+`,
+      });
+      adminAlert({
+        subject: `Weird error when running automatic monthly payment of a statement`,
+        body: `
+When running an automatic monthly payment for account_id=${account_id}, statement_id=${statement_id},
+something weird and unexpected went wrong. Somebody should investigate.
+
+${err}
+`,
+      });
     }
   }
 }
@@ -155,6 +206,20 @@ export default async function maintainAutomaticPayments() {
 // This is a hook to mock payment collection, which is very helpful for unit testing,
 // so we know exactly what happened and don't have to involve stripe...
 let mockCollectPayment: null | typeof collectPayment = null;
-export function setMockCollectPayment(f: typeof collectPayment) {
+export function setMockCollectPayment(f: any) {
   mockCollectPayment = f;
+}
+
+export async function hasUsageBasedSubscriptionButNoPaymentMethods(
+  account_id: string,
+) {
+  if (!(await hasUsageSubscription(account_id))) {
+    // doesn't have a usage based subscription
+    return false;
+  }
+  if (await hasPaymentMethod(account_id)) {
+    // has a payment method
+    return false;
+  }
+  return true;
 }

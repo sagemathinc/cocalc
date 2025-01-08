@@ -52,7 +52,21 @@ export function RangeSlider({
 
   const renderTooltip = (index) => {
     const date = versions?.get(index);
-    if (date == null) return; // shouldn't happen
+
+    if (date == null) {
+      return;
+      // shouldn't happen
+    }
+    if (index == version0) {
+      // Workaround fact that the left label is NOT VISIBLE
+      // if it is close to the right, which makes this whole
+      // thing totally unusable in such cases.
+      return (
+        <div style={{ marginBottom: "28px" }}>
+          <TimeAgo date={date} />
+        </div>
+      );
+    }
     return <TimeAgo date={date} />;
   };
 

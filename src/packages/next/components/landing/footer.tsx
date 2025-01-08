@@ -7,15 +7,15 @@ import { Col, Flex, Layout, Row, Space, Typography } from "antd";
 
 import { COLORS } from "@cocalc/util/theme";
 
-import A from "components/misc/A";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import Logo from "components/logo";
 import { CSS } from "components/misc";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 
-import SocialMediaIconList from "./social-media-icon-list";
 import { liveDemoUrl } from "components/landing/live-demo";
+import SocialMediaIconList from "./social-media-icon-list";
 
 const FOOTER_STYLE: CSS = {
   borderTop: "1px solid lightgrey",
@@ -25,23 +25,23 @@ const FOOTER_STYLE: CSS = {
 const FOOTER_COLUMNS_STYLE: CSS = {
   minWidth: "200px",
   flexGrow: 1,
-};
+} as const;
 
 const FOOTER_COLUMN_STYLE = {
   marginTop: "32px",
   minWidth: "128px",
-};
+} as const;
 
 const FOOTER_TABLE_STYLE: CSS = {
   maxWidth: MAX_WIDTH,
   marginBottom: "36px",
   width: "100%",
-};
+} as const;
 
 const LOGO_COLUMN_STYLE = {
   paddingBottom: "24px",
   marginTop: "32px",
-};
+} as const;
 
 interface FooterLink {
   text: string;
@@ -90,9 +90,13 @@ export default function Footer() {
           hide: !enabledPages?.pricing,
         },
         {
-          text: "On Premises",
+          text: "On-Premises",
           url: "/pricing/onprem",
           hide: !enabledPages?.onPrem,
+        },
+        {
+          text: "Translations",
+          url: "/lang",
         },
         {
           text: "System Activity",
@@ -137,7 +141,7 @@ export default function Footer() {
         {
           text: "Get a Live Demo",
           url: liveDemoUrl("footer"),
-          hide: !account || !enabledPages?.support,
+          hide: !account || !enabledPages?.liveDemo,
         },
       ],
     },

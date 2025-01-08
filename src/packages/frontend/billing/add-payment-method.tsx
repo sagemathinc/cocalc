@@ -70,6 +70,7 @@ export class AddPaymentMethod extends Component<Props, State> {
       token?: { id: string };
     } = {};
     try {
+      // @ts-ignore
       result = await stripe.createToken(this.card);
       if (!this.mounted) return;
       if (result.error != null) {

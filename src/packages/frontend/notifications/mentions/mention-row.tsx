@@ -49,9 +49,7 @@ export function MentionRow(props: Props) {
   const is_saved = mention.getIn(["users", target, "saved"]);
 
   const read_icon: IconName =
-    (is_read && !clicked) || (!is_read && clicked)
-      ? "check-square-o"
-      : "square-o";
+    (is_read && !clicked) || (!is_read && clicked) ? "eye" : "eye-slash";
 
   // think of "in transition" between read and unread
   const clickedStyle: CSS =

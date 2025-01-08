@@ -15,35 +15,40 @@ compute the sum of the following, over all rows of the table for a given account
 // equal to either a or b!  Or rather, it is a real that is technically equal to one of those numbers, but not as
 // a double.
 export const COST_OR_METERED_COST =
-   "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
+  "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
 
-
-export default async function getBalance(
-  account_id: string,
-  client?: PoolClient,
-): Promise<number> {
+export default async function getBalance({
+  account_id,
+  client,
+  noSave,
+}: {
+  account_id: string;
+  client?: PoolClient;
+  // do not save the computed balance to the accounts table.
+  noSave?: boolean;
+}): Promise<number> {
   const pool = client ?? getPool();
+
+  // Criticism:
+  //   - user may have a large number of purchases, and this is adding the ALL up every single time
+  //     it computes the balance.
+  //   - the arithmetic is probably done using 32-bit floats and there could be a slight rounding error eventually.
+
   const { rows } = await pool.query(
-    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
+    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id],
   );
-  return rows[0]?.balance ?? 0;
+  const balance = rows[0]?.balance ?? 0;
+  if (!noSave) {
+    await pool.query("UPDATE accounts SET balance=$2 WHERE account_id=$1", [
+      account_id,
+      balance,
+    ]);
+  }
+  return balance;
 }
 
-// get sum of the *pending* transactions only for this user.
-export async function getPendingBalance(
-  account_id: string,
-  client?: PoolClient,
-) {
-  const pool = client ?? getPool();
-  const { rows } = await pool.query(
-    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING=true`,
-    [account_id],
-  );
-  return rows[0]?.balance ?? 0;
-}
-
-// total balance right now including all pending and non-pending transactions
+// total balance right now
 export async function getTotalBalance(account_id: string, client?: PoolClient) {
   const pool = client ?? getPool();
   const { rows } = await pool.query(

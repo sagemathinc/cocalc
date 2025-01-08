@@ -3,12 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-
 // The official antd docs suggest doing this first.  It normalizes
 // the css in a way that is compatible with antd.
 // I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
 // now that we are using antd v5.
 import "antd/dist/reset.css";
+
+import { Locale } from "locales/misc";
 
 // Initialize the appBasePath for the frontend codebase.
 import "@cocalc/frontend/customize/app-base-path";
@@ -17,6 +18,7 @@ import "@cocalc/frontend/customize/app-base-path";
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
+import { AppContext, DEFAULT_CONTEXT } from "@cocalc/frontend/app/use-context";
 
 // The IntlProvider makes translated components from the frontend work.
 // It's english only, using the fallback defaultMessage.
@@ -27,16 +29,22 @@ import { DEFAULT_LOCALE } from "@cocalc/util/i18n";
 
 import type { AppProps } from "next/app";
 
-function MyApp({ Component, pageProps }: AppProps) {
+function MyApp({
+  Component,
+  pageProps,
+}: // router,
+AppProps & { locale: Locale }) {
   return (
-    <IntlProvider
-      locale={DEFAULT_LOCALE}
-      messages={{}}
-      defaultLocale={DEFAULT_LOCALE}
-      defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
-    >
-      <Component {...pageProps} />
-    </IntlProvider>
+    <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
+      <IntlProvider
+        locale={DEFAULT_LOCALE}
+        messages={{}}
+        defaultLocale={DEFAULT_LOCALE}
+        defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
+      >
+        <Component {...pageProps} />
+      </IntlProvider>
+    </AppContext.Provider>
   );
 }
 
@@ -99,6 +107,5 @@ import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
 import "@uiw/react-textarea-code-editor/dist.css";
 
-// this must be last to overwrite things like antd
-import "../styles/globals.css";
 import "../styles/bootstrap-visible.css";
+import "../styles/globals.css";

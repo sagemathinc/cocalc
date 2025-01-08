@@ -1,20 +1,20 @@
+import { Icon, isIconName, Markdown } from "@cocalc/frontend/components";
+import { A } from "@cocalc/frontend/components/A";
 import type {
   Architecture,
-  State,
   Configuration,
-  Images,
   GoogleCloudImages,
+  Images,
+  State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
+import { field_cmp, trunc } from "@cocalc/util/misc";
 import { Alert, Checkbox, Select, Spin } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
-import { Icon, Markdown } from "@cocalc/frontend/components";
-import { A } from "@cocalc/frontend/components/A";
-import { field_cmp, trunc } from "@cocalc/util/misc";
-import { useImages } from "./images-hook";
-import SelectVersion from "./select-version";
 import Advanced from "./advanced";
 import { RenderImage } from "./images";
+import { useImages } from "./images-hook";
+import SelectVersion from "./select-version";
 
 interface Props {
   setConfig;
@@ -261,7 +261,10 @@ function getOptions({
       label: (
         <div style={{ fontSize: "12pt" }}>
           <div style={{ float: "right" }}>{versionLabel}</div>
-          <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
+          {isIconName(icon) && (
+            <Icon name={icon} style={{ marginRight: "5px" }} />
+          )}{" "}
+          {label}
           {image.disabled && <> (disabled)</>}
           {extra}
         </div>
@@ -306,12 +309,16 @@ export function ImageLinks({ image, style }: { image; style? }) {
       <A style={{ flex: 1 }} href={data.source}>
         <Icon name="github" /> GitHub
       </A>
-      <A style={{ flex: 1 }} href={data.url}>
-        <Icon name="external-link" /> {trunc(data.label, 10)}
-      </A>
-      <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
-        <Icon name="docker" /> DockerHub
-      </A>
+      {!!data.url && (
+        <A style={{ flex: 1 }} href={data.url}>
+          <Icon name="external-link" /> {trunc(data.label, 10)}
+        </A>
+      )}
+      {!!data.package && (
+        <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
+          <Icon name="docker" /> DockerHub
+        </A>
+      )}
     </div>
   );
 }

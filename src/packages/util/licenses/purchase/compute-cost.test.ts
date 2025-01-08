@@ -1,5 +1,5 @@
 import { compute_cost } from "./compute-cost";
-import { round2up } from "@cocalc/util/misc";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 describe("use the compute-cost function with v1 pricing, no version, and a test version to compute the price of a license", () => {
   // This is a monthly business subscription for 3 projects with 1 cpu, 2 GB ram and 3 GB disk,
@@ -28,7 +28,9 @@ describe("use the compute-cost function with v1 pricing, no version, and a test 
 
   it("computes the cost", () => {
     const cost1 = compute_cost(info1);
-    expect(round2up(cost1.cost_sub_month * cost1.quantity)).toBe(monthly1);
+    expect(decimalMultiply(cost1.cost_sub_month, cost1.quantity)).toBe(
+      monthly1,
+    );
   });
 
   it("computes correct cost when version not given (since version 1 is the default)", () => {
@@ -36,7 +38,7 @@ describe("use the compute-cost function with v1 pricing, no version, and a test 
     // @ts-ignore
     delete info["version"];
     const cost = compute_cost(info);
-    expect(round2up(cost.cost_sub_month * cost.quantity)).toBe(monthly1);
+    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(monthly1);
   });
 
   it("computes correct cost with a different version of pricing params", () => {
@@ -44,7 +46,7 @@ describe("use the compute-cost function with v1 pricing, no version, and a test 
     // @ts-ignore
     info.version = "test_1";
     const cost = compute_cost(info);
-    expect(round2up(cost.cost_sub_month * cost.quantity)).toBe(54.29);
+    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(54.3);
   });
 });
 
@@ -52,7 +54,7 @@ describe("a couple more consistency checks with prod", () => {
   // each price below comes from just configuring this on prod
 
   it("computes the cost of a yearly academic license sub", () => {
-    const yearly = 306.98; // from prod store
+    const yearly = 307.08; // from prod store
     const info = {
       version: "1",
       end: new Date("2024-01-06T22:00:02.582Z"),
@@ -73,11 +75,11 @@ describe("a couple more consistency checks with prod", () => {
       custom_dedicated_ram: 0,
     } as const;
     const cost = compute_cost(info);
-    expect(round2up(cost.cost_sub_year * cost.quantity)).toBe(yearly);
+    expect(decimalMultiply(cost.cost_sub_year, cost.quantity)).toBe(yearly);
   });
 
   it("computes the cost of a specific period academic license", () => {
-    const amount = 29.61; // from prod store
+    const amount = 29.64; // from prod store
     const info = {
       version: "1",
       start: new Date("2024-08-01T00:00:00.000Z"),
@@ -98,6 +100,6 @@ describe("a couple more consistency checks with prod", () => {
       custom_dedicated_ram: 0,
     } as const;
     const cost = compute_cost(info);
-    expect(round2up(cost.cost)).toBe(amount);
+    expect(cost.cost).toBe(amount);
   });
 });

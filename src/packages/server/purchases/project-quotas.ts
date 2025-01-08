@@ -328,7 +328,7 @@ async function getAccountInfo(account_id: string): Promise<AccountInfo> {
   if (accountCache.has(account_id)) {
     return accountCache.get(account_id)!;
   }
-  const balance = await getBalance(account_id);
+  const balance = await getBalance({ account_id });
   const limitThisMonth =
     (await getPurchaseQuota(account_id, "project-upgrade")) ?? 0;
   const chargesThisMonth = await getTotalChargesThisMonth(

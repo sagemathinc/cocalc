@@ -5,9 +5,10 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
+
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -27,11 +28,12 @@ interface Option {
 interface Props {
   project_id: string;
   value: number | undefined;
-  setValue: (number) => void;
+  setValue?: (number) => void;
   disabled?: boolean;
   size?;
   style?: CSSProperties;
   noLabel?: boolean;
+  fullLabel?: boolean;
   title?: ReactNode;
 }
 
@@ -43,6 +45,7 @@ export default function SelectServer({
   size,
   style,
   noLabel,
+  fullLabel,
   title,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
@@ -50,7 +53,7 @@ export default function SelectServer({
     value0 == 0 ? null : value0,
   );
   const setValue = (value) => {
-    setValue0(value ?? 0);
+    setValue0?.(value ?? 0);
     setValue1(value);
   };
   useEffect(() => {
@@ -109,7 +112,7 @@ export default function SelectServer({
           }}
         >
           <div style={{ width: "100%", display: "flex" }}>
-            {icon && (
+            {icon && isIconName(icon) && (
               <Tooltip title={capitalize(state)}>
                 <div>
                   <Icon name={icon} style={{ marginRight: "5px" }} />
@@ -291,7 +294,11 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={!open || value == 0 || value == null ? null : `${value}`}
+        value={
+          !(fullLabel || open) || value == 0 || value == null
+            ? null
+            : `${value}`
+        }
         onDropdownVisibleChange={setOpen}
         style={{
           width: open ? "300px" : undefined,

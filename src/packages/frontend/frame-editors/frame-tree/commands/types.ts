@@ -5,7 +5,7 @@
 
 import type { ReactNode } from "react";
 
-import { IconRotation } from "@cocalc/frontend/components/icon";
+import { IconName, IconRotation } from "@cocalc/frontend/components/icon";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { ManageCommands } from "./manage";
 import { MENUS } from "./menus";
@@ -38,7 +38,7 @@ export interface Command {
   // position, for sorting
   pos?: number;
   title?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
-  icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  icon?: IconName | ReactNode | ((opts: ManageCommands) => ReactNode);
   iconRotate?: IconRotation;
   button?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
   //color?: string | ((opts: ManageCommands) => string);

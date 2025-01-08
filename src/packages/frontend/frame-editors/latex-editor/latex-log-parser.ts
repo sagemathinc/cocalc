@@ -19,6 +19,8 @@ changed the license to AGPLv3, and fixed a bunch of bugs.
 Do NOT merging in their upstream changes due to the copyright/license issues.
 */
 
+import { trimEnd } from "lodash";
+
 import { normalize as path_normalize } from "path";
 
 // Define some constants
@@ -391,23 +393,17 @@ export class LatexParser {
     // Our heuristic for detecting file names are rather crude
     // A file may not contain a space, or ) in it
     // To be a file path it must have at least one /
-    // hsy: slight enhancement: search until ")" or EOL, and then trim the string
     if (!this.currentLine.match(/^\/?([^ \)]+\/)+/)) {
       return null;
     }
-    const trimEnd = require("lodash/trimEnd");
-    const endOfFilePath = trimEnd(this.currentLine.search(RegExp("$|\\)")));
-    let path: string;
-    if (endOfFilePath === -1) {
-      path = this.currentLine;
-      this.currentLine = "";
-    } else {
-      path = this.currentLine.slice(0, endOfFilePath);
-      this.currentLine = this.currentLine.slice(endOfFilePath);
+    // hsy: slight enhancement: search until ")", " [" or EOL, and then trim the string
+    // 2025: adding " [" due to https://github.com/sagemathinc/cocalc/issues/8089
+    // (newly observed output, happens only under special circumstances)
+    const endOfFilePath = this.currentLine.search(RegExp("$|\\)| \\["));
+    if (endOfFilePath > -1) {
+      return path_normalize(trimEnd(this.currentLine.slice(0, endOfFilePath)));
     }
-    //if DEBUG
-    //    console.log("latex-log-parser@consumeFilePath", @currentLine, "endOfFilePath:", endOfFilePath, "-> path: '#{path}'")
-    return path_normalize(path);
+    return null;
   }
 
   postProcess(data: Error[]): ProcessedLatexLog {

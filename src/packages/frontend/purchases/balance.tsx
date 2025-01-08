@@ -1,26 +1,23 @@
 import type { CSSProperties } from "react";
-import { Alert, Card, Tooltip, Space, Spin } from "antd";
+import { useState } from "react";
+import { Button, Card, Tooltip, Spin } from "antd";
 import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
-import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
-import Next from "@cocalc/frontend/components/next";
+import { Icon } from "@cocalc/frontend/components/icon";
+import AutoBalance from "./auto-balance";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
-  balance?: number | null;
   style?: CSSProperties;
-  refresh?: () => Promise<void>;
+  refresh?: Function;
   cost?: number; // optional amount of money we want right now
-  pendingBalance?: number | null;
+  defaultAdd?: boolean;
 }
 
-export default function Balance({
-  balance,
-  style,
-  refresh,
-  cost,
-  pendingBalance,
-}: Props) {
+export default function Balance({ style, refresh, cost, defaultAdd }: Props) {
+  const balance = useTypedRedux("account", "balance");
+  const [add, setAdd] = useState<boolean>(!!defaultAdd);
   let body;
   if (balance == null) {
     body = (
@@ -49,45 +46,45 @@ export default function Balance({
         </Tooltip>
       );
     }
-    body = (
-      <>
-        <Space style={{ marginBottom: "5px" }}>{stat}</Space>
-        <Payment balance={balance} update={refresh} cost={cost} />
-        {pendingBalance != null && pendingBalance < 0 && (
-          <Tooltip title="Pending charges are not included in your spending limit.  They need to be paid soon by a credit to your account.">
-            <div style={{ maxWidth: "200px", color: "#666" }}>
-              <Alert
-                showIcon
-                style={{ marginTop: "10px", textAlign: "left" }}
-                type="warning"
-                message={
-                  <Tooltip
-                    title={
-                      <div>
-                        You have {currency(pendingBalance)} in pending
-                        transactions for subscription renewals. These have not
-                        completed yet and are not included in your balance.
-                        Ensure you have automatic payments configured or add
-                        credit to your account so that your subscriptions will
-                        not be cancelled.
-                      </div>
-                    }
-                  >
-                    <b>{currency(pendingBalance)} in pending transactions</b>{" "}
-                    not included in balance
-                  </Tooltip>
-                }
-              />
-            </div>
-          </Tooltip>
-        )}
-        {balance > 0 && (
-          <div style={{ fontSize: "12pt", marginTop: "5px" }}>
-            <Next href={"store/vouchers"}>Transfer</Next>
+
+    if (!add) {
+      body = (
+        <div>
+          {stat}
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => setAdd(true)}
+            style={{ marginTop: "5px" }}
+          >
+            <Icon name="credit-card" style={{ marginRight: "5px" }} />
+            Deposit Money
+          </Button>
+          <div style={{ marginTop: "20px" }}>
+            <AutoBalance />
           </div>
-        )}
-      </>
-    );
+        </div>
+      );
+    } else {
+      body = (
+        <>
+          <Button
+            onClick={() => setAdd(false)}
+            style={{ position: "absolute", right: "15px" }}
+          >
+            Cancel
+          </Button>
+          <Payment
+            balance={balance}
+            update={() => {
+              refresh?.();
+              setAdd(false);
+            }}
+            cost={cost}
+          />
+        </>
+      );
+    }
   }
   return <Card style={style}>{body}</Card>;
 }
