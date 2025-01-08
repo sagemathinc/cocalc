@@ -171,12 +171,14 @@ export function LogModal({ id, close }) {
         <DetailedPurchaseTable
           purchases={log}
           hideColumns={new Set(["project"])}
+          style={{ maxHeight: "70vh", overflow: "auto" }}
         />
       )}
       {log != null && type == "purchases" && group && (
         <GroupedPurchaseTable
           purchases={log}
           hideColumns={new Set(["project"])}
+          style={{ maxHeight: "70vh", overflow: "auto" }}
         />
       )}
       {log != null && type == "activity" && (
@@ -184,6 +186,7 @@ export function LogModal({ id, close }) {
           dataSource={log}
           rowKey={(record) => record.id}
           pagination={false}
+          style={{ maxHeight: "70vh", overflow: "auto" }}
         >
           <Table.Column
             title={"Log Entry"}

@@ -311,7 +311,7 @@ function getItems({
     {
       key: "control-log",
       icon: <Icon name="history" />,
-      label: "Configuration Log",
+      label: "Compute Server Log",
     },
     {
       key: "serial-console-log",

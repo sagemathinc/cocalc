@@ -509,15 +509,17 @@ export function PurchasesTable({
 export function GroupedPurchaseTable({
   purchases,
   hideColumns,
+  style,
 }: {
   purchases: PurchaseItem[] | null;
   hideColumns?: Set<string>;
+  style?;
 }) {
   if (purchases == null) {
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "600px" }}>
         <Table
           pagination={false}
@@ -588,11 +590,13 @@ export function DetailedPurchaseTable({
   admin,
   refresh,
   hideColumns,
+  style,
 }: {
   purchases: PurchaseItem[] | null;
   admin?: boolean;
   refresh?;
   hideColumns?: Set<string>;
+  style?;
 }) {
   const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
   const fragment = useTypedRedux("account", "fragment");
@@ -625,7 +629,7 @@ export function DetailedPurchaseTable({
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
           pagination={false}
