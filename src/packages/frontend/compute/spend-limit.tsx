@@ -7,15 +7,18 @@ import {
   Flex,
   Modal,
   InputNumber,
+  Progress,
   Radio,
   Space,
   Spin,
   Switch,
+  Tooltip,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useServer } from "./compute-server";
 import Inline from "./inline";
 import { isEqual } from "lodash";
+import { getPurchases } from "@cocalc/frontend/purchases/api";
 import { setServerConfiguration } from "./api";
 import {
   type SpendLimit as ISpendLimit,
@@ -23,6 +26,7 @@ import {
   spendLimitPeriod,
   validatedSpendLimit,
 } from "@cocalc/util/db-schema/compute-servers";
+import { currency } from "@cocalc/util/misc";
 import { AutomaticShutdownCard } from "./automatic-shutdown";
 
 export function SpendLimit({
@@ -215,5 +219,75 @@ export function SpendLimitButton(props) {
       </Button>
       {open && <SpendLimitModal {...props} close={() => setOpen(false)} />}
     </>
+  );
+}
+
+export function SpendLimitStatus({ server }) {
+  const [total, setTotal] = useState<number | null>(null);
+  const [desc, setDesc] = useState<string>("");
+
+  useEffect(() => {
+    if (server.configuration.spendLimit?.enabled) {
+      const { hours, dollars } = validatedSpendLimit(
+        server.configuration.spendLimit,
+      )!;
+      let desc = "";
+      if (server.spend != null) {
+        desc += `${currency(server.spend)} was spent on this compute server in the last ${spendLimitPeriod(hours)}.  `;
+      }
+      desc += `Spend limit for this server is ${currency(dollars)}/${spendLimitPeriod(hours)}.`;
+      setDesc(desc);
+      setTotal(server.spend ?? 0);
+      return;
+    }
+    // spend limit not enabled, so put total spend over all time:
+    (async () => {
+      const { purchases } = await getPurchases({
+        compute_server_id: server.id,
+        group: true,
+      });
+      let total = 0;
+      for (const { cost, cost_so_far } of purchases) {
+        total += cost ?? cost_so_far ?? 0;
+      }
+      setTotal(total);
+      setDesc(
+        `${currency(total)} was spent on this compute server since it was created.  No spend limit is set.`,
+      );
+    })();
+  }, [server.id, server.configuration.spendLimit, server.spend]);
+
+  if (total == null) {
+    return null;
+  }
+  return (
+    <Tooltip
+      title={() => {
+        return (
+          <div>
+            {desc}
+            <div style={{ textAlign: "center" }}>
+              <SpendLimitButton id={server.id} project_id={server.project_id} />
+            </div>
+          </div>
+        );
+      }}
+    >
+      <span>
+        <span style={{ textWrap: "nowrap" }}>{currency(total)}</span>{" "}
+        {!!server.configuration.spendLimit?.enabled && (
+          <Progress
+            showInfo={false}
+            percent={(total * 100) / server.configuration.spendLimit.dollars}
+            strokeWidth={14}
+            strokeColor={
+              total >= 0.8 * server.configuration.spendLimit.dollars
+                ? "red"
+                : undefined
+            }
+          />
+        )}
+      </span>
+    </Tooltip>
   );
 }

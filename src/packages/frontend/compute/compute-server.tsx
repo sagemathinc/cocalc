@@ -26,6 +26,7 @@ import State from "./state";
 import Title from "./title";
 import { IdleTimeoutMessage } from "./idle-timeout";
 import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
+import { SpendLimitStatus } from "./spend-limit";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -419,6 +420,7 @@ export default function ComputeServer({
                 project_id={project_id}
               />
             )}
+            <SpendLimitStatus server={server} />
           </div>
         }
         title={
