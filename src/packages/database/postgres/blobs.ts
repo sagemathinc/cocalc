@@ -42,16 +42,19 @@ export async function unarchivePatches({
   }
   if (blob == null) {
     if (db.adminAlert != null) {
-      dbg("NONFATAL ERROR -- blob is GONE!");
-      // Instead of giving up, we basically give up on the syncstring history, and also
-      // send a message to admins to look into it.  This is better than completely blocking
-      // access to the file to the user, especially since they have the file on disk along
-      // with filesystem snapshots.  Also this *should* never happen.  I'm writing this because
-      // I switched .compute-servers.syncdb between ephemeral and not, which seems to have
-      // broken some of these, and I think we also hit this once or twice before.
-      await db.adminAlert({
-        subject: `missing TimeTravel history for path='${rows[0].path}'`,
-        body: `The blob with TimeTravel history for editing path='${rows[0].path}' is missing.
+      // having .compute-server.syncdb missing doesn't matter at all, since we don't care
+      // about that history
+      if (rows[0].path != ".compute-server.syncdb") {
+        dbg("NONFATAL ERROR -- blob is GONE!");
+        // Instead of giving up, we basically give up on the syncstring history, and also
+        // send a message to admins to look into it.  This is better than completely blocking
+        // access to the file to the user, especially since they have the file on disk along
+        // with filesystem snapshots.  Also this *should* never happen.  I'm writing this because
+        // I switched .compute-servers.syncdb between ephemeral and not, which seems to have
+        // broken some of these, and I think we also hit this once or twice before.
+        await db.adminAlert({
+          subject: `missing TimeTravel history for path='${rows[0].path}'`,
+          body: `The blob with TimeTravel history for editing path='${rows[0].path}' is missing.
 Instead of breaking things for the user, things might work, but with the history reset.  That said,
 an admin should look into this.
 
@@ -63,7 +66,8 @@ an admin should look into this.
 
 - error='${error}'
 `,
-      });
+        });
+      }
     } else {
       // can't even alert admins
       dbg("FATAL ERROR -- blob is gone (unable to alert admins)");
