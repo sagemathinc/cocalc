@@ -19,7 +19,6 @@ async function handle(req, res) {
     return;
   }
 }
-
 async function get(req) {
   const account_id = await getAccountId(req);
   if (!account_id) {
@@ -29,7 +28,6 @@ async function get(req) {
     project_id,
     title,
     color,
-    idle_timeout,
     autorestart,
     cloud,
     configuration,
@@ -42,7 +40,6 @@ async function get(req) {
     project_id,
     title,
     color,
-    idle_timeout,
     autorestart,
     cloud,
     configuration,
