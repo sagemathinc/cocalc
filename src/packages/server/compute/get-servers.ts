@@ -2,7 +2,9 @@ import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-serve
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { getPool, stripNullFields } from "@cocalc/database";
 import { isValidUUID } from "@cocalc/util/misc";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import isCollaborator, {
+  isCollaboratorMulti,
+} from "@cocalc/server/projects/is-collaborator";
 import { getProjectSpecificId } from "./project-specific-id";
 
 interface Options {
@@ -120,3 +122,43 @@ export async function getTitle({
       })),
   };
 }
+
+export async function getServersById({
+  account_id,
+  ids,
+  fields,
+}: {
+  account_id: string;
+  ids: number[];
+  fields?: string[];
+}): Promise<Partial<ComputeServerUserInfo>[]> {
+  if (!(await isValidUUID(account_id))) {
+    throw Error("account_id is not a valid uuid");
+  }
+  if (fields == null) {
+    fields = FIELDS;
+  } else {
+    const X = new Set(fields);
+    X.add("project_id");
+    fields = FIELDS.filter((field) => X.has(field));
+  }
+  if (fields == null) {
+    throw Error("BUG");
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT ${fields.join(",")} FROM compute_servers WHERE id=ANY($1)`,
+    [ids],
+  );
+  // SECURITY: we need to confirm that account_id is a collaborator on every project_id of these rows.
+  const project_ids = Array.from(
+    new Set(rows.map(({ project_id }) => project_id)),
+  );
+  if (!(await isCollaboratorMulti({ account_id, project_ids }))) {
+    throw Error(
+      "user must be a collaborator on ALL projects containing the compute servers",
+    );
+  }
+  return stripNullFields(rows);
+}
+

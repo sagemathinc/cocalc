@@ -34,13 +34,11 @@ export default function init(router: Router) {
       return;
     }
     const { project_id, ttl } = req.query;
-    if (!project_id || typeof project_id != "string") {
-      res.status(500).send("project_id must be specified");
-      return;
-    }
-    if (!(await isCollaborator({ account_id, project_id }))) {
-      res.status(500).send("user must be collaborator on project");
-      return;
+    if (typeof project_id == 'string' && project_id) {
+      if (!(await isCollaborator({ account_id, project_id }))) {
+        res.status(500).send("user must be collaborator on project");
+        return;
+      }
     }
 
     dbg({ account_id, project_id });
@@ -84,6 +82,7 @@ export default function init(router: Router) {
             ttl,
             project_id,
             database,
+            account_id,
           });
         } finally {
           try {

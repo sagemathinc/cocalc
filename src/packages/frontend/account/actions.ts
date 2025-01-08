@@ -5,7 +5,6 @@
 
 import { fromJS } from "immutable";
 import { join } from "path";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import api from "@cocalc/frontend/client/api";
@@ -382,5 +381,10 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     } catch (err) {
       console.warn("processSignUpTags", err);
     }
+  };
+
+  setFragment = (fragment) => {
+    // @ts-ignore
+    this.setState({ fragment });
   };
 }

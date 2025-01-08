@@ -96,7 +96,9 @@
     "libsodium-wrappers": "^0.7.13",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "markdown-it": "^13.0.1",
     "ms": "2.1.2",
+    "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
     "nodemailer": "^6.9.14",
     "openai": "^4.52.1",
@@ -116,7 +118,7 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
-    "stripe": "^12.17.0",
+    "stripe": "^17.2.1",
     "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",

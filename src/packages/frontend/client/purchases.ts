@@ -106,20 +106,12 @@ export class PurchasesClient {
     await waitUntilPayAsYouGoModalCloses();
   }
 
-  async getPaymentMethods() {
-    return await purchasesApi.getPaymentMethods();
-  }
-
   async getCustomer() {
     return await purchasesApi.getCustomer();
   }
 
   async getChargesByService() {
     return await purchasesApi.getChargesByService();
-  }
-
-  async createCredit(opts): Promise<any> {
-    return await purchasesApi.createCredit(opts);
   }
 
   async getCurrentCheckoutSession() {
@@ -155,17 +147,9 @@ export class PurchasesClient {
     return await purchasesApi.getPayAsYouGoPricesProjectQuotas();
   }
 
-  async syncPaidInvoices() {
-    await purchasesApi.syncPaidInvoices();
-  }
-
   // this is only used in the nextjs store app right now...
   async getShoppingCartCheckoutParams() {
     return await purchasesApi.getShoppingCartCheckoutParams();
-  }
-
-  async getVoucherCartCheckoutParams(count: number) {
-    return await purchasesApi.getVoucherCartCheckoutParams(count);
   }
 
   async adminGetMinBalance(account_id: string): Promise<number> {
@@ -177,7 +161,7 @@ export class PurchasesClient {
   }
 
   async getLicense(license_id: string) {
-    return await purchasesApi.getLicense(license_id);
+    return await purchasesApi.getLicense({ license_id });
   }
 
   async renewSubscription(

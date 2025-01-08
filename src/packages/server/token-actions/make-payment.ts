@@ -1,4 +1,6 @@
 /*
+DEPRECATED!!
+
 
 export interface MakePayment {
   type: "make-payment";
@@ -8,44 +10,39 @@ export interface MakePayment {
 */
 
 import type { MakePayment } from "@cocalc/util/db-schema/token-actions";
-import createStripeCheckoutSession from "@cocalc/server/purchases/create-stripe-checkout-session";
 import { currency } from "@cocalc/util/misc";
 import getName from "@cocalc/server/accounts/get-name";
 import getPool from "@cocalc/database/pool";
 import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
-import { getTokenUrl } from "./create";
 
 export default async function makePayment(
   token: string,
-  description: MakePayment
+  description: MakePayment,
 ) {
   const { account_id, amount } = description;
   const user = await getName(account_id);
-  const url = await getTokenUrl(token);
-  const session = await createStripeCheckoutSession({
-    account_id,
-    line_items: [{
-      amount,
-      description: `Add ${currency(amount)} to ${user}'s account.`,
-    }],
-    success_url: url,
-    cancel_url: url,
-    force: true,
-    token,
-  });
   return {
     type: "create-credit",
-    session,
+    pay: {
+      description: `Add ${currency(amount)} to ${user}'s account.`,
+      purpose: `token-${token}`,
+      lineItems: [
+        {
+          description: `${currency(amount)} credit for ${user}'s account.`,
+          amount,
+        },
+      ],
+    },
     instructions: `Click here to deposit ${currency(
-      amount
+      amount,
     )} into ${user}'s account...`,
   };
 }
 
 export async function extraInfo(description, token) {
   const user = `${await getName(
-    description.account_id
+    description.account_id,
   )} (${await getEmailAddress(description.account_id)})`;
   if (description.paid) {
     // already paid
@@ -54,7 +51,7 @@ export async function extraInfo(description, token) {
       title: "Make Payment -- PAID",
       details: `Payment of ${currency(
         description.amount,
-        2
+        2,
       )} to the account of ${user} completed. Thank you!
 
 ${description.reason ? "\n\n- " + description.reason : ""}
@@ -72,7 +69,7 @@ ${description.reason ? "\n\n- " + description.reason : ""}
       const pool = getPool();
       const { rows } = await pool.query(
         "SELECT description FROM token_actions WHERE token=$1",
-        [token]
+        [token],
       );
       // don't pass token back in so no chance of infinite loop.
       return await extraInfo(rows[0]?.description, "");
@@ -84,7 +81,7 @@ ${description.reason ? "\n\n- " + description.reason : ""}
     title: `Make Payment -- ${currency(description.amount, 2)}`,
     details: `Make a payment of ${currency(
       description.amount,
-      2
+      2,
     )} to the account of ${user}.
 ${description.reason ? "\n\n- " + description.reason : ""}
     `,
@@ -99,6 +96,6 @@ export async function markTokenActionPaid(token: string) {
     `UPDATE token_actions
      SET description=jsonb_set(description, '{paid}', $1)
      WHERE token=$2`,
-    [Date.now(), token]
+    [Date.now(), token],
   );
 }

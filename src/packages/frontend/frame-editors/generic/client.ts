@@ -44,9 +44,15 @@ export async function touch(project_id: string, path: string): Promise<void> {
 }
 
 // Resets the idle timeout timer and makes it known we are using the project.
-export async function touch_project(project_id: string): Promise<void> {
+export async function touch_project(
+  project_id: string,
+  compute_server_id?: number,
+): Promise<void> {
   try {
-    await webapp_client.project_client.touch(project_id);
+    await webapp_client.project_client.touch_project(
+      project_id,
+      compute_server_id,
+    );
   } catch (err) {
     console.warn(`unable to touch '${project_id}' -- ${err}`);
   }

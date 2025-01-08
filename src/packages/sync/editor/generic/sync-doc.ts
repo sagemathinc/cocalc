@@ -1867,6 +1867,11 @@ export class SyncDoc extends EventEmitter {
         continue;
       }
       const account_id = this.users[u[1]];
+      if (!account_id) {
+        // this happens for ephemeral table when project restarts and browser
+        // has data it is trying to send.
+        continue;
+      }
       const locs = this.cursors_table.get(k);
       if (locs == null && !this.cursor_map.has(account_id)) {
         // gone, and already gone.
@@ -2548,7 +2553,7 @@ export class SyncDoc extends EventEmitter {
     // TODO: handle doctype change here (?)
     this.last_snapshot = x.last_snapshot;
     this.snapshot_interval = x.snapshot_interval;
-    this.users = x.users;
+    this.users = x.users ?? [];
     // @ts-ignore
     this.project_id = x.project_id;
     // @ts-ignore

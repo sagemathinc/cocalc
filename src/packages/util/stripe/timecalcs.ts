@@ -48,9 +48,12 @@ export function roundToMidnight(
 }
 
 /**
- * We play nice to the user. if the start date is before the current time,
- * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
- * then append that period that's already in the past to the end of the range.
+ * We modify dates in favor of the user for range license purchase using this function.
+ * In particular, if the start date is before the current time,
+ * which happens when you order something that is supposed to start "now" (and is
+ * corrected to the start of the day in the user's time zone),
+ * then append that period that's already in the past to the end of the range,
+ * to avoid changing the price (which would be confusing).
  */
 export function adjustDateRangeEndOnSameDay([
   start,

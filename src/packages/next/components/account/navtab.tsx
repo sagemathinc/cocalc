@@ -71,7 +71,7 @@ export default function AccountNavTab({ style }: Props) {
         {first_name} {last_name}
         {name ? ` (@${name})` : ""}
       </b>
-    </A>
+    </A>,
   );
 
   const docs = menuItem(
@@ -79,29 +79,56 @@ export default function AccountNavTab({ style }: Props) {
     <A href="https://doc.cocalc.com" external>
       Documentation
     </A>,
-    "book"
+    "book",
   );
 
   const configuration = menuGroup(
     "configuration",
-    <A href="/config/search/input">
+    <A href="/settings">
       <span style={{ color: "#a4acb3" }}>
-        <Icon name="wrench" /> Configuration
+        <Icon name="wrench" /> Account
       </span>
     </A>,
     [
-      menuItem("account", <A href="/config/account/name">Account</A>, "user"),
       menuItem(
-        "editor",
-        <A href="/config/editor/appearance">Editor</A>,
-        "edit"
+        "preferences",
+        <A href="/settings/account">Preferences</A>,
+        "address-card",
+      ),
+      DIVIDER,
+      menuItem(
+        "subscriptions",
+        <A href="/settings/subscriptions">Subscriptions</A>,
+        "calendar",
+      ),
+      menuItem("licenses", <A href="/settings/licenses">Licenses</A>, "key"),
+      menuItem(
+        "payg",
+        <A href="/settings/payg">Pay As You go</A>,
+        "line-chart",
+      ),
+      DIVIDER,
+      menuItem(
+        "purchases",
+        <A href="/settings/purchases">Purchases</A>,
+        "money-check",
       ),
       menuItem(
-        "system",
-        <A href="/config/system/appearance">System</A>,
-        "gear"
+        "payments",
+        <A href="/settings/payments">Payments</A>,
+        "credit-card",
       ),
-    ]
+      menuItem(
+        "payment-methods",
+        <A href="/settings/payment-methods">Payment Methods</A>,
+        "credit-card",
+      ),
+      menuItem(
+        "statements",
+        <A href="/settings/statements">Statements</A>,
+        "calendar-week",
+      ),
+    ],
   );
 
   function profileItems() {
@@ -115,8 +142,8 @@ export default function AccountNavTab({ style }: Props) {
           <A href="/config/search/input">
             <b>Sign Up (save your work)!</b>
           </A>,
-          "user"
-        )
+          "user",
+        ),
       );
     }
     ret.push(docs);
@@ -137,22 +164,39 @@ export default function AccountNavTab({ style }: Props) {
         <a href={join(basePath, "projects")}>
           {is_anonymous ? "Project" : "Projects"}
         </a>,
-        "edit"
-      )
+        "edit",
+      ),
     );
 
     if (!is_anonymous) {
-      yours.push(menuItem("licenses", <A href="/licenses">Licenses</A>, "key"));
-
-      if (isCommercial) {
-        yours.push(
-          menuItem(
-            "billing",
-            <A href="/billing">Billing Management</A>,
-            "credit-card"
-          )
-        );
-      }
+      yours.push(
+        menuItem(
+          "messages",
+          <A href="/notifications#page=messages-inbox">Messages</A>,
+          "mail",
+        ),
+      );
+      yours.push(
+        menuItem(
+          "mentions",
+          <A href="/notifications#page=unread">@-Mentions</A>,
+          "comment",
+        ),
+      );
+      yours.push(
+        menuItem(
+          "cloud-filesystems",
+          <A href="/settings/cloud-filesystems">Cloud Filesystems</A>,
+          "user",
+        ),
+      );
+      yours.push(
+        menuItem(
+          "support",
+          <A href="/settings/support">Support Tickets</A>,
+          "user",
+        ),
+      );
       if (sshGateway) {
         yours.push(
           menuItem(
@@ -160,8 +204,8 @@ export default function AccountNavTab({ style }: Props) {
             <A href={join(basePath, "settings", "ssh-keys")} external>
               SSH Keys
             </A>,
-            "key"
-          )
+            "key",
+          ),
         );
       }
 
@@ -177,12 +221,16 @@ export default function AccountNavTab({ style }: Props) {
             >
               Shared Files
             </A>,
-            "bullhorn"
-          )
+            "bullhorn",
+          ),
         );
 
         yours.push(
-          menuItem("stars", <A href="/stars">Stars</A>, "star-filled")
+          menuItem(
+            "stars",
+            <A href="/stars">Starred Shared Files</A>,
+            "star-filled",
+          ),
         );
       }
     }
@@ -193,7 +241,7 @@ export default function AccountNavTab({ style }: Props) {
         <span style={{ color: "#a4acb3" }}>
           <Icon name="user" /> Your...
         </span>,
-        yours
+        yours,
       ),
     ];
   }
@@ -205,7 +253,7 @@ export default function AccountNavTab({ style }: Props) {
       menuItem(
         "admin",
         <a href={join(basePath, "admin")}>Site Administration</a>,
-        "settings"
+        "settings",
       ),
     ];
   }
@@ -221,7 +269,7 @@ export default function AccountNavTab({ style }: Props) {
         }}
       >
         Sign Out
-      </A>
+      </A>,
     ),
   ];
 

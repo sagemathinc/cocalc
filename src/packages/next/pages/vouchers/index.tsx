@@ -49,16 +49,14 @@ export default function Overview({ customize }) {
               </Product>
               <Product icon="gift2" title="Redeem a Voucher" href="/redeem">
                 Redeem a voucher code to add{" "}
-                <A href="/settings/purchases">money</A> or{" "}
-                <A href="/settings/licenses">licenses</A> to your account.
+                <A href="/settings/purchases">money</A> to your account.
               </Product>
               <Product
                 icon="table"
                 title="Vouchers You Redeemed"
                 href="/vouchers/redeemed"
               >
-                See a list of all vouchers you have redeemed and links to the
-                corresponding <A href="/settings/licenses">licenses</A>.
+                See a list of all vouchers you have redeemed.
               </Product>
               <Product
                 href={"/vouchers/created"}

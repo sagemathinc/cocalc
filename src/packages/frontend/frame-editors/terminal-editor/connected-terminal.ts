@@ -419,11 +419,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   }
 
-  touch(): void {
+  touch = async () => {
     if (Date.now() - this.last_active < 70000) {
-      touch_project(this.project_id);
+      touch_project(this.project_id, await this.getComputeServerId());
     }
-  }
+  };
 
   init_touch(): void {
     this.touch_interval = setInterval(this.touch, 60000);

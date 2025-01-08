@@ -479,7 +479,7 @@ export function StudentAssignmentInfo({
     ) {
       error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
-      error = `Try to ${step.toLowerCase()} again:\n` + error;
+      error = `Try to ${step.toLowerCase()} again:\n${error}`;
     }
     return (
       <ShowError

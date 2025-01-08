@@ -33,6 +33,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
   return (
     <div>
       <Button
+        type={lastSaved != null ? "dashed" : undefined}
         onClick={() => {
           if (minBalance == null || lastSaved == null) {
             getMinBalance();
@@ -42,7 +43,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
           }
         }}
       >
-        <Icon name="credit-card" /> Minimum Allowed Balance...{" "}
+        <Icon name="credit-card" /> Minimum Allowed Balance{" "}
         {loading && <Spin delay={500} />}
       </Button>
       {lastSaved != null && (

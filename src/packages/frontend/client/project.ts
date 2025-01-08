@@ -55,6 +55,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import httpApi from "./api";
 import { WebappClient } from "./client";
+import { throttle } from "lodash";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -414,7 +415,24 @@ export class ProjectClient {
     await this.call(message.remove_all_upgrades({ projects }));
   }
 
-  public async touch(project_id: string): Promise<void> {
+  touch_project = async (
+    // project_id where activity occured
+    project_id: string,
+    // optional global id of a compute server (in the given project), in which case we also mark
+    // that compute server as active, which keeps it running in case it has idle timeout configured.
+    compute_server_id?: number,
+  ): Promise<void> => {
+    if (compute_server_id) {
+      // this is throttled, etc. and is independent of everything below.
+      touchComputeServer({
+        project_id,
+        compute_server_id,
+        client: this.client,
+      });
+      // that said, we do still touch the project, since if a user is actively
+      // using a compute server, the project should also be considered active.
+    }
+
     const state = redux.getStore("projects")?.get_state(project_id);
     if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
       // not trying to view project as admin so do some checks
@@ -448,7 +466,7 @@ export class ProjectClient {
       // the project (updating the db), but it still *does*
       // ensure there is a TCP connection to the project.
     }
-  }
+  };
 
   // Print file to pdf
   // The printed version of the file will be created in the same directory
@@ -622,3 +640,32 @@ export class ProjectClient {
     return await computeServers(project_id)?.getServerIdForPath(path);
   };
 }
+
+// (NOTE: this won't throw an exception)
+const touchComputeServer = throttle(
+  async ({ project_id, compute_server_id, client }) => {
+    if (!compute_server_id) {
+      // nothing to do
+      return;
+    }
+    try {
+      await client.async_query({
+        query: {
+          compute_servers: {
+            project_id,
+            id: compute_server_id,
+            last_edited_user: client.server_time(),
+          },
+        },
+      });
+    } catch (err) {
+      // just a warning -- if we can't connect then touching isn't something we should be doing anyways.
+      console.log(
+        "WARNING: failed to touch compute server -- ",
+        { compute_server_id },
+        err,
+      );
+    }
+  },
+  30000,
+);

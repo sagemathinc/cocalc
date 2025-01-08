@@ -49,6 +49,12 @@ export type { FileUseState } from "@cocalc/frontend/file-use/store";
 // mentions
 export { MentionsActions, MentionsStore } from "@cocalc/frontend/notifications";
 export type { MentionsState } from "@cocalc/frontend/notifications";
+// messages
+export {
+  MessagesActions,
+  MessagesStore,
+} from "@cocalc/frontend/messages/redux";
+export type { MessagesState } from "@cocalc/frontend/messages/redux";
 // page
 export { PageActions } from "@cocalc/frontend/app/actions";
 export { PageStore } from "@cocalc/frontend/app/store";

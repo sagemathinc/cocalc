@@ -439,9 +439,9 @@ export class Actions<
   }
 
   // Flag that there is activity (causes icon to turn orange).
-  private activity(): void {
+  private activity = (): void => {
     this._get_project_actions().flag_file_activity(this.path);
-  }
+  };
 
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's

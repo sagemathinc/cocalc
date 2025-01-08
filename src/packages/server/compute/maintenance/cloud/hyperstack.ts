@@ -13,10 +13,10 @@ but would be better configured via admin settings...
 import { getCredit } from "@cocalc/server/compute/cloud/hyperstack/client";
 import { globalResourceSync } from "@cocalc/server/compute/cloud/hyperstack/sync";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import sendEmail from "@cocalc/server/email/send-email";
 import { currency } from "@cocalc/util/misc";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
 import getLogger from "@cocalc/backend/logger";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("server:compute:maintenance:cloud:hyperstack");
 
@@ -71,16 +71,11 @@ async function balanceCheck() {
     return;
   }
 
-  const {
-    email_enabled,
-    hyperstack_api_key,
-    hyperstack_balance_alert_thresh,
-    hyperstack_balance_alert_emails,
-  } = await getServerSettings();
+  const { email_enabled, hyperstack_api_key, hyperstack_balance_alert_thresh } =
+    await getServerSettings();
   if (
     !hyperstack_api_key ||
     !email_enabled ||
-    !hyperstack_balance_alert_emails ||
     !hyperstack_balance_alert_thresh
   ) {
     // can't possibly due anything useful.
@@ -97,24 +92,17 @@ async function balanceCheck() {
       credit,
       hyperstack_balance_alert_thresh,
     });
-    const { help_email: from, site_name: siteName } = await getServerSettings();
+    const { site_name: siteName } = await getServerSettings();
     const subject = `${siteName} HYPERSTACK BALANCE ALERT`;
-    const text = `Dear ${siteName} Admin,
+    const body = `Dear ${siteName} Admin,
 
 The balance on the Hyperstack account is ${currency(credit)}, which is below the
 threshold of ${currency(hyperstack_balance_alert_thresh)}.
 
 -- ${siteName}
 `;
-    for (const to of hyperstack_balance_alert_emails.split(",")) {
-      logger.debug(`Emailing this message out to "${to}":\n`, text);
-      try {
-        await sendEmail({ from, to: to.trim(), subject, text, html: text });
-        lastEmailed = Date.now();
-        await balanceCache.set("lastEmailed", lastEmailed);
-      } catch (err) {
-        logger.debug(`ERROR -- unable to send email -- ${err}`);
-      }
-    }
+    await adminAlert({ subject, body });
+    lastEmailed = Date.now();
+    await balanceCache.set("lastEmailed", lastEmailed);
   }
 }

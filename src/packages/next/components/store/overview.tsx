@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Divider } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-
 import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
@@ -32,30 +32,31 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore{" "}
-        <A href="/pricing">available products and pricing</A>.
+        Shop below for <A href="/store/site-license">licenses</A> and{" "}
+        <A href="/store/vouchers">vouchers</A> or explore{" "}
+        <A href="/pricing">all available products and pricing</A>.
       </div>
       <OverviewRow>
         <Product icon="key" title="Licenses" href="/store/site-license">
           Buy a license to upgrade projects, get internet access, more CPU, disk
           and memory.
         </Product>
+        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
+          Purchase a <A href={"/vouchers"}>voucher code</A> to make <SiteName />{" "}
+          credit easily available to somebody else.
+        </Product>
+        <Divider />
         <Product
           href={"/features/compute-server"}
           icon={PAYASYOUGO_ICON}
           title="Compute Servers"
         >
           Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered CPU
-          machines with full admin privileges. Pay only for what you actually
-          use.
+          machines with full admin privileges. Pay as you go.
         </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
-          Run CoCalc on your own machine or cluster in order to keep your data
-          on-site and use compute resources that you already have.
-        </Product>
-        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> to make store credit
-          easily available to somebody else.
+          Self-host <SiteName /> on your own compute resources in order to keep
+          your data on-site.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
@@ -64,8 +65,10 @@ export default function Overview() {
         <A href="/store/checkout">checkout</A>.
       </Paragraph>
       <Paragraph>
-        You can also browse your <A href="/billing">billing records</A> or{" "}
-        <A href="/licenses">licenses</A>.
+        You can also browse your{" "}
+        <A href="/settings/purchases">purchase history</A>,{" "}
+        <A href="/settings/licenses">licenses</A>, and{" "}
+        <A href="/vouchers/created">vouchers</A>.
       </Paragraph>
     </div>
   );

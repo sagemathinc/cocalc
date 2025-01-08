@@ -6,17 +6,15 @@
 //import { IconName } from "@cocalc/frontend/components/icon";
 import { R_IDE } from "@cocalc/util/consts/ui";
 
-interface APPS_Interface {
-  [k: string]: {
-    icon: string;
-    desc: string;
-    label?: string;
-    command?: string;
-    args?: string[];
-  };
-}
+type App = {
+  icon: string;
+  desc: string;
+  label?: string;
+  command?: string;
+  args?: string[];
+};
 
-export const APPS: Readonly<APPS_Interface> = Object.freeze({
+export const APPS = {
   unknown_test: {
     icon: "skull-crossbones",
     desc: "I don't exist, I'm just a test",
@@ -197,11 +195,6 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     command: "idea.sh",
     icon: "lightbulb",
   },
-  sqlitebrowser: {
-    label: "SQLite",
-    desc: "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
-    icon: "database",
-  },
   avogadro: {
     label: "Avogadro",
     desc: "An advanced molecule editor and visualizer designed for cross-platform use in computational chemistry, molecular modeling, bioinformatics, materials science, and related areas",
@@ -288,4 +281,16 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "Juris-M",
     desc: "A fork of Zotero with additional features supporting legal research and multilingual citations.",
   },
-});
+  xfractint: {
+    icon: "star",
+    desc: "A fractal generator that creates beautiful images using various mathematical formulas.",
+    label: "XFractint",
+    command: "xfractint",
+  },
+  sqlitebrowser: {
+    label: "Sqlite Browser",
+    desc: "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
+    icon: "database",
+    command: "sqlitebrowser",
+  },
+} as const satisfies { [key: string]: App };

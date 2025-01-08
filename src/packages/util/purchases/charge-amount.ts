@@ -19,12 +19,10 @@ export default function getChargeAmount({
   // Figure out what the amount due is, not worrying about the minPayment (we do that below).
   let amountDue = cost;
 
-  // Sometimes for weird reasons the balance goes below the minimum allowed balance,
+  // Sometimes the balance goes below the minimum allowed balance,
   // so if that happens we correct that here.
   const cureAmount = Math.max(minBalance - balance, 0);
-  // get back up to the minimum balance -- this should never be required,
-  // but sometimes it is, e.g., maybe there is a race condition with purchases
-  // or an admin explicitly increases the minimum balance
+  // get back up to the minimum balance:
   amountDue += cureAmount;
 
   const availableCredit = balance - minBalance + cureAmount;

@@ -353,6 +353,21 @@ export interface PostgreSQL extends EventEmitter {
   projectControl?: (project_id: string) => Project;
 
   ensure_connection_to_project?: (project_id: string, cb?: CB) => Promise<void>;
+
+  get_blob(opts: {
+    uuid: string;
+    save_in_db?: boolean;
+    touch?: boolean;
+    cb: CB;
+  }): void;
+
+  import_patches(opts: { patches: string[]; string_id?: string; cb?: CB });
+  delete_blob(opts: { uuid: string; cb?: CB });
+
+  adminAlert?: (opts: {
+    subject: string;
+    body?: string;
+  }) => Promise<number | undefined>;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

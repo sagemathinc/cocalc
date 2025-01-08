@@ -4,6 +4,8 @@
  */
 
 /* Code related to the history and URL in the browser bar.
+See also src/packages/util/routing/app.ts
+and src/packages/hub/servers/app/app-redirect.ts
 
 The URI schema handled by the single page app is as follows:
      Overall settings:
@@ -43,7 +45,6 @@ The URI schema handled by the single page app is as follows:
 */
 
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -81,7 +82,7 @@ export function update_params() {
   }
 }
 
-// the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
+// the url must already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
 export function set_url(url: string, hash?: string) {
   if (IS_EMBEDDED) {
     // no need to mess with url in embedded mode.
@@ -91,7 +92,7 @@ export function set_url(url: string, hash?: string) {
   const query_params = params();
   const full_url = join(
     appBasePath,
-    url + query_params + (hash ?? location.hash)
+    url + query_params + (hash ?? location.hash),
   );
   if (full_url === last_full_url) {
     // nothing to do
@@ -105,17 +106,34 @@ export function set_url(url: string, hash?: string) {
 export function load_target(
   target: string,
   ignore_kiosk: boolean = false,
-  change_history: boolean = true
+  change_history: boolean = true,
 ) {
+  if (target?.[0] == "/") {
+    target = target.slice(1);
+  }
+  let hash;
+  const i = target.lastIndexOf("#");
+  if (i != -1) {
+    hash = target.slice(i + 1);
+    target = target.slice(0, i);
+  } else {
+    hash = "";
+  }
   if (!target) {
     return;
   }
-  const logged_in = redux.getStore("account").get("is_logged_in");
+  if (!redux.getStore("account").get("is_logged_in")) {
+    // this will redirect to the sign in page after a brief pause
+    redux.getActions("page").set_active_tab("account", false);
+    return;
+  }
+
   const segments = target.split("/");
   switch (segments[0]) {
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
       break;
+
     case "projects":
       if (segments.length > 1) {
         redux
@@ -125,16 +143,14 @@ export function load_target(
             true,
             ignore_kiosk,
             change_history,
-            Fragment.get()
+            Fragment.get(),
           );
       } else {
         redux.getActions("page").set_active_tab("projects", change_history);
       }
       break;
+
     case "settings":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab("account", false);
 
       if (segments[1] === "billing") {
@@ -150,16 +166,15 @@ export function load_target(
         return;
       }
 
-      redux.getActions("account").set_active_tab(segments[1]);
+      const actions = redux.getActions("account");
+      actions.set_active_tab(segments[1]);
+      actions.setFragment(Fragment.decode(hash));
 
       break;
 
     case "notifications":
-      if (!logged_in) return;
-      const filter = getNotificationFilterFromFragment();
-      if (filter) {
-        redux.getActions("mentions").set_filter(filter);
-      }
+      const { filter, id } = getNotificationFilterFromFragment(hash);
+      redux.getActions("mentions").set_filter(filter, id);
       redux.getActions("page").set_active_tab("notifications", change_history);
       break;
 
@@ -167,9 +182,6 @@ export function load_target(
       // not implemented
       break;
     case "admin":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab(segments[0], change_history);
       break;
   }
@@ -179,11 +191,11 @@ window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
       document.location.pathname.slice(
-        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1)
-      )
+        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1),
+      ),
     ),
     false,
-    false
+    false,
   );
 };
 
@@ -192,13 +204,7 @@ export function parse_target(target?: string):
   | { page: "project"; target: string }
   | {
       page: "account";
-      tab:
-        | "account"
-        | "billing"
-        | "upgrades"
-        | "licenses"
-        | "support"
-        | "ssh-keys";
+      tab: "account" | "billing" | "upgrades" | "licenses" | "support";
     }
   | {
       page: "notifications";
@@ -222,7 +228,6 @@ export function parse_target(target?: string):
         case "upgrades":
         case "licenses":
         case "support":
-        case "ssh-keys":
           return {
             page: "account",
             tab: segments[1] as
@@ -230,8 +235,7 @@ export function parse_target(target?: string):
               | "billing"
               | "upgrades"
               | "licenses"
-              | "support"
-              | "ssh-keys",
+              | "support",
           };
         default:
           return { page: "account", tab: "account" };

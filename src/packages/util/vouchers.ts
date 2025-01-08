@@ -10,13 +10,15 @@ export const CHARSETS = [
   "upper",
 ];
 
-export type CharSet = typeof CHARSETS[number];
+export type CharSet = (typeof CHARSETS)[number];
 
 export const MAX_VOUCHERS: { [when: string]: number } = {
   now: 5000,
   invoice: 1000,
   admin: 10000,
 };
+
+export const MAX_VOUCHER_VALUE = 9999;
 
 interface Options {
   count: number;

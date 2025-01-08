@@ -309,12 +309,16 @@ export function ImageLinks({ image, style }: { image; style? }) {
       <A style={{ flex: 1 }} href={data.source}>
         <Icon name="github" /> GitHub
       </A>
-      <A style={{ flex: 1 }} href={data.url}>
-        <Icon name="external-link" /> {trunc(data.label, 10)}
-      </A>
-      <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
-        <Icon name="docker" /> DockerHub
-      </A>
+      {!!data.url && (
+        <A style={{ flex: 1 }} href={data.url}>
+          <Icon name="external-link" /> {trunc(data.label, 10)}
+        </A>
+      )}
+      {!!data.package && (
+        <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
+          <Icon name="docker" /> DockerHub
+        </A>
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ Compute server hamburger menu.
 import type { MenuProps } from "antd";
 import { Button, Dropdown, Spin } from "antd";
 import { useMemo, useState } from "react";
-
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -98,7 +97,7 @@ function getItems({
     key: "automatic-shutdown",
     icon: <Icon name="stopwatch" />,
     disabled: server.cloud == "onprem",
-    label: "Edit Automatic Shutdown",
+    label: "Automatic Shutdown",
   };
   const jupyterlab = {
     key: "top-jupyterlab",
@@ -138,16 +137,6 @@ function getItems({
     //               icon: <Icon name="network" />,
     //             },
     {
-      key: "ephemeral",
-      label: "Ephemeral",
-      icon: (
-        <Icon
-          style={{ fontSize: "12pt" }}
-          name={server.configuration?.ephemeral ? "check-square" : "square"}
-        />
-      ),
-    },
-    {
       key: "allowCollaboratorControl",
       label: "Collaborator Control",
       icon: (
@@ -158,6 +147,16 @@ function getItems({
               ? "check-square"
               : "square"
           }
+        />
+      ),
+    },
+    {
+      key: "ephemeral",
+      label: "Ephemeral",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={server.configuration?.ephemeral ? "check-square" : "square"}
         />
       ),
     },
@@ -303,16 +302,16 @@ function getItems({
       type: "divider",
     },
     settings,
-    options,
-    clone,
     automaticShutdown,
+    //spendLimit,
+    options,
     {
       type: "divider",
     },
     {
       key: "control-log",
       icon: <Icon name="history" />,
-      label: "Configuration Log",
+      label: "Compute Server Log",
     },
     {
       key: "serial-console-log",
@@ -323,6 +322,10 @@ function getItems({
       icon: <Icon name="laptop" />,
       label: "Serial Console",
     },
+    {
+      type: "divider",
+    },
+    clone,
     {
       type: "divider",
     },
@@ -445,6 +448,7 @@ export default function Menu({
     return {
       items: getItems({ id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
+        console.log("obj = ", obj);
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
@@ -459,9 +463,7 @@ export default function Menu({
             break;
 
           case "clone":
-            setModal(
-              <CloneModal id={id} project_id={project_id} close={close} />,
-            );
+            setModal(<CloneModal id={id} close={close} />);
             break;
 
           case "serial-console-log":

@@ -252,7 +252,7 @@ export class HandoutsActions {
         desc: `Copying files to ${student_name}'s project`,
       });
 
-      await webapp_client.project_client.copy_path_between_projects({
+      const opts = {
         src_project_id: course_project_id,
         src_path,
         target_project_id: student_project_id,
@@ -261,7 +261,17 @@ export class HandoutsActions {
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
         timeout: COPY_TIMEOUT_MS / 1000,
+      };
+      await webapp_client.project_client.copy_path_between_projects(opts);
+
+      await this.course_actions.compute.setComputeServerAssociations({
+        student_id,
+        src_path: opts.src_path,
+        target_project_id: opts.target_project_id,
+        target_path: opts.target_path,
+        unit_id: handout_id,
       });
+
       finish();
     } catch (err) {
       finish(err);

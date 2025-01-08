@@ -121,7 +121,6 @@ export default function LicenseEditor({
                 const end = (
                   start === undefined || now.diff(start) > 0 ? now : start
                 ).add(number, interval);
-                console.log("end = ", end.toDate());
                 handleFieldChange("end")(end);
               }}
             >

@@ -30,6 +30,7 @@ required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')
 {delete_patches} = require('./postgres/delete-patches')
+blobs = require('./postgres/blobs')
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
@@ -45,7 +46,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
                                    # if there is already something in blobstore with longer ttl, we leave it;
                                    # infinite ttl = 0.
-            project_id : required  # the id of the project that is saving the blob
+            project_id : undefined  # the id of the project that is saving the blob
+            account_id : undefined  # the id of the user that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
             compress   : undefined # optional compression to use: 'gzip', 'zlib'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
@@ -98,6 +100,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             id         : opts.uuid
                             blob       : '\\x'+opts.blob.toString('hex')
                             project_id : opts.project_id
+                            account_id : opts.account_id
                             count      : 0
                             size       : opts.blob.length
                             created    : new Date()
@@ -761,61 +764,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 delete_patches(db:@, string_id: opts.string_id, cb:cb)
         ], (err) => opts.cb?(err))
 
-    unarchive_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : undefined
-        dbg = @_dbg("unarchive_patches(string_id='#{opts.string_id}')")
-        where = {"string_id = $::CHAR(40)" : opts.string_id}
-        @_query
-            query : "SELECT archived FROM syncstrings"
-            where : where
-            cb    : one_result 'archived', (err, blob_uuid) =>
-                if err or not blob_uuid?
-                    opts.cb?(err)
-                    return
-                blob = undefined
-                async.series([
-                    #(cb) =>
-                        # For testing only!
-                    #    setTimeout(cb, 7000)
-                    (cb) =>
-                        dbg("download blob")
-                        @get_blob
-                            uuid : blob_uuid
-                            cb   : (err, x) =>
-                                if err
-                                    cb(err)
-                                else if not x?
-                                    cb("blob is gone")
-                                else
-                                    blob = x
-                                    cb(err)
-                    (cb) =>
-                        dbg("extract blob")
-                        try
-                            patches = JSON.parse(blob)
-                        catch e
-                            cb("corrupt patches blob -- #{e}")
-                            return
-                        @import_patches
-                            patches : patches
-                            cb      : cb
-                    (cb) =>
-                        async.parallel([
-                            (cb) =>
-                                dbg("update syncstring to indicate that patches are now available")
-                                @_query
-                                    query : "UPDATE syncstrings SET archived=NULL"
-                                    where : where
-                                    cb    : cb
-                            (cb) =>
-                                dbg('delete blob, which is no longer needed')
-                                @delete_blob
-                                    uuid : blob_uuid
-                                    cb   : cb
-                        ], cb)
-                ], (err) => opts.cb?(err))
+    unarchivePatches: (string_id) =>
+        await blobs.unarchivePatches({db:@, string_id:string_id})
 
     ###
     Export/import of syncstring history and info.  Right now used mainly for debugging
