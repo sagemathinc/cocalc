@@ -13,6 +13,7 @@ overrides:
   '@langchain/core': ^0.3.17
   langchain: ^0.2.19
   katex@<0.16.9: ^0.16.10
+  nanoid@<3.3.8: ^3.3.8
 
 importers:
 
@@ -824,8 +825,8 @@ importers:
         specifier: 2.1.2
         version: 2.1.2
       next:
-        specifier: 14.2.15
-        version: 14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
+        specifier: 14.2.22
+        version: 14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -1093,8 +1094,8 @@ importers:
         specifier: 2.1.2
         version: 2.1.2
       next:
-        specifier: 14.2.15
-        version: 14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
+        specifier: 14.2.22
+        version: 14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
       next-remove-imports:
         specifier: ^1.0.11
         version: 1.0.12(webpack@5.96.1)
@@ -1103,7 +1104,7 @@ importers:
         version: 6.0.0-beta.4(zod@3.23.8)
       next-translate:
         specifier: ^2.6.2
-        version: 2.6.2(next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0))(react@18.3.1)
+        version: 2.6.2(next@14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0))(react@18.3.1)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1372,7 +1373,7 @@ importers:
         version: 0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.11
-        version: 0.3.11(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.1.3)(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.0)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)
+        version: 0.3.11(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.1.3)(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.0)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.3.17
         version: 0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -1511,6 +1512,9 @@ importers:
       ms:
         specifier: 2.1.2
         version: 2.1.2
+      nanoid:
+        specifier: ^3.3.8
+        version: 3.3.8
       node-zendesk:
         specifier: ^5.0.13
         version: 5.0.13(encoding@0.1.13)
@@ -3510,59 +3514,59 @@ packages:
       '@nestjs/websockets':
         optional: true
 
-  '@next/env@14.2.15':
-    resolution: {integrity: sha512-S1qaj25Wru2dUpcIZMjxeMVSwkt8BK4dmWHHiBuRstcIyOsMapqT4A4jSB6onvqeygkSSmOkyny9VVx8JIGamQ==}
+  '@next/env@14.2.22':
+    resolution: {integrity: sha512-EQ6y1QeNQglNmNIXvwP/Bb+lf7n9WtgcWvtoFsHquVLCJUuxRs+6SfZ5EK0/EqkkLex4RrDySvKgKNN7PXip7Q==}
 
-  '@next/swc-darwin-arm64@14.2.15':
-    resolution: {integrity: sha512-Rvh7KU9hOUBnZ9TJ28n2Oa7dD9cvDBKua9IKx7cfQQ0GoYUwg9ig31O2oMwH3wm+pE3IkAQ67ZobPfEgurPZIA==}
+  '@next/swc-darwin-arm64@14.2.22':
+    resolution: {integrity: sha512-HUaLiehovgnqY4TMBZJ3pDaOsTE1spIXeR10pWgdQVPYqDGQmHJBj3h3V6yC0uuo/RoY2GC0YBFRkOX3dI9WVQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@14.2.15':
-    resolution: {integrity: sha512-5TGyjFcf8ampZP3e+FyCax5zFVHi+Oe7sZyaKOngsqyaNEpOgkKB3sqmymkZfowy3ufGA/tUgDPPxpQx931lHg==}
+  '@next/swc-darwin-x64@14.2.22':
+    resolution: {integrity: sha512-ApVDANousaAGrosWvxoGdLT0uvLBUC+srqOcpXuyfglA40cP2LBFaGmBjhgpxYk5z4xmunzqQvcIgXawTzo2uQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-linux-arm64-gnu@14.2.15':
-    resolution: {integrity: sha512-3Bwv4oc08ONiQ3FiOLKT72Q+ndEMyLNsc/D3qnLMbtUYTQAmkx9E/JRu0DBpHxNddBmNT5hxz1mYBphJ3mfrrw==}
+  '@next/swc-linux-arm64-gnu@14.2.22':
+    resolution: {integrity: sha512-3O2J99Bk9aM+d4CGn9eEayJXHuH9QLx0BctvWyuUGtJ3/mH6lkfAPRI4FidmHMBQBB4UcvLMfNf8vF0NZT7iKw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@14.2.15':
-    resolution: {integrity: sha512-k5xf/tg1FBv/M4CMd8S+JL3uV9BnnRmoe7F+GWC3DxkTCD9aewFRH1s5rJ1zkzDa+Do4zyN8qD0N8c84Hu96FQ==}
+  '@next/swc-linux-arm64-musl@14.2.22':
+    resolution: {integrity: sha512-H/hqfRz75yy60y5Eg7DxYfbmHMjv60Dsa6IWHzpJSz4MRkZNy5eDnEW9wyts9bkxwbOVZNPHeb3NkqanP+nGPg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@14.2.15':
-    resolution: {integrity: sha512-kE6q38hbrRbKEkkVn62reLXhThLRh6/TvgSP56GkFNhU22TbIrQDEMrO7j0IcQHcew2wfykq8lZyHFabz0oBrA==}
+  '@next/swc-linux-x64-gnu@14.2.22':
+    resolution: {integrity: sha512-LckLwlCLcGR1hlI5eiJymR8zSHPsuruuwaZ3H2uudr25+Dpzo6cRFjp/3OR5UYJt8LSwlXv9mmY4oI2QynwpqQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@14.2.15':
-    resolution: {integrity: sha512-PZ5YE9ouy/IdO7QVJeIcyLn/Rc4ml9M2G4y3kCM9MNf1YKvFY4heg3pVa/jQbMro+tP6yc4G2o9LjAz1zxD7tQ==}
+  '@next/swc-linux-x64-musl@14.2.22':
+    resolution: {integrity: sha512-qGUutzmh0PoFU0fCSu0XYpOfT7ydBZgDfcETIeft46abPqP+dmePhwRGLhFKwZWxNWQCPprH26TjaTxM0Nv8mw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-win32-arm64-msvc@14.2.15':
-    resolution: {integrity: sha512-2raR16703kBvYEQD9HNLyb0/394yfqzmIeyp2nDzcPV4yPjqNUG3ohX6jX00WryXz6s1FXpVhsCo3i+g4RUX+g==}
+  '@next/swc-win32-arm64-msvc@14.2.22':
+    resolution: {integrity: sha512-K6MwucMWmIvMb9GlvT0haYsfIPxfQD8yXqxwFy4uLFMeXIb2TcVYQimxkaFZv86I7sn1NOZnpOaVk5eaxThGIw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-ia32-msvc@14.2.15':
-    resolution: {integrity: sha512-fyTE8cklgkyR1p03kJa5zXEaZ9El+kDNM5A+66+8evQS5e/6v0Gk28LqA0Jet8gKSOyP+OTm/tJHzMlGdQerdQ==}
+  '@next/swc-win32-ia32-msvc@14.2.22':
+    resolution: {integrity: sha512-5IhDDTPEbzPR31ZzqHe90LnNe7BlJUZvC4sA1thPJV6oN5WmtWjZ0bOYfNsyZx00FJt7gggNs6SrsX0UEIcIpA==}
     engines: {node: '>= 10'}
     cpu: [ia32]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@14.2.15':
-    resolution: {integrity: sha512-SzqGbsLsP9OwKNUG9nekShTwhj6JSB9ZLMWQ8g1gG6hdE5gQLncbnbymrwy2yVmH9nikSLYRYxYMFu78Ggp7/g==}
+  '@next/swc-win32-x64-msvc@14.2.22':
+    resolution: {integrity: sha512-nvRaB1PyG4scn9/qNzlkwEwLzuoPH3Gjp7Q/pLuwUgOTt1oPMlnCI3A3rgkt+eZnU71emOiEv/mR201HoURPGg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -8868,13 +8872,8 @@ packages:
   nan@2.20.0:
     resolution: {integrity: sha512-bk3gXBZDGILuuo/6sKtr0DQmSThYHLtNCdSdXk9YkxD/jK6X2vmCyyXBBxyqZ4XcnzTyYEAThfX3DCEnLf6igw==}
 
-  nanoid@3.3.6:
-    resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@3.3.7:
-    resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
+  nanoid@3.3.8:
+    resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -8929,8 +8928,8 @@ packages:
       next: '>= 13.2.5'
       react: '>= 18.0.0'
 
-  next@14.2.15:
-    resolution: {integrity: sha512-h9ctmOokpoDphRvMGnwOJAedT6zKhwqyZML9mDtspgf4Rh3Pn7UTYKqePNoDvhsWBAO5GoPNYshnAUGIazVGmw==}
+  next@14.2.22:
+    resolution: {integrity: sha512-Ps2caobQ9hlEhscLPiPm3J3SYhfwfpMqzsoCMZGWxt9jBRK9hoBZj2A37i8joKhsyth2EuVKDVJCTF5/H4iEDw==}
     engines: {node: '>=18.17.0'}
     hasBin: true
     peerDependencies:
@@ -12897,7 +12896,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.6
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -13560,7 +13559,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.3.11(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.1.3)(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.0)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)':
+  '@langchain/community@0.3.11(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.1.3)(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.0)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)':
     dependencies:
       '@ibm-cloud/watsonx-ai': 1.1.3
       '@langchain/core': 0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -13570,7 +13569,7 @@ snapshots:
       flat: 5.0.2
       ibm-cloud-sdk-core: 5.1.0
       js-yaml: 4.1.0
-      langchain: 0.2.20(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(axios@1.7.7)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.20(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.2.3(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13579,6 +13578,9 @@ snapshots:
       '@google-ai/generativelanguage': 2.7.0(encoding@0.1.13)
       '@google-cloud/storage': 7.13.0(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.12.0(typescript@5.6.3)
+      better-sqlite3: 8.7.0
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
       ignore: 5.3.1
@@ -13894,33 +13896,33 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@next/env@14.2.15': {}
+  '@next/env@14.2.22': {}
 
-  '@next/swc-darwin-arm64@14.2.15':
+  '@next/swc-darwin-arm64@14.2.22':
     optional: true
 
-  '@next/swc-darwin-x64@14.2.15':
+  '@next/swc-darwin-x64@14.2.22':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@14.2.15':
+  '@next/swc-linux-arm64-gnu@14.2.22':
     optional: true
 
-  '@next/swc-linux-arm64-musl@14.2.15':
+  '@next/swc-linux-arm64-musl@14.2.22':
     optional: true
 
-  '@next/swc-linux-x64-gnu@14.2.15':
+  '@next/swc-linux-x64-gnu@14.2.22':
     optional: true
 
-  '@next/swc-linux-x64-musl@14.2.15':
+  '@next/swc-linux-x64-musl@14.2.22':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@14.2.15':
+  '@next/swc-win32-arm64-msvc@14.2.22':
     optional: true
 
-  '@next/swc-win32-ia32-msvc@14.2.15':
+  '@next/swc-win32-ia32-msvc@14.2.22':
     optional: true
 
-  '@next/swc-win32-x64-msvc@14.2.15':
+  '@next/swc-win32-x64-msvc@14.2.22':
     optional: true
 
   '@node-saml/node-saml@4.0.5':
@@ -13931,7 +13933,7 @@ snapshots:
       '@types/xml-encryption': 1.2.4
       '@types/xml2js': 0.4.14
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -15228,13 +15230,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -15543,7 +15545,7 @@ snapshots:
 
   axios@1.7.7:
     dependencies:
-      follow-redirects: 1.15.6
+      follow-redirects: 1.15.6(debug@4.3.7)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -16768,10 +16770,6 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
-  debug@4.3.7:
-    dependencies:
-      ms: 2.1.3
-
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
       ms: 2.1.3
@@ -17726,15 +17724,13 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  follow-redirects@1.15.6: {}
-
   follow-redirects@1.15.6(debug@4.3.7):
     optionalDependencies:
       debug: 4.3.7(supports-color@8.1.1)
 
   follow-redirects@1.15.9(debug@4.3.7):
     optionalDependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
 
   font-atlas@2.1.0:
     dependencies:
@@ -18480,7 +18476,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18507,14 +18503,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18544,7 +18540,7 @@ snapshots:
       '@types/tough-cookie': 4.0.5
       axios: 1.7.4(debug@4.3.7)
       camelcase: 6.3.0
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
       dotenv: 16.4.5
       extend: 3.0.2
       file-type: 16.5.4
@@ -19631,7 +19627,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.20(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(axios@1.7.7)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.20(@langchain/anthropic@0.3.3(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/google-genai@0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.2.11(encoding@0.1.13)
@@ -19652,6 +19648,8 @@ snapshots:
       '@langchain/google-genai': 0.1.0(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8)
       '@langchain/mistralai': 0.1.1(@langchain/core@0.3.17(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       axios: 1.7.7
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
       ignore: 5.3.1
@@ -20269,9 +20267,7 @@ snapshots:
 
   nan@2.20.0: {}
 
-  nanoid@3.3.6: {}
-
-  nanoid@3.3.7: {}
+  nanoid@3.3.8: {}
 
   napi-build-utils@1.0.2: {}
 
@@ -20325,14 +20321,14 @@ snapshots:
 
   next-tick@1.1.0: {}
 
-  next-translate@2.6.2(next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0))(react@18.3.1):
+  next-translate@2.6.2(next@14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0))(react@18.3.1):
     dependencies:
-      next: 14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
+      next: 14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0)
       react: 18.3.1
 
-  next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0):
+  next@14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0):
     dependencies:
-      '@next/env': 14.2.15
+      '@next/env': 14.2.22
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
       caniuse-lite: 1.0.30001680
@@ -20342,42 +20338,15 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.1(@babel/core@7.25.2)(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 14.2.15
-      '@next/swc-darwin-x64': 14.2.15
-      '@next/swc-linux-arm64-gnu': 14.2.15
-      '@next/swc-linux-arm64-musl': 14.2.15
-      '@next/swc-linux-x64-gnu': 14.2.15
-      '@next/swc-linux-x64-musl': 14.2.15
-      '@next/swc-win32-arm64-msvc': 14.2.15
-      '@next/swc-win32-ia32-msvc': 14.2.15
-      '@next/swc-win32-x64-msvc': 14.2.15
-      '@opentelemetry/api': 1.9.0
-      sass: 1.81.0
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
-
-  next@14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.81.0):
-    dependencies:
-      '@next/env': 14.2.15
-      '@swc/helpers': 0.5.5
-      busboy: 1.6.0
-      caniuse-lite: 1.0.30001680
-      graceful-fs: 4.2.11
-      postcss: 8.4.31
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      styled-jsx: 5.1.1(@babel/core@7.25.8)(react@18.3.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 14.2.15
-      '@next/swc-darwin-x64': 14.2.15
-      '@next/swc-linux-arm64-gnu': 14.2.15
-      '@next/swc-linux-arm64-musl': 14.2.15
-      '@next/swc-linux-x64-gnu': 14.2.15
-      '@next/swc-linux-x64-musl': 14.2.15
-      '@next/swc-win32-arm64-msvc': 14.2.15
-      '@next/swc-win32-ia32-msvc': 14.2.15
-      '@next/swc-win32-x64-msvc': 14.2.15
+      '@next/swc-darwin-arm64': 14.2.22
+      '@next/swc-darwin-x64': 14.2.22
+      '@next/swc-linux-arm64-gnu': 14.2.22
+      '@next/swc-linux-arm64-musl': 14.2.22
+      '@next/swc-linux-x64-gnu': 14.2.22
+      '@next/swc-linux-x64-musl': 14.2.22
+      '@next/swc-win32-arm64-msvc': 14.2.22
+      '@next/swc-win32-ia32-msvc': 14.2.22
+      '@next/swc-win32-x64-msvc': 14.2.22
       '@opentelemetry/api': 1.9.0
       sass: 1.81.0
     transitivePeerDependencies:
@@ -21253,13 +21222,13 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.7
+      nanoid: 3.3.8
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
   postcss@8.4.41:
     dependencies:
-      nanoid: 3.3.7
+      nanoid: 3.3.8
       picocolors: 1.0.1
       source-map-js: 1.2.0
 
@@ -21349,7 +21318,7 @@ snapshots:
       eventemitter3: 5.0.1
       forwarded-for: 1.1.0
       fusing: 1.0.0
-      nanoid: 3.3.6
+      nanoid: 3.3.8
       setheader: 1.0.2
       ultron: 1.1.1
 
@@ -22958,13 +22927,6 @@ snapshots:
       react: 18.3.1
     optionalDependencies:
       '@babel/core': 7.25.2
-
-  styled-jsx@5.1.1(@babel/core@7.25.8)(react@18.3.1):
-    dependencies:
-      client-only: 0.0.1
-      react: 18.3.1
-    optionalDependencies:
-      '@babel/core': 7.25.8
 
   stylis@4.3.4: {}
 

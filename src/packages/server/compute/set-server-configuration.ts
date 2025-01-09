@@ -24,11 +24,15 @@ import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
 import { setConfiguration } from "./util";
+import {
+  validatedHealthCheck,
+  validatedSpendLimit,
+} from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
   account_id,
   id,
-  configuration, // really the partial of changes
+  configuration, // the partial of configuration changes
 }: {
   account_id: string;
   id: number;
@@ -57,6 +61,21 @@ export default async function setServerConfiguration({
         `Subdomain '${configuration.dns}' is not available.    Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
       );
     }
+  }
+  if (configuration.spendLimit != null) {
+    // ensure the spendLimit is formatted in a valid way
+    configuration = {
+      ...configuration,
+      spendLimit: validatedSpendLimit(configuration.spendLimit),
+    };
+  }
+
+  if (configuration.healthCheck != null) {
+    // ensure the healthCheck is formatted in a valid way
+    configuration = {
+      ...configuration,
+      healthCheck: validatedHealthCheck(configuration.healthCheck),
+    };
   }
 
   await validateConfigurationChange({

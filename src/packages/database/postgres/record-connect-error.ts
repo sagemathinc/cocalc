@@ -22,7 +22,8 @@ const L = getLogger("db:record-connect-error");
 // a "connect" event will reset this to null
 let lastDisconnected: number | null = null;
 
-function recordDisconnected() {
+// ATTN: do not move/rename this function, since it is referenced in postgres-base.coffee
+export function recordDisconnected() {
   L.debug("disconnected");
   const now = Date.now();
   try {
@@ -35,7 +36,8 @@ function recordDisconnected() {
   }
 }
 
-function recordConnected() {
+// ATTN: do not move/rename this function, since it is referenced in postgres-base.coffee
+export function recordConnected() {
   L.debug("connected");
   try {
     getStatusGauge().labels("connected").set(Date.now());
@@ -45,9 +47,12 @@ function recordConnected() {
   lastDisconnected = null;
 }
 
-export function setupRecordConnectErrors(db: PostgreSQL) {
-  db.on("connect", () => recordConnected());
-  db.on("disconnect", () => recordDisconnected());
+export function setupRecordConnectErrors(_db: PostgreSQL) {
+  // These event listeners are not robust. Somehow, a "removeAllListeners" or similar must trimp them up
+  // The problem arises when the database connection is dropped, reconnected, and dropped again:
+  // After the 2nd connection drop, the "disconnect" event is attempted to emit, but never appears here.
+  //db.on("connect", () => recordConnected());
+  //db.on("disconnect", () => recordDisconnected());
 }
 
 export function howLongDisconnectedMins(): number | undefined {

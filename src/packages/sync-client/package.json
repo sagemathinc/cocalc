@@ -33,9 +33,9 @@
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/primus": "^7.3.9",
     "cookie": "^1.0.0",
     "debug": "^4.3.2",
-    "@types/primus": "^7.3.9",
     "primus": "^8.0.9",
     "ws": "^8.18.0"
   },

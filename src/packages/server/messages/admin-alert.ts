@@ -21,6 +21,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import send from "./send";
 import getAdmins from "@cocalc/server/accounts/admins";
 import { getLogger } from "@cocalc/backend/logger";
+import { db } from "@cocalc/database";
 
 const logger = getLogger("server:messages:admin");
 
@@ -55,7 +56,7 @@ export default async function adminAlert({
   body = "",
   errorOnFail,
   stackTrace,
-  dedupMinutes = 60*4,
+  dedupMinutes = 60 * 4,
 }: {
   subject: string;
   body?: any;
@@ -90,4 +91,9 @@ export default async function adminAlert({
       logger.debug(`failed due to database error -- ignoring -- ${err}`);
     }
   }
+}
+
+export function enableDbAdminAlerts() {
+  // Set adminAlerts on the db singleton (which is implemented in coffeescript).
+  db().adminAlert = adminAlert;
 }

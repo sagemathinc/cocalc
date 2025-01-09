@@ -18,6 +18,9 @@ export const SUPPORTED_CHANGES = [
   "allowCollaboratorControl",
   "authToken",
   "proxy",
+  "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
 ];
 
 export const RUNNING_CHANGES = [
@@ -26,6 +29,9 @@ export const RUNNING_CHANGES = [
   "allowCollaboratorControl",
   "authToken",
   "proxy",
+  "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
 ];
 
 export async function makeConfigurationChange({

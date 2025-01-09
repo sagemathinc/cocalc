@@ -14,7 +14,7 @@ export interface Client extends EventEmitter {
   alert_message?: Function;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
-  touch_project: (project_id: string) => void;
+  touch_project: (project_id: string, compute_server_id?: number) => void;
   set_connected?: Function;
   is_deleted: (path: string, project_id: string) => true | false | undefined;
 }

@@ -30,6 +30,7 @@ required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')
 {delete_patches} = require('./postgres/delete-patches')
+blobs = require('./postgres/blobs')
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
@@ -763,61 +764,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 delete_patches(db:@, string_id: opts.string_id, cb:cb)
         ], (err) => opts.cb?(err))
 
-    unarchive_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : undefined
-        dbg = @_dbg("unarchive_patches(string_id='#{opts.string_id}')")
-        where = {"string_id = $::CHAR(40)" : opts.string_id}
-        @_query
-            query : "SELECT archived FROM syncstrings"
-            where : where
-            cb    : one_result 'archived', (err, blob_uuid) =>
-                if err or not blob_uuid?
-                    opts.cb?(err)
-                    return
-                blob = undefined
-                async.series([
-                    #(cb) =>
-                        # For testing only!
-                    #    setTimeout(cb, 7000)
-                    (cb) =>
-                        dbg("download blob")
-                        @get_blob
-                            uuid : blob_uuid
-                            cb   : (err, x) =>
-                                if err
-                                    cb(err)
-                                else if not x?
-                                    cb("blob is gone")
-                                else
-                                    blob = x
-                                    cb(err)
-                    (cb) =>
-                        dbg("extract blob")
-                        try
-                            patches = JSON.parse(blob)
-                        catch e
-                            cb("corrupt patches blob -- #{e}")
-                            return
-                        @import_patches
-                            patches : patches
-                            cb      : cb
-                    (cb) =>
-                        async.parallel([
-                            (cb) =>
-                                dbg("update syncstring to indicate that patches are now available")
-                                @_query
-                                    query : "UPDATE syncstrings SET archived=NULL"
-                                    where : where
-                                    cb    : cb
-                            (cb) =>
-                                dbg('delete blob, which is no longer needed')
-                                @delete_blob
-                                    uuid : blob_uuid
-                                    cb   : cb
-                        ], cb)
-                ], (err) => opts.cb?(err))
+    unarchivePatches: (string_id) =>
+        await blobs.unarchivePatches({db:@, string_id:string_id})
 
     ###
     Export/import of syncstring history and info.  Right now used mainly for debugging

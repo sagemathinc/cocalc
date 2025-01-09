@@ -1,4 +1,5 @@
 import { db } from "@cocalc/database";
+import { enableDbAdminAlerts } from "@cocalc/server/messages/admin-alert";
 
 // IMPORTANT: For typescript we make the default export have type PostgreSQL.
 // In reality the default could be undefined until init gets called.
@@ -11,4 +12,6 @@ export default function init(opts) {
     throw Error("only call database init once");
   }
   database = db(opts);
+
+  enableDbAdminAlerts();
 }

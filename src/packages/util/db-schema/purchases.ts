@@ -257,7 +257,7 @@ Table({
     },
     pending: {
       type: "boolean",
-      desc: "If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
+      desc: "**DEPRECATED** -- not used anywhere; do NOT use!  If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
     },
     cost_per_hour: {
       title: "Cost Per Hour",

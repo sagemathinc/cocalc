@@ -131,9 +131,6 @@ export function StudentsPanel({
       students_ordered.sort(
         util.pick_student_sorter(active_student_sort.toJS()),
       );
-      if (active_student_sort.get("is_descending")) {
-        students_ordered.reverse();
-      }
     }
 
     // Deleted and non-deleted students

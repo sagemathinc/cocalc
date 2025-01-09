@@ -225,7 +225,8 @@ export async function processSubscriptionRenewal({
   if (subscriptions.length == 0) {
     throw Error(`You do not have a subscription with id ${subscription_id}.`);
   }
-  const { payment, cost, metadata, interval } = subscriptions[0];
+  const { cost, metadata, interval } = subscriptions[0];
+  let { payment } = subscriptions[0];
   const { license_id } = metadata ?? {};
   logger.debug("processSubscriptionRenewal", {
     payment,
@@ -239,6 +240,21 @@ export async function processSubscriptionRenewal({
     throw Error(
       `subscription costs a lot more than payment -- contact support.`,
     );
+  }
+
+  if (payment == null || (payment?.new_expires_ms ?? 0) < Date.now()) {
+    // I've read through all the code and this "is" impossible, given
+    // postgresql semantics, etc.  I also can't reproduce it by putting
+    // in delays.   However, payment==null *did* happen in production
+    // once, so we just do it manually in this case :-(
+    // We also ensure new_expires_ms is in the future so the extension of
+    // end period of license happens for sure.
+    // this code is same as resumeSubscriptionSetPaymentIntent below:
+    const new_expires_ms = addInterval(
+      new Date(),
+      subscriptions[0].interval,
+    ).valueOf();
+    payment = { new_expires_ms };
   }
 
   const end = new Date(payment.new_expires_ms);

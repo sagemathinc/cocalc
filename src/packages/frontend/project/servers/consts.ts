@@ -15,6 +15,6 @@ export const ICON_UPGRADES = "gears";
 export const ROOT_STYLE: CSS = {
   paddingLeft: "20px",
   paddingRight: "20px",
-  maxWidth: "100%",
-  margin: "0 auto",
+  maxWidth: "1100px",
+  margin: "10px auto 0 auto",
 } as const;

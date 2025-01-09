@@ -202,7 +202,7 @@ customer.  So we don't know what to do with this.  Please manually investigate.
             paymentIntent,
           });
         } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
-          result = `we did NOT sume subscription (id=${paymentIntent.metadata.subscription_id})`;
+          result = `we did NOT resume subscription (id=${paymentIntent.metadata.subscription_id})`;
           await processResumeSubscriptionFailure({
             paymentIntent,
           });
