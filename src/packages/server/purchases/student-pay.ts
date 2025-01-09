@@ -56,7 +56,7 @@ export default async function studentPay({
   project_id,
   amount,
   credit_id,
-}: Options): Promise<{ purchase_id: number }> {
+}: Options): Promise<{ purchase_id?: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
   try {
@@ -76,7 +76,7 @@ export default async function studentPay({
       throw Error("course fee not configured for this project");
     }
     if (currentCourse.paid) {
-      throw Error("course fee already paid");
+      return { purchase_id: currentCourse.purchase_id };
     }
     const { title, description } = rows[0];
     const purchaseInfo = {
@@ -141,6 +141,7 @@ export default async function studentPay({
 
     // Change purchaseInfo to indicate that purchase is done
     currentCourse.paid = new Date().toISOString();
+    currentCourse.purchase_id = purchase_id;
     await setCourseInfo({
       project_id,
       account_id,

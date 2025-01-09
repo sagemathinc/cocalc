@@ -650,6 +650,7 @@ export interface CourseInfo {
   path: string; // path to the .course file in project_id
   pay?: string; // iso timestamp or ""
   paid?: string; // iso timestamp with *when* they paid.
+  purchase_id?: number; // id of purchase record in purchases table.
   payInfo?: PurchaseInfo;
   email_address?: string;
   datastore: Datastore;
