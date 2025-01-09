@@ -43,7 +43,7 @@ export interface CoCalcSocket extends Socket {
   write_mesg: (
     type: Type,
     mesg: Message,
-    cb?: (err?: string | Error) => void
+    cb?: (err?: string | Error) => void,
   ) => void;
   recv_mesg: (opts: RecvMesgOpts) => void;
 }
@@ -51,16 +51,18 @@ export interface CoCalcSocket extends Socket {
 export default function enable(socket: CoCalcSocket, desc: string = "") {
   socket.setMaxListeners(500); // we use a lot of listeners for listening for messages
 
-  let buf: Buffer | null = null;
+  let buf: Uint8Array | null = null;
   let bufTargetLength = -1;
 
-  const listenForMesg = (data: Buffer) => {
-    buf = buf == null ? data : Buffer.concat([buf, data]);
+  const listenForMesg = (data: Uint8Array) => {
+    buf = buf == null ? data : new Uint8Array([...buf, ...data]);
+
     while (true) {
       if (bufTargetLength === -1) {
         // starting to read a new message
         if (buf.length >= 4) {
-          bufTargetLength = buf.readUInt32BE(0) + 4;
+          bufTargetLength =
+            new DataView(buf.buffer, buf.byteOffset, 4).getUint32(0) + 4;
         } else {
           return; // have to wait for more data to find out message length
         }
@@ -80,8 +82,8 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
               winston.debug(
                 `WARNING: failed to parse JSON message='${trunc(
                   s,
-                  512
-                )}' on socket ${desc} - ${err}`
+                  512,
+                )}' on socket ${desc} - ${err}`,
               );
               // skip it.
               return;
@@ -117,7 +119,7 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
   socket.write_mesg = (
     type: Type,
     data: Message,
-    cb?: (err?: string | Error) => void
+    cb?: (err?: string | Error) => void,
   ): void => {
     if (data == null) {
       // uncomment this to get a traceback to see what might be causing this...
@@ -125,28 +127,24 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
       cb?.(`write_mesg(type='${type}': data must be defined`);
       return;
     }
-    const send = function (s: string | Buffer): void {
-      const buf = Buffer.alloc(4);
+
+    const send = function (s: string | ArrayBuffer): void {
       // This line was 4 hours of work.  It is absolutely
       // *critical* to change the (possibly a string) s into a
       // buffer before computing its length and sending it!!
       // Otherwise unicode characters will cause trouble.
-      if (typeof s === "string") {
-        s = Buffer.from(s);
-      }
-      buf.writeInt32BE(s.length, 0);
-      if (!socket.writable) {
-        cb?.("socket not writable");
-        return;
-      } else {
-        socket.write(buf);
-      }
+      const lengthBuffer = Buffer.alloc(4);
+      const dataBuffer: Buffer =
+        typeof s === "string" ? Buffer.from(s) : Buffer.from(s);
+
+      lengthBuffer.writeInt32BE(dataBuffer.length, 0);
 
       if (!socket.writable) {
         cb?.("socket not writable");
         return;
       } else {
-        socket.write(s, cb);
+        socket.write(new Uint8Array(lengthBuffer));
+        socket.write(new Uint8Array(dataBuffer), cb);
       }
     };
 
@@ -164,11 +162,13 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
           return;
         }
         send(
-          Buffer.concat([
-            Buffer.from("b"),
-            Buffer.from(data.uuid),
-            Buffer.from(data.blob),
-          ])
+          new Uint8Array([
+            ...Buffer.from("b"),
+            ...Buffer.from(data.uuid),
+            ...(Buffer.isBuffer(data.blob)
+              ? data.blob
+              : Buffer.from(data.blob)),
+          ]).buffer,
         );
         return;
       default:
