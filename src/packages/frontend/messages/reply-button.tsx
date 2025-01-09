@@ -51,7 +51,7 @@ export default function ReplyButton({
 
   return (
     <Tooltip
-      title={`Draft a reply to the sender ${replyAll ? "everybody in this thread" : ""}`}
+      title={`Draft a reply to ${replyAll ? "everybody in this thread" : "the sender"}`}
     >
       <Button {...props} onClick={() => createReply()} disabled={creating}>
         <Icon name="reply" style={{ color: "darkgreen" }} />
