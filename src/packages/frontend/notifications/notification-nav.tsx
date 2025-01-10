@@ -6,16 +6,18 @@
 import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge, Menu } from "antd";
 import React, { useMemo } from "react";
-import { defineMessage, defineMessages, useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
+
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, MenuItems, Text } from "@cocalc/frontend/components";
+import { IntlMessage, labels } from "@cocalc/frontend/i18n";
+import { ComposeButton } from "@cocalc/frontend/messages/compose";
+import MessagesCounter from "@cocalc/frontend/messages/counter";
 import { COLORS } from "@cocalc/util/theme";
 import { Channel, CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
-import { IntlMessage } from "../i18n";
 import { NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
-import MessagesCounter from "@cocalc/frontend/messages/counter";
-import { ComposeButton } from "@cocalc/frontend/messages/compose";
+import { MSGS } from "./notification-i18n";
 
 export const NewsCounter = () => {
   const news_unread = useTypedRedux("news", "unread");
@@ -43,40 +45,6 @@ const MentionsCounter = () => {
     />
   );
 };
-
-const MSGS = defineMessages({
-  mentions: {
-    id: "notifications.nav.mentions",
-    defaultMessage: "Mentions",
-  },
-  unread: {
-    id: "notifications.nav.unread",
-    defaultMessage: "Unread",
-    description: "Label for unread messages",
-  },
-  read: {
-    id: "notifications.nav.read",
-    defaultMessage: "Read",
-    description: "Label for messages that have been read",
-  },
-  saved: {
-    id: "notifications.nav.saved",
-    defaultMessage: "Saved for Later",
-    description: "Label for messages saved for later",
-  },
-  all: {
-    id: "notifications.nav.all",
-    defaultMessage: "All Mentions",
-  },
-  news: {
-    id: "notifications.nav.news",
-    defaultMessage: "News",
-  },
-  allNews: {
-    id: "notifications.nav.allNews",
-    defaultMessage: "All News",
-  },
-});
 
 const CHANNELS_NAMES: { [name in Channel]: IntlMessage } = {
   announcement: defineMessage({
@@ -115,7 +83,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           }}
         >
           <Text strong style={{ fontSize: "125%", marginLeft: "12px" }}>
-            Messages <MessagesCounter />
+            {intl.formatMessage(labels.messages)} <MessagesCounter />
           </Text>
           <ComposeButton
             size="large"
@@ -129,7 +97,8 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           label: (
             <div style={{ display: "flex", width: "100%" }}>
               <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-                <Icon name="container" /> Inbox
+                <Icon name="container" />{" "}
+                {intl.formatMessage(labels.messages_inbox)}
               </span>
               <div style={{ flex: 1 }} />
               <MessagesCounter minimal />
@@ -140,7 +109,8 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-sent",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name={"paper-plane"} /> Sent
+              <Icon name={"paper-plane"} />{" "}
+              {intl.formatMessage(labels.messages_sent)}
             </span>
           ),
         },
@@ -148,7 +118,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-drafts",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="note" /> Drafts
+              <Icon name="note" /> {intl.formatMessage(labels.drafts)}
             </span>
           ),
         },
@@ -156,7 +126,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-starred",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="star" /> Starred
+              <Icon name="star" /> {intl.formatMessage(labels.starred)}
             </span>
           ),
         },
@@ -164,7 +134,8 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-all",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="mail" /> All Messages
+              <Icon name="mail" />{" "}
+              {intl.formatMessage(labels.messages_all_messages)}
             </span>
           ),
         },
@@ -172,7 +143,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-search",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="search" /> Search
+              <Icon name="search" /> {intl.formatMessage(labels.search)}
             </span>
           ),
         },
@@ -180,7 +151,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-trash",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="trash" /> Trash
+              <Icon name="trash" /> {intl.formatMessage(labels.trash)}
             </span>
           ),
         },

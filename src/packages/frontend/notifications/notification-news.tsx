@@ -6,6 +6,7 @@
 import { Button, Card, List, Space, Tag } from "antd";
 import React, { useMemo, useRef } from "react";
 import { delay } from "awaiting";
+import { useIntl } from "react-intl";
 
 import {
   useActions,
@@ -25,6 +26,7 @@ import { cmp_Date, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS, NewsItemWebapp } from "@cocalc/util/types/news";
 import { NewsFilter, NewsMap, isNewsFilter } from "./news/types";
+import { MSGS } from "./notification-i18n";
 
 interface NewsPanelProps {
   news: NewsMap;
@@ -33,6 +35,7 @@ interface NewsPanelProps {
 
 export function NewsPanel(props: NewsPanelProps) {
   const { news, filter } = props;
+  const intl = useIntl();
   const news_actions = useActions("news");
   const account_other = useTypedRedux("account", "other_settings");
   const news_read_until: number | undefined =
@@ -109,14 +112,18 @@ export function NewsPanel(props: NewsPanelProps) {
   }
 
   function renderNewsPanelExtra(): JSX.Element {
+    const read_all = intl.formatMessage(MSGS.read_all);
+
+    const mark_all = intl.formatMessage(MSGS.mark_all, { anyUnread });
+
     return (
       <Space direction="horizontal">
         <Button href={`${BASE_URL}/news`} target="_blank">
-          <Icon name="file-alt" /> Read All
+          <Icon name="file-alt" /> {read_all}
         </Button>
         {anyUnread ? (
           <Button onClick={() => news_actions.markNewsRead()} type="primary">
-            <Icon name="check-square" /> Mark all Read
+            <Icon name="check-square" /> {mark_all}
           </Button>
         ) : (
           <Button
@@ -125,7 +132,7 @@ export function NewsPanel(props: NewsPanelProps) {
               news_actions.markNewsUnread();
             }}
           >
-            <Icon name="square" /> Mark all Unread
+            <Icon name="square" /> {mark_all}
           </Button>
         )}
       </Space>
@@ -169,7 +176,7 @@ export function NewsPanel(props: NewsPanelProps) {
 
   return (
     <Card
-      title={<Title level={4}>News</Title>}
+      title={<Title level={4}>{intl.formatMessage(MSGS.news)}</Title>}
       extra={renderNewsPanelExtra()}
       styles={{
         header: { backgroundColor: COLORS.GRAY_LLL },
