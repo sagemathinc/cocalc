@@ -420,7 +420,7 @@ export default function ComputeServer({
                 project_id={project_id}
               />
             )}
-            <SpendLimitStatus server={server} />
+            {server?.id != null && <SpendLimitStatus server={server} />}
           </div>
         }
         title={
