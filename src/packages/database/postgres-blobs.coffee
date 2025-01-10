@@ -211,8 +211,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb()
                 else if x.gcloud
                     if not COCALC_BLOB_STORE?
-                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-                        return
+                        # see comment https://github.com/sagemathinc/cocalc/pull/8110
+                        COCALC_BLOB_STORE = '/blobs'
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
                     # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
                     # across multiple buckets... as it isn't needed because buckets are infinite, and it
@@ -291,9 +291,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
-            dbg("invalid bucket")
-            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-            return
+            opts.bucket = '/blobs'
         locals =
             x: undefined
         async.series([
