@@ -18,6 +18,7 @@ register({
         deleted: null,
         project_id: null,
         state: null,
+        spend: null,
         state_changed: null,
         error: null,
         cloud: null,

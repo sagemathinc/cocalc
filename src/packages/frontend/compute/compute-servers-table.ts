@@ -60,6 +60,7 @@ class ComputeServersTable extends Table {
           detailed_state: null,
           position: null,
           template: null,
+          spend: null,
         },
       ],
     };

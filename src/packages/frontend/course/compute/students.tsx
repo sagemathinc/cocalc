@@ -1,15 +1,12 @@
 import {
   ACTION_INFO,
   STATE_INFO,
-  spendLimitPeriod,
-  validatedSpendLimit,
 } from "@cocalc/util/db-schema/compute-servers";
 import {
   Alert,
   Button,
   Checkbox,
   Popconfirm,
-  Progress,
   Space,
   Spin,
   Tooltip,
@@ -20,14 +17,12 @@ import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   capitalize,
-  currency,
   get_array_range,
   plural,
 } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
-import { getPurchases } from "@cocalc/frontend/purchases/api";
 import { BigSpin } from "@cocalc/frontend/purchases/stripe-payment";
 import { MAX_PARALLEL_TASKS } from "./util";
 import { TerminalButton, TerminalCommand } from "./terminal-command";
@@ -39,7 +34,10 @@ import type { SyncTable } from "@cocalc/sync/table";
 import { getSyncTable } from "./synctable";
 import { parse_students, pick_student_sorter } from "../util";
 import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
-import { SpendLimitButton } from "@cocalc/frontend/compute/spend-limit";
+import {
+  SpendLimitButton,
+  SpendLimitStatus,
+} from "@cocalc/frontend/compute/spend-limit";
 
 declare var DEBUG: boolean;
 
@@ -417,7 +415,7 @@ function StudentControl({
   if (server?.id) {
     v.push(
       <div key="cost" style={{ width: "75px" }}>
-        <TotalCost server={server} />
+        <SpendLimitStatus server={server} />
       </div>,
     );
   }
@@ -652,79 +650,6 @@ function CommandsOnSelected({
     <>
       <Space wrap>{v}</Space>
     </>
-  );
-}
-
-const LIMIT = 500;
-
-function TotalCost({ server }) {
-  const [total, setTotal] = useState<number | null>(null);
-  const [desc, setDesc] = useState<string>("");
-
-  useEffect(() => {
-    if (server.configuration.spendLimit?.enabled) {
-      const { hours, dollars } = validatedSpendLimit(
-        server.configuration.spendLimit,
-      )!;
-      let desc = "";
-      if (server.spend != null) {
-        desc += `${currency(server.spend)} was spent on this compute server in the last ${spendLimitPeriod(hours)}.  `;
-      }
-      desc += `Spend limit for this server is ${currency(dollars)}/${spendLimitPeriod(hours)}.`;
-      setDesc(desc);
-      setTotal(server.spend ?? 0);
-      return;
-    }
-    // spend limit not enabled, so put total spend over all time:
-    (async () => {
-      const { purchases } = await getPurchases({
-        compute_server_id: server.id,
-        limit: LIMIT,
-        group: true,
-      });
-      let total = 0;
-      for (const { cost, cost_so_far } of purchases) {
-        total += cost ?? cost_so_far ?? 0;
-      }
-      setTotal(total);
-      setDesc(
-        `${currency(total)} was spent on this compute server since it was created.  No spend limit is set.`,
-      );
-    })();
-  }, [server.id, server.configuration.spendLimit, server.spend]);
-
-  if (total == null) {
-    return null;
-  }
-  return (
-    <Tooltip
-      title={() => {
-        return (
-          <div>
-            {desc}
-            <div style={{ textAlign: "center" }}>
-              <SpendLimitButton id={server.id} project_id={server.project_id} />
-            </div>
-          </div>
-        );
-      }}
-    >
-      <span>
-        <span style={{ textWrap: "nowrap" }}>{currency(total)}</span>{" "}
-        {!!server.configuration.spendLimit?.enabled && (
-          <Progress
-            showInfo={false}
-            percent={(total * 100) / server.configuration.spendLimit.dollars}
-            strokeWidth={14}
-            strokeColor={
-              total >= 0.8 * server.configuration.spendLimit.dollars
-                ? "red"
-                : undefined
-            }
-          />
-        )}
-      </span>
-    </Tooltip>
   );
 }
 
