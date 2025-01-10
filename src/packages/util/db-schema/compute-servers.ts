@@ -940,7 +940,7 @@ Table({
     },
     state: {
       type: "string",
-      desc: "One of - 'off', 'starting', 'running', 'stopping'.  This is the underlying VM's state.",
+      desc: "One of - 'off', 'starting', 'running', 'stopping', 'deprovisioned' (etc.).  This is the underlying VM's state.",
       pg_type: "VARCHAR(16)",
     },
     autorestart: {
