@@ -139,7 +139,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
   const [help, setHelp] = useState<boolean>(false);
   return (
     <Modal
-      width={800}
+      width={900}
       open
       onCancel={close}
       onOk={close}
@@ -157,7 +157,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
           />
           <Flex style={{ marginRight: "20px", alignItems: "center" }}>
             <div style={{ fontSize: "18px", margin: "15px 0" }}>
-              Configure Automatic Shutdown Strategies
+              Configure Automatic Shutdown and Health Check Strategies
             </div>
             <div style={{ flex: 1 }} />
             <Switch

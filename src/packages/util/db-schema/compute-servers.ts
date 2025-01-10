@@ -49,6 +49,7 @@ export const IDLE_TIMEOUT_MINUTES_DEFAULT = 30;
 
 export const HEALTH_CHECK_DEFAULTS = {
   command: "pwd",
+  initialDelaySeconds: 10 * 60,
   timeoutSeconds: 30,
   periodSeconds: 60,
   failureThreshold: 3,
@@ -77,6 +78,7 @@ export function validatedHealthCheck(
     enabled,
     action,
     timeoutSeconds,
+    initialDelaySeconds,
   } = healthCheck;
   command = `${command}`;
   periodSeconds = parseFloat(
@@ -97,12 +99,19 @@ export function validatedHealthCheck(
   if (timeoutSeconds < 5 || !isFinite(timeoutSeconds)) {
     timeoutSeconds = HEALTH_CHECK_DEFAULTS.timeoutSeconds;
   }
+  initialDelaySeconds = parseFloat(
+    initialDelaySeconds ?? HEALTH_CHECK_DEFAULTS.initialDelaySeconds,
+  );
+  if (initialDelaySeconds < 0 || !isFinite(initialDelaySeconds)) {
+    initialDelaySeconds = HEALTH_CHECK_DEFAULTS.initialDelaySeconds;
+  }
   enabled = !!enabled;
   if (!HEALTH_CHECK_ACTIONS.includes(action)) {
     action = HEALTH_CHECK_DEFAULTS.action;
   }
   return {
     command,
+    initialDelaySeconds,
     timeoutSeconds,
     periodSeconds,
     failureThreshold,
@@ -119,7 +128,8 @@ export interface HealthCheck {
   command: string;
   // timeout for running the command
   timeoutSeconds: number;
-
+  // initial delay
+  initialDelaySeconds: number;
   // period in seconds to wait between running the command
   periodSeconds: number;
   // When a probe fails, CoCalc will try failureThreshold times before doing the action.

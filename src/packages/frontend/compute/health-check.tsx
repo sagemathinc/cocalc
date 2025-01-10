@@ -1,4 +1,4 @@
-import { Button, Flex, Input, InputNumber, Radio, Space } from "antd";
+import { Button, Input, InputNumber, Radio, Space } from "antd";
 import { useEffect, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { useServer } from "./compute-server";
@@ -59,6 +59,9 @@ export function HealthCheck({ id, project_id, help }) {
     healthCheck.periodSeconds ?? HEALTH_CHECK_DEFAULTS.periodSeconds;
   const failureThreshold =
     healthCheck.failureThreshold ?? HEALTH_CHECK_DEFAULTS.failureThreshold;
+  const initialDelaySeconds =
+    healthCheck.initialDelaySeconds ??
+    HEALTH_CHECK_DEFAULTS.initialDelaySeconds;
 
   return (
     <AutomaticShutdownCard
@@ -82,7 +85,8 @@ export function HealthCheck({ id, project_id, help }) {
         ) &&
         healthCheck.failureThreshold != null &&
         healthCheck.periodSeconds != null &&
-        healthCheck.timeoutSeconds != null
+        healthCheck.timeoutSeconds != null &&
+        healthCheck.initialDelaySeconds != null
       }
       savedEnabled={!!server.configuration?.healthCheck?.enabled}
       enabled={healthCheck.enabled}
@@ -116,9 +120,9 @@ export function HealthCheck({ id, project_id, help }) {
         </div>
       )}
       <Space direction="vertical" size="large">
-        <Flex>
+        <Space style={{ width: "100%" }} wrap>
           <Input
-            style={{ flex: 1, marginRight: "15px" }}
+            style={{ width: "508px" }}
             allowClear
             disabled={saving}
             value={healthCheck.command}
@@ -128,7 +132,7 @@ export function HealthCheck({ id, project_id, help }) {
             placeholder={`Shell Command (bash) -- ${healthCheck.action} when this fails ${failureThreshold} times...`}
           />
           <InputNumber
-            style={{ flex: 0.5, marginRight: "15px" }}
+            style={{ width: "250px" }}
             disabled={saving}
             min={1}
             step={1}
@@ -142,10 +146,10 @@ export function HealthCheck({ id, project_id, help }) {
             addonAfter="seconds timeout"
             placeholder="Command timeout..."
           />
-        </Flex>
-        <Flex>
+        </Space>
+        <Space style={{ width: "100%" }} wrap>
           <InputNumber
-            style={{ flex: 1, marginRight: "15px" }}
+            style={{ width: "250px" }}
             disabled={saving}
             min={1}
             step={1}
@@ -160,7 +164,7 @@ export function HealthCheck({ id, project_id, help }) {
             placeholder="Failure threshold..."
           />
           <InputNumber
-            style={{ flex: 1 }}
+            style={{ width: "250px" }}
             disabled={saving}
             min={60}
             step={30}
@@ -174,7 +178,22 @@ export function HealthCheck({ id, project_id, help }) {
             addonAfter="seconds between checks"
             placeholder="Interval..."
           />
-        </Flex>
+          <InputNumber
+            style={{ width: "250px" }}
+            disabled={saving}
+            min={60}
+            step={30}
+            value={initialDelaySeconds}
+            onChange={(initialDelaySeconds) =>
+              setHealthCheck({
+                ...healthCheck,
+                initialDelaySeconds: initialDelaySeconds ?? undefined,
+              })
+            }
+            addonAfter="seconds initial delay"
+            placeholder="Initial delay..."
+          />
+        </Space>
         <Space style={{ width: "100%" }}>
           <div style={{ marginRight: "15px" }}>
             Action when health check fails:
