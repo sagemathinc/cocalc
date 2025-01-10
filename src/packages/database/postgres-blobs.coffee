@@ -17,7 +17,10 @@ LICENSE   : MS-RSL
 # If this env variable begins with a / it is assumed to be a path in the file system,
 # e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
 # If it is gs:// then it is a google cloud storage bucket.
-COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
+# 2025-01-10: noticed rarely this variable is not set, at least not initially after startup.
+# Hardcoding the path, which has never changed anyways.
+# Maybe https://github.com/nodejs/help/issues/3618
+COCALC_BLOB_STORE = String(process.env.COCALC_BLOB_STORE ? "/blobs")
 
 async   = require('async')
 zlib    = require('zlib')
