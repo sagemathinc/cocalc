@@ -1,19 +1,22 @@
-import { promisify } from "util";
-import { dirname, join, resolve } from "path";
-import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
+import { exec as exec0, spawn } from "child_process";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
-import { projects, root, blobstore } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
-import getLogger from "@cocalc/backend/logger";
-import { CopyOptions, ProjectState, ProjectStatus } from "./base";
-import { getUid } from "@cocalc/backend/misc";
+import { dirname, join, resolve } from "path";
+import { promisify } from "util";
+
 import base_path from "@cocalc/backend/base-path";
+import { blobstore, projects, root } from "@cocalc/backend/data";
+import getLogger from "@cocalc/backend/logger";
+import { getUid } from "@cocalc/backend/misc";
 import { db } from "@cocalc/database";
-import { getProject } from ".";
+import { callback2 } from "@cocalc/util/async-utils";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { CopyOptions, ProjectState, ProjectStatus } from "./base";
+
+import { getProject } from ".";
 
 const logger = getLogger("project-control:util");
 
@@ -230,10 +233,11 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   // suddenly /root/.npmrc, and due to permissions this will break starting
   // projects with a mysterious "exit code 243" and no further info, which
   // is really hard to track down.
+  // NOTE: Do not delete all "COCALC_*" env vars, because maybe this code runs in the hub as well, which relies on them.
   for (const key in env2) {
     if (
       key.startsWith("npm_") ||
-      key.startsWith("COCALC_") ||
+      key.startsWith(`${SERVER_SETTINGS_ENV_PREFIX}_`) ||
       key.startsWith("PNPM_") ||
       key.startsWith("__NEXT") ||
       key.startsWith("NODE_") ||
