@@ -24,6 +24,7 @@ import Inline from "./inline";
 import { IdleTimeout } from "./idle-timeout";
 import { SpendLimit } from "./spend-limit";
 import { HealthCheck } from "./health-check";
+import { ShutdownTime } from "./shutdown-time";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components";
 
@@ -116,21 +117,11 @@ function CardTitle({
         {saveButton}
       </Space>
       <div style={{ flex: 1 }} />
-      {savedEnabled ? (
-        <Alert
-          style={{ marginLeft: "15px" }}
-          type="success"
-          showIcon
-          message={"Enabled"}
-        />
-      ) : (
-        <Alert
-          style={{ marginLeft: "15px" }}
-          type="info"
-          showIcon
-          message={"Disabled"}
-        />
-      )}
+      <div style={{ marginLeft: "15px", width: "105px" }}>
+        {savedEnabled ? (
+          <Alert type="success" showIcon message={"Enabled"} />
+        ) : undefined}
+      </div>
     </Flex>
   );
 }
@@ -179,6 +170,8 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
       }
     >
       <IdleTimeout id={id} project_id={project_id} help={help} />
+      <div style={{ height: "15px" }} />
+      <ShutdownTime id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />
       <SpendLimit id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />

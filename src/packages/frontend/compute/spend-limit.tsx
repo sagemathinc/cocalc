@@ -280,6 +280,7 @@ export function SpendLimitStatus({ server, horizontal = false }) {
       >
         <span
           style={{
+            color: "#666",
             textWrap: "nowrap",
             margin: horizontal ? "0 5px" : undefined,
           }}

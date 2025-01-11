@@ -524,6 +524,30 @@ export function spendLimitPeriod(hours) {
   return `${hours} hours`;
 }
 
+const tenAM = new Date();
+tenAM.setHours(10, 0, 0, 0);
+export const DEFAULT_SHUTDOWN_TIME = {
+  epochMs: tenAM,
+  enabled: false,
+};
+
+export interface ShutdownTime {
+  epochMs: number;
+  enabled?: boolean;
+}
+
+export function validatedShutdownTime(
+  shutdownTime?: any,
+): ShutdownTime | undefined {
+  if (shutdownTime == null) {
+    return undefined;
+  }
+  let { epochMs, enabled } = shutdownTime;
+  epochMs = parseFloat(epochMs ?? DEFAULT_SHUTDOWN_TIME.epochMs);
+  enabled = !!enabled;
+  return { enabled, epochMs };
+}
+
 interface BaseConfiguration {
   // image: name of the image to use, e.g. 'python' or 'pytorch'.
   // images are managed in src/packages/server/compute/images.ts
@@ -568,7 +592,16 @@ interface BaseConfiguration {
   spendLimit?: SpendLimit;
   idleTimeoutMinutes?: number;
   healthCheck?: HealthCheck;
+  // number = ms since epoch defines a time; at *that* time each day, the server is turned off.
+  shutdownTime?: ShutdownTime;
 }
+
+export const AUTOMATIC_SHUTDOWN_FIELDS = [
+  "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
+  "shutdownTime",
+];
 
 interface LambdaConfiguration extends BaseConfiguration {
   cloud: "lambda-cloud";
