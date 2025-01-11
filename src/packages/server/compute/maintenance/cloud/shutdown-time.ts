@@ -10,7 +10,7 @@ import type { ComputeServerEventLogEntry } from "@cocalc/util/compute/log";
 import { map } from "awaiting";
 import dayjs from "dayjs";
 
-const logger = getLogger("server:compute:maintenance:cloud:idle-timeout");
+const logger = getLogger("server:compute:maintenance:cloud:shutdown-time");
 
 export default async function idleTimeout() {
   try {

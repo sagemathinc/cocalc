@@ -448,7 +448,6 @@ export default function Menu({
     return {
       items: getItems({ id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
-        console.log("obj = ", obj);
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {

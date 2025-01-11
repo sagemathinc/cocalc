@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useServer } from "./compute-server";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { TimePicker, Tooltip } from "antd";
@@ -30,10 +30,6 @@ export function ShutdownTime({
   const [shutdownTime, setShutdownTime] = useState<Partial<ShutdownTime>>(
     server.configuration?.shutdownTime ?? DEFAULT_SHUTDOWN_TIME,
   );
-  useEffect(() => {
-    const x = server.configuration?.shutdownTime ?? DEFAULT_SHUTDOWN_TIME;
-    if (!isEqual(x, shutdownTime)) setShutdownTime(x);
-  }, [server.configuration?.shutdownTime]);
 
   return (
     <AutomaticShutdownCard
@@ -78,7 +74,7 @@ export function ShutdownTime({
       <div style={{ textAlign: "center" }}>
         <TimePicker
           use12Hours
-          value={
+          defaultValue={
             shutdownTime.epochMs == null
               ? null
               : dayjs(new Date(shutdownTime.epochMs))

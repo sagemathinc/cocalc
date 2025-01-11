@@ -42,8 +42,8 @@ async function startMaintenance() {
   setTimeout(spendLimit, 30 * 1000); // also 30s after startup
   setInterval(spendLimit, 60 * 1000);
 
-  // run frequently
   setTimeout(shutdownTime, 30 * 1000);
+  setInterval(shutdownTime, 60 * 1000);
 }
 
 let running = false;
