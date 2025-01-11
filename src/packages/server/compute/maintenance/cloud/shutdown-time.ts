@@ -53,13 +53,6 @@ WHERE state = 'running'
     if (start.isBefore(targetTime) && targetTime.isBefore(now)) {
       shutdown = true;
     }
-    console.log({
-      start: start.toDate(),
-      targetTime: targetTime.toDate(),
-      now: now.toDate(),
-      epochMs,
-      t: t.toDate(),
-    });
 
     if (shutdown) {
       logger.debug("stopping compute server", row);

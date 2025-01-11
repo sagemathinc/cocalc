@@ -527,7 +527,7 @@ export function spendLimitPeriod(hours) {
 const tenAM = new Date();
 tenAM.setHours(10, 0, 0, 0);
 export const DEFAULT_SHUTDOWN_TIME = {
-  epochMs: tenAM,
+  epochMs: tenAM.valueOf(),
   enabled: false,
 };
 
@@ -544,6 +544,9 @@ export function validatedShutdownTime(
   }
   let { epochMs, enabled } = shutdownTime;
   epochMs = parseFloat(epochMs ?? DEFAULT_SHUTDOWN_TIME.epochMs);
+  if (epochMs < 0 || !isFinite(epochMs)) {
+    epochMs = DEFAULT_SHUTDOWN_TIME.epochMs;
+  }
   enabled = !!enabled;
   return { enabled, epochMs };
 }

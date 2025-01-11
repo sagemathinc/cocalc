@@ -79,7 +79,9 @@ export function ShutdownTime({
         <TimePicker
           use12Hours
           value={
-            shutdownTime.epochMs == null ? null : dayjs(shutdownTime.epochMs)
+            shutdownTime.epochMs == null
+              ? null
+              : dayjs(new Date(shutdownTime.epochMs))
           }
           onChange={(time) =>
             setShutdownTime({
