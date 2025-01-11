@@ -26,10 +26,6 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  throttle({
-    account_id,
-    endpoint: "purchases/get-purchases",
-  });
   const {
     limit,
     offset,
@@ -43,6 +39,14 @@ async function get(req) {
     no_statement,
     compute_server_id,
   } = getParams(req);
+  if (!compute_server_id) {
+    // for now we are only throttling when compute_server_id is NOT set.  There are several cases -- course management etc
+    // where a client calls get-purchases for each compute server separately with group -- it's not much load.
+    throttle({
+      account_id,
+      endpoint: "purchases/get-purchases",
+    });
+  }
   return await getPurchases({
     cutoff,
     thisMonth,
