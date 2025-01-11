@@ -1,5 +1,5 @@
 import { Button, Input, InputNumber, Radio, Space } from "antd";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { useServer } from "./compute-server";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -26,14 +26,6 @@ export function HealthCheck({ id, project_id, help }) {
       server?.configuration?.healthCheck ?? HEALTH_CHECK_DEFAULTS,
     )!,
   );
-
-  useEffect(() => {
-    setHealthCheck(
-      validatedHealthCheck(
-        server?.configuration?.healthCheck ?? HEALTH_CHECK_DEFAULTS,
-      )!,
-    );
-  }, [server?.configuration?.healthCheck]);
 
   const doTest = async () => {
     try {
