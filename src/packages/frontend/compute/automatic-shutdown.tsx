@@ -160,6 +160,14 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
           </Flex>
           {help && (
             <div style={{ fontSize: "14px", fontWeight: "normal" }}>
+              <Button
+                href="https://youtu.be/Kx_47fs_xcI"
+                target="_blank"
+                style={{ float: "right" }}
+              >
+                <Icon name="youtube" style={{ color: "red" }} />
+                YouTube Video
+              </Button>
               Each strategy automatically turns this compute server off when a
               condition is met. This can save you money keeping spending under
               control. When the server is shutdown, a message is also sent and a
