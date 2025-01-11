@@ -28,6 +28,7 @@ import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
+import "./nats";
 import debug from "debug";
 
 // This DEBUG variable comes from webpack:
