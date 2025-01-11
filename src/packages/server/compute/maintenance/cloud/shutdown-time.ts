@@ -5,7 +5,6 @@ Manage shutdown time of compute servers.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { stop } from "@cocalc/server/compute/control";
-import { validatedShutdownTime } from "@cocalc/util/db-schema/compute-servers";
 import { uuid } from "@cocalc/util/misc";
 import type { ComputeServerEventLogEntry } from "@cocalc/util/compute/log";
 import { map } from "awaiting";
