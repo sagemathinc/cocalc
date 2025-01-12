@@ -41,7 +41,7 @@ import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import initNats from "./servers/nats";
+import { initNats } from "./servers/nats";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";

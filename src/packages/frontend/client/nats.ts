@@ -1,13 +1,34 @@
-import { connect, StringCodec } from "nats.ws";
+import * as nats from "nats.ws";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import type { WebappClient } from "./client";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-export async function init() {
-  console.log("connecting...");
-  const nc = await connect({
-    servers: ["ws://localhost:5004"],
+export class NatsClient {
+  /*private*/ client: WebappClient;
+  private sc: ReturnType<typeof nats.StringCodec>;
+  private nc?: Awaited<ReturnType<typeof nats.connect>>;
+  // obviously just for learning:
+  public nats = nats;
+
+  constructor(client: WebappClient) {
+    this.client = client;
+    this.sc = nats.StringCodec();
+  }
+
+  getConnection = reuseInFlight(async () => {
+    if (this.nc != null) {
+      return this.nc;
+    }
+    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
+    console.log(`connecting to ${server}...`);
+    this.nc = await nats.connect({ servers: [server] });
+    console.log(`connected to ${server}`);
+    return this.nc;
   });
-  console.log(`connected to ${nc.getServer()}`);
-  return nc;
-}
-const sc = StringCodec();
 
-// window.x = { init, sc };
+  request = async (subject: string, data: string) => {
+    const c = await this.getConnection();
+    const resp = await c.request(subject, this.sc.encode(data));
+    return this.sc.decode(resp.data);
+  };
+}

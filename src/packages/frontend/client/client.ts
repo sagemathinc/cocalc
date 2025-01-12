@@ -22,13 +22,13 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
+import { NatsClient } from "./nats";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
-import "./nats";
 import debug from "debug";
 
 // This DEBUG variable comes from webpack:
@@ -64,6 +64,7 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -143,6 +144,7 @@ class Client extends EventEmitter implements WebappClient {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -232,6 +234,7 @@ class Client extends EventEmitter implements WebappClient {
       new UsersClient(this.call.bind(this), this.async_call.bind(this)),
     );
     this.tracking_client = bind_methods(new TrackingClient(this));
+    this.nats_client = bind_methods(new NatsClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
     this.idle_client = bind_methods(new IdleClient(this));
 
