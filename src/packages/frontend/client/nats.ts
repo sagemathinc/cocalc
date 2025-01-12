@@ -5,14 +5,14 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
-  private sc: ReturnType<typeof nats.StringCodec>;
+  private sc = nats.StringCodec();
+  private jc = nats.JSONCodec();
   private nc?: Awaited<ReturnType<typeof nats.connect>>;
   // obviously just for learning:
   public nats = nats;
 
   constructor(client: WebappClient) {
     this.client = client;
-    this.sc = nats.StringCodec();
   }
 
   getConnection = reuseInFlight(async () => {
@@ -30,5 +30,19 @@ export class NatsClient {
     const c = await this.getConnection();
     const resp = await c.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
+  };
+
+  api = async (endpoint: string, params: object) => {
+    const c = await this.getConnection();
+    const resp = await c.request(
+      "api.v2",
+      // obviously passing account_id is temporary -- need to use JWT.
+      this.jc.encode({
+        endpoint,
+        __account_id: this.client.account_id,
+        ...params,
+      }),
+    );
+    return this.jc.decode(resp.data);
   };
 }

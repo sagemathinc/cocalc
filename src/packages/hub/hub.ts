@@ -41,7 +41,7 @@ import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import { initNats } from "./servers/nats";
+//import initNatsServer from "@cocalc/server/nats";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
@@ -229,7 +229,7 @@ async function startServer(): Promise<void> {
       process.env["NODE_ENV"] == "development",
   });
 
-  initNats();
+  //initNatsServer();
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
   // or complains a lot. This is obviously not really necessary, but we leave it for now.
