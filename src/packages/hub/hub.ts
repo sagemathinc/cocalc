@@ -12,6 +12,7 @@ import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -23,7 +24,10 @@ import port from "@cocalc/backend/port";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import { init_passport } from "@cocalc/server/hub/auth";
-import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
+import {
+  initialOnPremSetup,
+  setupOnPremSupportAccount,
+} from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
 import initProjectControl, {
@@ -150,6 +154,7 @@ async function startServer(): Promise<void> {
 
   // set server settings based on environment variables
   await load_server_settings_from_env(database);
+  await setupOnPremSupportAccount(database);
 
   if (program.agentPort) {
     logger.info("Configure agent port");

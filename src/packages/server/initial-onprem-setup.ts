@@ -15,14 +15,18 @@ For on-prem setups, this initializes a few essential configurations automaticall
    Otherwise, if there is no token, create one with the given token string.
 */
 
-import { callback2 as cb2 } from "@cocalc/util/async-utils";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { is_valid_email_address } from "@cocalc/util/misc";
+import { v4 } from "uuid";
+
+import getLogger from "@cocalc/backend/logger";
+import { getAdmins } from "@cocalc/database/postgres/admins";
 import { query } from "@cocalc/database/postgres/query";
 import registrationTokenQuery from "@cocalc/database/postgres/registration-tokens";
-import getLogger from "@cocalc/backend/logger";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { getServerSettings } from "@cocalc/database/settings";
 import createAccount from "@cocalc/server/accounts/create-account";
-import { v4 } from "uuid";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { is_valid_email_address } from "@cocalc/util/misc";
+import { ServerSettings } from "@cocalc/database/settings/server-settings";
 
 const L = getLogger("server:initial-onprem-setup");
 
@@ -94,7 +98,7 @@ class Setup {
     await cb2(this.db.make_user_admin, { account_id });
   }
 
-  getAdminName(email_address): [string, string] {
+  getAdminName(email_address: string): [string, string] {
     // either use the ADMIN_NAME env var or the email address as a fallback
     const name = process.env[ADMIN_NAME];
     if (name) {
@@ -138,4 +142,15 @@ class Setup {
       descr: "Initial Setup",
     });
   }
+}
+
+export async function setupOnPremSupportAccount(db: PostgreSQL) {
+  const { kucalc, support_account_id } = await getServerSettings();
+  if (kucalc === "yes" || support_account_id) return;
+  const adminIDs = await getAdmins();
+  if (adminIDs.length === 0) return;
+  const adminID = adminIDs[0];
+  const name: keyof ServerSettings = "support_account_id";
+  L.info(`Setting ${name} to ${adminID}`);
+  await cb2(db.set_server_setting, { name, value: adminID });
 }

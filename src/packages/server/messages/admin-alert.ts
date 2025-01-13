@@ -17,11 +17,11 @@ is broken.
 
 */
 
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import send from "./send";
-import getAdmins from "@cocalc/server/accounts/admins";
 import { getLogger } from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
+import { getAdmins } from "@cocalc/database/postgres/admins";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import send from "./send";
 
 const logger = getLogger("server:messages:admin");
 
