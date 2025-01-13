@@ -32,8 +32,10 @@ import throttle from "@cocalc/util/api/throttle";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 
-async function api(endpoint: string, args?: object) {
-  throttle({ endpoint });
+async function api(endpoint: string, args?: object, noThrottle?: boolean) {
+  if (!noThrottle) {
+    throttle({ endpoint });
+  }
   return await api0(endpoint, args);
 }
 
@@ -182,7 +184,14 @@ type PurchasesFunction = (
 
 export const getPurchases: PurchasesFunction = shortCache(
   async (opts: PurchasesOptions) => {
-    return parsePurchaseDates(await api("purchases/get-purchases", opts));
+    return parsePurchaseDates(
+      await api(
+        "purchases/get-purchases",
+        opts,
+        // do not throttle when getting purchases for a compute server for now.
+        !!opts?.compute_server_id,
+      ),
+    );
   },
   "get-purchases",
 );

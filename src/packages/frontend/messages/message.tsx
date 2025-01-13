@@ -1,35 +1,39 @@
-import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
-import { redux } from "@cocalc/frontend/app-framework";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import ReplyButton, { ForwardButton } from "./reply-button";
-import {
-  get,
-  isDraft,
-  isDeleted,
-  isToMe,
-  isThreadRead,
-  isRead,
-  isInFolderThreaded,
-  setFragment,
-  participantsInThread,
-  excludeSelf,
-  sendersInThread,
-  recipientsInThread,
-} from "./util";
-import Thread, { ThreadCount } from "./thread";
-import type { iThreads, Folder } from "./types";
-import User from "./user";
-import Compose from "./compose";
 import { useEffect, useRef } from "react";
+import { useIntl } from "react-intl";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import Read from "./read";
-import Star from "./star";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import MostlyStaticMarkdown, {
+  HighlightText,
+} from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { labels } from "@cocalc/frontend/i18n";
+import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
+import { COLORS } from "@cocalc/util/theme";
+import Compose from "./compose";
 import Like from "./like";
+import Read from "./read";
+import ReplyButton, { ForwardButton } from "./reply-button";
+import Star from "./star";
+import Thread, { ThreadCount } from "./thread";
+import type { Folder, iThreads } from "./types";
 import useCommand from "./use-command";
+import User from "./user";
+import {
+  excludeSelf,
+  get,
+  isDeleted,
+  isDraft,
+  isInFolderThreaded,
+  isRead,
+  isThreadRead,
+  isToMe,
+  participantsInThread,
+  recipientsInThread,
+  sendersInThread,
+  setFragment,
+} from "./util";
 
 const LEFT_OFFSET = "46px";
 
@@ -70,6 +74,7 @@ function MessageInList({
   inThread,
   focused,
 }: Props) {
+  const intl = useIntl();
   const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
   const read = inThread ? isRead(message) : isThreadRead({ message, threads });
@@ -166,7 +171,7 @@ function MessageInList({
               fontSize,
             }}
           >
-            {getTag({ message, threads, folder })}
+            {getTag({ message, threads, folder, intl })}
             <Subject
               message={message}
               threads={threads}
@@ -301,6 +306,7 @@ function MessageFull({
   focused,
   style,
 }: Props) {
+  const intl = useIntl();
   const read = isRead(message);
   const readRef = useRef<boolean>(read);
   const searchWords = useTypedRedux("messages", "searchWords");
@@ -376,14 +382,19 @@ function MessageFull({
             <div
               style={{
                 marginLeft: LEFT_OFFSET,
-                color: "#666",
+                color: COLORS.GRAY_M,
               }}
             >
               {isToMe(message) && message.to_ids.length == 1 ? (
-                "to me"
+                intl.formatMessage({
+                  id: "messages.message.to_me",
+                  defaultMessage: "to me",
+                  description: "Message is sent to myself",
+                })
               ) : (
                 <>
-                  to <User id={message.to_ids} message={message} />
+                  {intl.formatMessage(labels.messages_to).toLowerCase()}{" "}
+                  <User id={message.to_ids} message={message} />
                 </>
               )}
             </div>
@@ -521,7 +532,7 @@ function MessageFull({
   );
 }
 
-function getTag({ message, threads, folder }) {
+function getTag({ message, threads, folder, intl }) {
   // set deleted false so still see the tag even when message in the trash,
   // which helps when undeleting.
   const v: JSX.Element[] = [];
@@ -535,7 +546,7 @@ function getTag({ message, threads, folder }) {
   ) {
     v.push(
       <Tag key="draft" color="red">
-        <Icon name="note" /> Draft
+        <Icon name="note" /> {intl.formatMessage(labels.draft)}
       </Tag>,
     );
   }
@@ -551,7 +562,7 @@ function getTag({ message, threads, folder }) {
     // this happens for search.
     v.push(
       <Tag key="inbox" color="blue">
-        <Icon name="trash" /> Trash
+        <Icon name="trash" /> {intl.formatMessage(labels.trash)}
       </Tag>,
     );
   }
@@ -567,7 +578,7 @@ function getTag({ message, threads, folder }) {
   ) {
     v.push(
       <Tag key="inbox" color="green">
-        <Icon name="container" /> Inbox
+        <Icon name="container" /> {intl.formatMessage(labels.messages_inbox)}
       </Tag>,
     );
   }

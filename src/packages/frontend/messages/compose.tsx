@@ -7,25 +7,29 @@ to the database or something...
 */
 
 import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
-import SelectUsers from "./select-users";
+import { isEqual } from "lodash";
 import { useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+import { useAsyncEffect } from "use-async-effect";
+
 import {
   redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { Paragraph } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
-import { useAsyncEffect } from "use-async-effect";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
+import SelectUsers from "./select-users";
 import Zoom from "./zoom";
-import { isEqual } from "lodash";
 
 export default function Compose({
   onCancel,
@@ -40,6 +44,7 @@ export default function Compose({
   // be a draft, i.e., sent is not set and it is from us!
   message?;
 }) {
+  const intl = useIntl();
   const actions = useActions("messages");
   const fontSize = useTypedRedux("messages", "fontSize");
   const draftId = useRef<number | null>(message?.id ?? null);
@@ -208,6 +213,8 @@ export default function Compose({
 
   const editorDivRef = useRef<any>(null);
 
+  const saved = body == draft.body && subject == draft.subject;
+
   return (
     <Space direction="vertical" style={{ width: "100%", ...style }}>
       <ShowError
@@ -222,13 +229,18 @@ export default function Compose({
           alignItems: "center",
         }}
       >
-        <div style={{ width: "82px", fontSize: "12pt" }}>To:</div>
+        <div style={{ width: "82px", fontSize: "12pt" }}>
+          {intl.formatMessage(labels.messages_to)}:
+        </div>
         <SelectUsers
           style={{ width: "100%" }}
           autoOpen={draftId.current && to_ids.length > 0 ? undefined : 250}
           autoFocus={!draftId.current || to_ids.length == 0}
           disabled={state != "compose"}
-          placeholder="Add one or more users by name or email address..."
+          placeholder={intl.formatMessage({
+            id: "messages.compose.to.placeholder",
+            defaultMessage: "Add one or more users by name or email address...",
+          })}
           onChange={(account_ids) => {
             setToIds(account_ids);
             saveDraft({ to_ids: account_ids });
@@ -238,7 +250,9 @@ export default function Compose({
       </div>
       <Flex>
         <Flex style={{ alignItems: "center", flex: 1 }}>
-          <div style={{ width: "75px", fontSize: "12pt" }}>Subject:</div>
+          <div style={{ width: "75px", fontSize: "12pt" }}>
+            {intl.formatMessage(labels.messages_subject)}:
+          </div>
           <Input
             onFocus={() => {
               setBodyIsFocused(false);
@@ -251,7 +265,7 @@ export default function Compose({
             }}
             style={{ flex: 1, fontSize: "12pt" }}
             disabled={state == "sending" || state == "sent"}
-            placeholder="Subject..."
+            placeholder={`${intl.formatMessage(labels.messages_subject)}...`}
             status={!subject?.trim() && body.trim() ? "error" : undefined}
             value={subject}
             onChange={(e) => {
@@ -289,19 +303,29 @@ export default function Compose({
         <Zoom style={{ margin: "0 5px" }} />
         <Tooltip
           placement="right"
-          title={`${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}.  Edit this message later before sending it.`}
+          title={intl.formatMessage(
+            {
+              id: "messages.compose.save_button.tooltip",
+              defaultMessage: `{saved, select, true {Saved} other {Not Saved}}.
+              Edit this message later before sending it.`,
+            },
+            { saved },
+          )}
         >
           <Button
             onClick={() => saveDraft({ subject, body })}
             style={{ marginLeft: "15px" }}
-            disabled={
-              (body == draft.body && subject == draft.subject) ||
-              state == "saving"
-            }
+            disabled={saved || state == "saving"}
           >
-            <Icon name="save" /> Save
-            {body == draft.body && subject == draft.subject ? "d" : ""}
-            {state == "saving" && (
+            <Icon name="save" />{" "}
+            {intl.formatMessage(
+              {
+                id: "messages.compose.save_button",
+                defaultMessage: "{saved, select, true {Saved} other {Save}}",
+              },
+              { saved },
+            )}
+            {state === "saving" && (
               <Spin style={{ marginLeft: "15px" }} delay={1000} />
             )}
           </Button>
@@ -332,7 +356,7 @@ export default function Compose({
             setBody(body);
             saveDraft({ body, subject });
           }}
-          placeholder="Body..."
+          placeholder={`${intl.formatMessage(labels.messages_body)}...`}
           autoFocus={message != null && to_ids.length > 0}
           height="40vh"
           onShiftEnter={(body) => {
@@ -372,10 +396,21 @@ export default function Compose({
         />
       )}
       <div>
-        <div style={{ color: "#888", marginBottom: "5px", fontSize: "11pt" }}>
-          Drag and drop or paste images or other files (max size:{" "}
-          {human_readable_size(MAX_BLOB_SIZE)}) to include them in your message.
-        </div>
+        <Paragraph
+          type="secondary"
+          style={{
+            marginBottom: "5px",
+            fontSize: "11pt",
+          }}
+        >
+          <FormattedMessage
+            id="messages.compose.info_bottom"
+            defaultMessage={
+              "Drag and drop or paste images or other files (max size: {max_size}) to include them in your message."
+            }
+            values={{ max_size: human_readable_size(MAX_BLOB_SIZE) }}
+          />
+        </Paragraph>
         <Flex>
           <Button
             size="large"
@@ -396,8 +431,12 @@ export default function Compose({
             )}
             {(state == "saving" || state == "compose") && (
               <>
-                Send (shift+enter){" "}
-                {!subject.trim() ? " - enter subject above" : ""}
+                <FormattedMessage
+                  id="messages.send.label"
+                  defaultMessage={`Send (shift+enter){nosubject, select, true { - enter subject above} other {}}`}
+                  values={{ nosubject: !subject.trim() }}
+                  description={"Send button for sending a message to someone."}
+                />
               </>
             )}
             {state == "sent" && <>Sent</>}
@@ -415,7 +454,11 @@ export default function Compose({
               onCancel?.();
             }}
           >
-            <Icon name="trash" /> Discard Draft
+            <Icon name="trash" />{" "}
+            <FormattedMessage
+              id="messages.discard_draft.label"
+              defaultMessage="Discard Draft"
+            />
           </Button>
         </Flex>
       </div>
@@ -437,7 +480,8 @@ export function ComposeButton(props) {
         }
       }}
     >
-      <Icon name="pencil" /> Compose
+      <Icon name="pencil" />{" "}
+      <FormattedMessage id="messages.compose.label" defaultMessage="Compose" />
     </Button>
   );
 }

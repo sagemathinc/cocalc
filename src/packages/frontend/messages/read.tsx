@@ -1,9 +1,18 @@
-import { getBitField } from "./util";
-import User from "./user";
 import { useMemo } from "react";
+import { defineMessage, useIntl } from "react-intl";
+
 import type { Message } from "@cocalc/util/db-schema/messages";
+import User from "./user";
+import { getBitField } from "./util";
+
+const READ_BY = defineMessage({
+  id: "messages.read_by",
+  defaultMessage: `{read, select, true {Read by} other {Not read by}} {user}.`,
+});
 
 export default function Read({ message, style }: { message: Message; style? }) {
+  const intl = useIntl();
+
   const { hasRead, notRead } = useMemo(() => {
     if (message?.to_ids == null) {
       return {};
@@ -29,12 +38,18 @@ export default function Read({ message, style }: { message: Message; style? }) {
       <ul>
         {notRead.length > 0 && (
           <li style={{ marginBottom: "10px" }}>
-            Not read by <User id={notRead} message={null} />.
+            {intl.formatMessage(READ_BY, {
+              read: false,
+              user: <User id={notRead} message={null} />,
+            })}
           </li>
         )}
         {hasRead.length > 0 && (
           <li>
-            Read by <User id={hasRead} message={null} />.{" "}
+            {intl.formatMessage(READ_BY, {
+              read: true,
+              user: <User id={hasRead} message={null} />,
+            })}
           </li>
         )}
       </ul>

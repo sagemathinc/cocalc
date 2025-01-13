@@ -46,9 +46,6 @@ export function SpendLimit({
   const [spendLimit, setSpendLimit] = useState<Partial<ISpendLimit>>(
     server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS,
   );
-  useEffect(() => {
-    setSpendLimit(server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS);
-  }, [server.configuration?.spendLimit]);
 
   if (server == null) {
     return <Spin />;
@@ -280,6 +277,7 @@ export function SpendLimitStatus({ server, horizontal = false }) {
       >
         <span
           style={{
+            color: "#666",
             textWrap: "nowrap",
             margin: horizontal ? "0 5px" : undefined,
           }}

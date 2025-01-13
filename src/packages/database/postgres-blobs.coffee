@@ -17,7 +17,11 @@ LICENSE   : MS-RSL
 # If this env variable begins with a / it is assumed to be a path in the file system,
 # e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
 # If it is gs:// then it is a google cloud storage bucket.
-COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
+# 2025-01-10: noticed rarely this variable is not set, at least not initially after startup.
+# Hardcoding the path, which has never changed anyways.
+# Maybe https://github.com/nodejs/help/issues/3618
+COCALC_BLOB_STORE_FALLBACK = "/blobs"
+COCALC_BLOB_STORE = String(process.env.COCALC_BLOB_STORE ? COCALC_BLOB_STORE_FALLBACK)
 
 async   = require('async')
 zlib    = require('zlib')
@@ -211,8 +215,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb()
                 else if x.gcloud
                     if not COCALC_BLOB_STORE?
-                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-                        return
+                        # see comment https://github.com/sagemathinc/cocalc/pull/8110
+                        COCALC_BLOB_STORE = COCALC_BLOB_STORE_FALLBACK
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
                     # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
                     # across multiple buckets... as it isn't needed because buckets are infinite, and it
@@ -291,9 +295,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
-            dbg("invalid bucket")
-            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-            return
+            opts.bucket = COCALC_BLOB_STORE_FALLBACK
         locals =
             x: undefined
         async.series([

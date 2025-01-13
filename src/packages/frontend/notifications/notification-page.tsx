@@ -6,16 +6,16 @@
 import { Button, Flex, Modal } from "antd";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Paragraph, Title } from "@cocalc/frontend/components";
-// TODO: i18n again...
-//import { labels } from "@cocalc/frontend/i18n";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
-import { Icon } from "@cocalc/frontend/components/icon";
 
 export function NotificationPage() {
   const intl = useIntl();
@@ -45,8 +45,8 @@ export function NotificationPage() {
             with embedding images, markdown, LaTeX formulas, and handling of internal links.
             When editing text in a Jupyter notebook or whiteboard,
             type an @ symbol, then select the name of a collaborator,
-            and they will receive an email and be listed under mentions, telling them that 
-            you mentioned them. You can also "@mention" yourself for testing or to make it 
+            and they will receive an email and be listed under mentions, telling them that
+            you mentioned them. You can also "@mention" yourself for testing or to make it
             easy to find something later.`,
           },
           {
@@ -118,8 +118,8 @@ export function NotificationPage() {
           level={2}
           style={{ textAlign: "center", flex: "0 0 auto", marginTop: "10px" }}
         >
-          <Icon name="comments" style={{ marginRight: "10px" }} /> Messages,
-          Mentions and News
+          <Icon name="comments" style={{ marginRight: "10px" }} />{" "}
+          {intl.formatMessage(labels.messages_title)}
           <Button
             type="link"
             style={{ fontSize: "12pt" }}
@@ -133,7 +133,8 @@ export function NotificationPage() {
           width={600}
           title={
             <>
-              <Icon name="question-circle" /> About Messages, Mentions and News
+              <Icon name="question-circle" />{" "}
+              {intl.formatMessage(labels.messages_title)}
             </>
           }
           open={showHelp}

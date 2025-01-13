@@ -1,9 +1,12 @@
 import { Input } from "antd";
-import { redux } from "@cocalc/frontend/app-framework";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { debounce } from "lodash";
+import { useIntl } from "react-intl";
+
+import { redux } from "@cocalc/frontend/app-framework";
 
 export default function Search({ filter }) {
+  const intl = useIntl();
   const [value, setValue] = useState<string>("");
   const search = useMemo(() => {
     return debounce(
@@ -39,6 +42,11 @@ export default function Search({ filter }) {
     }
   }, [filter]);
 
+  const placeholder = intl.formatMessage({
+    id: "messages.search.placeholder",
+    defaultMessage: "Search messages",
+  });
+
   return (
     <Input.Search
       ref={inputRef}
@@ -47,7 +55,7 @@ export default function Search({ filter }) {
       size="large"
       allowClear
       enterButton
-      placeholder="Search messages..."
+      placeholder={`${placeholder}...`}
       onSearch={() => search(value)}
       onChange={(e) => {
         setValue(e.target.value);

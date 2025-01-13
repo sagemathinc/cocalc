@@ -29,6 +29,7 @@ import {
   haveBigQueryBilling,
 } from "@cocalc/server/compute/cloud/google-cloud/bigquery";
 import { getServerName } from "@cocalc/server/compute/cloud/google-cloud/index";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("server:compute:maintenance:purchases:manage");
 
@@ -90,6 +91,24 @@ export default async function managePurchases() {
       logger.debug("managePurchases: error updating purchases", {
         err,
         server: row,
+      });
+      adminAlert({
+        subject:
+          "Error managing a compute server purchase -- admin should investigate",
+        body: `
+
+Processing this row:
+
+\`\`\`
+${JSON.stringify(row, undefined, 2)}
+\`\`\`
+
+The following error happened: ${err}
+
+This could result in a user not being properly charged or a long purchase being
+left opened.  Please investigate!
+
+`,
       });
     }
   }

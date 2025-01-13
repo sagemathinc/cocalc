@@ -25,6 +25,7 @@ import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
 import { IdleTimeoutMessage } from "./idle-timeout";
+import { ShutdownTimeMessage } from "./shutdown-time";
 import { RunningProgress } from "@cocalc/frontend/compute/doc-status";
 import { SpendLimitStatus } from "./spend-limit";
 
@@ -392,20 +393,40 @@ export default function ComputeServer({
                   />
                 )}
             </div>
-            {cloud != "onprem" &&
-              server.configuration?.idleTimeoutMinutes &&
-              state == "running" &&
-              id && (
-                <div
-                  style={{
-                    display: "flex",
-                    marginLeft: "-10px",
-                    color: "#666",
-                  }}
-                >
-                  <IdleTimeoutMessage id={id} project_id={project_id} minimal />
-                </div>
-              )}
+            {cloud != "onprem" && state == "running" && id && (
+              <>
+                {!!server.configuration?.idleTimeoutMinutes && (
+                  <div
+                    style={{
+                      display: "flex",
+                      marginLeft: "-10px",
+                      color: "#666",
+                    }}
+                  >
+                    <IdleTimeoutMessage
+                      id={id}
+                      project_id={project_id}
+                      minimal
+                    />
+                  </div>
+                )}
+                {!!server.configuration?.shutdownTime?.enabled && (
+                  <div
+                    style={{
+                      display: "flex",
+                      marginLeft: "-15px",
+                      color: "#666",
+                    }}
+                  >
+                    <ShutdownTimeMessage
+                      id={id}
+                      project_id={project_id}
+                      minimal
+                    />
+                  </div>
+                )}
+              </>
+            )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
@@ -420,7 +441,7 @@ export default function ComputeServer({
                 project_id={project_id}
               />
             )}
-            <SpendLimitStatus server={server} />
+            {server?.id != null && <SpendLimitStatus server={server} />}
           </div>
         }
         title={

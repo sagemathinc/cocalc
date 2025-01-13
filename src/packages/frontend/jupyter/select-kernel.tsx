@@ -724,7 +724,7 @@ function ComputeServerInfo() {
         message={
           <>
             To get started, open the{" "}
-            <Button onClick={() => actions?.set_active_tab("servers")}>
+            <Button onClick={() => actions?.showComputeServers()}>
               <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
               {formatIntl(FIXED_PROJECT_TABS.servers.label)}
             </Button>{" "}
