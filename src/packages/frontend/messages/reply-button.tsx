@@ -1,7 +1,9 @@
-import { Button, Spin, type ButtonProps, Tooltip } from "antd";
+import { Button, Spin, Tooltip, type ButtonProps } from "antd";
 import { useMemo, useState } from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
 import type { Message } from "./types";
 import useCommand from "./use-command";
 
@@ -19,6 +21,7 @@ export default function ReplyButton({
   focused,
   ...props
 }: ReplyButtonProps) {
+  const intl = useIntl();
   const [creating, setCreating] = useState<boolean>(false);
 
   const createReply = useMemo(
@@ -49,10 +52,25 @@ export default function ReplyButton({
     },
   });
 
+  // Draft a reply to the sender ${replyAll ? "everybody in this thread" : ""}
+  const title = intl.formatMessage(
+    {
+      id: "messages.reply-button.tooltip",
+      defaultMessage: `Draft a reply to {replyAll, select, true {everybody in this thread} other {the sender}}`,
+    },
+    { replyAll },
+  );
+
+  const labelText = intl.formatMessage(
+    {
+      id: "messages.reply-button.label",
+      defaultMessage: "Reply {replyAll, select, true {All} other {}}",
+    },
+    { replyAll },
+  );
+
   return (
-    <Tooltip
-      title={`Draft a reply to the sender ${replyAll ? "everybody in this thread" : ""}`}
-    >
+    <Tooltip title={title}>
       <Button {...props} onClick={() => createReply()} disabled={creating}>
         <Icon name="reply" style={{ color: "darkgreen" }} />
         {replyAll ? (
@@ -61,7 +79,7 @@ export default function ReplyButton({
             style={{ marginLeft: "-15px", color: "darkgreen" }}
           />
         ) : undefined}
-        {label ?? `Reply ${replyAll ? "All" : ""}`}
+        {label ?? labelText}
         {creating && <Spin delay={1000} style={{ marginLeft: "15px" }} />}
       </Button>
     </Tooltip>
@@ -75,6 +93,7 @@ export function ForwardButton({
   focused,
   ...props
 }: ReplyButtonProps) {
+  const intl = useIntl();
   const [creating, setCreating] = useState<boolean>(false);
 
   const createForward = useMemo(
@@ -103,14 +122,31 @@ export function ForwardButton({
     },
   });
 
+  const title = intl.formatMessage(
+    {
+      id: "messages.forward-button.tooltip",
+      defaultMessage:
+        "Forward {forwardAll, select, true {entire thread} other {this message}}",
+    },
+    { forwardAll },
+  );
+
+  const labelText = intl.formatMessage(
+    {
+      id: "messages.forward-button.label",
+      defaultMessage: "Forward {forwardAll, select, true {Thread} other {}}",
+    },
+    { forwardAll },
+  );
+
   return (
-    <Tooltip title={`Forward ${forwardAll ? "entire thread" : "this message"}`}>
+    <Tooltip title={title}>
       <Button {...props} onClick={() => createForward()} disabled={creating}>
         <Icon
           name={forwardAll ? "forward" : "step-forward"}
           style={{ fontSize: "20px", color: "darkblue" }}
         />
-        {label ?? `Forward ${forwardAll ? "Thread" : ""}`}
+        {label ?? labelText}
         {creating && <Spin delay={1000} style={{ marginLeft: "15px" }} />}
       </Button>
     </Tooltip>

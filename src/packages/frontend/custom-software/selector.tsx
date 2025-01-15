@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore descr disp dflt
+
 import { Col, Row, Alert, Button, Divider, List, Radio } from "antd";
 import { join } from "path";
 
@@ -153,7 +155,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     } else {
       // must be standard image
       const img = software_images.get(default_image);
-      const display = img != null ? (img.get("title") ?? "") : "";
+      const display = img != null ? img.get("title") ?? "" : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -325,7 +327,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Paragraph>
-          Select the software enviornment. Either go with the default
+          Select the software environment. Either go with the default
           environment, or select one of the more specialized ones. Whatever you
           pick, you can change it later in Project Settings → Control → Software
           Environment at any time.

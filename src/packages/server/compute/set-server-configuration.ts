@@ -27,6 +27,7 @@ import { setConfiguration } from "./util";
 import {
   validatedHealthCheck,
   validatedSpendLimit,
+  validatedShutdownTime,
 } from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
@@ -75,6 +76,14 @@ export default async function setServerConfiguration({
     configuration = {
       ...configuration,
       healthCheck: validatedHealthCheck(configuration.healthCheck),
+    };
+  }
+
+  if (configuration.shutdownTime != null) {
+    // ensure the shutdownTime is formatted in a valid way
+    configuration = {
+      ...configuration,
+      shutdownTime: validatedShutdownTime(configuration.shutdownTime),
     };
   }
 

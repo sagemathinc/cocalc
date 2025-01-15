@@ -7,10 +7,9 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Row } from "antd";
+import { Button, Card, Col, Form, Input, Row, Space } from "antd";
 import { delay } from "awaiting";
 import { useIntl } from "react-intl";
-
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -39,6 +38,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import getURL from "@cocalc/frontend/support/url";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -420,21 +420,47 @@ export const NewProjectCreator: React.FC<Props> = ({
         {render_advanced()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
-            <Button
-              disabled={state === "saving"}
-              onClick={cancel_editing}
-              style={{ marginRight: "8px" }}
-            >
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-            <Button
-              disabled={isDisabled()}
-              onClick={() => create_project()}
-              type="primary"
-            >
-              Create Project
-              {requireLicense && !license_id && <> (select license above)</>}
-            </Button>
+            <Space>
+              <Button
+                disabled={state === "saving"}
+                onClick={cancel_editing}
+              >
+                {intl.formatMessage(labels.cancel)}
+              </Button>
+              <Button
+                disabled={isDisabled()}
+                onClick={() => create_project()}
+                type="primary"
+              >
+                Create Project
+                {requireLicense && !license_id && <> (select license above)</>}
+              </Button>
+              <Button
+                target="_blank"
+                href={getURL({
+                  subject: "Instructor Free Trial Request",
+                  type: "purchase",
+                  hideExtra: true,
+                  body: `
+I need a trial license so I can setup a course that I am teaching:
+
+INSTITUTION:   REQUIRED
+
+YOUR WEBPAGE:   REQUIRED
+
+NAME OF COURSE:   REQUIRED
+
+NUMBER OF STUDENTS:   REQUIRED
+
+ANYTHING ELSE?
+
+`,
+                  required: "REQUIRED",
+                })}
+              >
+                <Icon name="graduation-cap" /> Instructor Free Trial...
+              </Button>
+            </Space>
           </Col>
         </Row>
         <Row>

@@ -457,7 +457,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
         <Tooltip
           title={intl.formatMessage({
             id: "jupyter.llm.cell-tool.assistant.title",
-            defaultMessage: "Use AI assitant on this cell",
+            defaultMessage: "Use AI assistant on this cell",
           })}
         >
           <Button

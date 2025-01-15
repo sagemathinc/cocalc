@@ -3,14 +3,14 @@
 This is like Antd's Input.Password but the input does NOT have type='password'
 The motivation is that we want to store lots of information in admin config
 that is displayed like a password, i.e., hidden by default, but if you have
-an input with type='password', then your password manager may aggresively
+an input with type='password', then your password manager may aggressively
 autofill your password into these fields, thus leaking your personal top
 secret password... which is VERY VERY VERY BAD.
 
 If you really are actually creating a react component to enter the usual
 password, e.g., a sign in page, then use antd's Input.Password, not this.
 
-NOTE: A huge advantage of this is that we have another component here 
+NOTE: A huge advantage of this is that we have another component here
 PasswordTextArea that works like a multiline text area, but also allows
 hiding the input like a password, which is somethign that Input.Password
 doesn't provide, as is useful for any secret config that is multiline,

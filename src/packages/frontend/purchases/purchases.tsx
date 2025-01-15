@@ -482,6 +482,7 @@ export function PurchasesTable({
             purchases={filteredPurchases}
             admin={!!account_id}
             refresh={refreshRecords}
+            style={{ maxHeight: "70vh", overflow: "auto" }}
           />
         )}
       </div>

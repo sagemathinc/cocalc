@@ -5,6 +5,8 @@
 
 import { defineMessages } from "react-intl";
 
+// cSpell:ignore noconf
+
 export const labels = defineMessages({
   unique_id_is_missing: {
     defaultMessage: "unique id missing",
@@ -81,17 +83,17 @@ export const labels = defineMessages({
     description: "Label for Account/Last name:",
   },
   account_password: {
-    id: "labels.acconut.password",
+    id: "labels.account.password",
     defaultMessage: "Password",
     description: "The label of the password field",
   },
   account_password_change: {
-    id: "labels.acconut.password.change",
+    id: "labels.account.password.change",
     defaultMessage: "Change Password",
     description: "Button label for changing the password",
   },
   account_password_forgot: {
-    id: "labels.acconut.password.forgot",
+    id: "labels.account.password.forgot",
     defaultMessage: "Forgot Password?",
     description: "Label on link to reset password",
   },
@@ -304,13 +306,13 @@ export const labels = defineMessages({
     id: "labels.ai_generate_label",
     defaultMessage: "Help me write...",
     description:
-      "Label on the menu enty to open the AI Assistant for generating documents",
+      "Label on the menu entry to open the AI Assistant for generating documents",
   },
   ai_generate_title: {
     id: "labels.ai_generate_title",
     defaultMessage: "Create a new file with the help of AI",
     description:
-      "Tooltip on the menu enty to open the AI Assistant for generating documents",
+      "Tooltip on the menu entry to open the AI Assistant for generating documents",
   },
   stop: {
     id: "labels.stop",
@@ -539,6 +541,11 @@ export const labels = defineMessages({
     defaultMessage: "Undelete",
     comment: "Short label on a button, to undo a deletion",
   },
+  delete_forever: {
+    id: "labels.delete_forever",
+    defaultMessage: "Delete Forever",
+    comment: "Short label on a button, to delete an item forever",
+  },
   downloaded: {
     id: "labels.downloaded",
     defaultMessage: "downloaded",
@@ -634,11 +641,11 @@ export const labels = defineMessages({
     defaultMessage: "Config",
   },
   configuration: {
-    id: "labels.configuraion",
+    id: "labels.configuration",
     defaultMessage: "Configuration",
   },
   configuration_short: {
-    id: "labels.configuraion.short",
+    id: "labels.configuration.short",
     defaultMessage: "Config",
   },
   title: {
@@ -698,6 +705,14 @@ export const labels = defineMessages({
     defaultMessage: "Trash",
   },
   empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
+  draft: {
+    id: "labels.draft",
+    defaultMessage: "Draft",
+  },
+  drafts: {
+    id: "labels.drafts",
+    defaultMessage: "Drafts",
+  },
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
     defaultMessage: "Keyboard shortcuts",
@@ -728,6 +743,89 @@ export const labels = defineMessages({
     id: "labels.item_plural",
     defaultMessage: `{total, plural, one {item} other {items}}`,
     description: "e.g. zero, one, or more items in a listing",
+  },
+  starred: {
+    id: "labels.starred",
+    defaultMessage: "Starred",
+    description: "Items marked with a star",
+  },
+  back: {
+    id: "labels.back",
+    defaultMessage: "Back",
+    description: "Button label to navigate back",
+  },
+  messages_title: {
+    id: "labels.messages.title",
+    defaultMessage: "Messages, Mentions and News",
+    description:
+      "Title of the panel where user messages, messages about a user being mentioned, and general news of the platform are shown",
+  },
+  messages: {
+    id: "labels.messages",
+    defaultMessage: "Messages",
+  },
+  messages_inbox: {
+    id: "labels.messages.inbox",
+    defaultMessage: "Inbox",
+    description: "Inbox where all incoming messages are",
+  },
+  messages_sent: {
+    id: "labels.messages.sent",
+    defaultMessage: "Sent",
+    description: "All sent messages are here",
+  },
+  messages_all_messages: {
+    id: "labels.messages.all_messages",
+    defaultMessage: "All Messages",
+    description: "All messages are here",
+  },
+  messages_archive: {
+    id: "labels.messages.archive",
+    defaultMessage: "Archive",
+    description: "Short labels on a button, to archive a message",
+  },
+  messages_read: {
+    id: "labels.messages.read",
+    defaultMessage: "Read",
+    description: "Short labels on a button, to mark a message read",
+  },
+  messages_unread: {
+    id: "labels.messages.unread",
+    defaultMessage: "Unread",
+    description: "Short labels on a button, to mark a message unread",
+  },
+  messages_to_inbox: {
+    id: "labels.messages.to_inbox",
+    defaultMessage: "To Inbox",
+    description: "Short labels on a button, to move a message into the inbox",
+  },
+  messages_body: {
+    id: "labels.messages.body",
+    defaultMessage: "Body",
+    description: "Text of the message",
+  },
+  messages_to: {
+    id: "labels.messages.to",
+    defaultMessage: "To",
+    description: "Where to send the message to",
+  },
+  messages_subject: {
+    id: "labels.messages.subject",
+    defaultMessage: "Subject",
+    description: "Subject line of the message",
+  },
+  increase_font_size: {
+    id: "labels.increase_font_size",
+    defaultMessage: "Increase font size.",
+  },
+  decrease_font_size: {
+    id: "labels.decrease_font_size",
+    defaultMessage: "Decrease font size.",
+  },
+  n_of_m: {
+    id: "labels.n_of_m",
+    defaultMessage: "{n} of {m}",
+    description: "item n in a list of m items.",
   },
 });
 

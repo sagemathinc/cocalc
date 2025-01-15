@@ -49,6 +49,7 @@ export const IDLE_TIMEOUT_MINUTES_DEFAULT = 30;
 
 export const HEALTH_CHECK_DEFAULTS = {
   command: "pwd",
+  initialDelaySeconds: 10 * 60,
   timeoutSeconds: 30,
   periodSeconds: 60,
   failureThreshold: 3,
@@ -77,6 +78,7 @@ export function validatedHealthCheck(
     enabled,
     action,
     timeoutSeconds,
+    initialDelaySeconds,
   } = healthCheck;
   command = `${command}`;
   periodSeconds = parseFloat(
@@ -97,12 +99,19 @@ export function validatedHealthCheck(
   if (timeoutSeconds < 5 || !isFinite(timeoutSeconds)) {
     timeoutSeconds = HEALTH_CHECK_DEFAULTS.timeoutSeconds;
   }
+  initialDelaySeconds = parseFloat(
+    initialDelaySeconds ?? HEALTH_CHECK_DEFAULTS.initialDelaySeconds,
+  );
+  if (initialDelaySeconds < 0 || !isFinite(initialDelaySeconds)) {
+    initialDelaySeconds = HEALTH_CHECK_DEFAULTS.initialDelaySeconds;
+  }
   enabled = !!enabled;
   if (!HEALTH_CHECK_ACTIONS.includes(action)) {
     action = HEALTH_CHECK_DEFAULTS.action;
   }
   return {
     command,
+    initialDelaySeconds,
     timeoutSeconds,
     periodSeconds,
     failureThreshold,
@@ -119,7 +128,8 @@ export interface HealthCheck {
   command: string;
   // timeout for running the command
   timeoutSeconds: number;
-
+  // initial delay
+  initialDelaySeconds: number;
   // period in seconds to wait between running the command
   periodSeconds: number;
   // When a probe fails, CoCalc will try failureThreshold times before doing the action.
@@ -514,6 +524,33 @@ export function spendLimitPeriod(hours) {
   return `${hours} hours`;
 }
 
+const tenAM = new Date();
+tenAM.setHours(10, 0, 0, 0);
+export const DEFAULT_SHUTDOWN_TIME = {
+  epochMs: tenAM.valueOf(),
+  enabled: false,
+};
+
+export interface ShutdownTime {
+  epochMs: number;
+  enabled?: boolean;
+}
+
+export function validatedShutdownTime(
+  shutdownTime?: any,
+): ShutdownTime | undefined {
+  if (shutdownTime == null) {
+    return undefined;
+  }
+  let { epochMs, enabled } = shutdownTime;
+  epochMs = parseFloat(epochMs ?? DEFAULT_SHUTDOWN_TIME.epochMs);
+  if (epochMs < 0 || !isFinite(epochMs)) {
+    epochMs = DEFAULT_SHUTDOWN_TIME.epochMs;
+  }
+  enabled = !!enabled;
+  return { enabled, epochMs };
+}
+
 interface BaseConfiguration {
   // image: name of the image to use, e.g. 'python' or 'pytorch'.
   // images are managed in src/packages/server/compute/images.ts
@@ -558,7 +595,16 @@ interface BaseConfiguration {
   spendLimit?: SpendLimit;
   idleTimeoutMinutes?: number;
   healthCheck?: HealthCheck;
+  // number = ms since epoch defines a time; at *that* time each day, the server is turned off.
+  shutdownTime?: ShutdownTime;
 }
+
+export const AUTOMATIC_SHUTDOWN_FIELDS = [
+  "spendLimit",
+  "idleTimeoutMinutes",
+  "healthCheck",
+  "shutdownTime",
+];
 
 interface LambdaConfiguration extends BaseConfiguration {
   cloud: "lambda-cloud";
@@ -940,7 +986,7 @@ Table({
     },
     state: {
       type: "string",
-      desc: "One of - 'off', 'starting', 'running', 'stopping'.  This is the underlying VM's state.",
+      desc: "One of - 'off', 'starting', 'running', 'stopping', 'deprovisioned' (etc.).  This is the underlying VM's state.",
       pg_type: "VARCHAR(16)",
     },
     autorestart: {

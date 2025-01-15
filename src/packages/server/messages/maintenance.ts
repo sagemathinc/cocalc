@@ -129,7 +129,6 @@ GROUP BY a.account_id,
       account_id,
       first_name,
       last_name,
-      unread_message_count,
       email_address_verified,
       email_address,
       last_message_summary,
@@ -148,7 +147,6 @@ GROUP BY a.account_id,
         account_id,
         first_name,
         last_name,
-        unread_message_count,
         email,
         last_message_summary,
       });
@@ -169,7 +167,6 @@ export async function sendEmailSummary({
   first_name,
   last_name,
   email,
-  unread_message_count,
   last_message_summary,
 }) {
   try {
@@ -204,8 +201,8 @@ export async function sendEmailSummary({
     const url = `https://${dns}${join(basePath, "notifications#page=messages-inbox")}`;
     const signIn = `https://${dns}${join(basePath, "auth", "sign-in")}`;
 
-    const num = unread_message_count <= 1 ? "" : ` (${unread_message_count})`;
-    const subject = `Unread ${siteName} ${plural(unread_message_count, "message")}${num}`;
+    const num = messages.length <= 1 ? "" : ` (${messages.length})`;
+    const subject = `Unread ${siteName} ${plural(messages.length, "message")}${num}`;
 
     const names0 = await getNames(messages.map(({ from_id }) => from_id));
     const names: { [account_id: string]: string } = {};
@@ -284,7 +281,6 @@ ${JSON.stringify({
   first_name,
   last_name,
   email,
-  unread_message_count,
   last_message_summary,
 })}
 

@@ -85,6 +85,14 @@ export default function LogEntry({
           {event.idle_timeout} {plural(event.idle_timeout, "minute")}) {tag}
         </>
       );
+
+    case "shutdown-time":
+      return (
+        <>
+          {cs} - Schedule Shutdown -- shutting down due to a prescheduled daily
+          shutdown time {tag}
+        </>
+      );
     case "spend-limit":
       return (
         <>
