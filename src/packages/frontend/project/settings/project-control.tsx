@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Space } from "antd";
+import { Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -11,7 +11,7 @@ import {
   React,
   redux,
   Rendered,
-  useEffect,
+  useRedux,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -39,6 +39,7 @@ import {
 import * as misc from "@cocalc/util/misc";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
@@ -53,27 +54,14 @@ interface ReactProps {
 
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project, mode = "project" } = props;
+  const { project_id } = useProjectContext();
   const isFlyout = mode === "flyout";
-  const customize_kucalc = useTypedRedux("customize", "kucalc");
   const intl = useIntl();
-
-  //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
-  const [compute_image, set_compute_image] = useState<string>(
-    project.get("compute_image"),
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const compute_image = useRedux(["projects", "project_map", project_id])?.get(
+    "compute_image",
   );
-  const [compute_image_changing, set_compute_image_changing] =
-    useState<boolean>(false);
-  const [compute_image_focused, set_compute_image_focused] =
-    useState<boolean>(false);
-
-  useEffect(() => {
-    if (compute_image_focused) return;
-    const new_image = project.get("compute_image");
-    if (new_image !== compute_image) {
-      set_compute_image(new_image);
-      set_compute_image_changing(false);
-    }
-  }, [compute_image_focused, project.get("compute_image")]);
+  const [computeImgChanging, setComputeImgChanging] = useState<boolean>(false);
 
   function render_state() {
     return (
@@ -159,7 +147,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         <LabeledRow
           key="idle-timeout"
           label={intl.formatMessage(labels.always_running)}
-          style={rowstyle()}
+          style={rowStyle()}
           vertical={isFlyout}
         >
           <Paragraph>
@@ -181,7 +169,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <LabeledRow
         key="idle-timeout"
         label={intl.formatMessage(labels.idle_timeout)}
-        style={rowstyle()}
+        style={rowStyle()}
         vertical={isFlyout}
       >
         {render_idle_timeout()}
@@ -201,7 +189,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <LabeledRow
         key="uptime"
         label={intl.formatMessage(labels.uptime)}
-        style={rowstyle()}
+        style={rowStyle()}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
@@ -232,7 +220,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           id: "project.settings.control.cpu_usage.label",
           defaultMessage: "CPU Usage",
         })}
-        style={rowstyle(true)}
+        style={rowStyle(true)}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
@@ -247,25 +235,16 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function cancel_compute_image(current_image) {
-    set_compute_image(current_image);
-    set_compute_image_changing(false);
-    set_compute_image_focused(false);
-  }
-
-  async function save_compute_image(current_image) {
-    set_compute_image(current_image);
-    set_compute_image_focused(false);
-    set_compute_image_changing(true);
-    const new_image = compute_image;
+  async function saveSelectedComputeImage(new_image: string) {
     const actions = redux.getProjectActions(project.get("project_id"));
     try {
+      setComputeImgChanging(true);
       await actions.set_compute_image(new_image);
       await restart_project();
     } catch (err) {
       alert_message({ type: "error", message: err });
     } finally {
-      set_compute_image_changing(false);
+      setComputeImgChanging(false);
     }
   }
 
@@ -273,12 +252,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)) {
       return;
     }
+
     return (
       <div style={{ marginTop: "10px" }}>
         <LabeledRow
           key="cpu-usage"
           label={intl.formatMessage(labels.software_environment)}
-          style={rowstyle(true)}
+          style={rowStyle(true)}
           vertical={isFlyout}
         >
           {render_select_compute_image()}
@@ -294,7 +274,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <div>
             <Icon name={SOFTWARE_ENVIRONMENT_ICON} /> Custom image:
           </div>
-          <SoftwareImageDisplay image={project.get("compute_image")} />
+          <SoftwareImageDisplay image={compute_image} />
           &nbsp;
           <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
             <br /> You cannot change a custom software image. Instead, create a
@@ -312,58 +292,32 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function onBlur() {
-    // don't unfocus when we selected a different compute image
-    // this will be set to false after either selecting "save&restart" or "cancel"
-    if (project.get("compute_image") === compute_image) {
-      set_compute_image_focused(false);
-    }
-  }
-
   function render_select_compute_image() {
-    const current_image = project.get("compute_image");
-    if (current_image == null) {
-      return;
-    }
-
-    if (current_image.startsWith(CUSTOM_IMG_PREFIX)) {
-      return render_custom_compute_image();
-    }
-
-    const no_value = compute_image == null;
-    if (no_value || compute_image_changing) {
+    if (compute_image == null) {
       return <Loading />;
     }
 
-    // this will at least return a suitable default value
-    const selected_image = compute_image;
+    if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+      return render_custom_compute_image();
+    }
 
     return (
       <div style={{ color: COLORS.GRAY }}>
         <ComputeImageSelector
-          selected_image={selected_image}
+          selected_image={compute_image}
           layout={"dialog"}
-          onFocus={() => set_compute_image_focused(true)}
-          onBlur={onBlur}
-          onSelect={(img) => set_compute_image(img)}
+          onSelect={saveSelectedComputeImage}
+          changing={computeImgChanging}
+          label={intl.formatMessage({
+            id: "project.settings.compute-image-selector.button.save-restart",
+            defaultMessage: "Save and Restart",
+          })}
         />
-
-        {selected_image !== current_image ? (
-          <div style={{ marginTop: "10px" }}>
-            <Button onClick={() => save_compute_image(current_image)} danger>
-              Save and Restart
-            </Button>
-            &nbsp;
-            <Button onClick={() => cancel_compute_image(current_image)}>
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-          </div>
-        ) : undefined}
       </div>
     );
   }
 
-  function rowstyle(delim?): React.CSSProperties | undefined {
+  function rowStyle(delim?): React.CSSProperties | undefined {
     if (!delim) return;
     return {
       borderBottom: "1px solid #ddd",
@@ -383,7 +337,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         <LabeledRow
           key="state"
           label="State"
-          style={rowstyle(true)}
+          style={rowStyle(true)}
           vertical={isFlyout}
         >
           {render_state()}

@@ -5,7 +5,7 @@
 
 import { defineMessages } from "react-intl";
 
-// cSpell:ignore noconf
+// cSpell:ignore noconf collabs nostop
 
 export const labels = defineMessages({
   unique_id_is_missing: {
@@ -36,7 +36,7 @@ export const labels = defineMessages({
   on: {
     id: "labels.on",
     defaultMessage: "on",
-    description: "single word, somthing 'on' something else",
+    description: "single word, something 'on' something else",
   },
   project: {
     id: "labels.project",
@@ -144,7 +144,7 @@ export const labels = defineMessages({
   },
   preferences: { id: "labels.preferences", defaultMessage: "Preferences" },
   purchases: { id: "labels.purchases", defaultMessage: "Purchases" },
-  subscriptions: { id: "labels.subscriptons", defaultMessage: "Subscriptions" },
+  subscriptions: { id: "labels.subscriptions", defaultMessage: "Subscriptions" },
   statements: {
     id: "labels.statements",
     defaultMessage: "Statements",
@@ -625,7 +625,7 @@ export const labels = defineMessages({
     description: "Short label for showing 'more information' about something",
   },
   message_plural: {
-    id: "labels.messsage.plural",
+    id: "labels.message.plural",
     defaultMessage: "{num, plural, one {message} other {messages}}",
   },
   reconnect: {

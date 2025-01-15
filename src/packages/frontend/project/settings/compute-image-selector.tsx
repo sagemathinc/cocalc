@@ -5,11 +5,22 @@
 
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
+// cSpell:ignore descr
+
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Col, Dropdown, MenuProps, Modal, Row, Space } from "antd";
+import {
+  Button,
+  Col,
+  Dropdown,
+  MenuProps,
+  Modal,
+  Row,
+  Space,
+  Spin,
+} from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -23,7 +34,7 @@ import {
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
-import { unreachable } from "@cocalc/util/misc";
+import { capitalize, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 
@@ -50,28 +61,28 @@ const img_sorter = (a, b): number => {
 interface ComputeImageSelectorProps {
   selected_image: string;
   layout: "vertical" | "horizontal" | "compact" | "dialog";
-  onBlur?: () => void;
-  onFocus?: () => void;
-  onSelect: (e) => void;
+  onSelect: (img: string) => void;
   disabled?: boolean;
   size?: SizeType;
+  label: string; // the "okText" on the main button
+  changing?: boolean;
 }
 
-export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
-  props: ComputeImageSelectorProps,
-) => {
+export function ComputeImageSelector(props: ComputeImageSelectorProps) {
   const {
     selected_image,
-    onFocus,
-    onBlur,
     onSelect,
     layout,
     disabled,
     size = "small",
+    label,
+    changing = false,
   } = props;
 
   const intl = useIntl();
 
+  // initialize with the default
+  const [nextImg, setNextImg] = useState<string>(selected_image);
   const [showDialog, setShowDialog] = useState<boolean>(false);
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
@@ -107,7 +118,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   const default_title = compute_image_title(defaultComputeImg);
-  const selected_title = compute_image_title(selected_image);
+  const selected_title = compute_image_title(nextImg);
 
   function render_menu_children(group: string): MenuItem[] {
     return computeEnvs
@@ -147,7 +158,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 
   function getMenu() {
     return {
-      onClick: (e) => onSelect(e.key),
+      onClick: (e) => (layout === "dialog" ? setNextImg : onSelect)(e.key),
       style: { maxHeight: "50vh", overflow: "auto" },
       items: menu_items(),
     };
@@ -156,12 +167,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   function render_selector() {
     return (
       <Dropdown menu={getMenu()} trigger={["click"]} disabled={disabled}>
-        <Button
-          onBlur={onBlur}
-          onFocus={onFocus}
-          size={size}
-          disabled={disabled}
-        >
+        <Button size={size} disabled={disabled}>
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
@@ -169,15 +175,21 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   function render_doubt() {
-    if (selected_image === defaultComputeImg) {
-      return undefined;
-    } else {
-      return (
-        <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
-          <br /> (If in doubt, select "{default_title}")
-        </span>
-      );
-    }
+    return (
+      <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
+        <br />{" "}
+        <FormattedMessage
+          id="project.settings.compute-image-selector.doubt"
+          defaultMessage={`{default, select,
+            true {This is the default selection}
+            other {Note: in doubt, select "{default_title}"}}`}
+          values={{
+            default: selected_image === defaultComputeImg,
+            default_title,
+          }}
+        />
+      </span>
+    );
   }
 
   function render_info(italic: boolean) {
@@ -204,27 +216,31 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   function renderDialogButton() {
     return (
       <>
-        <Button onClick={() => setShowDialog(true)} disabled={showDialog}>
-          Change...
+        <Button
+          onClick={() => setShowDialog(true)}
+          disabled={changing || showDialog}
+          size={size}
+        >
+          <Icon name="edit" /> {intl.formatMessage(labels.change)}...{" "}
+          {changing && <Spin />}
         </Button>
 
         <Modal
           open={showDialog}
-          title={`${intl.formatMessage(labels.change)} ${intl.formatMessage(
-            labels.software_environment,
-          )}`}
-          okText={intl.formatMessage({
-            id: "project.settings.compute-image-selector.button.save-restart",
-            defaultMessage: "Save and Restart",
-          })}
+          title={`${intl.formatMessage(labels.software_environment)}`}
+          okText={label}
           cancelText={<CancelText />}
-          onCancel={() => {
+          onCancel={() => setShowDialog(false)}
+          onOk={() => {
+            onSelect(nextImg);
             setShowDialog(false);
           }}
-          onOk={() => {}}
         >
           <>
-            <Paragraph>Select: {render_selector()}</Paragraph>
+            <Paragraph>
+              {capitalize(intl.formatMessage(labels.select))}{" "}
+              {render_selector()}
+            </Paragraph>
             <Paragraph>{render_info(true)}</Paragraph>
             <Paragraph>{render_doubt()}</Paragraph>
           </>
@@ -293,4 +309,4 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       unreachable(layout);
       return null;
   }
-};
+}
