@@ -229,9 +229,13 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-4" ||
       m === "gpt-4-turbo-preview-8k" ||
       m === "gpt-4o-8k" ||
-      m === "gpt-4o-mini-8k" ||
-      m === "o1-mini-8k" ||
-      m === "o1-8k",
+      m === "gpt-4o-mini-8k",
+
+    // ATTN: there is code for o1 and o1-mini, but it does not work yet.
+    // The API changed, there is no support for streaming, and it took
+    // too much of my time trying to get it to work already.
+    // m === "o1-mini-8k" ||
+    // m === "o1-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>

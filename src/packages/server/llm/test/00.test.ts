@@ -49,16 +49,6 @@ async function llmOpenAI(model: LanguageModelCore) {
     throw new Error(`model: ${model} is not an OpenAI model`);
   }
 
-  // const client = await getClient(model);
-  // if (client == null) {
-  //   throw new Error(`model: ${model} not found`);
-  // }
-  // const answer = await evaluateOpenAI({
-  //   client: client as any,
-  //   model,
-  //   ...QUERY,
-  // });
-
   const answer = await evaluateOpenAILC({
     model,
     ...QUERY,
@@ -85,12 +75,12 @@ test_llm("openai")("OpenAI", () => {
     llmOpenAI("gpt-4o-mini-8k");
   });
 
-  test("gpt o1", async () => {
-    llmOpenAI("o1-8k");
-  });
-  test("gpt o1 mini works", async () => {
-    llmOpenAI("o1-mini-8k");
-  });
+  // test("gpt o1", async () => {
+  //   llmOpenAI("o1-8k");
+  // });
+  // test("gpt o1 mini works", async () => {
+  //   llmOpenAI("o1-mini-8k");
+  // });
 });
 
 // ATTN: does not work everywhere around, geolocation matters
