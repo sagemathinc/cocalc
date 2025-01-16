@@ -144,7 +144,10 @@ export const labels = defineMessages({
   },
   preferences: { id: "labels.preferences", defaultMessage: "Preferences" },
   purchases: { id: "labels.purchases", defaultMessage: "Purchases" },
-  subscriptions: { id: "labels.subscriptions", defaultMessage: "Subscriptions" },
+  subscriptions: {
+    id: "labels.subscriptions",
+    defaultMessage: "Subscriptions",
+  },
   statements: {
     id: "labels.statements",
     defaultMessage: "Statements",
@@ -671,6 +674,12 @@ export const labels = defineMessages({
   nbgrader: {
     id: "labels.nbgrader",
     defaultMessage: "NBgrader",
+  },
+  name: { id: "labels.name", defaultMessage: "Name" },
+  description: { id: "labels.description", defaultMessage: "Description" },
+  no_description: {
+    id: "labels.no_description",
+    defaultMessage: "no description",
   },
   software: {
     id: "labels.software",

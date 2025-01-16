@@ -11,6 +11,9 @@ import { DownOutlined } from "@ant-design/icons";
 import {
   Button,
   Col,
+  Descriptions,
+  DescriptionsProps,
+  Divider,
   Dropdown,
   MenuProps,
   Modal,
@@ -22,8 +25,13 @@ import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  A,
   Gap,
   HelpIcon,
   Icon,
@@ -59,31 +67,40 @@ const img_sorter = (a, b): number => {
 };
 
 interface ComputeImageSelectorProps {
-  selected_image: string;
-  layout: "vertical" | "horizontal" | "compact" | "dialog";
+  current_image: string;
+  layout: "horizontal" | "compact" | "dialog";
   onSelect: (img: string) => void;
   disabled?: boolean;
   size?: SizeType;
-  label: string; // the "okText" on the main button
+  label?: string; // the "okText" on the main button
   changing?: boolean;
 }
 
-export function ComputeImageSelector(props: ComputeImageSelectorProps) {
-  const {
-    selected_image,
-    onSelect,
-    layout,
-    disabled,
-    size = "small",
-    label,
-    changing = false,
-  } = props;
-
+export function ComputeImageSelector({
+  current_image,
+  onSelect,
+  layout,
+  disabled: propsDisabled,
+  size: propsSize,
+  label: propsLabel,
+  changing = false,
+}: ComputeImageSelectorProps) {
   const intl = useIntl();
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
 
-  // initialize with the default
-  const [nextImg, setNextImg] = useState<string>(selected_image);
+  const disabled = propsDisabled ?? false;
+  const size = propsSize ?? "small";
+  const label = propsLabel ?? capitalize(intl.formatMessage(labels.select));
+
+  // initialize with the given default
+  const [nextImg, setNextImg] = useState<string>(current_image);
   const [showDialog, setShowDialog] = useState<boolean>(false);
+
+  // we need to stay on top of incoming changes unless we're in the dialog
+  useEffect(() => {
+    if (showDialog) return;
+    setNextImg(current_image);
+  }, [current_image]);
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
@@ -105,20 +122,19 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
   const defaultComputeImg = software_envs.get("default");
   const GROUPS: string[] = software_envs.get("groups").toJS();
 
-  function compute_image_info(name, type) {
+  function getComputeImgInfo(name, type) {
     return computeEnvs.get(name)?.get(type);
   }
 
-  function compute_image_title(name) {
+  function getComputeImgTitle(name) {
     return (
-      compute_image_info(name, "title") ??
-      compute_image_info(name, "tag") ??
-      name // last resort fallback, in case the img configured in the project no longer exists
+      getComputeImgInfo(name, "title") ?? getComputeImgInfo(name, "tag") ?? name // last resort fallback, in case the img configured in the project no longer exists
     );
   }
 
-  const default_title = compute_image_title(defaultComputeImg);
-  const selected_title = compute_image_title(nextImg);
+  const default_title = getComputeImgTitle(defaultComputeImg);
+  const current_title = getComputeImgTitle(current_image);
+  const selected_title = getComputeImgTitle(nextImg);
 
   function render_menu_children(group: string): MenuItem[] {
     return computeEnvs
@@ -177,14 +193,14 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
   function render_doubt() {
     return (
       <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
-        <br />{" "}
+        <Divider />
         <FormattedMessage
           id="project.settings.compute-image-selector.doubt"
           defaultMessage={`{default, select,
             true {This is the default selection}
             other {Note: in doubt, select "{default_title}"}}`}
           values={{
-            default: selected_image === defaultComputeImg,
+            default: nextImg === defaultComputeImg,
             default_title,
           }}
         />
@@ -192,21 +208,25 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
     );
   }
 
-  function render_info(italic: boolean) {
-    const desc = compute_image_info(selected_image, "descr");
-    const registry = compute_image_info(selected_image, "registry");
-    const tag = compute_image_info(selected_image, "tag");
-    const extra = registry && tag ? `(${registry}:${tag})` : null;
+  function get_info(img: string) {
+    const title = getComputeImgTitle(img);
+    const desc =
+      getComputeImgInfo(img, "descr") ||
+      `(${intl.formatMessage(labels.no_description)})`;
+    const registry = getComputeImgInfo(img, "registry");
+    const tag = getComputeImgInfo(img, "tag");
+    const extra = registry && tag ? `${registry}:${tag}` : null;
+    return { title, desc, registry, tag, extra };
+  }
 
+  function render_info(img: string) {
+    const { desc, extra } = get_info(img);
     return (
       <>
-        <Text italic={italic}>{desc}</Text>
+        <Text>{desc}</Text>
         {extra ? (
           <>
-            {" "}
-            <Text type="secondary" italic={italic}>
-              {extra}
-            </Text>
+            <Text type="secondary"> ({extra})</Text>
           </>
         ) : null}
       </>
@@ -222,7 +242,7 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
           size={size}
         >
           <Icon name="edit" /> {intl.formatMessage(labels.change)}...{" "}
-          {changing && <Spin />}
+          {changing && <Spin size={"small"} />}
         </Button>
 
         <Modal
@@ -238,10 +258,11 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
         >
           <>
             <Paragraph>
-              {capitalize(intl.formatMessage(labels.select))}{" "}
+              {capitalize(intl.formatMessage(labels.select))}
+              {": "}
               {render_selector()}
             </Paragraph>
-            <Paragraph>{render_info(true)}</Paragraph>
+            {renderDialogHelpContent(nextImg)}
             <Paragraph>{render_doubt()}</Paragraph>
           </>
         </Modal>
@@ -249,28 +270,99 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
     );
   }
 
+  function renderDialogHelpContent(img) {
+    const { title, desc, extra } = get_info(img);
+
+    const items: DescriptionsProps["items"] = [
+      {
+        label: intl.formatMessage(labels.name),
+        children: <Text strong>{title}</Text>,
+      },
+      { label: intl.formatMessage(labels.description), children: desc },
+    ];
+
+    if (extra) {
+      items.push({
+        label: "Image", // do not translate, it's a "docker image"
+        children: <Text>{extra}</Text>,
+      });
+    }
+
+    return (
+      <>
+        <Descriptions bordered column={1} size={"small"} items={items} />
+        <Divider />
+        <Paragraph>
+          <FormattedMessage
+            id="project.settings.compute-image-selector.software-env-info"
+            defaultMessage={`The selected software environment provides all the software, this project can make use of.
+            If you need additional software, you can either install it in the project or contact support.
+            Learn about <A1>installing Python packages</A1>,
+            <A2>Python Jupyter Kernel</A2>,
+            <A3>R Packages</A3> and <A4>Julia packages</A4>.`}
+            values={{
+              A1: (c) => (
+                <A
+                  href={"https://doc.cocalc.com/howto/install-python-lib.html"}
+                >
+                  {c}
+                </A>
+              ),
+              A2: (c) => (
+                <A
+                  href={
+                    "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+                  }
+                >
+                  {c}
+                </A>
+              ),
+              A3: (c) => (
+                <A href={"https://doc.cocalc.com/howto/install-r-package.html"}>
+                  {c}
+                </A>
+              ),
+              A4: (c) => (
+                <A
+                  href={
+                    "https://doc.cocalc.com/howto/install-julia-package.html"
+                  }
+                >
+                  {c}
+                </A>
+              ),
+            }}
+          />
+        </Paragraph>
+        {isCoCalcCom ? (
+          <Paragraph>
+            <FormattedMessage
+              id="project.settings.compute-image-selector.software-env-info.cocalc_com"
+              defaultMessage={`Learn more about specific environments in the <A1>software inventory</A1>.
+              Snapshots of what has been available at a specific point in time
+              are available for each line of environments.
+              Only the current default environment is updated regularly.`}
+              values={{
+                A1: (c) => <A href={"https://cocalc.com/software/"}>{c}</A>,
+              }}
+            />
+          </Paragraph>
+        ) : undefined}
+      </>
+    );
+  }
+
+  function renderDialogHelp(img) {
+    return (
+      <HelpIcon title={intl.formatMessage(labels.software_environment)}>
+        {renderDialogHelpContent(img)}
+      </HelpIcon>
+    );
+  }
+
   switch (layout) {
     case "compact":
       return render_selector();
-    case "vertical":
-      // used in project settings → project control
-      return (
-        <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
-          <Col xs={24}>
-            <Icon
-              name={SOFTWARE_ENVIRONMENT_ICON}
-              style={{ marginTop: "5px" }}
-            />
-            <Gap />
-            Selected image
-            <Gap />
-            {render_selector()}
-          </Col>
-          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
-            {render_info(true)}
-          </Col>
-        </Row>
-      );
     case "horizontal":
       // used in projects → create new project
       return (
@@ -282,7 +374,7 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
               {render_selector()}
             </span>
             <Gap />
-            <span>{render_info(false)}</span>
+            <span>{render_info(nextImg)}</span>
           </Col>
         </Row>
       );
@@ -296,10 +388,7 @@ export function ComputeImageSelector(props: ComputeImageSelectorProps) {
                 name={SOFTWARE_ENVIRONMENT_ICON}
                 style={{ marginTop: "5px" }}
               />{" "}
-              {selected_title}{" "}
-              <HelpIcon title={intl.formatMessage(labels.software_environment)}>
-                <Text strong>{selected_title}</Text>: {render_info(false)}
-              </HelpIcon>{" "}
+              {current_title} {renderDialogHelp(current_image)}{" "}
               {renderDialogButton()}
             </Space>
           </Col>

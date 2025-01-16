@@ -26,7 +26,7 @@ import { LICENSES } from "@cocalc/frontend/share/licenses";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { capitalize, trunc, trunc_middle } from "@cocalc/util/misc";
+import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { UnpublishEverything } from "./unpublish-everything";
 
 interface PublicPath extends PublicPath0 {
@@ -288,7 +288,6 @@ export const PublicPaths: React.FC = () => {
 };
 
 function ComputeImage({ compute_image, project_id, path, setError }) {
-  const intl = useIntl();
   const [selectedImage, setSelectedImage] = useState<string>(compute_image);
   const [saving, setSaving] = useState<boolean>(false);
 
@@ -300,9 +299,8 @@ function ComputeImage({ compute_image, project_id, path, setError }) {
     <>
       <ComputeImageSelector
         disabled={saving}
-        selected_image={selectedImage}
+        current_image={selectedImage}
         layout={"compact"}
-        label={capitalize(intl.formatMessage(labels.select))}
         onSelect={async (img) => {
           setSelectedImage(img);
           try {

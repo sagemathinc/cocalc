@@ -11,7 +11,6 @@ import {
   React,
   redux,
   Rendered,
-  useRedux,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -54,13 +53,10 @@ interface ReactProps {
 
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project, mode = "project" } = props;
-  const { project_id } = useProjectContext();
+  const { project_id, compute_image } = useProjectContext();
   const isFlyout = mode === "flyout";
   const intl = useIntl();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
-  const compute_image = useRedux(["projects", "project_map", project_id])?.get(
-    "compute_image",
-  );
   const [computeImgChanging, setComputeImgChanging] = useState<boolean>(false);
 
   function render_state() {
@@ -76,7 +72,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     // will update properly....
     const date = redux
       .getStore("projects")
-      .get_idle_timeout_horizon(project.get("project_id"));
+      .get_idle_timeout_horizon(project_id);
     if (date == null) {
       // e.g., viewing as admin where the info about idle timeout
       // horizon simply isn't known.
@@ -95,16 +91,14 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   async function restart_project() {
-    await redux
-      .getActions("projects")
-      .restart_project(project.get("project_id"));
+    await redux.getActions("projects").restart_project(project_id);
   }
 
   function render_stop_button(commands): Rendered {
     return (
       <StopProject
         size={isFlyout ? "small" : "large"}
-        project_id={project.get("project_id")}
+        project_id={project_id}
         disabled={!commands.includes("stop")}
       />
     );
@@ -114,7 +108,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <RestartProject
         size={isFlyout ? "small" : "large"}
-        project_id={project.get("project_id")}
+        project_id={project_id}
         disabled={!commands.includes("start") && !commands.includes("stop")}
       />
     );
@@ -140,9 +134,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (project.getIn(["state", "state"]) !== "running") {
       return;
     }
-    if (
-      redux.getStore("projects").is_always_running(project.get("project_id"))
-    ) {
+    if (redux.getStore("projects").is_always_running(project_id)) {
       return (
         <LabeledRow
           key="idle-timeout"
@@ -236,7 +228,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   async function saveSelectedComputeImage(new_image: string) {
-    const actions = redux.getProjectActions(project.get("project_id"));
+    const actions = redux.getProjectActions(project_id);
     try {
       setComputeImgChanging(true);
       await actions.set_compute_image(new_image);
@@ -302,18 +294,16 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     }
 
     return (
-      <div style={{ color: COLORS.GRAY }}>
-        <ComputeImageSelector
-          selected_image={compute_image}
-          layout={"dialog"}
-          onSelect={saveSelectedComputeImage}
-          changing={computeImgChanging}
-          label={intl.formatMessage({
-            id: "project.settings.compute-image-selector.button.save-restart",
-            defaultMessage: "Save and Restart",
-          })}
-        />
-      </div>
+      <ComputeImageSelector
+        current_image={compute_image}
+        layout={"dialog"}
+        onSelect={saveSelectedComputeImage}
+        changing={computeImgChanging}
+        label={intl.formatMessage({
+          id: "project.settings.compute-image-selector.button.save-restart",
+          defaultMessage: "Save and Restart",
+        })}
+      />
     );
   }
 
@@ -349,19 +339,19 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           {!isFlyout ? (
             <CopyToClipBoard
               inputWidth={"330px"}
-              value={project.get("project_id")}
+              value={project_id}
               style={{ display: "inline-block", width: "100%", margin: 0 }}
             />
           ) : (
             <Paragraph
               copyable={{
-                text: project.get("project_id"),
+                text: project_id,
                 tooltips: ["Copy Project ID", "Copied!"],
               }}
               code
               style={{ marginBottom: 0 }}
             >
-              {project.get("project_id")}
+              {project_id}
             </Paragraph>
           )}
         </LabeledRow>

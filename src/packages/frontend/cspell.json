@@ -27,7 +27,15 @@
     "undelete",
     "undeleting"
   ],
-  "ignoreWords": ["vfill", "ipynb", "Popconfirm"],
+  "ignoreWords": [
+    "antd",
+    "ipynb",
+    "kernelspec",
+    "mistralai",
+    "Popconfirm",
+    "vertexai",
+    "vfill"
+  ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
   "allowCompoundWords": false,
