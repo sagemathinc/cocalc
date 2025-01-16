@@ -6,6 +6,7 @@
 import { Alert, Button, Checkbox, Space, Spin, Table } from "antd";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   React,
   redux,
@@ -298,7 +299,7 @@ function ComputeImage({ compute_image, project_id, path, setError }) {
     <>
       <ComputeImageSelector
         disabled={saving}
-        selected_image={selectedImage}
+        current_image={selectedImage}
         layout={"compact"}
         onSelect={async (img) => {
           setSelectedImage(img);
