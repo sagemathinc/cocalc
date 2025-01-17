@@ -5,6 +5,8 @@
 
 import { defineMessages } from "react-intl";
 
+// cSpell:ignore noconf collabs nostop
+
 export const labels = defineMessages({
   unique_id_is_missing: {
     defaultMessage: "unique id missing",
@@ -34,7 +36,7 @@ export const labels = defineMessages({
   on: {
     id: "labels.on",
     defaultMessage: "on",
-    description: "single word, somthing 'on' something else",
+    description: "single word, something 'on' something else",
   },
   project: {
     id: "labels.project",
@@ -81,17 +83,17 @@ export const labels = defineMessages({
     description: "Label for Account/Last name:",
   },
   account_password: {
-    id: "labels.acconut.password",
+    id: "labels.account.password",
     defaultMessage: "Password",
     description: "The label of the password field",
   },
   account_password_change: {
-    id: "labels.acconut.password.change",
+    id: "labels.account.password.change",
     defaultMessage: "Change Password",
     description: "Button label for changing the password",
   },
   account_password_forgot: {
-    id: "labels.acconut.password.forgot",
+    id: "labels.account.password.forgot",
     defaultMessage: "Forgot Password?",
     description: "Label on link to reset password",
   },
@@ -142,7 +144,10 @@ export const labels = defineMessages({
   },
   preferences: { id: "labels.preferences", defaultMessage: "Preferences" },
   purchases: { id: "labels.purchases", defaultMessage: "Purchases" },
-  subscriptions: { id: "labels.subscriptons", defaultMessage: "Subscriptions" },
+  subscriptions: {
+    id: "labels.subscriptions",
+    defaultMessage: "Subscriptions",
+  },
   statements: {
     id: "labels.statements",
     defaultMessage: "Statements",
@@ -304,13 +309,13 @@ export const labels = defineMessages({
     id: "labels.ai_generate_label",
     defaultMessage: "Help me write...",
     description:
-      "Label on the menu enty to open the AI Assistant for generating documents",
+      "Label on the menu entry to open the AI Assistant for generating documents",
   },
   ai_generate_title: {
     id: "labels.ai_generate_title",
     defaultMessage: "Create a new file with the help of AI",
     description:
-      "Tooltip on the menu enty to open the AI Assistant for generating documents",
+      "Tooltip on the menu entry to open the AI Assistant for generating documents",
   },
   stop: {
     id: "labels.stop",
@@ -623,7 +628,7 @@ export const labels = defineMessages({
     description: "Short label for showing 'more information' about something",
   },
   message_plural: {
-    id: "labels.messsage.plural",
+    id: "labels.message.plural",
     defaultMessage: "{num, plural, one {message} other {messages}}",
   },
   reconnect: {
@@ -639,11 +644,11 @@ export const labels = defineMessages({
     defaultMessage: "Config",
   },
   configuration: {
-    id: "labels.configuraion",
+    id: "labels.configuration",
     defaultMessage: "Configuration",
   },
   configuration_short: {
-    id: "labels.configuraion.short",
+    id: "labels.configuration.short",
     defaultMessage: "Config",
   },
   title: {
@@ -669,6 +674,12 @@ export const labels = defineMessages({
   nbgrader: {
     id: "labels.nbgrader",
     defaultMessage: "NBgrader",
+  },
+  name: { id: "labels.name", defaultMessage: "Name" },
+  description: { id: "labels.description", defaultMessage: "Description" },
+  no_description: {
+    id: "labels.no_description",
+    defaultMessage: "no description",
   },
   software: {
     id: "labels.software",

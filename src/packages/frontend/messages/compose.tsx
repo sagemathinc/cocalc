@@ -433,6 +433,7 @@ export default function Compose({
               <>
                 <FormattedMessage
                   id="messages.send.label"
+                  // cSpell:ignore nosubject
                   defaultMessage={`Send (shift+enter){nosubject, select, true { - enter subject above} other {}}`}
                   values={{ nosubject: !subject.trim() }}
                   description={"Send button for sending a message to someone."}

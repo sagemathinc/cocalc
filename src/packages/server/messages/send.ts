@@ -2,16 +2,17 @@
 Send an internal message via cocalc's internal messaging system.
 */
 
-import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
-import basePath from "@cocalc/backend/base-path";
 import { join } from "path";
-import type { Message } from "@cocalc/util/db-schema/messages";
-import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { getSupportAccountId } from "./support-account";
+
+import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
+import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import isValidAccount from "@cocalc/server/accounts/is-valid-account";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import type { Message } from "@cocalc/util/db-schema/messages";
+import { getSupportAccountId } from "./support-account";
 
 const logger = getLogger("server:messages:send");
 

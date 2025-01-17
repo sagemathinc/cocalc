@@ -177,6 +177,7 @@
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {
+    "@cspell/dict-typescript": "^3.2.0",
     "@formatjs/cli": "^6.2.12",
     "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
@@ -190,6 +191,7 @@
     "@types/react-dom": "^18.3.0",
     "@types/react-redux": "^7.1.25",
     "coffeescript": "^2.5.1",
+    "cspell": "^8.17.2",
     "mocha": "^10.0.0",
     "react-test-renderer": "^18.2.0",
     "type-fest": "^3.3.0"
@@ -207,7 +209,8 @@
     "i18n:upload": "bash ./i18n/bin/upload.sh",
     "i18n:download": "bash ./i18n/bin/download.sh",
     "i18n:compile": "bash ./i18n/bin/compile.sh",
-    "i18n:unused": "bash ./i18n/bin/unused.sh"
+    "i18n:unused": "bash ./i18n/bin/unused.sh",
+    "spellcheck": "git ls-files \"*.ts\" \"*.tsx\" | xargs cspell --config cspell.json"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {

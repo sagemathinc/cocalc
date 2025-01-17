@@ -17,11 +17,10 @@ is broken.
 
 */
 
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import send from "./send";
-import getAdmins from "@cocalc/server/accounts/admins";
 import { getLogger } from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
+import getAdmins from "@cocalc/server/accounts/admins";
+import send from "./send";
 
 const logger = getLogger("server:messages:admin");
 
@@ -75,12 +74,9 @@ export default async function adminAlert({
       logger.debug("no admins so nothing to do");
       return;
     }
-    const { support_account_id } = await getServerSettings();
-    const from_id = support_account_id ? support_account_id : to_ids[0];
     return await send({
       subject: `Admin Alert - ${subject}`,
       body: toString(body) + stack,
-      from_id,
       to_ids,
       dedupMinutes,
     });
