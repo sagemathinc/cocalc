@@ -2,6 +2,8 @@
 Create a stripe checkout session for this user.
 
 See https://stripe.com/docs/api/checkout/sessions
+
+!!!!!WARNING!!!!! Maybe this isn't used anymore?!  See also server/purchases/stripe/get-checkout-session.ts !
 */
 
 import getConn from "@cocalc/server/stripe/connection";
