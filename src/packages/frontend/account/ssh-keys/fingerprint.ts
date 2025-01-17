@@ -15,6 +15,12 @@ export function compute_fingerprint(pub: string | undefined): string {
     throw new Error("No valid SSH key value");
   }
   const pubbuffer = Buffer.from(pub, "base64");
-  const key = md5(pubbuffer);
+  const key = md5(
+    new Uint8Array(
+      pubbuffer.buffer,
+      pubbuffer.byteOffset,
+      pubbuffer.byteLength,
+    ),
+  );
   return colons(key);
 }

@@ -24,5 +24,10 @@ export function bufferToBase64(buffer: ArrayBuffer | ArrayBufferView): string {
 
 // Convert a base64 string to an ArrayBuffer.
 export function base64ToBuffer(base64: string): ArrayBuffer {
-  return toUint8Array(base64).buffer;
+  const buffer = toUint8Array(base64).buffer;
+  // Typescript 5.7 related: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/
+  if (buffer instanceof SharedArrayBuffer) {
+    throw new Error("SharedArrayBuffer is not supported");
+  }
+  return buffer;
 }
