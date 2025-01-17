@@ -33,6 +33,7 @@ import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
 import getConn from "@cocalc/server/stripe/connection";
 import { isValidUUID } from "@cocalc/util/misc";
+import { url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -282,7 +283,7 @@ export async function studentPayAssertNotPaying({ project_id }) {
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
     if (intent.status != "canceled" && intent.status != "succeeded") {
       throw Error(
-        `There is an outstanding payment for this course right now.  Pay that invoice or cancel it.`,
+        `There is an outstanding payment for this course right now (payment intent id ${payment_intent_id}).  [Pay that invoice or cancel it](${await url("settings/payments")}).`,
       );
     }
   }
