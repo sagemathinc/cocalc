@@ -737,7 +737,7 @@ export class CourseStore extends Store<CourseState> {
     //                        (only present if peer grading enabled; similar for peer below)
     //  not_peer_assignment - number of students who have NOT received peer assignment
     //  peer_collect        - number of students from whom we have collected peer grading
-    //  not_peer_collect    - number of students from whome we have NOT collected peer grading
+    //  not_peer_collect    - number of students from whom we have NOT collected peer grading
     //  return_graded       - number of students to whom we've returned assignment
     //  not_return_graded   - number of students to whom we've NOT returned assignment
     //                        but we collected it from them *and* either assigned a grade or skip grading

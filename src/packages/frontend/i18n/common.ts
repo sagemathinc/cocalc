@@ -38,6 +38,17 @@ export const labels = defineMessages({
     defaultMessage: "on",
     description: "single word, something 'on' something else",
   },
+  yes: {
+    id: "labels.yes",
+    defaultMessage: "Yes",
+    description:
+      "A confirmation response, typically used in dialogs or prompts.",
+  },
+  no: {
+    id: "labels.no",
+    defaultMessage: "No",
+    description: "A denial response, often used in dialogs or prompts.",
+  },
   project: {
     id: "labels.project",
     defaultMessage: "Project",
