@@ -1,15 +1,16 @@
+import { randomBytes } from "crypto";
+
+import { db } from "@cocalc/database";
+import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createAccount from "@cocalc/server/accounts/create-account";
-import { uuid } from "@cocalc/util/misc";
-import { randomBytes } from "crypto";
-import getPool from "@cocalc/database/pool";
 import { callback2 } from "@cocalc/util/async-utils";
-import { db } from "@cocalc/database";
+import { uuid } from "@cocalc/util/misc";
 
-export async function getSupportAccountId() {
+export async function getSupportAccountId(): Promise<string> {
   const { support_account_id } = await getServerSettings();
   if (support_account_id) {
-    return support_account_id;
+    return support_account_id as string;
   }
   return await createSupportAccount();
 }

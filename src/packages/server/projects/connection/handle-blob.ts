@@ -39,7 +39,11 @@ export default async function handleBlob({
   socket.write_mesg("json", resp);
 }
 
-async function saveBlob({ project_id, uuid, blob }): Promise<number> {
+async function saveBlob({
+  project_id,
+  uuid,
+  blob,
+}: Pick<Options, "project_id" | "uuid" | "blob">): Promise<number> {
   logger.debug("saving blob in ", project_id, " with uuid ", uuid);
   // return ttl in seconds.
   if (!isValidUUID(project_id)) throw Error("project_id is invalid");
@@ -47,14 +51,14 @@ async function saveBlob({ project_id, uuid, blob }): Promise<number> {
   if (!blob) throw Error("blob is required");
   if (uuid != uuidsha1(blob)) {
     throw Error(
-      `uuid must be the sha1-uuid of blob but got ${uuid} != ${uuidsha1(blob)}`
+      `uuid must be the sha1-uuid of blob but got ${uuid} != ${uuidsha1(blob)}`,
     );
   }
   if (blob.length > MAX_BLOB_SIZE) {
     throw Error(
       `saveBlob: blobs are limited to ${MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size ${
         blob.length / 1000000
-      }MB`
+      }MB`,
     );
   }
   const database = db();

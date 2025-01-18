@@ -9,6 +9,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { isLocale } from "@cocalc/util/i18n/const";
+import { join } from "path";
 
 export async function signInUsingImpersonateToken({ req, res }) {
   try {
@@ -42,7 +43,7 @@ async function doIt({ req, res }) {
   });
 
   const { dns } = await getServerSettings();
-  let target = `https://${dns}${base_path}app`;
+  let target = `https://${dns}${join(base_path, "app")}`;
 
   // if lang_temp is a locale, then append it as a query parameter.
   // This is usally "en" to help admins understanding the UI without changing the user's language preferences.

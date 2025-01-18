@@ -6,14 +6,20 @@ import { createHash } from "crypto";
 
 // compute sha1 hash of data in hex
 export function sha1(data: Buffer | string): string {
-  if (typeof data === "string") {
-    // CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
-    // the wrong result where wrong means that it doesn't agree with the frontend version defined
-    // in misc.
-    data = Buffer.from(data);
-  }
   const sha1sum = createHash("sha1");
-  sha1sum.update(data);
+
+  if (typeof data === "string") {
+    sha1sum.update(data, "utf8");
+  } else {
+    // Convert Buffer to Uint8Array
+    const uint8Array = new Uint8Array(
+      data.buffer,
+      data.byteOffset,
+      data.byteLength,
+    );
+    sha1sum.update(uint8Array);
+  }
+
   return sha1sum.digest("hex");
 }
 

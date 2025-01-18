@@ -75,7 +75,7 @@ export function VerifyEmail() {
         <FormattedMessage
           id="app.verify-email-banner.text"
           defaultMessage={`{sent, select,
-            true {Sent! Plesae check your email inbox (maybe spam) and click on the confirmation link.}
+            true {Sent! Please check your email inbox (and maybe spam) and click on the confirmation link.}
             other {Please check and verify your email address: <code>{email}</code>}}`}
           values={{
             sent,

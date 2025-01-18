@@ -302,7 +302,7 @@ export class IpywidgetsState extends EventEmitter {
       const cur = this.buffers[model_id][path];
       if (cur?.hash == hash) {
         buffer_paths.push(JSON.parse(path));
-        buffers.push(cur.buffer);
+        buffers.push(new Uint8Array(cur.buffer).buffer);
         return;
       }
     };

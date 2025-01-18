@@ -641,7 +641,7 @@ When showing lists of distinct threads:
 
 When showing messages in a thread:
 
-   Just show the unqiue sender.
+   Just show the unique sender.
 
 */
 

@@ -38,7 +38,6 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import getURL from "@cocalc/frontend/support/url";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -434,31 +433,6 @@ export const NewProjectCreator: React.FC<Props> = ({
               >
                 Create Project
                 {requireLicense && !license_id && <> (select license above)</>}
-              </Button>
-              <Button
-                target="_blank"
-                href={getURL({
-                  subject: "Instructor Free Trial Request",
-                  type: "purchase",
-                  hideExtra: true,
-                  body: `
-I need a trial license so I can setup a course that I am teaching:
-
-INSTITUTION:   REQUIRED
-
-YOUR WEBPAGE:   REQUIRED
-
-NAME OF COURSE:   REQUIRED
-
-NUMBER OF STUDENTS:   REQUIRED
-
-ANYTHING ELSE?
-
-`,
-                  required: "REQUIRED",
-                })}
-              >
-                <Icon name="graduation-cap" /> Instructor Free Trial...
               </Button>
             </Space>
           </Col>
