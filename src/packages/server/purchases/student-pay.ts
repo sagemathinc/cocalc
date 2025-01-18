@@ -308,7 +308,11 @@ export async function studentPayAssertNotPaying({ project_id }) {
   if (payment_intent_id) {
     const stripe = await getConn();
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
-    if (intent.status != "canceled" && intent.status != "succeeded") {
+    if (
+      intent.status != "canceled" &&
+      intent.status != "succeeded" &&
+      intent.metadata["deleted"] != "true"
+    ) {
       throw Error(
         `There is an outstanding payment for this course right now (payment intent id ${payment_intent_id}).  [Pay that invoice or cancel it](${await url("settings/payments")}).`,
       );
