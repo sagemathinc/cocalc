@@ -257,7 +257,34 @@ export async function studentPaySetPaymentIntent({
   project_id,
   paymentIntentId,
 }) {
+  logger.debug("studentPaySetPaymentIntent", { project_id, paymentIntentId });
   const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT course#>>'{payment_intent_id}' as payment_intent_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const current = rows[0]?.payment_intent_id;
+  if (current) {
+    const stripe = await getConn();
+    const currentIntent = await stripe.paymentIntents.retrieve(current);
+    if (
+      currentIntent.status != "succeeded" &&
+      currentIntent.status != "canceled" &&
+      currentIntent.metadata["deleted"] != "true"
+    ) {
+      logger.debug(
+        "studentPaySetPaymentIntent",
+        {
+          project_id,
+        },
+        "NOT changing, since there is already a payment intent set that is not deleted and is active",
+      );
+      // there is already an unfinished payment intent for this course.  do
+      // not change it.  User has to explicitly cancel or pay existing one.
+      return;
+    }
+  }
+
   // OK, set the payment intent.
   // paymentIntentId only comes directly from stripe, not the user, so no danger of SQL injection,
   // but we are still careful!

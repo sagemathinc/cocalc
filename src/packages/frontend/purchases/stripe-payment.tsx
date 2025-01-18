@@ -459,6 +459,7 @@ function PaymentForm({ style, onFinished, paymentIntent }) {
           success={success}
           isSubmitting={isSubmitting}
           cancellablePaymentIntentId={!finalized ? paymentIntent.id : undefined}
+          cancelText="Close"
           onCancel={() => {
             onFinished?.();
           }}
@@ -484,6 +485,7 @@ export function ConfirmButton({
   onCancel,
   showAddress,
   cancellablePaymentIntentId,
+  cancelText,
 }: {
   disabled?: boolean;
   onClick;
@@ -493,6 +495,7 @@ export function ConfirmButton({
   notPrimary?: boolean;
   onCancel?: Function;
   showAddress?: boolean;
+  cancelText?: string;
   // if given, also include button to cancel the given payment intent
   cancellablePaymentIntentId?: string;
 }) {
@@ -506,7 +509,7 @@ export function ConfirmButton({
               onClick={() => onCancel()}
               style={{ height: "44px" }}
             >
-              Cancel
+              {cancelText ?? "Cancel"}
             </Button>
           )}
           <Button
