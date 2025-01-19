@@ -130,9 +130,9 @@ export async function getAccountIdFromStripeCustomerId(
   return rows[0]?.account_id;
 }
 
-// [ ] TODO!?
+// could this be done better?
 export async function defaultReturnUrl() {
-  const return_url = url();
+  const return_url = await url();
   return return_url;
 }
 
@@ -142,10 +142,11 @@ export function assertValidUserMetadata(metadata) {
     metadata?.account_id != null ||
     metadata?.confirm != null ||
     metadata?.processed != null ||
+    metadata?.recorded != null ||
     metadata?.total_excluding_tax_usd != null
   ) {
     throw Error(
-      "metadata must not include 'purpose', 'account_id', 'confirm', 'total_excluding_tax_usd' or 'processed' as a key",
+      "metadata must not include 'purpose', 'account_id', 'confirm', 'total_excluding_tax_usd', 'recorded', or 'processed' as a key",
     );
   }
 }
