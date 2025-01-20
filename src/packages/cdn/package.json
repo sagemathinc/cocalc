@@ -8,8 +8,8 @@
     "cocalc"
   ],
   "devDependencies": {
-    "codemirror": "^5.65.3",
-    "katex": "^0.16.10"
+    "codemirror": "^5.65.18",
+    "katex": "^0.16.21"
   },
   "scripts": {
     "clean": "rm -rf build node_modules dist",
