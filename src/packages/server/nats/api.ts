@@ -5,6 +5,12 @@ To do development turn off nats-server handling for the hub, and run this script
 
     echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
     
+Optional: start more servers -- requests get randomly routed to exactly one of them:
+
+    echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
+    echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
+    
+    
 To make use of this from a browser:
 
     await cc.client.nats_client.api({endpoint:"customize", params:{fields:['siteName']}})
@@ -26,8 +32,8 @@ const logger = getLogger("server:nats");
 const jc = JSONCodec();
 
 export async function initAPI(nc) {
-  logger.debug("initAPI -- NATS api.v2 subject");
-  const sub = nc.subscribe("api.v2");
+  logger.debug("initAPI -- subject='hub.api', options=", { queue: "0" });
+  const sub = nc.subscribe("hub.api", { queue: "0" });
   for await (const mesg of sub) {
     handleApiRequest(mesg);
   }
@@ -39,7 +45,7 @@ async function handleApiRequest(mesg) {
   try {
     // TODO: obviously user-provided account_id is no good!  This is a POC.
     const { endpoint, account_id, params } = request as any;
-    logger.debug("handling api.v2 request:", { endpoint });
+    logger.debug("handling hub.api request:", { endpoint });
     resp = await getResponse(endpoint, account_id, params);
   } catch (err) {
     resp = { error: `${err}` };

@@ -35,7 +35,7 @@ export class NatsClient {
   api = async ({ endpoint, params }: { endpoint: string; params?: object }) => {
     const c = await this.getConnection();
     const resp = await c.request(
-      "api.v2",
+      "hub.api",
       // obviously passing account_id is temporary -- need to use JWT.
       this.jc.encode({
         endpoint,
