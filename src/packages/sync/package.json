@@ -34,7 +34,7 @@
     "@types/lodash": "^4.14.202",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "debug": "^4.3.4",
+    "debug": "^4.4.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
