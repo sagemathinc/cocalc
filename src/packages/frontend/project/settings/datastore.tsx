@@ -29,7 +29,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { FormattedMessage, useIntl } from "react-intl";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -50,6 +50,7 @@ import Password, {
 } from "@cocalc/frontend/components/password";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
 import { FLYOUT_PADDING } from "../page/flyouts/consts";
@@ -58,9 +59,11 @@ import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { RestartProject } from "./restart-project";
 import { DatastoreConfig as Config } from "./types";
 
-const SECRET_TOOLTIP = `\nSecrets can't be edited. Keep the field empty to retain the current value, or enter a new secret to replace the existing one.`;
-
-const DOC = "https://doc.cocalc.com/project-settings.html#datastore";
+const SECRET_TOOLTIP = defineMessage({
+  id: "project.settings.datastore.secrets_info",
+  defaultMessage: `<b>Secrets are hidden!</b>
+  Either keep the field empty to retain the current secret – or enter a new secret to replace the existing one.`,
+});
 
 const RULE_REQUIRED = [
   { required: true, message: "This is a required field." },
@@ -304,6 +307,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     if (record == null) return;
     const conf: Config = { ...record };
     conf.secret = "";
+    delete conf.about;
     set_new_config(conf);
     set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
     setEditMode(true);
@@ -500,6 +504,43 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_help_content() {
+    return (
+      <FormattedMessage
+        id="project.settings.datastore-help"
+        defaultMessage={`
+        <p>
+          This configuration allows you to mount a cloud store (a remote
+          collection of file-like objects) or a remote file-system into a
+          CoCalc project. The configuration is passed on to the back-end and
+          activated upon project startup. The project must have access to
+          the internet (i.e. an active license attached to it).
+        </p>
+        <p>
+          If everything works out fine, you will be able to access the data
+          at "/data/[name]". As a convenience and if ~/data is not taken yet,
+          a symlink will point from ~/data/[name] to the mounted  directory.
+        </p>
+        <p>
+          For security, the secret stays hidden. Keep the credentials text
+          empty in order to keep it as it is – otherwise it gets replaced by
+          the newly entered value.
+        </p>
+        <p>
+          More information: {doc}
+        </p>`}
+        values={{
+          p: (c) => <p>{c}</p>,
+          doc: (
+            <A href={DOC_CLOUD_STORAGE_URL}>
+              Project Settings / Cloud Storage & Remote File Systems
+            </A>
+          ),
+        }}
+      />
+    );
+  }
+
   function render_help() {
     if (!show_help) return;
     return (
@@ -507,42 +548,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         showIcon={false}
         banner
         type="info"
-        message={
-          <div>
-            <FormattedMessage
-              id="project.settings.datastore-help"
-              defaultMessage={`
-              <p>
-                This configuration allows you to mount a cloud store (a remote
-                collection of file-like objects) or a remote file-system into a
-                CoCalc project. The configuration is passed on to the back-end and
-                activated upon project startup. The project must have access to
-                the internet (i.e. an active license attached to it).
-              </p>
-              <p>
-                If everything works out fine, you will be able to access the data
-                at "/data/[name]". As a convenience and if ~/data is not taken yet,
-                a symlink will point from ~/data/[name] to the mounted  directory.
-              </p>
-              <p>
-                For security, the secret stays hidden. Keep the credentials text
-                empty in order to keep it as it is – otherwise it gets replaced by
-                the newly entered value.
-              </p>
-              <p>
-                More information: {doc}
-              </p>`}
-              values={{
-                p: (c) => <p>{c}</p>,
-                doc: (
-                  <A href={DOC}>
-                    Project Settings / Cloud Storage & Remote File Systems
-                  </A>
-                ),
-              }}
-            />
-          </div>
-        }
+        message={<div>{render_help_content()}</div>}
       />
     );
   }
@@ -615,10 +621,17 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function render_new_config() {
     if (new_config == null) return;
+    const title = (
+      <>
+        {new_config.type.toUpperCase()}{" "}
+        {intl.formatMessage(labels.configuration)} (
+        <A href={DOC_CLOUD_STORAGE_URL}>Help</A>)
+      </>
+    );
     return (
       <Modal
         open={new_config != null}
-        title={`${new_config.type.toUpperCase()} configuration`}
+        title={title}
         okText={intl.formatMessage(labels.save)}
         cancelText={intl.formatMessage(labels.cancel)}
         onOk={() => {
@@ -655,7 +668,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           onClick={reload}
           style={{ float: "right", marginTop: "-7px" }}
         >
-          cancel
+          {intl.formatMessage(labels.reload)}
         </Button>
       </>
     );
@@ -681,11 +694,17 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 });
 
 function FormName() {
+  const intl = useIntl();
+
   return (
     <Form.Item
       label="Name"
       name="name"
       rules={RULE_ALPHANUM}
+      help={intl.formatMessage({
+        id: "project.settings.datastore.form.name.help",
+        defaultMessage: "Short, alphanumeric identifier. e.g. 'foo'",
+      })}
       tooltip={
         <div>
           Choose a name.
@@ -724,6 +743,8 @@ function NewSSHFS({
   isFlyout,
   editMode,
 }) {
+  const intl = useIntl();
+
   const pk_help =
     "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
   const pk_example =
@@ -764,7 +785,7 @@ function NewSSHFS({
         label="Private Key"
         name="secret"
         tooltip={pk_help}
-        help={editMode ? SECRET_TOOLTIP : undefined}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <PasswordTextArea rows={5} placeholder={pk_example} visibilityToggle />
       </Form.Item>
@@ -785,6 +806,8 @@ function NewGCS({
   isFlyout,
   editMode,
 }) {
+  const intl = useIntl();
+
   const creds_help =
     "JSON formatted content of the service account credentials file.";
   const msg_bucket = "Name of the S3 bucket";
@@ -809,7 +832,7 @@ function NewGCS({
         label="Credentials"
         name="secret"
         tooltip={creds_help}
-        help={editMode ? SECRET_TOOLTIP : undefined}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <PasswordTextArea rows={5} placeholder={creds_help} visibilityToggle />
       </Form.Item>
@@ -830,6 +853,8 @@ function NewS3({
   isFlyout,
   editMode,
 }) {
+  const intl = useIntl();
+
   return (
     <ConfigForm
       form={form_s3}
@@ -859,7 +884,7 @@ function NewS3({
         label="Secret"
         name="secret"
         tooltip={`The secret key.`}
-        help={editMode ? SECRET_TOOLTIP : undefined}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <Password placeholder="fie$kf2&ifw..." visibilityToggle />
       </Form.Item>
