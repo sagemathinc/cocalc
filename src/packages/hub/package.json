@@ -34,7 +34,7 @@
     "cookie-parser": "^1.4.3",
     "cookies": "^0.8.0",
     "cors": "^2.8.5",
-    "debug": "^4.3.2",
+    "debug": "^4.4.0",
     "escape-html": "^1.0.3",
     "express": "^4.21.2",
     "formidable": "^3.5.1",
