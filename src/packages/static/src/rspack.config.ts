@@ -34,20 +34,22 @@ webpack website.  Differences include:
 
 "use strict";
 
-import { ProvidePlugin, SwcJsMinimizerRspackPlugin } from "@rspack/core";
+import { Configuration } from "@rspack/cli";
 import type { WebpackPluginInstance } from "@rspack/core";
-import { resolve as path_resolve } from "path";
+import { ProvidePlugin, SwcJsMinimizerRspackPlugin } from "@rspack/core";
 import { execSync } from "child_process";
+import { resolve as path_resolve } from "path";
+
+import getLogger from "@cocalc/backend/logger";
+import { versions as CDN_VERSIONS } from "@cocalc/cdn";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
 import { SITE_NAME as TITLE } from "@cocalc/util/theme";
-import { versions as CDN_VERSIONS } from "@cocalc/cdn";
+import moduleRules from "./module-rules";
+import appLoaderPlugin from "./plugins/app-loader";
 import bannerPlugin from "./plugins/banner";
 import cleanPlugin from "./plugins/clean";
-import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import hotModuleReplacementPlugin, { getHotMiddlewareUrl } from "./plugins/hot";
-import moduleRules from "./module-rules";
-import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("rspack.config");
 
@@ -61,7 +63,19 @@ interface Options {
   middleware?: boolean;
 }
 
-export default function getConfig({ middleware }: Options = {}): any {
+// NOTE: the JSDoc below is necessary, because otherwise the import in rspack.config.js causes
+// TS2742: The inferred type of 'getConfig' cannot be named without a reference to
+// '.pnpm/@rspack+binding@1.1.1/node_modules/@rspack/binding'.
+// This is likely not portable. A type annotation is necessary.
+
+/**
+ * Gets the configuration for RSPack.
+ *
+ * @param {Object} [options={}] - The options for configuring RSPack.
+ * @param {boolean} [options.middleware] - Indicates whether to enable middleware.
+ * @returns {Configuration} The RSPack configuration object.
+ */
+export default function getConfig({ middleware }: Options = {}): Configuration {
   // Determine the git revision hash:
   const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
   const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
@@ -86,7 +100,7 @@ export default function getConfig({ middleware }: Options = {}): any {
   console.log(`MEASURE             = ${MEASURE}`);
   console.log(`OUTPUT              = ${OUTPUT}`);
   console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
-  console.log(`RSPACK_DEV_SERVER  = ${RSPACK_DEV_SERVER}`);
+  console.log(`RSPACK_DEV_SERVER   = ${RSPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
   function registerPlugin(
@@ -151,7 +165,7 @@ export default function getConfig({ middleware }: Options = {}): any {
     return v;
   }
 
-  const config = {
+  const config: Configuration = {
     // this makes things 10x slower:
     //cache: RSPACK_DEV_SERVER || PRODMODE ? false : true,
     ignoreWarnings: [/Failed to parse source map/],
@@ -183,9 +197,7 @@ export default function getConfig({ middleware }: Options = {}): any {
       filename: PRODMODE ? "[name]-[chunkhash].js" : "[id]-[chunkhash].js",
       chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
     },
-    module: {
-      rules: moduleRules(RSPACK_DEV_SERVER),
-    },
+    module: moduleRules(RSPACK_DEV_SERVER),
     resolve: {
       alias: {
         // @cocalc/frontend  alias so we can write `import "@cocalc/frontend/..."`
