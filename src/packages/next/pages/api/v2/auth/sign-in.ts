@@ -91,6 +91,11 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
       maxAge: ttl_s * 1000,
       sameSite: samesite_remember_me,
     });
+    // todo: NATS POC!
+    cookies.set(
+      "cocalc_nats_jwt_cookie",
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJlZDI1NTE5LW5rZXkifQ.eyJqdGkiOiI1QjNKWVozNjJTUDdHUzZGU05JNzJRRFkyQVM1RUVYSUNERFNIM01GSkk3R0k2TTdRUUZBIiwiaWF0IjoxNzM3NDE1NTcxLCJpc3MiOiJBQjJLVEVGUFIyTzc2UE9aVVBZRVFTS1RaQVg2R0lOQVZUNkpXU0g2UUI3TENNNFhIRlRITVgyTCIsIm5hbWUiOiJ3c3RlaW4iLCJzdWIiOiJVQVFXUFc3QktRSkJLWUwzQUtUMjdIRE43UFpONEZJSlNUUDRCU0o1MktOUlhaM1ZLWk9QNk1DRiIsIm5hdHMiOnsicHViIjp7ImFsbG93IjpbIl9JTkJPWC5cdTAwM2UiLCJodWIuYXBpLjI3NWYxZGI3LWJmMzctNGI0NC1iOWFhLWQ2NDY5NDI2OWM5ZiJdfSwic3ViIjp7ImFsbG93IjpbIl9JTkJPWC5cdTAwM2UiLCJodWIuYXBpLjI3NWYxZGI3LWJmMzctNGI0NC1iOWFhLWQ2NDY5NDI2OWM5ZiJdfSwic3VicyI6LTEsImRhdGEiOi0xLCJwYXlsb2FkIjotMSwiYmVhcmVyX3Rva2VuIjp0cnVlLCJ0eXBlIjoidXNlciIsInZlcnNpb24iOjJ9fQ.JQBl6OoCCFmuxgoIgA7lrE_75Ut_MQ6hfu9W9Y7BW2Wvz-Bq7kxCZ_kKWhoLR8sH4RBQokwv48alGkXKzbnsAQ",
+    );
   } catch (err) {
     res.json({ error: `Problem setting cookie -- ${err.message}.` });
     return;

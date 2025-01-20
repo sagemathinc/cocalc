@@ -7,6 +7,7 @@ We assume there is a NATS server running on localhost with this configuration:
 websocket {
     listen: "localhost:8443"
     no_tls: true
+    jwt_cookie: "cocalc_nats_jwt_cookie"
 }
 
 You could start this with

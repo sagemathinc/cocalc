@@ -10,16 +10,12 @@ export class NatsClient {
   private nc?: Awaited<ReturnType<typeof nats.connect>>;
   // obviously just for learning:
   public nats = nats;
-  private creds = "";
 
   constructor(client: WebappClient) {
     this.client = client;
   }
 
   getConnection = reuseInFlight(async () => {
-    if (!this.creds) {
-      throw Error("set this.creds first");
-    }
     if (this.nc != null) {
       return this.nc;
     }
@@ -27,9 +23,6 @@ export class NatsClient {
     console.log(`connecting to ${server}...`);
     this.nc = await nats.connect({
       servers: [server],
-      authenticator: nats.credsAuthenticator(
-        new TextEncoder().encode(this.creds),
-      ),
     });
     console.log(`connected to ${server}`);
     return this.nc;
