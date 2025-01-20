@@ -26,6 +26,7 @@ To view all requests (and replies) in realtime:
 
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("server:nats");
 
@@ -33,19 +34,25 @@ const jc = JSONCodec();
 
 export async function initAPI(nc) {
   logger.debug("initAPI -- subject='hub.api', options=", { queue: "0" });
-  const sub = nc.subscribe("hub.api", { queue: "0" });
+  const sub = nc.subscribe("hub.api.>", { queue: "0" });
   for await (const mesg of sub) {
     handleApiRequest(mesg);
   }
 }
 
 async function handleApiRequest(mesg) {
-  const request = jc.decode(mesg.data) ?? {};
+  console.log({ subject: mesg.subject });
   let resp;
   try {
+    const segments = mesg.subject.split(".");
+    const account_id = segments[2];
+    if (!isValidUUID(account_id)) {
+      throw Error(`invalid account_id '${account_id}'`);
+    }
+    const request = jc.decode(mesg.data) ?? {};
     // TODO: obviously user-provided account_id is no good!  This is a POC.
-    const { endpoint, account_id, params } = request as any;
-    logger.debug("handling hub.api request:", { endpoint });
+    const { endpoint, params } = request as any;
+    logger.debug("handling hub.api request:", { account_id, endpoint, params });
     resp = await getResponse(endpoint, account_id, params);
   } catch (err) {
     resp = { error: `${err}` };

@@ -34,16 +34,19 @@ export class NatsClient {
 
   api = async ({ endpoint, params }: { endpoint: string; params?: object }) => {
     const c = await this.getConnection();
+    const subject = `hub.api.${this.client.account_id}`;
+    console.log(`publishing to subject='${subject}'`);
     const resp = await c.request(
-      "hub.api",
-      // obviously passing account_id is temporary -- need to use JWT.
+      subject,
       this.jc.encode({
         endpoint,
         account_id: this.client.account_id,
         params,
       }),
     );
-    return this.jc.decode(resp.data);
+    const x = this.jc.decode(resp.data);
+    console.log("got back ", x);
+    return x;
   };
 
   project = async ({
