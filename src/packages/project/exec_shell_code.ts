@@ -28,26 +28,7 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
   D(`command=${mesg.command} args=${mesg.args} path=${mesg.path}`);
 
   try {
-    const out = await execCode({
-      path: !!mesg.compute_server_id
-        ? mesg.path
-        : abspath(mesg.path != null ? mesg.path : ""),
-      ...mesg,
-    });
-    let ret: ExecuteCodeOutput & { id: string } = {
-      id: mesg.id,
-      type: "blocking",
-      stdout: out?.stdout,
-      stderr: out?.stderr,
-      exit_code: out?.exit_code,
-    };
-    if (out?.type === "async") {
-      // extra fields for ExecuteCodeOutputAsync
-      ret = {
-        ...ret,
-        ...out, // type=async, pid, status, job_id, stats, ...
-      };
-    }
+    const ret = handleExecShellCode(mesg);
     socket.write_mesg("json", message.project_exec_output(ret));
   } catch (err) {
     let error = `Error executing command '${mesg.command}' with args '${mesg.args}' -- ${err}`;
@@ -64,4 +45,26 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
     });
     socket.write_mesg("json", err_mesg);
   }
+}
+
+export async function handleExecShellCode(mesg) {
+  const out = await execCode({
+    path: !!mesg.compute_server_id ? mesg.path : abspath(mesg.path ?? ""),
+    ...mesg,
+  });
+  let ret: ExecuteCodeOutput & { id: string } = {
+    id: mesg.id,
+    type: "blocking",
+    stdout: out?.stdout,
+    stderr: out?.stderr,
+    exit_code: out?.exit_code,
+  };
+  if (out?.type === "async") {
+    // extra fields for ExecuteCodeOutputAsync
+    ret = {
+      ...ret,
+      ...out, // type=async, pid, status, job_id, stats, ...
+    };
+  }
+  return ret;
 }

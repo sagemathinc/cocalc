@@ -1,19 +1,19 @@
 /* 
 This is meant to be similar to the nexts pages http api/v2, but using NATS instead of HTTPS.
 
-To do development turn off for the hub, and run like this:
+To do development turn off nats-server handling for the hub, and run this script standalone:
 
     echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
+    
+To make use of this from a browser:
 
-When you make changes, just restart it the above.  All clients will instantly 
+    await cc.client.nats_client.api({endpoint:"customize", params:{fields:['siteName']}})
+
+When you make changes, just restart the above.  All clients will instantly 
 use the new version after you restart, and there is no need to restart the hub 
 itself or any clients.
 
-To view all requests in realtime:
-
-    nats sub api.v2
-
-and if you want to also see the replies:
+To view all requests (and replies) in realtime:
 
     nats sub api.v2 --match-replies 
 */
@@ -38,7 +38,7 @@ async function handleApiRequest(mesg) {
   let resp;
   try {
     // TODO: obviously user-provided account_id is no good!  This is a POC.
-    const { endpoint, __account_id: account_id, ...params } = request as any;
+    const { endpoint, account_id, params } = request as any;
     logger.debug("handling api.v2 request:", { endpoint });
     resp = await getResponse(endpoint, account_id, params);
   } catch (err) {
@@ -57,7 +57,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 async function getResponse(endpoint, account_id, params) {
   switch (endpoint) {
     case "customize":
-      return await getCustomize(params.fields);
+      return await getCustomize(params?.fields);
     case "user-query":
       return {
         query: await userQuery({

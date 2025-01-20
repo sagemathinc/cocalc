@@ -4,6 +4,7 @@
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
+    "./servers/nats": "./dist/servers/nats/index.js",
     "./*": "./dist/*.js"
   },
   "keywords": [
@@ -52,6 +53,7 @@
     "lean-client-js-node": "^1.2.12",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "nats": "^2.29.1",
     "pidusage": "^1.2.0",
     "prettier": "^3.0.2",
     "primus": "^8.0.9",
@@ -82,9 +84,7 @@
     "clean": "rm -rf dist"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

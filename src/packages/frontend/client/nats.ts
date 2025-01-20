@@ -32,15 +32,35 @@ export class NatsClient {
     return this.sc.decode(resp.data);
   };
 
-  api = async (endpoint: string, params: object) => {
+  api = async ({ endpoint, params }: { endpoint: string; params?: object }) => {
     const c = await this.getConnection();
     const resp = await c.request(
       "api.v2",
       // obviously passing account_id is temporary -- need to use JWT.
       this.jc.encode({
         endpoint,
-        __account_id: this.client.account_id,
-        ...params,
+        account_id: this.client.account_id,
+        params,
+      }),
+    );
+    return this.jc.decode(resp.data);
+  };
+
+  project = async ({
+    project_id,
+    endpoint,
+    params,
+  }: {
+    project_id: string;
+    endpoint: string;
+    params?: object;
+  }) => {
+    const c = await this.getConnection();
+    const resp = await c.request(
+      `projects.${project_id}.api`,
+      this.jc.encode({
+        endpoint,
+        params,
       }),
     );
     return this.jc.decode(resp.data);
