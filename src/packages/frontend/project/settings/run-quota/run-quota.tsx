@@ -125,16 +125,17 @@ export const RunQuota: React.FC<Props> = React.memo(
 
       const dedicatedVM = (
         <>
-          If you need more RAM or CPU, consider upgrading to a{" "}
-          <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated VM</A>.
+          If you need more RAM or CPU, consider using a{" "}
+          <A href={"https://doc.cocalc.com/compute_server.html"}>
+            Compute Server
+          </A>
+          .
         </>
       );
 
       const dedicatedDisk = (
         <>
-          It is possible to rent a{" "}
-          <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated Disk</A>{" "}
-          for much more storage, or attach{" "}
+          It is possible to attach{" "}
           <A href={DOC_CLOUD_STORAGE_URL}>files hosted online</A>.
         </>
       );

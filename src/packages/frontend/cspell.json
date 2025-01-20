@@ -34,7 +34,8 @@
     "mistralai",
     "Popconfirm",
     "vertexai",
-    "vfill"
+    "vfill",
+    "xsmall",
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
