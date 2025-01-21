@@ -2,6 +2,7 @@ import * as nats from "nats.ws";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { WebappClient } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { join } from "path";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -21,9 +22,17 @@ export class NatsClient {
     }
     const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
     console.log(`connecting to ${server}...`);
-    this.nc = await nats.connect({
-      servers: [server],
-    });
+    try {
+      this.nc = await nats.connect({
+        servers: [server],
+      });
+    } catch (err) {
+      console.log("set the JWT cookie and try again");
+      await fetch(join(appBasePath, "nats"));
+      this.nc = await nats.connect({
+        servers: [server],
+      });
+    }
     console.log(`connected to ${server}`);
     return this.nc;
   });
@@ -36,7 +45,7 @@ export class NatsClient {
 
   api = async ({ endpoint, params }: { endpoint: string; params?: object }) => {
     const c = await this.getConnection();
-    const subject = `hub.api.${this.client.account_id}`;
+    const subject = `hub.account.api.${this.client.account_id}`;
     console.log(`publishing to subject='${subject}'`);
     const resp = await c.request(
       subject,

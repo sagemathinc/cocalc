@@ -33,8 +33,10 @@ const logger = getLogger("server:nats:api");
 const jc = JSONCodec();
 
 export async function initAPI(nc) {
-  logger.debug("initAPI -- subject='hub.api', options=", { queue: "0" });
-  const sub = nc.subscribe("hub.api.>", { queue: "0" });
+  logger.debug("initAPI -- subject='hub.account.api', options=", {
+    queue: "0",
+  });
+  const sub = nc.subscribe("hub.account.api.>", { queue: "0" });
   for await (const mesg of sub) {
     handleApiRequest(mesg);
   }
@@ -45,7 +47,7 @@ async function handleApiRequest(mesg) {
   let resp;
   try {
     const segments = mesg.subject.split(".");
-    const account_id = segments[2];
+    const account_id = segments[3];
     if (!isValidUUID(account_id)) {
       throw Error(`invalid account_id '${account_id}'`);
     }

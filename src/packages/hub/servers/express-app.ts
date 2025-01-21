@@ -31,6 +31,7 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
+import { initNatsServer } from "./nats";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -126,6 +127,7 @@ export default async function init(opts: Options): Promise<{
   initBlobs(router);
   initBlobUpload(router);
   initSetCookies(router);
+  initNatsServer(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);

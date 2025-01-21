@@ -23,7 +23,7 @@ const logger = getLogger("server:nats:auth");
 export async function nsc(args: string[]) {
   // todo: for production we  have to put some authentication
   // options, e.g., taken from the database. Skip that for now.
-  console.log(`nsc ${args.join(" ")}`);
+  // console.log(`nsc ${args.join(" ")}`);
   return await executeCode({ command: "nsc", args });
 }
 
@@ -95,7 +95,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     throw Error("must be a valid uuid");
   }
   const userType = getCoCalcUserType(cocalcUser);
-  const goalPub = new Set([`hub.${userType}.${userId}.>`]);
+  const goalPub = new Set([`hub.${userType}.api.${userId}`]);
   const goalSub = new Set(["_INBOX.>"]);
 
   if (userType == "account") {
