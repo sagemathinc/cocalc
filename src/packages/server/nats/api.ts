@@ -28,7 +28,7 @@ import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 
-const logger = getLogger("server:nats");
+const logger = getLogger("server:nats:api");
 
 const jc = JSONCodec();
 
