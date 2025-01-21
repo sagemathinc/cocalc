@@ -9,6 +9,7 @@ import {
   computeCost,
   getNetworkUsage,
   hasNetworkUsage,
+  state,
 } from "@cocalc/server/compute/control";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -51,6 +52,8 @@ export const PERIODIC_SHORT_UPDATE_INTERVAL_MS = 1000 * 60 * 2;
 // Use PERIODIC_LONG_UPDATE_INTERVAL_MS for all servers
 export const PERIODIC_LONG_UPDATE_INTERVAL_MS = 1000 * 60 * 60;
 
+const lastAdminAlert: { [id: number]: number } = {};
+
 export default async function managePurchases() {
   logger.debug("managePurchases");
   // Use a transaction so we get all the compute_servers in need of update
@@ -87,15 +90,20 @@ export default async function managePurchases() {
   for (const row of servers) {
     try {
       await updatePurchase(row);
+      throw Error("test");
     } catch (err) {
       logger.debug("managePurchases: error updating purchases", {
         err,
         server: row,
       });
-      adminAlert({
-        subject:
-          "Error managing a compute server purchase -- admin should investigate",
-        body: `
+      // at most one admin alert for a given server per 30 minutes...
+      const now = Date.now();
+      if (now - (lastAdminAlert[row.id] ?? 0) >= 30 * 1000 * 60) {
+        lastAdminAlert[row.id] = now;
+        adminAlert({
+          subject:
+            "Error managing a compute server purchase -- admin should investigate",
+          body: `
 
 Processing this row:
 
@@ -109,7 +117,8 @@ This could result in a user not being properly charged or a long purchase being
 left opened.  Please investigate!
 
 `,
-      });
+        });
+      }
     }
   }
 }
@@ -190,13 +199,9 @@ export async function updatePurchase(server: ComputeServer) {
        - If balance drops too low, deprovision everything.
   */
 
-  if (!server.state) {
-    logger.debug(
-      "WARNING: server.state should be defined but isn't",
-      server.id,
-    );
-    // nothing is possible
-    return;
+  if (server.state == "unknown" || !server.state) {
+    logger.debug("WARNING: server.state not known so recomputing", server);
+    server.state = await state({ ...server, maintenance: true });
   }
 
   const stableState = STATE_INFO[server.state].stable
