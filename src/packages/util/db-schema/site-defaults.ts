@@ -364,7 +364,7 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,

@@ -35,7 +35,7 @@ export async function proxyNatsWebsocket(req, socket, head) {
   const proxy = createProxyServer({
     ws: true,
     target,
-    timeout: 5000,
+    timeout: 3000,
   });
   proxy.ws(req, socket, head);
 }

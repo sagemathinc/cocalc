@@ -17,6 +17,8 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
+import { throttle } from "lodash";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const logger = getLogger("server:nats:auth");
 
@@ -154,12 +156,14 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     }
   }
   const args = ["edit", "signing-key", "--sk", name];
+  let changed = false;
   if (rm.length > 0) {
     // --rm applies to both pub and sub and happens after adding,
     // so we have to do it separately at the beginning in order to
     // handle some edge cases (that might never happen).
     logger.debug("configureNatsUser ", { rm });
     await nsc([...args, "--rm", rm.join(",")]);
+    changed = true;
   }
   if (sub.length > 0 || pub.length > 0) {
     if (sub.length > 0) {
@@ -172,6 +176,10 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     }
     logger.debug("configureNatsUser ", { pub, sub });
     await nsc(args);
+    changed = true;
+  }
+  if (changed) {
+    pushToServer();
   }
 }
 
@@ -211,7 +219,23 @@ export async function getScopedSigningKey(natsUser: string) {
   return obj;
 }
 
+// we push to server whenever there's a change, but at most once every few seconds,
+// and if we push while a push is happening, it doesn't do it twice at once.
+export const pushToServer = throttle(
+  reuseInFlight(async () => {
+    try {
+      await nsc(["push", "-A"]);
+    } catch (err) {
+      // TODO: adminNotification?  This could be very serious.
+      logger.debug("push configuration to nats server failed", err);
+    }
+  }),
+  3000,
+  { leading: true, trailing: true },
+);
+
 export async function createNatsUser(cocalcUser: CoCalcUser) {
+  await nsc(["pull", "-A"]);
   const { stderr } = await nsc(["edit", "account", "--sk", "generate"]);
   const key = stderr.trim().split('"')[1];
   const name = getNatsUserName(cocalcUser);
@@ -221,6 +245,7 @@ export async function createNatsUser(cocalcUser: CoCalcUser) {
   await nsc(["edit", "signing-key", "--sk", key, "--role", name, "--bearer"]);
   await nsc(["add", "user", name, "--private-key", name]);
   await configureNatsUser(cocalcUser);
+  pushToServer();
 }
 
 export async function getJwt(cocalcUser: CoCalcUser): Promise<string> {
