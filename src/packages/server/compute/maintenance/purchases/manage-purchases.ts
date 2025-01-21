@@ -90,7 +90,6 @@ export default async function managePurchases() {
   for (const row of servers) {
     try {
       await updatePurchase(row);
-      throw Error("test");
     } catch (err) {
       logger.debug("managePurchases: error updating purchases", {
         err,
