@@ -70,8 +70,9 @@ export class NatsClient {
     params?: object;
   }) => {
     const c = await this.getConnection();
+    const subject = `project.${project_id}.owner.${this.client.account_id}.api`;
     const resp = await c.request(
-      `projects.${project_id}.api`,
+      subject,
       this.jc.encode({
         endpoint,
         params,

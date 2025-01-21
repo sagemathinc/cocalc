@@ -97,7 +97,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     throw Error("must be a valid uuid");
   }
   const userType = getCoCalcUserType(cocalcUser);
-  const goalPub = new Set([`hub.${userType}.api.${userId}`]);
+  const goalPub = new Set(["_INBOX.>", `hub.${userType}.api.${userId}`]);
   const goalSub = new Set(["_INBOX.>"]);
 
   if (userType == "account") {
@@ -111,6 +111,10 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
     // will listen to, e.g., for timetravel editing.
+  } else if (userType == "project") {
+    // the project can publish to anything under its own subject:
+    goalPub.add(`project.${userId}.>`);
+    goalSub.add(`project.${userId}.>`);
   }
 
   // **Subject Permissions SYNC Algorithm **
@@ -224,7 +228,7 @@ export async function getScopedSigningKey(natsUser: string) {
 export const pushToServer = throttle(
   reuseInFlight(async () => {
     try {
-      await nsc(["push", "-A"]);
+      await nsc(["push", "-a", "SYS"]);
     } catch (err) {
       // TODO: adminNotification?  This could be very serious.
       logger.debug("push configuration to nats server failed", err);

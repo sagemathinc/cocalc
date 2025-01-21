@@ -7,7 +7,6 @@ about the project.
 
 import { writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
-
 import basePath from "@cocalc/backend/base-path";
 import { infoJson, project_id, username } from "./data";
 import { getOptions } from "./init-program";

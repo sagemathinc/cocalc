@@ -1,4 +1,4 @@
-# Systematically keep track of NATS experiment here!
+# NATS Development and Integration Log
 
 ## [x] Goal: nats from nodejs
 
@@ -105,7 +105,7 @@ Creating a creds file that encodes a JWT that says what you can publish and subs
 
 - make it so user with account\_id can publish to hub.api.{account\_id} makes it so we know the account\_id automatically by virtue of what was published to.  This works.
 
-## [ ] Goal: Solve Critical Auth Problems
+## [x] Goal: Solve Critical Auth Problems
 
 Now need to solve two problems:
 
@@ -115,9 +115,50 @@ I finally figured this out after WASTING a lot of time with stupid AI misleading
 
 This makes it so the server doesn't check the signature of the JWT against the _user_ .    Putting exactly the JWT token string in the cookie then works because "bearer" literally tells the backend server not to do the signature check.  I think this is secure and the right approach because the server checks that the JWT is valid using the account and operator signatures.
 
-- [ ] GOAL: automate creation of creds for browser clients, i.e., what we just did with the nsc tool.
+**WAIT!**  Using signing keys [https://docs.nats.io/using\-nats/nats\-tools/nsc/signing\_keys](https://docs.nats.io/using-nats/nats-tools/nsc/signing_keys) \(and https://youtu.be/KmGtnFxHnVA?si=0uvLMBTJ5TUpem4O \) is VASTLY superior.  There's just one JWT issued to each user, and we make a server\-side\-only JWT for their account that has everything.  The user never has to reconnect or change their JWT.  We can adjust the subject on the fly to account for running projects \(or collaboration changes\) at any time server side.  Also the size limits go away, so we don't have to compress project\_id's \(probably\).
 
-If we can do the above, we should also be able to do something similar for:
+## Goal: Implement Auth Solution for Browsers
 
-- [ ] GOAL: connecting to projects.  I.e., access to a project means you can publish to `projects.{project_id}.>`   Also, projects should have access to something under hub.
+- [x] automate creation of creds for browser clients, i.e., what we just did with the nsc tool manually
+- 
+
+---
+
+This is my top priority goal for NOW!
+
+What's the plan?
+
+Need to figure out how to do all the nsc stuff from javascript, storing results in the database?
+
+- Question: how do we manage creating signing keys and users from nodejs?  Answer: clear from many sources that we must use the nsc CLI tool via subprocess calls.  Seems fine to me.
+- [x] When a user signs in, we check for their JWT in the database.  If it is there, set the cookie.  If not, create the signing key and JWT for them, save in database, and set the cookie.
+- [x] update nats\-server resolver state after modifying signing cookie's subjects configuration. 
+
+```
+nsc edit operator --account-jwt-server-url nats://localhost:4222
+```
+
+Now I can do `nsc push` and it just works.
+
+[x] TODO: when signing out, need to delete the jwt cookie or dangerous private info leaks... and also new info not set properly.
+
+- [x] similar creds for projects, I.e., access to a project means you can publish to `projects.{project_id}.>`   Also, projects should have access to something under hub.
+
+## Goal: Auth for Projects
+
+
+
+
+
+
+Some thoughts about project auth security:
+
+- [ ] when collaborators on a project leave maybe we change JWT?  Otherwise, in theory any user of a project can probably somehow get access to the project's JWT \(it's in memory at least\) and still act as the project. Changing JWT requires reconnect. This could be "for later", since even now we don't have this level of security!
+- [ ] restarting project could change JWT. That's like the current project's secret token being changed.  
+
+---
+
+## Goal: nats-server automation of creation and configuration of system account, operator, etc.
+
+- This looks helpful: https://www.synadia.com/newsletter/nats-weekly-27/
 
