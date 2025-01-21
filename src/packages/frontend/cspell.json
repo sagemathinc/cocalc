@@ -36,6 +36,7 @@
     "vertexai",
     "vfill",
     "xsmall",
+    "medkit"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],

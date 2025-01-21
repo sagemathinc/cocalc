@@ -273,7 +273,7 @@ export const PublicPaths: React.FC = () => {
         }
       />
       <br />
-      <br />
+      <br />Files that have been published
       {loading && <Loading />}
       {render_checkboxes()}
       <br />

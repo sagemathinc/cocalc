@@ -10,11 +10,13 @@ for different account related information
 and configuration.
 */
 
-import { useEffect } from "react";
+// cSpell: ignore payg
+
 import { Flex, Menu, Space } from "antd";
+import { useEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
-import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import {
   React,
   redux,
@@ -25,11 +27,14 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
+import { Footer } from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
-import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
-import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
 import PaymentMethodsPage from "@cocalc/frontend/purchases/payment-methods-page";
+import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
+import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -41,9 +46,8 @@ import { AccountPreferences } from "./account-preferences";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import { StarredFiles } from "./starred-files";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { Footer } from "@cocalc/frontend/customize";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -176,6 +180,16 @@ export const AccountPage: React.FC = () => {
       });
       items.push({ type: "divider" });
     }
+
+    items.push({
+      key: "starred-files",
+      label: (
+        <span>
+          <Icon name="star-filled" /> {intl.formatMessage(labels.starred_files)}
+        </span>
+      ),
+      children: active_page === "starred-files" && <StarredFiles />,
+    });
 
     items.push({
       key: "public-files",

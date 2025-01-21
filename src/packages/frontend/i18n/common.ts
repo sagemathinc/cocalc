@@ -847,6 +847,10 @@ export const labels = defineMessages({
     defaultMessage: "{n} of {m}",
     description: "item n in a list of m items.",
   },
+  starred_files: {
+    id: "labels.starred_files",
+    defaultMessage: "Starred Files",
+  },
 });
 
 export const menu = defineMessages({

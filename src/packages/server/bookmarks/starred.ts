@@ -156,3 +156,25 @@ export async function loadStarredFilesBookmarks({
     return { stars: [] };
   }
 }
+
+export async function loadAllStarredFilesBookmarks({
+  account_id,
+}: {
+  account_id: string;
+}) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT stars, project_id, last_edited FROM bookmarks WHERE type=$1 AND account_id=$2`,
+    [STARRED_FILES, account_id],
+  );
+  if (rows.length > 0) {
+    const row = rows[0];
+    return {
+      stars: row.stars ?? [],
+      project_id: row.project_id,
+      last_edited: row.last_edited?.getTime(),
+    };
+  } else {
+    return { stars: [] };
+  }
+}

@@ -62,7 +62,7 @@ export function useStarredFilesManager(project_id: string) {
   }
 
   // this is called once, when the flyout/tabs component is mounted
-  // throtteld, to usually take 1 sec from opening the panel to loading the stars
+  // throttled, to usually take 1 sec from opening the panel to loading the stars
   const updateStarred = throttle(
     async () => {
       try {

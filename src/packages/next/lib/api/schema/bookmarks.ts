@@ -22,10 +22,9 @@ const ERROR = z.object({
   error: z.string(),
 });
 
-const COMMON_STARS = z.object({
-  project_id: ProjectIdSchema,
-  type: z.literal(STARRED_FILES),
-});
+const STARRED = z.object({ type: z.literal(STARRED_FILES) });
+
+const COMMON_STARS = STARRED.merge(z.object({ project_id: ProjectIdSchema }));
 
 export const BookmarkSetInputSchema = COMMON_STARS.extend({
   stars: z
@@ -53,22 +52,29 @@ export const BookmarkRemoveOutputSchema = BookmarkSetOutputSchema;
 export const BookmarkGetInputSchema = COMMON_STARS.describe(
   "Get the list of starred items for the given project ID and your account.",
 );
+
+const OUTPUT_COMMON = z.object({
+  status: z.literal("success"),
+  stars: z
+    .array(z.string())
+    .describe(
+      "Array of IDs or file path strings, as they are in the starred tabs flyout",
+    ),
+  last_edited: z
+    .number()
+    .optional()
+    .describe("UNIX epoch timestamp, when bookmark was last edited"),
+});
+
 export const BookmarkGetOutputSchema = z.union([
-  z
-    .object({
-      status: z.literal("success"),
-      stars: z
-        .array(z.string())
-        .describe(
-          "Array of IDs or file path strings, as they are in the starred tabs flyout",
-        ),
-      last_edited: z
-        .number()
-        .optional()
-        .describe("UNIX epoch timestamp, when bookmark was last edited"),
-    })
-    .merge(COMMON_STARS),
+  OUTPUT_COMMON.merge(COMMON_STARS),
   ERROR.merge(COMMON_STARS),
+]);
+
+export const BookmarkAllInputSchema = STARRED;
+export const BookmarkAllOutputSchema = z.union([
+  OUTPUT_COMMON.merge(STARRED),
+  ERROR.merge(STARRED),
 ]);
 
 export type BookmarkSetInputType = z.infer<typeof BookmarkSetInputSchema>;
@@ -79,6 +85,8 @@ export type BookmarkRemoveInputType = z.infer<typeof BookmarkRemoveInputSchema>;
 export type BookmarkRemoveOutputType = z.infer<typeof BookmarkAddOutputSchema>;
 export type BookmarkGetInputType = z.infer<typeof BookmarkGetInputSchema>;
 export type BookmarkGetOutputType = z.infer<typeof BookmarkGetOutputSchema>;
+export type BookmarkAllInputType = z.infer<typeof BookmarkAllInputSchema>;
+export type BookmarkAllOutputType = z.infer<typeof BookmarkAllOutputSchema>;
 
 // consistency checks
 export const _1: Omit<SaveStarredFilesBoookmarksProps, "mode" | "account_id"> =
