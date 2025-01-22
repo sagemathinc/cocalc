@@ -40,7 +40,7 @@ export default async function initNatsServer() {
 const jc = JSONCodec();
 
 export async function initAPI(nc) {
-  const subject = `project.${project_id}.>`;
+  const subject = `project.${project_id}.api.>`;
   logger.debug(`initAPI -- NATS project subject '${subject}'`);
   const sub = nc.subscribe(subject);
   for await (const mesg of sub) {
@@ -50,14 +50,9 @@ export async function initAPI(nc) {
 
 async function handleRequest(mesg, nc) {
   const segments = mesg.subject.split(".");
-  const group = segments[2]; // 'owner', 'collaborator', etc.
-  const account_id = segments[3];
-  const type = segments[4]; // e.g., 'api', etc. (?)
-  if (type == "api") {
-    await handleApiRequest({ mesg, group, account_id, nc });
-  } else {
-    logger.debug(`unknown request type '${type}'`);
-  }
+  const group = segments[3]; // 'owner', 'collaborator', etc.
+  const account_id = segments[4];
+  await handleApiRequest({ mesg, group, account_id, nc });
 }
 
 async function handleApiRequest({ mesg, group, account_id, nc }) {
@@ -65,11 +60,12 @@ async function handleApiRequest({ mesg, group, account_id, nc }) {
   let resp;
   try {
     const { endpoint, params } = request as any;
-    logger.debug("handling project request:", { endpoint, group, account_id });
-    if (endpoint == "write-to-terminal") {
-      // no response needed
-      return writeToTerminal(params);
-    }
+    logger.debug("handling project request:", {
+      endpoint,
+      params,
+      group,
+      account_id,
+    });
     resp = await getResponse({ endpoint, params, nc });
   } catch (err) {
     resp = { error: `${err}` };
@@ -78,7 +74,7 @@ async function handleApiRequest({ mesg, group, account_id, nc }) {
   mesg.respond(jc.encode(resp));
 }
 
-import { createTerminal, writeToTerminal } from "./terminal";
+import { createTerminal, restartTerminal, writeToTerminal } from "./terminal";
 async function getResponse({ endpoint, params, nc }) {
   switch (endpoint) {
     case "ping":
@@ -89,6 +85,10 @@ async function getResponse({ endpoint, params, nc }) {
       return await handleExecShellCode(params);
     case "create-terminal":
       return await createTerminal({ params, nc });
+    case "restart-terminal":
+      return await restartTerminal(params);
+    case "write-to-terminal":
+      return writeToTerminal(params);
     default:
       throw Error(`unknown endpoint '${endpoint}'`);
   }

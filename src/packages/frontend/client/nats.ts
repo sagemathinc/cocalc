@@ -76,7 +76,7 @@ export class NatsClient {
       // todo...?
       throw Error(`group not yet known for '${project_id}'`);
     }
-    const subject = `project.${project_id}.${group}.${this.client.account_id}.api`;
+    const subject = `project.${project_id}.api.${group}.${this.client.account_id}`;
     const resp = await c.request(
       subject,
       this.jc.encode({
@@ -85,5 +85,14 @@ export class NatsClient {
       }),
     );
     return this.jc.decode(resp.data);
+  };
+
+  // for debugging -- listen to and display all messages on a subject
+  subscribe = async (subject: string) => {
+    const nc = await this.getConnection();
+    const sub = nc.subscribe(subject);
+    for await (const mesg of sub) {
+      console.log(this.jc.decode(mesg.data));
+    }
   };
 }

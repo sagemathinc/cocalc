@@ -106,7 +106,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     const query = `SELECT project_id, users#>>'{${userId},group}' AS group FROM projects WHERE state#>>'{state}'='running' AND users ? '${userId}' ORDER BY project_id`;
     const { rows } = await pool.query(query);
     for (const { project_id, group } of rows) {
-      goalPub.add(`project.${project_id}.${group}.${userId}.>`);
+      goalPub.add(`project.${project_id}.api.${group}.${userId}`);
+      goalSub.add(`project.${project_id}.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
