@@ -10,11 +10,13 @@ for different account related information
 and configuration.
 */
 
-import { useEffect } from "react";
+// cSpell:ignore payg
+
 import { Flex, Menu, Space } from "antd";
+import { useEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
-import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import {
   React,
   redux,
@@ -25,11 +27,14 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
+import { Footer } from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
-import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
-import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
 import PaymentMethodsPage from "@cocalc/frontend/purchases/payment-methods-page";
+import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
+import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -42,8 +47,6 @@ import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { Footer } from "@cocalc/frontend/customize";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -243,7 +246,13 @@ export const AccountPage: React.FC = () => {
     }
     if (is_anonymous) {
       return (
-        <div style={{ margin: "15px 10%" }}>
+        <div
+          style={{
+            margin: "15px  0 0 0",
+            padding: "0 10% 0 10%",
+            overflow: "auto",
+          }}
+        >
           <AccountPreferences />
         </div>
       );
@@ -295,7 +304,11 @@ export const AccountPage: React.FC = () => {
         </div>
         <div
           className="smc-vfill"
-          style={{ overflow: "auto", paddingLeft: "15px" }}
+          style={{
+            overflow: "auto",
+            paddingLeft: "15px",
+            paddingRight: "15px",
+          }}
         >
           <Flex style={{ marginTop: "5px" }}>
             <h2>{titles[active_page]}</h2>
@@ -310,10 +323,7 @@ export const AccountPage: React.FC = () => {
   }
 
   return (
-    <div
-      className="smc-vfill"
-      style={{ overflow: "auto", paddingRight: "15px" }}
-    >
+    <div className="smc-vfill">
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()
       ) : (
