@@ -163,7 +163,7 @@ Some thoughts about project auth security:
 - NOT DONE YET
 
 
-## [ ] Goal: Terminal!  Something complicated involving the project which is NOT just request/response
+## [x] Goal: Terminal!  Something complicated involving the project which is NOT just request/response
 
 - Implementing terminals goes beyond request/response.
 - It could also leverage jetstream if we want for state (?).
@@ -187,9 +187,21 @@ API calls:
 
 If I can get this to work, then collaborative editing and everything else is basically the same (just more details).
 
+## [ ] Goal: Terminal!  #now 
+
+Make it so an actual terminal works, i.e., UI integration.
+
+## [ ] Goal: Terminal JetStream state
+
+Use Jetstream to store messages from terminal, so user can reconnect without loss.
+
+## [ ] Goal: Terminal and **compute server**
+
 Another thing to do for compute servers:
   - use jetstream and KV to agree on *who* is running the terminal...
   
+This is critical to see how easily we can support compute servers using nats + jetstream.
+
 
 
 

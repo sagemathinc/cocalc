@@ -40,6 +40,7 @@ import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
+import { NatsTerminalConnection } from "./nats-terminal-connection";
 
 declare const $: any;
 
@@ -271,7 +272,29 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal_settings = settings;
   }
 
+  connectNats = async () => {
+    try {
+      this.ignore_terminal_data = false; // todo
+      this.set_connection_status("connecting");
+      const conn = new NatsTerminalConnection({
+        path: this.term_path,
+        project_id: this.project_id,
+      });
+      this.conn = conn as any;
+      conn?.on("close", this.connect);
+      conn?.on("data", this._handle_data_from_project);
+      await conn?.init();
+      this.set_connection_status("connected");
+    } catch (err) {
+      this.set_connection_status("disconnected");
+      throw err;
+    }
+  };
+
   async connect(): Promise<void> {
+    if (this.path == "nats.term") {
+      return await this.connectNats();
+    }
     this.assert_not_closed();
 
     this.last_geom = undefined;
