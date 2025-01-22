@@ -11,6 +11,10 @@ Points that took me a while to figure out:
   TODO: worry about expiration
 
 - There is no supported way to do user management except calling the nsc command line tool.  That's fine.
+
+
+DOCS:
+ - https://nats-io.github.io/nsc/
 */
 
 import { executeCode } from "@cocalc/backend/execute-code";
@@ -20,13 +24,22 @@ import getLogger from "@cocalc/backend/logger";
 import { throttle } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+// TODO: move this to server settings
+const NATS_ACCOUNT = "cocalc";
+
 const logger = getLogger("server:nats:auth");
 
-export async function nsc(args: string[]) {
+export async function nsc(
+  args: string[],
+  { noAccount }: { noAccount?: boolean } = {},
+) {
   // todo: for production we  have to put some authentication
   // options, e.g., taken from the database. Skip that for now.
   // console.log(`nsc ${args.join(" ")}`);
-  return await executeCode({ command: "nsc", args });
+  return await executeCode({
+    command: "nsc",
+    args: noAccount ? args : [...args, "-a", NATS_ACCOUNT],
+  });
 }
 
 // TODO: consider making the names shorter strings using https://www.npmjs.com/package/short-uuid
@@ -229,7 +242,7 @@ export async function getScopedSigningKey(natsUser: string) {
 export const pushToServer = throttle(
   reuseInFlight(async () => {
     try {
-      await nsc(["push", "-a", "SYS"]);
+      await nsc(["push"]);
     } catch (err) {
       // TODO: adminNotification?  This could be very serious.
       logger.debug("push configuration to nats server failed", err);
@@ -240,8 +253,12 @@ export const pushToServer = throttle(
 );
 
 export async function createNatsUser(cocalcUser: CoCalcUser) {
-  await nsc(["pull", "-A"]);
-  const { stderr } = await nsc(["edit", "account", "--sk", "generate"]);
+  await nsc(["pull", "-A"], {
+    noAccount: true,
+  });
+  const { stderr } = await nsc(["edit", "account", "--sk", "generate"], {
+    noAccount: true,
+  });
   const key = stderr.trim().split('"')[1];
   const name = getNatsUserName(cocalcUser);
   // bearer is critical so that the signing key can be used in the browser without

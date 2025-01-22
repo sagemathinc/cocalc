@@ -187,13 +187,27 @@ API calls:
 
 If I can get this to work, then collaborative editing and everything else is basically the same (just more details).
 
-## [ ] Goal: Terminal!  #now 
+## [x] Goal: Terminal!  #now 
 
 Make it so an actual terminal works, i.e., UI integration.
 
 ## [ ] Goal: Terminal JetStream state
 
-Use Jetstream to store messages from terminal, so user can reconnect without loss.
+Use Jetstream to store messages from terminal, so user can reconnect without loss. !?  This is very interesting...
+
+First problem -- we used the system account SYS for all our users; however, 
+SYS can't use jetstreams, as explained here https://github.com/nats-io/nats-server/discussions/6033
+
+Let's redo *everything* with a new account called "cocalc".
+
+```sh
+~/nats$ nsc create account --name=cocalc
+[ OK ] generated and stored account key "AD4G6R62BDDQUSCJVLZNA7ES7R3A6DWXLYUWGZV74EJ2S6VBC7DQVM3I"
+[ OK ] added account "cocalc"
+~/nats$ nats context save admin --creds=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/nats/nsc/keys/creds/MyOperator/cocalc/admin.creds
+~/nats$ nsc edit account cocalc  --js-enable 1
+~/nats$ nsc push -a cocalc
+```
 
 ## [ ] Goal: Terminal and **compute server**
 
