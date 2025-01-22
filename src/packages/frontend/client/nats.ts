@@ -3,6 +3,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { WebappClient } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
+import { redux } from "../app-framework";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -70,7 +71,12 @@ export class NatsClient {
     params?: object;
   }) => {
     const c = await this.getConnection();
-    const subject = `project.${project_id}.owner.${this.client.account_id}.api`;
+    const group = redux.getProjectsStore().get_my_group(project_id);
+    if (!group) {
+      // todo...?
+      throw Error(`group not yet known for '${project_id}'`);
+    }
+    const subject = `project.${project_id}.${group}.${this.client.account_id}.api`;
     const resp = await c.request(
       subject,
       this.jc.encode({

@@ -85,13 +85,13 @@ Maybe NATS totally kicks ass.
 - authentication: is there a way to too who the user who made the websocket connection is?
   - worry about this **later** \- obviously possible and not needed for a POC
 - let's try to make `write_text_file_to_project` also be possible via nats.
-- OK, made some of api/v2 usable.  Obviously this is really minimal POC.
+- OK, made some of api/v2 usable. Obviously this is really minimal POC.
 
 ## [x] GOAL: do something involving the project
 
-The most interesting use case for nats/jetsteam is timetravel collab editing, where this is all a VERY natural fit.  
+The most interesting use case for nats/jetsteam is timetravel collab editing, where this is all a VERY natural fit.
 
-But for now, let's just do *something* at all.
+But for now, let's just do _something_ at all.
 
 This worked - I did project exec with subject projects.{project_id}.api
 
@@ -103,7 +103,7 @@ This worked - I did project exec with subject projects.{project_id}.api
 
 Creating a creds file that encodes a JWT that says what you can publish and subscribe to, then authenticating with that works.
 
-- make it so user with account\_id can publish to hub.api.{account\_id} makes it so we know the account\_id automatically by virtue of what was published to.  This works.
+- make it so user with account_id can publish to hub.api.{account_id} makes it so we know the account_id automatically by virtue of what was published to. This works.
 
 ## [x] Goal: Solve Critical Auth Problems
 
@@ -111,16 +111,16 @@ Now need to solve two problems:
 
 - [x] GOAL: set the creds for a browser client in a secure http cookie, so the browser can't directly access it
 
-I finally figured this out after WASTING a lot of time with stupid AI misleading me and trying actively to get me to write very stupid insecure code as a lazy workaround.   AI really is very, very dangerous...  The trick was to read the docs repeatedly, increase logging a lot, and \-\- most imporantly \-\- read the relevant Go source code of NATS itself.  The answer is to modify the JWT so that it explicitly has bearer set:  `nsc edit user wstein --bearer` 
+I finally figured this out after WASTING a lot of time with stupid AI misleading me and trying actively to get me to write very stupid insecure code as a lazy workaround. AI really is very, very dangerous... The trick was to read the docs repeatedly, increase logging a lot, and \-\- most imporantly \-\- read the relevant Go source code of NATS itself. The answer is to modify the JWT so that it explicitly has bearer set: `nsc edit user wstein --bearer`
 
-This makes it so the server doesn't check the signature of the JWT against the _user_ .    Putting exactly the JWT token string in the cookie then works because "bearer" literally tells the backend server not to do the signature check.  I think this is secure and the right approach because the server checks that the JWT is valid using the account and operator signatures.
+This makes it so the server doesn't check the signature of the JWT against the _user_ . Putting exactly the JWT token string in the cookie then works because "bearer" literally tells the backend server not to do the signature check. I think this is secure and the right approach because the server checks that the JWT is valid using the account and operator signatures.
 
-**WAIT!**  Using signing keys [https://docs.nats.io/using\-nats/nats\-tools/nsc/signing\_keys](https://docs.nats.io/using-nats/nats-tools/nsc/signing_keys) \(and https://youtu.be/KmGtnFxHnVA?si=0uvLMBTJ5TUpem4O \) is VASTLY superior.  There's just one JWT issued to each user, and we make a server\-side\-only JWT for their account that has everything.  The user never has to reconnect or change their JWT.  We can adjust the subject on the fly to account for running projects \(or collaboration changes\) at any time server side.  Also the size limits go away, so we don't have to compress project\_id's \(probably\).
+**WAIT!** Using signing keys [https://docs.nats.io/using\-nats/nats\-tools/nsc/signing_keys](https://docs.nats.io/using-nats/nats-tools/nsc/signing_keys) \(and https://youtu.be/KmGtnFxHnVA?si=0uvLMBTJ5TUpem4O \) is VASTLY superior. There's just one JWT issued to each user, and we make a server\-side\-only JWT for their account that has everything. The user never has to reconnect or change their JWT. We can adjust the subject on the fly to account for running projects \(or collaboration changes\) at any time server side. Also the size limits go away, so we don't have to compress project_id's \(probably\).
 
 ## Goal: Implement Auth Solution for Browsers
 
 - [x] automate creation of creds for browser clients, i.e., what we just did with the nsc tool manually
-- 
+-
 
 ---
 
@@ -130,9 +130,9 @@ What's the plan?
 
 Need to figure out how to do all the nsc stuff from javascript, storing results in the database?
 
-- Question: how do we manage creating signing keys and users from nodejs?  Answer: clear from many sources that we must use the nsc CLI tool via subprocess calls.  Seems fine to me.
-- [x] When a user signs in, we check for their JWT in the database.  If it is there, set the cookie.  If not, create the signing key and JWT for them, save in database, and set the cookie.
-- [x] update nats\-server resolver state after modifying signing cookie's subjects configuration. 
+- Question: how do we manage creating signing keys and users from nodejs? Answer: clear from many sources that we must use the nsc CLI tool via subprocess calls. Seems fine to me.
+- [x] When a user signs in, we check for their JWT in the database. If it is there, set the cookie. If not, create the signing key and JWT for them, save in database, and set the cookie.
+- [x] update nats\-server resolver state after modifying signing cookie's subjects configuration.
 
 ```
 nsc edit operator --account-jwt-server-url nats://localhost:4222
@@ -142,23 +142,55 @@ Now I can do `nsc push` and it just works.
 
 [x] TODO: when signing out, need to delete the jwt cookie or dangerous private info leaks... and also new info not set properly.
 
-- [x] similar creds for projects, I.e., access to a project means you can publish to `projects.{project_id}.>`   Also, projects should have access to something under hub.
+- [x] similar creds for projects, I.e., access to a project means you can publish to `projects.{project_id}.>` Also, projects should have access to something under hub.
 
-## Goal: Auth for Projects
+## [x] Goal: Auth for Projects
 
-
-
-
-
-
-Some thoughts about project auth security:
-
-- [ ] when collaborators on a project leave maybe we change JWT?  Otherwise, in theory any user of a project can probably somehow get access to the project's JWT \(it's in memory at least\) and still act as the project. Changing JWT requires reconnect. This could be "for later", since even now we don't have this level of security!
-- [ ] restarting project could change JWT. That's like the current project's secret token being changed.  
+Using an env variable I got a basic useful thing up and running.
 
 ---
 
-## Goal: nats-server automation of creation and configuration of system account, operator, etc.
+Some thoughts about project auth security:
+
+- [ ] when collaborators on a project leave maybe we change JWT? Otherwise, in theory any user of a project can probably somehow get access to the project's JWT \(it's in memory at least\) and still act as the project. Changing JWT requires reconnect. This could be "for later", since even now we don't have this level of security!
+- [ ] restarting project could change JWT. That's like the current project's secret token being changed.
+
+
+
+## [ ] Goal: nats-server automation of creation and configuration of system account, operator, etc.
 
 - This looks helpful: https://www.synadia.com/newsletter/nats-weekly-27/
+- NOT DONE YET
 
+
+## [ ] Goal: Terminal!  Something complicated involving the project which is NOT just request/response
+
+- Implementing terminals goes beyond request/response.
+- It could also leverage jetstream if we want for state (?).
+- Multiple connected client
+
+
+Project/compute server sends terminal output to 
+    
+    project.{project_id}.terminal.{sha1(path)}
+
+Anyone who can read project gets to see this.
+
+Browser sends terminal input to
+
+    project.{project_id}.{group}.{account_id}.terminal.{sha1(path)}
+    
+API calls:
+
+  - to start terminal
+  - to get history (move to jetstream?)
+
+If I can get this to work, then collaborative editing and everything else is basically the same (just more details).
+
+Another thing to do for compute servers:
+  - use jetstream and KV to agree on *who* is running the terminal...
+  
+
+
+
+  
