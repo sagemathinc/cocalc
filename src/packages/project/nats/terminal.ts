@@ -11,6 +11,7 @@ import { project_id } from "@cocalc/project/data";
 import { sha1 } from "@cocalc/backend/sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JSONCodec } from "nats";
+const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
 const DEFAULT_COMMAND = "/bin/bash";
 const jc = JSONCodec();
@@ -39,12 +40,12 @@ export const createTerminal = reuseInFlight(
   },
 );
 
-export function writeToTerminal({ data, path }: { data; path }) {
+export async function writeToTerminal({ data, path }: { data; path }) {
   const terminal = sessions[path];
   if (terminal == null) {
     throw Error(`no terminal session '${path}'`);
   }
-  terminal.write(data);
+  await terminal.write(data);
   return { success: true };
 }
 
@@ -65,6 +66,7 @@ class Session {
   private size?: { rows: number; cols: number };
   // the subject where we publish our output
   public subject: string;
+  private state: "running" | "off" = "off";
 
   constructor({ path, options, nc }) {
     this.nc = nc;
@@ -73,12 +75,12 @@ class Session {
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
   }
 
-  write = (data) => {
+  write = async (data) => {
     console.log("write", { data });
-    if (this.pty == null) {
-      return;
+    if (this.state == "off") {
+      await this.restart();
     }
-    this.pty.write(data);
+    this.pty?.write(data);
   };
 
   restart = async () => {
@@ -109,13 +111,18 @@ class Session {
       rows: this.size?.rows,
       cols: this.size?.cols,
     });
-
+    this.state = "running";
     this.pty.onData((data) => {
       // console.log("onData", { data });
       this.nc.publish(this.subject, jc.encode({ data }));
     });
     this.pty.onExit((status) => {
+      this.nc.publish(
+        this.subject,
+        jc.encode({ data: EXIT_MESSAGE }),
+      );
       this.nc.publish(this.subject, jc.encode({ ...status, exit: true }));
+      this.state = "off";
     });
   };
 }

@@ -130,6 +130,9 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     goalPub.add(`project.${userId}.>`);
     goalSub.add(`project.${userId}.>`);
   }
+  // TEMPORARY: for learsning jetstream!
+  goalPub.add("$JS.>");
+  goalSub.add("$JS.>");
 
   // **Subject Permissions SYNC Algorithm **
   // figure out what signing key currently allows an update it to be exactly what is specified above.

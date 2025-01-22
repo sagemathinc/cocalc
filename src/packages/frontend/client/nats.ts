@@ -4,6 +4,7 @@ import type { WebappClient } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { redux } from "../app-framework";
+import * as jetstream from "@nats-io/jetstream";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -12,6 +13,7 @@ export class NatsClient {
   private nc?: Awaited<ReturnType<typeof nats.connect>>;
   // obviously just for learning:
   public nats = nats;
+  public jetstream = jetstream;
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -94,5 +96,10 @@ export class NatsClient {
     for await (const mesg of sub) {
       console.log(this.jc.decode(mesg.data));
     }
+  };
+
+  consumer = async (stream: string) => {
+    const js = jetstream.jetstream(await await this.getConnection());
+    return await js.consumers.get(stream);
   };
 }

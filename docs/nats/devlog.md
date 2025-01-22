@@ -155,13 +155,10 @@ Some thoughts about project auth security:
 - [ ] when collaborators on a project leave maybe we change JWT? Otherwise, in theory any user of a project can probably somehow get access to the project's JWT \(it's in memory at least\) and still act as the project. Changing JWT requires reconnect. This could be "for later", since even now we don't have this level of security!
 - [ ] restarting project could change JWT. That's like the current project's secret token being changed.
 
-
-
 ## [ ] Goal: nats-server automation of creation and configuration of system account, operator, etc.
 
 - This looks helpful: https://www.synadia.com/newsletter/nats-weekly-27/
 - NOT DONE YET
-
 
 ## [x] Goal: Terminal!  Something complicated involving the project which is NOT just request/response
 
@@ -169,9 +166,8 @@ Some thoughts about project auth security:
 - It could also leverage jetstream if we want for state (?).
 - Multiple connected client
 
-
 Project/compute server sends terminal output to 
-    
+
     project.{project_id}.terminal.{sha1(path)}
 
 Anyone who can read project gets to see this.
@@ -179,7 +175,7 @@ Anyone who can read project gets to see this.
 Browser sends terminal input to
 
     project.{project_id}.{group}.{account_id}.terminal.{sha1(path)}
-    
+
 API calls:
 
   - to start terminal
@@ -191,7 +187,7 @@ If I can get this to work, then collaborative editing and everything else is bas
 
 Make it so an actual terminal works, i.e., UI integration.
 
-## [ ] Goal: Terminal JetStream state
+## [x] Goal: Terminal JetStream state
 
 Use Jetstream to store messages from terminal, so user can reconnect without loss. !?  This is very interesting...
 
@@ -209,14 +205,30 @@ Let's redo *everything* with a new account called "cocalc".
 ~/nats$ nsc push -a cocalc
 ```
 
+```js
+// making the stream for ALL terminal activity
+await jsm.streams.add({ name: 'project-81e0c408-ac65-4114-bad5-5f4b6539bd0e-terminal', subjects: ['project.81e0c408-ac65-4114-bad5-5f4b6539bd0e.terminal.>'] });
+
+// making a consumer for just one subject (e.g., one terminal frame)
+z = await jsm.consumers.add('project-81e0c408-ac65-4114-bad5-5f4b6539bd0e-terminal',{name:'9149af7632942a94ea13877188153bd8bf2ace57',filter:['project.81e0c408-ac65-4114-bad5-5f4b6539bd0e.terminal.9149af7632942a94ea13877188153bd8bf2ace57']})
+c = await js.consumers.get('project-81e0c408-ac65-4114-bad5-5f4b6539bd0e-terminal', '9149af7632942a94ea13877188153bd8bf2ace57')
+for await (const m of await c.consume()) { console.log(cc.client.nats_client.jc.decode(m.data))}
+```
+
+NOTE!!! The above consumer is ephemeral -- it disappears if we don't grab it via c within a few seconds!!!!  https://docs.nats.io/using-nats/developer/develop_jetstream/consumers
+
+## [ ] Goal: Jetstream permissions
+
+- [ ] who sets up the stream for capturing terminal outputs and when?
+- [ ] what are the permissions for jetstream usage and access?
+- [ ] deleting old data?
+- [ ] handle the other messages like resize
+
 ## [ ] Goal: Terminal and **compute server**
 
 Another thing to do for compute servers:
-  - use jetstream and KV to agree on *who* is running the terminal...
-  
+
+- use jetstream and KV to agree on _who_ is running the terminal?
+
 This is critical to see how easily we can support compute servers using nats + jetstream.
 
-
-
-
-  

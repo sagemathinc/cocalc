@@ -88,7 +88,7 @@ async function getResponse({ endpoint, params, nc }) {
     case "restart-terminal":
       return await restartTerminal(params);
     case "write-to-terminal":
-      return writeToTerminal(params);
+      return await writeToTerminal(params);
     default:
       throw Error(`unknown endpoint '${endpoint}'`);
   }
