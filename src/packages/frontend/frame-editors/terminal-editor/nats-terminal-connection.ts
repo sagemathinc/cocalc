@@ -12,6 +12,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   private path: string;
   private subject: string;
+  private cmd_subject: string;
   private state: null | "running" | "init" | "closed";
   private consumer?;
   // keep = optional number of messages to retain between clients/sessions/view, i.e.,
@@ -45,6 +46,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.closePaths = closePaths;
     // move to util so guaranteed in sync with project
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
+    this.cmd_subject = `project.${project_id}.terminal-cmd.${sha1(path)}`;
   }
 
   write = async (data) => {
@@ -57,7 +59,6 @@ export class NatsTerminalConnection extends EventEmitter {
       await this.start();
     }
     if (typeof data != "string") {
-      console.log("to project", data);
       if (data.cmd == "size") {
         const { rows, cols } = data;
         if (
@@ -72,12 +73,11 @@ export class NatsTerminalConnection extends EventEmitter {
           return;
         }
       }
-      const resp = await webapp_client.nats_client.project({
+      await webapp_client.nats_client.project({
         project_id: this.project_id,
         endpoint: "terminal-command",
         params: { path: this.path, ...data, client },
       });
-      console.log("got back ", resp);
       return;
     }
     const f = async () => {
@@ -129,7 +129,8 @@ export class NatsTerminalConnection extends EventEmitter {
     this.state = "init";
     await this.start();
     this.consumer = await this.getConsumer();
-    this.run();
+    this.consumeDataStream();
+    this.subscribeToCommands();
   };
 
   private handle = (mesg) => {
@@ -139,29 +140,40 @@ export class NatsTerminalConnection extends EventEmitter {
     const x = jc.decode(mesg.data) as any;
     if (x?.data != null) {
       this.emit("data", x?.data);
-    } else {
-      switch (x.cmd) {
-        case "size":
-          this.terminalResize(x);
-          return;
-        case "message":
-          if (this.state != "running") {
-            return;
-          }
-          if (x.payload?.event == "open") {
-            this.openPaths(x.payload.paths);
-          } else if (x.payload?.event == "close") {
-            this.closePaths(x.payload.paths);
-          }
-          return;
-        default:
-          console.log("TODO -- unhandled message from project:", x);
-          return;
-      }
     }
   };
 
-  private run = async () => {
+  private subscribeToCommands = async () => {
+    const nc = await webapp_client.nats_client.getConnection();
+    const sub = nc.subscribe(this.cmd_subject);
+    for await (const mesg of sub) {
+      if (this.state == "closed") {
+        return;
+      }
+      this.handleCommand(mesg);
+    }
+  };
+
+  private handleCommand = async (mesg) => {
+    const x = jc.decode(mesg.data) as any;
+    switch (x.cmd) {
+      case "size":
+        this.terminalResize(x);
+        return;
+      case "message":
+        if (x.payload?.event == "open") {
+          this.openPaths(x.payload.paths);
+        } else if (x.payload?.event == "close") {
+          this.closePaths(x.payload.paths);
+        }
+        return;
+      default:
+        console.log("TODO -- unhandled message from project:", x);
+        return;
+    }
+  };
+
+  private consumeDataStream = async () => {
     if (this.consumer == null) {
       return;
     }

@@ -94,6 +94,7 @@ class Session {
   private size?: { rows: number; cols: number };
   // the subject where we publish our output
   public subject: string;
+  private cmd_subject: string;
   private state: "running" | "off" = "off";
   private streamName: string;
   private keep: number;
@@ -108,6 +109,7 @@ class Session {
       Math.min(this.options.keep ?? DEFAULT_KEEP, MAX_KEEP),
     );
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
+    this.cmd_subject = `project.${project_id}.terminal-cmd.${sha1(path)}`;
     this.streamName = `project-${project_id}-terminal`;
   }
 
@@ -206,6 +208,10 @@ class Session {
     this.nc.publish(this.subject, jc.encode(mesg));
   };
 
+  private publishCommand = (mesg) => {
+    this.nc.publish(this.cmd_subject, jc.encode(mesg));
+  };
+
   private clientSizes = {};
   setSize = ({
     client,
@@ -216,7 +222,10 @@ class Session {
     rows: number;
     cols: number;
   }) => {
-    this.clientSizes[client] = { rows, cols };
+    //this.clientSizes[client] = { rows, cols };
+    // just doing this silly hack for now -- we need to redo this algorithm to instead
+    // query all clients and when relevant, since no notion of connection.
+    this.clientSizes = { [client]: { rows, cols } };
     this.resize();
   };
 
@@ -234,7 +243,7 @@ class Session {
     try {
       this.setSizePty({ rows, cols });
       // broadcast out new size
-      this.nc.publish(this.subject, jc.encode({ cmd: "size", rows, cols }));
+      this.publishCommand({ cmd: "size", rows, cols });
     } catch (err) {
       logger.debug("terminal channel -- WARNING: unable to resize term", err);
     }
@@ -324,7 +333,7 @@ class Session {
       );
       try {
         const payload = JSON.parse(s);
-        this.publish({ cmd: "message", payload });
+        this.publishCommand({ cmd: "message", payload });
       } catch (err) {
         logger.warn(
           `handle_backend_message: error sending JSON payload ${JSON.stringify(
