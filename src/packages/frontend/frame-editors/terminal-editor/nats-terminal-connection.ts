@@ -18,23 +18,31 @@ export class NatsTerminalConnection extends EventEmitter {
   // "amount of history". This is global to all terminals in the project.
   private keep?: number;
   private terminalResize;
+  private openPaths;
+  private closePaths;
 
   constructor({
     project_id,
     path,
     keep,
     terminalResize,
+    openPaths,
+    closePaths,
   }: {
     project_id: string;
     path: string;
     keep?: number;
     terminalResize;
+    openPaths;
+    closePaths;
   }) {
     super();
     this.project_id = project_id;
     this.path = path;
     this.terminalResize = terminalResize;
     this.keep = keep;
+    this.openPaths = openPaths;
+    this.closePaths = closePaths;
     // move to util so guaranteed in sync with project
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
   }
@@ -135,6 +143,16 @@ export class NatsTerminalConnection extends EventEmitter {
       switch (x.cmd) {
         case "size":
           this.terminalResize(x);
+          return;
+        case "message":
+          if (this.state != "running") {
+            return;
+          }
+          if (x.payload?.event == "open") {
+            this.openPaths(x.payload.paths);
+          } else if (x.payload?.event == "close") {
+            this.closePaths(x.payload.paths);
+          }
           return;
         default:
           console.log("TODO -- unhandled message from project:", x);

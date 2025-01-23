@@ -280,6 +280,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         path: this.term_path,
         project_id: this.project_id,
         terminalResize: this.terminal_resize,
+        openPaths: this.open_paths,
+        closePaths: this.close_paths,
       });
       this.conn = conn as any;
       conn.on("close", this.connect);
@@ -287,6 +289,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       conn.once("ready", () => {
         this.ignore_terminal_data = false;
         this.set_connection_status("connected");
+        this.scroll_to_bottom();
       });
       await conn.init();
     } catch (err) {
@@ -738,7 +741,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     project_actions.close_tab(path);
   }
 
-  close_paths(paths: Path[]): void {
+  close_paths = (paths: Path[]): void => {
     if (!this.is_visible) {
       return;
     }
@@ -747,7 +750,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this._close_path(x.file);
       }
     }
-  }
+  };
 
   resize(rows: number, cols: number): void {
     if (this.terminal.cols === cols && this.terminal.rows === rows) {

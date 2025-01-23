@@ -223,6 +223,7 @@ NOTE!!! The above consumer is ephemeral -- it disappears if we don't grab it via
 - [x] delete old messages with a given subject. `nats stream purge project-81e0c408-ac65-4114-bad5-5f4b6539bd0e-terminal --seq=7000` 
   - there is  a setting max\_msgs\_per\_subject on a stream, so **we just set that and are done!**  Gees.  It is too easy.
 - [ ] handle the other messages like resize
+- [ ] need to move those other messages to a different subject that isn't part of the stream!!
 - [ ] permissions for jetstream usage and access
 
 ## [ ] Goal: Terminal and **compute server**

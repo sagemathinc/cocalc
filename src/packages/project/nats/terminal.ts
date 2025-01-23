@@ -191,18 +191,22 @@ class Session {
     });
     this.state = "running";
     await this.getStream();
-    this.pty.onData(async (data) => {
-      this.nc.publish(this.subject, jc.encode({ data }));
+    this.pty.onData((data) => {
+      this.handleBackendMessages(data);
+      this.publish({ data });
     });
     this.pty.onExit((status) => {
-      this.nc.publish(this.subject, jc.encode({ data: EXIT_MESSAGE }));
-      this.nc.publish(this.subject, jc.encode({ ...status, exit: true }));
+      this.publish({ data: EXIT_MESSAGE });
+      this.publish({ ...status, exit: true });
       this.state = "off";
     });
   };
 
-  private clientSizes = {};
+  private publish = (mesg) => {
+    this.nc.publish(this.subject, jc.encode(mesg));
+  };
 
+  private clientSizes = {};
   setSize = ({
     client,
     rows,
@@ -274,6 +278,61 @@ class Session {
     // cache for future use.
     this.size = { rows, cols };
     return { rows, cols };
+  };
+
+  private backendMessagesBuffer = "";
+  private backendMessagesState = "none";
+
+  private resetBackendMessagesBuffer = () => {
+    this.backendMessagesBuffer = "";
+    this.backendMessagesState = "none";
+  };
+
+  private handleBackendMessages = (data: string) => {
+    /* parse out messages like this:
+            \x1b]49;"valid JSON string here"\x07
+         and format and send them via our json channel.
+         NOTE: such messages also get sent via the
+         normal channel, but ignored by the client.
+      */
+    if (this.backendMessagesState === "none") {
+      const i = data.indexOf("\x1b]49;");
+      if (i == -1) {
+        return; // nothing to worry about
+      }
+      // stringify it so it is easy to see what is there:
+      this.backendMessagesState = "reading";
+      this.backendMessagesBuffer = data.slice(i);
+    } else {
+      this.backendMessagesBuffer += data;
+    }
+    if (this.backendMessagesBuffer.length >= 6) {
+      const i = this.backendMessagesBuffer.indexOf("\x07");
+      if (i == -1) {
+        // continue to wait... unless too long
+        if (this.backendMessagesBuffer.length > 10000) {
+          console.log("huge reset");
+          this.resetBackendMessagesBuffer();
+        }
+        return;
+      }
+      const s = this.backendMessagesBuffer.slice(5, i);
+      console.log("endup up with ", { s });
+      this.resetBackendMessagesBuffer();
+      logger.debug(
+        `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,
+      );
+      try {
+        const payload = JSON.parse(s);
+        this.publish({ cmd: "message", payload });
+      } catch (err) {
+        logger.warn(
+          `handle_backend_message: error sending JSON payload ${JSON.stringify(
+            s,
+          )}, ${err}`,
+        );
+      }
+    }
   };
 }
 
