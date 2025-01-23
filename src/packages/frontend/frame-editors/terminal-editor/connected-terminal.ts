@@ -281,9 +281,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         project_id: this.project_id,
       });
       this.conn = conn as any;
-      conn?.on("close", this.connect);
-      conn?.on("data", this._handle_data_from_project);
-      await conn?.init();
+      conn.on("close", this.connect);
+      conn.on("data", this._handle_data_from_project);
+      await conn.init();
       this.set_connection_status("connected");
     } catch (err) {
       this.set_connection_status("disconnected");

@@ -86,7 +86,11 @@ export class NatsClient {
         params,
       }),
     );
-    return this.jc.decode(resp.data);
+    const x = this.jc.decode(resp.data) as any;
+    if (x?.error) {
+      throw Error(x.error);
+    }
+    return x;
   };
 
   // for debugging -- listen to and display all messages on a subject

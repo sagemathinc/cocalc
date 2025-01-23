@@ -219,10 +219,10 @@ NOTE!!! The above consumer is ephemeral -- it disappears if we don't grab it via
 
 ## [ ] Goal: Jetstream permissions
 
-- [ ] who sets up the stream for capturing terminal outputs and when?
-- [ ] what are the permissions for jetstream usage and access?
-- [ ] deleting old data?
+- [ ] project should set up the stream for capturing terminal outputs.
+- [ ] delete old messages with a given subject. `nats stream purge project-81e0c408-ac65-4114-bad5-5f4b6539bd0e-terminal --seq=7000` 
 - [ ] handle the other messages like resize
+- [ ] permissions for jetstream usage and access
 
 ## [ ] Goal: Terminal and **compute server**
 
