@@ -15,6 +15,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JSONCodec } from "nats";
 import { jetstreamManager } from "@nats-io/jetstream";
 import { getLogger } from "@cocalc/project/logger";
+import { readlink, realpath } from "node:fs/promises";
 
 const logger = getLogger("server:nats:terminal");
 
@@ -67,6 +68,22 @@ export async function restartTerminal({ path }: { path }) {
   return { success: true };
 }
 
+export async function terminalCommand({ path, cmd, ...args }) {
+  logger.debug("terminalCommand", { path, cmd, args });
+  const terminal = sessions[path];
+  if (terminal == null) {
+    throw Error(`no terminal session '${path}'`);
+  }
+  switch (cmd) {
+    case "size":
+      return terminal.setSize(args as any);
+    case "cwd":
+      return await terminal.getCwd();
+    default:
+      throw Error(`unknown cmd="${cmd}"`);
+  }
+}
+
 class Session {
   private nc;
   private path: string;
@@ -103,6 +120,39 @@ class Session {
     this.pty?.destroy();
     delete this.pty;
     await this.init();
+  };
+
+  private getHome = () => {
+    return process.env.HOME ?? "/home/user";
+  };
+
+  getCwd = async () => {
+    if (this.pty == null) {
+      return;
+    }
+    // we reply with the current working directory of the underlying terminal process,
+    // which is why we use readlink and proc below.
+    const pid = this.pty.pid;
+    // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
+    // home included a symlink, hence the "startsWith" below didn't remove the home dir.
+    const home = await realpath(this.getHome());
+    const cwd = await readlink(`/proc/${pid}/cwd`);
+    // try to send back a relative path, because the webapp does not
+    // understand absolute paths
+    const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
+    return path;
+  };
+
+  setSize = ({ rows, cols }: { rows: number; cols: number }) => {
+    logger.debug("setSize", { rows, cols });
+    if (this.pty == null) {
+      logger.debug("setSize: not doing since pty not defined");
+      return;
+    }
+    logger.debug("setSize", { rows, cols }, "DOING IT!");
+
+    this.pty.resize(cols, rows);
+    this.size = { rows, cols };
   };
 
   getStream = async () => {
@@ -142,6 +192,7 @@ class Session {
       args.push(path_split(initFilename).tail);
     }
     const cwd = getCWD(head, this.options.cwd);
+    logger.debug("creating pty with size", this.size);
     this.pty = spawn(command, args, {
       cwd,
       env,

@@ -74,7 +74,12 @@ async function handleApiRequest({ mesg, group, account_id, nc }) {
   mesg.respond(jc.encode(resp));
 }
 
-import { createTerminal, restartTerminal, writeToTerminal } from "./terminal";
+import {
+  createTerminal,
+  restartTerminal,
+  terminalCommand,
+  writeToTerminal,
+} from "./terminal";
 async function getResponse({ endpoint, params, nc }) {
   switch (endpoint) {
     case "ping":
@@ -87,6 +92,8 @@ async function getResponse({ endpoint, params, nc }) {
       return await createTerminal({ params, nc });
     case "restart-terminal":
       return await restartTerminal(params);
+    case "terminal-command":
+      return await terminalCommand(params);
     case "write-to-terminal":
       return await writeToTerminal(params);
     default:

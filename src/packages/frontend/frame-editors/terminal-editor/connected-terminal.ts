@@ -274,7 +274,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   connectNats = async () => {
     try {
-      this.ignore_terminal_data = false; // todo
+      this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
       const conn = new NatsTerminalConnection({
         path: this.term_path,
@@ -283,8 +283,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.conn = conn as any;
       conn.on("close", this.connect);
       conn.on("data", this._handle_data_from_project);
+      conn.once("ready", () => {
+        this.ignore_terminal_data = false;
+        this.set_connection_status("connected");
+      });
       await conn.init();
-      this.set_connection_status("connected");
     } catch (err) {
       this.set_connection_status("disconnected");
       throw err;
@@ -856,6 +859,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.last_geom = { rows, cols };
     this.conn_write({ cmd: "size", rows, cols });
+    this.terminal_resize({ rows, cols });
   }
 
   copy(): void {

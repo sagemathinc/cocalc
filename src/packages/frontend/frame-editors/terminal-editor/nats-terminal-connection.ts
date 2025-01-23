@@ -43,7 +43,27 @@ export class NatsTerminalConnection extends EventEmitter {
       await this.start();
     }
     if (typeof data != "string") {
-      console.log(data);
+      console.log("to project", data);
+      if (data.cmd == "size") {
+        const { rows, cols } = data;
+        if (
+          rows <= 0 ||
+          cols <= 0 ||
+          rows == Infinity ||
+          cols == Infinity ||
+          isNaN(rows) ||
+          isNaN(cols)
+        ) {
+          // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
+          return;
+        }
+      }
+      const resp = await webapp_client.nats_client.project({
+        project_id: this.project_id,
+        endpoint: "terminal-command",
+        params: { path: this.path, ...data },
+      });
+      console.log("got back ", resp);
       return;
     }
     const f = async () => {
@@ -102,9 +122,11 @@ export class NatsTerminalConnection extends EventEmitter {
     if (this.state == "closed") {
       return true;
     }
-    const { data } = jc.decode(mesg.data) as any;
-    if (data != null) {
-      this.emit("data", data);
+    const x = jc.decode(mesg.data) as any;
+    if (x?.data != null) {
+      this.emit("data", x?.data);
+    } else {
+      console.log("TODO -- from project:", x);
     }
   };
 
@@ -113,7 +135,7 @@ export class NatsTerminalConnection extends EventEmitter {
       return;
     }
     const messages = await this.consumer.fetch({
-      max_messages: this.keep,
+      max_messages: 10000,
       expires: 1000,
     });
     for await (const mesg of messages) {
@@ -123,6 +145,7 @@ export class NatsTerminalConnection extends EventEmitter {
     }
     if (this.state == "init") {
       this.state = "running";
+      this.emit("ready");
     }
     // TODO: this loop runs until state = closed or this.consumer.closed()... ?
     for await (const mesg of await this.consumer.consume()) {
