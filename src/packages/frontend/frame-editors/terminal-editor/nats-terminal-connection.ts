@@ -4,6 +4,7 @@ import { JSONCodec } from "nats.ws";
 import sha1 from "sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
+import { delay } from "awaiting";
 
 const jc = JSONCodec();
 const client = uuid();
@@ -178,23 +179,37 @@ export class NatsTerminalConnection extends EventEmitter {
       return;
     }
     const messages = await this.consumer.fetch({
-      max_messages: 10000,
+      max_messages: 100000, // should only be a few hundred in practice
       expires: 1000,
     });
     for await (const mesg of messages) {
       if (this.handle(mesg)) {
         return;
       }
+      if (mesg.info.pending == 0) {
+        // no further messages pending, so switch to consuming below
+        // TODO: I don't know if there is some chance to miss a message?
+        //       This is a *terminal* so purely visual so not too critical.
+        break;
+      }
     }
-    if (this.state == "init") {
-      this.state = "running";
-      this.emit("ready");
-    }
-    // TODO: this loop runs until state = closed or this.consumer.closed()... ?
+
+    this.setReady();
+
     for await (const mesg of await this.consumer.consume()) {
       if (this.handle(mesg)) {
         return;
       }
+    }
+  };
+
+  private setReady = async () => {
+    // wait until after render loop of terminal before allowing writing,
+    // or we get corruption.
+    await delay(100); // todo is there a better way to know how long to wait?
+    if (this.state == "init") {
+      this.state = "running";
+      this.emit("ready");
     }
   };
 }

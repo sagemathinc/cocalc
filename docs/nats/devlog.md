@@ -231,6 +231,17 @@ NOTE!!! The above consumer is ephemeral -- it disappears if we don't grab it via
 - [ ] need a better algorithm for sizing since we don't know when a user disconnects!
   - when one user proposes a size, all other clients get asked their current size and only those that respond matter.  how to do this?
 
+## [ ] Goal: Basic Collab Document Editing
+
+Plan.  
+
+- Use a kv store hosted on nats to trac syncstring objects as before.  This means anybody can participate \(browser, compute server, project\) without any need to contact the database, hence eliminating all proxying!
+- Subject For Particular File: `project.${project_id}.patches.${sha1(path)}` 
+- Stream: Records everything with this subject  `project.${project_id}.patches`
+- It would be very nice if we can use the server assigned timestamps.
+- For transitioning and de\-archiving, there must be a way to do this, since they have a backup/restore process
+- 
+
 ## [ ] Goal: Terminal and **compute server**
 
 Another thing to do for compute servers:

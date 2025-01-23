@@ -379,7 +379,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn.write(data);
   }
 
-  private _handle_data_from_project(data: any): void {
+  private _handle_data_from_project = (data: any): void => {
     //console.log("data", data);
     this.assert_not_closed();
     if (data == null) {
@@ -402,7 +402,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       default:
         console.warn("TERMINAL: no way to handle data -- ", data);
     }
-  }
+  };
 
   private activity() {
     this.project_actions.flag_file_activity(this.path);
