@@ -4,25 +4,38 @@ import { JSONCodec } from "nats.ws";
 import sha1 from "sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+const jc = JSONCodec();
+
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   private path: string;
   private subject: string;
-  private state: null | "running" | "off" | "closed";
+  private state: null | "running" | "init" | "closed";
   private consumer?;
-  private startInit: number = 0;
+  // keep = optional number of messages to retain between clients/sessions/view, i.e.,
+  // "amount of history". This is global to all terminals in the project.
+  private keep?: number;
 
-  constructor({ project_id, path }) {
+  constructor({
+    project_id,
+    path,
+    keep,
+  }: {
+    project_id: string;
+    path: string;
+    keep?: number;
+  }) {
     super();
     this.project_id = project_id;
     this.path = path;
+    this.keep = keep;
     // move to util so guaranteed in sync with project
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
   }
 
   write = async (data) => {
-    if (Date.now() - this.startInit <= 2000) {
-      // ignore initial data while initializing (e.g., first 2 seconds for now -- TODO: use nats more cleverly)
+    if (this.state == "init") {
+      // ignore initial data while initializing.
       // This is the trickt to avoid "junk characters" on refresh/reconnect.
       return;
     }
@@ -30,30 +43,22 @@ export class NatsTerminalConnection extends EventEmitter {
       await this.start();
     }
     if (typeof data != "string") {
-      //console.log("write -- todo:", data);
-      // TODO: not yet implemented, e.g., {cmd: 'size', rows: 18, cols: 180}
+      console.log(data);
       return;
     }
-    const write = async () => {
-      const f = async () => {
-        await webapp_client.nats_client.project({
-          project_id: this.project_id,
-          endpoint: "write-to-terminal",
-          params: { path: this.path, data },
-        });
-      };
-      try {
-        await f();
-      } catch (_err) {
-        await this.start();
-        await f();
-      }
+    const f = async () => {
+      await webapp_client.nats_client.project({
+        project_id: this.project_id,
+        endpoint: "write-to-terminal",
+        params: { path: this.path, data, keep: this.keep },
+      });
     };
+
     try {
-      await write();
-    } catch (_) {
+      await f();
+    } catch (_err) {
       await this.start();
-      await write();
+      await f();
     }
   };
 
@@ -87,28 +92,42 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   init = async () => {
+    this.state = "init";
     await this.start();
     this.consumer = await this.getConsumer();
     this.run();
+  };
+
+  private handle = (mesg) => {
+    if (this.state == "closed") {
+      return true;
+    }
+    const { data } = jc.decode(mesg.data) as any;
+    if (data != null) {
+      this.emit("data", data);
+    }
   };
 
   private run = async () => {
     if (this.consumer == null) {
       return;
     }
-    const jc = JSONCodec();
-    // this loop runs forever (or until state = closed or this.consumer.closed())...
-    this.startInit = Date.now();
-    for await (const mesg of await this.consumer.consume()) {
-      if (this.state == "closed") {
+    const messages = await this.consumer.fetch({
+      max_messages: this.keep,
+      expires: 1000,
+    });
+    for await (const mesg of messages) {
+      if (this.handle(mesg)) {
         return;
       }
-      const { exit, data } = jc.decode(mesg.data) as any;
-      if (exit) {
-        this.state = "off";
-      } else if (data != null) {
-        this.state = "running";
-        this.emit("data", data);
+    }
+    if (this.state == "init") {
+      this.state = "running";
+    }
+    // TODO: this loop runs until state = closed or this.consumer.closed()... ?
+    for await (const mesg of await this.consumer.consume()) {
+      if (this.handle(mesg)) {
+        return;
       }
     }
   };

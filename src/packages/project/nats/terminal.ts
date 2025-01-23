@@ -1,5 +1,7 @@
 /*
-Quick very simple terminal proof of concept for testing NATS
+Terminal
+
+- using NATS
 */
 
 import { spawn } from "node-pty";
@@ -11,8 +13,14 @@ import { project_id } from "@cocalc/project/data";
 import { sha1 } from "@cocalc/backend/sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JSONCodec } from "nats";
-import { /*jetstream,*/ jetstreamManager } from "@nats-io/jetstream";
+import { jetstreamManager } from "@nats-io/jetstream";
+import { getLogger } from "@cocalc/project/logger";
 
+const logger = getLogger("server:nats:terminal");
+
+const DEFAULT_KEEP = 300;
+const MIN_KEEP = 5;
+const MAX_KEEP = 2000;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 const DEFAULT_COMMAND = "/bin/bash";
 const jc = JSONCodec();
@@ -24,7 +32,7 @@ export const createTerminal = reuseInFlight(
     if (params == null) {
       throw Error("params must be specified");
     }
-    const { path, options } = params;
+    const { path, ...options } = params;
     if (!path) {
       throw Error("path must be specified");
     }
@@ -69,17 +77,22 @@ class Session {
   public subject: string;
   private state: "running" | "off" = "off";
   private streamName: string;
+  private keep: number;
 
   constructor({ path, options, nc }) {
+    logger.debug("create session ", { path, options });
     this.nc = nc;
     this.path = path;
-    this.options = options ?? {};
+    this.options = options;
+    this.keep = Math.max(
+      MIN_KEEP,
+      Math.min(this.options.keep ?? DEFAULT_KEEP, MAX_KEEP),
+    );
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
     this.streamName = `project-${project_id}-terminal`;
   }
 
   write = async (data) => {
-    console.log("write", { data });
     if (this.state == "off") {
       await this.restart();
     }
@@ -96,11 +109,21 @@ class Session {
     // idempotent so don't have to check if there is already a stream
     const nc = this.nc;
     const jsm = await jetstreamManager(nc);
-    await jsm.streams.add({
-      name: this.streamName,
-      subjects: [`project.${project_id}.terminal.>`],
-      compression: "s2",
-    });
+    try {
+      await jsm.streams.add({
+        name: this.streamName,
+        subjects: [`project.${project_id}.terminal.>`],
+        compression: "s2",
+        max_msgs_per_subject: this.keep,
+      });
+    } catch (_err) {
+      // probably already exists
+      await jsm.streams.update(this.streamName, {
+        subjects: [`project.${project_id}.terminal.>`],
+        compression: "s2" as any,
+        max_msgs_per_subject: this.keep,
+      });
+    }
   };
 
   init = async () => {
@@ -127,10 +150,7 @@ class Session {
     });
     this.state = "running";
     await this.getStream();
-    //const js = await jetstream(this.nc);
     this.pty.onData(async (data) => {
-      // console.log("onData", { data });
-      //await js.publish(this.streamName, jc.encode({ data }));
       this.nc.publish(this.subject, jc.encode({ data }));
     });
     this.pty.onExit((status) => {
