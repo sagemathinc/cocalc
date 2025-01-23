@@ -279,6 +279,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       const conn = new NatsTerminalConnection({
         path: this.term_path,
         project_id: this.project_id,
+        terminalResize: this.terminal_resize,
       });
       this.conn = conn as any;
       conn.on("close", this.connect);
@@ -598,7 +599,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   // Try to resize terminal to given number of rows and columns.
   // This should not throw an exception no matter how wrong the input
   // actually is.
-  private terminal_resize(opts: { cols: number; rows: number }): void {
+  private terminal_resize = (opts: { cols: number; rows: number }) => {
     // console.log("terminal_resize", opts);
     // terminal.resize only takes integers, hence the floor;
     // we use floor to avoid cutting off a line halfway.
@@ -628,7 +629,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } catch (err) {
       console.warn("Error resizing terminal", err, rows, cols);
     }
-  }
+  };
 
   // Stop ignoring terminal data... but ONLY once
   // the render buffer is also empty.
@@ -859,7 +860,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.last_geom = { rows, cols };
     this.conn_write({ cmd: "size", rows, cols });
-    this.terminal_resize({ rows, cols });
   }
 
   copy(): void {

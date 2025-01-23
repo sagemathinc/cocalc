@@ -7,7 +7,7 @@ Terminal
 import { spawn } from "node-pty";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { path_split } from "@cocalc/util/misc";
-import { console_init_filename } from "@cocalc/util/misc";
+import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { project_id } from "@cocalc/project/data";
 import { sha1 } from "@cocalc/backend/sha1";
@@ -24,6 +24,8 @@ const MIN_KEEP = 5;
 const MAX_KEEP = 2000;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 const DEFAULT_COMMAND = "/bin/bash";
+const INFINITY = 999999;
+
 const jc = JSONCodec();
 
 const sessions: { [name: string]: Session } = {};
@@ -143,18 +145,6 @@ class Session {
     return path;
   };
 
-  setSize = ({ rows, cols }: { rows: number; cols: number }) => {
-    logger.debug("setSize", { rows, cols });
-    if (this.pty == null) {
-      logger.debug("setSize: not doing since pty not defined");
-      return;
-    }
-    logger.debug("setSize", { rows, cols }, "DOING IT!");
-
-    this.pty.resize(cols, rows);
-    this.size = { rows, cols };
-  };
-
   getStream = async () => {
     // idempotent so don't have to check if there is already a stream
     const nc = this.nc;
@@ -209,6 +199,81 @@ class Session {
       this.nc.publish(this.subject, jc.encode({ ...status, exit: true }));
       this.state = "off";
     });
+  };
+
+  private clientSizes = {};
+
+  setSize = ({
+    client,
+    rows,
+    cols,
+  }: {
+    client: string;
+    rows: number;
+    cols: number;
+  }) => {
+    this.clientSizes[client] = { rows, cols };
+    this.resize();
+  };
+
+  private resize = () => {
+    if (this.pty == null) {
+      // nothing to do
+      return;
+    }
+    const size = this.getSize();
+    if (size == null) {
+      return;
+    }
+    const { rows, cols } = size;
+    logger.debug("resize", "new size", rows, cols);
+    try {
+      this.setSizePty({ rows, cols });
+      // broadcast out new size
+      this.nc.publish(this.subject, jc.encode({ cmd: "size", rows, cols }));
+    } catch (err) {
+      logger.debug("terminal channel -- WARNING: unable to resize term", err);
+    }
+  };
+
+  setSizePty = ({ rows, cols }: { rows: number; cols: number }) => {
+    logger.debug("setSize", { rows, cols });
+    if (this.pty == null) {
+      logger.debug("setSize: not doing since pty not defined");
+      return;
+    }
+    logger.debug("setSize", { rows, cols }, "DOING IT!");
+
+    this.pty.resize(cols, rows);
+    this.size = { rows, cols };
+  };
+
+  getSize = (): { rows: number; cols: number } | undefined => {
+    const sizes = this.clientSizes;
+    if (len(sizes) == 0) {
+      return;
+    }
+    let rows: number = INFINITY;
+    let cols: number = INFINITY;
+    for (const id in sizes) {
+      if (sizes[id].rows) {
+        // if, since 0 rows or 0 columns means *ignore*.
+        rows = Math.min(rows, sizes[id].rows);
+      }
+      if (sizes[id].cols) {
+        cols = Math.min(cols, sizes[id].cols);
+      }
+    }
+    if (rows === INFINITY || cols === INFINITY) {
+      // no clients with known sizes currently visible
+      return;
+    }
+    // ensure valid values
+    rows = Math.max(rows ?? 1, rows);
+    cols = Math.max(cols ?? 1, cols);
+    // cache for future use.
+    this.size = { rows, cols };
+    return { rows, cols };
   };
 }
 

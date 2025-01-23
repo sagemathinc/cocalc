@@ -3,8 +3,10 @@ import { EventEmitter } from "events";
 import { JSONCodec } from "nats.ws";
 import sha1 from "sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { uuid } from "@cocalc/util/misc";
 
 const jc = JSONCodec();
+const client = uuid();
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
@@ -15,19 +17,23 @@ export class NatsTerminalConnection extends EventEmitter {
   // keep = optional number of messages to retain between clients/sessions/view, i.e.,
   // "amount of history". This is global to all terminals in the project.
   private keep?: number;
+  private terminalResize;
 
   constructor({
     project_id,
     path,
     keep,
+    terminalResize,
   }: {
     project_id: string;
     path: string;
     keep?: number;
+    terminalResize;
   }) {
     super();
     this.project_id = project_id;
     this.path = path;
+    this.terminalResize = terminalResize;
     this.keep = keep;
     // move to util so guaranteed in sync with project
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
@@ -61,7 +67,7 @@ export class NatsTerminalConnection extends EventEmitter {
       const resp = await webapp_client.nats_client.project({
         project_id: this.project_id,
         endpoint: "terminal-command",
-        params: { path: this.path, ...data },
+        params: { path: this.path, ...data, client },
       });
       console.log("got back ", resp);
       return;
@@ -126,7 +132,14 @@ export class NatsTerminalConnection extends EventEmitter {
     if (x?.data != null) {
       this.emit("data", x?.data);
     } else {
-      console.log("TODO -- from project:", x);
+      switch (x.cmd) {
+        case "size":
+          this.terminalResize(x);
+          return;
+        default:
+          console.log("TODO -- unhandled message from project:", x);
+          return;
+      }
     }
   };
 
