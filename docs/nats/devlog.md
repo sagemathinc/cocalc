@@ -236,6 +236,11 @@ NOTE!!! The above consumer is ephemeral -- it disappears if we don't grab it via
 Plan.  
 
 - [x] Use a kv store hosted on nats to trac syncstring objects as before.  This means anybody can participate \(browser, compute server, project\) without any need to contact the database, hence eliminating all proxying!
+
+Next Goal \- collaborative file editing!  This requires implementing the "ordered patches list" but on jetstream.  Similar to the nats SyncTable I wrote yesterday, except will use jetstream directly, since it is an event stream, after all.
+
+---
+
 - [ ] Subject For Particular File: `project.${project_id}.patches.${sha1(path)}` 
 - [ ] Stream: Records everything with this subject  `project.${project_id}.patches`
 - [ ] It would be very nice if we can use the server assigned timestamps.... but probably not
