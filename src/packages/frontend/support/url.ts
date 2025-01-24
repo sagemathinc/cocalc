@@ -11,7 +11,7 @@ export interface Options {
   type?: "problem" | "question" | "task" | "purchase" | "chat";
   hideExtra?: boolean;
   context?: string; // additional context
-  required?: string; // if required is a string, then the user MUST change the body of the input
+  required?: string; // if required is a string, then the user MUST change the body of the input so it does not contain the value of this string.
 }
 
 export default function getURL(options: Options = {}) {

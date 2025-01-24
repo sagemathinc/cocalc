@@ -17,7 +17,11 @@ LICENSE   : MS-RSL
 # If this env variable begins with a / it is assumed to be a path in the file system,
 # e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
 # If it is gs:// then it is a google cloud storage bucket.
-COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
+# 2025-01-10: noticed rarely this variable is not set, at least not initially after startup.
+# Hardcoding the path, which has never changed anyways.
+# Maybe https://github.com/nodejs/help/issues/3618
+COCALC_BLOB_STORE_FALLBACK = "/blobs"
+COCALC_BLOB_STORE = String(process.env.COCALC_BLOB_STORE ? COCALC_BLOB_STORE_FALLBACK)
 
 async   = require('async')
 zlib    = require('zlib')
@@ -211,8 +215,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb()
                 else if x.gcloud
                     if not COCALC_BLOB_STORE?
-                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-                        return
+                        # see comment https://github.com/sagemathinc/cocalc/pull/8110
+                        COCALC_BLOB_STORE = COCALC_BLOB_STORE_FALLBACK
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
                     # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
                     # across multiple buckets... as it isn't needed because buckets are infinite, and it
@@ -291,9 +295,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
-            dbg("invalid bucket")
-            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-            return
+            opts.bucket = COCALC_BLOB_STORE_FALLBACK
         locals =
             x: undefined
         async.series([
@@ -647,7 +649,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 f = (string_id, cb) =>
                     i += 1
                     console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
-                    @archive_patches
+                    @archivePatches
                         string_id : string_id
                         cb        : (err) ->
                             if err or not opts.delay
@@ -665,125 +667,26 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 opts.cb?()
         )
 
-    # Offlines and archives the patch, unless the string is active very recently, in
-    # which case this is a no-op.
-    #
-    # TODO: this ignores all syncstrings marked as "huge:true", because the patches are too large.
-    #       come up with a better strategy (incremental?) to generate the blobs to avoid the problem.
-    archive_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            compress  : 'zlib'
-            level     : -1   # the default
-            cutoff    : misc.minutes_ago(30)  # never touch anything this new
-            cb        : undefined
-        dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active = huge = undefined
-        where = {"string_id = $::CHAR(40)" : opts.string_id}
-        async.series([
-            (cb) =>
-                dbg("get syncstring info")
-                @_query
-                    query : "SELECT project_id, archived, last_active, huge FROM syncstrings"
-                    where : where
-                    cb    : one_result (err, x) =>
-                        if err
-                            cb(err)
-                        else if not x?
-                            cb("no such syncstring with id '#{opts.string_id}'")
-                        else if x.archived
-                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
-                        else
-                            project_id = x.project_id
-                            last_active = x.last_active
-                            huge = !!x.huge
-                            dbg("got last_active=#{last_active} project_id=#{project_id} huge=#{huge}")
-                            cb()
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    dbg("excluding due to cutoff")
-                    cb(); return
-                if huge
-                    dbg("excluding due to being huge")
-                    cb(); return
-                dbg("get patches")
-                @export_patches
-                    string_id : opts.string_id
-                    cb        : (err, x) =>
-                        patches = x
-                        cb(err)
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("create blob from patches")
-                try
-                    blob = Buffer.from(JSON.stringify(patches))
-                catch err
-                    # TODO: This *will* happen if the total length of all patches is too big.
-                    # need to break patches up...
-                    # This is not exactly the end of the world as the entire point of all this is to
-                    # just save some space in the database...
-                    dbg('error creating blob, marking syncstring as being "huge": ' + err)
-                    huge = true
-                    @_query
-                        query : "UPDATE syncstrings"
-                        set   : {huge : true}
-                        where : where
-                        cb    : (err) =>
-                            cb(err)
-                            return
-                if not huge
-                    dbg('save blob')
-                    blob_uuid = misc_node.uuidsha1(blob)
-                    @save_blob
-                        uuid       : blob_uuid
-                        blob       : blob
-                        project_id : project_id
-                        compress   : opts.compress
-                        level      : opts.level
-                        cb         : cb
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("update syncstring to indicate patches have been archived in a blob")
-                @_query
-                    query : "UPDATE syncstrings"
-                    set   : {archived : blob_uuid}
-                    where : where
-                    cb    : cb
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("actually deleting patches")
-                delete_patches(db:@, string_id: opts.string_id, cb:cb)
-        ], (err) => opts.cb?(err))
+    archivePatches: (opts) =>
+        try
+            await blobs.archivePatches({db:@, ...opts})
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     unarchivePatches: (string_id) =>
         await blobs.unarchivePatches({db:@, string_id:string_id})
 
     ###
-    Export/import of syncstring history and info.  Right now used mainly for debugging
-    purposes, but will obviously be useful for a user-facing feature involving import
-    and export (and copying) of complete edit history.
+    Export/import of syncstring history and info.
     ###
     export_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : required   # cb(err, array)
-        @_query
-            query : "SELECT * FROM patches"
-            where : {"string_id = $::CHAR(40)" : opts.string_id}
-            cb    : all_results (err, patches) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, patches)
+        try
+            patches = await blobs.exportPatches(opts.string_id);
+            opts.cb(undefined, patches)
+            return patches
+        catch err
+            opts.cb(err)
 
     import_patches: (opts) =>
         opts = defaults opts,

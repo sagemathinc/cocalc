@@ -802,8 +802,10 @@ export async function getNetworkUsage(opts: {
   switch (opts.server.cloud) {
     case "google-cloud":
       return await googleCloud.getNetworkUsage(opts);
+    case "hyperstack":
     case "lambda-cloud":
-      // lambda doesn't charge for network usage at all.
+      // hyperstack and lambda do not charge for or meter
+      // network usage at all.
       return { amount: 0, cost: 0 };
     case "onprem":
       // TODO: network usage currently free for on prem. This will change

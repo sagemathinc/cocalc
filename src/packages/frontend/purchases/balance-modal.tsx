@@ -5,6 +5,8 @@ import { getBalance as getBalanceUsingApi } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 import Payments from "@cocalc/frontend/purchases/payments";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 export default function BalanceModal({
   onRefresh,
@@ -92,8 +94,8 @@ function Links({ onClose }) {
     <Space.Compact>
       {LINKS.map(({ label, value }) => (
         <Button
-          size="small"
           key={value}
+          size="small"
           type="link"
           onClick={() => {
             openPage(value);
@@ -103,6 +105,15 @@ function Links({ onClose }) {
           {label}
         </Button>
       ))}
+      <Button
+        size="small"
+        type="link"
+        key="store"
+        target="_blank"
+        href={join(appBasePath, "store")}
+      >
+        Store
+      </Button>
     </Space.Compact>
   );
 }

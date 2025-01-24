@@ -68,12 +68,21 @@ export default async function getCheckoutSession({
     status: "open",
     customer,
   });
+  // cutoff = an hour ago in stripe time.  Restricting only to status='open'
+  // as above should work, but doesn't, since we had many reports of users
+  // with open checkout sessions that didn't work. This might help.
+  const cutoff = Math.floor((Date.now() - 1000 * 60 * 60) / 1000);
   for (const session of openSessions.data) {
     if (session.metadata?.purpose == purpose && session.client_secret) {
-      if (!isEqual(session.metadata?.lineItems, JSON.stringify(lineItems))) {
-        // The line items or description changed, so we can't use it.
+      if (
+        !isEqual(session.metadata?.lineItems, JSON.stringify(lineItems)) ||
+        session.created <= cutoff
+      ) {
+        logger.debug("getCheckoutSession: expiring checkout session");
+        // The line items or description changed or its older than an hour, so don't use it.
         await stripe.checkout.sessions.expire(session.id);
       } else {
+        logger.debug("getCheckoutSession: using existing checkout session");
         // we use it -- same line items
         return { clientSecret: session.client_secret };
       }

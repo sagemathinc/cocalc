@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore descr prio dont
+
 // help users selecting a kernel
 import type { TabsProps } from "antd";
 import {
@@ -710,7 +712,7 @@ function ComputeServerInfo() {
         </Text>{" "}
         and configure this notebook to connect to one of its kernels. This is
         useful if you want to get access to a{" "}
-        <Text strong>GPU accellerator</Text>, run a kernel that is{" "}
+        <Text strong>GPU accelerator</Text>, run a kernel that is{" "}
         <Text strong>not available locally</Text>, or if you want to make use of{" "}
         <Text strong>a much more powerful machine</Text>.
       </Paragraph>
@@ -724,7 +726,7 @@ function ComputeServerInfo() {
         message={
           <>
             To get started, open the{" "}
-            <Button onClick={() => actions?.set_active_tab("servers")}>
+            <Button onClick={() => actions?.showComputeServers()}>
               <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
               {formatIntl(FIXED_PROJECT_TABS.servers.label)}
             </Button>{" "}

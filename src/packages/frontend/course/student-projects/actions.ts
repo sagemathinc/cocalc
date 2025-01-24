@@ -787,7 +787,7 @@ export class StudentProjectsActions {
         project_map = redux.getStore("projects").get("project_map");
       }
 
-      // we make sure no leftover licenses are used by deleted student projects
+      // we make sure no leftover licenses are used by deleted student's projects
       const deletedIDs = store.get_student_ids({ deleted: true });
       for (const deleted_student_id of deletedIDs) {
         i += 1;

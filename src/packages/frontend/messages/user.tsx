@@ -1,5 +1,5 @@
-import { User as UserAccount } from "@cocalc/frontend/users";
 import { r_join } from "@cocalc/frontend/components/r_join";
+import { User as UserAccount } from "@cocalc/frontend/users";
 import { is_array } from "@cocalc/util/misc";
 import { getBitField } from "./util";
 

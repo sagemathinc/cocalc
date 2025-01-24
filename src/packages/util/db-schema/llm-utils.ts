@@ -118,6 +118,10 @@ export const MODELS_OPENAI = [
   "gpt-4-32k",
   "gpt-3.5-turbo-16k",
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
+  "o1-mini-8k",
+  "o1-mini",
+  "o1-8k",
+  "o1",
 ] as const;
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
@@ -226,6 +230,12 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-4-turbo-preview-8k" ||
       m === "gpt-4o-8k" ||
       m === "gpt-4o-mini-8k",
+
+    // ATTN: there is code for o1 and o1-mini, but it does not work yet.
+    // The API changed, there is no support for streaming, and it took
+    // too much of my time trying to get it to work already.
+    // m === "o1-mini-8k" ||
+    // m === "o1-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -707,6 +717,10 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4o-8k": "GPT-4o",
   "gpt-4o-mini": "GPT-4o Mini 128k",
   "gpt-4o-mini-8k": "GPT-4o Mini",
+  "o1-mini-8k": "OpenAI o1-mini",
+  "o1-8k": "OpenAI o1",
+  "o1-mini": "OpenAI o1-mini",
+  o1: "OpenAI o1",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
@@ -742,8 +756,7 @@ export const LLM_DESCR: LLM2String = {
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
   "gpt-4-turbo-preview-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
-  "gpt-4-turbo-preview":
-    "Like GPT-4 Turbo, but with up to 128k token context",
+  "gpt-4-turbo-preview": "Like GPT-4 Turbo, but with up to 128k token context",
   "gpt-4-turbo-8k":
     "Faster, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo": "Like GPT-4 Turbo, but with up to 128k token context",
@@ -754,6 +767,10 @@ export const LLM_DESCR: LLM2String = {
     "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
+  "o1-8k": "Spends more time thinking (8k token context)",
+  "o1-mini-8k": "A cost-efficient reasoning model (8k token context)",
+  o1: "Spends more time thinking (8k token context)",
+  "o1-mini": "A cost-efficient reasoning model (8k token context)",
   "text-bison-001": "",
   "chat-bison-001": "",
   "gemini-pro":
@@ -933,6 +950,30 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: true,
   },
+  o1: {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(7.5),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
+  "o1-mini": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(1.5),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
+  "o1-8k": {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(7.5),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
+  "o1-mini-8k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(1.5),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
   // also OpenAI
   "text-embedding-ada-002": {
     prompt_tokens: 0.0001 / 1000,
@@ -948,14 +989,14 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "gemini-1.5-pro-8k": {
-    prompt_tokens: usd1Mtokens(3.5), // (we're below the 128k context)
-    completion_tokens: usd1Mtokens(10.5),
+    prompt_tokens: usd1Mtokens(1.25), // (we're below the 128k context)
+    completion_tokens: usd1Mtokens(5),
     max_tokens: 8_000,
     free: false,
   },
   "gemini-1.5-pro": {
-    prompt_tokens: usd1Mtokens(7),
-    completion_tokens: usd1Mtokens(21),
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(10),
     max_tokens: 1048576,
     free: false,
   },
@@ -1028,14 +1069,14 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "claude-3-haiku-8k": {
-    prompt_tokens: usd1Mtokens(0.25),
-    completion_tokens: usd1Mtokens(1.25),
+    prompt_tokens: usd1Mtokens(0.8),
+    completion_tokens: usd1Mtokens(4),
     max_tokens: 8_000, // limited to 8k tokens, offered for free
     free: true,
   },
   "claude-3-haiku": {
-    prompt_tokens: usd1Mtokens(0.25),
-    completion_tokens: usd1Mtokens(1.25),
+    prompt_tokens: usd1Mtokens(0.8),
+    completion_tokens: usd1Mtokens(4),
     max_tokens: 200_000,
     free: false,
   },

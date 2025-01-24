@@ -24,6 +24,7 @@ import Inline from "./inline";
 import { IdleTimeout } from "./idle-timeout";
 import { SpendLimit } from "./spend-limit";
 import { HealthCheck } from "./health-check";
+import { ShutdownTime } from "./shutdown-time";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components";
 
@@ -116,21 +117,11 @@ function CardTitle({
         {saveButton}
       </Space>
       <div style={{ flex: 1 }} />
-      {savedEnabled ? (
-        <Alert
-          style={{ marginLeft: "15px" }}
-          type="success"
-          showIcon
-          message={"Enabled"}
-        />
-      ) : (
-        <Alert
-          style={{ marginLeft: "15px" }}
-          type="info"
-          showIcon
-          message={"Disabled"}
-        />
-      )}
+      <div style={{ marginLeft: "15px", width: "105px" }}>
+        {savedEnabled ? (
+          <Alert type="success" showIcon message={"Enabled"} />
+        ) : undefined}
+      </div>
     </Flex>
   );
 }
@@ -139,7 +130,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
   const [help, setHelp] = useState<boolean>(false);
   return (
     <Modal
-      width={800}
+      width={900}
       open
       onCancel={close}
       onOk={close}
@@ -157,7 +148,7 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
           />
           <Flex style={{ marginRight: "20px", alignItems: "center" }}>
             <div style={{ fontSize: "18px", margin: "15px 0" }}>
-              Configure Automatic Shutdown Strategies
+              Configure Automatic Shutdown and Health Check Strategies
             </div>
             <div style={{ flex: 1 }} />
             <Switch
@@ -169,6 +160,14 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
           </Flex>
           {help && (
             <div style={{ fontSize: "14px", fontWeight: "normal" }}>
+              <Button
+                href="https://youtu.be/Kx_47fs_xcI"
+                target="_blank"
+                style={{ float: "right" }}
+              >
+                <Icon name="youtube" style={{ color: "red" }} />
+                YouTube Video
+              </Button>
               Each strategy automatically turns this compute server off when a
               condition is met. This can save you money keeping spending under
               control. When the server is shutdown, a message is also sent and a
@@ -179,6 +178,8 @@ export function AutomaticShutdownModal({ id, project_id, close }) {
       }
     >
       <IdleTimeout id={id} project_id={project_id} help={help} />
+      <div style={{ height: "15px" }} />
+      <ShutdownTime id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />
       <SpendLimit id={id} project_id={project_id} help={help} />
       <div style={{ height: "15px" }} />

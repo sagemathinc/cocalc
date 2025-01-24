@@ -133,6 +133,13 @@ export async function setServerCloud(opts: { id: number; cloud: string }) {
   return await api("compute/set-server-cloud", opts);
 }
 
+export async function setServerOwner(opts: {
+  id: number;
+  new_account_id: string;
+}) {
+  return await api("compute/set-server-owner", opts);
+}
+
 // Cache for 12 hours
 let googleCloudPriceData: GoogleCloudData | null = null;
 let googleCloudPriceDataExpire: number = 0;

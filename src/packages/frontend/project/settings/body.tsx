@@ -4,6 +4,7 @@
  */
 
 import React, { useMemo } from "react";
+
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -95,7 +96,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             actions={redux.getActions("projects")}
           />
           <HideDeleteBox
-            key="hidedelete"
+            key="hide-delete"
             project={project}
             actions={redux.getActions("projects")}
           />
