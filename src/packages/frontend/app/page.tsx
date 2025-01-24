@@ -27,6 +27,7 @@ import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { COLORS } from "@cocalc/util/theme";
@@ -44,7 +45,6 @@ import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import SettingsModal from "./settings-modal";
-import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
@@ -181,6 +181,11 @@ export const Page: React.FC = () => {
     );
   }
 
+  function render_balance() {
+    if (!is_commercial) return;
+    return <BalanceButton minimal topBar />;
+  }
+
   function render_admin_tab(): JSX.Element | undefined {
     if (is_logged_in && groups?.includes("admin")) {
       return (
@@ -294,8 +299,8 @@ export const Page: React.FC = () => {
         {render_admin_tab()}
         {render_sign_in_tab()}
         {render_support()}
-        {is_logged_in && render_account_tab()}
-        <BalanceButton minimal />
+        {is_logged_in ? render_account_tab() : undefined}
+        {render_balance()}
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (
