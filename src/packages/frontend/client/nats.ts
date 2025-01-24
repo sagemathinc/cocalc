@@ -5,8 +5,10 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
-import { SyncStrings } from "@cocalc/util/nats/syncstrings";
+import { SyncTable } from "@cocalc/util/nats/synctable";
+import { parse_query } from "@cocalc/sync/table/util";
 import sha1 from "sha1";
+import { keys } from "lodash";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -109,13 +111,19 @@ export class NatsClient {
     return await js.consumers.get(stream);
   };
 
-  // syncstrings in a given project
-  syncstrings = async (project_id: string) => {
-    const s = new SyncStrings({
-      sha1,
-      jc: this.jc,
-      nc: await this.getConnection(),
-      project_id,
+  synctable = async (query, project_id?) => {
+    query = parse_query(query);
+    if (project_id) {
+      const table = keys(query)[0];
+      query[table][0].project_id = project_id;
+    }
+    const s = new SyncTable({
+      query,
+      env: {
+        sha1,
+        jc: this.jc,
+        nc: await this.getConnection(),
+      },
     });
     await s.init();
     return s;
