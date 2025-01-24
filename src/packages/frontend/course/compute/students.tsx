@@ -15,11 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CourseActions } from "../actions";
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  capitalize,
-  get_array_range,
-  plural,
-} from "@cocalc/util/misc";
+import { capitalize, get_array_range, plural } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { Unit } from "../store";
 import { getServersById } from "@cocalc/frontend/compute/api";
@@ -38,6 +34,7 @@ import {
   SpendLimitButton,
   SpendLimitStatus,
 } from "@cocalc/frontend/compute/spend-limit";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 declare var DEBUG: boolean;
 
@@ -298,10 +295,16 @@ const COMMANDS = [
 
 export type Command = (typeof COMMANDS)[number];
 
-const REQUIRES_CONFIRM = new Set(["stop", "deprovision", "reboot", "delete"]);
+const REQUIRES_CONFIRM = new Set([
+  "stop",
+  "deprovision",
+  "reboot",
+  "delete",
+  "transfer",
+]);
 
 const VALID_COMMANDS: { [state: string]: Command[] } = {
-  off: ["start", "deprovision", "transfer", "delete"],
+  off: ["start", "deprovision", "delete"],
   starting: [],
   running: ["stop", "reboot", "deprovision"],
   stopping: [],
@@ -309,6 +312,8 @@ const VALID_COMMANDS: { [state: string]: Command[] } = {
   suspending: [],
   suspended: ["start", "deprovision"],
 };
+
+const NONOWNER_COMMANDS = new Set(["start", "stop", "reboot"]);
 
 function StudentControl({
   onClose,
@@ -365,6 +370,11 @@ function StudentControl({
       >
         {name}
       </div>
+      {student.get("account_id") == server?.account_id ? (
+        <div style={{ marginRight: "15px" }}>
+          <b>Student Owned Server</b>
+        </div>
+      ) : undefined}
     </a>,
   );
   if (server?.project_specific_id) {
@@ -538,11 +548,6 @@ function CommandButton({
 function getCommands(server): Command[] {
   const v: Command[] = [];
   for (const command of COMMANDS) {
-    if (command == "transfer") {
-      // this is a can of worms to implement (see packages/server/compute/owner.ts),
-      // so we will wait until later.
-      continue;
-    }
     if (command == "create") {
       if (server != null) {
         // already created
@@ -556,6 +561,12 @@ function getCommands(server): Command[] {
     }
     if (server?.state != null) {
       if (!VALID_COMMANDS[server.state]?.includes(command)) {
+        continue;
+      }
+    }
+    if (server != null && server?.account_id != webapp_client.account_id) {
+      // not the owner
+      if (!NONOWNER_COMMANDS.has(command)) {
         continue;
       }
     }

@@ -28,6 +28,7 @@ import { currency, round2down } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getPool from "@cocalc/database/pool";
+import { recordPaymentIntent } from "./create-payment-intent";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -65,6 +66,10 @@ export default async function processPaymentIntents({
     });
     paymentIntents = recentPaymentIntents.data.concat(olderPaymentIntents.data);
   }
+  logger.debug(
+    `processing ${paymentIntents.length} payment intents`,
+    account_id != null ? `for account_id=${account_id}` : "",
+  );
 
   const seen = new Set<string>();
   const purchase_ids = new Set<number>([]);
@@ -73,6 +78,21 @@ export default async function processPaymentIntents({
       continue;
     }
     seen.add(paymentIntent.id);
+    if (needsToBeRecorded(paymentIntent)) {
+      try {
+        await recordPaymentIntent({
+          paymentIntentId: paymentIntent.id,
+          purpose: paymentIntent.metadata.purpose,
+          account_id: paymentIntent.metadata.account_id,
+          metadata: paymentIntent.metadata,
+        });
+        await setMetadataRecorded(paymentIntent);
+      } catch (err) {
+        logger.debug(
+          `WARNING: issue processing a payment intent ${paymentIntent.id} -- ${err}`,
+        );
+      }
+    }
     if (isReadyToProcess(paymentIntent)) {
       try {
         const id = await processPaymentIntent(paymentIntent);
@@ -104,8 +124,30 @@ export function isReadyToProcess(paymentIntent) {
       paymentIntent.status == "canceled") &&
     paymentIntent.metadata["processed"] != "true" &&
     paymentIntent.metadata["purpose"] &&
+    paymentIntent.metadata["deleted"] != "true" &&
     paymentIntent.invoice
   );
+}
+
+// Is this a payment intent coming from a stripe checkout session that we haven't
+// yet recorded its impacted?   paymentIntent.invoice being null means it's stripe
+// checkout since we make our non-checkout payment intents from an invoice.
+function needsToBeRecorded(paymentIntent) {
+  return (
+    !isReadyToProcess(paymentIntent) &&
+    !paymentIntent.invoice &&
+    paymentIntent.metadata["purpose"] &&
+    paymentIntent.metadata["recorded"] != "true" &&
+    paymentIntent.metadata["deleted"] != "true"
+  );
+}
+
+async function setMetadataRecorded(paymentIntent) {
+  const stripe = await getConn();
+  paymentIntent.metadata.recorded = "true";
+  await stripe.paymentIntents.update(paymentIntent.id, {
+    metadata: paymentIntent.metadata,
+  });
 }
 
 // NOT a critical assumption.  We do NOT assume processPaymentIntent is never run twice at

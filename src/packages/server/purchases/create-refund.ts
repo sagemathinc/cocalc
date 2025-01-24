@@ -11,6 +11,7 @@ import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
 import send, { support, url } from "@cocalc/server/messages/send";
 import { changeLicense } from "./edit-license";
+import cancelSubscription from "./cancel-subscription";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -241,6 +242,32 @@ async function refundLicense(
       purchase_id,
       { ...description, refund_purchase_id },
     ]);
+
+    // if there is a corresponding active subscription, cancel it.  That's the most likely thing we want, and it's trivial to resume.
+    const { rows } = await client.query(
+      "select id from subscriptions where status='active' AND metadata#>>'{license_id}' = $1",
+      [license_id],
+    );
+    if (rows.length > 0) {
+      const subscription_id = rows[0].id;
+      await cancelSubscription({
+        client,
+        account_id,
+        subscription_id,
+        reason,
+      });
+      // a special case for admin refunds is we edit current_period_end
+      await client.query(
+        "UPDATE subscriptions SET current_period_end=NOW() WHERE id=$1",
+        [subscription_id],
+      );
+
+      notes += `
+
+The corresponding subscription with id ${rows[0].id} was also canceled.
+
+`;
+    }
 
     await client.query("COMMIT");
   } catch (err) {

@@ -30,13 +30,14 @@ import {
   getPaymentMethods,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Modal, Space, Spin, Tooltip } from "antd";
+import { Alert, Button, Card, Modal, Space, Spin, Tooltip } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LineItemsTable } from "./line-items";
@@ -184,6 +185,7 @@ export default function StripePayment({
               onFinished,
               style,
               totalStripe,
+              hasPaymentMethods,
             }}
           />
           <Button
@@ -206,6 +208,7 @@ function StripeCheckout({
   onFinished,
   style,
   totalStripe,
+  hasPaymentMethods,
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
@@ -279,6 +282,36 @@ function StripeCheckout({
       >
         <EmbeddedCheckout className="cc-stripe-embedded-checkout" />
       </EmbeddedCheckoutProvider>
+      {!loading && !hasPaymentMethods && (
+        <div>
+          {/* This is a workaround for a possible bug in our code or
+          any conflicts between the user's browser, extensions, etc.
+          and stripe checkout.  Purchasing with a payment method and
+          1-click doesn't use stripe checkout at all and is thus
+          much more reliable... but involves more steps and doesn't
+          show local pricing, etc. */}
+          <Alert
+            showIcon
+            style={{ width: "500px", margin: "15px auto" }}
+            type="warning"
+            message={
+              <>
+                If you have a problem paying, ensure you have a{" "}
+                <a
+                  href={join(
+                    appBasePath,
+                    "settings/payment-methods#page=messages-inbox",
+                  )}
+                  target="_blank"
+                >
+                  valid payment method on file
+                </a>
+                , then refresh this page and click "Buy Now With 1-Click".
+              </>
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -426,6 +459,7 @@ function PaymentForm({ style, onFinished, paymentIntent }) {
           success={success}
           isSubmitting={isSubmitting}
           cancellablePaymentIntentId={!finalized ? paymentIntent.id : undefined}
+          cancelText="Close"
           onCancel={() => {
             onFinished?.();
           }}
@@ -451,6 +485,7 @@ export function ConfirmButton({
   onCancel,
   showAddress,
   cancellablePaymentIntentId,
+  cancelText,
 }: {
   disabled?: boolean;
   onClick;
@@ -460,6 +495,7 @@ export function ConfirmButton({
   notPrimary?: boolean;
   onCancel?: Function;
   showAddress?: boolean;
+  cancelText?: string;
   // if given, also include button to cancel the given payment intent
   cancellablePaymentIntentId?: string;
 }) {
@@ -473,7 +509,7 @@ export function ConfirmButton({
               onClick={() => onCancel()}
               style={{ height: "44px" }}
             >
-              Cancel
+              {cancelText ?? "Cancel"}
             </Button>
           )}
           <Button

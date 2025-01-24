@@ -368,6 +368,7 @@ def pnpm_noerror(args) -> None:
 
 def version_check(args):
     cmd("scripts/check_npm_packages.py")
+    cmd("pnpm check-deps", './packages')
 
 
 def node_version_check() -> None:

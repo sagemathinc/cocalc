@@ -2,6 +2,7 @@ import type {
   State,
   SpendLimit,
   HealthCheck,
+  ShutdownTime,
 } from "@cocalc/util/db-schema/compute-servers";
 
 interface Event {
@@ -35,6 +36,11 @@ export interface IdleTimeoutEntry {
   idle_timeout: number;
 }
 
+export interface ShutdownTimeEntry {
+  action: "shutdown-time";
+  shutdownTime: ShutdownTime;
+}
+
 export interface SpendLimitEntry {
   action: "spend-limit";
   spendLimit: SpendLimit;
@@ -53,6 +59,7 @@ export type ComputeServerEvent = (
   | AutomaticShutdownEntry
   | HealthCheckFailureEntry
   | IdleTimeoutEntry
+  | ShutdownTimeEntry
   | SpendLimitEntry
 ) &
   Event;
@@ -63,5 +70,6 @@ export type ComputeServerEventLogEntry =
   | AutomaticShutdownEntry
   | HealthCheckFailureEntry
   | IdleTimeoutEntry
+  | ShutdownTimeEntry
   | SpendLimitEntry
   | Error;

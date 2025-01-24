@@ -199,47 +199,7 @@ ${await support()}
     );
   }
 
-  if (purpose == SHOPPING_CART_CHECKOUT) {
-    try {
-      await setShoppingCartPaymentIntent({
-        account_id,
-        payment_intent: paymentIntentId,
-      });
-    } catch (err) {
-      // This is bad -- we couldn't properly mark what is being bought, but
-      // the payment intent exists. This could happen if the database went
-      // down.  In this case, we cancel the payment intent (no money has been taken yet!),
-      // and do NOT start the payment below!
-
-      // In the highly unlikely case this failed, that would be bad because the
-      // payment would be left hanging, but we haven't even tried to charge them,
-      // so I think they might have to go out of their way to pay.  They might NOT
-      // get their items automatically if they pay, but they would get their credit
-      // and could buy them later.  So basically double pay is perhaps still possible,
-      // but a user would have to try really, really hard.
-      await cancelPaymentIntent({
-        id: paymentIntentId,
-        reason: "abandoned",
-      });
-
-      // the user will get back an error message.  This should happen when cocalc
-      // is badly broken.  They can try again, but there's no harm in this case.
-      throw err;
-    }
-    // Now in case of shopping, the items in the cart have been moved to a new state
-    // so they can't be bought again, so it's safe to start trying to get the user
-    // to pay us, which is what happens next below.
-  } else if (purpose == STUDENT_PAY) {
-    await studentPaySetPaymentIntent({
-      project_id: metadata.project_id,
-      paymentIntentId,
-    });
-  } else if (purpose == RESUME_SUBSCRIPTION) {
-    await resumeSubscriptionSetPaymentIntent({
-      subscription_id: parseInt(metadata.subscription_id),
-      paymentIntentId,
-    });
-  }
+  await recordPaymentIntent({ purpose, account_id, paymentIntentId, metadata });
 
   await stripe.paymentIntents.update(paymentIntentId, {
     description,
@@ -351,4 +311,66 @@ export async function getPaymentIntentAccountId(
   const stripe = await getConn();
   const paymentIntent = await stripe.paymentIntents.retrieve(id);
   return paymentIntent.metadata?.account_id;
+}
+
+// When a payment intent is created we change some state in cocalc to
+// indicate this, which is critical to avoid double payments.
+// This is called right after creating and finalizing a payment intent
+// explicitly above, but ALSO a payment intent (with no invoice)
+// gets created implicitly as part of the stripe checkout process
+// so we call this code when handling payment intents that have no
+// invoice.
+export async function recordPaymentIntent({
+  purpose,
+  account_id,
+  paymentIntentId,
+  metadata,
+}) {
+  logger.debug("recordPaymentIntent", {
+    purpose,
+    account_id,
+    paymentIntentId,
+    metadata,
+  });
+  if (purpose == SHOPPING_CART_CHECKOUT) {
+    try {
+      await setShoppingCartPaymentIntent({
+        account_id,
+        payment_intent: paymentIntentId,
+      });
+    } catch (err) {
+      // This is bad -- we couldn't properly mark what is being bought, but
+      // the payment intent exists. This could happen if the database went
+      // down.  In this case, we cancel the payment intent (no money has been taken yet!),
+      // and do NOT start the payment below!
+
+      // In the highly unlikely case this failed, that would be bad because the
+      // payment would be left hanging, but we haven't even tried to charge them,
+      // so I think they might have to go out of their way to pay.  They might NOT
+      // get their items automatically if they pay, but they would get their credit
+      // and could buy them later.  So basically double pay is perhaps still possible,
+      // but a user would have to try really, really hard.
+      await cancelPaymentIntent({
+        id: paymentIntentId,
+        reason: "abandoned",
+      });
+
+      // the user will get back an error message.  This should happen when cocalc
+      // is badly broken.  They can try again, but there's no harm in this case.
+      throw err;
+    }
+    // Now in case of shopping, the items in the cart have been moved to a new state
+    // so they can't be bought again, so it's safe to start trying to get the user
+    // to pay us, which is what happens next below.
+  } else if (purpose == STUDENT_PAY) {
+    await studentPaySetPaymentIntent({
+      project_id: metadata.project_id,
+      paymentIntentId,
+    });
+  } else if (purpose == RESUME_SUBSCRIPTION) {
+    await resumeSubscriptionSetPaymentIntent({
+      subscription_id: parseInt(metadata.subscription_id),
+      paymentIntentId,
+    });
+  }
 }

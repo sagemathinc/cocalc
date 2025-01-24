@@ -78,7 +78,9 @@ export default async function createVouchers({
     credit_id,
   });
   if (!count || count < 1 || !isFinite(count)) {
-    throw Error("count must be a positive integer");
+    // default to 1 -- this wasn't specified at all in some cases with
+    // older vouchers that might be in user shopping carts still
+    count = 1;
   }
   if (!amount || amount <= 0 || amount > MAX_VOUCHER_VALUE) {
     throw Error(`amount must be positive and at most ${MAX_VOUCHER_VALUE}`);

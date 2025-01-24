@@ -40,7 +40,7 @@
     "@types/ws": "^8.5.9",
     "awaiting": "^3.0.0",
     "cookie": "^1.0.0",
-    "debug": "^4.3.2",
+    "debug": "^4.4.0",
     "websocketfs": "^0.17.4",
     "ws": "^8.18.0"
   },
@@ -52,6 +52,6 @@
   "devDependencies": {
     "@types/cookie": "^0.6.0",
     "@types/node": "^18.16.14",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.3"
   }
 }

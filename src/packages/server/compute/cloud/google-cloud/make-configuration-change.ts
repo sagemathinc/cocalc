@@ -1,6 +1,7 @@
-import type {
-  GoogleCloudConfiguration,
-  State,
+import  {
+  type GoogleCloudConfiguration,
+  type State,
+  AUTOMATIC_SHUTDOWN_FIELDS,
 } from "@cocalc/util/db-schema/compute-servers";
 import {
   setMachineType,
@@ -28,10 +29,7 @@ export const SUPPORTED_CHANGES = [
   "allowCollaboratorControl",
   "authToken",
   "proxy",
-  "spendLimit",
-  "idleTimeoutMinutes",
-  "healthCheck",
-];
+].concat(AUTOMATIC_SHUTDOWN_FIELDS);
 
 export const RUNNING_CHANGES = [
   "ephemeral",
@@ -40,10 +38,7 @@ export const RUNNING_CHANGES = [
   "allowCollaboratorControl",
   "authToken",
   "proxy",
-  "spendLimit",
-  "idleTimeoutMinutes",
-  "healthCheck",
-];
+].concat(AUTOMATIC_SHUTDOWN_FIELDS);
 
 export async function makeConfigurationChange({
   id,

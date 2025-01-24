@@ -19,6 +19,8 @@ import {
   KUCALC_DISABLED,
 } from "@cocalc/util/db-schema/site-defaults";
 import { useProject } from "./page/common";
+import { FlyoutActiveStarred } from "./page/flyouts/state";
+import { useStarredFilesManager } from "./page/flyouts/store";
 import {
   init as INIT_PROJECT_STATE,
   useProjectState,
@@ -26,28 +28,27 @@ import {
 import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
-import { useStarredFilesManager } from "./page/flyouts/store";
-import { FlyoutActiveStarred } from "./page/flyouts/state";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
   active_project_tab?: string;
+  compute_image: string | undefined;
+  enabledLLMs: LLMServicesAvailable;
+  flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
   group?: UserGroup;
   hasInternet?: boolean | undefined;
   is_active: boolean;
   isRunning?: boolean | undefined;
-  project_id: string;
-  project?: Project;
-  status: ProjectStatus;
-  flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
-  onCoCalcCom: boolean;
-  onCoCalcDocker: boolean;
-  enabledLLMs: LLMServicesAvailable;
   mainWidthPx: number;
   manageStarredFiles: {
     starred: FlyoutActiveStarred;
     setStarredPath: (path: string, starState: boolean) => void;
   };
+  onCoCalcCom: boolean;
+  onCoCalcDocker: boolean;
+  project_id: string;
+  project?: Project;
+  status: ProjectStatus;
 }
 
 export const emptyProjectContext = {
@@ -77,6 +78,7 @@ export const emptyProjectContext = {
     starred: [],
     setStarredPath: () => {},
   },
+  compute_image: undefined,
 } as ProjectContextState;
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -96,7 +98,7 @@ export function useProjectContextProvider({
   mainWidthPx: number;
 }): ProjectContextState {
   const actions = useActions({ project_id });
-  const { project, group } = useProject(project_id);
+  const { project, group, compute_image } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
   useProjectStatus(actions);
   const hasInternet = useProjectHasInternetAccess(project_id);
@@ -132,30 +134,31 @@ export function useProjectContextProvider({
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
   }, [
-    haveOpenAI,
-    haveGoogle,
-    haveOllama,
-    haveCustomOpenAI,
-    haveMistral,
     haveAnthropic,
+    haveCustomOpenAI,
+    haveGoogle,
+    haveMistral,
+    haveOllama,
+    haveOpenAI,
     userDefinedLLM,
   ]);
 
   return {
     actions,
     active_project_tab,
+    compute_image,
+    enabledLLMs,
+    flipTabs,
     group,
     hasInternet,
     is_active,
     isRunning,
+    mainWidthPx,
+    manageStarredFiles,
+    onCoCalcCom,
+    onCoCalcDocker,
     project_id,
     project,
     status,
-    flipTabs,
-    onCoCalcCom,
-    onCoCalcDocker,
-    enabledLLMs,
-    mainWidthPx,
-    manageStarredFiles,
   };
 }

@@ -1,4 +1,4 @@
-import { editor, jupyter, labels, menu, course } from "./common";
+import { course, editor, jupyter, labels, menu } from "./common";
 import type { IntlMessage } from "./index";
 
 export type Data = { [key in string]: IntlMessage };

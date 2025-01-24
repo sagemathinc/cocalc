@@ -7,10 +7,9 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Row } from "antd";
+import { Button, Card, Col, Form, Input, Row, Space } from "antd";
 import { delay } from "awaiting";
 import { useIntl } from "react-intl";
-
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -420,21 +419,22 @@ export const NewProjectCreator: React.FC<Props> = ({
         {render_advanced()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
-            <Button
-              disabled={state === "saving"}
-              onClick={cancel_editing}
-              style={{ marginRight: "8px" }}
-            >
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-            <Button
-              disabled={isDisabled()}
-              onClick={() => create_project()}
-              type="primary"
-            >
-              Create Project
-              {requireLicense && !license_id && <> (select license above)</>}
-            </Button>
+            <Space>
+              <Button
+                disabled={state === "saving"}
+                onClick={cancel_editing}
+              >
+                {intl.formatMessage(labels.cancel)}
+              </Button>
+              <Button
+                disabled={isDisabled()}
+                onClick={() => create_project()}
+                type="primary"
+              >
+                Create Project
+                {requireLicense && !license_id && <> (select license above)</>}
+              </Button>
+            </Space>
           </Col>
         </Row>
         <Row>

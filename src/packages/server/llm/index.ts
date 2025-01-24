@@ -26,6 +26,7 @@ import {
   LanguageModel,
   LanguageServiceCore,
   OpenAIMessages,
+  OpenAIModel,
   getLLMCost,
   isAnthropicModel,
   isCoreLanguageModel,
@@ -50,6 +51,7 @@ import { evaluateCustomOpenAI } from "./custom-openai";
 import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
+import { evaluateOpenAILC } from "./openai-lc";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
 
@@ -176,12 +178,15 @@ async function evaluateImpl({
           throw new Error("Wrong client. This should never happen. [GenAI]");
         }
         return await evaluateGoogleGenAI({ ...params, client });
+      } else if (isOpenAIModel(model)) {
+        return await evaluateOpenAILC(params);
       } else {
-        const client = await getClient(model);
-        if (!(client instanceof OpenAI)) {
-          throw new Error("Wrong client. This should never happen. [OpenAI]");
-        }
-        return await evaluateOpenAI({ ...params, client });
+        throw new Error(`Unable to handel model '${model}'.`);
+        // const client = await getClient(model);
+        // if (!(client instanceof OpenAI)) {
+        //   throw new Error("Wrong client. This should never happen. [OpenAI]");
+        // }
+        // return await evaluateOpenAI({ ...params, client });
       }
     })();
 
@@ -327,15 +332,7 @@ export async function evaluateOpenAI({
     throw new Error(`Model "${model}" not an OpenAI model.`);
   }
 
-  // the *-8k variants are artificial – the input is already limited/truncated to 8k
-  // convert *-preview and all *-8k to "gpt-4-turbo"
-  if (model.startsWith("gpt-4-turbo")) {
-    model = "gpt-4-turbo";
-  } else if (model.startsWith("gpt-4o-mini")) {
-    model = "gpt-4o-mini";
-  } else if (model.startsWith("gpt-4o")) {
-    model = "gpt-4o";
-  }
+  model = normalizeOpenAIModel(model);
 
   const messages: OpenAIMessages = [];
   if (system) {
@@ -355,4 +352,24 @@ export async function evaluateOpenAI({
     maxTokens,
     stream,
   });
+}
+
+export function normalizeOpenAIModel(model): OpenAIModel {
+  // the *-8k variants are artificial – the input is already limited/truncated to 8k
+  // convert *-preview and all *-8k to "gpt-4-turbo"
+  if (model.startsWith("gpt-4-turbo")) {
+    model = "gpt-4-turbo";
+  } else if (model.startsWith("gpt-4o-mini")) {
+    model = "gpt-4o-mini";
+  } else if (model.startsWith("gpt-4o")) {
+    model = "gpt-4o";
+  } else if (model.startsWith("o1-mini")) {
+    model = "o1-mini";
+  } else if (model.startsWith("o1")) {
+    model = "o1";
+  }
+  if (!isOpenAIModel(model)) {
+    throw new Error(`Internal problem normalizing OpenAI model name: ${model}`);
+  }
+  return model;
 }

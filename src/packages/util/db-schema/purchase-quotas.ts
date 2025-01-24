@@ -62,12 +62,22 @@ const GPT_OMNI_8K: Spec = {
 const GPT_OMNI_MINI_128k: Spec = {
   ...GPT_OMNI_128k,
   display: "OpenAI GPT-4o Mini 128k",
-};
+} as const;
 
 const GPT_OMNI_MINI_8K: Spec = {
   ...GPT_OMNI_MINI_128k,
   display: "OpenAI GPT-4o Mini",
-};
+} as const;
+
+const GPT_O1_8K: Spec = {
+  ...GPT_OMNI_128k,
+  display: "OpenAI o1",
+} as const;
+
+const GPT_O1_MINI_8K: Spec = {
+  ...GPT_O1_8K,
+  display: "OpenAI o1 mini",
+} as const;
 
 const GOOGLE_AI_COLOR = "#ff4d4f";
 
@@ -168,6 +178,10 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4o-8k": GPT_OMNI_8K,
   "openai-gpt-4o-mini": GPT_OMNI_MINI_128k,
   "openai-gpt-4o-mini-8k": GPT_OMNI_MINI_8K,
+  "openai-o1-mini-8k": GPT_O1_8K,
+  "openai-o1-8k": GPT_O1_MINI_8K,
+  "openai-o1-mini": GPT_O1_8K,
+  "openai-o1": GPT_O1_MINI_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: GOOGLE_AI_COLOR,

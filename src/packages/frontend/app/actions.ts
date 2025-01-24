@@ -185,7 +185,7 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title("Messages, Mentions and News");
+        set_window_title(intl.formatMessage(labels.messages_title));
         return;
       case undefined:
         return;

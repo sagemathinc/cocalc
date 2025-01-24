@@ -22,12 +22,13 @@ import type { ComputeServerEventLogEntry } from "@cocalc/util/compute/log";
 import {
   validatedHealthCheck,
   type HealthCheck,
+  HEALTH_CHECK_DEFAULTS,
 } from "@cocalc/util/db-schema/compute-servers";
 import { map } from "awaiting";
 
 const PARALLEL_LIMIT = 10;
 
-const logger = getLogger("server:compute:maintenance:cloud:automatic-shutdown");
+const logger = getLogger("server:compute:maintenance:cloud:health-check");
 
 export default async function automaticShutdown() {
   try {
@@ -42,25 +43,28 @@ const numFailures: { [id: number]: number } = {};
 
 async function update() {
   const pool = getPool();
-  const { rows } = await pool.query(
-    `
+  const query = `
 WITH servers AS (
   SELECT
     id,
     account_id,
     project_id,
+    state_changed,
     configuration#>'{healthCheck}' AS health_check
   FROM compute_servers
   WHERE state = 'running'
     AND cloud != 'running'
     AND (configuration#>'{healthCheck}') IS NOT NULL
+    AND state_changed IS NOT NULL
+    AND state_changed <= NOW() - coalesce((configuration#>'{healthCheck,initialDelaySeconds}')::real, ${HEALTH_CHECK_DEFAULTS.initialDelaySeconds}) * interval '1 second'
 )
 SELECT *
 FROM servers
 WHERE health_check#>>'{command}' != ''
   AND health_check#>>'{enabled}' =  'true'
-`,
-  );
+`;
+  logger.debug("query=", query);
+  const { rows } = await pool.query(query);
   const now = Date.now();
   const v = rows.filter(({ id, health_check }) => {
     const { periodSeconds } = validatedHealthCheck(health_check)!;
@@ -89,7 +93,7 @@ async function updateComputeServer({
     let success;
     try {
       logger.debug("run check on ", { compute_server_id: id, project_id });
-      await callProject({
+      const resp = await callProject({
         account_id,
         project_id,
         mesg: {
@@ -102,6 +106,9 @@ async function updateComputeServer({
           err_on_exit: true,
         },
       });
+      if (resp.event == "error" || !!resp.exit_code) {
+        throw Error("fail");
+      }
       logger.debug("health check worked", { id });
       success = true;
     } catch (err) {

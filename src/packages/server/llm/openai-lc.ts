@@ -1,4 +1,4 @@
-import { AIMessageChunk } from "@langchain/core/messages";
+import { AIMessageChunk, MessageContent } from "@langchain/core/messages";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -11,6 +11,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isOpenAIModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
+import { normalizeOpenAIModel } from ".";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
@@ -42,20 +43,28 @@ async function getParams(model: string) {
 }
 
 export async function evaluateOpenAILC(
-  opts: Readonly<OpenAIOpts>,
+  opts: OpenAIOpts,
   mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
+  if (mode === "cocalc") {
+    opts.model = normalizeOpenAIModel(opts.model);
+  }
   if (mode === "cocalc" && !isOpenAIModel(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const { system, history, input, maxTokens, stream, model } = opts;
+
+  // As of Jan 2025: reasoning models (o1) do not support streaming
+  // https://platform.openai.com/docs/guides/reasoning/
+  const isO1 = model != "o1-mini" && model != "o1";
+  const streaming = stream != null && isO1;
 
   log.debug("evaluateOpenAILC", {
     input,
     history,
     system,
     model,
-    stream: stream != null,
+    stream: streaming,
     maxTokens,
   });
 
@@ -65,13 +74,11 @@ export async function evaluateOpenAILC(
   const openai = new ChatOpenAI({
     ...params,
     maxTokens,
-    streaming: stream != null,
-  }).bind({
-    stream_options: { include_usage: true },
-  });
+    streaming,
+  }).bind(isO1 ? {} : { stream_options: { include_usage: true } });
 
   const prompt = ChatPromptTemplate.fromMessages([
-    ["system", system ?? ""],
+    [isO1 ? "developer" : "system", system ?? ""],
     new MessagesPlaceholder("history"),
     ["human", "{input}"],
   ]);
@@ -94,24 +101,33 @@ export async function evaluateOpenAILC(
     },
   });
 
-  const chunks = await chainWithHistory.stream({
-    input,
-  });
-
   let finalResult: AIMessageChunk | undefined;
   let output = "";
-  for await (const chunk of chunks) {
-    const { content } = chunk;
-    if (typeof content !== "string") continue;
-    output += content;
-    opts.stream?.(content);
 
-    if (finalResult) {
-      finalResult = concat(finalResult, chunk);
-    } else {
-      finalResult = chunk;
+  if (streaming) {
+    const chunks = await chainWithHistory.stream({
+      input,
+    });
+
+    for await (const chunk of chunks) {
+      const { content } = chunk;
+      const contentStr = content2string(content);
+      output += contentStr;
+      opts.stream?.(contentStr);
+
+      if (finalResult) {
+        finalResult = concat(finalResult, chunk);
+      } else {
+        finalResult = chunk;
+      }
     }
+  } else {
+    finalResult = await chainWithHistory.invoke({ input });
+    const { content } = finalResult;
+    output = content2string(content);
   }
+
+  log.debug("finalResult", finalResult);
 
   // and an empty call when done
   opts.stream?.();
@@ -140,5 +156,19 @@ export async function evaluateOpenAILC(
       completion_tokens,
       prompt_tokens,
     };
+  }
+}
+
+function content2string(content: MessageContent): string {
+  if (typeof content === "string") {
+    return content;
+  } else {
+    const output0 = content[0];
+    if (output0.type === "text") {
+      return output0.text;
+    } else {
+      log.debug("content2string unable to process", content);
+      return "Problem processing returned message content.";
+    }
   }
 }

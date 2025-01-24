@@ -15,6 +15,7 @@ import { currency } from "@cocalc/util/misc";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -89,14 +90,7 @@ export default function PayNow({
         </>
       }
     >
-      {error && (
-        <Alert
-          closable
-          type="error"
-          message={error}
-          onClose={() => setError("")}
-        />
-      )}
+      <ShowError error={error} setError={setError} />
       Due: <TimeAgo date={when} />
       <div style={{ textAlign: "center", fontSize: "15pt" }}>
         Course Fee: <Cost purchaseInfo={purchaseInfo} />
@@ -120,7 +114,7 @@ export default function PayNow({
             <StripePayment
               disabled={disabled}
               lineItems={lineItems}
-              description="Pay fee for access to a course."
+              description={`Course fee for project "${redux.getStore("projects").get_title(project_id)}"`}
               purpose={STUDENT_PAY}
               metadata={{ project_id }}
               onFinished={async (total) => {
@@ -166,25 +160,21 @@ export default function PayNow({
           limit={5}
         />
       )}
-      {place == "checkout" && (
-        <>
-          <Divider>Other Options</Divider>
-          <Space direction="vertical">
-            <PayLink project_id={project_id} />
-            <Transfer project_id={project_id} />
-            <Button
-              onClick={() => {
-                const actions = redux.getActions("page");
-                if (actions != null) {
-                  actions.close_project_tab(project_id);
-                }
-              }}
-            >
-              Close Project
-            </Button>
-          </Space>
-        </>
-      )}
+      <Divider>Other Options</Divider>
+      <Space direction="vertical">
+        <PayLink project_id={project_id} />
+        <Transfer project_id={project_id} />
+        <Button
+          onClick={() => {
+            const actions = redux.getActions("page");
+            if (actions != null) {
+              actions.close_project_tab(project_id);
+            }
+          }}
+        >
+          Close Project
+        </Button>
+      </Space>
     </Modal>
   );
 }

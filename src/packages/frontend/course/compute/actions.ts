@@ -11,6 +11,7 @@ import {
   createServer,
   deleteServer,
   getServersById,
+  setServerOwner,
 } from "@cocalc/frontend/compute/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
@@ -204,6 +205,14 @@ export class ComputeActions {
       throw Error("compute server doesn't exist");
     }
     switch (command) {
+      case "transfer":
+        const student = this.getStore()?.get_student(student_id);
+        const new_account_id = student?.get("account_id");
+        if (!new_account_id) {
+          throw Error("student does not have an account yet");
+        }
+        await setServerOwner({ id: server_id, new_account_id });
+        return;
       case "start":
       case "stop":
       case "reboot":
