@@ -43,6 +43,7 @@
     "vertexai",
     "vfill",
     "xsmall",
+    "MDLG"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
