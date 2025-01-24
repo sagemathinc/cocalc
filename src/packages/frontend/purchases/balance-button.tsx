@@ -23,6 +23,7 @@ export default function BalanceButton({
   topBar?: boolean;
 }) {
   const intl = useIntl();
+  const is_commercial = useTypedRedux("customize", "is_commercial");
   const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const dbBalance = useTypedRedux("account", "balance");
@@ -126,10 +127,16 @@ export default function BalanceButton({
     );
   }
 
-  return (
-    <>
-      {renderDisplay()}
-      {renderModal()}
-    </>
-  );
+  // This ensures it only shows up in commercial setups.
+  // Wherever it is used, the component shouldn't be instantiated in those cases, though.
+  if (!is_commercial) {
+    return;
+  } else {
+    return (
+      <>
+        {renderDisplay()}
+        {renderModal()}
+      </>
+    );
+  }
 }
