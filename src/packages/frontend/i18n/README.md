@@ -41,15 +41,17 @@ After introducing new messages, these are the steps to get all translations into
 
 1.  `pnpm i18n:download`
 
-    Will grab the updated files like `zh_CN.json` and save them in the `i18n` folder.
+    Will grab the updated files containing the translated strings (e.g. `zh_CN.json`) and save them in the `./i18n/trans/` folder.
+    The source of truth for these files is always the remotely stored data – hence do not ever edit these files directly.
 
 1.  `pnpm i18n:compile`
 
-    This transforms the `[locale].json` files to `[locale].compiles.json`.
+    This transforms the `[locale].json` translation files from the step before to `[locale].compiled.json`.
     This could also reveal problems, when conditional ICU messages aren't properly formatted.
-    E.g. `"Sí, cerrar sesión{en todas partes, seleccionar, verdadero { en todas partes} otro {}}" with ID "account.sign-out.button.ok" in file "./i18n/es_ES.json"`: In the brackets, it has to start according to the syntax: `{everywhere, select, true {..} other {}}`.
+    E.g. `"Sí, cerrar sesión{en todas partes, seleccionar, verdadero { en todas partes} otro {}}" with ID "account.sign-out.button.ok" in file "./i18n/es_ES.json"`:
+    In the brackets, it has to start according to the syntax: `{everywhere, select, true {..} other {}}`, i.e. the variable `everywhere` must stay in English.
 
-1.  Reload the `frontend` after a compile, such that `await import...` will load the updated translation file for the set locale.
+1.  Reload the `frontend` after a compile, such that `await import...` will load the updated compiled translation file for the configured locale.
 
 Note: if just a translation has been updated, you only need to do the `i18n:download` & `i18n:compile` steps.
 
