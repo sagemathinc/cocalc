@@ -15,6 +15,7 @@ import {
   QueryRows,
   UntypedQueryResult,
 } from "@cocalc/util/types/database";
+import type { Strategy } from "@cocalc/util/types/sso";
 import { Changes } from "./changefeed";
 
 export type { QueryResult };
@@ -104,6 +105,7 @@ export interface UpdateAccountInfoAndPassportOpts {
   id: string;
   profile: any;
   passport_profile: any;
+  email_address?: string;
 }
 
 export interface PostgreSQL extends EventEmitter {
@@ -323,6 +325,8 @@ export interface PostgreSQL extends EventEmitter {
     }>;
   }): Promise<void>;
 
+  getStrategiesSSO(): Promise<Strategy[]>;
+
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 
   save_blob(opts: {
@@ -378,6 +382,14 @@ export interface PostgreSQL extends EventEmitter {
   });
 
   unarchivePatches(string_id: string);
+}
+
+export interface SetAccountFields {
+  db: PostgreSQL;
+  account_id: string;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts
