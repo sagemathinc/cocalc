@@ -1712,8 +1712,8 @@ export class SyncDoc extends EventEmitter {
 
     const doc = patch_list.value();
     this.last = this.doc = doc;
-    this.patches_table.on("change", this.handle_patch_update.bind(this));
-    this.patches_table.on("saved", this.handle_offline.bind(this));
+    this.patches_table.on("change", this.handle_patch_update);
+    this.patches_table.on("saved", this.handle_offline);
     this.patch_list = patch_list;
 
     // this only potentially happens for tables in the project,
@@ -2377,7 +2377,7 @@ export class SyncDoc extends EventEmitter {
      are relatively old; if so, we mark them as such and
      also possibly recompute snapshots.
   */
-  private async handle_offline(data): Promise<void> {
+  private handle_offline = async (data): Promise<void> => {
     this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
@@ -3143,7 +3143,7 @@ export class SyncDoc extends EventEmitter {
     It handles update of the remote version, updating our
     live version as a result.
   */
-  private async handle_patch_update(changed_keys): Promise<void> {
+  private handle_patch_update = async (changed_keys): Promise<void> => {
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
       return;
@@ -3162,7 +3162,7 @@ export class SyncDoc extends EventEmitter {
     await delay(1);
     await this.handle_patch_update_queue();
     dbg("done");
-  }
+  };
 
   /*
   Whenever new patches are added to this.patches_table,

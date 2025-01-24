@@ -2013,6 +2013,9 @@ importers:
       '@isaacs/ttlcache':
         specifier: ^1.2.1
         version: 1.4.1
+      '@nats-io/jetstream':
+        specifier: 3.0.0-36
+        version: 3.0.0-36
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30

@@ -147,7 +147,7 @@ class Session {
     return path;
   };
 
-  getStream = async () => {
+  createStream = async () => {
     // idempotent so don't have to check if there is already a stream
     const nc = this.nc;
     const jsm = await jetstreamManager(nc);
@@ -192,7 +192,7 @@ class Session {
       cols: this.size?.cols,
     });
     this.state = "running";
-    await this.getStream();
+    await this.createStream();
     this.pty.onData((data) => {
       this.handleBackendMessages(data);
       this.publish({ data });

@@ -1,5 +1,11 @@
 /*
 Nats implementation of the idea of a "SyncTable".
+
+This is ONLY for synctables in the scope of a single project, e.g.,
+syncstrings, listings, etc.
+
+It uses a SINGLE NATS key-value store to represent
+*all* SyncTables in a single project.
 */
 
 import { Kvm } from "@nats-io/kv";
@@ -31,7 +37,7 @@ function toKey(x): string | undefined {
   }
 }
 
-export class SyncTable {
+export class SyncTableKV {
   private kv?;
   private nc;
   private jc;
