@@ -847,6 +847,11 @@ export const labels = defineMessages({
     defaultMessage: "{n} of {m}",
     description: "item n in a list of m items.",
   },
+  balance: {
+    id: "labels.balance",
+    defaultMessage: "Balance",
+    description: "Short label for a monetary balance on an account",
+  },
 });
 
 export const menu = defineMessages({

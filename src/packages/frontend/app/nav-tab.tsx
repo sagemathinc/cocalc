@@ -51,7 +51,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     if (!hide_label && label != null) {
       return (
         <span
-          style={{ marginLeft: "5px" }}
+          style={icon != null ? { marginLeft: "5px" } : undefined}
           className={label_class}
           cocalc-test={name}
         >
