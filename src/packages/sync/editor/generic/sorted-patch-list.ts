@@ -37,10 +37,10 @@ export class SortedPatchList extends EventEmitter {
     this.from_str = from_str;
   }
 
-  public close(): void {
+  close = (): void => {
     this.removeAllListeners();
     close(this);
-  }
+  };
 
   /* Choose the next available time in ms that is congruent to
      m modulo n.  The congruence condition is so that any time
@@ -48,11 +48,11 @@ export class SortedPatchList extends EventEmitter {
      document with themselves -- two different users are
      guaranteed to not collide.  Note: even if there is a
      collision, it will automatically fix itself very quickly. */
-  public next_available_time(
+  next_available_time = (
     time: Date | number,
     m: number = 0,
-    n: number = 1
-  ): Date {
+    n: number = 1,
+  ): Date => {
     let t: number;
     if (typeof time === "number") {
       t = time;
@@ -72,9 +72,9 @@ export class SortedPatchList extends EventEmitter {
       t += n;
     }
     return new Date(t);
-  }
+  };
 
-  public add(patches: Patch[]): void {
+  add = (patches: Patch[]): void => {
     if (patches.length === 0) {
       // nothing to do
       return;
@@ -125,9 +125,9 @@ export class SortedPatchList extends EventEmitter {
       this.patches = this.patches.concat(v);
       this.patches.sort(patch_cmp);
     }
-  }
+  };
 
-  private newest_snapshot_time(): Date {
+  private newest_snapshot_time = (): Date => {
     let t0 = 0;
     let t: string;
     for (t in this.all_snapshot_times) {
@@ -137,7 +137,7 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     return new Date(t0);
-  }
+  };
 
   /*
     value: Return the value of the document at the given (optional)
@@ -155,7 +155,7 @@ export class SortedPatchList extends EventEmitter {
     as a building block to implement undo.  We do not assume that
     without_times is sorted.
   */
-  public value(time?: Date, force?: boolean, without_times?: Date[]): Document {
+  value = (time?: Date, force?: boolean, without_times?: Date[]): Document => {
     // oldest time that is skipped:
     let oldest_without_time: Date | undefined = undefined;
     // all skipped times.
@@ -309,7 +309,7 @@ export class SortedPatchList extends EventEmitter {
               // files basically be massively broken!
               console.warn(
                 "WARNING: unable to apply a patch -- skipping it",
-                err
+                err,
               );
             }
           }
@@ -338,11 +338,11 @@ export class SortedPatchList extends EventEmitter {
     */
 
     return value;
-  }
+  };
 
   // VERY Slow -- only for consistency checking purposes and debugging.
   // If snapshots=false, don't use snapshots.
-  public value_no_cache(time?: Date, snapshots: boolean = true): Document {
+  value_no_cache = (time?: Date, snapshots: boolean = true): Document => {
     let value: Document = this.from_str(""); // default in case no snapshots
     let start: number = 0;
     const prev_cutoff: Date = this.newest_snapshot_time();
@@ -378,11 +378,11 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     return value;
-  }
+  };
 
   // For testing/debugging.  Go through the complete patch history and
   // verify that all snapshots are correct (or not -- in which case say so).
-  public validate_snapshots(): void {
+  validate_snapshots = (): void => {
     if (this.patches.length === 0) {
       return;
     }
@@ -410,46 +410,46 @@ export class SortedPatchList extends EventEmitter {
       }
       i += 1;
     }
-  }
+  };
 
   // integer index of user who made the patch at given point in time.
   // Throws an exception if there is no patch at that point in time.
-  public user_id(time): number {
+  user_id = (time): number => {
     const x = this.patch(time);
     if (x == null) {
       throw Error(`no patch at ${time}`);
     }
     return x.user_id;
-  }
+  };
 
   // Returns time when patch was sent out, or undefined.  This is
   // ONLY set if the patch was sent at a significantly different
   // time than when it was created, e.g., due to it being offline.
   // Throws an exception if there is no patch at that point in time.
-  public time_sent(time): Date | undefined {
+  time_sent = (time): Date | undefined => {
     return this.patch(time).sent;
-  }
+  };
 
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
-  public patch(time): Patch {
+  patch = (time): Patch => {
     const p = this.times[time.valueOf()];
     if (p == null) {
       throw Error(`no patch at ${time}`);
     }
     return p;
-  }
+  };
 
-  public versions(): Date[] {
+  versions = (): Date[] => {
     // Compute and cache result,then return it; result gets cleared when new patches added.
     if (this.versions_cache == null) {
       this.versions_cache = this.patches.map((x) => x.time);
     }
     return this.versions_cache;
-  }
+  };
 
   // Show the history of this document; used mainly for debugging purposes.
-  public show_history({
+  show_history = ({
     milliseconds,
     trunc,
     log,
@@ -457,7 +457,7 @@ export class SortedPatchList extends EventEmitter {
     milliseconds?: boolean;
     trunc?: number;
     log?: Function;
-  } = {}) {
+  } = {}) => {
     if (milliseconds === undefined) {
       milliseconds = false;
     }
@@ -482,7 +482,7 @@ export class SortedPatchList extends EventEmitter {
         i,
         x.user_id,
         tm_show,
-        trunc_middle(JSON.stringify(x.patch), trunc)
+        trunc_middle(JSON.stringify(x.patch), trunc),
       );
       if (s === undefined) {
         s = this.from_str(x.snapshot != null ? x.snapshot : "");
@@ -498,18 +498,18 @@ export class SortedPatchList extends EventEmitter {
           s = s.apply_patch(x.patch);
         } else {
           log(
-            `prev=${x.prev.valueOf()} is missing, so not applying this patch`
+            `prev=${x.prev.valueOf()} is missing, so not applying this patch`,
           );
         }
       }
       first_time = false;
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
-        trunc_middle(s.to_str(), trunc).trim()
+        trunc_middle(s.to_str(), trunc).trim(),
       );
       i += 1;
     }
-  }
+  };
 
   /* This function does not MAKE a snapshot; it just
      returns the time at which we must plan to make a snapshot.
@@ -537,10 +537,10 @@ export class SortedPatchList extends EventEmitter {
      more need to be made.  This isn't maximally efficient, in that
      several extra snapshots might get made, but maybe that is OK.
      */
-  public time_of_unmade_periodic_snapshot(
+  time_of_unmade_periodic_snapshot = (
     interval: number,
-    max_size: number
-  ): Date | undefined {
+    max_size: number,
+  ): Date | undefined => {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
@@ -580,11 +580,11 @@ export class SortedPatchList extends EventEmitter {
         }
       }
     }
-  }
+  };
 
   // Times of all snapshots in memory on this client; these are
   // the only ones we need to worry about for offline patches...
-  public snapshot_times(): Date[] {
+  snapshot_times = (): Date[] => {
     const v: Date[] = [];
     let t: string;
     for (t in this.all_snapshot_times) {
@@ -592,22 +592,22 @@ export class SortedPatchList extends EventEmitter {
     }
     v.sort(cmp_Date);
     return v;
-  }
+  };
 
   /* Return the most recent time of a patch, or undefined if
      there are no patches. */
-  public newest_patch_time(): Date | undefined {
+  newest_patch_time = (): Date | undefined => {
     if (this.patches.length === 0) {
       return;
     }
     return this.patches[this.patches.length - 1].time;
-  }
+  };
 
-  public count(): number {
+  count = (): number => {
     return this.patches.length;
-  }
+  };
 
-  public export(): Patch[] {
+  export = (): Patch[] => {
     return deep_copy(this.patches);
-  }
+  };
 }
