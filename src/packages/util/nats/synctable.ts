@@ -9,9 +9,9 @@ import { keys } from "lodash";
 import { isValidUUID } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 
-export async function getKv({ nc, table }) {
+export async function getKv({ nc, project_id }) {
   const kvm = new Kvm(nc);
-  return await kvm.create(table, { compression: true });
+  return await kvm.create(`project-${project_id}`, { compression: true });
 }
 
 interface NatsEnv {
@@ -60,7 +60,7 @@ export class SyncTable {
   }
 
   init = async () => {
-    this.kv = await getKv({ nc: this.nc, table: this.table });
+    this.kv = await getKv({ nc: this.nc, project_id: this.project_id });
   };
 
   private primaryString = (obj): string => {
@@ -80,7 +80,7 @@ export class SyncTable {
   };
 
   private getKey = (obj, field?: string): string => {
-    const x = `${this.project_id}.${this.natObjectKey(obj)}`;
+    const x = `${this.table}.${this.natObjectKey(obj)}`;
     if (field == null) {
       return x;
     } else {
@@ -99,7 +99,7 @@ export class SyncTable {
   get = async (obj?, field?) => {
     if (obj == null) {
       // everything known in this table by the project
-      const keys = await this.kv.keys(`${this.project_id}.>`);
+      const keys = await this.kv.keys(`${this.table}.>`);
       const all: any = {};
       for await (const key of keys) {
         const mesg = await this.kv.get(key);
@@ -125,6 +125,8 @@ export class SyncTable {
       const s = { ...obj };
       const key = this.getKey(obj);
       let nontrivial = false;
+      // todo: possibly better to just ask for everything under ${key}.>
+      // and take what is needed?  Not sure.
       for (const field of this.fields) {
         const mesg = await this.kv.get(`${key}.${field}`);
         const val = mesg?.sm?.data ? this.jc.decode(mesg.sm.data) : null;

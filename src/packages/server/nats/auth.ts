@@ -103,8 +103,6 @@ export async function getNatsUserJwt(cocalcUser: CoCalcUser): Promise<string> {
   ).stdout.trim();
 }
 
-const PROJECT_TABLES = ["listings", "syncstrings"];
-
 export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const name = getNatsUserName(cocalcUser);
   const userId = getCoCalcUserId(cocalcUser);
@@ -124,10 +122,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
       goalPub.add(`project.${project_id}.api.${group}.${userId}`);
       goalSub.add(`project.${project_id}.>`);
 
-      for (const table of PROJECT_TABLES) {
-        goalPub.add(`$KV.${table}.${project_id}.>`);
-        goalSub.add(`$KV.${table}.${project_id}.>`);
-      }
+      goalPub.add(`$KV.project-${project_id}.>`);
+      goalSub.add(`$KV.project-${project_id}.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
@@ -137,10 +133,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     goalPub.add(`project.${userId}.>`);
     goalSub.add(`project.${userId}.>`);
 
-    for (const table of PROJECT_TABLES) {
-      goalPub.add(`$KV.${table}.${userId}.>`);
-      goalSub.add(`$KV.${table}.${userId}.>`);
-    }
+    goalPub.add(`$KV.project-${userId}.>`);
+    goalSub.add(`$KV.project-${userId}.>`);
   }
   // TEMPORARY: for learning jetstream!
   goalPub.add("$JS.>");
@@ -199,6 +193,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     changed = true;
   }
   if (sub.length > 0 || pub.length > 0) {
+    // TODO: I think there is --allow-pubsub which does both in one line,
+    // which would shorten this slightly
     if (sub.length > 0) {
       args.push("--allow-sub");
       args.push(sub.join(","));
