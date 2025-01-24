@@ -229,7 +229,7 @@ export const AccountPage: React.FC = () => {
   function renderExtraContent() {
     return (
       <Space>
-        <BalanceButton />
+        {is_commercial ? <BalanceButton /> : undefined}
         <I18NSelector isWide={isWide} />
         <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>
