@@ -63,17 +63,20 @@ export class SyncTable {
     this.kv = await getKv({ nc: this.nc, table: this.table });
   };
 
+  private primaryString = (obj): string => {
+    if (this.primaryKeys.length === 1) {
+      return toKey(obj[this.primaryKeys[0]] ?? "")!;
+    } else {
+      // compound primary key
+      return toKey(this.primaryKeys.map((pk) => obj[pk]))!;
+    }
+  };
+
   private natObjectKey = (obj): string => {
     if (obj == null) {
       throw Error("obj must be an object (not null)");
     }
-    // Function this.to_key to extract primary key from object
-    if (this.primaryKeys.length === 1) {
-      return this.sha1(toKey(obj[this.primaryKeys[0]] ?? ""));
-    } else {
-      // compound primary key
-      return this.sha1(toKey(this.primaryKeys.map((pk) => obj[pk])));
-    }
+    return this.sha1(this.primaryString(obj));
   };
 
   private getKey = (obj, field?: string): string => {
@@ -88,14 +91,36 @@ export class SyncTable {
   set = async (obj) => {
     const key = this.getKey(obj);
     for (const field in obj) {
-      if (!this.primaryKeysSet.has(field)) {
-        const value = this.jc.encode(obj[field]);
-        await this.kv.put(`${key}.${field}`, value);
-      }
+      const value = this.jc.encode(obj[field]);
+      await this.kv.put(`${key}.${field}`, value);
     }
   };
 
-  get = async (obj, field?) => {
+  get = async (obj?, field?) => {
+    if (obj == null) {
+      // everything known in this table by the project
+      const keys = await this.kv.keys(`${this.project_id}.>`);
+      const all: any = {};
+      for await (const key of keys) {
+        const mesg = await this.kv.get(key);
+        const val = mesg?.sm?.data ? this.jc.decode(mesg.sm.data) : null;
+        if (val != null) {
+          const i = key.lastIndexOf(".");
+          const field = key.slice(i + 1);
+          const prefix = key.slice(0, i);
+          if (all[prefix] == null) {
+            all[prefix] = {};
+          }
+          const s = all[prefix];
+          s[field] = val;
+        }
+      }
+      const final: any = {};
+      for (const k in all) {
+        final[this.primaryString(all[k])] = all[k];
+      }
+      return final;
+    }
     if (field == null) {
       const s = { ...obj };
       const key = this.getKey(obj);
