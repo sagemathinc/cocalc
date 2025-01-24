@@ -18,22 +18,16 @@ How to do development (so in a dev project doing cc-in-cc dev).
 */
 
 import { getLogger } from "@cocalc/project/logger";
-import { connect, JSONCodec, jwtAuthenticator } from "nats";
+import { JSONCodec } from "nats";
 import { project_id } from "@cocalc/project/data";
 import { handleExecShellCode } from "@cocalc/project/exec_shell_code";
 import { realpath } from "@cocalc/project/browser-websocket/realpath";
+import getConnection from "./connection";
 
-const logger = getLogger("server:nats");
+const logger = getLogger("project:nats");
 
 export default async function initNatsServer() {
-  logger.debug("initializing nats cocalc project server");
-  if (!process.env.COCALC_NATS_JWT) {
-    throw Error("environment variable COCALC_NATS_JWT *must* be set");
-  }
-  const nc = await connect({
-    authenticator: jwtAuthenticator(process.env.COCALC_NATS_JWT),
-  });
-  logger.debug(`connected to ${nc.getServer()}`);
+  const nc = await getConnection();
   initAPI(nc);
 }
 

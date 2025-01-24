@@ -121,6 +121,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     for (const { project_id, group } of rows) {
       goalPub.add(`project.${project_id}.api.${group}.${userId}`);
       goalSub.add(`project.${project_id}.>`);
+      goalPub.add(`$KV.syncstrings.${project_id}.>`);
+      goalSub.add(`$KV.syncstrings.${project_id}.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
@@ -129,8 +131,10 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     // the project can publish to anything under its own subject:
     goalPub.add(`project.${userId}.>`);
     goalSub.add(`project.${userId}.>`);
+    goalPub.add(`$KV.syncstrings.${userId}.>`);
+    goalSub.add(`$KV.syncstrings.${userId}.>`);
   }
-  // TEMPORARY: for learsning jetstream!
+  // TEMPORARY: for learning jetstream!
   goalPub.add("$JS.>");
   goalSub.add("$JS.>");
 

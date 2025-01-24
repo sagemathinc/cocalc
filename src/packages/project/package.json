@@ -32,6 +32,7 @@
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nats-io/jetstream": "3.0.0-36",
+    "@nats-io/kv": "3.0.0-30",
     "@nteract/messaging": "^7.0.20",
     "@types/lodash": "^4.14.202",
     "@types/primus": "^7.3.9",

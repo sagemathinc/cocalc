@@ -304,6 +304,9 @@ importers:
       '@nats-io/jetstream':
         specifier: 3.0.0-36
         version: 3.0.0-36
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -1229,6 +1232,9 @@ importers:
       '@nats-io/jetstream':
         specifier: 3.0.0-36
         version: 3.0.0-36
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
       '@nteract/messaging':
         specifier: ^7.0.20
         version: 7.0.20
@@ -2007,6 +2013,9 @@ importers:
       '@isaacs/ttlcache':
         specifier: ^1.2.1
         version: 1.4.1
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
@@ -3856,6 +3865,9 @@ packages:
 
   '@nats-io/jetstream@3.0.0-36':
     resolution: {integrity: sha512-95+ftM+lXcUEwCl3ctzpJZCXiBUwRuSUUWmd4X8jJlNVZc/LUHH+3cxX+nC42sLHD+9zvIaMKPsyI0Ltbp+BSg==}
+
+  '@nats-io/kv@3.0.0-30':
+    resolution: {integrity: sha512-rg3y1/v4gTP6PATpAOK32cXgPfez8PZqC9r39vqT7vVIGUNKERFcX8JdqC+50B97ovqvlTSvItR9IsRNdYAIZg==}
 
   '@nats-io/nats-core@3.0.0-49':
     resolution: {integrity: sha512-Xe7LjCdhtL4pXk2czwUE8Y1elTy/zo3ZzpoIwOO+/uJPughEsSxCpqygPrDqWcOG2uWVB9G1wxjg8r0Y9StovQ==}
@@ -14862,6 +14874,11 @@ snapshots:
 
   '@nats-io/jetstream@3.0.0-36':
     dependencies:
+      '@nats-io/nats-core': 3.0.0-49
+
+  '@nats-io/kv@3.0.0-30':
+    dependencies:
+      '@nats-io/jetstream': 3.0.0-36
       '@nats-io/nats-core': 3.0.0-49
 
   '@nats-io/nats-core@3.0.0-49':

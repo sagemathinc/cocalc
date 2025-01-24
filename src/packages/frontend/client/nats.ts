@@ -5,6 +5,8 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
+import { SyncStrings } from "@cocalc/util/nats/syncstrings";
+import sha1 from "sha1";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -103,7 +105,19 @@ export class NatsClient {
   };
 
   consumer = async (stream: string) => {
-    const js = jetstream.jetstream(await await this.getConnection());
+    const js = jetstream.jetstream(await this.getConnection());
     return await js.consumers.get(stream);
+  };
+
+  // syncstrings in a given project
+  syncstrings = async (project_id: string) => {
+    const s = new SyncStrings({
+      sha1,
+      jc: this.jc,
+      nc: await this.getConnection(),
+      project_id,
+    });
+    await s.init();
+    return s;
   };
 }
