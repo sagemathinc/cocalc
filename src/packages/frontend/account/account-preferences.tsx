@@ -4,20 +4,21 @@
  */
 
 import { Flex, Form, Switch, Tooltip } from "antd";
+
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { OtherSettings } from "./other-settings";
 import { ProfileSettings } from "./profile-settings";
 import { AccountSettings } from "./settings/account-settings";
 import ApiKeys from "./settings/api-keys";
+import GlobalSSHKeys from "./ssh-keys/global-ssh-keys";
 import TableError from "./table-error";
 import { TerminalSettings } from "./terminal-settings";
-import GlobalSSHKeys from "./ssh-keys/global-ssh-keys";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
