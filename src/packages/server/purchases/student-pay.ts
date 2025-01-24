@@ -33,6 +33,7 @@ import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
 import getConn from "@cocalc/server/stripe/connection";
 import { isValidUUID } from "@cocalc/util/misc";
+import { url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -56,7 +57,7 @@ export default async function studentPay({
   project_id,
   amount,
   credit_id,
-}: Options): Promise<{ purchase_id: number }> {
+}: Options): Promise<{ purchase_id?: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
   try {
@@ -76,7 +77,7 @@ export default async function studentPay({
       throw Error("course fee not configured for this project");
     }
     if (currentCourse.paid) {
-      throw Error("course fee already paid");
+      return { purchase_id: currentCourse.purchase_id };
     }
     const { title, description } = rows[0];
     const purchaseInfo = {
@@ -141,6 +142,7 @@ export default async function studentPay({
 
     // Change purchaseInfo to indicate that purchase is done
     currentCourse.paid = new Date().toISOString();
+    currentCourse.purchase_id = purchase_id;
     await setCourseInfo({
       project_id,
       account_id,
@@ -255,7 +257,34 @@ export async function studentPaySetPaymentIntent({
   project_id,
   paymentIntentId,
 }) {
+  logger.debug("studentPaySetPaymentIntent", { project_id, paymentIntentId });
   const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT course#>>'{payment_intent_id}' as payment_intent_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const current = rows[0]?.payment_intent_id;
+  if (current) {
+    const stripe = await getConn();
+    const currentIntent = await stripe.paymentIntents.retrieve(current);
+    if (
+      currentIntent.status != "succeeded" &&
+      currentIntent.status != "canceled" &&
+      currentIntent.metadata["deleted"] != "true"
+    ) {
+      logger.debug(
+        "studentPaySetPaymentIntent",
+        {
+          project_id,
+        },
+        "NOT changing, since there is already a payment intent set that is not deleted and is active",
+      );
+      // there is already an unfinished payment intent for this course.  do
+      // not change it.  User has to explicitly cancel or pay existing one.
+      return;
+    }
+  }
+
   // OK, set the payment intent.
   // paymentIntentId only comes directly from stripe, not the user, so no danger of SQL injection,
   // but we are still careful!
@@ -279,9 +308,13 @@ export async function studentPayAssertNotPaying({ project_id }) {
   if (payment_intent_id) {
     const stripe = await getConn();
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
-    if (intent.status != "canceled" && intent.status != "succeeded") {
+    if (
+      intent.status != "canceled" &&
+      intent.status != "succeeded" &&
+      intent.metadata["deleted"] != "true"
+    ) {
       throw Error(
-        `There is an outstanding payment for this course right now.  Pay that invoice or cancel it.`,
+        `There is an outstanding payment for this course right now (payment intent id ${payment_intent_id}).  [Pay that invoice or cancel it](${await url("settings/payments")}).`,
       );
     }
   }

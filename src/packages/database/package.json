@@ -26,7 +26,7 @@
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
-    "debug": "^4.3.2",
+    "debug": "^4.4.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
@@ -48,7 +48,7 @@
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
     "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest",
+    "test": "pnpm exec jest --forceExit --runInBand",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

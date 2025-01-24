@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useServer } from "./compute-server";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import dayjs from "dayjs";
@@ -28,10 +28,6 @@ export function IdleTimeout({
   const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number | null>(
     server.configuration?.idleTimeoutMinutes ?? null,
   );
-  useEffect(() => {
-    setIdleTimeoutMinutes(server.configuration?.idleTimeoutMinutes ?? null);
-    setEnabled(!!server.configuration?.idleTimeoutMinutes);
-  }, [server.configuration?.idleTimeoutMinutes]);
 
   return (
     <AutomaticShutdownCard

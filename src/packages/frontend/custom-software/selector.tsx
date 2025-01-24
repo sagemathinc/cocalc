@@ -3,8 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row, Alert, Button, Divider, List, Radio } from "antd";
+// cSpell:ignore descr disp dflt
+
+import { Alert, Button, Col, Divider, List, Radio, Row } from "antd";
 import { join } from "path";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   CSS,
   React,
@@ -27,6 +31,7 @@ import {
   SiteName,
 } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
@@ -101,7 +106,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     "compute_images",
     "images",
   );
-
+  const intl = useIntl();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
@@ -152,7 +157,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     } else {
       // must be standard image
       const img = software_images.get(default_image);
-      const display = img != null ? (img.get("title") ?? "") : "";
+      const display = img != null ? img.get("title") ?? "" : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -242,21 +247,26 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         <Alert
           type="info"
           banner
-          message={
-            <>
-              The selected <em>custom</em> software environment stays with the
-              project. Create a new project to work in a different software
-              environment. You can always{" "}
-              <A
-                href={
-                  "https://doc.cocalc.com/project-files.html#file-actions-on-one-file"
-                }
-              >
-                copy files between projects
-              </A>{" "}
-              as well.
-            </>
-          }
+          message={intl.formatMessage(
+            {
+              id: "custom-software.selector.message",
+              defaultMessage: `The selected <em>custom</em> software environment stays with the project.
+              Create a new project to work in a different software environment.
+              You can always <A>copy files between projects</A> as well.
+              `,
+            },
+            {
+              A: (c) => (
+                <A
+                  href={
+                    "https://doc.cocalc.com/project-files.html#file-actions-on-one-file"
+                  }
+                >
+                  {c}
+                </A>
+              ),
+            },
+          )}
         />
       </>
     );
@@ -324,15 +334,18 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Paragraph>
-          Select the software enviornment. Either go with the default
-          environment, or select one of the more specialized ones. Whatever you
-          pick, you can change it later in Project Settings → Control → Software
-          Environment at any time.
+          <FormattedMessage
+            id="custom-software.selector.explanation"
+            defaultMessage={`Select the software environment.
+                Either go with the default environment, or select one of the more specialized ones.
+                Whatever choice you make, you can change it later in
+                Project Settings → Control → Software Environment at any time.`}
+          />
         </Paragraph>
         <Paragraph>
           <ComputeImageSelector
             size={"middle"}
-            selected_image={selected}
+            current_image={selected}
             layout={"horizontal"}
             onSelect={(img) => {
               const display = software_images.get(img)?.get("title");
@@ -345,9 +358,15 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
             <Alert
               type="info"
               banner
+              closable
               message={
                 <>
-                  You've selected a non-standard image:{" "}
+                  {intl.formatMessage({
+                    id: "custom-software.selector.non-standard",
+                    defaultMessage:
+                      "You selected a non-standard software environment",
+                  })}
+                  :{" "}
                   <Button
                     size="small"
                     type="link"
@@ -355,7 +374,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
                       set_state(dflt_software_img, undefined, "standard");
                     }}
                   >
-                    Reset
+                    {intl.formatMessage(labels.reset)}
                   </Button>
                 </>
               }
@@ -497,7 +516,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     return (
       <Col sm={24}>
         <ComputeImageSelector
-          selected_image={image_selected ?? dflt_software_img}
+          current_image={image_selected ?? dflt_software_img}
           layout={"horizontal"}
           onSelect={(img) => {
             const display = software_images.get(img)?.get("title");
@@ -513,7 +532,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function render_type_selection() {
     return (
       <>
-        {showTitle ? <div>Software environment</div> : undefined}
+        {showTitle ? (
+          <div>{intl.formatMessage(labels.software_environment)}</div>
+        ) : undefined}
 
         {onCoCalcCom ? (
           <div>
@@ -532,7 +553,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     if (image_type === "default") return;
     return (
       <Divider orientation="left" plain>
-        Configuration
+        {intl.formatMessage(labels.configuration)}
       </Divider>
     );
   }

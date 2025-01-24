@@ -56,7 +56,7 @@ export function RestartProject({
           a: (ch) => (
             <a
               onClick={() => {
-                redux.getProjectActions(project_id)?.set_active_tab("servers");
+                redux.getProjectActions(project_id)?.showComputeServers();
               }}
             >
               {ch}

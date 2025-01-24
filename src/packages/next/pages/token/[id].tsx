@@ -21,7 +21,7 @@ import { Alert, Button, Card, Divider, Layout, Space, Spin } from "antd";
 import { useRouter } from "next/router";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { capitalize } from "@cocalc/util/misc";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getTokenDescription } from "@cocalc/server/token-actions/handle";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -51,6 +51,16 @@ export async function getServerSideProps(context) {
   return await withCustomize({ context, props: { token_id, description } });
 }
 
+function reloadOnceToCheckForAuth() {
+  const now = Date.now();
+  const last = localStorage.reloadOnceToCheckForAuth;
+  if (last && now - last <= 10000) {
+    return;
+  }
+  localStorage.reloadOnceToCheckForAuth = now;
+  location.reload();
+}
+
 interface Props {
   customize: CustomizeType;
   token_id: string;
@@ -73,6 +83,13 @@ export default function TokenActions({
   const [doAction, setDoAction] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const title = getTitle(description);
+  useEffect(() => {
+    // due to samesite auth cookie, we refresh browser once...
+    // This is needed when clicking a URL from outside cocalc, which is likely.
+    if (description.signIn) {
+      reloadOnceToCheckForAuth();
+    }
+  }, []);
 
   return (
     <Customize value={customize}>

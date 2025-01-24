@@ -662,6 +662,9 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "3024-day": "3024 day",
   "3024-night": "3024 night",
   abcdef: "abcdef",
+  abbott: "Abbott",
+  "ayu-dark": "Ayu dark",
+  "ayu-mirage": "Ayu mirage",
   //'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
   ambiance: "Ambiance",
   "base16-dark": "Base 16 dark",
@@ -682,10 +685,14 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   icecoder: "Icecoder",
   idea: "Idea", // this messes with the global hinter CSS!
   isotope: "Isotope",
+  juejin: "Juejin",
   "lesser-dark": "Lesser dark",
   liquibyte: "Liquibyte",
   lucario: "Lucario",
   material: "Material",
+  "material-darker": "Material darker",
+  "material-ocean": "Material ocean",
+  "material-palenight": "Material palenight",
   mbo: "mbo",
   "mdn-like": "MDN like",
   midnight: "Midnight",
@@ -714,6 +721,7 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "xq-dark": "Xq dark",
   "xq-light": "Xq light",
   yeti: "Yeti",
+  yonce: "Yonce",
   zenburn: "Zenburn",
 };
 

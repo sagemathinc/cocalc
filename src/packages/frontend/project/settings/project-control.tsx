@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Space } from "antd";
+import { Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -11,7 +11,6 @@ import {
   React,
   redux,
   Rendered,
-  useEffect,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -39,6 +38,7 @@ import {
 import * as misc from "@cocalc/util/misc";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
@@ -53,27 +53,11 @@ interface ReactProps {
 
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project, mode = "project" } = props;
+  const { project_id, compute_image } = useProjectContext();
   const isFlyout = mode === "flyout";
-  const customize_kucalc = useTypedRedux("customize", "kucalc");
   const intl = useIntl();
-
-  //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
-  const [compute_image, set_compute_image] = useState<string>(
-    project.get("compute_image"),
-  );
-  const [compute_image_changing, set_compute_image_changing] =
-    useState<boolean>(false);
-  const [compute_image_focused, set_compute_image_focused] =
-    useState<boolean>(false);
-
-  useEffect(() => {
-    if (compute_image_focused) return;
-    const new_image = project.get("compute_image");
-    if (new_image !== compute_image) {
-      set_compute_image(new_image);
-      set_compute_image_changing(false);
-    }
-  }, [compute_image_focused, project.get("compute_image")]);
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const [computeImgChanging, setComputeImgChanging] = useState<boolean>(false);
 
   function render_state() {
     return (
@@ -88,7 +72,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     // will update properly....
     const date = redux
       .getStore("projects")
-      .get_idle_timeout_horizon(project.get("project_id"));
+      .get_idle_timeout_horizon(project_id);
     if (date == null) {
       // e.g., viewing as admin where the info about idle timeout
       // horizon simply isn't known.
@@ -107,16 +91,14 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   async function restart_project() {
-    await redux
-      .getActions("projects")
-      .restart_project(project.get("project_id"));
+    await redux.getActions("projects").restart_project(project_id);
   }
 
   function render_stop_button(commands): Rendered {
     return (
       <StopProject
         size={isFlyout ? "small" : "large"}
-        project_id={project.get("project_id")}
+        project_id={project_id}
         disabled={!commands.includes("stop")}
       />
     );
@@ -126,7 +108,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <RestartProject
         size={isFlyout ? "small" : "large"}
-        project_id={project.get("project_id")}
+        project_id={project_id}
         disabled={!commands.includes("start") && !commands.includes("stop")}
       />
     );
@@ -152,14 +134,12 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (project.getIn(["state", "state"]) !== "running") {
       return;
     }
-    if (
-      redux.getStore("projects").is_always_running(project.get("project_id"))
-    ) {
+    if (redux.getStore("projects").is_always_running(project_id)) {
       return (
         <LabeledRow
           key="idle-timeout"
           label={intl.formatMessage(labels.always_running)}
-          style={rowstyle()}
+          style={rowStyle()}
           vertical={isFlyout}
         >
           <Paragraph>
@@ -181,7 +161,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <LabeledRow
         key="idle-timeout"
         label={intl.formatMessage(labels.idle_timeout)}
-        style={rowstyle()}
+        style={rowStyle()}
         vertical={isFlyout}
       >
         {render_idle_timeout()}
@@ -201,7 +181,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <LabeledRow
         key="uptime"
         label={intl.formatMessage(labels.uptime)}
-        style={rowstyle()}
+        style={rowStyle()}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
@@ -232,7 +212,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           id: "project.settings.control.cpu_usage.label",
           defaultMessage: "CPU Usage",
         })}
-        style={rowstyle(true)}
+        style={rowStyle(true)}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
@@ -247,25 +227,16 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function cancel_compute_image(current_image) {
-    set_compute_image(current_image);
-    set_compute_image_changing(false);
-    set_compute_image_focused(false);
-  }
-
-  async function save_compute_image(current_image) {
-    set_compute_image(current_image);
-    set_compute_image_focused(false);
-    set_compute_image_changing(true);
-    const new_image = compute_image;
-    const actions = redux.getProjectActions(project.get("project_id"));
+  async function saveSelectedComputeImage(new_image: string) {
+    const actions = redux.getProjectActions(project_id);
     try {
+      setComputeImgChanging(true);
       await actions.set_compute_image(new_image);
       await restart_project();
     } catch (err) {
       alert_message({ type: "error", message: err });
     } finally {
-      set_compute_image_changing(false);
+      setComputeImgChanging(false);
     }
   }
 
@@ -273,12 +244,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)) {
       return;
     }
+
     return (
       <div style={{ marginTop: "10px" }}>
         <LabeledRow
           key="cpu-usage"
           label={intl.formatMessage(labels.software_environment)}
-          style={rowstyle(true)}
+          style={rowStyle(true)}
           vertical={isFlyout}
         >
           {render_select_compute_image()}
@@ -294,7 +266,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <div>
             <Icon name={SOFTWARE_ENVIRONMENT_ICON} /> Custom image:
           </div>
-          <SoftwareImageDisplay image={project.get("compute_image")} />
+          <SoftwareImageDisplay image={compute_image} />
           &nbsp;
           <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
             <br /> You cannot change a custom software image. Instead, create a
@@ -312,58 +284,30 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function onBlur() {
-    // don't unfocus when we selected a different compute image
-    // this will be set to false after either selecting "save&restart" or "cancel"
-    if (project.get("compute_image") === compute_image) {
-      set_compute_image_focused(false);
-    }
-  }
-
   function render_select_compute_image() {
-    const current_image = project.get("compute_image");
-    if (current_image == null) {
-      return;
-    }
-
-    if (current_image.startsWith(CUSTOM_IMG_PREFIX)) {
-      return render_custom_compute_image();
-    }
-
-    const no_value = compute_image == null;
-    if (no_value || compute_image_changing) {
+    if (compute_image == null) {
       return <Loading />;
     }
 
-    // this will at least return a suitable default value
-    const selected_image = compute_image;
+    if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+      return render_custom_compute_image();
+    }
 
     return (
-      <div style={{ color: COLORS.GRAY }}>
-        <ComputeImageSelector
-          selected_image={selected_image}
-          layout={"vertical"}
-          onFocus={() => set_compute_image_focused(true)}
-          onBlur={onBlur}
-          onSelect={(img) => set_compute_image(img)}
-        />
-
-        {selected_image !== current_image ? (
-          <div style={{ marginTop: "10px" }}>
-            <Button onClick={() => save_compute_image(current_image)} danger>
-              Save and Restart
-            </Button>
-            &nbsp;
-            <Button onClick={() => cancel_compute_image(current_image)}>
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-          </div>
-        ) : undefined}
-      </div>
+      <ComputeImageSelector
+        current_image={compute_image}
+        layout={"dialog"}
+        onSelect={saveSelectedComputeImage}
+        changing={computeImgChanging}
+        label={intl.formatMessage({
+          id: "project.settings.compute-image-selector.button.save-restart",
+          defaultMessage: "Save and Restart",
+        })}
+      />
     );
   }
 
-  function rowstyle(delim?): React.CSSProperties | undefined {
+  function rowStyle(delim?): React.CSSProperties | undefined {
     if (!delim) return;
     return {
       borderBottom: "1px solid #ddd",
@@ -383,7 +327,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         <LabeledRow
           key="state"
           label="State"
-          style={rowstyle(true)}
+          style={rowStyle(true)}
           vertical={isFlyout}
         >
           {render_state()}
@@ -395,19 +339,19 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           {!isFlyout ? (
             <CopyToClipBoard
               inputWidth={"330px"}
-              value={project.get("project_id")}
+              value={project_id}
               style={{ display: "inline-block", width: "100%", margin: 0 }}
             />
           ) : (
             <Paragraph
               copyable={{
-                text: project.get("project_id"),
+                text: project_id,
                 tooltips: ["Copy Project ID", "Copied!"],
               }}
               code
               style={{ marginBottom: 0 }}
             >
-              {project.get("project_id")}
+              {project_id}
             </Paragraph>
           )}
         </LabeledRow>

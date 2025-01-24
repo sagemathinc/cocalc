@@ -47,7 +47,7 @@
     "@types/node-cleanup": "^2.1.2",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
-    "debug": "^4.3.2",
+    "debug": "^4.4.0",
     "enchannel-zmq-backend": "^9.1.23",
     "execa": "^8.0.1",
     "expect": "^26.6.2",

@@ -372,6 +372,16 @@ export interface PostgreSQL extends EventEmitter {
     subject: string;
     body?: string;
   }) => Promise<number | undefined>;
+
+  archivePatches(opts: {
+    string_id: string;
+    compress?: string;
+    level?: number;
+    cutoff?: Date;
+    cb?: CB;
+  });
+
+  unarchivePatches(string_id: string);
 }
 
 export interface SetAccountFields {

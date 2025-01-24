@@ -1,25 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
 import { Button, Flex, Popconfirm, Space, Spin } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import Message from "./message";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { redux } from "@cocalc/frontend/app-framework";
+import { Folder, isFolder } from "./types";
+import useCommand from "./use-command";
 import {
   expandToThreads,
   getFilteredMessages,
-  isExpired,
-  isThreadRead,
-  isInFolderThreaded,
-  setFragment,
   getThreadId,
+  isExpired,
+  isInFolderThreaded,
+  isThreadRead,
+  setFragment,
 } from "./util";
-import { isFolder, Folder } from "./types";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import Zoom from "./zoom";
-import useCommand from "./use-command";
-import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 export default function Main({ messages, threads, filter, search }) {
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
@@ -125,6 +128,8 @@ function Actions({
   setShowThread,
   threads,
 }) {
+  const intl = useIntl();
+
   const archive = () => {
     if (folder != "inbox") {
       return;
@@ -158,12 +163,12 @@ function Actions({
     <Space wrap>
       {folder != "sent" && folder != "trash" && folder != "search" && (
         <Button type="text" disabled={folder != "inbox"} onClick={archive}>
-          <Icon name="download" /> Archive
+          <Icon name="download" /> {intl.formatMessage(labels.messages_archive)}
         </Button>
       )}
       {folder != "trash" && (
         <Button type="text" onClick={deleteCommand}>
-          <Icon name="trash" /> Delete
+          <Icon name="trash" /> {intl.formatMessage(labels.delete)}
         </Button>
       )}
       {folder == "trash" && (
@@ -174,7 +179,9 @@ function Actions({
               threads,
               messages,
             }).size;
-            return `Are you sure you want to delete ${n == 1 ? "this" : "these"} ${n} ${plural(n, "message")} permanently?`;
+            return `Are you sure you want to delete ${
+              n == 1 ? "this" : "these"
+            } ${n} ${plural(n, "message")} permanently?`;
           }}
           onConfirm={() => {
             redux.getActions("messages").mark({
@@ -195,7 +202,7 @@ function Actions({
             type="text"
             disabled={!hasNotExpire({ checkedMessageIds, messages })}
           >
-            <Icon name="trash" /> Delete Forever
+            <Icon name="trash" /> {intl.formatMessage(labels.delete_forever)}
           </Button>
         </Popconfirm>
       )}
@@ -216,7 +223,7 @@ function Actions({
             });
           }}
         >
-          <Icon name="eye" /> Read
+          <Icon name="eye" /> {intl.formatMessage(labels.messages_read)}
         </Button>
       )}
       {folder != "trash" && (
@@ -234,7 +241,7 @@ function Actions({
             });
           }}
         >
-          <Icon name="eye-slash" /> Unread
+          <Icon name="eye-slash" /> {intl.formatMessage(labels.messages_unread)}
         </Button>
       )}
       {folder != "trash" && folder != "search" && folder != "sent" && (
@@ -261,7 +268,8 @@ function Actions({
             setShowThread(null);
           }}
         >
-          <Icon name="container" /> To Inbox
+          <Icon name="container" />{" "}
+          {intl.formatMessage(labels.messages_to_inbox)}
         </Button>
       )}
       {(folder == "trash" || folder == "search") && (
@@ -279,7 +287,7 @@ function Actions({
             setShowThread(null);
           }}
         >
-          <Icon name="undo" /> Undelete
+          <Icon name="undo" /> {intl.formatMessage(labels.undelete)}
         </Button>
       )}
     </Space>
@@ -427,12 +435,12 @@ function ShowAllThreads({
             checkedMessageIds.size == 0
               ? "square"
               : checkedMessageIds.size == filteredMessages.length
-                ? "check-square"
-                : "minus-square"
+              ? "check-square"
+              : "minus-square"
           }
           style={{
             fontSize: "14pt",
-            color: "#666",
+            color: COLORS.GRAY_M,
             marginLeft: "24px",
             marginRight: "30px",
           }}
@@ -476,6 +484,7 @@ function ShowOneThread({
   messages,
   filteredMessages,
 }) {
+  const intl = useIntl();
   const searchWords = useTypedRedux("messages", "searchWords");
 
   const mesgIndex = useMemo(() => {
@@ -567,9 +576,9 @@ function ShowOneThread({
         >
           <Icon
             name="left-circle-o"
-            style={{ fontSize: "14pt", color: "#666" }}
+            style={{ fontSize: "14pt", color: COLORS.GRAY_M }}
           />
-          Back
+          {intl.formatMessage(labels.back)}
         </Button>
         <Actions
           threads={threads}
@@ -582,7 +591,12 @@ function ShowOneThread({
         {mesgIndex != -1 && (
           <Space>
             <Zoom style={{ marginRight: "15px" }} />
-            {mesgIndex + 1} of {filteredMessages.length}
+            <span style={{ whiteSpace: "nowrap" }}>
+              {intl.formatMessage(labels.n_of_m, {
+                n: mesgIndex + 1,
+                m: filteredMessages.length,
+              })}
+            </span>
             <Button
               size="large"
               type="text"

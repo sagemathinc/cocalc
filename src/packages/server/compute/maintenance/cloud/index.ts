@@ -12,6 +12,7 @@ import { hyperstackMaintenance } from "./hyperstack";
 import healthCheck from "./health-check";
 import idleTimeout from "./idle-timeout";
 import spendLimit from "./spend-limit";
+import shutdownTime from "./shutdown-time";
 
 const logger = getLogger("server:compute:maintenance:cloud");
 
@@ -40,6 +41,9 @@ async function startMaintenance() {
 
   setTimeout(spendLimit, 30 * 1000); // also 30s after startup
   setInterval(spendLimit, 60 * 1000);
+
+  setTimeout(shutdownTime, 30 * 1000);
+  setInterval(shutdownTime, 60 * 1000);
 }
 
 let running = false;
