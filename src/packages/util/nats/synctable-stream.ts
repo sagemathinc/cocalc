@@ -127,14 +127,22 @@ export class SyncTableStream extends EventEmitter {
   };
 
   private publish = (mesg) => {
-    console.log("publishing ", { subject: this.subject, mesg });
+    // console.log("publishing ", { subject: this.subject, mesg });
     this.nc.publish(this.subject, this.jc.encode(mesg));
   };
 
   set = (obj) => {
-    console.log("set", obj);
+    // console.log("set", obj);
     // delete string_id since it is redundant info
+    const key = this.primaryString(obj);
+    if (this.data[key] != null) {
+      // no changes to existing keys -- just ignore.
+      // TODO?
+      // console.log("set - skip", obj);
+      return;
+    }
     const { string_id, ...obj2 } = obj;
+    // console.log("set - publish", obj);
     this.publish(obj2);
   };
 
@@ -145,6 +153,9 @@ export class SyncTableStream extends EventEmitter {
     const obj = this.jc.decode(mesg.data);
     const key = this.primaryString(obj);
     this.data[key] = { ...obj, time: new Date(obj.time) };
+    if (this.data[key].prev != null) {
+      this.data[key].prev = new Date(this.data[key].prev);
+    }
     if (changeEvent) {
       this.emit("change", [key]);
     }

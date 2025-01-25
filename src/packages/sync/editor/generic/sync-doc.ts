@@ -247,6 +247,8 @@ export class SyncDoc extends EventEmitter {
   // static because we want exactly one across all docs!
   private static computeServerManagerDoc?: SyncDoc;
 
+  private useNats: boolean;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -273,6 +275,7 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
+    this.useNats = this.path.startsWith("nats/");
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether
@@ -671,8 +674,12 @@ export class SyncDoc extends EventEmitter {
   // This gets used by clients that are connected to a backend
   // with state in the project (e.g., jupyter).  Basically this
   // is a special websocket channel just for this syncdoc, which
-  // uses the cursors table.
+  // uses the patches table.
   public sendMessageToProject = async (data) => {
+    if (this.useNats) {
+      console.log("sendMessageToProject - IGNORING", data);
+      return;
+    }
     const send = this.patches_table?.sendMessageToProject;
     if (send == null || this.patches_table.channel == null) {
       throw Error("sending messages to project not available");
@@ -1242,7 +1249,7 @@ export class SyncDoc extends EventEmitter {
       options.push({ ephemeral: true });
     }
     let synctable;
-    if (this.path == "nats.txt" && query.patches) {
+    if (this.useNats && query.patches) {
       synctable = await this.client.synctable_nats(query, {
         project_id: this.project_id,
         path: this.path,
@@ -1333,7 +1340,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    if (this.path == "nats.txt") {
+    if (this.useNats) {
       return (...args) => console.log(f, ...args);
     }
     return this.client?.dbg(`SyncDoc('${this.path}').${f}`);
@@ -1419,7 +1426,7 @@ export class SyncDoc extends EventEmitter {
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
   private async wait_until_fully_ready(): Promise<void> {
-    if (this.path == "nats.txt") {
+    if (this.useNats) {
       return;
     }
     this.assert_not_closed("wait_until_fully_ready");
@@ -2898,7 +2905,7 @@ export class SyncDoc extends EventEmitter {
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public save_to_disk = async (): Promise<void> => {
-    if (this.path == "nats.txt") {
+    if (this.useNats) {
       // TODO: nats!
       return;
     }
