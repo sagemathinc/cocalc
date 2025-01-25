@@ -1005,6 +1005,13 @@ export class SyncDoc extends EventEmitter {
      is sorted from oldest to newest. */
   public versions = (): Date[] => {
     this.assert_table_is_ready("patches");
+
+    // check for new NATS function and use that if available.
+    const { getSortedTimes } = this.patches_table as any;
+    if (getSortedTimes != null) {
+      return getSortedTimes();
+    }
+
     const v: Date[] = [];
     const s: Map<string, any> | undefined = this.patches_table.get();
     if (s == null) {
@@ -1235,25 +1242,32 @@ export class SyncDoc extends EventEmitter {
       options.push({ ephemeral: true });
     }
     let synctable;
-    switch (this.data_server) {
-      case "project":
-        synctable = await this.client.synctable_project(
-          this.project_id,
-          query,
-          options,
-          throttle_changes,
-          this.id,
-        );
-        break;
-      case "database":
-        synctable = await this.client.synctable_database(
-          query,
-          options,
-          throttle_changes,
-        );
-        break;
-      default:
-        throw Error(`uknown server ${this.data_server}`);
+    if (this.path == "nats.txt" && query.patches) {
+      synctable = await this.client.synctable_nats(query, {
+        project_id: this.project_id,
+        path: this.path,
+      });
+    } else {
+      switch (this.data_server) {
+        case "project":
+          synctable = await this.client.synctable_project(
+            this.project_id,
+            query,
+            options,
+            throttle_changes,
+            this.id,
+          );
+          break;
+        case "database":
+          synctable = await this.client.synctable_database(
+            query,
+            options,
+            throttle_changes,
+          );
+          break;
+        default:
+          throw Error(`uknown server ${this.data_server}`);
+      }
     }
     // We listen and log error events.  This is useful because in some settings, e.g.,
     // in the project, an eventemitter with no listener for errors, which has an error,
@@ -1319,6 +1333,9 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
+    if (this.path == "nats.txt") {
+      return (...args) => console.log(f, ...args);
+    }
     return this.client?.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
@@ -1402,6 +1419,9 @@ export class SyncDoc extends EventEmitter {
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
   private async wait_until_fully_ready(): Promise<void> {
+    if (this.path == "nats.txt") {
+      return;
+    }
     this.assert_not_closed("wait_until_fully_ready");
     const dbg = this.dbg("wait_until_fully_ready");
     dbg();
@@ -1444,7 +1464,6 @@ export class SyncDoc extends EventEmitter {
     if (init.error) {
       throw Error(init.error);
     }
-
     assertDefined(this.patch_list);
     if (
       !this.client.is_project() &&
@@ -1682,11 +1701,8 @@ export class SyncDoc extends EventEmitter {
     const patch_list = new SortedPatchList(this._from_str);
 
     dbg("opening the table...");
-    this.patches_table = await this.synctable(
-      { patches: [this.patch_table_query(this.last_snapshot)] },
-      [],
-      this.patch_interval,
-    );
+    const query = { patches: [this.patch_table_query(this.last_snapshot)] };
+    this.patches_table = await this.synctable(query, [], this.patch_interval);
     this.assert_not_closed("init_patch_list -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
@@ -2089,7 +2105,11 @@ export class SyncDoc extends EventEmitter {
     }
 
     //console.log 'saving patch with time ', time.valueOf()
-    const x = this.patches_table.set(obj, "none");
+    let x = this.patches_table.set(obj, "none");
+    if (x == null) {
+      // TODO: just for NATS right now!
+      x = fromJS(obj);
+    }
     const y = this.process_patch(x, undefined, undefined, patch);
     if (y != null) {
       assertDefined(this.patch_list);
@@ -2318,10 +2338,14 @@ export class SyncDoc extends EventEmitter {
     // m below is an immutable map with keys the string that
     // is the JSON version of the primary key
     // [string_id, timestamp, user_number].
-    const m: Map<string, any> | undefined = this.patches_table.get();
+    let m: Map<string, any> | undefined = this.patches_table.get();
     if (m == null) {
       // won't happen because of assert above.
       throw Error("patches_table must be initialized");
+    }
+    if (!Map.isMap(m)) {
+      // TODO: this is just for proof of concept NATS!!
+      m = fromJS(m);
     }
     const v: Patch[] = [];
     m.forEach((x, _) => {
@@ -2407,7 +2431,7 @@ export class SyncDoc extends EventEmitter {
         }
       }
     }
-  }
+  };
 
   public get_last_save_to_disk_time = (): Date => {
     return this.last_save_to_disk_time;
@@ -2874,6 +2898,10 @@ export class SyncDoc extends EventEmitter {
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public save_to_disk = async (): Promise<void> => {
+    if (this.path == "nats.txt") {
+      // TODO: nats!
+      return;
+    }
     if (this.state != "ready") {
       // We just make save_to_disk a successful
       // no operation, if the document is either
@@ -3176,8 +3204,12 @@ export class SyncDoc extends EventEmitter {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
         for (const key of this.patch_update_queue) {
-          const x = this.patches_table.get(key);
+          let x = this.patches_table.get(key);
           if (x != null) {
+            if (!Map.isMap(x)) {
+              // NATS TODO!
+              x = fromJS(x);
+            }
             // may be null, e.g., when deleted.
             const t = x.get("time");
             // Only need to process patches that we didn't

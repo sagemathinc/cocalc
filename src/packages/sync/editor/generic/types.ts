@@ -95,6 +95,8 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
+  synctable_nats: (query: any, obj?) => Promise<any>;
+
   // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 

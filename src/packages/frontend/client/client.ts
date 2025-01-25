@@ -76,6 +76,7 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
+  synctable_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -157,6 +158,7 @@ class Client extends EventEmitter implements WebappClient {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
+  synctable_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -245,7 +247,9 @@ class Client extends EventEmitter implements WebappClient {
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
     this.exec = this.project_client.exec.bind(this.project_client);
-    this.touch_project = this.project_client.touch_project.bind(this.project_client);
+    this.touch_project = this.project_client.touch_project.bind(
+      this.project_client,
+    );
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
@@ -256,6 +260,7 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_project = this.sync_client.synctable_project.bind(
       this.sync_client,
     );
+    this.synctable_nats = this.nats_client.synctable;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);

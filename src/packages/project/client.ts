@@ -48,6 +48,7 @@ import * as sage_session from "./sage_session";
 import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
+import synctable_nats from "@cocalc/project/nats/synctable";
 
 const winston = getLogger("client");
 
@@ -500,6 +501,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
+  synctable_nats = async (query, obj?) => {
+    return await synctable_nats(query, obj);
+  };
+
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
 
@@ -612,7 +617,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string, _compute_server_id?:number) {}
+  touch_project(_project_id: string, _compute_server_id?: number) {}
 
   async get_syncdoc_history(string_id: string, patches = false) {
     const dbg = this.dbg("get_syncdoc_history");

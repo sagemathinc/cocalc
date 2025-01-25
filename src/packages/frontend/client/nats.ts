@@ -5,7 +5,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
-import { SyncTableKV } from "@cocalc/util/nats/synctable-kv";
+import { createSyncTable, type SyncTable } from "@cocalc/util/nats/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import sha1 from "sha1";
 import { keys } from "lodash";
@@ -111,7 +111,7 @@ export class NatsClient {
     return await js.consumers.get(stream);
   };
 
-  synctable = async (query, obj?) => {
+  synctable = async (query, obj?): Promise<SyncTable> => {
     query = parse_query(query);
     if (obj != null) {
       const table = keys(query)[0];
@@ -119,7 +119,7 @@ export class NatsClient {
         query[table][0][k] = obj[k];
       }
     }
-    const s = new SyncTableKV({
+    const s = createSyncTable({
       query,
       env: {
         sha1,
