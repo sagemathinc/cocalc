@@ -2905,10 +2905,6 @@ export class SyncDoc extends EventEmitter {
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public save_to_disk = async (): Promise<void> => {
-    if (this.useNats) {
-      // TODO: nats!
-      return;
-    }
     if (this.state != "ready") {
       // We just make save_to_disk a successful
       // no operation, if the document is either
