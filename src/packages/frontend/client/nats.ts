@@ -5,7 +5,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
-import { createSyncTable, type SyncTable } from "@cocalc/util/nats/synctable";
+import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import sha1 from "sha1";
 import { keys } from "lodash";

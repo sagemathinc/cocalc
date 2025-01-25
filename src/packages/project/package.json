@@ -23,6 +23,7 @@
     "@cocalc/comm": "workspace:*",
     "@cocalc/frontend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/project": "workspace:*",

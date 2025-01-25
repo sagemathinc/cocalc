@@ -2,7 +2,7 @@ import getConnection from "./connection";
 import { project_id } from "@cocalc/project/data";
 import { JSONCodec } from "nats";
 import { sha1 } from "@cocalc/backend/sha1";
-import { createSyncTable, type SyncTable } from "@cocalc/util/nats/synctable";
+import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import { keys } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";

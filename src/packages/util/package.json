@@ -12,8 +12,7 @@
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js",
     "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
-    "./redux/*": "./dist/redux/*.js",
-    "./nats/*": "./dist/nats/*.js"
+    "./redux/*": "./dist/redux/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -41,8 +40,6 @@
     "@ant-design/colors": "^6.0.0",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.2.1",
-    "@nats-io/jetstream": "3.0.0-36",
-    "@nats-io/kv": "3.0.0-30",
     "@types/debug": "^4.1.12",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
