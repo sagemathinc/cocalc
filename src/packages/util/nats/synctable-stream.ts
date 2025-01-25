@@ -44,6 +44,7 @@ export class SyncTableStream extends EventEmitter {
   private primaryKeys: string[];
   private project_id: string;
   private streamName: string;
+  private streamSubject: string;
   private path: string;
   private subject: string;
   private string_id: string;
@@ -72,7 +73,8 @@ export class SyncTableStream extends EventEmitter {
     query[table][0].string_id = this.string_id = this.sha1(
       `${this.project_id}${this.path}`,
     );
-    this.streamName = `${this.table}-${query[table][0].string_id}`;
+    this.streamName = `project-${this.project_id}-${this.table}`;
+    this.streamSubject = `project.${this.project_id}.${this.table}.>`;
     this.subject = `project.${this.project_id}.${this.table}.${query[table][0].string_id}`;
     this.primaryKeys = client_db.primary_keys(table);
   }
@@ -82,13 +84,14 @@ export class SyncTableStream extends EventEmitter {
     try {
       await jsm.streams.add({
         name: this.streamName,
-        subjects: [this.subject],
+        subjects: [this.streamSubject],
         compression: "s2",
       });
-    } catch (_err) {
+    } catch (err) {
+      console.log("createStream", err);
       // probably already exists
       await jsm.streams.update(this.streamName, {
-        subjects: [this.subject],
+        subjects: [this.streamSubject],
         compression: "s2" as any,
       });
     }

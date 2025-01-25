@@ -237,7 +237,11 @@ Plan.
 
 - [x] Use a kv store hosted on nats to trac syncstring objects as before.  This means anybody can participate \(browser, compute server, project\) without any need to contact the database, hence eliminating all proxying!
 
-#now Next Goal \- collaborative file editing!  This requires implementing the "ordered patches list" but on jetstream.  Similar to the nats SyncTable I wrote yesterday, except will use jetstream directly, since it is an event stream, after all.
+[x] Next Goal \- collaborative file editing \-\- some sort of "proof of concept"!  This requires implementing the "ordered patches list" but on jetstream.  Similar to the nats SyncTable I wrote yesterday, except will use jetstream directly, since it is an event stream, after all.
+
+- [ ] synctable\-stream: change to one big stream for the whole project but **consume** a specific subject in that stream?
+
+[ ] cursors \- an ephemeral table
 
 ---
 

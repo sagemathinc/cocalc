@@ -299,7 +299,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   async connect(): Promise<void> {
-    if (this.path == "nats.term") {
+    if (this.path.startsWith("nats/")) {
       return await this.connectNats();
     }
     this.assert_not_closed();
