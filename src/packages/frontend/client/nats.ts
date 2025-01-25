@@ -9,6 +9,7 @@ import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import sha1 from "sha1";
 import { keys } from "lodash";
+import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -18,9 +19,11 @@ export class NatsClient {
   // obviously just for learning:
   public nats = nats;
   public jetstream = jetstream;
+  public hub : HubApi;
 
   constructor(client: WebappClient) {
     this.client = client;
+    this.hub = initHubApi(this.callHubApi);
   }
 
   getConnection = reuseInFlight(async () => {
@@ -44,27 +47,29 @@ export class NatsClient {
     return this.nc;
   });
 
+  private callHubApi = async ({
+    name,
+    args,
+  }: {
+    name: string;
+    args: any[];
+  }) => {
+    const c = await this.getConnection();
+    const subject = `hub.account.api.${this.client.account_id}`;
+    const resp = await c.request(
+      subject,
+      this.jc.encode({
+        name,
+        args,
+      }),
+    );
+    return this.jc.decode(resp.data);
+  };
+
   request = async (subject: string, data: string) => {
     const c = await this.getConnection();
     const resp = await c.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
-  };
-
-  api = async ({ endpoint, params }: { endpoint: string; params?: object }) => {
-    const c = await this.getConnection();
-    const subject = `hub.account.api.${this.client.account_id}`;
-    console.log(`publishing to subject='${subject}'`);
-    const resp = await c.request(
-      subject,
-      this.jc.encode({
-        endpoint,
-        account_id: this.client.account_id,
-        params,
-      }),
-    );
-    const x = this.jc.decode(resp.data);
-    console.log("got back ", x);
-    return x;
   };
 
   project = async ({

@@ -4,65 +4,13 @@
  */
 
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
-import {
-  KUCALC_COCALC_COM,
-  KucalcValues,
-} from "@cocalc/util/db-schema/site-defaults";
-import { Strategy } from "@cocalc/util/types/sso";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import type { Strategy } from "@cocalc/util/types/sso";
 import { ServerSettings, getServerSettings } from "./server-settings";
 import siteURL from "./site-url";
 import { copy_with } from "@cocalc/util/misc";
-
-export interface Customize {
-  siteName?: string;
-  siteDescription?: string;
-  organizationName?: string;
-  organizationEmail?: string;
-  organizationURL?: string;
-  termsOfServiceURL?: string;
-  helpEmail?: string;
-  contactEmail?: string;
-  isCommercial?: boolean;
-  kucalc?: KucalcValues;
-  sshGateway?: boolean;
-  sshGatewayDNS?: string;
-  logoSquareURL?: string;
-  logoRectangularURL?: string;
-  splashImage?: string;
-  indexInfo?: string;
-  indexTagline?: string;
-  imprint?: string;
-  policies?: string;
-  shareServer?: boolean;
-  landingPages?: boolean;
-  dns?: string;
-  siteURL?: string;
-  googleAnalytics?: string;
-  anonymousSignup?: boolean;
-  anonymousSignupLicensedShares?: boolean;
-  emailSignup?: boolean;
-  accountCreationInstructions?: string;
-  zendesk?: boolean; // true if zendesk support is configured.
-  stripePublishableKey?: string;
-  imprint_html?: string;
-  policies_html?: string;
-  reCaptchaKey?: string;
-  sandboxProjectsEnabled?: boolean;
-  sandboxProjectId?: string;
-  verifyEmailAddresses?: boolean;
-  strategies?: Strategy[];
-  openaiEnabled?: boolean;
-  googleVertexaiEnabled?: boolean;
-  mistralEnabled?: boolean;
-  anthropicEnabled?: boolean;
-  ollamaEnabled?: boolean;
-  neuralSearchEnabled?: boolean;
-  jupyterApiEnabled?: boolean;
-  computeServersEnabled?: boolean;
-  cloudFilesystemsEnabled?: boolean;
-  githubProjectId?: string;
-  support?: string;
-}
+import type { Customize } from "@cocalc/util/db-schema/server-settings";
+export type { Customize };
 
 const fallback = (a?: string, b?: string): string =>
   typeof a == "string" && a.length > 0 ? a : `${b}`;

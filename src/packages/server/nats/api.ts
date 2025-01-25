@@ -13,7 +13,7 @@ Optional: start more servers -- requests get randomly routed to exactly one of t
     
 To make use of this from a browser:
 
-    await cc.client.nats_client.api({endpoint:"customize", params:{fields:['siteName']}})
+    await cc.client.nats_client.api({name:"customize", args:{fields:['siteName']}})
 
 When you make changes, just restart the above.  All clients will instantly 
 use the new version after you restart, and there is no need to restart the hub 
@@ -27,6 +27,7 @@ To view all requests (and replies) in realtime:
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
+import { type HubApi } from "@cocalc/nats/api/index";
 
 const logger = getLogger("server:nats:api");
 
@@ -53,9 +54,9 @@ async function handleApiRequest(mesg) {
     }
     const request = jc.decode(mesg.data) ?? {};
     // TODO: obviously user-provided account_id is no good!  This is a POC.
-    const { endpoint, params } = request as any;
-    logger.debug("handling hub.api request:", { account_id, endpoint, params });
-    resp = await getResponse(endpoint, account_id, params);
+    const { name, args } = request as any;
+    logger.debug("handling hub.api request:", { account_id, name, args });
+    resp = await getResponse({ name, args, account_id });
   } catch (err) {
     resp = { error: `${err}` };
   }
@@ -63,49 +64,26 @@ async function handleApiRequest(mesg) {
 }
 
 import userQuery from "@cocalc/database/user-query";
-import { execute as jupyterExecute } from "@cocalc/server/jupyter/execute";
-import getKernels from "@cocalc/server/jupyter/kernels";
 import getCustomize from "@cocalc/database/settings/customize";
-import callProject from "@cocalc/server/projects/call";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-async function getResponse(endpoint, account_id, params) {
-  switch (endpoint) {
-    case "customize":
-      return await getCustomize(params?.fields);
-    case "user-query":
-      return {
-        query: await userQuery({
-          ...params,
-          account_id,
-        }),
-      };
-    case "exec":
-      if (
-        !(await isCollaborator({ account_id, project_id: params.project_id }))
-      ) {
-        throw Error("user must be a collaborator on the project");
-      }
-      return await callProject({
-        account_id,
-        project_id: params.project_id,
-        mesg: {
-          event: "project_exec",
-          ...params,
-        },
-      });
-    case "jupyter/execute":
-      return {
-        ...(await jupyterExecute({ ...params, account_id })),
-        success: true,
-      };
-    case "jupyter/kernels":
-      return {
-        ...(await getKernels({ ...params, account_id })),
-        success: true,
-      };
+function getAccountId(args) {
+  return (args as any).account_id;
+}
 
-    default:
-      throw Error(`unknown endpoint '${endpoint}'`);
+const hubApi: HubApi = {
+  getCustomize,
+  userQuery: async (...args) =>
+    await userQuery({
+      ...args[0],
+      account_id: getAccountId(args),
+    }),
+};
+
+async function getResponse({ name, args, account_id }) {
+  const f = hubApi[name];
+  if (f == null) {
+    throw Error(`unknown function '${name}'`);
   }
+  args.account_id = account_id;
+  return await f(args);
 }
