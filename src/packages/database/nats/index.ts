@@ -12,10 +12,15 @@ import { getConnection } from "@cocalc/backend/nats";
 import { getUserId } from "@cocalc/nats/api";
 import { callback } from "awaiting";
 import { db } from "@cocalc/database";
-import { createSyncTable } from "@cocalc/nats/sync/synctable";
+import {
+  createSyncTable,
+  CHANGEFEED_INTEREST_PERIOD_MS,
+} from "@cocalc/nats/sync/synctable";
 import { sha1 } from "@cocalc/backend/misc_node";
 import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { uuid } from "@cocalc/util/misc";
+import { delay } from "awaiting";
 
 const logger = getLogger("database:nats");
 
@@ -58,7 +63,8 @@ async function handleRequest(mesg, nc) {
 async function getResponse({ name, args, account_id, project_id, nc }) {
   if (name == "userQuery") {
     const opts = { ...args[0], account_id, project_id };
-    if (opts.changes == null) {
+    if (!opts.changes) {
+      // a normal query
       return await userQuery(opts);
     } else {
       return await createChangefeed(opts, nc);
@@ -84,6 +90,7 @@ const createChangefeed = reuseInFlight(
       return;
     }
     logger.debug("creating new changefeed for", query);
+    const changes = uuid();
     const env = { nc, jc, sha1 };
     const synctable = createSyncTable({
       query,
@@ -97,6 +104,7 @@ const createChangefeed = reuseInFlight(
       let first = true;
       db().user_query({
         ...opts,
+        changes,
         cb: async (err, result) => {
           if (first) {
             first = false;
@@ -135,6 +143,27 @@ const createChangefeed = reuseInFlight(
       await callback(f);
       // it's running successfully
       changefeedInterest[hash] = Date.now();
+
+      const watch = async () => {
+        // it's all setup and running.  If there's no interest for a while, stop watching
+        while (true) {
+          await delay(CHANGEFEED_INTEREST_PERIOD_MS);
+          if (
+            Date.now() - changefeedInterest[hash] >
+            CHANGEFEED_INTEREST_PERIOD_MS
+          ) {
+            logger.debug(
+              "insufficient interest in the changefeed, so we stop it.",
+              query,
+            );
+            db().user_query_cancel_changefeed({ id: changes });
+            delete changefeedInterest[hash];
+          }
+        }
+      };
+      // do not block on this.
+      watch();
+      return;
     } catch (err) {
       throw err;
     }

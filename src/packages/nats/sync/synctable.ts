@@ -4,6 +4,10 @@ import { SyncTableStream } from "./synctable-stream";
 
 export type SyncTable = SyncTableKV | SyncTableStream | SyncTableKVAtomic;
 
+// When the database is watching tables for changefeeds, if it doesn't get a clear expression
+// of interest from a client every this much time, it automatically stops.
+export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
+
 export function createSyncTable({
   query,
   env,

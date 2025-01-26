@@ -273,6 +273,21 @@ With the above algorithm, it should be very easy to reimplement the client side 
 - If you refresh your browser, everything stays stable \-\- nothing changes at all and you instantly have your data.  Same if the network drops and resumes.
 - When implementing our new synctable, we can immediately start with the possibly stale data from the last time it was active, then update it to the correct data.  Thus even if everything but NATS is done/unavailable, the experience would be much better.   It's like "local first", but somehow "network mesh first".  With a leaf node it would literally be local first.
 
+---
+
+This is working well!  
+
+TODO:
+
+- [ ] build full SyncTable on top of my current implementation of synctablekvatomic, to make sure it is sufficient
+
+THEN do the following to make it robust and scalable
+
+- [ ] store in nats which servers are actively managing which synctables
+- [ ] store in nats the client interest data, instead of storing it in memory in a server?  i.e., instead of client making an api call, they could instead just update a kv and say "i am interested in this changefeed".   This approach would make everything just keep working easily even as servers scale up/down/restart.
+
+---
+
 ## [ ] Goal: Terminal and **compute server**
 
 Another thing to do for compute servers:
