@@ -103,6 +103,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -204,6 +207,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
@@ -9108,6 +9114,7 @@ packages:
 
   lodash.get@4.4.2:
     resolution: {integrity: sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==}
+    deprecated: This package is deprecated. Use the optional chaining (?.) operator instead.
 
   lodash.includes@4.3.0:
     resolution: {integrity: sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==}

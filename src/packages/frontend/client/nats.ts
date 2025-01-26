@@ -16,14 +16,13 @@ export class NatsClient {
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
   private nc?: Awaited<ReturnType<typeof nats.connect>>;
-  // obviously just for learning:
   public nats = nats;
   public jetstream = jetstream;
-  public hub : HubApi;
+  public hub: HubApi;
 
   constructor(client: WebappClient) {
     this.client = client;
-    this.hub = initHubApi(this.callHubApi);
+    this.hub = initHubApi(this.callHub);
   }
 
   getConnection = reuseInFlight(async () => {
@@ -47,15 +46,17 @@ export class NatsClient {
     return this.nc;
   });
 
-  private callHubApi = async ({
+  private callHub = async ({
+    service = "api",
     name,
-    args,
+    args = [],
   }: {
+    service?: string;
     name: string;
     args: any[];
   }) => {
     const c = await this.getConnection();
-    const subject = `hub.account.api.${this.client.account_id}`;
+    const subject = `hub.account.${this.client.account_id}.${service}`;
     const resp = await c.request(
       subject,
       this.jc.encode({

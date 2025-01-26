@@ -249,7 +249,29 @@ Plan.
 - [ ] Stream: Records everything with this subject  `project.${project_id}.patches`
 - [ ] It would be very nice if we can use the server assigned timestamps.... but probably not
   - [ ] For transitioning and de\-archiving, there must be a way to do this, since they have a backup/restore process
-- 
+
+## [ ] Goal: PostgreSQL Changefeed Synctable
+
+This is critical to solve.  This sucks now.   This is key to eliminating "hub\-websocket".  This might be very easy.  Here's the plan:
+
+- make a request/response listener that listens on hub.account.{account\_id} and hub.db.project.{project\_id} for a db query.
+- if changes is false, just responds with the result of the query.
+- if changes is true, get kv store k named  `account-{account_id}` or `project-{project_id}` \(which might be used by project or compute server\).
+  - let id be the sha1 hash of the query \(and options\)
+  - k.id.update is less than X seconds ago, do nothing... it's already being updated by another server.
+  - do the query to the database \(with changes true\)
+  - write the results into k under k.id.data.key = value.
+  - keep watching for changes so long as k.id.interest is at most n\*X seconds ago.
+  - Also set k.id.update to now.
+  - return id
+- another message to `hub.db.{account_id}` which contains a list of id's.
+  - When get this one, update k.id.interest to now for each of the id's.
+
+With the above algorithm, it should be very easy to reimplement the client side of SyncTable.  Moreover, there are many advantages:
+
+- For a fixed account\_id or project\-id, there's no extra work at all for 1 versus 100 of them.  I.e., this is great for opening a bunch of distinct browser windows.
+- If you refresh your browser, everything stays stable \-\- nothing changes at all and you instantly have your data.  Same if the network drops and resumes.
+- When implementing our new synctable, we can immediately start with the possibly stale data from the last time it was active, then update it to the correct data.  Thus even if everything but NATS is done/unavailable, the experience would be much better.   It's like "local first", but somehow "network mesh first".  With a leaf node it would literally be local first.
 
 ## [ ] Goal: Terminal and **compute server**
 

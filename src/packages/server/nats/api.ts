@@ -34,10 +34,11 @@ const logger = getLogger("server:nats:api");
 const jc = JSONCodec();
 
 export async function initAPI(nc) {
-  logger.debug("initAPI -- subject='hub.account.api', options=", {
+  const subject = "hub.*.*.api";
+  logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
   });
-  const sub = nc.subscribe("hub.account.api.>", { queue: "0" });
+  const sub = nc.subscribe(subject, { queue: "0" });
   for await (const mesg of sub) {
     handleApiRequest(mesg);
   }
@@ -48,12 +49,15 @@ async function handleApiRequest(mesg) {
   let resp;
   try {
     const segments = mesg.subject.split(".");
-    const account_id = segments[3];
+    const type = segments[1];
+    if (type != "account") {
+      throw Error("only type='account' is supported now");
+    }
+    const account_id = segments[2];
     if (!isValidUUID(account_id)) {
       throw Error(`invalid account_id '${account_id}'`);
     }
     const request = jc.decode(mesg.data) ?? {};
-    // TODO: obviously user-provided account_id is no good!  This is a POC.
     const { name, args } = request as any;
     logger.debug("handling hub.api request:", { account_id, name, args });
     resp = await getResponse({ name, args, account_id });
@@ -66,17 +70,9 @@ async function handleApiRequest(mesg) {
 import userQuery from "@cocalc/database/user-query";
 import getCustomize from "@cocalc/database/settings/customize";
 
-function getAccountId(args) {
-  return (args as any).account_id;
-}
-
 const hubApi: HubApi = {
   getCustomize,
-  userQuery: async (...args) =>
-    await userQuery({
-      ...args[0],
-      account_id: getAccountId(args),
-    }),
+  userQuery,
 };
 
 async function getResponse({ name, args, account_id }) {
@@ -84,6 +80,8 @@ async function getResponse({ name, args, account_id }) {
   if (f == null) {
     throw Error(`unknown function '${name}'`);
   }
-  args.account_id = account_id;
-  return await f(args);
+  if (name == "userQuery" && args[0] != null) {
+    args[0].account_id = account_id;
+  }
+  return await f(...args);
 }
