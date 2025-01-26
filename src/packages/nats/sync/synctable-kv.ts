@@ -33,9 +33,6 @@ export async function getKv({
   project_id?: string;
   account_id?: string;
 }) {
-  if (account_id && project_id) {
-    throw Error("both account_id and project_id can't be defined");
-  }
   let name;
   if (account_id) {
     name = `account-${account_id}`;

@@ -7,7 +7,7 @@ import { EventEmitter } from "events";
 import { callback, delay } from "awaiting";
 import { close } from "@cocalc/util/misc";
 
-type State = "closed" | "disconnected" | "connecting" | "connected";
+export type State = "closed" | "disconnected" | "connecting" | "connected";
 
 export class Changefeed extends EventEmitter {
   private query: any;

@@ -34,6 +34,7 @@ import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Changefeed } from "./changefeed";
+import { NatsChangefeed } from "./changefeed-nats";
 import { parse_query, to_key } from "./util";
 
 import type { Client } from "@cocalc/sync/client/types";
@@ -58,11 +59,10 @@ function is_fatal(err: string): boolean {
   return err.indexOf("FATAL") != -1;
 }
 
-
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
-  private changefeed?: Changefeed;
+  private changefeed?: Changefeed | NatsChangefeed;
   private query: Query;
   private client_query: any;
   private primary_keys: string[];
@@ -729,7 +729,15 @@ export class SyncTable extends EventEmitter {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
-      this.changefeed = new Changefeed(this.changefeed_options());
+      if (this.client.is_browser()) {
+        this.changefeed = new NatsChangefeed({
+          client: this.client,
+          query: this.query,
+          options: this.options,
+        });
+      } else {
+        this.changefeed = new Changefeed(this.changefeed_options());
+      }
       await this.wait_until_ready_to_query_db();
       try {
         return await this.changefeed.connect();

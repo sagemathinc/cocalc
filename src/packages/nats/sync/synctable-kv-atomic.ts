@@ -98,8 +98,7 @@ export class SyncTableKVAtomic {
       key: `${this.natsKeyPrefix}.>`,
     });
     for await (const { value } of w) {
-      const obj = this.jc.decode(value);
-      yield { [this.primaryString(obj)]: obj };
+      yield this.jc.decode(value);
     }
   }
 }

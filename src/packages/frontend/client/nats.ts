@@ -151,7 +151,7 @@ export class NatsClient {
       await this.client.nats_client.callHub({
         service: "db",
         name: "userQuery",
-        args: [{ changes:true, query }],
+        args: [{ changes: true, query }],
       });
     } catch (err) {
       if (noError) {
