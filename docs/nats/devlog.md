@@ -279,7 +279,7 @@ This is working well!
 
 TODO:
 
-- [ ] build full SyncTable on top of my current implementation of synctablekvatomic, to make sure it is sufficient
+- [ ] build full SyncTable on top of my current implementation of synctablekvatomic, to _make sure it is sufficient_
 
 THEN do the following to make it robust and scalable
 

@@ -32,6 +32,10 @@ import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { Changefeed } from "./changefeed";
+import { parse_query, to_key } from "./util";
+
 import type { Client } from "@cocalc/sync/client/types";
 export type { Client };
 
@@ -54,10 +58,6 @@ function is_fatal(err: string): boolean {
   return err.indexOf("FATAL") != -1;
 }
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-
-import { Changefeed } from "./changefeed";
-import { parse_query, to_key } from "./util";
 
 export type State = "disconnected" | "connected" | "closed";
 
