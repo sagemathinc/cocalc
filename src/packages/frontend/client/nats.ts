@@ -10,6 +10,7 @@ import { parse_query } from "@cocalc/sync/table/util";
 import sha1 from "sha1";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
+import { uuid } from "@cocalc/util/misc";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -118,8 +119,12 @@ export class NatsClient {
     return await js.consumers.get(stream);
   };
 
-  synctable = async (query, obj?): Promise<SyncTable> => {
+  synctable = async (
+    query,
+    options?: { obj?: object; atomic?: boolean; stream?: boolean },
+  ): Promise<SyncTable> => {
     query = parse_query(query);
+    const obj = options?.obj;
     if (obj != null) {
       const table = keys(query)[0];
       for (const k in obj) {
@@ -127,6 +132,7 @@ export class NatsClient {
       }
     }
     const s = createSyncTable({
+      ...options,
       query,
       env: {
         sha1,
@@ -137,5 +143,30 @@ export class NatsClient {
     });
     await s.init();
     return s;
+  };
+
+  changefeedInterest = async (query, noError?: boolean) => {
+    // express interest
+    const changes = uuid();
+    // (re-)start changefeed going
+    try {
+      await this.client.nats_client.callHub({
+        service: "db",
+        name: "userQuery",
+        args: [{ changes, query }],
+      });
+    } catch (err) {
+      if (noError) {
+        console.warn(err);
+        return;
+      } else {
+        throw err;
+      }
+    }
+  };
+
+  changefeed = async (query) => {
+    this.changefeedInterest(query, true);
+    return await this.synctable(query, { atomic: true });
   };
 }

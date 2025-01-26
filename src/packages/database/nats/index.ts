@@ -12,7 +12,7 @@ import { getConnection } from "@cocalc/backend/nats";
 import { getUserId } from "@cocalc/nats/api";
 import { callback } from "awaiting";
 import { db } from "@cocalc/database";
-import { SyncTableKV } from "@cocalc/nats/sync/synctable-kv";
+import { createSyncTable } from "@cocalc/nats/sync/synctable";
 import { sha1 } from "@cocalc/backend/misc_node";
 
 const logger = getLogger("database:nats");
@@ -72,11 +72,12 @@ async function getResponse({ name, args, account_id, project_id, nc }) {
 async function createChangefeed(opts, nc) {
   const query = opts.query;
   const env = { nc, jc, sha1 };
-  const synctable = new SyncTableKV({
+  const synctable = createSyncTable({
     query,
     env,
     account_id: opts.account_id,
     project_id: opts.project_id,
+    atomic: true,
   });
   await synctable.init();
   const f = (cb) => {
@@ -99,8 +100,16 @@ async function createChangefeed(opts, nc) {
         const { action, new_val, old_val } = result as any;
         // action = 'insert', 'update', 'delete', 'close'
         // e.g., {"action":"insert","new_val":{"title":"testingxxxxx","project_id":"81e0c408-ac65-4114-bad5-5f4b6539bd0e"}}
-        if (action == "insert" || action == "update") {
+        if (action == "insert") {
           await synctable.set(new_val);
+        } else if (action == "update") {
+          // update -- since atomic have to get the current value;
+          // this of course assumes there is one process writing to
+          // this part of the key value store (the atomic business).
+          await synctable.set({
+            ...(await synctable.get(new_val)),
+            ...new_val,
+          });
         } else if (action == "delete") {
           await synctable.delete(old_val);
         }

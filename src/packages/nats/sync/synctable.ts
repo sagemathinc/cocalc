@@ -1,23 +1,33 @@
-import { SyncTableKV } from "./synctable-kv";
+import { SyncTableKV, type NatsEnv } from "./synctable-kv";
+import { SyncTableKVAtomic } from "./synctable-kv-atomic";
 import { SyncTableStream } from "./synctable-stream";
-import { keys } from "lodash";
 
-export type SyncTable = SyncTableKV | SyncTableStream;
+export type SyncTable = SyncTableKV | SyncTableStream | SyncTableKVAtomic;
 
 export function createSyncTable({
   query,
   env,
   account_id,
   project_id,
+  atomic,
+  stream,
 }: {
   query;
-  env;
-  account_id?;
-  project_id?;
+  env: NatsEnv;
+  account_id?: string;
+  project_id?: string;
+  atomic?: boolean;
+  stream?: boolean;
 }) {
-  const table = keys(query)[0];
-  if (table == "patches") {
+  if (stream) {
+    if (atomic) {
+      throw Error("atomic stream not implemented yet");
+    }
     return new SyncTableStream({ query, env, account_id, project_id });
   }
-  return new SyncTableKV({ query, env, account_id, project_id });
+  if (atomic) {
+    return new SyncTableKVAtomic({ query, env, account_id, project_id });
+  } else {
+    return new SyncTableKV({ query, env, account_id, project_id });
+  }
 }

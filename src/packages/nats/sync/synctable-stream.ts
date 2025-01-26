@@ -40,7 +40,7 @@ export class SyncTableStream extends EventEmitter {
   private nc;
   private jc;
   private sha1;
-  private table;
+  public readonly table;
   private primaryKeys: string[];
   private project_id?: string;
   private account_id?: string;
@@ -244,6 +244,10 @@ export class SyncTableStream extends EventEmitter {
       return;
     }
     this.set_state("closed");
+  };
+
+  delete = async (_obj) => {
+    throw Error("delete: not implemented for stream synctable");
   };
 
   // no-op because we always immediately publish changes on set.

@@ -501,8 +501,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
-  synctable_nats = async (query, obj?) => {
-    return await synctable_nats(query, obj);
+  synctable_nats = async (query, options?) => {
+    return await synctable_nats(query, options);
   };
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely

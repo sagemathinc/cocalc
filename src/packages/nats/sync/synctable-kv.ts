@@ -14,6 +14,16 @@ import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 
+export function natsKeyPrefix({
+  query,
+  atomic = false,
+}: {
+  query;
+  atomic?: boolean;
+}) {
+  return sha1(jsonStableStringify({ query, atomic }));
+}
+
 export async function getKv({
   nc,
   project_id,
@@ -38,14 +48,14 @@ export async function getKv({
   return await kvm.create(name, { compression: true });
 }
 
-interface NatsEnv {
+export interface NatsEnv {
   nc; // nats connection
   jc; // jsoncodec
   // compute sha1 hash efficiently (set differently on backend)
   sha1?: (string) => string;
 }
 
-function toKey(x): string | undefined {
+export function toKey(x): string | undefined {
   if (x === undefined) {
     return undefined;
   } else if (typeof x === "object") {
@@ -61,6 +71,7 @@ export class SyncTableKV {
   private jc;
   private sha1;
   public readonly table;
+  public readonly natsKeyPrefix;
   private primaryKeys: string[];
   private primaryKeysSet: Set<string>;
   private fields: string[];
@@ -83,6 +94,7 @@ export class SyncTableKV {
     this.jc = env.jc;
     const table = keys(query)[0];
     this.table = table;
+    this.natsKeyPrefix = natsKeyPrefix({ query, atomic: false });
     this.project_id = project_id ?? query[table][0].project_id;
     this.account_id = account_id ?? query[table][0].account_id;
     this.primaryKeys = client_db.primary_keys(table);
@@ -117,7 +129,7 @@ export class SyncTableKV {
   };
 
   private getKey = (obj, field?: string): string => {
-    const x = `${this.table}.${this.natObjectKey(obj)}`;
+    const x = `${this.natsKeyPrefix}.${this.natObjectKey(obj)}`;
     if (field == null) {
       return x;
     } else {
@@ -143,15 +155,8 @@ export class SyncTableKV {
 
   get = async (obj?, field?) => {
     if (obj == null) {
-      
       // everything known in this table by the project
-      // TODO: this is way to broad -- we probably need to restructure things
-      // by adding in a hash of the query?  e.g., {this.table}.{hash(query)}.(same as before),
-      // since there's many queries for one table and below gives too much and we can't client
-      // side do all the filters...?  or shouldn't (too slow).  But also worry about clutter
-      // and maybe ttl?
-      
-      const keys = await this.kv.keys(`${this.table}.>`);
+      const keys = await this.kv.keys(`${this.natsKeyPrefix}.>`);
       const all: any = {};
       for await (const key of keys) {
         const mesg = await this.kv.get(key);

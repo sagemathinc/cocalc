@@ -1253,6 +1253,7 @@ export class SyncDoc extends EventEmitter {
       synctable = await this.client.synctable_nats(query, {
         project_id: this.project_id,
         path: this.path,
+        stream: true,
       });
     } else {
       switch (this.data_server) {
