@@ -130,7 +130,8 @@ export class SyncTable extends EventEmitter {
   // entirely by the project (e.g., sync-doc support).
   private no_db_set: boolean = false;
 
-  // Set only for some tables.
+  // Set only for some tables that are hosted directly on a project (not database),
+  // e.g., the project_status and listings.
   private project_id?: string;
 
   private last_has_uncommitted_changes?: boolean = undefined;
@@ -729,7 +730,7 @@ export class SyncTable extends EventEmitter {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
-      if (this.client.is_browser()) {
+      if (this.client.is_browser() && !this.project_id) {
         this.changefeed = new NatsChangefeed({
           client: this.client,
           query: this.query,

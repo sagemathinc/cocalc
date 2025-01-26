@@ -1251,8 +1251,10 @@ export class SyncDoc extends EventEmitter {
     let synctable;
     if (this.useNats && query.patches) {
       synctable = await this.client.synctable_nats(query, {
-        project_id: this.project_id,
-        path: this.path,
+        obj: {
+          project_id: this.project_id,
+          path: this.path,
+        },
         stream: true,
       });
     } else {
@@ -1341,9 +1343,9 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    if (this.useNats) {
-      return (...args) => console.log(f, ...args);
-    }
+    //     if (this.useNats) {
+    //       return (...args) => console.log(f, ...args);
+    //     }
     return this.client?.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
