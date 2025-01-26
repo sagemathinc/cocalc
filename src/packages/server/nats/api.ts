@@ -26,8 +26,7 @@ To view all requests (and replies) in realtime:
 
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
-import { isValidUUID } from "@cocalc/util/misc";
-import { type HubApi } from "@cocalc/nats/api/index";
+import { type HubApi, getUserId } from "@cocalc/nats/api/index";
 
 const logger = getLogger("server:nats:api");
 
@@ -48,19 +47,16 @@ async function handleApiRequest(mesg) {
   console.log({ subject: mesg.subject });
   let resp;
   try {
-    const segments = mesg.subject.split(".");
-    const type = segments[1];
-    if (type != "account") {
-      throw Error("only type='account' is supported now");
-    }
-    const account_id = segments[2];
-    if (!isValidUUID(account_id)) {
-      throw Error(`invalid account_id '${account_id}'`);
-    }
+    const { account_id, project_id } = getUserId(mesg.subject);
     const request = jc.decode(mesg.data) ?? {};
     const { name, args } = request as any;
-    logger.debug("handling hub.api request:", { account_id, name, args });
-    resp = await getResponse({ name, args, account_id });
+    logger.debug("handling hub.api request:", {
+      account_id,
+      project_id,
+      name,
+      args,
+    });
+    resp = await getResponse({ name, args, account_id, project_id });
   } catch (err) {
     resp = { error: `${err}` };
   }
@@ -75,13 +71,17 @@ const hubApi: HubApi = {
   userQuery,
 };
 
-async function getResponse({ name, args, account_id }) {
+async function getResponse({ name, args, account_id, project_id }) {
   const f = hubApi[name];
   if (f == null) {
     throw Error(`unknown function '${name}'`);
   }
   if (name == "userQuery" && args[0] != null) {
-    args[0].account_id = account_id;
+    if (account_id) {
+      args[0].account_id = account_id;
+    } else if (project_id) {
+      args[0].project_id = project_id;
+    }
   }
   return await f(...args);
 }

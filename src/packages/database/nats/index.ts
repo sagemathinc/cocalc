@@ -7,9 +7,9 @@
 
 import getLogger from "@cocalc/backend/logger";
 import { JSONCodec } from "nats";
-import { isValidUUID } from "@cocalc/util/misc";
 import userQuery from "@cocalc/database/user-query";
 import { getConnection } from "@cocalc/backend/nats";
+import { getUserId } from "@cocalc/nats/api";
 
 const logger = getLogger("database:nats");
 
@@ -31,22 +31,7 @@ async function handleRequest(mesg) {
   console.log({ subject: mesg.subject });
   let resp;
   try {
-    const segments = mesg.subject.split(".");
-    const uuid = segments[2];
-    if (!isValidUUID(uuid)) {
-      throw Error(`invalid uuid '${uuid}'`);
-    }
-    const type = segments[1]; // 'project' or 'account'
-    let account_id, project_id;
-    if (type == "project") {
-      project_id = uuid;
-      account_id = undefined;
-    } else if (type == "account") {
-      project_id = undefined;
-      account_id = uuid;
-    } else {
-      throw Error("must be project or account");
-    }
+    const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
     if (!name) {
       throw Error("api endpoint name must be given in message");

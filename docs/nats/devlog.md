@@ -254,9 +254,9 @@ Plan.
 
 This is critical to solve.  This sucks now.   This is key to eliminating "hub\-websocket".  This might be very easy.  Here's the plan:
 
-- make a request/response listener that listens on hub.account.{account\_id} and hub.db.project.{project\_id} for a db query.
-- if changes is false, just responds with the result of the query.
-- if changes is true, get kv store k named  `account-{account_id}` or `project-{project_id}` \(which might be used by project or compute server\).
+- [x] make a request/response listener that listens on hub.account.{account\_id} and hub.db.project.{project\_id} for a db query.
+- [x] if changes is false, just responds with the result of the query.
+- [ ] if changes is true, get kv store k named  `account-{account_id}` or `project-{project_id}` \(which can be used by project or compute server\).
   - let id be the sha1 hash of the query \(and options\)
   - k.id.update is less than X seconds ago, do nothing... it's already being updated by another server.
   - do the query to the database \(with changes true\)
@@ -264,7 +264,7 @@ This is critical to solve.  This sucks now.   This is key to eliminating "hub\-w
   - keep watching for changes so long as k.id.interest is at most n\*X seconds ago.
   - Also set k.id.update to now.
   - return id
-- another message to `hub.db.{account_id}` which contains a list of id's.
+- [ ] another message to `hub.db.{account_id}` which contains a list of id's.
   - When get this one, update k.id.interest to now for each of the id's.
 
 With the above algorithm, it should be very easy to reimplement the client side of SyncTable.  Moreover, there are many advantages:

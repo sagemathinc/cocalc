@@ -21,6 +21,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@types/lodash": "^4.14.202",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",

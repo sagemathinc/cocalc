@@ -63,6 +63,7 @@ export class NatsClient {
         name,
         args,
       }),
+      { timeout: 5000 },
     );
     return this.jc.decode(resp.data);
   };

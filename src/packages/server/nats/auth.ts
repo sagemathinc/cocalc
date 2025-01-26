@@ -120,6 +120,9 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const goalSub = new Set(["_INBOX.>"]);
 
   if (userType == "account") {
+    
+    goalSub.add(`$KV.account-${userId}.>`);
+    
     const pool = getPool();
     // all RUNNING projects with the user's group
     const query = `SELECT project_id, users#>>'{${userId},group}' AS group FROM projects WHERE state#>>'{state}'='running' AND users ? '${userId}' ORDER BY project_id`;
