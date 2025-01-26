@@ -143,7 +143,14 @@ export class SyncTableKV {
 
   get = async (obj?, field?) => {
     if (obj == null) {
+      
       // everything known in this table by the project
+      // TODO: this is way to broad -- we probably need to restructure things
+      // by adding in a hash of the query?  e.g., {this.table}.{hash(query)}.(same as before),
+      // since there's many queries for one table and below gives too much and we can't client
+      // side do all the filters...?  or shouldn't (too slow).  But also worry about clutter
+      // and maybe ttl?
+      
       const keys = await this.kv.keys(`${this.table}.>`);
       const all: any = {};
       for await (const key of keys) {
