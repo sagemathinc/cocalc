@@ -12,12 +12,30 @@ import { Kvm } from "@nats-io/kv";
 import sha1 from "sha1";
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
-import { isValidUUID } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 
-export async function getKv({ nc, project_id }) {
+export async function getKv({
+  nc,
+  project_id,
+  account_id,
+}: {
+  nc;
+  project_id?: string;
+  account_id?: string;
+}) {
+  if (account_id && project_id) {
+    throw Error("both account_id and project_id can't be defined");
+  }
+  let name;
+  if (account_id) {
+    name = `account-${account_id}`;
+  } else if (project_id) {
+    name = `project-${project_id}`;
+  } else {
+    throw Error("one of account_id or project_id must be defined");
+  }
   const kvm = new Kvm(nc);
-  return await kvm.create(`project-${project_id}`, { compression: true });
+  return await kvm.create(name, { compression: true });
 }
 
 interface NatsEnv {
@@ -42,22 +60,31 @@ export class SyncTableKV {
   private nc;
   private jc;
   private sha1;
-  private table;
+  public readonly table;
   private primaryKeys: string[];
   private primaryKeysSet: Set<string>;
   private fields: string[];
-  private project_id: string;
+  private project_id?: string;
+  private account_id?: string;
 
-  constructor({ query, env }: { query; env: NatsEnv }) {
+  constructor({
+    query,
+    env,
+    account_id,
+    project_id,
+  }: {
+    query;
+    env: NatsEnv;
+    account_id?: string;
+    project_id?: string;
+  }) {
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
     this.jc = env.jc;
     const table = keys(query)[0];
     this.table = table;
-    this.project_id = query[table][0].project_id;
-    if (!isValidUUID(this.project_id)) {
-      throw Error("query MUST specify a valid project_id");
-    }
+    this.project_id = project_id ?? query[table][0].project_id;
+    this.account_id = account_id ?? query[table][0].account_id;
     this.primaryKeys = client_db.primary_keys(table);
     this.primaryKeysSet = new Set(this.primaryKeys);
     this.fields = keys(query[table][0]).filter(
@@ -66,7 +93,11 @@ export class SyncTableKV {
   }
 
   init = async () => {
-    this.kv = await getKv({ nc: this.nc, project_id: this.project_id });
+    this.kv = await getKv({
+      nc: this.nc,
+      project_id: this.project_id,
+      account_id: this.account_id,
+    });
   };
 
   private primaryString = (obj): string => {
@@ -99,6 +130,14 @@ export class SyncTableKV {
     for (const field in obj) {
       const value = this.jc.encode(obj[field]);
       await this.kv.put(`${key}.${field}`, value);
+    }
+  };
+
+  delete = async (obj) => {
+    const key = this.getKey(obj);
+    const keys = await this.kv.keys(`${key}.>`);
+    for await (const k of keys) {
+      await this.kv.delete(k);
     }
   };
 

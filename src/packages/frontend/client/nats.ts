@@ -133,6 +133,7 @@ export class NatsClient {
         jc: this.jc,
         nc: await this.getConnection(),
       },
+      account_id: this.client.account_id,
     });
     await s.init();
     return s;

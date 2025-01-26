@@ -42,7 +42,8 @@ export class SyncTableStream extends EventEmitter {
   private sha1;
   private table;
   private primaryKeys: string[];
-  private project_id: string;
+  private project_id?: string;
+  private account_id?: string;
   private streamName: string;
   private streamSubject: string;
   private path: string;
@@ -52,7 +53,17 @@ export class SyncTableStream extends EventEmitter {
   private consumer?;
   private state: State = "disconnected";
 
-  constructor({ query, env }: { query; env: NatsEnv }) {
+  constructor({
+    query,
+    env,
+    account_id,
+    project_id,
+  }: {
+    query;
+    env: NatsEnv;
+    account_id?: string;
+    project_id?: string;
+  }) {
     super();
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
@@ -62,9 +73,13 @@ export class SyncTableStream extends EventEmitter {
     if (table != "patches") {
       throw Error("only the patches table is supported");
     }
-    this.project_id = query[table][0].project_id;
+    this.project_id = project_id ?? query[table][0].project_id;
+    this.account_id = account_id ?? query[table][0].account_id;
     if (!isValidUUID(this.project_id)) {
       throw Error("query MUST specify a valid project_id");
+    }
+    if (this.account_id && !isValidUUID(this.account_id)) {
+      throw Error("query MUST specify a valid account_id");
     }
     this.path = query[table][0].path;
     if (!this.path) {
