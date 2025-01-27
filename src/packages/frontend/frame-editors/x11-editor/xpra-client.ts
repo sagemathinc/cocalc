@@ -7,12 +7,11 @@
 
 import { join } from "path";
 import { throttle } from "underscore";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { close, hash_string } from "@cocalc/util/misc";
+import { close, hash_string, sha1 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConnectionStatus } from "../frame-tree/types";
 import { ExecOutput, touch, touch_project } from "../generic/client";
@@ -20,7 +19,6 @@ import { ExecOpts0, XpraServer } from "./xpra-server";
 import { Client } from "./xpra/client";
 import { Surface } from "./xpra/surface";
 import { is_copy } from "./xpra/util";
-const sha1 = require("sha1");
 
 const BASE_DPI: number = 96;
 
