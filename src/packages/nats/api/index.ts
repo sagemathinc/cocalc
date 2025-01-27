@@ -2,18 +2,73 @@ import type { Customize } from "@cocalc/util/db-schema/server-settings";
 import { isValidUUID } from "@cocalc/util/misc";
 
 export interface HubApi {
-  getCustomize: (fields?: string[]) => Promise<Customize>;
-  userQuery: (opts: {
-    project_id?: string;
-    query: any;
-    options?: any[];
-  }) => Promise<any>;
+  system: {
+    getCustomize: (fields?: string[]) => Promise<Customize>;
+  };
+
+  db: {
+    userQuery: (opts: {
+      project_id?: string;
+      account_id?: string;
+      query: any;
+      options?: any[];
+    }) => Promise<any>;
+  };
+
+  purchases: {
+    getBalance: ({ account_id }) => Promise<number>;
+    getMinBalance: (account_id) => Promise<number>;
+  };
+}
+
+const authFirst = ({ args, account_id, project_id }) => {
+  if (args[0] == null) {
+    args[0] = {} as any;
+  }
+  if (account_id) {
+    args[0].account_id = account_id;
+  } else if (project_id) {
+    args[0].project_id = project_id;
+  }
+  return args;
+};
+
+const noAuth = ({ args }) => args;
+
+const HubApiStructure = {
+  system: {
+    getCustomize: noAuth,
+  },
+  db: {
+    userQuery: authFirst,
+  },
+  purchases: {
+    getBalance: ({ account_id }) => {
+      return [{ account_id }];
+    },
+    getMinBalance: ({ account_id }) => [account_id],
+  },
+} as const;
+
+export function transformArgs({ name, args, account_id, project_id }) {
+  const [group, functionName] = name.split(".");
+  return HubApiStructure[group]?.[functionName]({
+    args,
+    account_id,
+    project_id,
+  });
 }
 
 export function initHubApi(callHubApi): HubApi {
   const hubApi: any = {};
-  for (const name of ["getCustomize", "userQuery"]) {
-    hubApi[name] = async (...args) => await callHubApi({ name, args });
+  for (const group in HubApiStructure) {
+    if (hubApi[group] == null) {
+      hubApi[group] = {};
+    }
+    for (const functionName in HubApiStructure[group]) {
+      hubApi[group][functionName] = async (...args) =>
+        await callHubApi({ name: `${group}.${functionName}`, args });
+    }
   }
   return hubApi as HubApi;
 }

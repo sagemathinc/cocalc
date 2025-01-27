@@ -26,7 +26,7 @@ To view all requests (and replies) in realtime:
 
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
-import { type HubApi, getUserId } from "@cocalc/nats/api/index";
+import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/api/index";
 
 const logger = getLogger("server:nats:api");
 
@@ -65,23 +65,28 @@ async function handleApiRequest(mesg) {
 
 import userQuery from "@cocalc/database/user-query";
 import getCustomize from "@cocalc/database/settings/customize";
+import getBalance from "@cocalc/server/purchases/get-balance";
+import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 
 const hubApi: HubApi = {
-  getCustomize,
-  userQuery,
+  system: {
+    getCustomize,
+  },
+  db: {
+    userQuery,
+  },
+  purchases: {
+    getBalance,
+    getMinBalance,
+  },
 };
 
 async function getResponse({ name, args, account_id, project_id }) {
-  const f = hubApi[name];
+  const [group, functionName] = name.split(".");
+  const f = hubApi[group]?.[functionName];
   if (f == null) {
     throw Error(`unknown function '${name}'`);
   }
-  if (name == "userQuery" && args[0] != null) {
-    if (account_id) {
-      args[0].account_id = account_id;
-    } else if (project_id) {
-      args[0].project_id = project_id;
-    }
-  }
-  return await f(...args);
+  const args2 = transformArgs({ name, args, account_id, project_id });
+  return await f(...args2);
 }
