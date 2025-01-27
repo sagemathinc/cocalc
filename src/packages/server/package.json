@@ -13,6 +13,7 @@
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./nats": "./dist/nats/index.js",
+    "./nats/api": "./dist/nats/api/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",

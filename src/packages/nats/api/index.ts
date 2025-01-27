@@ -1,53 +1,19 @@
-import type { Customize } from "@cocalc/util/db-schema/server-settings";
 import { isValidUUID } from "@cocalc/util/misc";
+import { type Purchases, purchases } from "./purchases";
+import { type System, system } from "./system";
+import { type DB, db } from "./db";
 
 export interface HubApi {
-  system: {
-    getCustomize: (fields?: string[]) => Promise<Customize>;
-  };
-
-  db: {
-    userQuery: (opts: {
-      project_id?: string;
-      account_id?: string;
-      query: any;
-      options?: any[];
-    }) => Promise<any>;
-  };
-
-  purchases: {
-    getBalance: ({ account_id }) => Promise<number>;
-    getMinBalance: (account_id) => Promise<number>;
-  };
+  system: System;
+  db: DB;
+  purchases: Purchases;
 }
 
-const authFirst = ({ args, account_id, project_id }) => {
-  if (args[0] == null) {
-    args[0] = {} as any;
-  }
-  if (account_id) {
-    args[0].account_id = account_id;
-  } else if (project_id) {
-    args[0].project_id = project_id;
-  }
-  return args;
-};
-
-const noAuth = ({ args }) => args;
 
 const HubApiStructure = {
-  system: {
-    getCustomize: noAuth,
-  },
-  db: {
-    userQuery: authFirst,
-  },
-  purchases: {
-    getBalance: ({ account_id }) => {
-      return [{ account_id }];
-    },
-    getMinBalance: ({ account_id }) => [account_id],
-  },
+  system,
+  db,
+  purchases,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {

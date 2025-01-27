@@ -4,20 +4,18 @@
  */
 
 import { delay } from "awaiting";
-
 import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import * as message from "@cocalc/util/message";
 
 export class TimeClient {
   private client: any;
   private ping_interval_ms: number = 30000; // interval in ms between pings
-  private last_ping: Date = new Date(0);
-  private last_pong?: { server: Date; local: Date };
+  private last_ping: number = 0;
+  private last_pong?: { server: number; local: number };
   private clock_skew_ms?: number;
-  private last_server_time?: Date;
+  private last_server_time?: number;
   private closed: boolean = false;
 
   constructor(client: any) {
@@ -29,31 +27,26 @@ export class TimeClient {
   }
 
   // Ping server and also use the ping to determine clock skew.
-  public async ping(noLoop: boolean = false): Promise<void> {
-    if (this.closed) return;
-    const start = (this.last_ping = new Date());
+  ping = async (noLoop: boolean = false): Promise<void> => {
+    if (this.closed) {
+      return;
+    }
+    const start = (this.last_ping = Date.now());
     let pong;
     try {
-      pong = await this.client.async_call({
-        allow_post: false,
-        message: message.ping(),
-        timeout: 10, // CRITICAL that this timeout be less than the @_ping_interval
-      });
+      pong = await this.client.nats_client.hub.system.ping();
     } catch (err) {
       if (!noLoop) {
         // try again **sooner**
-        setTimeout(this.ping.bind(this), this.ping_interval_ms / 2);
+        setTimeout(this.ping, this.ping_interval_ms / 2);
       }
       return;
     }
-    const now = new Date();
+    const now = Date.now();
     // Only record something if success, got a pong, and the round trip is short!
     // If user messes with their clock during a ping and we don't do this, then
     // bad things will happen.
-    if (
-      pong?.event == "pong" &&
-      now.valueOf() - this.last_ping.valueOf() <= 1000 * 15
-    ) {
+    if (now - this.last_ping <= 1000 * 15) {
       if (pong.now == null) {
         console.warn("pong must have a now field");
       } else {
@@ -61,20 +54,20 @@ export class TimeClient {
         // See the function server_time below; subtract this.clock_skew_ms from local
         // time to get a better estimate for server time.
         this.clock_skew_ms =
-          this.last_ping.valueOf() +
-          (this.last_pong.local.valueOf() - this.last_ping.valueOf()) / 2 -
-          this.last_pong.server.valueOf();
+          this.last_ping +
+          (this.last_pong.local - this.last_ping) / 2 -
+          this.last_pong.server;
         set_local_storage("clock_skew", `${this.clock_skew_ms}`);
       }
     }
 
-    this.emit_latency(now.valueOf() - start.valueOf());
+    this.emit_latency(now - start);
 
     if (!noLoop) {
       // periodically ping the server, to ensure clocks stay in sync.
-      setTimeout(this.ping.bind(this), this.ping_interval_ms);
+      setTimeout(this.ping, this.ping_interval_ms);
     }
-  }
+  };
 
   private emit_latency(latency: number) {
     if (!window.document.hasFocus()) {
@@ -110,11 +103,11 @@ export class TimeClient {
     const last = this.last_server_time;
     if (last != null && last >= t) {
       // That's annoying -- time is not marching forward... let's fake it until it does.
-      t = new Date(last.valueOf() + 1);
+      t = last + 1;
     }
     if (
       this.last_pong != null &&
-      Date.now() - this.last_pong.local.valueOf() < 5 * this.ping_interval_ms
+      Date.now() - this.last_pong.local < 5 * this.ping_interval_ms
     ) {
       // We have synced the clock **recently successfully**, so
       // we now ensure the time is increasing.
@@ -125,10 +118,10 @@ export class TimeClient {
     } else {
       delete this.last_server_time;
     }
-    return t;
+    return new Date(t);
   }
 
-  private unskewed_server_time(): Date {
+  private unskewed_server_time(): number {
     // Add clock_skew_ms to our local time to get a better estimate of the actual time on the server.
     // This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
     // or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
@@ -141,9 +134,9 @@ export class TimeClient {
       }
     }
     if (this.clock_skew_ms != null) {
-      return new Date(Date.now() - this.clock_skew_ms);
+      return Date.now() - this.clock_skew_ms;
     } else {
-      return new Date();
+      return Date.now();
     }
   }
 
@@ -152,7 +145,7 @@ export class TimeClient {
     timeout?: number; // any ping that takes this long in seconds is considered a fail
     delay_ms?: number; // wait this long between doing pings
     log?: Function; // if set, use this to log output
-  }) {
+  }={}) {
     if (opts.packets == null) opts.packets = 20;
     if (opts.timeout == null) opts.timeout = 5;
     if (opts.delay_ms == null) opts.delay_ms = 200;
@@ -164,15 +157,12 @@ export class TimeClient {
         */
     const ping_times: number[] = [];
     const do_ping: (i: number) => Promise<void> = async (i) => {
-      const t = new Date();
+      const t = Date.now();
       const heading = `${i}/${opts.packets}: `;
       let bar, mesg, pong, ping_time;
       try {
-        pong = await this.client.async_call({
-          message: message.ping(),
-          timeout: opts.timeout,
-        });
-        ping_time = Date.now() - t.valueOf();
+        pong = await this.client.nats_client.hub.system.ping();
+        ping_time = Date.now() - t;
         bar = "";
         for (let j = 0; j <= Math.floor(ping_time / 10); j++) {
           bar += "*";

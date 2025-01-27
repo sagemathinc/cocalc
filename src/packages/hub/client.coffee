@@ -604,9 +604,6 @@ class exports.Client extends EventEmitter
                 dbg("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
 
-    mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id, now:new Date()))
-
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
             client   : @

@@ -27,16 +27,18 @@ To view all requests (and replies) in realtime:
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/api/index";
+import { getConnection } from "@cocalc/backend/nats";
 
 const logger = getLogger("server:nats:api");
 
 const jc = JSONCodec();
 
-export async function initAPI(nc) {
+export async function initAPI() {
   const subject = "hub.*.*.api";
   logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
   });
+  const nc = await getConnection();
   const sub = nc.subscribe(subject, { queue: "0" });
   for await (const mesg of sub) {
     handleApiRequest(mesg);
@@ -44,7 +46,6 @@ export async function initAPI(nc) {
 }
 
 async function handleApiRequest(mesg) {
-  console.log({ subject: mesg.subject });
   let resp;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
@@ -63,22 +64,14 @@ async function handleApiRequest(mesg) {
   mesg.respond(jc.encode(resp));
 }
 
-import userQuery from "@cocalc/database/user-query";
-import getCustomize from "@cocalc/database/settings/customize";
-import getBalance from "@cocalc/server/purchases/get-balance";
-import getMinBalance from "@cocalc/server/purchases/get-min-balance";
+import * as purchases from "./purchases";
+import * as db from "./db";
+import * as system from "./system";
 
-const hubApi: HubApi = {
-  system: {
-    getCustomize,
-  },
-  db: {
-    userQuery,
-  },
-  purchases: {
-    getBalance,
-    getMinBalance,
-  },
+export const hubApi: HubApi = {
+  system,
+  db,
+  purchases,
 };
 
 async function getResponse({ name, args, account_id, project_id }) {
