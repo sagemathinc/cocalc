@@ -9,7 +9,7 @@ It uses a SINGLE NATS key-value store to represent
 */
 
 import { Kvm } from "@nats-io/kv";
-import sha1 from "sha1";
+import { sha1 } from "@cocalc/util/misc";
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";

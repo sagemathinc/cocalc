@@ -10,10 +10,9 @@ It uses a NATS stream to store the elements in a well defined order.
 */
 
 import { jetstreamManager, jetstream } from "@nats-io/jetstream";
-import sha1 from "sha1";
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
-import { cmp_Date, is_array, isValidUUID } from "@cocalc/util/misc";
+import { cmp_Date, is_array, isValidUUID, sha1 } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 

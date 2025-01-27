@@ -24,7 +24,11 @@ const synctable = reuseInFlight(
         }
       }
       query[table][0].project_id = project_id;
-      const s = createSyncTable({ ...options, query, env: { sha1, jc, nc } });
+      const s = createSyncTable({
+        ...options,
+        query,
+        env: { sha1, jc, nc },
+      });
       await s.init();
       cache[key] = s;
     }

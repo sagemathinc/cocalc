@@ -1,9 +1,8 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { EventEmitter } from "events";
 import { JSONCodec } from "nats.ws";
-import sha1 from "sha1";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { uuid } from "@cocalc/util/misc";
+import { sha1, uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 
 const jc = JSONCodec();

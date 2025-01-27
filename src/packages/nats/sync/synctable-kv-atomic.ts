@@ -1,7 +1,7 @@
-import sha1 from "sha1";
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { getKv, toKey, type NatsEnv, natsKeyPrefix } from "./synctable-kv";
+import { sha1 } from "@cocalc/util/misc";
 
 export class SyncTableKVAtomic {
   private kv?;

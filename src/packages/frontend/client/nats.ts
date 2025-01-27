@@ -7,7 +7,7 @@ import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
-import sha1 from "sha1";
+import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
 
