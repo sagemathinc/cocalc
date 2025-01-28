@@ -976,18 +976,14 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
           return false;
         }
       } else {
-        if (
-          acceleratorType == "nvidia-tesla-a100" ||
-          acceleratorType == "nvidia-a100-80gb" ||
-          acceleratorType == "nvidia-l4"
-        ) {
+        if (acceleratorType == "nvidia-tesla-t4") {
+          return machineType.startsWith("n1-");
+        } else {
           const machines =
             priceData.accelerators[acceleratorType].machineType[
               configuration.acceleratorCount ?? 1
             ] ?? [];
           return machines.includes(machineType);
-        } else {
-          return machineType.startsWith("n1-");
         }
       }
 
