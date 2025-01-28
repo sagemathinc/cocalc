@@ -6,7 +6,7 @@ Points that took me a while to figure out:
   - a signing key, which allows access to hub api's and running projects they are a collaborator on, etc., etc.
 
   - a NATS user that has *bearer* enabled and is associated to the above signing key, so they get all its permissions
-    
+
   Then the JWT for the user is stored as a secure http cookie in the browser and grants the user permissions.
   TODO: worry about expiration
 
@@ -15,11 +15,10 @@ Points that took me a while to figure out:
 
 DOCS:
  - https://nats-io.github.io/nsc/
- 
+
 USAGE:
 
-a = require('@cocalc/server/nats/auth')
-await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
+a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
 await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
 */
 
@@ -27,6 +26,8 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
+import { bin, ensureInstalled } from "@cocalc/backend/nats/install";
+import { join } from "path";
 import { throttle } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
@@ -39,11 +40,12 @@ export async function nsc(
   args: string[],
   { noAccount }: { noAccount?: boolean } = {},
 ) {
+  await ensureInstalled(); // make sure (once) that nsc is installed
   // todo: for production we  have to put some authentication
   // options, e.g., taken from the database. Skip that for now.
   // console.log(`nsc ${args.join(" ")}`);
   return await executeCode({
-    command: "nsc",
+    command: join(bin, "nsc"),
     args: noAccount ? args : [...args, "-a", NATS_ACCOUNT],
   });
 }
@@ -120,9 +122,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const goalSub = new Set(["_INBOX.>"]);
 
   if (userType == "account") {
-    
     goalSub.add(`$KV.account-${userId}.>`);
-    
+
     const pool = getPool();
     // all RUNNING projects with the user's group
     const query = `SELECT project_id, users#>>'{${userId},group}' AS group FROM projects WHERE state#>>'{state}'='running' AND users ? '${userId}' ORDER BY project_id`;
