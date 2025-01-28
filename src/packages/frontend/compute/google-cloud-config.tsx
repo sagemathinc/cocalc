@@ -1150,14 +1150,17 @@ function Image(props) {
 // We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
 // If for some reason we need them, we will have to switch to
-// different base drivers or have even more images
+// different base drivers or have even more images.
+
+// NOTE: H200 disabled because it requires a reservation.
+
 const ACCELERATOR_TYPES = [
   "nvidia-tesla-t4",
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
   "nvidia-h100-80gb",
-  "nvidia-h200-141gb",
+  // "nvidia-h200-141gb",
   // these are too hard to properly keep software image for:
   // "nvidia-tesla-v100",
   //"nvidia-tesla-p100",
@@ -1193,8 +1196,7 @@ function GPU({
           </A>
           , <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
           <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-          <A href="https://www.nvidia.com/en-us/data-center/h100/">H100</A>,{" "}
-          <A href="https://www.nvidia.com/en-us/data-center/h200/">H200</A>
+          <A href="https://www.nvidia.com/en-us/data-center/h100/">H100</A>
         </div>
       </b>
     </div>
