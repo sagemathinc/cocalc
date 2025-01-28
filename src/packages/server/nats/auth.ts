@@ -22,17 +22,13 @@ a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'
 await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
 */
 
-import { executeCode } from "@cocalc/backend/execute-code";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
-import { bin, ensureInstalled } from "@cocalc/backend/nats/install";
-import { join } from "path";
+import nsc0 from "@cocalc/backend/nats/nsc";
+import { natsAccountName } from "@cocalc/backend/nats/conf";
 import { throttle } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-
-// TODO: move this to server settings
-const NATS_ACCOUNT = "cocalc";
 
 const logger = getLogger("server:nats:auth");
 
@@ -40,14 +36,7 @@ export async function nsc(
   args: string[],
   { noAccount }: { noAccount?: boolean } = {},
 ) {
-  await ensureInstalled(); // make sure (once) that nsc is installed
-  // todo: for production we  have to put some authentication
-  // options, e.g., taken from the database. Skip that for now.
-  // console.log(`nsc ${args.join(" ")}`);
-  return await executeCode({
-    command: join(bin, "nsc"),
-    args: noAccount ? args : [...args, "-a", NATS_ACCOUNT],
-  });
+  return await nsc0(noAccount ? args : [...args, "-a", natsAccountName]);
 }
 
 // TODO: consider making the names shorter strings using https://www.npmjs.com/package/short-uuid
@@ -224,36 +213,31 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   }
 }
 
-export async function getScopedSigningKey(natsUser: string) {
+export async function getScopedSigningKey(
+  natsUser: string,
+): Promise<{ [key: string]: string[] } | null> {
   let { stdout } = await nsc(["describe", "user", natsUser]);
   // it seems impossible to get the scoped signing key params using --json; they just aren't there
-  // i.e., it's not implemented. so we parse it.
+  // i.e., it's not implemented. so we parse text output...
   const i = stdout.indexOf("Scoped");
   if (i == -1) {
     // there is no scoped signing key
     return null;
   }
   stdout = stdout.slice(i);
-  const obj: any = {};
+  const obj: { [key: string]: string[] } = {};
   let key = "";
   for (const line of stdout.split("\n")) {
     const v = line.split("|");
     if (v.length == 4) {
       const key2 = v[1].trim();
-      let val: string | string[] = v[2].trim();
+      const val = v[2].trim();
       if (!key2 && obj[key] != null) {
         // automatically account for arrays (for pub and sub)
-        if (typeof obj[key] == "string") {
-          obj[key] = [obj[key], val];
-        } else {
-          obj[key].push(val);
-        }
+        obj[key].push(val);
       } else {
-        key = key2;
-        if (key.startsWith("Pub ") || key.startsWith("Sub ")) {
-          val = [val];
-        }
-        obj[key] = val;
+        key = key2; // record this so can use for arrays.  Also, obj[key] is null since key2 is set.
+        obj[key] = [val];
       }
     }
   }

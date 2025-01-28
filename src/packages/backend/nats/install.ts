@@ -12,9 +12,9 @@ We assume curl and python3 are installed.
 
 import { nats } from "@cocalc/backend/data";
 import { join } from "path";
-import getLogger from "@cocalc/backend/logger";
 import { pathExists } from "fs-extra";
 import { executeCode } from "@cocalc/backend/execute-code";
+import getLogger from "@cocalc/backend/logger";
 
 const VERSIONS = {
   "nats-server": "v2.11.0-preview.2",

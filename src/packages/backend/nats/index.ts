@@ -1,5 +1,5 @@
 import { join } from "path";
-import { secrets } from "@cocalc/backend/data";
+import { nats } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { connect, credsAuthenticator } from "nats";
@@ -7,7 +7,7 @@ import { connect, credsAuthenticator } from "nats";
 const logger = getLogger("backend:nats");
 
 export async function getCreds(): Promise<string | undefined> {
-  const filename = join(secrets, "nats.creds");
+  const filename = join(nats, "nsc/keys/creds/cocalc/cocalc/cocalc.creds");
   try {
     return (await readFile(filename)).toString().trim();
   } catch {
