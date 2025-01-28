@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: August 23, 2023</h2>
+              <h2>Last Updated: January 27, 2025</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -120,8 +120,8 @@ export default function Privacy({ customize }) {
               </div>{" "}
               <div id="transparencynoticetypes-of-personal-information-we-collect-and-how-we-use-it">
                 <h1>
-                  3 TRANSPARENCY/NOTICE—TYPES of Personal Information We Collect
-                  and How We Use It
+                  3 Transparency Notice - Types of Personal Information We
+                  Collect and How We Use It
                 </h1>
                 <p>
                   The types of Personal Information we may collect (directly
@@ -219,24 +219,21 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     <strong>Automatic Data Collection.</strong> We may collect
-                    certain information automatically through our Services or
-                    other methods of web analysis, such as your Internet
-                    protocol (IP) address, cookie identifiers, mobile carrier,
-                    mobile advertising identifiers, MAC address, details about
-                    your browser or device, geo-location information, Internet
-                    service provider, pages that you visit before and after
-                    using the Services, and other information about how you use
-                    the Services.{" "}
+                    the following information automatically through our Services
+                    or other methods of web analysis: your Internet protocol
+                    (IP) address, cookie identifiers, details about your browser
+                    or device, and information about how you use the Services.{" "}
                   </p>{" "}
                   <p>
                     {" "}
                     <strong>Information from Other Sources.</strong> We may
-                    receive information about you from other sources, including
-                    through Third-Party services and organizations to supplement
-                    information provided by you. This supplemental information
-                    allows us to verify information that you have provided to
-                    Sagemath and to enhance our ability to provide you with
-                    information about our business, products, and Services.{" "}
+                    receive information about you from other public sources,
+                    including through Third-Party services and organizations to
+                    supplement information provided by you. This supplemental
+                    information allows us to verify information that you have
+                    provided to Sagemath and to enhance our ability to provide
+                    you with information about our business, products, and
+                    Services.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="how-sagemath-uses-your-information">
@@ -309,14 +306,12 @@ export default function Privacy({ customize }) {
                   </p>{" "}
                   <ul>
                     {" "}
-                    <li>
-                      To tailor content, advertisements, and offers;{" "}
-                    </li>{" "}
+                    <li>To tailor content; </li>{" "}
                     <li>
                       To notify you about offers, products, and services that
                       may be of interest to you;{" "}
                     </li>{" "}
-                    <li>To provide Services to you and our sponsors; </li>{" "}
+                    <li>To provide Services to you; </li>{" "}
                     <li>
                       For other purposes disclosed at the time that Individuals
                       provide Personal Information;{" "}
@@ -392,15 +387,15 @@ export default function Privacy({ customize }) {
                         <strong>Sharing Content.</strong> Sagemath’s Services
                         may offer various tools and functionalities that allow
                         you to share content. For example, Sagemath allows you
-                        to provide information about your friends through our
+                        to provide information about your colleagues, students,
+                        or friends through our course management system and
                         referral services, such as inviting a collaborator to a
                         project. Our referral services may allow you to forward
-                        or share certain content with a friend or colleague,
-                        such as an email inviting your friend to use our
-                        Services. Email addresses that you may provide for a
-                        friend or colleague will be used to send your friend or
-                        colleague the content or link you request, but will not
-                        be collected or otherwise used by Sagemath or any other
+                        or share certain content with others, such as emails
+                        inviting them to use our Services. Email addresses that
+                        you may provide in such situations will be used to send
+                        the content or link you request, but will not be
+                        collected or otherwise used by Sagemath or any other
                         Third Parties for any other purpose. The Services also
                         allow you to share your content with Third Parties such
                         as GitHub and NPM. Any Personal Information you choose
@@ -426,11 +421,7 @@ export default function Privacy({ customize }) {
                 </div>{" "}
                 <div id="cookies-pixel-tagsweb-beacons-analytics-information-and-interest-based-advertising">
                   {" "}
-                  <h2>
-                    {" "}
-                    3.3 Cookies, Pixel Tags/Web Beacons, Analytics Information,
-                    and Interest-Based Advertising{" "}
-                  </h2>{" "}
+                  <h2> 3.3 Cookies and Pixel Tags (Web Beacons) </h2>{" "}
                   <p>
                     {" "}
                     We, as well as Third-Parties that provide content,
@@ -447,9 +438,12 @@ export default function Privacy({ customize }) {
                         {" "}
                         <strong>Cookies.</strong> Cookies are small text files
                         placed in visitors’ computer browsers to store their
-                        preferences. Most browsers allow you to block and delete
-                        cookies. However, if you do that, the Services may not
-                        work properly.{" "}
+                        preferences. We use required cookies to make sure that
+                        the Services work properly, for example for
+                        authentication purposes. You may not opt-out of the use
+                        of these cookies since it would be impossible for us to
+                        provide the service otherwise. We do NOT use cookies for
+                        marketing or advertising purpuses.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -459,62 +453,18 @@ export default function Privacy({ customize }) {
                         <strong>Pixel Tags/Web Beacons.</strong> A pixel tag
                         (also known as a web beacon) is a piece of code embedded
                         on the Services that collects information about users’
-                        engagement on that web page. The use of a pixel allows
-                        us to record, for example, that a user has visited a
-                        particular web page or clicked on a particular
-                        advertisement. We may also include web beacons in
-                        e-mails to understand whether messages have been opened,
-                        acted on, or forwarded.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>Analytics.</strong> We may also use Google
-                        Analytics and other services to collect information
-                        regarding visitor behavior and visitor demographics on
-                        some of our Services, and to develop website content.
-                        This analytics data is not tied to any Personal
-                        Information. For more information about Google
-                        Analytics, please visit{" "}
-                        <A href="https://www.google.com/policies/privacy/partners/">
-                          www.google.com/policies/privacy/partners/
-                        </A>
-                        . You can opt out of Google’s collection and Processing
-                        of data generated by your use of the Services by going
-                        to{" "}
-                        <A href="http://tools.google.com/dlpage/gaoptout">
-                          tools.google.com/dlpage/gaoptout
-                        </A>
-                        .{" "}
+                        engagement on that web page. We may include pixel tags
+                        in e-mails to understand whether messages have been
+                        opened, acted on, or forwarded.{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
-                  <p>
-                    {" "}
-                    If you would like to opt-out of the Technologies we employ
-                    on the Services, you may do so by blocking, disabling, or
-                    deleting them as your browser or device permits. Please note
-                    that cookie-based opt-outs are not effective on mobile
-                    applications. However, you may opt-out of interest based
-                    advertisements on some mobile applications by following the
-                    instructions for{" "}
-                    <A href="https://support.google.com/googleplay/android-developer/answer/6048248?hl=en">
-                      {" "}
-                      Android
-                    </A>{" "}
-                    and{" "}
-                    <A href="https://support.apple.com/en-us/HT202074">
-                      iOS
-                    </A>.{" "}
-                  </p>{" "}
                 </div>{" "}
                 <div id="third-party-websites-social-media-platforms-and-software-development-kits">
                   {" "}
                   <h2>
-                    3.4 THIRD-PARTY WEBSITES, SOCIAL MEDIA PLATFORMS, AND
-                    SOFTWARE DEVELOPMENT KITS{" "}
+                    3.4 Third-Party Websites, Social Media Platforms, and
+                    Software Development Kits{" "}
                   </h2>{" "}
                   <p>
                     {" "}
@@ -554,14 +504,11 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     When you make purchases through the Services, we process
-                    your payments through a Third-Party application, including
-                    Stripe, PayPal, (together with any similar applications,{" "}
-                    <strong>“Payment Processor”</strong>) and Social Networking
-                    Sites (<strong>“SNS”</strong>) such as Facebook, GitHub,
-                    Google, or Twitter. The Third-Party application may collect
-                    certain financial information from you to process a payment
-                    on behalf of Sagemath, including your name, email address,
-                    address and other billing information.{" "}
+                    your payments through a Third-Party application, Stripe. The
+                    Third-Party application may collect certain financial
+                    information from you to process a payment on behalf of
+                    Sagemath, including your name, email address, address and
+                    other billing information.{" "}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -580,12 +527,7 @@ export default function Privacy({ customize }) {
                   payroll, information that may be recorded on a CV or
                   application form, language abilities, contact information of
                   third parties in case of an emergency and beneficiaries under
-                  any insurance policy. We may also collect Sensitive Human
-                  Resources Data such as details of health and disability,
-                  including mental health, medical leave, and maternity leave;
-                  information about national origin or immigration status; and
-                  optional demographic information such as race, which helps us
-                  achieve our diversity goals.{" "}
+                  any insurance policy.{" "}
                 </p>{" "}
                 <p>
                   {" "}
@@ -619,7 +561,6 @@ export default function Privacy({ customize }) {
                   </li>{" "}
                   <li>Internal or external audits; </li>{" "}
                   <li>Litigation evaluation, prosecution, and defense; </li>{" "}
-                  <li>Diversity and inclusion initiatives; </li>{" "}
                   <li>Restructuring and relocation; </li>{" "}
                   <li>Emergency contacts and services; </li>{" "}
                   <li>Employee safety; </li>{" "}
@@ -632,7 +573,7 @@ export default function Privacy({ customize }) {
               </div>{" "}
               <div id="onward-transfersagemath-may-disclose-your-information">
                 <h1>
-                  <span>5</span> Onward Transfer—Sagemath May Disclose Your
+                  <span>5</span> Onward Transfer — Sagemath May Disclose Your
                   Information{" "}
                 </h1>{" "}
                 <div id="information-we-share">
@@ -672,17 +613,15 @@ export default function Privacy({ customize }) {
                       <p>
                         {" "}
                         <strong>Business Partners.</strong> Sagemath may share
-                        Personal Information with our business partners, and
-                        affiliates for our, our business partners’ and our
-                        affiliates’ internal business purposes or to provide you
-                        with a product or service that you have requested.
-                        Sagemath may also provide Personal Information to
-                        business partners with whom we may jointly offer
-                        products or services, or whose products or services we
-                        believe may be of interest to you. In such cases, our
-                        business partner’s name will appear, along with
-                        Sagemath. Sagemath requires our affiliates and business
-                        partners to agree in writing to maintain the
+                        your Personal Information with our business partners and
+                        affiliates to provide you with a product or service that
+                        you have requested. Sagemath may also provide Personal
+                        Information to business partners with whom we may
+                        jointly offer products or services, or whose products or
+                        services we believe may be of interest to you. In such
+                        cases, our business partner’s name will appear, along
+                        with Sagemath. Sagemath requires our affiliates and
+                        business partners to agree in writing to maintain the
                         confidentiality and security of Personal Information
                         they maintain on our behalf and not to use it for any
                         purpose other than the purpose for which Sagemath
@@ -709,31 +648,6 @@ export default function Privacy({ customize }) {
                         some information about you, such as your name. We are
                         not responsible for privacy practices of the other users
                         who will view and use the posted information.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>
-                          Marketing – Interest-Based Advertising and Third Party
-                          Marketing.
-                        </strong>{" "}
-                        Through our Services, Sagemath may allow Third-Party
-                        advertising partners to set tracking tools (e.g.,
-                        cookies) to collect information regarding your
-                        activities (e.g., your IP address, page(s) visited, time
-                        of day). We may also share such de-identified
-                        information as well as selected Personal Information
-                        (such as demographic information and past purchase
-                        history) we have collected with Third-Party advertising
-                        partners. These advertising partners may use this
-                        information (and similar information collected from
-                        other websites) for purposes of delivering targeted
-                        advertisements to you when you visit non-Sagemath
-                        related websites within their networks. This practice is
-                        commonly referred to as “interest-based advertising” or
-                        “online behavioral advertising”.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -786,19 +700,23 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     You agree that all information collected via or by Sagemath
-                    may be transferred, processed, and stored anywhere in the
-                    world, including but not limited to, the United States, the
-                    European Union, in the cloud, on our servers, on the servers
-                    of our affiliates, or the servers of our service providers,
-                    in order to provide the Services.{" "}
+                    may be transferred, processed, and stored in the United
+                    States, in the cloud, on our servers, on the servers of our
+                    affiliates, or the servers of our service providers, in
+                    order to provide the Services.{" "}
                   </p>{" "}
+                  <p>
+                    If you use Services that require you to select a geographic
+                    location explicitly, such as compute servers or cloud file
+                    systems, your data will be sent to the chosen location.
+                  </p>
                 </div>{" "}
               </div>{" "}
               <div id="opt-out-right-to-object-to-processing">
                 {" "}
                 <h1>
                   {" "}
-                  <span>6</span> Opt-Out (RIGHT TO object to PROCESSING){" "}
+                  <span>6</span> Opt-Out (Right to Object to Processing){" "}
                 </h1>{" "}
                 <div id="general">
                   {" "}
@@ -901,51 +819,6 @@ export default function Privacy({ customize }) {
                     collected over time and across websites or online services.
                     Please note that we do not respond to or honor DNT signals
                     or similar mechanisms transmitted by web browsers.{" "}
-                  </p>{" "}
-                </div>{" "}
-                <div id="cookies-and-interest-based-advertising">
-                  {" "}
-                  <h2>
-                    {" "}
-                    <span>6.6</span> Cookies and Interest-Based Advertising{" "}
-                  </h2>{" "}
-                  <p>
-                    {" "}
-                    As noted above, you may stop or restrict the placement of
-                    cookies on your computer or remove them by adjusting your
-                    preferences as your browser or device permits. Please note
-                    that cookie-based opt-outs are not effective on mobile
-                    applications. However, you may opt-out of interest based
-                    advertisements on some mobile applications by following the
-                    instructions for{" "}
-                    <A href="https://support.google.com/googleplay/android-developer/answer/6048248?hl=en">
-                      {" "}
-                      Android
-                    </A>{" "}
-                    and{" "}
-                    <A href="https://support.apple.com/en-us/HT202074">
-                      iOS
-                    </A>.{" "}
-                  </p>{" "}
-                  <p>
-                    {" "}
-                    The online advertising industry also provides websites from
-                    which you may opt out of receiving targeted ads from
-                    advertisers that participate in self-regulatory programs.
-                    You can access these, and also learn more about targeted
-                    advertising and consumer choice and privacy, at{" "}
-                    <A href="https://www.networkadvertising.org/managing/opt_out.asp">
-                      www.networkadvertising.org/managing/opt_out.asp
-                    </A>
-                    , or{" "}
-                    <A href="http://www.youronlinechoices.eu">
-                      www.youronlinechoices.eu
-                    </A>{" "}
-                    and{" "}
-                    <A href="http://www.aboutads.info/choices/">
-                      www.aboutads.info/choices/
-                    </A>
-                    .{" "}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -1053,6 +926,35 @@ export default function Privacy({ customize }) {
                   <A href="mailto:office@sagemath.com">office@sagemath.com</A>.
                   We will address your concerns and attempt to resolve any
                   privacy issues in a timely manner.{" "}
+                </p>{" "}
+                <p>
+                  {" "}
+                  If you are a EU resident, you may contact our Ireland
+                  Representative: Instant EU GDPR Representative Ltd, Adam
+                  Brogden,{" "}
+                  <a href="mailto:contact@gdprlocal.com">
+                    contact@gdprlocal.com
+                  </a>
+                  , Tel +353 15 549 700,{" "}
+                  <a href="https://sagemathinc.gdprlocal.com/eu">
+                    https://sagemathinc.gdprlocal.com/eu
+                  </a>
+                  , INSTANT EU GDPR REPRESENTATIVE LIMITED Office 2 12A Lower
+                  Main Street, Lucan Co. Dublin K78 X5P8 Ireland{" "}
+                </p>{" "}
+                <p>
+                  {" "}
+                  If you are a UK resident, you may contact our UK
+                  Representative: GDPRLocal Ltd, Adam Brogden,{" "}
+                  <a href="mailto:contact@gdprlocal.com">
+                    contact@gdprlocal.com
+                  </a>
+                  , Tel +441 772 217 800,{" "}
+                  <a href="https://sagemathinc.gdprlocal.com/uk">
+                    https://sagemathinc.gdprlocal.com/uk
+                  </a>
+                  , GDPRLocal Ltd. 1st Floor Front Suite 27-29 North Street,
+                  Brighton England BN1 1EB{" "}
                 </p>{" "}
                 <p>
                   {" "}
