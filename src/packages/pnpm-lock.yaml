@@ -31,10 +31,10 @@ importers:
         version: 5.0.0
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@18.19.55)
+        version: 29.7.0(@types/node@18.19.74)
       ts-jest:
         specifier: ^29.2.3
-        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55))(typescript@5.7.3)
+        version: 29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.74))(typescript@5.7.3)
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
@@ -103,6 +103,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -168,6 +171,9 @@ importers:
       '@cocalc/database':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -204,6 +210,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
@@ -262,6 +271,9 @@ importers:
       '@cocalc/local-storage-lru':
         specifier: ^2.4.3
         version: 2.5.0
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -301,6 +313,12 @@ importers:
       '@microlink/react-json-view':
         specifier: ^1.23.3
         version: 1.23.3(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@nats-io/jetstream':
+        specifier: 3.0.0-36
+        version: 3.0.0-36
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -511,6 +529,9 @@ importers:
       mermaid:
         specifier: ^11.3.0
         version: 11.3.0
+      nats.ws:
+        specifier: ^1.30.0
+        version: 1.30.1
       node-forge:
         specifier: ^1.0.0
         version: 1.3.1
@@ -582,16 +603,13 @@ importers:
         version: 2.6.0(plotly.js@2.35.2(@rspack/core@1.2.2(@swc/helpers@0.5.15))(mapbox-gl@3.9.4)(webpack@5.97.1))(react@18.3.1)
       react-redux:
         specifier: ^8.0.5
-        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.3.1)
       react-virtuoso:
         specifier: ^4.9.0
         version: 4.10.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      sha1:
-        specifier: ^1.1.1
-        version: 1.1.1
       shallowequal:
         specifier: ^1.1.0
         version: 1.1.0
@@ -833,6 +851,9 @@ importers:
       ms:
         specifier: 2.1.2
         version: 2.1.2
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       next:
         specifier: 14.2.22
         version: 14.2.22(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(@playwright/test@1.50.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.83.4)
@@ -1028,6 +1049,43 @@ importers:
         specifier: ^18.16.14
         version: 18.19.50
 
+  nats:
+    dependencies:
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: 'link:'
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
+      '@nats-io/jetstream':
+        specifier: 3.0.0-36
+        version: 3.0.0-36
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
+      events:
+        specifier: 3.3.0
+        version: 3.3.0
+      json-stable-stringify:
+        specifier: ^1.0.1
+        version: 1.1.1
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      sha1:
+        specifier: ^1.1.1
+        version: 1.1.1
+    devDependencies:
+      '@types/json-stable-stringify':
+        specifier: ^1.0.32
+        version: 1.0.36
+      '@types/lodash':
+        specifier: ^4.14.202
+        version: 4.17.9
+      '@types/node':
+        specifier: ^18.16.14
+        version: 18.19.74
+
   next:
     dependencies:
       '@ant-design/icons':
@@ -1138,9 +1196,6 @@ importers:
       serve-index:
         specifier: ^1.9.1
         version: 1.9.1
-      sha1:
-        specifier: ^1.1.1
-        version: 1.1.1
       sharp:
         specifier: ^0.32.6
         version: 0.32.6
@@ -1193,6 +1248,9 @@ importers:
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/primus-multiplex':
         specifier: ^1.1.0
         version: 1.1.0
@@ -1217,6 +1275,12 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@nats-io/jetstream':
+        specifier: 3.0.0-36
+        version: 3.0.0-36
+      '@nats-io/kv':
+        specifier: 3.0.0-30
+        version: 3.0.0-30
       '@nteract/messaging':
         specifier: ^7.0.20
         version: 7.0.20
@@ -1283,6 +1347,12 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
+      node-pty:
+        specifier: ^1.0.0
+        version: 1.0.0
       pidusage:
         specifier: ^1.2.0
         version: 1.2.0
@@ -1347,6 +1417,9 @@ importers:
       '@cocalc/gcloud-pricing-calculator':
         specifier: ^1.14.0
         version: 1.14.0
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -1382,7 +1455,7 @@ importers:
         version: 0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.24
-        version: 0.3.24(@browserbasehq/sdk@2.0.0(encoding@0.1.13))(@browserbasehq/stagehand@1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8))(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(better-sqlite3@11.8.1)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.1)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.1)(ignore@7.0.3)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(playwright@1.50.0)(ws@8.18.0)
+        version: 0.3.24(@browserbasehq/sdk@2.0.0(encoding@0.1.13))(@browserbasehq/stagehand@1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8))(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.1)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.1)(ignore@7.0.3)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(playwright@1.50.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.3.30
         version: 0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
@@ -1524,6 +1597,9 @@ importers:
       nanoid:
         specifier: ^3.3.8
         version: 3.3.8
+      nats:
+        specifier: ^2.29.1
+        version: 2.29.1
       node-zendesk:
         specifier: ^5.0.13
         version: 5.0.13(encoding@0.1.13)
@@ -1835,9 +1911,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      sha1:
-        specifier: ^1.1.1
-        version: 1.1.1
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -3848,6 +3921,23 @@ packages:
   '@module-federation/webpack-bundler-runtime@0.8.4':
     resolution: {integrity: sha512-HggROJhvHPUX7uqBD/XlajGygMNM1DG0+4OAkk8MBQe4a18QzrRNzZt6XQbRTSG4OaEoyRWhQHvYD3Yps405tQ==}
 
+  '@nats-io/jetstream@3.0.0-36':
+    resolution: {integrity: sha512-95+ftM+lXcUEwCl3ctzpJZCXiBUwRuSUUWmd4X8jJlNVZc/LUHH+3cxX+nC42sLHD+9zvIaMKPsyI0Ltbp+BSg==}
+
+  '@nats-io/kv@3.0.0-30':
+    resolution: {integrity: sha512-rg3y1/v4gTP6PATpAOK32cXgPfez8PZqC9r39vqT7vVIGUNKERFcX8JdqC+50B97ovqvlTSvItR9IsRNdYAIZg==}
+
+  '@nats-io/nats-core@3.0.0-49':
+    resolution: {integrity: sha512-Xe7LjCdhtL4pXk2czwUE8Y1elTy/zo3ZzpoIwOO+/uJPughEsSxCpqygPrDqWcOG2uWVB9G1wxjg8r0Y9StovQ==}
+
+  '@nats-io/nkeys@2.0.2':
+    resolution: {integrity: sha512-0JTyVl9P+UJyjUBDWP9589TuUKXJQ8tDkVRgi02X/MMzW997+4FykirvZEkIe6ZAhiLIBN+NpN8ULMMt6mDrbA==}
+    engines: {node: '>=18.0.0'}
+
+  '@nats-io/nuid@2.0.3':
+    resolution: {integrity: sha512-TpA3HEBna/qMVudy+3HZr5M3mo/L1JPofpVT4t0HkFGkz2Cn9wrlrQC8tvR8Md5Oa9//GtGG26eN0qEWF5Vqew==}
+    engines: {node: '>= 18.x'}
+
   '@nestjs/axios@3.0.3':
     resolution: {integrity: sha512-h6TCn3yJwD6OKqqqfmtRS5Zo4E46Ip2n+gK1sqwzNBC+qxQ9xpCu+ODVRFur6V3alHSCSBxb3nNtt73VEdluyA==}
     peerDependencies:
@@ -4708,17 +4798,8 @@ packages:
   '@types/node@18.19.50':
     resolution: {integrity: sha512-xonK+NRrMBRtkL1hVCc3G+uXtjh1Al4opBLjqVmipe5ZAaBYWW6cNAiBVZ1BvmkBhep698rP3UM3aRAdSALuhg==}
 
-  '@types/node@18.19.55':
-    resolution: {integrity: sha512-zzw5Vw52205Zr/nmErSEkN5FLqXPuKX/k5d1D7RKHATGqU7y6YfX9QxZraUzUrFGqH6XzOzG196BC35ltJC4Cw==}
-
-  '@types/node@18.19.64':
-    resolution: {integrity: sha512-955mDqvO2vFf/oL7V3WiUtiz+BugyX8uVbaT2H8oj3+8dRyH2FLiNdowe7eNqRM7IOIZvzDH76EoAT+gwm6aIQ==}
-
   '@types/node@18.19.74':
     resolution: {integrity: sha512-HMwEkkifei3L605gFdV+/UwtpxP6JSzM+xFk2Ia6DNFSwSVBRh9qp5Tgf4lNFOMfPVuU0WnkcWpXZpgn5ufO4A==}
-
-  '@types/node@22.12.0':
-    resolution: {integrity: sha512-Fll2FZ1riMjNmlmJOdAyY5pUbkftXslB5DgEzlIuNaiWhXd00FhWxVC/r4yV/4wBb9JfImTu+jiSvXTkJ7F/gA==}
 
   '@types/node@9.6.61':
     resolution: {integrity: sha512-/aKAdg5c8n468cYLy2eQrcR5k6chlbNwZNGUj3TboyPa2hcO2QAJcfymlqPzMiRj8B6nYKXjzQz36minFE0RwQ==}
@@ -5468,9 +5549,6 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
-  better-sqlite3@11.8.1:
-    resolution: {integrity: sha512-9BxNaBkblMjhJW8sMRZxnxVTRgbRmssZW0Oxc1MPBTfiR+WW21e2Mk4qu8CzrcZb1LwPCnFsfDEzq+SNcBU8eg==}
-
   better-sqlite3@8.7.0:
     resolution: {integrity: sha512-99jZU4le+f3G6aIl6PmmV0cxUIWqKieHxsiF7G34CVFiE+/UabpYqkU0NJIkY/96mQKikHeBjtR27vFfs5JpEw==}
 
@@ -5722,10 +5800,6 @@ packages:
 
   cheerio-select@2.1.0:
     resolution: {integrity: sha512-9v9kG0LvzrlcungtnJtpGNxY+fzECQKhK4EGJX2vByejiMX84MFNQw4UxPJl3bFbTMw+Dfs37XaIkCwTZfLh4g==}
-
-  cheerio@1.0.0:
-    resolution: {integrity: sha512-quS9HgjQpdaXOvsZz82Oz7uxtXiy6UIsIQcpBj7HRw2M63Skasm9qlDocAM7jNuaxdhpPU7c4kJN+gA5MCu4ww==}
-    engines: {node: '>=18.17'}
 
   cheerio@1.0.0-rc.10:
     resolution: {integrity: sha512-g0J0q/O6mW8z5zxQ3A8E8J1hUgp4SMOvEoW/x84OwyHKe/Zccz83PVT4y5Crcr530FV6NgmKI1qvGTKVl9XXVw==}
@@ -6865,9 +6939,6 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
-  encoding-sniffer@0.2.0:
-    resolution: {integrity: sha512-ju7Wq1kg04I3HtiYIOrUrdfdDvkyO9s5XM8QAj/bN61Yo/Vb4vgJxy5vi4Yxk01gWHbrofpPtpxM8bKger9jhg==}
-
   encoding@0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
 
@@ -7914,9 +7985,6 @@ packages:
 
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
-
-  htmlparser2@9.1.0:
-    resolution: {integrity: sha512-5zfg6mHUoaer/97TxnGpxmbR7zJtPwIYFMZ/H5ucTlPZhKvtum05yiPK3Mgai3a0DyVxv7qYqoweaEd2nrYQzQ==}
 
   htmlparser@1.7.7:
     resolution: {integrity: sha512-zpK66ifkT0fauyFh2Mulrq4AqGTucxGtOhZ8OjkbSfcCpkqQEI8qRkY0tSQSJNAQ4HUZkgWaU4fK4EH6SVH9PQ==}
@@ -9434,11 +9502,15 @@ packages:
   napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
 
-  napi-build-utils@2.0.0:
-    resolution: {integrity: sha512-GEbrYkbfF7MoNaoh2iGG84Mnf/WZfB0GdGEsM8wz7Expx/LlWf5U8t9nvJKXSp3qr5IsEbK04cBGhol/KwOsWA==}
-
   native-promise-only@0.8.1:
     resolution: {integrity: sha512-zkVhZUA3y8mbz652WrL5x0fB0ehrBkulWT3TomAQ9iDtyXZvzKeEA6GPxAItBYeNYl5yngKRX612qHOhvMkDeg==}
+
+  nats.ws@1.30.1:
+    resolution: {integrity: sha512-OVufQJrYuzt9Gugb4R/kCEM9R03dH2kMZ0Lt59LRL3a0+8bJjxodAxUOh952DiuPTquwGg8JIF8h3BKkTF5mJA==}
+
+  nats@2.29.1:
+    resolution: {integrity: sha512-OHVsxrQCITTdMKG3So0jhtnBd5jS2u1xpS91UCws7VklsaCbctwg5vT/8lYpVldPW0x3aHGF8uuAoMfCoJy7Sg==}
+    engines: {node: '>= 14.0.0'}
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -9506,15 +9578,15 @@ packages:
   nise@1.5.3:
     resolution: {integrity: sha512-Ymbac/94xeIrMf59REBPOv0thr+CJVFMhrlAkW/gjCIE58BGQdCj0x7KRCb3yz+Ga2Rz3E9XXSvUyyxqqhjQAQ==}
 
+  nkeys.js@1.1.0:
+    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
+    engines: {node: '>=10.0.0'}
+
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
 
   node-abi@3.67.0:
     resolution: {integrity: sha512-bLn/fU/ALVBE9wj+p4Y21ZJWYFjUXLXPi/IewyLZkx3ApxKDNBWCKdReeKOtD8dWpOdDCeMyLh6ZewzcLsG2Nw==}
-    engines: {node: '>=10'}
-
-  node-abi@3.73.0:
-    resolution: {integrity: sha512-z8iYzQGBu35ZkTQ9mtR8RqugJZ9RCLn8fv3d7LsgDBzOijGQP3RdKTX4LA7LXw03ZhU5z0l4xfhIMgSES31+cg==}
     engines: {node: '>=10'}
 
   node-addon-api@6.1.0:
@@ -9879,9 +9951,6 @@ packages:
 
   parse5-htmlparser2-tree-adapter@7.1.0:
     resolution: {integrity: sha512-ruw5xyKs6lrpo9x9rCZqZZnIUntICjQAd0Wsmp396Ul9lN/h+ifgVV1x1gZHi8euej6wTfpqX8j+BFQxF0NS/g==}
-
-  parse5-parser-stream@7.1.2:
-    resolution: {integrity: sha512-JyeQc9iwFLn5TbvvqACIF/VXG6abODeB3Fwmv/TGdLk2LfbWkaySGY72at4+Ty7EkPZj854u4CrICqNk2qIbow==}
 
   parse5@6.0.1:
     resolution: {integrity: sha512-Ofn/CTFzRGTTxwpNEs9PP93gXShHcTq255nzRYSKe8AkVpZY7e1fpmTfOyoIvjP5HG7Z2ZM7VS9PPhQGW2pOpw==}
@@ -10284,11 +10353,6 @@ packages:
 
   prebuild-install@7.1.2:
     resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  prebuild-install@7.1.3:
-    resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10960,9 +11024,6 @@ packages:
 
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
-
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
@@ -11773,9 +11834,6 @@ packages:
   tar-fs@2.1.1:
     resolution: {integrity: sha512-V0r2Y9scmbDRLCNex/+hYzvp/zyYjvFbHPNgVTKfQvVrb6guiE/fxP+XblDNR011utopbkex2nM4dHNV6GDsng==}
 
-  tar-fs@2.1.2:
-    resolution: {integrity: sha512-EsaAXwxmx8UB7FRKqeozqEPop69DXcmYwTQwXvyAPF352HJsPdkVhvTaDPYqfNgruveJIJy3TA2l+2zj8LJIJA==}
-
   tar-fs@3.0.6:
     resolution: {integrity: sha512-iokBDQQkUyeXhgPYaZxmczGPhnhXZ0CmrqI+MOb/WFGS9DW5wnfrLgtjUJBvz50vQ3qfRwJ62QVoCFu8mPVu5w==}
 
@@ -12032,6 +12090,9 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
+
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -12155,13 +12216,6 @@ packages:
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
-
-  undici-types@6.20.0:
-    resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
-
-  undici@6.21.1:
-    resolution: {integrity: sha512-q/1rj5D0/zayJB2FraXdaWxbhWiNKDvu8naDT2dl1yTlvJp4BLtOcp2a5BvgGNQpYYJzau7tf1WgKv3b+7mqpQ==}
-    engines: {node: '>=18.17'}
 
   unicorn-magic@0.1.0:
     resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==}
@@ -12529,14 +12583,6 @@ packages:
 
   webworkify@1.5.0:
     resolution: {integrity: sha512-AMcUeyXAhbACL8S2hqqdqOLqvJ8ylmIbNwUIqQujRSouf4+eUFaXbG6F1Rbu+srlJMmxQWsiU7mOJi0nMBfM1g==}
-
-  whatwg-encoding@3.1.1:
-    resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
-    engines: {node: '>=18'}
-
-  whatwg-mimetype@4.0.0:
-    resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
-    engines: {node: '>=18'}
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
@@ -12908,13 +12954,13 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.7.0(encoding@0.1.13)
+      node-fetch: 2.6.7(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
   '@anthropic-ai/sdk@0.32.1(encoding@0.1.13)':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/node-fetch': 2.6.11
       abort-controller: 3.0.0
       agentkeepalive: 4.5.0
@@ -13586,7 +13632,7 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.7.0(encoding@0.1.13)
+      node-fetch: 2.6.7(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -14220,7 +14266,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -14233,14 +14279,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@18.19.55)
+      jest-config: 29.7.0(@types/node@18.19.74)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -14265,7 +14311,7 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       jest-mock: 29.7.0
 
   '@jest/expect-utils@29.7.0':
@@ -14283,7 +14329,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -14305,7 +14351,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.25
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
@@ -14374,7 +14420,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.1
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
       '@types/yargs': 15.0.19
       chalk: 4.1.2
 
@@ -14383,7 +14429,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.1
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
       '@types/yargs': 17.0.24
       chalk: 4.1.2
 
@@ -14582,7 +14628,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  ? '@langchain/community@0.3.24(@browserbasehq/sdk@2.0.0(encoding@0.1.13))(@browserbasehq/stagehand@1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8))(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(better-sqlite3@11.8.1)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.1)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.1)(ignore@7.0.3)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(playwright@1.50.0)(ws@8.18.0)'
+  ? '@langchain/community@0.3.24(@browserbasehq/sdk@2.0.0(encoding@0.1.13))(@browserbasehq/stagehand@1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8))(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@ibm-cloud/watsonx-ai@1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.1)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ibm-cloud-sdk-core@5.1.1)(ignore@7.0.3)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(playwright@1.50.0)(ws@8.18.0)'
   : dependencies:
       '@browserbasehq/stagehand': 1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8)
       '@ibm-cloud/watsonx-ai': 1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))
@@ -14593,7 +14639,7 @@ snapshots:
       flat: 5.0.2
       ibm-cloud-sdk-core: 5.1.1
       js-yaml: 4.1.0
-      langchain: 0.3.11(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
+      langchain: 0.3.11(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(cheerio@1.0.0-rc.10)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
       langsmith: 0.2.15(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
       openai: 4.78.1(encoding@0.1.13)(zod@3.23.8)
       uuid: 10.0.0
@@ -14603,8 +14649,8 @@ snapshots:
       '@browserbasehq/sdk': 2.0.0(encoding@0.1.13)
       '@google-ai/generativelanguage': 2.7.0(encoding@0.1.13)
       '@google-cloud/storage': 7.13.0(encoding@0.1.13)
-      better-sqlite3: 11.8.1
-      cheerio: 1.0.0
+      better-sqlite3: 8.7.0
+      cheerio: 1.0.0-rc.10
       d3-dsv: 3.0.1
       fast-xml-parser: 4.5.1
       google-auth-library: 9.14.1(encoding@0.1.13)
@@ -14886,6 +14932,26 @@ snapshots:
       '@module-federation/runtime': 0.8.4
       '@module-federation/sdk': 0.8.4
     optional: true
+
+  '@nats-io/jetstream@3.0.0-36':
+    dependencies:
+      '@nats-io/nats-core': 3.0.0-49
+
+  '@nats-io/kv@3.0.0-30':
+    dependencies:
+      '@nats-io/jetstream': 3.0.0-36
+      '@nats-io/nats-core': 3.0.0-49
+
+  '@nats-io/nats-core@3.0.0-49':
+    dependencies:
+      '@nats-io/nkeys': 2.0.2
+      '@nats-io/nuid': 2.0.3
+
+  '@nats-io/nkeys@2.0.2':
+    dependencies:
+      tweetnacl: 1.0.3
+
+  '@nats-io/nuid@2.0.3': {}
 
   '@nestjs/axios@3.0.3(@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1))(axios@1.7.4)(rxjs@7.8.1)':
     dependencies:
@@ -15629,11 +15695,11 @@ snapshots:
   '@types/body-parser@1.19.5':
     dependencies:
       '@types/connect': 3.4.35
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
 
   '@types/bonjour@3.5.13':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/caseless@0.12.5': {}
 
@@ -15646,11 +15712,11 @@ snapshots:
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 5.0.1
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/connect@3.4.35':
     dependencies:
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
 
   '@types/cookie@0.3.3': {}
 
@@ -15683,14 +15749,14 @@ snapshots:
 
   '@types/express-serve-static-core@4.19.0':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/qs': 6.9.17
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.4
 
   '@types/express-serve-static-core@5.0.1':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/qs': 6.9.17
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.4
@@ -15728,11 +15794,11 @@ snapshots:
   '@types/glob@7.2.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
 
   '@types/hast@2.3.10':
     dependencies:
@@ -15782,11 +15848,11 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/ldapjs@2.2.5':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/linkify-it@5.0.0': {}
 
@@ -15796,7 +15862,7 @@ snapshots:
 
   '@types/lz4@0.6.4':
     dependencies:
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
 
   '@types/mapbox__point-geometry@0.1.4': {}
 
@@ -15833,7 +15899,7 @@ snapshots:
 
   '@types/node-fetch@2.6.11':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       form-data: 4.0.0
 
   '@types/node-fetch@2.6.12':
@@ -15843,11 +15909,11 @@ snapshots:
 
   '@types/node-forge@1.3.11':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/node-zendesk@2.0.15':
     dependencies:
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
 
   '@types/node@10.14.22': {}
 
@@ -15855,33 +15921,21 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@18.19.55':
-    dependencies:
-      undici-types: 5.26.5
-
-  '@types/node@18.19.64':
-    dependencies:
-      undici-types: 5.26.5
-
   '@types/node@18.19.74':
     dependencies:
       undici-types: 5.26.5
-
-  '@types/node@22.12.0':
-    dependencies:
-      undici-types: 6.20.0
 
   '@types/node@9.6.61': {}
 
   '@types/nodemailer@6.4.16':
     dependencies:
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
 
   '@types/normalize-package-data@2.4.1': {}
 
   '@types/oauth@0.9.1':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/parse5@6.0.3': {}
 
@@ -15949,13 +16003,13 @@ snapshots:
   '@types/request@2.48.12':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.1
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/retry@0.12.0': {}
 
@@ -15972,7 +16026,7 @@ snapshots:
   '@types/send@0.17.4':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/serve-index@1.9.4':
     dependencies:
@@ -15981,19 +16035,19 @@ snapshots:
   '@types/serve-static@1.15.0':
     dependencies:
       '@types/mime': 3.0.1
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/serve-static@1.15.7':
     dependencies:
       '@types/http-errors': 2.0.4
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/send': 0.17.4
 
   '@types/sizzle@2.3.3': {}
 
   '@types/sockjs@0.3.36':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/stack-utils@2.0.3': {}
 
@@ -16024,20 +16078,20 @@ snapshots:
 
   '@types/ws@8.5.13':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/xml-crypto@1.4.6':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       xpath: 0.0.27
 
   '@types/xml-encryption@1.2.4':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/xml2js@0.4.14':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/yargs-parser@21.0.0': {}
 
@@ -16499,7 +16553,7 @@ snapshots:
       define-properties: 1.2.1
       es-abstract: 1.23.3
       es-object-atoms: 1.0.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       is-string: 1.0.7
 
   array-keyed-map@2.1.3: {}
@@ -16555,7 +16609,7 @@ snapshots:
       define-properties: 1.2.1
       es-abstract: 1.23.3
       es-errors: 1.3.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       is-array-buffer: 3.0.4
       is-shared-array-buffer: 1.0.3
 
@@ -16804,12 +16858,6 @@ snapshots:
   batch@0.6.1: {}
 
   bcryptjs@2.4.3: {}
-
-  better-sqlite3@11.8.1:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.3
-    optional: true
 
   better-sqlite3@8.7.0:
     dependencies:
@@ -17100,21 +17148,6 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
       domutils: 3.2.2
-
-  cheerio@1.0.0:
-    dependencies:
-      cheerio-select: 2.1.0
-      dom-serializer: 2.0.0
-      domhandler: 5.0.3
-      domutils: 3.2.2
-      encoding-sniffer: 0.2.0
-      htmlparser2: 9.1.0
-      parse5: 7.2.1
-      parse5-htmlparser2-tree-adapter: 7.1.0
-      parse5-parser-stream: 7.1.2
-      undici: 6.21.1
-      whatwg-mimetype: 4.0.0
-    optional: true
 
   cheerio@1.0.0-rc.10:
     dependencies:
@@ -17545,13 +17578,13 @@ snapshots:
       - supports-color
       - ts-node
 
-  create-jest@29.7.0(@types/node@18.19.55):
+  create-jest@29.7.0(@types/node@18.19.74):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@18.19.55)
+      jest-config: 29.7.0(@types/node@18.19.74)
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -18110,9 +18143,9 @@ snapshots:
 
   define-data-property@1.1.4:
     dependencies:
-      es-define-property: 1.0.0
+      es-define-property: 1.0.1
       es-errors: 1.3.0
-      gopd: 1.0.1
+      gopd: 1.2.0
 
   define-lazy-prop@3.0.0: {}
 
@@ -18393,12 +18426,6 @@ snapshots:
 
   encodeurl@2.0.0: {}
 
-  encoding-sniffer@0.2.0:
-    dependencies:
-      iconv-lite: 0.6.3
-      whatwg-encoding: 3.1.1
-    optional: true
-
   encoding@0.1.13:
     dependencies:
       iconv-lite: 0.6.3
@@ -18444,19 +18471,19 @@ snapshots:
       data-view-buffer: 1.0.1
       data-view-byte-length: 1.0.1
       data-view-byte-offset: 1.0.0
-      es-define-property: 1.0.0
+      es-define-property: 1.0.1
       es-errors: 1.3.0
-      es-object-atoms: 1.0.0
+      es-object-atoms: 1.1.1
       es-set-tostringtag: 2.0.3
       es-to-primitive: 1.2.1
       function.prototype.name: 1.1.6
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       get-symbol-description: 1.0.2
       globalthis: 1.0.4
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-property-descriptors: 1.0.2
       has-proto: 1.0.3
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
       hasown: 2.0.2
       internal-slot: 1.0.7
       is-array-buffer: 3.0.4
@@ -18488,7 +18515,7 @@ snapshots:
 
   es-define-property@1.0.0:
     dependencies:
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
 
   es-define-property@1.0.1: {}
 
@@ -18502,7 +18529,7 @@ snapshots:
       es-errors: 1.3.0
       es-set-tostringtag: 2.0.3
       function-bind: 1.1.2
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       globalthis: 1.0.4
       has-property-descriptors: 1.0.2
       has-proto: 1.0.3
@@ -18523,7 +18550,7 @@ snapshots:
 
   es-set-tostringtag@2.0.3:
     dependencies:
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       has-tostringtag: 1.0.2
       hasown: 2.0.2
 
@@ -19215,7 +19242,7 @@ snapshots:
       es-errors: 1.3.0
       function-bind: 1.1.2
       has-proto: 1.0.3
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
       hasown: 2.0.2
 
   get-intrinsic@1.2.7:
@@ -19256,7 +19283,7 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       es-errors: 1.3.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
 
   get-value@2.0.6: {}
 
@@ -19365,7 +19392,7 @@ snapshots:
   globalthis@1.0.4:
     dependencies:
       define-properties: 1.2.1
-      gopd: 1.0.1
+      gopd: 1.2.0
 
   globby@11.1.0:
     dependencies:
@@ -19531,7 +19558,7 @@ snapshots:
 
   gopd@1.0.1:
     dependencies:
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
 
   gopd@1.2.0: {}
 
@@ -19616,7 +19643,7 @@ snapshots:
 
   has-property-descriptors@1.0.2:
     dependencies:
-      es-define-property: 1.0.0
+      es-define-property: 1.0.1
 
   has-proto@1.0.3: {}
 
@@ -19626,11 +19653,11 @@ snapshots:
 
   has-tostringtag@1.0.0:
     dependencies:
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
 
   has-tostringtag@1.0.2:
     dependencies:
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
 
   has-unicode@2.0.1:
     optional: true
@@ -19826,14 +19853,6 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.2.2
       entities: 4.5.0
-
-  htmlparser2@9.1.0:
-    dependencies:
-      domelementtype: 2.3.0
-      domhandler: 5.0.3
-      domutils: 3.2.2
-      entities: 4.5.0
-    optional: true
 
   htmlparser@1.7.7: {}
 
@@ -20075,7 +20094,7 @@ snapshots:
   is-array-buffer@3.0.4:
     dependencies:
       call-bind: 1.0.7
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
 
   is-arrayish@0.2.1: {}
 
@@ -20246,14 +20265,14 @@ snapshots:
 
   is-symbol@1.0.4:
     dependencies:
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
 
   is-typed-array@1.1.10:
     dependencies:
       available-typed-arrays: 1.0.5
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-tostringtag: 1.0.0
 
   is-typed-array@1.1.13:
@@ -20273,7 +20292,7 @@ snapshots:
   is-weakset@2.0.3:
     dependencies:
       call-bind: 1.0.7
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
 
   is-what@3.14.1: {}
 
@@ -20389,8 +20408,8 @@ snapshots:
   iterator.prototype@1.1.2:
     dependencies:
       define-properties: 1.2.1
-      get-intrinsic: 1.2.4
-      has-symbols: 1.0.3
+      get-intrinsic: 1.2.7
+      has-symbols: 1.1.0
       reflect.getprototypeof: 1.0.6
       set-function-name: 2.0.2
 
@@ -20419,7 +20438,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.3
@@ -20458,16 +20477,16 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-cli@29.7.0(@types/node@18.19.55):
+  jest-cli@29.7.0(@types/node@18.19.74):
     dependencies:
       '@jest/core': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@18.19.55)
+      create-jest: 29.7.0(@types/node@18.19.74)
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@18.19.55)
+      jest-config: 29.7.0(@types/node@18.19.74)
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -20507,7 +20526,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@18.19.55):
+  jest-config@29.7.0(@types/node@18.19.74):
     dependencies:
       '@babel/core': 7.25.8
       '@jest/test-sequencer': 29.7.0
@@ -20532,7 +20551,7 @@ snapshots:
       slash: 3.0.0
       strip-json-comments: 3.1.1
     optionalDependencies:
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -20568,7 +20587,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -20580,7 +20599,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -20638,7 +20657,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       jest-util: 29.7.0
 
   jest-pnp-resolver@1.2.3(jest-resolve@29.7.0):
@@ -20675,7 +20694,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -20703,7 +20722,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       chalk: 4.1.2
       cjs-module-lexer: 1.2.3
       collect-v8-coverage: 1.0.2
@@ -20749,7 +20768,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 18.19.55
+      '@types/node': 18.19.74
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -20768,7 +20787,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -20777,13 +20796,13 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.12.0
+      '@types/node': 18.19.74
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -20800,12 +20819,12 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@18.19.55):
+  jest@29.7.0(@types/node@18.19.74):
     dependencies:
       '@jest/core': 29.7.0
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@18.19.55)
+      jest-cli: 29.7.0(@types/node@18.19.74)
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -21028,7 +21047,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.3.11(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)):
+  langchain@0.3.11(@langchain/anthropic@0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13))(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(@langchain/google-genai@0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8))(@langchain/mistralai@0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))))(axios@1.7.7)(cheerio@1.0.0-rc.10)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)):
     dependencies:
       '@langchain/core': 0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.3.17(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
@@ -21048,7 +21067,7 @@ snapshots:
       '@langchain/google-genai': 0.1.6(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(zod@3.23.8)
       '@langchain/mistralai': 0.2.0(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))
       axios: 1.7.7
-      cheerio: 1.0.0
+      cheerio: 1.0.0-rc.10
       handlebars: 4.7.8
     transitivePeerDependencies:
       - encoding
@@ -21649,10 +21668,15 @@ snapshots:
 
   napi-build-utils@1.0.2: {}
 
-  napi-build-utils@2.0.0:
-    optional: true
-
   native-promise-only@0.8.1: {}
+
+  nats.ws@1.30.1:
+    optionalDependencies:
+      nkeys.js: 1.1.0
+
+  nats@2.29.1:
+    dependencies:
+      nkeys.js: 1.1.0
 
   natural-compare@1.4.0: {}
 
@@ -21743,6 +21767,10 @@ snapshots:
       lolex: 5.1.2
       path-to-regexp: 1.9.0
 
+  nkeys.js@1.1.0:
+    dependencies:
+      tweetnacl: 1.0.3
+
   no-case@3.0.4:
     dependencies:
       lower-case: 2.0.2
@@ -21751,11 +21779,6 @@ snapshots:
   node-abi@3.67.0:
     dependencies:
       semver: 7.6.3
-
-  node-abi@3.73.0:
-    dependencies:
-      semver: 7.6.3
-    optional: true
 
   node-addon-api@6.1.0: {}
 
@@ -21806,7 +21829,7 @@ snapshots:
   node-mocks-http@1.16.0:
     dependencies:
       '@types/express': 4.17.21
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
       accepts: 1.3.8
       content-disposition: 0.5.4
       depd: 1.1.2
@@ -21824,7 +21847,7 @@ snapshots:
 
   node-pty@1.0.0:
     dependencies:
-      nan: 2.17.0
+      nan: 2.20.0
 
   node-releases@2.0.18: {}
 
@@ -22041,7 +22064,7 @@ snapshots:
 
   openai@4.78.1(encoding@0.1.13)(zod@3.23.8):
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       '@types/node-fetch': 2.6.11
       abort-controller: 3.0.0
       agentkeepalive: 4.5.0
@@ -22210,11 +22233,6 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       parse5: 7.2.1
-
-  parse5-parser-stream@7.1.2:
-    dependencies:
-      parse5: 7.2.1
-    optional: true
 
   parse5@6.0.1: {}
 
@@ -22671,22 +22689,6 @@ snapshots:
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
 
-  prebuild-install@7.1.3:
-    dependencies:
-      detect-libc: 2.0.3
-      expand-template: 2.0.3
-      github-from-package: 0.0.0
-      minimist: 1.2.8
-      mkdirp-classic: 0.5.3
-      napi-build-utils: 2.0.0
-      node-abi: 3.73.0
-      pump: 3.0.2
-      rc: 1.2.8
-      simple-get: 4.0.1
-      tar-fs: 2.1.2
-      tunnel-agent: 0.6.0
-    optional: true
-
   precond@0.2.3: {}
 
   predefine@0.1.3:
@@ -22796,7 +22798,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
       long: 5.2.3
 
   protocol-buffers-schema@3.6.0: {}
@@ -23384,7 +23386,7 @@ snapshots:
 
   react-property@2.0.0: {}
 
-  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
+  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1):
     dependencies:
       '@babel/runtime': 7.25.6
       '@types/hoist-non-react-statics': 3.3.1
@@ -23397,7 +23399,7 @@ snapshots:
       '@types/react': 18.3.10
       '@types/react-dom': 18.3.0
       react-dom: 18.3.1(react@18.3.1)
-      redux: 5.0.1
+      redux: 4.2.1
 
   react-refresh@0.14.2: {}
 
@@ -23517,9 +23519,6 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.25.6
 
-  redux@5.0.1:
-    optional: true
-
   reflect-metadata@0.1.13: {}
 
   reflect.getprototypeof@1.0.6:
@@ -23528,7 +23527,7 @@ snapshots:
       define-properties: 1.2.1
       es-abstract: 1.23.3
       es-errors: 1.3.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       globalthis: 1.0.4
       which-builtin-type: 1.1.4
 
@@ -23769,8 +23768,8 @@ snapshots:
   safe-array-concat@1.1.2:
     dependencies:
       call-bind: 1.0.7
-      get-intrinsic: 1.2.4
-      has-symbols: 1.0.3
+      get-intrinsic: 1.2.7
+      has-symbols: 1.1.0
       isarray: 2.0.5
 
   safe-buffer@5.1.2: {}
@@ -23933,8 +23932,8 @@ snapshots:
       define-data-property: 1.1.4
       es-errors: 1.3.0
       function-bind: 1.1.2
-      get-intrinsic: 1.2.4
-      gopd: 1.0.1
+      get-intrinsic: 1.2.7
+      gopd: 1.2.0
       has-property-descriptors: 1.0.2
 
   set-function-name@2.0.2:
@@ -24068,7 +24067,7 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       es-errors: 1.3.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       object-inspect: 1.13.2
 
   side-channel@1.1.0:
@@ -24320,7 +24319,7 @@ snapshots:
       es-abstract: 1.23.3
       es-errors: 1.3.0
       es-object-atoms: 1.0.0
-      get-intrinsic: 1.2.4
+      get-intrinsic: 1.2.7
       gopd: 1.0.1
       has-symbols: 1.0.3
       internal-slot: 1.0.7
@@ -24338,19 +24337,19 @@ snapshots:
       call-bind: 1.0.7
       define-properties: 1.2.1
       es-abstract: 1.23.3
-      es-object-atoms: 1.0.0
+      es-object-atoms: 1.1.1
 
   string.prototype.trimend@1.0.8:
     dependencies:
       call-bind: 1.0.7
       define-properties: 1.2.1
-      es-object-atoms: 1.0.0
+      es-object-atoms: 1.1.1
 
   string.prototype.trimstart@1.0.8:
     dependencies:
       call-bind: 1.0.7
       define-properties: 1.2.1
-      es-object-atoms: 1.0.0
+      es-object-atoms: 1.1.1
 
   string_decoder@0.10.31: {}
 
@@ -24393,7 +24392,7 @@ snapshots:
 
   stripe@17.5.0:
     dependencies:
-      '@types/node': 18.19.50
+      '@types/node': 18.19.74
       qs: 6.14.0
 
   strnum@1.0.5: {}
@@ -24507,14 +24506,6 @@ snapshots:
       mkdirp-classic: 0.5.3
       pump: 3.0.2
       tar-stream: 2.2.0
-
-  tar-fs@2.1.2:
-    dependencies:
-      chownr: 1.1.4
-      mkdirp-classic: 0.5.3
-      pump: 3.0.2
-      tar-stream: 2.2.0
-    optional: true
 
   tar-fs@3.0.6:
     dependencies:
@@ -24733,12 +24724,12 @@ snapshots:
 
   ts-dedent@2.2.0: {}
 
-  ts-jest@29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.55))(typescript@5.7.3):
+  ts-jest@29.2.5(@babel/core@7.25.8)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.8))(jest@29.7.0(@types/node@18.19.74))(typescript@5.7.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@18.19.55)
+      jest: 29.7.0(@types/node@18.19.74)
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
@@ -24796,6 +24787,8 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  tweetnacl@1.0.3: {}
+
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -24837,7 +24830,7 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-proto: 1.0.3
       is-typed-array: 1.1.13
 
@@ -24846,7 +24839,7 @@ snapshots:
       available-typed-arrays: 1.0.7
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-proto: 1.0.3
       is-typed-array: 1.1.13
 
@@ -24854,7 +24847,7 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-proto: 1.0.3
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
@@ -24902,17 +24895,12 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       has-bigints: 1.0.2
-      has-symbols: 1.0.3
+      has-symbols: 1.1.0
       which-boxed-primitive: 1.0.2
 
   underscore@1.13.7: {}
 
   undici-types@5.26.5: {}
-
-  undici-types@6.20.0: {}
-
-  undici@6.21.1:
-    optional: true
 
   unicorn-magic@0.1.0: {}
 
@@ -25381,14 +25369,6 @@ snapshots:
 
   webworkify@1.5.0: {}
 
-  whatwg-encoding@3.1.1:
-    dependencies:
-      iconv-lite: 0.6.3
-    optional: true
-
-  whatwg-mimetype@4.0.0:
-    optional: true
-
   whatwg-url@5.0.0:
     dependencies:
       tr46: 0.0.3
@@ -25431,7 +25411,7 @@ snapshots:
       available-typed-arrays: 1.0.7
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-tostringtag: 1.0.2
 
   which-typed-array@1.1.9:
@@ -25439,7 +25419,7 @@ snapshots:
       available-typed-arrays: 1.0.5
       call-bind: 1.0.7
       for-each: 0.3.3
-      gopd: 1.0.1
+      gopd: 1.2.0
       has-tostringtag: 1.0.0
       is-typed-array: 1.1.10
 
