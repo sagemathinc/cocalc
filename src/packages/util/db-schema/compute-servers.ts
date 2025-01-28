@@ -251,11 +251,30 @@ for (const state of ORDERED_STATES) {
   n += 1;
 }
 
+export function getArchitecture(configuration: Configuration): Architecture {
+  if (configuration.cloud == "onprem") {
+    return configuration.arch ?? "x86_64";
+  }
+  if (configuration.cloud != "google-cloud") {
+    // no ARM outside of GCP right now
+    return "x86_64";
+  }
+  const { machineType } = configuration;
+  const v = machineType.split("-");
+  if (v[0].endsWith("a")) {
+    // The known machines with are are: t2a-, c4a-
+    // Everything else ends with a number or d.
+    // Hopefully this pattern persists.
+    return "arm64";
+  }
+  return "x86_64";
+}
+
 function supportsSuspend(configuration: Configuration) {
   if (configuration.cloud != "google-cloud") {
     return false;
   }
-  if (configuration.machineType.startsWith("t2a-")) {
+  if (getArchitecture(configuration) != "x86_64") {
     // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
     // figured out a workaround, so don't support it for now.  I guess this
     // is a GCP bug.
@@ -699,6 +718,8 @@ interface FluidStackConfiguration extends BaseConfiguration {
   os: string;
 }
 export type GoogleCloudAcceleratorType =
+  | "nvidia-h200-141gb"
+  | "nvidia-h100-80gb"
   | "nvidia-a100-80gb"
   | "nvidia-tesla-a100"
   | "nvidia-l4"
@@ -708,6 +729,8 @@ export type GoogleCloudAcceleratorType =
   | "nvidia-tesla-p100";
 
 export const GOOGLE_CLOUD_ACCELERATOR_TYPES: GoogleCloudAcceleratorType[] = [
+  "nvidia-h200-141gb",
+  "nvidia-h100-80gb",
   "nvidia-a100-80gb",
   "nvidia-tesla-a100",
   "nvidia-l4",
