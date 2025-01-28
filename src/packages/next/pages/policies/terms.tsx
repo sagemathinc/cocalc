@@ -75,26 +75,6 @@ export default function TermsOfService({ customize }) {
                 may change or discontinue all or any part of the Services, at
                 any time and without notice, at our sole discretion.{" "}
               </p>
-              <h1>Beta Testing Disclaimer</h1>
-              <p>
-                You understand and agree that the Services are released for beta
-                testing only, and may not be at the level of performance of a
-                commercially available product offering. The Services may not
-                operate correctly and may be substantially modified prior to
-                first commercial release.{" "}
-                <span className="uppercase">
-                  All Services provided hereunder are in various stages of
-                  development and are likely to contain defects. a primary
-                  purpose of granting you access to our Services in this
-                  beta-testing phase is to obtain feedback on THE services’
-                  performance and the identification of defects. we are under no
-                  obligation to correct or cure defects that have been
-                  identified. You are advised to safeguard important data, to
-                  use caution when using and not to rely in any way on the
-                  correct functioning or performance of the Services. you assume
-                  The entire risk arising out of the use of the Services.{" "}
-                </span>{" "}
-              </p>
               <h1>Who May Use the Services</h1>
               <h2>Eligibility</h2>
               <p>
