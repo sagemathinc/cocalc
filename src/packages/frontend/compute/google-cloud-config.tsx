@@ -7,7 +7,10 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
+import {
+  getMinDiskSizeGb,
+  getArchitecture,
+} from "@cocalc/util/db-schema/compute-servers";
 import {
   Alert,
   Button,
@@ -301,9 +304,7 @@ export default function GoogleCloudConfiguration({
             !!(configuration.acceleratorType && configuration.acceleratorCount)
           }
           googleImages={googleImages}
-          arch={
-            configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64"
-          }
+          arch={getArchitecture(configuration)}
         />
       ),
     },
@@ -937,7 +938,7 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
 
 function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   const [archType, setArchType] = useState<"x86_64" | "arm64">(
-    configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+    getArchitecture(configuration),
   );
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
@@ -945,17 +946,15 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   );
   useEffect(() => {
     setNewMachineType(configuration.machineType);
-    setArchType(
-      configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
-    );
+    setArchType(getArchitecture(configuration));
   }, [configuration.machineType]);
   useEffect(() => {
-    if (archType == "arm64" && !configuration.machineType.startsWith("t2a-")) {
+    if (archType == "arm64" && getArchitecture(configuration) != "arm64") {
       setNewMachineType("t2a-standard-4");
       setConfig({ machineType: "t2a-standard-4" });
       return;
     }
-    if (archType == "x86_64" && configuration.machineType.startsWith("t2a-")) {
+    if (archType == "x86_64" && getArchitecture(configuration) == "arm64") {
       setNewMachineType("t2d-standard-4");
       setConfig({ machineType: "t2d-standard-4" });
       return;
@@ -967,28 +966,24 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
     .filter((machineType) => {
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
-        if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+        if (machineType.startsWith("g") || machineType.startsWith("a")) {
           return false;
         }
-        if (archType == "arm64" && !machineType.startsWith("t2a-")) {
+        if (archType == "arm64" && getArchitecture(configuration) != "arm64") {
           return false;
         }
-        if (archType == "x86_64" && machineType.startsWith("t2a-")) {
+        if (archType == "x86_64" && getArchitecture(configuration) == "arm64") {
           return false;
         }
       } else {
-        if (
-          acceleratorType == "nvidia-tesla-a100" ||
-          acceleratorType == "nvidia-a100-80gb" ||
-          acceleratorType == "nvidia-l4"
-        ) {
+        if (acceleratorType == "nvidia-tesla-t4") {
+          return machineType.startsWith("n1-");
+        } else {
           const machines =
             priceData.accelerators[acceleratorType].machineType[
               configuration.acceleratorCount ?? 1
             ] ?? [];
           return machines.includes(machineType);
-        } else {
-          return machineType.startsWith("n1-");
         }
       }
 
@@ -1052,8 +1047,8 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
             (state ?? "deprovisioned") != "deprovisioned"
               ? "Can only be changed when machine is deprovisioned"
               : archType == "x86_64"
-              ? "Intel or AMD X86_64 architecture machines"
-              : "ARM64 architecture machines"
+                ? "Intel or AMD X86_64 architecture machines"
+                : "ARM64 architecture machines"
           }
         >
           <Radio.Group
@@ -1155,12 +1150,18 @@ function Image(props) {
 // We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
 // If for some reason we need them, we will have to switch to
-// different base drivers or have even more images
+// different base drivers or have even more images.
+
+// NOTE: H200 disabled because it requires a reservation.
+
 const ACCELERATOR_TYPES = [
   "nvidia-tesla-t4",
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
+  "nvidia-h100-80gb",
+  // "nvidia-h200-141gb",
+  // these are too hard to properly keep software image for:
   // "nvidia-tesla-v100",
   //"nvidia-tesla-p100",
   //"nvidia-tesla-p4",
@@ -1188,12 +1189,15 @@ function GPU({
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
         <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
-        <Icon name="cube" /> NVIDIA GPU:{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
-        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
-          T4
-        </A>
+        <Icon name="cube" /> NVIDIA GPU{" "}
+        <div style={{ float: "right" }}>
+          <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
+            T4
+          </A>
+          , <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
+          <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+          <A href="https://www.nvidia.com/en-us/data-center/h100/">H100</A>
+        </div>
       </b>
     </div>
   );
@@ -1377,23 +1381,16 @@ function ensureConsistentConfiguration(
 ) {
   const newConfiguration = { ...configuration, ...changes };
   const newChanges = { ...changes };
-
   ensureConsistentImage(newConfiguration, newChanges, IMAGES);
-
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
-
   ensureConsistentNvidiaL4andA100(priceData, newConfiguration, newChanges);
-
+  ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
   ensureConsistentRegionAndZoneWithMachineType(
     priceData,
     newConfiguration,
     newChanges,
   );
-
-  ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
-
   ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
-
   ensureConsistentDiskType(priceData, newConfiguration, newChanges);
 
   return newChanges;
@@ -1453,13 +1450,15 @@ function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
     // currently changing region, so set a zone that matches the region
     for (const zone in priceData.zones) {
       if (zone.startsWith(configuration.region)) {
-        changes["zone"] = zone;
+        configuration["zone"] = changes["zone"] = zone;
         break;
       }
     }
   } else {
     // probably changing the zone, so set the region from the zone
-    changes["region"] = zoneToRegion(configuration.zone);
+    configuration["region"] = changes["region"] = zoneToRegion(
+      configuration.zone,
+    );
   }
 }
 
@@ -1562,13 +1561,17 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   }
 }
 
-// The Nvidia L4 and A100 are a little different
+// The Nvidia L4 and A100 are a little different, etc.
 function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   const { machineType, acceleratorType } = configuration;
 
   // L4 or A100 GPU machine type, but switching to no GPU, so we have
   // to change the machine type
-  if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+  if (
+    machineType.startsWith("g2-") ||
+    machineType.startsWith("a2-") ||
+    machineType.startsWith("a3-")
+  ) {
     if (!acceleratorType) {
       // Easy case -- the user is explicitly changing the GPU from being set
       // to NOT be set, and the GPU is L4 or A100.  In this case,
@@ -1579,6 +1582,8 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
     }
   }
   if (
+    acceleratorType != "nvidia-h200-141gb" &&
+    acceleratorType != "nvidia-h100-80gb" &&
     acceleratorType != "nvidia-tesla-a100" &&
     acceleratorType != "nvidia-a100-80gb" &&
     acceleratorType != "nvidia-l4"
@@ -1602,6 +1607,21 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
       priceData.accelerators[acceleratorType]?.machineType[
         configuration.acceleratorCount
       ];
+
+    if (machineTypes == null) {
+      // maybe 1 gpu isn't allowed, e.g., with H200
+      const machineType = priceData.accelerators[acceleratorType]?.machineType;
+      if (machineType != null) {
+        for (const count in machineType) {
+          configuration.acceleratorCount = changes.acceleratorCount =
+            parseInt(count);
+          machineTypes =
+            priceData.accelerators[acceleratorType]?.machineType[
+              configuration.acceleratorCount
+            ];
+        }
+      }
+    }
   }
   if (machineTypes == null) {
     throw Error("bug -- this can't happen");
@@ -1626,7 +1646,7 @@ function ensureConsistentRegionAndZoneWithMachineType(
   const machineType = configuration["machineType"];
   if (priceData.machineTypes[machineType] == null) {
     console.warn(
-      `BUG -- This should never happen: unknonwn machineType = '${machineType}'`,
+      `BUG -- This should never happen: unknown machineType = '${machineType}'`,
     );
     // invalid machineType
     if (configuration.acceleratorType) {

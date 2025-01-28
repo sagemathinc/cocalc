@@ -1,6 +1,5 @@
 import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
 import { useEffect, useState } from "react";
-
 import { redux, useStore } from "@cocalc/frontend/app-framework";
 import { A, CopyToClipBoard, Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -13,6 +12,7 @@ import {
   ACTION_INFO,
   STATE_INFO,
   getTargetState,
+  getArchitecture,
 } from "@cocalc/util/db-schema/compute-servers";
 import { computeServerAction, getApiKey } from "./api";
 import costPerHour from "./cost";
@@ -62,7 +62,7 @@ export default function getActions({
       if (configuration.cloud != "google-cloud") {
         continue;
       }
-      if (configuration.machineType.startsWith("t2a-")) {
+      if (getArchitecture(configuration) == "arm64") {
         // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
         // figured out a workaround, so don't support it for now.  I guess this
         // is a GCP bug.

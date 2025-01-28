@@ -27,6 +27,7 @@ import type {
   GoogleCloudImage,
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getArchitecture as getArchitecture0 } from "@cocalc/util/db-schema/compute-servers";
 import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudImagePrefix } from "./index";
@@ -158,7 +159,7 @@ export async function deleteImage(name: string) {
 }
 
 export function getArchitecture(machineType: string): Architecture {
-  return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
+  return getArchitecture0({ machineType, cloud: "google-cloud" } as any);
 }
 
 export async function getSourceImage({
