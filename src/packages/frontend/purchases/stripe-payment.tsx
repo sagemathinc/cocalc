@@ -271,6 +271,36 @@ function StripeCheckout({
   return (
     <div>
       {loading && <BigSpin />}
+      {!hasPaymentMethods && (
+        <div>
+          {/* This is a workaround for a possible bug in our code or
+          any conflicts between the user's browser, extensions, etc.
+          and stripe checkout.  Purchasing with a payment method and
+          1-click doesn't use stripe checkout at all and is thus
+          much more reliable... but involves more steps and doesn't
+          show local pricing, etc. */}
+          <Alert
+            showIcon
+            style={{ width: "90%", margin: "15px auto", fontSize: "12pt" }}
+            type="warning"
+            message={
+              <b>
+                If you have a problem paying below, add a{" "}
+                <a
+                  href={join(
+                    appBasePath,
+                    "settings/payment-methods#page=messages-inbox",
+                  )}
+                  target="_blank"
+                >
+                  payment method
+                </a>
+                , then refresh this page and click "Buy Now With 1-Click".
+              </b>
+            }
+          />
+        </div>
+      )}
       <EmbeddedCheckoutProvider
         options={{
           fetchClientSecret: async () => secret.clientSecret,
@@ -282,36 +312,6 @@ function StripeCheckout({
       >
         <EmbeddedCheckout className="cc-stripe-embedded-checkout" />
       </EmbeddedCheckoutProvider>
-      {!loading && !hasPaymentMethods && (
-        <div>
-          {/* This is a workaround for a possible bug in our code or
-          any conflicts between the user's browser, extensions, etc.
-          and stripe checkout.  Purchasing with a payment method and
-          1-click doesn't use stripe checkout at all and is thus
-          much more reliable... but involves more steps and doesn't
-          show local pricing, etc. */}
-          <Alert
-            showIcon
-            style={{ width: "500px", margin: "15px auto" }}
-            type="warning"
-            message={
-              <>
-                If you have a problem paying, ensure you have a{" "}
-                <a
-                  href={join(
-                    appBasePath,
-                    "settings/payment-methods#page=messages-inbox",
-                  )}
-                  target="_blank"
-                >
-                  valid payment method on file
-                </a>
-                , then refresh this page and click "Buy Now With 1-Click".
-              </>
-            }
-          />
-        </div>
-      )}
     </div>
   );
 }
