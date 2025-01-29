@@ -34,6 +34,9 @@ export class NatsClient {
     try {
       this.nc = await nats.connect({
         servers: [server],
+        // this pingInterval determines how long from when the browser's network connection dies
+        // and comes back, until nats starts working again.
+        pingInterval: 10000,
       });
     } catch (err) {
       console.log("set the JWT cookie and try again");

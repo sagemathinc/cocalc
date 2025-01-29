@@ -26,6 +26,8 @@ export async function getConnection() {
     const creds = await getCreds();
     nc = await connect({
       authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
+      // bound on how long after network or server goes down until starts working again
+      pingInterval: 10000,
     });
     logger.debug(`connected to ${nc.getServer()}`);
   }
