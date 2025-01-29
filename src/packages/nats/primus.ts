@@ -21,14 +21,19 @@ sparks[0]
 client.on('data',(data)=>console.log('client got', data));0
 sparks[0].write("foo")
 
+s9 = server.channel('9')
+c9 = client.channel('9')
+c9.on("data", (data)=>console.log('c9 got', data));0
+s9.on("data", (data)=>console.log('s9 got', data));0
 
-> server.write('foo')
-> client2 = new a.Primus({subject:'test',env,role:'client',id:'xx'}); client2.on('data',(data)=>console.log('client2 got', data)); 0
-> server.write('bar')
+c9.write("from client 9")
+s9.write("from the server 9")
 
-> server.on("connection", (spark) => spark.write("hello"))
-> client3 = new a.Primus({subject:'test', env, role:'client'}); client3.on('data',(data)=>console.log('client3 got', data)); 0
+client_b = new Primus({subject:'test',env,role:'client',id:'cb'});
+c9b = client_b.channel('9')
+c9b.on("data", (data)=>console.log('c9b got', data));0
 
+s9.sparks['cb'].write('blah')
 
 */
 
@@ -41,46 +46,85 @@ export type Role = "client" | "server";
 //   return role == "client" ? "server" : "client";
 // }
 
+function getSubjects({ subject, id, channel, sha1 }) {
+  // NOTE: when channel is set its sha1 is added as a last
+  // segment after all of these.
+  const subjects = {
+    // control = request/response control channel; clients tell
+    //           server they are connecting via this
+    control: `${subject}.control`,
+    // server =  a server spark listens on server and client
+    //           publishes to server
+    server: `${subject}.server.${id}`,
+    // client =  client connection listens on this and
+    //           server spark writes to it
+    client: `${subject}.client.${id}`,
+    // channel = when set all clients listen on
+    //           this; server sends to this.
+    clientChannel: `${subject}.channel.client`,
+    serverChannel: `${subject}.channel.server`,
+  };
+  if (channel) {
+    // use sha1 so channel can be any string.
+    const segment = sha1(channel);
+    for (const k in subjects) {
+      subjects[k] += `.${segment}`;
+    }
+  }
+  return subjects;
+}
+
 export class Primus extends EventEmitter {
   subject: string;
+  channelName: string;
   env: NatsEnv;
   role: Role;
   id: string;
   subscribe: string;
-  subjects: { control: string; server: string; client: string };
+  sparks: { [id: string]: Spark } = {};
+  subjects: {
+    control: string;
+    server: string;
+    client: string;
+    clientChannel: string;
+    serverChannel: string;
+  };
 
   constructor({
     subject,
+    channelName = "",
     env,
     role,
     id,
   }: {
     subject: string;
+    channelName?: string;
     env: NatsEnv;
     role: Role;
     id: string;
   }) {
     super();
+
     this.subject = subject;
+    this.channelName = channelName;
     this.env = env;
     this.role = role;
     this.id = id;
-    this.subjects = {
-      control: `${subject}.control`,
-      // only used by client: must agree with spark below
-      server: `${subject}.server.${id}`,
-      client: `${subject}.client.${id}`,
-    };
+    this.subjects = getSubjects({
+      subject,
+      id,
+      channel: channelName,
+      sha1: env.sha1,
+    });
     if (role == "server") {
       this.serve();
     } else {
       this.connect();
     }
+    if (this.channelName) {
+      this.subscribeChannel();
+    }
   }
-
-  //   channel = (name: string) => {
-  //     return new PrimusChannel({ primus: this, name });
-  //   };
 
   destroy = () => {
     // todo
@@ -94,7 +138,11 @@ export class Primus extends EventEmitter {
     for await (const mesg of sub) {
       const data = this.env.jc.decode(mesg.data) ?? ({} as any);
       if (data.cmd == "connect") {
-        const spark = new Spark({ primus: this, id: data.id });
+        const spark = new Spark({
+          primus: this,
+          id: data.id,
+        });
+        this.sparks[data.id] = spark;
         this.emit("connection", spark);
         mesg.respond(this.env.jc.encode({ status: "ok" }));
       }
@@ -119,11 +167,41 @@ export class Primus extends EventEmitter {
     }
   };
 
-  write = (data) => {
-    if (this.role != "client") {
-      throw Error("only client can write");
+  private subscribeChannel = async () => {
+    const subject =
+      this.role == "client"
+        ? this.subjects.clientChannel
+        : this.subjects.serverChannel;
+    const sub = this.env.nc.subscribe(subject);
+    for await (const mesg of sub) {
+      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
+      this.emit("data", data);
     }
-    this.env.nc.publish(this.subjects.server, this.env.jc.encode({ data }));
+  };
+
+  // client: writes to server
+  // server: write to ALL connected clients in channel model.
+  write = (data) => {
+    let subject;
+    if (this.role == "server") {
+      if (!this.channel) {
+        throw Error("broadcast write not implemented when not in channel mode");
+      }
+      subject = this.subjects.clientChannel;
+    } else {
+      subject = this.subjects.serverChannel;
+    }
+    this.env.nc.publish(subject, this.env.jc.encode({ data }));
+  };
+
+  channel = (channelName: string) => {
+    return new Primus({
+      subject: this.subject,
+      channelName,
+      env: this.env,
+      role: this.role,
+      id: this.id,
+    });
   };
 }
 
@@ -131,17 +209,19 @@ export class Primus extends EventEmitter {
 export class Spark extends EventEmitter {
   primus: Primus;
   id: string;
-  subjects: { server: string; client: string };
+  subjects;
 
   constructor({ primus, id }) {
     super();
     this.primus = primus;
+    const { subject, channelName } = primus;
     this.id = id;
-    const subject = primus.subject;
-    this.subjects = {
-      server: `${subject}.server.${id}`,
-      client: `${subject}.client.${id}`,
-    };
+    this.subjects = getSubjects({
+      subject,
+      id,
+      channel: channelName,
+      sha1: primus.env.sha1,
+    });
     this.init();
   }
 
@@ -164,41 +244,3 @@ export class Spark extends EventEmitter {
     // todo -- maybe call a method on sub created in subscribe?
   };
 }
-
-// export class PrimusChannel extends EventEmitter {
-//   primus: Primus;
-//   name: string;
-//   subjects: { subscribe: string; publish: string };
-
-//   constructor({ primus, name }) {
-//     super();
-//     this.primus = primus;
-//     this.name = name;
-//     const segment = primus.env.sha1(name);
-//     const base = `${this.primus.subject}.${segment}`;
-//     this.subjects = {
-//       subscribe: `${base}.${role}`,
-//       publish: `${base}.${otherRole(role)}`,
-//     };
-//     this.init();
-//   }
-
-//   private init = async () => {
-//     const sub = this.primus.env.nc.subscribe(this.subjects.subscribe);
-//     for await (const mesg of sub) {
-//       const { data } = this.primus.env.jc.decode(mesg.data) ?? ({} as any);
-//       this.emit("data", data);
-//     }
-//   };
-
-//   write = (data) => {
-//     this.primus.env.nc.publish(
-//       this.subjects.publish,
-//       this.primus.env.jc.encode({ data }),
-//     );
-//   };
-
-//   destroy = () => {
-//     // todo
-//   };
-// }
