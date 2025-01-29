@@ -5,7 +5,8 @@
   "exports": {
     "./sync/*": "./dist/sync/*.js",
     "./api": "./dist/api/index.js",
-    "./api/*": "./dist/api/*.js"
+    "./api/*": "./dist/api/*.js",
+    "./*": "./dist/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

@@ -533,6 +533,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     rows?: number;
     cols?: number;
     payload: any;
+    ignore?: string;
     id?: number;
   }): void {
     //console.log("handle_mesg", this.id, mesg);
@@ -555,7 +556,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.no_ignore();
         break;
       case "close":
-        this.close_request();
+        if (mesg.ignore != this.id) {
+          this.close_request();
+        }
         break;
       case "computeServerId":
         if (this.actions.store != null && this.actions.setState != null) {

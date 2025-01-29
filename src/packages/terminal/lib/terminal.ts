@@ -506,12 +506,9 @@ export class Terminal {
         spark.write({ cmd: "size", rows, cols });
       }
     }
-    // broadcast message to all other clients telling them to close.
-    this.channel.forEach((spark0, id, _) => {
-      if (id !== spark.id) {
-        spark0.write({ cmd: "close" });
-      }
-    });
+    // broadcast message to all clients telling them to close, but
+    // telling requestor to ignore.
+    spark.write({ cmd: "close", ignore: spark.id });
   };
 
   private writeToPty = async (data) => {

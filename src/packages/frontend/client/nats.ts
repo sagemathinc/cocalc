@@ -6,10 +6,12 @@ import { join } from "path";
 import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
+import { randomId } from "@cocalc/nats/util";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
+import { Socket } from "@cocalc/nats/socket";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -19,6 +21,7 @@ export class NatsClient {
   public nats = nats;
   public jetstream = jetstream;
   public hub: HubApi;
+  public sessionId = randomId();
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -30,7 +33,7 @@ export class NatsClient {
       return this.nc;
     }
     const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
-    console.log(`connecting to ${server}...`);
+    console.log(`NATS: connecting to ${server}...`);
     try {
       this.nc = await nats.connect({
         servers: [server],
@@ -39,13 +42,13 @@ export class NatsClient {
         pingInterval: 10000,
       });
     } catch (err) {
-      console.log("set the JWT cookie and try again");
+      console.log("NATS: set the JWT cookie and try again");
       await fetch(join(appBasePath, "nats"));
       this.nc = await nats.connect({
         servers: [server],
       });
     }
-    console.log(`connected to ${server}`);
+    console.log(`NATS: connected to ${server}`);
     return this.nc;
   });
 
@@ -178,5 +181,13 @@ export class NatsClient {
   changefeed = async (query) => {
     this.changefeedInterest(query, true);
     return await this.synctable(query, { atomic: true });
+  };
+
+  createSocket = async (subjects: { listen: string; send: string }) => {
+    return new Socket({
+      ...subjects,
+      nc: await this.getConnection(),
+      jc: this.jc,
+    });
   };
 }
