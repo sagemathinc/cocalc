@@ -29,6 +29,7 @@ import nsc0 from "@cocalc/backend/nats/nsc";
 import { natsAccountName } from "@cocalc/backend/nats/conf";
 import { throttle } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const logger = getLogger("server:nats:auth");
 
@@ -118,13 +119,11 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     const query = `SELECT project_id, users#>>'{${userId},group}' AS group FROM projects WHERE state#>>'{state}'='running' AND users ? '${userId}' ORDER BY project_id`;
     const { rows } = await pool.query(query);
     for (const { project_id /*, group */ } of rows) {
-      // TODO - unsure -- do we need proven identity *in* project?
-      //goalPub.add(`project.${project_id}.api.${group}.${userId}`);
       goalPub.add(`project.${project_id}.>`);
       goalSub.add(`project.${project_id}.>`);
 
-      goalPub.add(`$KV.project-${project_id}.>`);
-      goalSub.add(`$KV.project-${project_id}.>`);
+      goalPub.add(`*.project-${project_id}.>`);
+      goalSub.add(`*.project-${project_id}.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
@@ -134,12 +133,9 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     goalPub.add(`project.${userId}.>`);
     goalSub.add(`project.${userId}.>`);
 
-    goalPub.add(`$KV.project-${userId}.>`);
-    goalSub.add(`$KV.project-${userId}.>`);
+    goalPub.add(`*.project-${userId}.>`);
+    goalSub.add(`*.project-${userId}.>`);
   }
-  // TEMPORARY: for learning jetstream!
-  goalPub.add("$JS.>");
-  goalSub.add("$JS.>");
 
   // **Subject Permissions SYNC Algorithm **
   // figure out what signing key currently allows an update it to be exactly what is specified above.
@@ -213,6 +209,24 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   }
 }
 
+export async function addProjectPermission({ account_id, project_id }) {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be collaborator on project");
+  }
+  const name = getNatsUserName({ account_id });
+  await nsc([
+    "edit",
+    "signing-key",
+    "--sk",
+    name,
+    "--allow-sub",
+    `project.${project_id}.>,*.project.${project_id}.>`,
+    "--allow-pub",
+    `project.${project_id}.>,*.project.${project_id}.>`,
+  ]);
+  await pushToServer();
+}
+
 export async function getScopedSigningKey(
   natsUser: string,
 ): Promise<{ [key: string]: string[] } | null> {
@@ -276,6 +290,14 @@ export async function createNatsUser(cocalcUser: CoCalcUser) {
   await configureNatsUser(cocalcUser);
   pushToServer();
 }
+
+// export async function updateActiveCollaborators(project_id: string) {
+//   const pool = getPool();
+//   const { rows } = await pool.query(
+//     "select account_id from accounts where account_id=any(select jsonb_object_keys(users)::uuid from projects where project_id=$1) and last_active >= now() - interval '1 day'",
+//     [project_id],
+//   );
+// }
 
 export async function getJwt(cocalcUser: CoCalcUser): Promise<string> {
   try {

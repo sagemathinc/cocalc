@@ -23,7 +23,11 @@ import type {
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
+import type {
+  Channel,
+  Mesg,
+  NbconvertParams,
+} from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
@@ -41,19 +45,35 @@ export class API {
     });
   }
 
-  async primusCall(mesg: Mesg, timeout: number): Promise<any> {
+  private primusCall = async (mesg: Mesg, timeout: number) => {
     return await call(this.conn, mesg, timeout);
-  }
+  };
 
-  async call(mesg: Mesg, timeout: number): Promise<any> {
+  private _call = async (mesg: Mesg, timeout: number): Promise<any> => {
     return await webapp_client.nats_client.projectWebsocketApi({
       project_id: this.project_id,
       mesg,
       timeout,
     });
-  }
+  };
 
-  async version(): Promise<number> {
+  call = async (mesg: Mesg, timeout: number) => {
+    try {
+      return await this._call(mesg, timeout);
+    } catch (err) {
+      if (err.code == "PERMISSIONS_VIOLATION") {
+        // request update of our credentials to include this project, then try again
+        await webapp_client.nats_client.hub.system.addProjectPermission({
+          project_id: this.project_id,
+        });
+        return await this._call(mesg, timeout);
+      } else {
+        throw err;
+      }
+    }
+  };
+
+  version = async (): Promise<number> => {
     // version can never change (except when you restart the project!), so its safe to cache
     if (this.cachedVersion != null) {
       return this.cachedVersion;
@@ -71,84 +91,86 @@ export class API {
       return 0;
     }
     return this.cachedVersion;
-  }
+  };
 
-  async delete_files(
+  delete_files = async (
     paths: string[],
     compute_server_id?: number,
-  ): Promise<void> {
+  ): Promise<void> => {
     return await this.call(
       { cmd: "delete_files", paths, compute_server_id },
       60000,
     );
-  }
+  };
 
   // Move the given paths to the dest.  The folder dest must exist
   // already and be a directory, or this is in an error.
-  async move_files(
+  move_files = async (
     paths: string[],
     dest: string,
     compute_server_id?: number,
-  ): Promise<void> {
+  ): Promise<void> => {
     return await this.call(
       { cmd: "move_files", paths, dest, compute_server_id },
       60000,
     );
-  }
+  };
 
   // Rename the file src to be the file dest.  The dest may be
   // in a different directory or may even exist already (in which)
   // case it is overwritten if it is a file. If dest exists and
   // is a directory, it is an error.
-  async rename_file(
+  rename_file = async (
     src: string,
     dest: string,
     compute_server_id?: number,
-  ): Promise<void> {
+  ): Promise<void> => {
     return await this.call(
       { cmd: "rename_file", src, dest, compute_server_id },
       30000,
     );
-  }
+  };
 
-  async listing(
+  listing = async (
     path: string,
     hidden: boolean = false,
     timeout: number = 15000,
     compute_server_id: number = 0,
-  ): Promise<DirectoryListingEntry[]> {
+  ): Promise<DirectoryListingEntry[]> => {
     return await this.call(
       { cmd: "listing", path, hidden, compute_server_id },
       timeout,
     );
-  }
+  };
 
   /* Normalize the given paths relative to the HOME directory.
      This takes any old weird looking mess of a path and makes
      it one that can be opened properly with our file editor,
      and the path appears to be to a file *in* the HOME directory.
   */
-  async canonical_path(path: string): Promise<string> {
+  canonical_path = async (path: string): Promise<string> => {
     const v = await this.canonical_paths([path]);
     const x = v[0];
     if (typeof x != "string") {
       throw Error("bug in canonical_path");
     }
     return x;
-  }
-  async canonical_paths(paths: string[]): Promise<string[]> {
+  };
+  canonical_paths = async (paths: string[]): Promise<string[]> => {
     return await this.call({ cmd: "canonical_paths", paths }, 15000);
-  }
+  };
 
-  async configuration(
+  configuration = async (
     aspect: ConfigurationAspect,
     no_cache = false,
-  ): Promise<Configuration> {
+  ): Promise<Configuration> => {
     return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
-  }
+  };
 
   // use the returned FormatterOptions for the API formatting call!
-  private check_formatter_available(config: FormatterConfig): FormatterOptions {
+  private check_formatter_available = (
+    config: FormatterConfig,
+  ): FormatterOptions => {
     const formatting = this.get_formatting();
     if (formatting == null) {
       throw new Error(
@@ -166,9 +188,9 @@ export class API {
       );
     }
     return { parser: tool };
-  }
+  };
 
-  get_formatting(): Capabilities | undefined {
+  get_formatting = (): Capabilities | undefined => {
     const project_store = redux.getProjectStore(this.project_id) as any;
     const configuration = project_store.get(
       "configuration",
@@ -183,24 +205,24 @@ export class API {
     } else {
       return {} as Capabilities;
     }
-  }
+  };
 
   // Returns  { status: "ok", patch:... the patch} or
   // { status: "error", phase: "format", error: err.message }.
   // We return a patch rather than the entire file, since often
   // the file is very large, but the formatting is tiny.  This is purely
   // a data compression technique.
-  async formatter(path: string, config: FormatterConfig): Promise<any> {
+  formatter = async (path: string, config: FormatterConfig): Promise<any> => {
     const options: FormatterOptions = this.check_formatter_available(config);
     // TODO change this to "formatter" at some point in the future (Sep 2020)
     return await this.call({ cmd: "prettier", path: path, options }, 15000);
-  }
+  };
 
-  async formatter_string(
+  formatter_string = async (
     str: string,
     config: FormatterConfig,
     timeout_ms: number = 15000,
-  ): Promise<any> {
+  ): Promise<any> => {
     const options: FormatterOptions = this.check_formatter_available(config);
     // TODO change this to "formatter_string" at some point in the future (Sep 2020)
     return await this.call(
@@ -211,37 +233,40 @@ export class API {
       },
       timeout_ms,
     );
-  }
+  };
 
-  async jupyter(
+  jupyter = async (
     path: string,
     endpoint: string,
     query: any = undefined,
     timeout_ms: number = 20000,
-  ): Promise<any> {
+  ): Promise<any> => {
     return await this.call(
       { cmd: "jupyter", path, endpoint, query },
       timeout_ms,
     );
-  }
+  };
 
-  async exec(opts: any): Promise<any> {
+  exec = async (opts: any): Promise<any> => {
     let timeout_ms = 10000;
     if (opts.timeout) {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "exec", opts }, timeout_ms);
-  }
+  };
 
-  async eval_code(code: string, timeout_ms: number = 20000): Promise<any> {
+  eval_code = async (
+    code: string,
+    timeout_ms: number = 20000,
+  ): Promise<any> => {
     return await this.call({ cmd: "eval_code", code }, timeout_ms);
-  }
+  };
 
-  async realpath(path: string): Promise<string> {
+  realpath = async (path: string): Promise<string> => {
     return await this.call({ cmd: "realpath", path }, 15000);
-  }
+  };
 
-  async terminal(path: string, options: object = {}): Promise<Channel> {
+  terminal = async (path: string, options: object = {}): Promise<Channel> => {
     const channel_name = await this.primusCall(
       {
         cmd: "terminal",
@@ -252,15 +277,15 @@ export class API {
     );
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
-  }
+  };
 
-  async project_info(): Promise<Channel> {
+  project_info = async (): Promise<Channel> => {
     const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
     return this.conn.channel(channel_name);
-  }
+  };
 
   // Get the lean *channel* for the given '.lean' path.
-  async lean_channel(path: string): Promise<Channel> {
+  lean_channel = async (path: string): Promise<Channel> => {
     const channel_name = await this.primusCall(
       {
         cmd: "lean_channel",
@@ -269,10 +294,10 @@ export class API {
       60000,
     );
     return this.conn.channel(channel_name);
-  }
+  };
 
   // Get the x11 *channel* for the given '.x11' path.
-  async x11_channel(path: string, display: number): Promise<Channel> {
+  x11_channel = async (path: string, display: number): Promise<Channel> => {
     const channel_name = await this.primusCall(
       {
         cmd: "x11_channel",
@@ -282,13 +307,13 @@ export class API {
       60000,
     );
     return this.conn.channel(channel_name);
-  }
+  };
 
   // Get the sync *channel* for the given SyncTable project query.
-  async synctable_channel(
+  synctable_channel = async (
     query: { [field: string]: any },
     options: { [field: string]: any }[],
-  ): Promise<Channel> {
+  ): Promise<Channel> => {
     const channel_name = await this.primusCall(
       {
         cmd: "synctable_channel",
@@ -299,51 +324,51 @@ export class API {
     );
     // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
-  }
+  };
 
   // Command-response API for synctables.
   //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
-  async syncdoc_call(
+  syncdoc_call = async (
     path: string,
     mesg: { [field: string]: any },
     timeout_ms: number = 30000, // ms timeout for call
-  ): Promise<any> {
+  ): Promise<any> => {
     return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
-  }
+  };
 
   // Do a request/response command to the lean server.
-  async lean(opts: any): Promise<any> {
+  lean = async (opts: any): Promise<any> => {
     let timeout_ms = 10000;
     if (opts.timeout) {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "lean", opts }, timeout_ms);
-  }
+  };
 
   // Convert a notebook to some other format.
   // --to options are listed in packages/frontend/jupyter/nbconvert.tsx
   // and implemented in packages/project/jupyter/convert/index.ts
-  async jupyter_nbconvert(opts: NbconvertParams): Promise<any> {
+  jupyter_nbconvert = async (opts: NbconvertParams): Promise<any> => {
     return await this.call(
       { cmd: "jupyter_nbconvert", opts },
       (opts.timeout ?? 60) * 1000 + 5000,
     );
-  }
+  };
 
   // Get contents of an ipynb file, but with output and attachments removed (to save space)
-  async jupyter_strip_notebook(ipynb_path: string): Promise<any> {
+  jupyter_strip_notebook = async (ipynb_path: string): Promise<any> => {
     return await this.call(
       { cmd: "jupyter_strip_notebook", ipynb_path },
       15000,
     );
-  }
+  };
 
   // Run the notebook filling in the output of all cells, then return the
   // result as a string.  Note that the output size (per cell and total)
   // and run time is bounded to avoid the output being HUGE, even if the
   // input is dumb.
 
-  async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
+  jupyter_run_notebook = async (opts: RunNotebookOptions): Promise<string> => {
     const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
@@ -352,12 +377,12 @@ export class API {
       // timer do the job, than have to wait for this generic timeout here,
       // since we want to at least get output for problems that ran.
     );
-  }
+  };
 
   // I think this isn't used.  It was going to support
   // sync_channel, but obviously a more nuanced protocol
   // was required.
-  async symmetric_channel(name: string): Promise<Channel> {
+  symmetric_channel = async (name: string): Promise<Channel> => {
     const channel_name = await this.primusCall(
       {
         cmd: "symmetric_channel",
@@ -366,22 +391,22 @@ export class API {
       30000,
     );
     return this.conn.channel(channel_name);
-  }
+  };
 
   // Do a database query, but via the project.  This has the project
   // do the query, so the identity used to access the database is that
   // of the project.  This isn't useful in the browser, where the user
   // always has more power to directly use the database.  It is *is*
   // very useful when using a project-specific api key.
-  async query(opts: any): Promise<any> {
+  query = async (opts: any): Promise<any> => {
     if (opts.timeout == null) {
       opts.timeout = 30;
     }
     const timeout_ms = opts.timeout * 1000 + 2000;
     return await this.call({ cmd: "query", opts }, timeout_ms);
-  }
+  };
 
-  async computeServerSyncRequest(compute_server_id: number) {
+  computeServerSyncRequest = async (compute_server_id: number) => {
     if (!(typeof compute_server_id == "number" && compute_server_id > 0)) {
       throw Error("compute_server_id must be a positive integer");
     }
@@ -392,29 +417,29 @@ export class API {
       },
       30000,
     );
-  }
+  };
 
-  async copyFromProjectToComputeServer(opts: {
+  copyFromProjectToComputeServer = async (opts: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
-  }) {
+  }) => {
     await this.call(
       { cmd: "copy_from_project_to_compute_server", opts },
       (opts.timeout ?? 60) * 1000,
     );
-  }
+  };
 
-  async copyFromComputeServerToProject(opts: {
+  copyFromComputeServerToProject = async (opts: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
-  }) {
+  }) => {
     await this.call(
       { cmd: "copy_from_compute_server_to_project", opts },
       (opts.timeout ?? 60) * 1000,
     );
-  }
+  };
 }
