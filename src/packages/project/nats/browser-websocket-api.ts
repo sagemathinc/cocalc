@@ -59,8 +59,10 @@ export async function init() {
 async function handleRequest(data, mesg) {
   let resp;
   logger.debug("received cmd:", data?.cmd);
+  const spark = {} as any;
+  const primus = {} as any;
   try {
-    resp = await handleApiCall(data, {});
+    resp = await handleApiCall({ data, spark, primus });
   } catch (err) {
     resp = { error: `${err}` };
   }

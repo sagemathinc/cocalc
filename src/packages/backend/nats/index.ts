@@ -3,6 +3,7 @@ import { nats } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { connect, credsAuthenticator } from "nats";
+export { getEnv } from "./env";
 
 const logger = getLogger("backend:nats");
 

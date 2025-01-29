@@ -11,7 +11,7 @@ import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
-import { Socket } from "@cocalc/nats/socket";
+import { Primus } from "@cocalc/nats/primus";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -30,7 +30,13 @@ export class NatsClient {
 
   getConnection = reuseInFlight(async () => {
     if (this.nc != null) {
-      return this.nc;
+      // undocumented API
+      if ((this.nc as any).protocol?.isClosed?.()) {
+        // cause a reconnect.
+        delete this.nc;
+      } else {
+        return this.nc;
+      }
     }
     const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
     console.log(`NATS: connecting to ${server}...`);
@@ -133,6 +139,14 @@ export class NatsClient {
     return await js.consumers.get(stream);
   };
 
+  getEnv = async () => {
+    return {
+      sha1,
+      jc: this.jc,
+      nc: await this.getConnection(),
+    };
+  };
+
   synctable = async (
     query,
     options?: { obj?: object; atomic?: boolean; stream?: boolean },
@@ -148,11 +162,7 @@ export class NatsClient {
     const s = createSyncTable({
       ...options,
       query,
-      env: {
-        sha1,
-        jc: this.jc,
-        nc: await this.getConnection(),
-      },
+      env: await this.getEnv(),
       account_id: this.client.account_id,
     });
     await s.init();
@@ -183,11 +193,20 @@ export class NatsClient {
     return await this.synctable(query, { atomic: true });
   };
 
-  createSocket = async (subjects: { listen: string; send: string }) => {
-    return new Socket({
-      ...subjects,
-      nc: await this.getConnection(),
-      jc: this.jc,
+//   createSocket = async (subjects: { listen: string; send: string }) => {
+//     return new Socket({
+//       ...subjects,
+//       nc: await this.getConnection(),
+//       jc: this.jc,
+//     });
+//   };
+
+  primus = async (project_id: string) => {
+    return new Primus({
+      subject: `project.${project_id}.primus`,
+      env: await this.getEnv(),
+      role: "client",
+      id: this.sessionId,
     });
   };
 }

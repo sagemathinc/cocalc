@@ -279,17 +279,17 @@ export class API {
     return this.conn.channel(channel_name);
   };
 
-  terminal1 = async (path: string, options: object = {}): Promise<Channel> => {
-    const subjects = await this.call(
-      {
-        cmd: "terminal",
-        path,
-        options,
-      },
-      20000,
-    );
-    return (await webapp_client.nats_client.createSocket(subjects)) as any;
-  };
+//   terminal1 = async (path: string, options: object = {}): Promise<Channel> => {
+//     const subjects = await this.call(
+//       {
+//         cmd: "terminal",
+//         path,
+//         options,
+//       },
+//       20000,
+//     );
+//     //return (await webapp_client.nats_client.createSocket(subjects)) as any;
+//   };
 
   project_info = async (): Promise<Channel> => {
     const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);

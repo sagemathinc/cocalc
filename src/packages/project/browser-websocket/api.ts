@@ -54,7 +54,6 @@ const log = getLogger("websocket-api");
 
 let primus: any = undefined;
 export function init_websocket_api(_primus: any): void {
-
   primus = _primus;
 
   primus.on("connection", function (spark) {
@@ -66,7 +65,7 @@ export function init_websocket_api(_primus: any): void {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = Date.now();
       try {
-        const resp = await handleApiCall(data, spark);
+        const resp = await handleApiCall({ data, spark, primus });
         //log.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
@@ -93,7 +92,15 @@ export function init_websocket_api(_primus: any): void {
   });
 }
 
-export async function handleApiCall(data: Mesg, spark): Promise<any> {
+export async function handleApiCall({
+  data,
+  spark,
+  primus,
+}: {
+  data: Mesg;
+  spark;
+  primus;
+}): Promise<any> {
   const client = getClient();
   switch (data.cmd) {
     case "version":
