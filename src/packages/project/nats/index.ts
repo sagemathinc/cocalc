@@ -4,17 +4,17 @@ How to do development (so in a dev project doing cc-in-cc dev).
 1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
     - COCALC_NATS_JWT -- this has the valid JWT issued to grant the project rights to use nats
     - COCALC_PROJECT_ID
-    
+
 2. cd to your dev packages/project source code, e.g., ../cocalc/src/packages/project
 
 3. Do this:
- 
+
      echo 'require("@cocalc/project/nats").default()' | DEBUG=cocalc:* DEBUG_CONSOLE=yes node
-    
+
 4. Use the browser to see the project is on nats and works:
 
     await cc.client.nats_client.project({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e', endpoint:"exec", params:{command:'echo $COCALC_PROJECT_ID'}})
-    
+
 */
 
 import { getLogger } from "@cocalc/project/logger";

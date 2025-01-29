@@ -12,6 +12,7 @@ import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
 import type { PrimusWithChannels } from "@cocalc/terminal";
+import { init as initNatsBrowserWebsocketApi } from "@cocalc/project/nats/browser-websocket-api";
 
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
 // during project startup to save 100kb -- it just isn't worth it.  Obviously, it
@@ -55,6 +56,9 @@ export default function init(server: Server, basePath: string): Router {
   winston.info(
     `waiting for clients to request primus.js (length=${library.length})...`,
   );
+
+  // we also init the new nats server, which is meant to replace this:
+  initNatsBrowserWebsocketApi();
 
   return router;
 }

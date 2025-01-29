@@ -46,6 +46,15 @@ export class NatsClient {
     return this.nc;
   });
 
+  projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
+    const nc = await this.getConnection();
+    const subject = `project.${project_id}.browser-api`;
+    const resp = await nc.request(subject, this.jc.encode(mesg), {
+      timeout,
+    });
+    return this.jc.decode(resp.data);
+  };
+
   private callHub = async ({
     service = "api",
     name,
@@ -55,9 +64,9 @@ export class NatsClient {
     name: string;
     args: any[];
   }) => {
-    const c = await this.getConnection();
+    const nc = await this.getConnection();
     const subject = `hub.account.${this.client.account_id}.${service}`;
-    const resp = await c.request(
+    const resp = await nc.request(
       subject,
       this.jc.encode({
         name,

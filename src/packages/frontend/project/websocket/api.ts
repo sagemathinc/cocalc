@@ -23,8 +23,9 @@ import type {
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
+import type { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export class API {
   private conn;
@@ -40,8 +41,16 @@ export class API {
     });
   }
 
-  async call(mesg: Mesg, timeout_ms: number): Promise<any> {
-    return await call(this.conn, mesg, timeout_ms);
+  async primusCall(mesg: Mesg, timeout: number): Promise<any> {
+    return await call(this.conn, mesg, timeout);
+  }
+
+  async call(mesg: Mesg, timeout: number): Promise<any> {
+    return await webapp_client.nats_client.projectWebsocketApi({
+      project_id: this.project_id,
+      mesg,
+      timeout,
+    });
   }
 
   async version(): Promise<number> {
@@ -233,7 +242,7 @@ export class API {
   }
 
   async terminal(path: string, options: object = {}): Promise<Channel> {
-    const channel_name = await this.call(
+    const channel_name = await this.primusCall(
       {
         cmd: "terminal",
         path: path,
@@ -246,13 +255,13 @@ export class API {
   }
 
   async project_info(): Promise<Channel> {
-    const channel_name = await this.call({ cmd: "project_info" }, 60000);
+    const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
     return this.conn.channel(channel_name);
   }
 
   // Get the lean *channel* for the given '.lean' path.
   async lean_channel(path: string): Promise<Channel> {
-    const channel_name = await this.call(
+    const channel_name = await this.primusCall(
       {
         cmd: "lean_channel",
         path: path,
@@ -264,7 +273,7 @@ export class API {
 
   // Get the x11 *channel* for the given '.x11' path.
   async x11_channel(path: string, display: number): Promise<Channel> {
-    const channel_name = await this.call(
+    const channel_name = await this.primusCall(
       {
         cmd: "x11_channel",
         path,
@@ -280,7 +289,7 @@ export class API {
     query: { [field: string]: any },
     options: { [field: string]: any }[],
   ): Promise<Channel> {
-    const channel_name = await this.call(
+    const channel_name = await this.primusCall(
       {
         cmd: "synctable_channel",
         query,
@@ -349,7 +358,7 @@ export class API {
   // sync_channel, but obviously a more nuanced protocol
   // was required.
   async symmetric_channel(name: string): Promise<Channel> {
-    const channel_name = await this.call(
+    const channel_name = await this.primusCall(
       {
         cmd: "symmetric_channel",
         name,
