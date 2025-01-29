@@ -11,7 +11,7 @@ import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
-import { Primus } from "@cocalc/nats/primus";
+import { getPrimusConnection } from "@cocalc/nats/primus";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -193,16 +193,16 @@ export class NatsClient {
     return await this.synctable(query, { atomic: true });
   };
 
-//   createSocket = async (subjects: { listen: string; send: string }) => {
-//     return new Socket({
-//       ...subjects,
-//       nc: await this.getConnection(),
-//       jc: this.jc,
-//     });
-//   };
+  //   createSocket = async (subjects: { listen: string; send: string }) => {
+  //     return new Socket({
+  //       ...subjects,
+  //       nc: await this.getConnection(),
+  //       jc: this.jc,
+  //     });
+  //   };
 
   primus = async (project_id: string) => {
-    return new Primus({
+    return getPrimusConnection({
       subject: `project.${project_id}.primus`,
       env: await this.getEnv(),
       role: "client",

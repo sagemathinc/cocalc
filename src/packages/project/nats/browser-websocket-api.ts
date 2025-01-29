@@ -18,6 +18,16 @@ How to do development (so in a dev project doing cc-in-cc dev):
 
      echo 'require("@cocalc/project/client").init(); require("@cocalc/project/nats/browser-websocket-api").init()' | DEBUG=cocalc:* DEBUG_CONSOLE=yes node
 
+Or just run node then paste in
+
+     require("@cocalc/project/client").init(); require("@cocalc/project/nats/browser-websocket-api").init()
+
+A nice thing about doing that is if you write this deep in some code:
+
+      global.x = { t: this };
+
+then after that code runs you can access x from the node console!
+
 4. Use the browser to see the project is on nats and works:
 
     await cc.client.nats_client.projectWebsocketApi({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094', mesg:{cmd:"listing"}})
@@ -33,6 +43,8 @@ import { JSONCodec } from "nats";
 import { project_id } from "@cocalc/project/data";
 import getConnection from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
+import { getPrimusConnection } from "@cocalc/nats/primus";
+import { sha1 } from "@cocalc/backend/sha1";
 
 const logger = getLogger("project:nats:browser-websocket-api");
 
@@ -43,6 +55,12 @@ export async function init() {
   const subject = `project.${project_id}.browser-api`;
   logger.debug(`initAPI -- NATS project subject '${subject}'`);
   const sub = nc.subscribe(subject);
+  const primus = getPrimusConnection({
+    subject: `project.${project_id}.primus`,
+    env: { nc, sha1, jc },
+    role: "server",
+    id: "project",
+  });
   for await (const mesg of sub) {
     const data = jc.decode(mesg.data) ?? ({} as any);
     if (data.cmd == "terminate") {
@@ -52,17 +70,15 @@ export async function init() {
       mesg.respond(jc.encode({ exiting: true }));
       return;
     }
-    handleRequest(data, mesg);
+    handleRequest({ data, mesg, primus });
   }
 }
 
-async function handleRequest(data, mesg) {
+async function handleRequest({ data, mesg, primus }) {
   let resp;
   logger.debug("received cmd:", data?.cmd);
-  const spark = {} as any;
-  const primus = {} as any;
   try {
-    resp = await handleApiCall({ data, spark, primus });
+    resp = await handleApiCall({ data, spark: {} as any, primus });
   } catch (err) {
     resp = { error: `${err}` };
   }

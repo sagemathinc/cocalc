@@ -45,6 +45,26 @@ export type Role = "client" | "server";
 // function otherRole(role: Role): Role {
 //   return role == "client" ? "server" : "client";
 // }
+interface PrimusOptions {
+  subject: string;
+  channelName?: string;
+  env: NatsEnv;
+  role: Role;
+  id: string;
+}
+
+const connections: { [key: string]: Primus } = {};
+export function getPrimusConnection(opts: PrimusOptions): Primus {
+  const key = getKey(opts);
+  if (connections[key] == null) {
+    connections[key] = new Primus(opts);
+  }
+  return connections[key];
+}
+
+function getKey({ subject, channelName, role, id }: PrimusOptions) {
+  return JSON.stringify({ subject, channelName, role, id });
+}
 
 function getSubjects({ subject, id, channel, sha1 }) {
   // NOTE: when channel is set its sha1 is added as a last
@@ -54,7 +74,7 @@ function getSubjects({ subject, id, channel, sha1 }) {
     //           server they are connecting via this
     control: `${subject}.control`,
     // server =  a server spark listens on server and client
-    //           publishes to server
+    //           publishes to server with their id
     server: `${subject}.server.${id}`,
     // client =  client connection listens on this and
     //           server spark writes to it
@@ -89,20 +109,11 @@ export class Primus extends EventEmitter {
     clientChannel: string;
     serverChannel: string;
   };
+  // this is just for compat with primus api:
+  address = { ip: "" };
+  conn: { id: string };
 
-  constructor({
-    subject,
-    channelName = "",
-    env,
-    role,
-    id,
-  }: {
-    subject: string;
-    channelName?: string;
-    env: NatsEnv;
-    role: Role;
-    id: string;
-  }) {
+  constructor({ subject, channelName = "", env, role, id }: PrimusOptions) {
     super();
 
     this.subject = subject;
@@ -110,6 +121,7 @@ export class Primus extends EventEmitter {
     this.env = env;
     this.role = role;
     this.id = id;
+    this.conn = { id };
     this.subjects = getSubjects({
       subject,
       id,
@@ -125,6 +137,12 @@ export class Primus extends EventEmitter {
       this.subscribeChannel();
     }
   }
+
+  forEach = (f: (spark, id) => void) => {
+    for (const id in this.sparks) {
+      f(this.sparks[id], id);
+    }
+  };
 
   destroy = () => {
     // todo
@@ -189,9 +207,9 @@ export class Primus extends EventEmitter {
       }
       subject = this.subjects.clientChannel;
     } else {
-      subject = this.subjects.serverChannel;
+      subject = this.subjects.server;
     }
-    this.env.nc.publish(subject, this.env.jc.encode({ data }));
+    this.env.nc.publish(subject, this.env.jc.encode(data));
   };
 
   channel = (channelName: string) => {
@@ -210,12 +228,16 @@ export class Spark extends EventEmitter {
   primus: Primus;
   id: string;
   subjects;
+  // this is just for compat with primus api:
+  address = { ip: "" };
+  conn: { id: string };
 
   constructor({ primus, id }) {
     super();
     this.primus = primus;
     const { subject, channelName } = primus;
     this.id = id;
+    this.conn = { id };
     this.subjects = getSubjects({
       subject,
       id,
@@ -228,7 +250,7 @@ export class Spark extends EventEmitter {
   private init = async () => {
     const sub = this.primus.env.nc.subscribe(this.subjects.server);
     for await (const mesg of sub) {
-      const { data } = this.primus.env.jc.decode(mesg.data) ?? ({} as any);
+      const data = this.primus.env.jc.decode(mesg.data);
       this.emit("data", data);
     }
   };
@@ -236,7 +258,7 @@ export class Spark extends EventEmitter {
   write = (data) => {
     this.primus.env.nc.publish(
       this.subjects.client,
-      this.primus.env.jc.encode({ data }),
+      this.primus.env.jc.encode(data),
     );
   };
 

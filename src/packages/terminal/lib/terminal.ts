@@ -56,6 +56,8 @@ export class Terminal {
     this.options = { command: DEFAULT_COMMAND, ...options };
     this.path = path;
     this.channel = primus.channel(getChannelName(path));
+    console.log(this.channel);
+    global.x = { t: this };
     this.channel.on("connection", this.handleClientConnection);
     this.remotePtyChannel = primus.channel(getRemotePtyChannelName(path));
     this.remotePtyChannel.on("connection", (conn) => {
@@ -534,7 +536,7 @@ export class Terminal {
     spark,
     data: string | ClientCommand,
   ) => {
-    //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+    //logger.debug("terminal: browser --> term", JSON.stringify(data));
     if (typeof data === "string") {
       this.writeToPty(data);
     } else if (typeof data === "object") {

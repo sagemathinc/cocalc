@@ -36,7 +36,7 @@ export class API {
   private project_id: string;
   private cachedVersion?: number;
 
-  constructor(conn: string, project_id: string) {
+  constructor(conn, project_id: string) {
     this.conn = conn;
     this.project_id = project_id;
     this.listing = reuseInFlight(this.listing.bind(this));
@@ -55,6 +55,11 @@ export class API {
       mesg,
       timeout,
     });
+  };
+
+  private getChannel = async (channel_name: string) => {
+    const natsConn = await webapp_client.nats_client.primus(this.project_id);
+    return natsConn.channel(channel_name);
   };
 
   call = async (mesg: Mesg, timeout: number) => {
@@ -267,29 +272,16 @@ export class API {
   };
 
   terminal = async (path: string, options: object = {}): Promise<Channel> => {
-    const channel_name = await this.primusCall(
+    const channel_name = await this.call(
       {
         cmd: "terminal",
-        path: path,
+        path,
         options,
       },
-      60000,
+      20000,
     );
-    //console.log(path, "got terminal channel", channel_name);
-    return this.conn.channel(channel_name);
+    return await this.getChannel(channel_name) as unknown as Channel;
   };
-
-//   terminal1 = async (path: string, options: object = {}): Promise<Channel> => {
-//     const subjects = await this.call(
-//       {
-//         cmd: "terminal",
-//         path,
-//         options,
-//       },
-//       20000,
-//     );
-//     //return (await webapp_client.nats_client.createSocket(subjects)) as any;
-//   };
 
   project_info = async (): Promise<Channel> => {
     const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
