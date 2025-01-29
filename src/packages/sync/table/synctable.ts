@@ -17,6 +17,10 @@ ways of orchestrating a SyncTable.
 // info about every get/set
 let DEBUG: boolean = false;
 
+// enable experimental nats database backed changefeed.
+// for this to work you must explicitly run the server in @cocalc/database/nats
+const USE_NATS = false;
+
 export function set_debug(x: boolean): void {
   DEBUG = x;
 }
@@ -730,7 +734,7 @@ export class SyncTable extends EventEmitter {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
-      if (this.client.is_browser() && !this.project_id) {
+      if (USE_NATS && this.client.is_browser() && !this.project_id) {
         this.changefeed = new NatsChangefeed({
           client: this.client,
           query: this.query,

@@ -19,6 +19,8 @@ EVENTS:
 - ... TODO
 */
 
+const USE_NATS = false;
+
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
    extra work to ensure that all snapshots are up to date (in
@@ -275,7 +277,7 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
-    this.useNats = this.path.startsWith("nats/");
+    this.useNats = USE_NATS && this.path.startsWith("nats/");
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether
