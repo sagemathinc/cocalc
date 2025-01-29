@@ -400,6 +400,7 @@ chown 2001:2001 /ephemeral
 docker run \
  -d \
  --name=filesystem \
+ --security-opt no-new-privileges=false \
  --privileged \
  --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
  --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
@@ -486,6 +487,7 @@ if [ $? -ne 0 ]; then
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
+   --security-opt no-new-privileges=false \
    --privileged \
    --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
    --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
