@@ -30,7 +30,8 @@
     "tidyverse",
     "timetravel",
     "undelete",
-    "undeleting"
+    "undeleting",
+    "tolerations"
   ],
   "ignoreWords": [
     "antd",
