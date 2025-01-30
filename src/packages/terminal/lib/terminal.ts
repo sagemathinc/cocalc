@@ -56,8 +56,6 @@ export class Terminal {
     this.options = { command: DEFAULT_COMMAND, ...options };
     this.path = path;
     this.channel = primus.channel(getChannelName(path));
-    console.log(this.channel);
-    global.x = { t: this };
     this.channel.on("connection", this.handleClientConnection);
     this.remotePtyChannel = primus.channel(getRemotePtyChannelName(path));
     this.remotePtyChannel.on("connection", (conn) => {

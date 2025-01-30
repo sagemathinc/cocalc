@@ -11,7 +11,7 @@ extra support for being connected to:
   - frame-editor (via actions)
 */
 
-const USE_NATS = false;
+const USE_NATS = true;
 
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
@@ -301,7 +301,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   async connect(): Promise<void> {
-    if (USE_NATS && this.path.startsWith("nats/")) {
+    if (USE_NATS) {
       return await this.connectNats();
     }
     this.assert_not_closed();

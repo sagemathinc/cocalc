@@ -108,8 +108,13 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     throw Error("must be a valid uuid");
   }
   const userType = getCoCalcUserType(cocalcUser);
-  const goalPub = new Set(["_INBOX.>", `hub.${userType}.${userId}.>`]);
-  const goalSub = new Set(["_INBOX.>"]);
+  // TODO: jetstream permissions are WAY TO BROAD. 
+  const goalPub = new Set([
+    "_INBOX.>",
+    `hub.${userType}.${userId}.>`,
+    "$JS.API.>",
+  ]);
+  const goalSub = new Set(["_INBOX.>", "$JS.API.>"]);
 
   if (userType == "account") {
     goalSub.add(`$KV.account-${userId}.>`);
