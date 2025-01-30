@@ -87,7 +87,8 @@ export function init() {
 
 export function getClient(): Client {
   if (client == null) {
-    throw Error("BUG: Client not initialized!");
+    init();
+    //throw Error("BUG: Client not initialized!");
   }
   return client;
 }
