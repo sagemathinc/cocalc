@@ -23,7 +23,7 @@ that get used in testing.
 
 import { copy, is_array, startswith } from "@cocalc/util/misc";
 import { state_to_value } from "./cell-types";
-import type { JupyterNotebook, Cell } from "@cocalc/jupyter/nbgrader/types";
+import type { JupyterNotebook, Cell } from "@cocalc/util/jupyter/nbgrader-types";
 
 export function create_autograde_ipynb(
   instructor_ipynb: string,

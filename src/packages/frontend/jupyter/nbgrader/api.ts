@@ -10,7 +10,7 @@ import type {
   NBGraderAPIOptions,
   NBGraderAPIResponse,
   RunNotebookOptions,
-} from "@cocalc/jupyter/nbgrader/types";
+} from "@cocalc/util/jupyter/nbgrader-types";
 export type { NBGraderAPIOptions, RunNotebookOptions };
 
 export async function nbgrader(

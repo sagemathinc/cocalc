@@ -76,7 +76,7 @@ import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
-import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";

@@ -37,13 +37,19 @@ import type {
   Options,
 } from "@cocalc/util/code-formatter";
 export type { Config, Options, FormatterSyntax };
+import { getLogger } from "@cocalc/backend/logger";
+import { getClient } from "@cocalc/project/client";
 
-export async function run_formatter(
-  client: any,
-  path: string,
-  options: Options,
-  logger: any,
-): Promise<object> {
+const logger = getLogger("project:formatters");
+
+export async function run_formatter({
+  path,
+  options,
+}: {
+  path: string;
+  options: Options;
+}): Promise<object> {
+  const client = getClient();
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   const syncstring = client.syncdoc({ path });
   if (syncstring == null || syncstring.get_state() == "closed") {
@@ -63,7 +69,7 @@ export async function run_formatter(
     [input, math] = remove_math(math_escape(input));
   }
   try {
-    formatted = await run_formatter_string(path, input, options, logger);
+    formatted = await run_formatter_string({ path, str: input, options });
   } catch (err) {
     logger.debug(`run_formatter error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
@@ -78,13 +84,17 @@ export async function run_formatter(
   return { status: "ok", patch };
 }
 
-export async function run_formatter_string(
-  path: string | undefined,
-  input: string,
-  options: Options,
-  logger: any,
-): Promise<string> {
+export async function run_formatter_string({
+  options,
+  str,
+  path,
+}: {
+  str: string;
+  options: Options;
+  path?: string; // only used for CLANG
+}): Promise<string> {
   let formatted;
+  const input = str;
   logger.debug(`run_formatter options.parser: "${options.parser}"`);
   switch (options.parser) {
     case "latex":

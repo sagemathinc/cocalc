@@ -1,15 +1,21 @@
 import { type System, system } from "./system";
 import { type Terminal, terminal } from "./terminal";
-import { handleErrorMessage} from "@cocalc/nats/util";
+import { type Editor, editor } from "./editor";
+import { type Sync, sync } from "./sync";
+import { handleErrorMessage } from "@cocalc/nats/util";
 
 export interface ProjectApi {
   system: System;
   terminal: Terminal;
+  editor: Editor;
+  sync: Sync;
 }
 
 const ProjectApiStructure = {
   system,
   terminal,
+  editor,
+  sync,
 } as const;
 
 export function initProjectApi(callProjectApi): ProjectApi {

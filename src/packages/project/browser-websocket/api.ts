@@ -139,10 +139,10 @@ export async function handleApiCall({
       return await get_configuration(data.aspect, data.no_cache);
     case "prettier": // deprecated
     case "formatter":
-      return await run_formatter(client, data.path, data.options, log);
+      return await run_formatter(data);
     case "prettier_string": // deprecated
     case "formatter_string":
-      return await run_formatter_string(data.path, data.str, data.options, log);
+      return await run_formatter_string(data);
     case "exec":
       if (data.opts == null) {
         throw Error("opts must not be null");
@@ -161,13 +161,12 @@ export async function handleApiCall({
     case "terminal":
       return await terminal(primus, data.path, data.options);
 
-
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
     case "jupyter_nbconvert":
       return await jupyter_nbconvert(data.opts);
     case "jupyter_run_notebook":
-      return await jupyter_run_notebook(log, data.opts);
+      return await jupyter_run_notebook(data.opts);
 
     case "lean":
       return await lean(client, primus, log, data.opts);
@@ -176,7 +175,7 @@ export async function handleApiCall({
 
     case "x11_channel":
       return await x11_channel(client, primus, log, data.path, data.display);
-    
+
     case "synctable_channel":
       return await synctable_channel(
         client,
@@ -189,19 +188,21 @@ export async function handleApiCall({
       return await syncdoc_call(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
-      
-      
+
     case "project_info":
       return await project_info_ws(primus, log);
+
+    // compute server
+
     case "compute_filesystem_cache":
       return await computeFilesystemCache(data.opts);
     case "sync_fs":
       return await handleSyncFsApiCall(data.opts);
-      
+
     case "compute_server_sync_register":
       // register filesystem container
       return await handleComputeServerSyncRegister(data.opts, spark);
-      
+
     case "compute_server_compute_register":
       // register compute container
       return await handleComputeServerComputeRegister(data.opts, spark);

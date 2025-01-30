@@ -1,4 +1,3 @@
-
 export interface NBGraderAPIOptions {
   // Project will try to evaluate/autograde for this many milliseconds;
   // if time is exceeded, all additional problems fail and what we graded
@@ -36,7 +35,6 @@ export interface NBGraderAPIResponse {
   ids: string[];
 }
 
-
 export interface RunNotebookLimits {
   max_output?: number; // any output that pushes the total length beyond this many characters is ignored.
   max_output_per_cell?: number; // any output that pushes a single cell's output beyond this many characters is ignored.
@@ -45,12 +43,13 @@ export interface RunNotebookLimits {
 }
 
 export interface RunNotebookOptions {
+  // where to run it
   path: string;
+  // contents of the ipynb file (NOT THE PATH)
   ipynb: string;
   nbgrader?: boolean; // if true, only record outputs for nbgrader autograder cells (all cells are run, but only these get output)
   limits?: RunNotebookLimits;
 }
-
 
 // Enough description of what a Jupyter notebook is for our purposes here.
 export interface Cell {
