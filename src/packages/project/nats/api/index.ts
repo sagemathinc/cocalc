@@ -36,25 +36,31 @@ if you want to easily be able to grab some state, e.g., global.x = {...} in some
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { type ProjectApi } from "@cocalc/nats/project-api";
-import { getConnection } from "@cocalc/backend/nats";
+import getConnection from "@cocalc/project/nats/connection";
 import { project_id } from "@cocalc/project/data";
 
 const logger = getLogger("project:nats:api");
-
 const jc = JSONCodec();
 
 export async function init() {
   const subject = `project.${project_id}.api`;
-  logger.debug(`initAPI -- subject='${subject}', options=`, {
-    queue: "0",
-  });
+  logger.debug(`initAPI -- subject='${subject}'`);
   const nc = await getConnection();
-  const sub = nc.subscribe(subject, { queue: "0" });
-  for await (const mesg of sub) {
+  const subscription = nc.subscribe(subject);
+  logger.debug(`initAPI -- subscribed to subject='${subject}'`);
+  listen(subscription, subject);
+}
+
+async function listen(subscription, subject) {
+  for await (const mesg of subscription) {
     const request = jc.decode(mesg.data) ?? ({} as any);
-    if (request.name == "terminate") {
+    // logger.debug("got message", request);
+    if (request.name == "system.terminate") {
       // special hook so admin can terminate handling. This is useful for development.
+      console.warn("TERMINATING listening on ", subject);
+      logger.debug("TERMINATING listening on ", subject);
       mesg.respond(jc.encode({ status: "terminating" }));
+      subscription.close();
       return;
     }
     handleApiRequest(request, mesg);
@@ -74,9 +80,11 @@ async function handleApiRequest(request, mesg) {
 }
 
 import * as system from "./system";
+import * as terminal from "./terminal";
 
 export const projectApi: ProjectApi = {
   system,
+  terminal,
 };
 
 async function getResponse({ name, args }) {

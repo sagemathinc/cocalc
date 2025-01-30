@@ -5,3 +5,14 @@ import generateVouchers from "@cocalc/util/vouchers";
 export function randomId() {
   return generateVouchers({ count: 1, length: 10 })[0];
 }
+
+export function handleErrorMessage(mesg) {
+  if (mesg?.error) {
+    if (mesg.error.startsWith("Error: ")) {
+      throw Error(mesg.error.slice("Error: ".length));
+    } else {
+      throw Error(mesg.error);
+    }
+  }
+  return mesg;
+}

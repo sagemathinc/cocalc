@@ -16,6 +16,7 @@ import { JSONCodec } from "nats";
 import { jetstreamManager } from "@nats-io/jetstream";
 import { getLogger } from "@cocalc/project/logger";
 import { readlink, realpath } from "node:fs/promises";
+import getConnection from "./connection";
 
 const logger = getLogger("server:nats:terminal");
 
@@ -31,7 +32,7 @@ const jc = JSONCodec();
 const sessions: { [name: string]: Session } = {};
 
 export const createTerminal = reuseInFlight(
-  async ({ params, nc }: { params; nc }) => {
+  async (params) => {
     if (params == null) {
       throw Error("params must be specified");
     }
@@ -40,6 +41,7 @@ export const createTerminal = reuseInFlight(
       throw Error("path must be specified");
     }
     if (sessions[path] == null) {
+      const nc = await getConnection();
       sessions[path] = new Session({ path, options, nc });
       await sessions[path].init();
     }
@@ -58,7 +60,6 @@ export async function writeToTerminal({ data, path }: { data; path }) {
     throw Error(`no terminal session '${path}'`);
   }
   await terminal.write(data);
-  return { success: true };
 }
 
 export async function restartTerminal({ path }: { path }) {
@@ -67,7 +68,6 @@ export async function restartTerminal({ path }: { path }) {
     throw Error(`no terminal session '${path}'`);
   }
   await terminal.restart();
-  return { success: true };
 }
 
 export async function terminalCommand({ path, cmd, ...args }) {

@@ -21,6 +21,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private terminalResize;
   private openPaths;
   private closePaths;
+  private project;
 
   constructor({
     project_id,
@@ -44,7 +45,8 @@ export class NatsTerminalConnection extends EventEmitter {
     this.keep = keep;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
-    // move to util so guaranteed in sync with project
+    this.project = webapp_client.nats_client.projectApi({ project_id });
+    // TODO: move to @cocalc/nats (?) so guaranteed in sync with project
     this.subject = `project.${project_id}.terminal.${sha1(path)}`;
     this.cmd_subject = `project.${project_id}.terminal-cmd.${sha1(path)}`;
   }
@@ -73,18 +75,14 @@ export class NatsTerminalConnection extends EventEmitter {
           return;
         }
       }
-      await webapp_client.nats_client.project({
-        project_id: this.project_id,
-        endpoint: "terminal-command",
-        params: { path: this.path, ...data, client },
-      });
+      await this.project.terminal.command({ path: this.path, ...data, client });
       return;
     }
     const f = async () => {
-      await webapp_client.nats_client.project({
-        project_id: this.project_id,
-        endpoint: "write-to-terminal",
-        params: { path: this.path, data, keep: this.keep },
+      await this.project.terminal.write({
+        path: this.path,
+        data,
+        keep: this.keep,
       });
     };
 
@@ -103,11 +101,7 @@ export class NatsTerminalConnection extends EventEmitter {
 
   private start = reuseInFlight(async () => {
     // ensure running:
-    await webapp_client.nats_client.project({
-      project_id: this.project_id,
-      endpoint: "create-terminal",
-      params: { path: this.path },
-    });
+    await this.project.terminal.create({ path: this.path });
   });
 
   private getConsumer = async () => {

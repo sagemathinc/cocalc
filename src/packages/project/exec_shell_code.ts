@@ -11,7 +11,7 @@ import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import * as message from "@cocalc/util/message";
 import { getLogger } from "./logger";
 import execCode from "@cocalc/project/browser-websocket/exec-code";
-import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
+import type { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 
 const { debug: D } = getLogger("exec_shell_code");
 

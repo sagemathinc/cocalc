@@ -1,11 +1,15 @@
 import { type System, system } from "./system";
+import { type Terminal, terminal } from "./terminal";
+import { handleErrorMessage} from "@cocalc/nats/util";
 
 export interface ProjectApi {
   system: System;
+  terminal: Terminal;
 }
 
 const ProjectApiStructure = {
   system,
+  terminal,
 } as const;
 
 export function initProjectApi(callProjectApi): ProjectApi {
@@ -16,10 +20,12 @@ export function initProjectApi(callProjectApi): ProjectApi {
     }
     for (const functionName in ProjectApiStructure[group]) {
       projectApi[group][functionName] = async (...args) =>
-        await callProjectApi({
-          name: `${group}.${functionName}`,
-          args,
-        });
+        handleErrorMessage(
+          await callProjectApi({
+            name: `${group}.${functionName}`,
+            args,
+          }),
+        );
     }
   }
   return projectApi as ProjectApi;
