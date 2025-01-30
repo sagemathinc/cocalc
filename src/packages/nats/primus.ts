@@ -39,8 +39,11 @@ s9.sparks['cb'].write('blah')
 
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/sync/synctable-kv";
+import { delay } from "awaiting";
 
 export type Role = "client" | "server";
+
+const PING_INTERVAL = 10000;
 
 // function otherRole(role: Role): Role {
 //   return role == "client" ? "server" : "client";
@@ -94,6 +97,8 @@ function getSubjects({ subject, id, channel, sha1 }) {
   return subjects;
 }
 
+type State = "ready" | "closed";
+
 export class Primus extends EventEmitter {
   subject: string;
   channelName: string;
@@ -112,6 +117,11 @@ export class Primus extends EventEmitter {
   // this is just for compat with primus api:
   address = { ip: "" };
   conn: { id: string };
+  subs: any[] = [];
+  OPEN = 1;
+  CLOSE = 0;
+  readyState: 0;
+  state: State = "ready";
 
   constructor({ subject, channelName = "", env, role, id }: PrimusOptions) {
     super();
@@ -131,7 +141,7 @@ export class Primus extends EventEmitter {
     if (role == "server") {
       this.serve();
     } else {
-      this.connect();
+      this.client();
     }
     if (this.channelName) {
       this.subscribeChannel();
@@ -145,17 +155,42 @@ export class Primus extends EventEmitter {
   };
 
   destroy = () => {
-    // todo
+    if (this.state == "closed") {
+      return;
+    }
+    this.state = "closed";
+    delete connections[getKey(this)];
+    for (const sub of this.subs) {
+      sub.close();
+    }
+    this.subs = [];
+    for (const id in this.sparks) {
+      this.sparks[id].destroy();
+    }
+    this.sparks = {};
   };
+
+  end = () => this.destroy();
+
+  close = () => this.destroy();
+
+  connect = () => {};
 
   private serve = async () => {
     if (this.role != "server") {
       throw Error("only server can serve");
     }
+    this.deleteSparks();
     const sub = this.env.nc.subscribe(this.subjects.control);
+    this.subs.push(sub);
     for await (const mesg of sub) {
       const data = this.env.jc.decode(mesg.data) ?? ({} as any);
-      if (data.cmd == "connect") {
+      if (data.cmd == "ping") {
+        const spark = this.sparks[data.id];
+        if (spark != null) {
+          spark.lastPing = Date.now();
+        }
+      } else if (data.cmd == "connect") {
         const spark = new Spark({
           primus: this,
           id: data.id,
@@ -167,7 +202,19 @@ export class Primus extends EventEmitter {
     }
   };
 
-  private connect = async () => {
+  private deleteSparks = async () => {
+    while (this.state != "closed") {
+      for (const id in this.sparks) {
+        const spark = this.sparks[id];
+        if (Date.now() - spark.lastPing > PING_INTERVAL * 1.5) {
+          spark.destroy();
+        }
+      }
+      await delay(PING_INTERVAL * 1.5);
+    }
+  };
+
+  private client = async () => {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
@@ -177,11 +224,32 @@ export class Primus extends EventEmitter {
     });
     console.log("connecting...");
     await this.env.nc.publish(this.subjects.control, mesg);
+    this.clientPing();
     console.log("connected:");
     const sub = this.env.nc.subscribe(this.subjects.client);
+    this.subs.push(sub);
     for await (const mesg of sub) {
       const data = this.env.jc.decode(mesg.data) ?? ({} as any);
       this.emit("data", data);
+    }
+  };
+
+  private clientPing = async () => {
+    while (this.state != "closed") {
+      try {
+        await this.env.nc.publish(
+          this.subjects.control,
+          this.env.jc.encode({
+            cmd: "ping",
+            id: this.id,
+          }),
+        );
+      } catch {
+        // if ping fails, connection is not working, so die.
+        this.destroy();
+        return;
+      }
+      await delay(PING_INTERVAL);
     }
   };
 
@@ -191,6 +259,7 @@ export class Primus extends EventEmitter {
         ? this.subjects.clientChannel
         : this.subjects.serverChannel;
     const sub = this.env.nc.subscribe(subject);
+    this.subs.push(sub);
     for await (const mesg of sub) {
       const data = this.env.jc.decode(mesg.data) ?? ({} as any);
       this.emit("data", data);
@@ -210,6 +279,7 @@ export class Primus extends EventEmitter {
       subject = this.subjects.server;
     }
     this.env.nc.publish(subject, this.env.jc.encode(data));
+    return true;
   };
 
   channel = (channelName: string) => {
@@ -228,9 +298,12 @@ export class Spark extends EventEmitter {
   primus: Primus;
   id: string;
   subjects;
+  lastPing = Date.now();
   // this is just for compat with primus api:
   address = { ip: "" };
   conn: { id: string };
+  subs: any[] = [];
+  state: State = "ready";
 
   constructor({ primus, id }) {
     super();
@@ -247,8 +320,23 @@ export class Spark extends EventEmitter {
     this.init();
   }
 
+  destroy = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.state = "closed";
+    for (const sub of this.subs) {
+      sub.close();
+    }
+    this.subs = [];
+    delete this.primus.sparks[this.id];
+  };
+
+  end = () => this.destroy();
+
   private init = async () => {
     const sub = this.primus.env.nc.subscribe(this.subjects.server);
+    this.subs.push(sub);
     for await (const mesg of sub) {
       const data = this.primus.env.jc.decode(mesg.data);
       this.emit("data", data);
@@ -260,9 +348,6 @@ export class Spark extends EventEmitter {
       this.subjects.client,
       this.primus.env.jc.encode(data),
     );
-  };
-
-  destroy = () => {
-    // todo -- maybe call a method on sub created in subscribe?
+    return true;
   };
 }

@@ -59,7 +59,8 @@ export class API {
 
   private getChannel = async (channel_name: string) => {
     const natsConn = await webapp_client.nats_client.primus(this.project_id);
-    return natsConn.channel(channel_name);
+    // TODO -- typing
+    return natsConn.channel(channel_name) as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {
@@ -280,12 +281,12 @@ export class API {
       },
       20000,
     );
-    return await this.getChannel(channel_name) as unknown as Channel;
+    return await this.getChannel(channel_name);
   };
 
   project_info = async (): Promise<Channel> => {
-    const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
-    return this.conn.channel(channel_name);
+    const channel_name = await this.call({ cmd: "project_info" }, 60000);
+    return await this.getChannel(channel_name);
   };
 
   // Get the lean *channel* for the given '.lean' path.

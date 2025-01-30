@@ -1063,6 +1063,9 @@ importers:
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30
+      awaiting:
+        specifier: ^3.0.0
+        version: 3.0.0
       events:
         specifier: 3.3.0
         version: 3.3.0
