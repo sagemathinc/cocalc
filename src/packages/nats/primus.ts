@@ -60,7 +60,10 @@ const connections: { [key: string]: Primus } = {};
 export function getPrimusConnection(opts: PrimusOptions): Primus {
   const key = getKey(opts);
   if (connections[key] == null) {
+    console.log("getPrimus", key, "CREATING", opts);
     connections[key] = new Primus(opts);
+  } else {
+    console.log("getPrimus", key, "already have it", opts);
   }
   return connections[key];
 }
@@ -126,6 +129,12 @@ export class Primus extends EventEmitter {
   constructor({ subject, channelName = "", env, role, id }: PrimusOptions) {
     super();
 
+    console.log("PRIMUS Creating", {
+      subject,
+      id,
+      channel: channelName,
+    });
+
     this.subject = subject;
     this.channelName = channelName;
     this.env = env;
@@ -159,6 +168,7 @@ export class Primus extends EventEmitter {
       return;
     }
     this.state = "closed";
+    console.log("destroy", getKey(this));
     delete connections[getKey(this)];
     for (const sub of this.subs) {
       sub.close();
@@ -283,7 +293,7 @@ export class Primus extends EventEmitter {
   };
 
   channel = (channelName: string) => {
-    return new Primus({
+    return getPrimusConnection({
       subject: this.subject,
       channelName,
       env: this.env,

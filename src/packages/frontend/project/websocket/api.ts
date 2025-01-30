@@ -60,7 +60,7 @@ export class API {
   private getChannel = async (channel_name: string) => {
     const natsConn = await webapp_client.nats_client.primus(this.project_id);
     // TODO -- typing
-    return natsConn.channel(channel_name) as Channel;
+    return natsConn.channel(channel_name) as unknown as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {
