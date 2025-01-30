@@ -36,7 +36,7 @@ To view all requests (and replies) in realtime:
 
 import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
-import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/api/index";
+import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 

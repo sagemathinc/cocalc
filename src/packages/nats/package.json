@@ -4,8 +4,9 @@
   "description": "CoCalc NATS integration code.  Usable by both nodejs and browser.",
   "exports": {
     "./sync/*": "./dist/sync/*.js",
-    "./api": "./dist/api/index.js",
-    "./api/*": "./dist/api/*.js",
+    "./hub-api": "./dist/hub-api/index.js",
+    "./hub-api/*": "./dist/hub-api/*.js",
+    "./project-api": "./dist/project-api/index.js",
     "./*": "./dist/*.js"
   },
   "scripts": {
@@ -15,17 +16,9 @@
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "nats",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "nats", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/nats": "workspace:*",

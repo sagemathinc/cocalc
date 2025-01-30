@@ -10,7 +10,8 @@ import { randomId } from "@cocalc/nats/util";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
-import { type HubApi, initHubApi } from "@cocalc/nats/api/index";
+import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
+import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 
 export class NatsClient {
@@ -71,10 +72,12 @@ export class NatsClient {
     service = "api",
     name,
     args = [],
+    timeout = 5000,
   }: {
     service?: string;
     name: string;
     args: any[];
+    timeout?: number;
   }) => {
     const nc = await this.getConnection();
     const subject = `hub.account.${this.client.account_id}.${service}`;
@@ -84,7 +87,53 @@ export class NatsClient {
         name,
         args,
       }),
-      { timeout: 5000 },
+      { timeout },
+    );
+    return this.jc.decode(resp.data);
+  };
+
+  // Returns api for RPC calls to the project with typescript support!
+  projectApi = ({
+    project_id,
+    timeout,
+  }: {
+    project_id: string;
+    timeout?: number;
+  }): ProjectApi => {
+    const callProjectApi = async ({ name, args }) => {
+      return await this.callProject({
+        project_id,
+        timeout,
+        service: "api",
+        name,
+        args,
+      });
+    };
+    return initProjectApi(callProjectApi);
+  };
+
+  private callProject = async ({
+    service = "api",
+    project_id,
+    name,
+    args = [],
+    timeout = 5000,
+  }: {
+    service?: string;
+    project_id: string;
+    name: string;
+    args: any[];
+    timeout?: number;
+  }) => {
+    const nc = await this.getConnection();
+    const subject = `project.${project_id}.${service}`;
+    const resp = await nc.request(
+      subject,
+      this.jc.encode({
+        name,
+        args,
+      }),
+      { timeout },
     );
     return this.jc.decode(resp.data);
   };
