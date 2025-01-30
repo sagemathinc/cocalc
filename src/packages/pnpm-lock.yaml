@@ -1051,6 +1051,9 @@ importers:
 
   nats:
     dependencies:
+      '@cocalc/comm':
+        specifier: workspace:*
+        version: link:../comm
       '@cocalc/nats':
         specifier: workspace:*
         version: 'link:'

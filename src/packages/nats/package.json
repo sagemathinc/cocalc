@@ -23,6 +23,7 @@
   "dependencies": {
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@cocalc/comm": "workspace:*",
     "@nats-io/jetstream": "3.0.0-36",
     "@nats-io/kv": "3.0.0-30",
     "awaiting": "^3.0.0",

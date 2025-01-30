@@ -148,24 +148,35 @@ export async function handleApiCall({
         throw Error("opts must not be null");
       }
       return await execCode(data.opts);
+    case "realpath":
+      return realpath(data.path);
+
+    // todo: why?
     case "query":
       return await query(client, data.opts);
+    // todo: why?
     case "eval_code":
       return await eval_code(data.code);
+
     case "terminal":
       return await terminal(primus, data.path, data.options);
-    case "lean":
-      return await lean(client, primus, log, data.opts);
+
+
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
     case "jupyter_nbconvert":
       return await jupyter_nbconvert(data.opts);
     case "jupyter_run_notebook":
       return await jupyter_run_notebook(log, data.opts);
+
+    case "lean":
+      return await lean(client, primus, log, data.opts);
     case "lean_channel":
       return await lean_channel(client, primus, log, data.path);
+
     case "x11_channel":
       return await x11_channel(client, primus, log, data.path, data.display);
+    
     case "synctable_channel":
       return await synctable_channel(
         client,
@@ -178,17 +189,19 @@ export async function handleApiCall({
       return await syncdoc_call(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
-    case "realpath":
-      return realpath(data.path);
+      
+      
     case "project_info":
       return await project_info_ws(primus, log);
     case "compute_filesystem_cache":
       return await computeFilesystemCache(data.opts);
     case "sync_fs":
       return await handleSyncFsApiCall(data.opts);
+      
     case "compute_server_sync_register":
       // register filesystem container
       return await handleComputeServerSyncRegister(data.opts, spark);
+      
     case "compute_server_compute_register":
       // register compute container
       return await handleComputeServerComputeRegister(data.opts, spark);

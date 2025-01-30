@@ -3,6 +3,10 @@ import type {
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
+import type {
+  Configuration,
+  ConfigurationAspect,
+} from "@cocalc/comm/project-configuration";
 
 export const system = {
   terminate: true,
@@ -13,6 +17,9 @@ export const system = {
   deleteFiles: true,
   moveFiles: true,
   renameFile: true,
+  canonicalPaths: true,
+
+  configuration: true,
 
   ping: true,
   exec: true,
@@ -31,6 +38,11 @@ export interface System {
   deleteFiles: (opts: { paths: string[] }) => Promise<void>;
   moveFiles: (opts: { paths: string[]; dest: string }) => Promise<void>;
   renameFile: (opts: { src: string; dest: string }) => Promise<void>;
+
+  configuration: (
+    aspect: ConfigurationAspect,
+    no_cache?,
+  ) => Promise<Configuration>;
 
   ping: () => Promise<{ now: number }>;
 
