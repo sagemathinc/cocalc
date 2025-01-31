@@ -23,10 +23,11 @@ export function createSyncTable({
   project_id?: string;
   atomic?: boolean;
   stream?: boolean;
+  immutable?: boolean; // if true for SyncTableKVAtomic, then get/get_one output immutable.js objects
 }) {
   if (stream) {
-    if (atomic) {
-      throw Error("atomic stream not implemented yet");
+    if (!atomic) {
+      throw Error("non-atomic stream not implemented yet");
     }
     return new SyncTableStream({
       query,

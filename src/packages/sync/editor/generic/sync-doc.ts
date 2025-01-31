@@ -1236,11 +1236,11 @@ export class SyncDoc extends EventEmitter {
     dbg("wrote syncstring to db - done.");
   }
 
-  private async synctable(
+  private synctable = async (
     query,
     options: any[],
     throttle_changes?: undefined | number,
-  ): Promise<SyncTable> {
+  ): Promise<SyncTable> => {
     this.assert_not_closed("synctable");
     const dbg = this.dbg("synctable");
     if (!this.ephemeral && this.persistent && this.data_server == "project") {
@@ -1259,6 +1259,17 @@ export class SyncDoc extends EventEmitter {
           path: this.path,
         },
         stream: true,
+        atomic: true,
+      });
+    } else if (this.useNats && query.syncstrings) {
+      synctable = await this.client.synctable_nats(query, {
+        obj: {
+          project_id: this.project_id,
+          path: this.path,
+        },
+        stream: false,
+        atomic: false,
+        immutable: true,
       });
     } else {
       switch (this.data_server) {
@@ -1290,7 +1301,7 @@ export class SyncDoc extends EventEmitter {
     // will crash the entire process.
     synctable.on("error", (error) => dbg("ERROR", error));
     return synctable;
-  }
+  };
 
   private async init_syncstring_table(): Promise<void> {
     const query = {
@@ -1801,11 +1812,7 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     dbg("creating the evaluator and waiting for init");
-    this.evaluator = new Evaluator(
-      this,
-      this.client,
-      this.synctable.bind(this),
-    );
+    this.evaluator = new Evaluator(this, this.client, this.synctable);
     await this.evaluator.init();
     dbg("done");
   }
@@ -1821,7 +1828,7 @@ export class SyncDoc extends EventEmitter {
     this.ipywidgets_state = new IpywidgetsState(
       this,
       this.client,
-      this.synctable.bind(this),
+      this.synctable,
     );
     await this.ipywidgets_state.init();
     dbg("done");

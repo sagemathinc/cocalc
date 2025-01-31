@@ -17,6 +17,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { EventEmitter } from "events";
 import { wait } from "@cocalc/util/async-wait";
 import { throttle } from "lodash";
+import { fromJS, Map } from "immutable";
 
 export function natsKeyPrefix({
   query,
@@ -113,6 +114,7 @@ export class SyncTableKV extends EventEmitter {
   private changedKeys: Set<string> = new Set();
   private specifiedByQuery: { [key: string]: any };
   private singleton?: string;
+  private getHook: Function;
 
   constructor({
     query,
@@ -120,14 +122,17 @@ export class SyncTableKV extends EventEmitter {
     account_id,
     project_id,
     throttleChanges = 100,
+    immutable,
   }: {
     query;
     env: NatsEnv;
     account_id?: string;
     project_id?: string;
     throttleChanges?: number;
+    immutable?: boolean;
   }) {
     super();
+    this.getHook = immutable ? fromJS : (x) => x;
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
     this.jc = env.jc;
@@ -176,25 +181,35 @@ export class SyncTableKV extends EventEmitter {
       for (const k in this.data) {
         result[this.primaryString(this.data[k])] = this.data[k];
       }
-      return result;
+      return this.getHook(result);
     }
-    return this.data[this.getKey(obj)];
+    return this.getHook(this.data[this.getKey(obj)]);
   };
 
   get_one = () => {
     for (const key in this.data) {
-      return this.data[key];
+      return this.getHook(this.data[key]);
     }
   };
 
   set = (obj) => {
+    if (Map.isMap(obj)) {
+      obj = obj.toJS();
+    }
     obj = this.fillInFromQuery(obj);
     const key = this.getKey(obj);
     this.data[key] = { ...this.data[key], ...obj };
     this.setToKv(obj);
   };
 
+  save = async () => {
+    // TODO -- right now it is instantly saving on any change...
+  }
+
   delete = (obj) => {
+    if (Map.isMap(obj)) {
+      obj = obj.toJS();
+    }
     const key = this.getKey(obj);
     delete this.data[key];
     this.deleteFromKv(obj);
