@@ -21,11 +21,26 @@ import { throttle } from "lodash";
 export function natsKeyPrefix({
   query,
   atomic = false,
+  singleton,
 }: {
   query;
   atomic?: boolean;
+  singleton?: string;
 }) {
-  return sha1(jsonStableStringify({ query, atomic }));
+  if (atomic) {
+    if (singleton) {
+      throw Error("not implemented");
+    }
+    return sha1(jsonStableStringify({ query, atomic }));
+  } else {
+    // for non-atomic there's no problem with many different queries with the same primary keys.
+    // we thus just use the table's name
+    let prefix = keys(query)[0];
+    if (singleton) {
+      prefix += "." + singleton;
+    }
+    return prefix;
+  }
 }
 
 export async function getKv({
@@ -68,6 +83,18 @@ export function toKey(x): string | undefined {
   }
 }
 
+function isSingletonQuery(query) {
+  const table = keys(query)[0];
+  const pattern = query[table][0];
+  for (const key of client_db.primary_keys(table)) {
+    if (pattern[key] !== null) {
+      // a primary key is specified, so there can be only one match
+      return true;
+    }
+  }
+  return false;
+}
+
 export class SyncTableKV extends EventEmitter {
   private kv?;
   private nc;
@@ -85,6 +112,7 @@ export class SyncTableKV extends EventEmitter {
   private updateListener?;
   private changedKeys: Set<string> = new Set();
   private specifiedByQuery: { [key: string]: any };
+  private singleton?: string;
 
   constructor({
     query,
@@ -110,11 +138,18 @@ export class SyncTableKV extends EventEmitter {
     );
     const table = keys(query)[0];
     this.table = table;
-    this.natsKeyPrefix = natsKeyPrefix({ query, atomic: false });
-    this.project_id = project_id ?? query[table][0].project_id;
-    this.account_id = account_id ?? query[table][0].account_id;
     this.primaryKeys = client_db.primary_keys(table);
     this.primaryKeysSet = new Set(this.primaryKeys);
+    this.project_id = project_id ?? query[table][0].project_id;
+    this.account_id = account_id ?? query[table][0].account_id;
+    this.singleton = isSingletonQuery(query)
+      ? this.natObjectKey(query[table][0])
+      : undefined;
+    this.natsKeyPrefix = natsKeyPrefix({
+      query,
+      atomic: false,
+      singleton: this.singleton,
+    });
     this.specifiedByQuery = {};
     for (const k in query[table][0]) {
       const v = query[table][0][k];
@@ -284,7 +319,9 @@ export class SyncTableKV extends EventEmitter {
   };
 
   private getKey = (obj, field?: string): string => {
-    const x = `${this.natsKeyPrefix}.${this.natObjectKey(obj)}`;
+    const x = this.singleton
+      ? this.natsKeyPrefix
+      : `${this.natsKeyPrefix}.${this.natObjectKey(obj)}`;
     if (field == null) {
       return x;
     } else {
