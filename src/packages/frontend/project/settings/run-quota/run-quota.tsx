@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore dedi
+
 import { PoweroffOutlined } from "@ant-design/icons";
 import { Table, Typography } from "antd";
 

@@ -330,7 +330,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       if (gpu == null || gpu === false) return;
       const info = process_gpu_quota({ gpu });
       const nodes = info.nodeSelector
-        ? ` on nodes labaled: ${Object.entries(info.nodeSelector)
+        ? ` on nodes labeled: ${Object.entries(info.nodeSelector)
             .map(([key, value]) => `${key}=${value}`)
             .join(", ")}`
         : "";

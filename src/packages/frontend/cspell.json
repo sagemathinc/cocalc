@@ -46,7 +46,10 @@
     "vertexai",
     "vfill",
     "xsmall",
-    "MDLG"
+    "MDLG",
+    "isdir",
+    "mintime",
+    "PoweroffOutlined"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
