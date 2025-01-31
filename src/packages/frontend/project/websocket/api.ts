@@ -333,7 +333,6 @@ export class API {
   };
 
   // TODO!
-
   terminal = async (path: string, options: object = {}): Promise<Channel> => {
     const channel_name = await this.call(
       {
