@@ -17,13 +17,13 @@ export const system = {
   deleteFiles: true,
   moveFiles: true,
   renameFile: true,
+  realpath: true,
   canonicalPaths: true,
 
   configuration: true,
 
   ping: true,
   exec: true,
-  realpath: true,
 };
 
 export interface System {
@@ -38,6 +38,8 @@ export interface System {
   deleteFiles: (opts: { paths: string[] }) => Promise<void>;
   moveFiles: (opts: { paths: string[]; dest: string }) => Promise<void>;
   renameFile: (opts: { src: string; dest: string }) => Promise<void>;
+  realpath: (path: string) => Promise<string>;
+  canonicalPaths: (paths: string[]) => Promise<string[]>;
 
   configuration: (
     aspect: ConfigurationAspect,
@@ -48,5 +50,4 @@ export interface System {
 
   exec: (opts: ExecuteCodeOptions) => Promise<ExecuteCodeOutput>;
 
-  realpath: (path: string) => Promise<string>;
 }

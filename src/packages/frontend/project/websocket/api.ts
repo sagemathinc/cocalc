@@ -19,6 +19,7 @@ import {
 import type {
   Config as FormatterConfig,
   Options as FormatterOptions,
+  FormatResult,
 } from "@cocalc/util/code-formatter";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
@@ -31,6 +32,10 @@ import type {
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { type ProjectApi } from "@cocalc/nats/project-api";
+import type {
+  ExecuteCodeOutput,
+  ExecuteCodeOptions,
+} from "@cocalc/util/types/execute-code";
 
 export class API {
   private conn;
@@ -49,7 +54,7 @@ export class API {
 
   private getApi = ({
     compute_server_id = 0,
-    timeout = 5000,
+    timeout = 15000,
   }: {
     compute_server_id?: number;
     timeout?: number;
@@ -119,10 +124,8 @@ export class API {
     dest: string,
     compute_server_id?: number,
   ): Promise<void> => {
-    return await this.call(
-      { cmd: "move_files", paths, dest, compute_server_id },
-      60000,
-    );
+    const api = this.getApi({ compute_server_id, timeout: 60000 });
+    return await api.system.moveFiles({ paths, dest });
   };
 
   // Rename the file src to be the file dest.  The dest may be
@@ -134,10 +137,8 @@ export class API {
     dest: string,
     compute_server_id?: number,
   ): Promise<void> => {
-    return await this.call(
-      { cmd: "rename_file", src, dest, compute_server_id },
-      30000,
-    );
+    const api = this.getApi({ compute_server_id, timeout: 60000 });
+    return await api.system.renameFile({ src, dest });
   };
 
   listing = async (
@@ -146,10 +147,8 @@ export class API {
     timeout: number = 15000,
     compute_server_id: number = 0,
   ): Promise<DirectoryListingEntry[]> => {
-    return await this.call(
-      { cmd: "listing", path, hidden, compute_server_id },
-      timeout,
-    );
+    const api = this.getApi({ compute_server_id, timeout });
+    return await api.system.listing({ path, hidden });
   };
 
   /* Normalize the given paths relative to the HOME directory.
@@ -157,23 +156,46 @@ export class API {
      it one that can be opened properly with our file editor,
      and the path appears to be to a file *in* the HOME directory.
   */
-  canonical_path = async (path: string): Promise<string> => {
-    const v = await this.canonical_paths([path]);
+  canonical_path = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<string> => {
+    const v = await this.canonical_paths([path], compute_server_id);
     const x = v[0];
     if (typeof x != "string") {
       throw Error("bug in canonical_path");
     }
     return x;
   };
-  canonical_paths = async (paths: string[]): Promise<string[]> => {
-    return await this.call({ cmd: "canonical_paths", paths }, 15000);
+  canonical_paths = async (
+    paths: string[],
+    compute_server_id?: number,
+  ): Promise<string[]> => {
+    const api = this.getApi({ compute_server_id });
+    return await api.system.canonicalPaths(paths);
   };
 
   configuration = async (
     aspect: ConfigurationAspect,
     no_cache = false,
+    compute_server_id: number = 0,
   ): Promise<Configuration> => {
-    return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
+    const api = this.getApi({ compute_server_id });
+    return await api.system.configuration(aspect, no_cache);
+  };
+
+  private homeDirectory: { [key: string]: string } = {};
+  getHomeDirectory = async (compute_server_id: number = 0) => {
+    const key = `${compute_server_id}`;
+    if (this.homeDirectory[key] == null) {
+      const { capabilities } = await this.configuration(
+        "main",
+        false,
+        compute_server_id,
+      );
+      this.homeDirectory[key] = capabilities.homeDirectory as string;
+    }
+    return this.homeDirectory[key]!;
   };
 
   // use the returned FormatterOptions for the API formatting call!
@@ -221,59 +243,96 @@ export class API {
   // We return a patch rather than the entire file, since often
   // the file is very large, but the formatting is tiny.  This is purely
   // a data compression technique.
-  formatter = async (path: string, config: FormatterConfig): Promise<any> => {
+  formatter = async (
+    path: string,
+    config: FormatterConfig,
+    compute_server_id?: number,
+  ): Promise<FormatResult> => {
     const options: FormatterOptions = this.check_formatter_available(config);
-    // TODO change this to "formatter" at some point in the future (Sep 2020)
-    return await this.call({ cmd: "prettier", path: path, options }, 15000);
+    const api = this.getApi({ compute_server_id });
+    const { result } = await api.editor.formatter({ path, options });
+    return result;
   };
 
   formatter_string = async (
     str: string,
     config: FormatterConfig,
-    timeout_ms: number = 15000,
+    timeout: number = 15000,
+    compute_server_id?: number,
   ): Promise<any> => {
     const options: FormatterOptions = this.check_formatter_available(config);
-    // TODO change this to "formatter_string" at some point in the future (Sep 2020)
-    return await this.call(
-      {
-        cmd: "prettier_string",
-        str,
-        options,
-      },
-      timeout_ms,
-    );
+    const api = this.getApi({ compute_server_id, timeout });
+    return await api.editor.formatterString({ str, options });
   };
 
-  jupyter = async (
-    path: string,
-    endpoint: string,
-    query: any = undefined,
-    timeout_ms: number = 20000,
-  ): Promise<any> => {
-    return await this.call(
-      { cmd: "jupyter", path, endpoint, query },
-      timeout_ms,
-    );
-  };
-
-  exec = async (opts: any): Promise<any> => {
+  exec = async (opts: ExecuteCodeOptions): Promise<ExecuteCodeOutput> => {
     let timeout_ms = 10000;
     if (opts.timeout) {
+      // its in seconds :-(
       timeout_ms = opts.timeout * 1000 + 2000;
     }
-    return await this.call({ cmd: "exec", opts }, timeout_ms);
+    // we explicitly remove compute_server_id since we don't need
+    // to pass that to opts, since exec is not proxied anymore through the project.
+    const { compute_server_id, ...options } = opts;
+    const api = this.getApi({
+      compute_server_id,
+      timeout: timeout_ms,
+    });
+    return await api.system.exec(options);
   };
 
-  eval_code = async (
-    code: string,
-    timeout_ms: number = 20000,
+  realpath = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<string> => {
+    const api = this.getApi({ compute_server_id });
+    return await api.system.realpath(path);
+  };
+
+  // Convert a notebook to some other format.
+  // --to options are listed in packages/frontend/jupyter/nbconvert.tsx
+  // and implemented in packages/project/jupyter/convert/index.ts
+  jupyter_nbconvert = async (
+    opts: NbconvertParams,
+    compute_server_id?: number,
   ): Promise<any> => {
-    return await this.call({ cmd: "eval_code", code }, timeout_ms);
+    const api = this.getApi({
+      compute_server_id,
+      timeout: (opts.timeout ?? 60) * 1000 + 5000,
+    });
+    return await api.editor.jupyterNbconvert(opts);
   };
 
-  realpath = async (path: string): Promise<string> => {
-    return await this.call({ cmd: "realpath", path }, 15000);
+  // Get contents of an ipynb file, but with output and attachments removed (to save space)
+  jupyter_strip_notebook = async (
+    ipynb_path: string,
+    compute_server_id?: number,
+  ): Promise<any> => {
+    const api = this.getApi({ compute_server_id });
+    return await api.editor.jupyterStripNotebook(ipynb_path);
   };
+
+  // Run the notebook filling in the output of all cells, then return the
+  // result as a string.  Note that the output size (per cell and total)
+  // and run time is bounded to avoid the output being HUGE, even if the
+  // input is dumb.
+
+  jupyter_run_notebook = async (
+    opts: RunNotebookOptions,
+    compute_server_id?: number,
+  ): Promise<string> => {
+    const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
+    // a bit of extra time -- it's better to let the internal project
+    // timer do the job, than have to wait for this generic timeout here,
+    // since we want to at least get output for problems that ran.
+    const api = this.getApi({
+      compute_server_id,
+      timeout: 60 + 2 * max_total_time_ms,
+    });
+    return await api.editor.jupyterRunNotebook(opts);
+  };
+
+  // TODO!
 
   terminal = async (path: string, options: object = {}): Promise<Channel> => {
     const channel_name = await this.call(
@@ -353,40 +412,6 @@ export class API {
     return await this.call({ cmd: "lean", opts }, timeout_ms);
   };
 
-  // Convert a notebook to some other format.
-  // --to options are listed in packages/frontend/jupyter/nbconvert.tsx
-  // and implemented in packages/project/jupyter/convert/index.ts
-  jupyter_nbconvert = async (opts: NbconvertParams): Promise<any> => {
-    return await this.call(
-      { cmd: "jupyter_nbconvert", opts },
-      (opts.timeout ?? 60) * 1000 + 5000,
-    );
-  };
-
-  // Get contents of an ipynb file, but with output and attachments removed (to save space)
-  jupyter_strip_notebook = async (ipynb_path: string): Promise<any> => {
-    return await this.call(
-      { cmd: "jupyter_strip_notebook", ipynb_path },
-      15000,
-    );
-  };
-
-  // Run the notebook filling in the output of all cells, then return the
-  // result as a string.  Note that the output size (per cell and total)
-  // and run time is bounded to avoid the output being HUGE, even if the
-  // input is dumb.
-
-  jupyter_run_notebook = async (opts: RunNotebookOptions): Promise<string> => {
-    const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
-    return await this.call(
-      { cmd: "jupyter_run_notebook", opts },
-      60 + 2 * max_total_time_ms,
-      // a bit of extra time -- it's better to let the internal project
-      // timer do the job, than have to wait for this generic timeout here,
-      // since we want to at least get output for problems that ran.
-    );
-  };
-
   // I think this isn't used.  It was going to support
   // sync_channel, but obviously a more nuanced protocol
   // was required.
@@ -399,19 +424,6 @@ export class API {
       30000,
     );
     return this.conn.channel(channel_name);
-  };
-
-  // Do a database query, but via the project.  This has the project
-  // do the query, so the identity used to access the database is that
-  // of the project.  This isn't useful in the browser, where the user
-  // always has more power to directly use the database.  It is *is*
-  // very useful when using a project-specific api key.
-  query = async (opts: any): Promise<any> => {
-    if (opts.timeout == null) {
-      opts.timeout = 30;
-    }
-    const timeout_ms = opts.timeout * 1000 + 2000;
-    return await this.call({ cmd: "query", opts }, timeout_ms);
   };
 
   computeServerSyncRequest = async (compute_server_id: number) => {

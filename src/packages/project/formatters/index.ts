@@ -35,6 +35,7 @@ import type {
   Syntax as FormatterSyntax,
   Config,
   Options,
+  FormatResult,
 } from "@cocalc/util/code-formatter";
 export type { Config, Options, FormatterSyntax };
 import { getLogger } from "@cocalc/backend/logger";
@@ -48,7 +49,7 @@ export async function run_formatter({
 }: {
   path: string;
   options: Options;
-}): Promise<object> {
+}): Promise<FormatResult> {
   const client = getClient();
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   const syncstring = client.syncdoc({ path });

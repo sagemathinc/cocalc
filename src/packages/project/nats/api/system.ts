@@ -49,3 +49,6 @@ export async function renameFile({ src, dest }: { src: string; dest: string }) {
 
 import { get_configuration } from "@cocalc/project/configuration";
 export { get_configuration as configuration };
+
+import { canonical_paths } from "../../browser-websocket/canonical-path";
+export { canonical_paths as canonicalPaths };

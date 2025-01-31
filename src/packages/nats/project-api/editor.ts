@@ -1,6 +1,9 @@
 import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { RunNotebookOptions } from "@cocalc/util/jupyter/nbgrader-types";
-import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
+import type {
+  Options as FormatterOptions,
+  FormatResult,
+} from "@cocalc/util/code-formatter";
 
 export const editor = {
   jupyterStripNotebook: true,
@@ -20,7 +23,7 @@ export interface Editor {
   formatter: (opts: {
     path: string;
     options: FormatterOptions;
-  }) => Promise<object>;
+  }) => Promise<{ result: FormatResult }>;
 
   formatterString: (opts: {
     str: string;

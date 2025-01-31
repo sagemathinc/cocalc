@@ -133,7 +133,7 @@ export async function formatter(
   const resp = await api.formatter(path, config);
 
   if (resp.status === "error") {
-    const loc = resp.error.loc;
+    const loc = resp.error?.loc;
     if (loc && loc.start) {
       throw Error(
         `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
