@@ -149,7 +149,7 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-1.5-flash-8k", // introduced 2024-05-15
-  "gemini-pro",
+  "gemini-pro", // Discontinued Feb'25. Keep it to avoid breaking old references!
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
   "gemini-1.5-pro", // works now with langchaing
@@ -239,10 +239,8 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
-      // we only enable the 1.0, 1.5 pro and 1.5 flash with a limited context window
-      m === "gemini-pro" ||
-      m === "gemini-1.5-pro-8k" ||
-      m === "gemini-1.5-flash-8k",
+      // we only enable 1.5 pro and 1.5 flash with a limited context window.
+      m === "gemini-1.5-pro-8k" || m === "gemini-1.5-flash-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
