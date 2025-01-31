@@ -128,6 +128,10 @@ export class SyncTableKV extends EventEmitter {
     this.readData();
   }
 
+  init = async () => {
+    await this.readData();
+  };
+
   get = (obj?) => {
     if (this.state != "connected") {
       throw Error("must be connected");
@@ -149,10 +153,10 @@ export class SyncTableKV extends EventEmitter {
   };
 
   set = (obj) => {
+    obj = this.fillInFromQuery(obj);
     const key = this.getKey(obj);
-    const isNew = this.data[key] == null;
-    this.data[key] = { ...this.data[key], ...obj, ...this.specifiedByQuery };
-    this.setToKv(isNew ? { ...obj, ...this.specifiedByQuery } : obj);
+    this.data[key] = { ...this.data[key], ...obj };
+    this.setToKv(obj);
   };
 
   delete = (obj) => {
@@ -184,10 +188,6 @@ export class SyncTableKV extends EventEmitter {
     });
   }
 
-  init = async () => {
-    await this.readData();
-  };
-
   private getKv = reuseInFlight(async () => {
     if (this.kv == null) {
       this.kv = await getKv({
@@ -211,24 +211,31 @@ export class SyncTableKV extends EventEmitter {
     const kv = await this.getKv();
     this.updateListener = await kv.watch({
       key: `${this.natsKeyPrefix}.>`,
-      // TODO: use this to not have to re-set
-      // the keys that were set when initializing this
-      //resumeFromRevision:
     });
-    for await (const { key, value } of this.updateListener) {
+    for await (const { key, value, update } of this.updateListener) {
       const i = key.lastIndexOf(".");
       const field = key.slice(i + 1);
       const prefix = key.slice(0, i);
-      if (this.data[prefix] == null) {
+      if (this.data[prefix] == null && value.length > 0) {
         this.data[prefix] = {};
       }
       const s = this.data[prefix];
-      s[field] = this.jc.decode(value);
-
-      const k = this.primaryString(s);
-      this.emit("change-no-throttle", [k]);
-      this.changedKeys.add(k);
-      this.throttledChangeEvent();
+      if (update && s != null) {
+        const k = this.primaryString(s);
+        this.emit("change-no-throttle", [k]);
+        this.changedKeys.add(k);
+        this.throttledChangeEvent();
+      }
+      if (s != null) {
+        if (value.length == 0 && this.primaryKeysSet.has(field)) {
+          delete this.data[prefix];
+        } else {
+          s[field] = this.jc.decode(value);
+          if (Object.keys(s).length == 0) {
+            delete this.data[prefix];
+          }
+        }
+      }
     }
   };
 
@@ -301,9 +308,10 @@ export class SyncTableKV extends EventEmitter {
     for await (const k of keys) {
       await kv.delete(k);
     }
+    await kv.delete(key);
   };
 
-  private getFromKv = async (obj?, field?) => {
+  getFromKv = async (obj?, field?) => {
     const kv = await this.getKv();
     if (obj == null) {
       // everything known in this table by the project

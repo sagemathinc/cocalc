@@ -199,7 +199,6 @@ export class NatsClient {
     if (options?.project_id != null && query[table][0]["project_id"] === null) {
       query[table][0]["project_id"] = options.project_id;
     }
-    console.log(query);
     const s = createSyncTable({
       ...options,
       query,
