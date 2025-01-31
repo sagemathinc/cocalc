@@ -179,16 +179,27 @@ export class NatsClient {
 
   synctable = async (
     query,
-    options?: { obj?: object; atomic?: boolean; stream?: boolean },
+    options?: {
+      obj?: object;
+      atomic?: boolean;
+      stream?: boolean;
+      throttleChanges?: number;
+      // for tables specific to a project, e.g., syncstrings in a project
+      project_id?: string;
+    },
   ): Promise<SyncTable> => {
     query = parse_query(query);
+    const table = keys(query)[0];
     const obj = options?.obj;
     if (obj != null) {
-      const table = keys(query)[0];
       for (const k in obj) {
         query[table][0][k] = obj[k];
       }
     }
+    if (options?.project_id != null && query[table][0]["project_id"] === null) {
+      query[table][0]["project_id"] = options.project_id;
+    }
+    console.log(query);
     const s = createSyncTable({
       ...options,
       query,

@@ -15,6 +15,7 @@ export function createSyncTable({
   project_id,
   atomic,
   stream,
+  ...options
 }: {
   query;
   env: NatsEnv;
@@ -27,11 +28,23 @@ export function createSyncTable({
     if (atomic) {
       throw Error("atomic stream not implemented yet");
     }
-    return new SyncTableStream({ query, env, account_id, project_id });
+    return new SyncTableStream({
+      query,
+      env,
+      account_id,
+      project_id,
+      ...options,
+    });
   }
   if (atomic) {
-    return new SyncTableKVAtomic({ query, env, account_id, project_id });
+    return new SyncTableKVAtomic({
+      query,
+      env,
+      account_id,
+      project_id,
+      ...options,
+    });
   } else {
-    return new SyncTableKV({ query, env, account_id, project_id });
+    return new SyncTableKV({ query, env, account_id, project_id, ...options });
   }
 }

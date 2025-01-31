@@ -16,6 +16,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { EventEmitter } from "events";
 import { wait } from "@cocalc/util/async-wait";
+import { throttle } from "lodash";
 
 export function natsKeyPrefix({
   query,
@@ -82,22 +83,31 @@ export class SyncTableKV extends EventEmitter {
   private data: { [key: string]: any } = {};
   private state: "disconnected" | "connected" | "closed" = "disconnected";
   private updateListener?;
+  private changedKeys: Set<string> = new Set();
+  private specifiedByQuery: { [key: string]: any };
 
   constructor({
     query,
     env,
     account_id,
     project_id,
+    throttleChanges = 100,
   }: {
     query;
     env: NatsEnv;
     account_id?: string;
     project_id?: string;
+    throttleChanges?: number;
   }) {
     super();
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
     this.jc = env.jc;
+    this.throttledChangeEvent = throttle(
+      this.throttledChangeEvent,
+      throttleChanges,
+      { leading: false, trailing: true },
+    );
     const table = keys(query)[0];
     this.table = table;
     this.natsKeyPrefix = natsKeyPrefix({ query, atomic: false });
@@ -105,6 +115,13 @@ export class SyncTableKV extends EventEmitter {
     this.account_id = account_id ?? query[table][0].account_id;
     this.primaryKeys = client_db.primary_keys(table);
     this.primaryKeysSet = new Set(this.primaryKeys);
+    this.specifiedByQuery = {};
+    for (const k in query[table][0]) {
+      const v = query[table][0][k];
+      if (v != null) {
+        this.specifiedByQuery[k] = v;
+      }
+    }
     this.fields = keys(query[table][0]).filter(
       (field) => !this.primaryKeysSet.has(field),
     );
@@ -133,8 +150,9 @@ export class SyncTableKV extends EventEmitter {
 
   set = (obj) => {
     const key = this.getKey(obj);
-    this.data[key] = { ...this.data[key], ...obj };
-    this.setToKv(obj);
+    const isNew = this.data[key] == null;
+    this.data[key] = { ...this.data[key], ...obj, ...this.specifiedByQuery };
+    this.setToKv(isNew ? { ...obj, ...this.specifiedByQuery } : obj);
   };
 
   delete = (obj) => {
@@ -148,6 +166,10 @@ export class SyncTableKV extends EventEmitter {
     this.emit(this.state);
     this.updateListener?.close();
     this.data = {};
+  };
+
+  get_state = () => {
+    return this.state;
   };
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
@@ -202,18 +224,48 @@ export class SyncTableKV extends EventEmitter {
       }
       const s = this.data[prefix];
       s[field] = this.jc.decode(value);
-      const changed = [this.primaryString(s)];
-      this.emit("change-no-throttle", changed);
-      this.emit("change", changed);
+
+      const k = this.primaryString(s);
+      this.emit("change-no-throttle", [k]);
+      this.changedKeys.add(k);
+      this.throttledChangeEvent();
     }
+  };
+
+  // this is throttled in constructor
+  private throttledChangeEvent = () => {
+    if (this.changedKeys.size > 0) {
+      this.emit("change", Array.from(this.changedKeys));
+      this.changedKeys.clear();
+    }
+  };
+
+  private fillInFromQuery = (obj) => {
+    return { ...obj, ...this.specifiedByQuery };
   };
 
   private primaryString = (obj): string => {
     if (this.primaryKeys.length === 1) {
-      return toKey(obj[this.primaryKeys[0]] ?? "")!;
+      const k = obj[this.primaryKeys[0]];
+      if (k == null) {
+        console.log({ obj });
+        throw Error(`primary key '${this.primaryKeys[0]}' not set for object`);
+      }
+      return toKey(k)!;
     } else {
       // compound primary key
-      return toKey(this.primaryKeys.map((pk) => obj[pk]))!;
+      return toKey(
+        this.primaryKeys.map((pk) => {
+          const v = obj[pk];
+          if (v == null) {
+            console.log({ obj });
+            throw Error(
+              `part of compound primary key '${pk}' not set for object`,
+            );
+          }
+          return v;
+        }),
+      )!;
     }
   };
 
@@ -221,7 +273,7 @@ export class SyncTableKV extends EventEmitter {
     if (obj == null) {
       throw Error("obj must be an object (not null)");
     }
-    return this.sha1(this.primaryString(obj));
+    return this.sha1(this.primaryString(this.fillInFromQuery(obj)));
   };
 
   private getKey = (obj, field?: string): string => {
@@ -271,11 +323,7 @@ export class SyncTableKV extends EventEmitter {
           s[field] = val;
         }
       }
-      const final: any = {};
-      for (const k in all) {
-        final[this.primaryString(all[k])] = all[k];
-      }
-      return final;
+      return all;
     }
     if (field == null) {
       const s = { ...obj };
