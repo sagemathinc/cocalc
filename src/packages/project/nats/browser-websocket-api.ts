@@ -40,11 +40,11 @@ then after that code runs you can access x from the node console!
 
 import { getLogger } from "@cocalc/project/logger";
 import { JSONCodec } from "nats";
-import { project_id } from "@cocalc/project/data";
 import getConnection from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { sha1 } from "@cocalc/backend/sha1";
+import { getSubject } from "./names";
 
 const logger = getLogger("project:nats:browser-websocket-api");
 
@@ -52,11 +52,15 @@ const jc = JSONCodec();
 
 export async function init() {
   const nc = await getConnection();
-  const subject = `project.${project_id}.browser-api`;
+  const subject = getSubject({
+    service: "browser-api",
+  });
   logger.debug(`initAPI -- NATS project subject '${subject}'`);
   const sub = nc.subscribe(subject);
   const primus = getPrimusConnection({
-    subject: `project.${project_id}.primus`,
+    subject: getSubject({
+      service: "primus",
+    }),
     env: { nc, sha1, jc },
     role: "server",
     id: "project",

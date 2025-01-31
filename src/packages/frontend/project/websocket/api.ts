@@ -30,11 +30,13 @@ import type {
 } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { type ProjectApi } from "@cocalc/nats/project-api";
 
 export class API {
   private conn;
   private project_id: string;
   private cachedVersion?: number;
+  private apiCache: { [key: string]: ProjectApi } = {};
 
   constructor(conn, project_id: string) {
     this.conn = conn;
@@ -44,6 +46,24 @@ export class API {
       delete this.cachedVersion;
     });
   }
+
+  private getApi = ({
+    compute_server_id = 0,
+    timeout = 5000,
+  }: {
+    compute_server_id?: number;
+    timeout?: number;
+  }) => {
+    const key = `${compute_server_id}-${timeout}`;
+    if (this.apiCache[key] == null) {
+      this.apiCache[key] = webapp_client.nats_client.projectApi({
+        project_id: this.project_id,
+        compute_server_id,
+        timeout,
+      });
+    }
+    return this.apiCache[key]!;
+  };
 
   private primusCall = async (mesg: Mesg, timeout: number) => {
     return await call(this.conn, mesg, timeout);
@@ -79,34 +99,17 @@ export class API {
     }
   };
 
-  version = async (): Promise<number> => {
-    // version can never change (except when you restart the project!), so its safe to cache
-    if (this.cachedVersion != null) {
-      return this.cachedVersion;
-    }
-    try {
-      this.cachedVersion = await this.call({ cmd: "version" }, 15000);
-    } catch (err) {
-      if (err.message.includes('command "version" not implemented')) {
-        this.cachedVersion = 0;
-      } else {
-        throw err;
-      }
-    }
-    if (this.cachedVersion == null) {
-      return 0;
-    }
-    return this.cachedVersion;
+  version = async (compute_server_id?: number): Promise<number> => {
+    const api = this.getApi({ compute_server_id });
+    return await api.system.version();
   };
 
   delete_files = async (
     paths: string[],
     compute_server_id?: number,
   ): Promise<void> => {
-    return await this.call(
-      { cmd: "delete_files", paths, compute_server_id },
-      60000,
-    );
+    const api = this.getApi({ compute_server_id, timeout: 60000 });
+    return await api.system.deleteFiles({ paths });
   };
 
   // Move the given paths to the dest.  The folder dest must exist

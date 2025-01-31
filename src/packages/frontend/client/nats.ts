@@ -3,16 +3,17 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { WebappClient } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
-import { redux } from "../app-framework";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
-import { randomId } from "@cocalc/nats/util";
+import { randomId } from "@cocalc/nats/names";
+import { projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
+import { isValidUUID } from "@cocalc/util/misc";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -59,9 +60,10 @@ export class NatsClient {
     return this.nc;
   });
 
+  // deprecated!
   projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
     const nc = await this.getConnection();
-    const subject = `project.${project_id}.browser-api`;
+    const subject = `${projectSubject({ project_id })}.browser-api`;
     const resp = await nc.request(subject, this.jc.encode(mesg), {
       timeout,
     });
@@ -95,14 +97,20 @@ export class NatsClient {
   // Returns api for RPC calls to the project with typescript support!
   projectApi = ({
     project_id,
+    compute_server_id = 0,
     timeout,
   }: {
     project_id: string;
+    compute_server_id?: number;
     timeout?: number;
   }): ProjectApi => {
+    if (!isValidUUID(project_id)) {
+      throw Error(`project_id = '${project_id}' must be a valid uuid`);
+    }
     const callProjectApi = async ({ name, args }) => {
       return await this.callProject({
         project_id,
+        compute_server_id,
         timeout,
         service: "api",
         name,
@@ -115,26 +123,36 @@ export class NatsClient {
   private callProject = async ({
     service = "api",
     project_id,
+    compute_server_id,
     name,
     args = [],
     timeout = 5000,
   }: {
     service?: string;
     project_id: string;
+    compute_server_id: number;
     name: string;
     args: any[];
     timeout?: number;
   }) => {
     const nc = await this.getConnection();
-    const subject = `project.${project_id}.${service}`;
-    const resp = await nc.request(
-      subject,
-      this.jc.encode({
-        name,
-        args,
-      }),
-      { timeout },
-    );
+    const subject = `${projectSubject({ project_id, compute_server_id })}.${service}`;
+    const mesg = this.jc.encode({
+      name,
+      args,
+    });
+    let resp;
+    try {
+      resp = await nc.request(subject, mesg, { timeout });
+    } catch (err) {
+      if (err.code == "PERMISSIONS_VIOLATION") {
+        // request update of our credentials to include this project, then try again
+        await this.hub.system.addProjectPermission({ project_id });
+        resp = await nc.request(subject, mesg, { timeout });
+      } else {
+        throw err;
+      }
+    }
     return this.jc.decode(resp.data);
   };
 
@@ -142,45 +160,6 @@ export class NatsClient {
     const c = await this.getConnection();
     const resp = await c.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
-  };
-
-  project = async ({
-    project_id,
-    endpoint,
-    params,
-  }: {
-    project_id: string;
-    endpoint: string;
-    params?: object;
-  }) => {
-    const c = await this.getConnection();
-    const group = redux.getProjectsStore().get_my_group(project_id);
-    if (!group) {
-      // todo...?
-      throw Error(`group not yet known for '${project_id}'`);
-    }
-    const subject = `project.${project_id}.api.${group}.${this.client.account_id}`;
-    const resp = await c.request(
-      subject,
-      this.jc.encode({
-        endpoint,
-        params,
-      }),
-    );
-    const x = this.jc.decode(resp.data) as any;
-    if (x?.error) {
-      throw Error(x.error);
-    }
-    return x;
-  };
-
-  // for debugging -- listen to and display all messages on a subject
-  subscribe = async (subject: string) => {
-    const nc = await this.getConnection();
-    const sub = nc.subscribe(subject);
-    for await (const mesg of sub) {
-      console.log(this.jc.decode(mesg.data));
-    }
   };
 
   consumer = async (stream: string) => {
@@ -242,17 +221,10 @@ export class NatsClient {
     return await this.synctable(query, { atomic: true });
   };
 
-  //   createSocket = async (subjects: { listen: string; send: string }) => {
-  //     return new Socket({
-  //       ...subjects,
-  //       nc: await this.getConnection(),
-  //       jc: this.jc,
-  //     });
-  //   };
-
+  // DEPRECATED
   primus = async (project_id: string) => {
     return getPrimusConnection({
-      subject: `project.${project_id}.primus`,
+      subject: `${projectSubject({ project_id, compute_server_id: 0 })}.primus`,
       env: await this.getEnv(),
       role: "client",
       id: this.sessionId,

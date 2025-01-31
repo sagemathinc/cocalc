@@ -37,13 +37,13 @@ import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { type ProjectApi } from "@cocalc/nats/project-api";
 import getConnection from "@cocalc/project/nats/connection";
-import { project_id } from "@cocalc/project/data";
+import { getSubject } from "../names";
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
 
 export async function init() {
-  const subject = `project.${project_id}.api`;
+  const subject = getSubject({ service: "api" });
   logger.debug(`initAPI -- subject='${subject}'`);
   const nc = await getConnection();
   const subscription = nc.subscribe(subject);

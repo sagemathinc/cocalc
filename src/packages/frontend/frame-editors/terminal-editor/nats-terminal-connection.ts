@@ -2,14 +2,16 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { EventEmitter } from "events";
 import { JSONCodec } from "nats.ws";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { sha1, uuid } from "@cocalc/util/misc";
+import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
+import { projectStreamName, projectSubject } from "@cocalc/nats/names";
 
 const jc = JSONCodec();
 const client = uuid();
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
+  private compute_server_id: number;
   private path: string;
   private subject: string;
   private cmd_subject: string;
@@ -25,6 +27,7 @@ export class NatsTerminalConnection extends EventEmitter {
 
   constructor({
     project_id,
+    compute_server_id,
     path,
     keep,
     terminalResize,
@@ -32,6 +35,7 @@ export class NatsTerminalConnection extends EventEmitter {
     closePaths,
   }: {
     project_id: string;
+    compute_server_id: number;
     path: string;
     keep?: number;
     terminalResize;
@@ -40,15 +44,25 @@ export class NatsTerminalConnection extends EventEmitter {
   }) {
     super();
     this.project_id = project_id;
+    this.compute_server_id = compute_server_id;
     this.path = path;
     this.terminalResize = terminalResize;
     this.keep = keep;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
     this.project = webapp_client.nats_client.projectApi({ project_id });
-    // TODO: move to @cocalc/nats (?) so guaranteed in sync with project
-    this.subject = `project.${project_id}.terminal.${sha1(path)}`;
-    this.cmd_subject = `project.${project_id}.terminal-cmd.${sha1(path)}`;
+    this.subject = projectSubject({
+      project_id,
+      compute_server_id,
+      service: "terminal",
+      path,
+    });
+    this.cmd_subject = projectSubject({
+      project_id,
+      compute_server_id,
+      service: "terminal-cmd",
+      path,
+    });
   }
 
   write = async (data) => {
@@ -107,16 +121,20 @@ export class NatsTerminalConnection extends EventEmitter {
   private getConsumer = async () => {
     // TODO: idempotent, but move to project
     const { nats_client } = webapp_client;
-    const stream = `project-${this.project_id}-terminal`;
+    const streamName = projectStreamName({
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+      service: "terminal",
+    });
     const nc = await nats_client.getConnection();
     const js = nats_client.jetstream.jetstream(nc);
     // consumer doesn't exist, so setup everything.
     const jsm = await nats_client.jetstream.jetstreamManager(nc);
     // making an ephemeral consumer for just one subject (e.g., this terminal frame)
-    const { name } = await jsm.consumers.add(stream, {
+    const { name } = await jsm.consumers.add(streamName, {
       filter_subject: this.subject,
     });
-    return await js.consumers.get(stream, name);
+    return await js.consumers.get(streamName, name);
   };
 
   init = async () => {
