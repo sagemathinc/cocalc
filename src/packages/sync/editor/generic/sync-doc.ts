@@ -110,6 +110,7 @@ import {
 } from "./types";
 import { patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import mergeDeep from "@cocalc/util/immutable-deep-merge";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -1208,6 +1209,10 @@ export class SyncDoc extends EventEmitter {
   // patches table uses the string_id, which is a SHA1 hash.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
+    if (this.useNats) {
+      dbg("skipping -- no database");
+      return;
+    }
 
     if (!this.client.is_connected()) {
       dbg("wait until connected...", this.client.is_connected());
@@ -3379,11 +3384,8 @@ export class SyncDoc extends EventEmitter {
   emit_change_debounced = debounce(this.emit_change.bind(this), 0);
 
   private set_syncstring_table = async (obj, save = true) => {
-    let value = this.syncstring_table_get_one();
-    const value0 = value;
-    for (const key in obj) {
-      value = value.set(key, obj[key]);
-    }
+    const value0 = this.syncstring_table_get_one();
+    const value = mergeDeep(value0, fromJS(obj));
     if (value0.equals(value)) {
       return;
     }
