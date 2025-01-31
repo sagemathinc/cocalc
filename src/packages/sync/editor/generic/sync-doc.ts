@@ -109,6 +109,7 @@ import {
   Patch,
 } from "./types";
 import { patch_cmp } from "./util";
+import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -324,7 +325,7 @@ export class SyncDoc extends EventEmitter {
   until it is (however long, etc.).  If this fails, it closes
   this SyncDoc.
   */
-  private async init(): Promise<void> {
+  private init = async (): Promise<void> => {
     this.assert_not_closed("init");
     const log = this.dbg("init");
 
@@ -356,7 +357,7 @@ export class SyncDoc extends EventEmitter {
     this.set_state("ready");
     this.init_watch();
     this.emit_change(); // from nothing to something.
-  }
+  };
 
   // True if this client is responsible for managing
   // the state of this document with respect to
@@ -1356,6 +1357,9 @@ export class SyncDoc extends EventEmitter {
       throw Error("connect can only be called in init state");
     }
     const log = this.dbg("init_all");
+
+    log("update interest");
+    this.initInterestLoop();
 
     log("ensure syncstring exists in database");
     this.assert_not_closed("init_all -- before ensuring syncstring exists");
@@ -3376,6 +3380,20 @@ export class SyncDoc extends EventEmitter {
     this.syncstring_table.set(value);
     if (save) {
       await this.syncstring_table.save();
+    }
+  };
+
+  private initInterestLoop = async () => {
+    if (!this.client.is_browser() || this.client.touchOpenFile == null) {
+      // only browser clients -- so actual humans
+      return;
+    }
+    while (this.state != "closed") {
+      await this.client.touchOpenFile({
+        path: this.path,
+        project_id: this.project_id,
+      });
+      await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 }

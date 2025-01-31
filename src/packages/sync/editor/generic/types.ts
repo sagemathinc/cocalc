@@ -138,6 +138,8 @@ export interface Client extends ProjectClient {
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
+
+  touchOpenFile?: (opts: { project_id: string; path: string }) => Promise<void>;
 }
 
 export interface DocType {

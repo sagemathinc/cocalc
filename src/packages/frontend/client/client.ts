@@ -349,6 +349,19 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
+
+  touchOpenFile = async ({
+    project_id,
+    path,
+    id,
+  }: {
+    project_id: string;
+    path: string;
+    id?: number;
+  }) => {
+    const x = await this.nats_client.openFiles(project_id);
+    await x.touch({ path, id });
+  };
 }
 
 export const webapp_client = new Client();
