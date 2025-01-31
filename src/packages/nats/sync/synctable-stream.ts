@@ -1,5 +1,5 @@
 /*
-Nats implementation of the idea of a "SyncTable", but 
+Nats implementation of the idea of a "SyncTable", but
 for streaming data.
 
 This is ONLY for the scope of patches in a single project.
@@ -126,7 +126,7 @@ export class SyncTableStream extends EventEmitter {
     this.consumer = await this.getConsumer();
     await this.readData();
     this.set_state("connected");
-    this.getMessages();
+    this.listenForUpdates();
   };
 
   private set_state = (state: State): void => {
@@ -198,7 +198,7 @@ export class SyncTableStream extends EventEmitter {
   };
 
   // listen for new data
-  private getMessages = async () => {
+  private listenForUpdates = async () => {
     const consumer = this.consumer!;
     for await (const mesg of await consumer.consume()) {
       if (this.handle(mesg, true)) {
@@ -242,6 +242,8 @@ export class SyncTableStream extends EventEmitter {
       // already closed
       return;
     }
+    this.consumer?.close();
+    delete this.consumer;
     this.set_state("closed");
   };
 

@@ -13,6 +13,9 @@ import { sha1 } from "@cocalc/util/misc";
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { EventEmitter } from "events";
+import { wait } from "@cocalc/util/async-wait";
 
 export function natsKeyPrefix({
   query,
@@ -36,10 +39,10 @@ export async function getKv({
   options?;
 }) {
   let name;
-  if (account_id) {
-    name = `account-${account_id}`;
-  } else if (project_id) {
+  if (project_id) {
     name = `project-${project_id}`;
+  } else if (account_id) {
+    name = `account-${account_id}`;
   } else {
     throw Error("one of account_id or project_id must be defined");
   }
@@ -64,7 +67,7 @@ export function toKey(x): string | undefined {
   }
 }
 
-export class SyncTableKV {
+export class SyncTableKV extends EventEmitter {
   private kv?;
   private nc;
   private jc;
@@ -76,6 +79,9 @@ export class SyncTableKV {
   private fields: string[];
   private project_id?: string;
   private account_id?: string;
+  private data: { [key: string]: any } = {};
+  private state: "disconnected" | "connected" | "closed" = "disconnected";
+  private updateListener?;
 
   constructor({
     query,
@@ -88,6 +94,7 @@ export class SyncTableKV {
     account_id?: string;
     project_id?: string;
   }) {
+    super();
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
     this.jc = env.jc;
@@ -101,14 +108,104 @@ export class SyncTableKV {
     this.fields = keys(query[table][0]).filter(
       (field) => !this.primaryKeysSet.has(field),
     );
+    this.readData();
+  }
+
+  get = (obj?) => {
+    if (this.state != "connected") {
+      throw Error("must be connected");
+    }
+    if (obj == null) {
+      const result: any = {};
+      for (const k in this.data) {
+        result[this.primaryString(this.data[k])] = this.data[k];
+      }
+      return result;
+    }
+    return this.data[this.getKey(obj)];
+  };
+
+  get_one = () => {
+    for (const key in this.data) {
+      return this.data[key];
+    }
+  };
+
+  set = (obj) => {
+    const key = this.getKey(obj);
+    this.data[key] = { ...this.data[key], ...obj };
+    this.setToKv(obj);
+  };
+
+  delete = (obj) => {
+    const key = this.getKey(obj);
+    delete this.data[key];
+    this.deleteFromKv(obj);
+  };
+
+  close = () => {
+    this.state = "closed";
+    this.emit(this.state);
+    this.updateListener?.close();
+    this.data = {};
+  };
+
+  public async wait(until: Function, timeout: number = 30): Promise<any> {
+    if (this.state == "closed") {
+      throw Error("wait: must not be closed");
+    }
+    return await wait({
+      obj: this,
+      until,
+      timeout,
+      change_event: "change-no-throttle",
+    });
   }
 
   init = async () => {
-    this.kv = await getKv({
-      nc: this.nc,
-      project_id: this.project_id,
-      account_id: this.account_id,
+    await this.readData();
+  };
+
+  private getKv = reuseInFlight(async () => {
+    if (this.kv == null) {
+      this.kv = await getKv({
+        nc: this.nc,
+        project_id: this.project_id,
+        account_id: this.account_id,
+      });
+    }
+    return this.kv!;
+  });
+
+  // load initial data
+  private readData = reuseInFlight(async () => {
+    this.data = await this.getFromKv();
+    this.state = "connected";
+    this.emit(this.state);
+    this.listenForUpdates();
+  });
+
+  private listenForUpdates = async () => {
+    const kv = await this.getKv();
+    this.updateListener = await kv.watch({
+      key: `${this.natsKeyPrefix}.>`,
+      // TODO: use this to not have to re-set
+      // the keys that were set when initializing this
+      //resumeFromRevision:
     });
+    for await (const { key, value } of this.updateListener) {
+      const i = key.lastIndexOf(".");
+      const field = key.slice(i + 1);
+      const prefix = key.slice(0, i);
+      if (this.data[prefix] == null) {
+        this.data[prefix] = {};
+      }
+      const s = this.data[prefix];
+      s[field] = this.jc.decode(value);
+      const changed = [this.primaryString(s)];
+      this.emit("change-no-throttle", changed);
+      this.emit("change", changed);
+    }
   };
 
   private primaryString = (obj): string => {
@@ -136,29 +233,32 @@ export class SyncTableKV {
     }
   };
 
-  set = async (obj) => {
+  private setToKv = async (obj) => {
+    const kv = await this.getKv();
     const key = this.getKey(obj);
     for (const field in obj) {
       const value = this.jc.encode(obj[field]);
-      await this.kv.put(`${key}.${field}`, value);
+      await kv.put(`${key}.${field}`, value);
     }
   };
 
-  delete = async (obj) => {
+  private deleteFromKv = async (obj) => {
+    const kv = await this.getKv();
     const key = this.getKey(obj);
-    const keys = await this.kv.keys(`${key}.>`);
+    const keys = await kv.keys(`${key}.>`);
     for await (const k of keys) {
-      await this.kv.delete(k);
+      await kv.delete(k);
     }
   };
 
-  get = async (obj?, field?) => {
+  private getFromKv = async (obj?, field?) => {
+    const kv = await this.getKv();
     if (obj == null) {
       // everything known in this table by the project
-      const keys = await this.kv.keys(`${this.natsKeyPrefix}.>`);
+      const keys = await kv.keys(`${this.natsKeyPrefix}.>`);
       const all: any = {};
       for await (const key of keys) {
-        const mesg = await this.kv.get(key);
+        const mesg = await kv.get(key);
         const val = mesg?.sm?.data ? this.jc.decode(mesg.sm.data) : null;
         if (val != null) {
           const i = key.lastIndexOf(".");
@@ -184,7 +284,7 @@ export class SyncTableKV {
       // todo: possibly better to just ask for everything under ${key}.>
       // and take what is needed?  Not sure.
       for (const field of this.fields) {
-        const mesg = await this.kv.get(`${key}.${field}`);
+        const mesg = await kv.get(`${key}.${field}`);
         const val = mesg?.sm?.data ? this.jc.decode(mesg.sm.data) : null;
         if (val != null) {
           s[field] = val;
@@ -193,7 +293,7 @@ export class SyncTableKV {
       }
       return nontrivial ? s : undefined;
     }
-    const mesg = await this.kv.get(this.getKey(obj, field));
+    const mesg = await kv.get(this.getKey(obj, field));
     if (mesg == null) {
       return undefined;
     }
@@ -202,7 +302,8 @@ export class SyncTableKV {
 
   // watch for changes in ONE object
   async *watchOne(obj) {
-    const w = await this.kv.watch({
+    const kv = await this.getKv();
+    const w = await kv.watch({
       key: this.getKey(this.getKey(obj), "*"),
     });
     for await (const { key, value } of w) {
