@@ -14,6 +14,7 @@ import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
+import { OpenFiles } from "@cocalc/nats/sync/open-files";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -24,6 +25,7 @@ export class NatsClient {
   public jetstream = jetstream;
   public hub: HubApi;
   public sessionId = randomId();
+  private openFilesCache: { [project_id: string]: OpenFiles } = {};
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -230,4 +232,14 @@ export class NatsClient {
       id: this.sessionId,
     });
   };
+
+  openFiles = reuseInFlight(async (project_id: string) => {
+    if (this.openFilesCache[project_id] == null) {
+      this.openFilesCache[project_id] = new OpenFiles({
+        project_id,
+        env: await this.getEnv(),
+      });
+    }
+    return this.openFilesCache[project_id]!;
+  });
 }

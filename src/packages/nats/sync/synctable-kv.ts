@@ -28,10 +28,12 @@ export async function getKv({
   nc,
   project_id,
   account_id,
+  options,
 }: {
   nc;
   project_id?: string;
   account_id?: string;
+  options?;
 }) {
   let name;
   if (account_id) {
@@ -42,7 +44,7 @@ export async function getKv({
     throw Error("one of account_id or project_id must be defined");
   }
   const kvm = new Kvm(nc);
-  return await kvm.create(name, { compression: true });
+  return await kvm.create(name, { compression: true, ...options });
 }
 
 export interface NatsEnv {

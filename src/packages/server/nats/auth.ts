@@ -18,7 +18,8 @@ DOCS:
 
 USAGE:
 
-a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
+a = require('@cocalc/server/nats/auth');
+await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
 await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
 */
 
@@ -108,7 +109,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     throw Error("must be a valid uuid");
   }
   const userType = getCoCalcUserType(cocalcUser);
-  // TODO: jetstream permissions are WAY TO BROAD. 
+  // TODO: jetstream permissions are WAY TO BROAD.
   const goalPub = new Set([
     "_INBOX.>",
     `hub.${userType}.${userId}.>`,
@@ -225,9 +226,9 @@ export async function addProjectPermission({ account_id, project_id }) {
     "--sk",
     name,
     "--allow-sub",
-    `project.${project_id}.>,*.project.${project_id}.>`,
+    `project.${project_id}.>,*.project-${project_id}.>`,
     "--allow-pub",
-    `project.${project_id}.>,*.project.${project_id}.>`,
+    `project.${project_id}.>,*.project-${project_id}.>`,
   ]);
   await pushToServer();
 }
