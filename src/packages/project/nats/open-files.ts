@@ -1,0 +1,133 @@
+/*
+Handle opening files in a project to save/load from disk and also enable compute capabilities.
+
+DEVELOPMENT:
+
+Set env variables as in a project, then:
+
+> require("@cocalc/project/nats/open-files").init()
+*/
+
+import { OpenFiles, Entry } from "@cocalc/nats/sync/open-files";
+import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import { compute_server_id, project_id } from "@cocalc/project/data";
+import { getEnv } from "./env";
+import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import { getClient } from "@cocalc/project/client";
+//import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
+import getLogger from "@cocalc/backend/logger";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { delay } from "awaiting";
+
+const logger = getLogger("project:nats:open-files");
+
+export async function init() {
+  logger.debug("init");
+  const openFiles = new OpenFiles({
+    project_id,
+    env: await getEnv(),
+  });
+  const entries: { [path: string]: Entry } = {};
+  closeIgnoredFiles(entries, openFiles);
+  for await (const entry of await openFiles.watch()) {
+    entries[entry.path] = entry;
+    await handleEntry(entry);
+  }
+}
+
+const openSyncDocs: { [path: string]: SyncDoc } = {};
+// for dev
+export { openSyncDocs };
+
+function getCutoff() {
+  return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
+}
+
+async function handleEntry({ path, id = 0, open, time }: Entry) {
+  const syncDoc = openSyncDocs[path];
+  const isOpenHere = syncDoc != null;
+  if (id != compute_server_id) {
+    if (isOpenHere) {
+      // close it here
+      closeSyncDoc(path);
+    }
+    // no further responsibility
+    return;
+  }
+  if (!open) {
+    if (isOpenHere) {
+      closeSyncDoc(path);
+    }
+    return;
+  }
+  if (time != null && open && time >= getCutoff()) {
+    if (!isOpenHere) {
+      // users actively care about this file being opened HERE, but it isn't
+      openSyncDoc(path);
+    }
+    return;
+  }
+}
+
+function supportAutoclose(path: string) {
+  // this feels way too "hard coded"; alternatively, maybe we make the kernel or whatever
+  // actually update the interest?  or something else...
+  if (path.endsWith(".ipynb.sage-jupyter2") || path.endsWith(".sagews")) {
+    return false;
+  }
+  return true;
+}
+
+async function closeIgnoredFiles(entries, openFiles) {
+  while (openFiles.state == "ready") {
+    await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+    if (openFiles.state != "ready") {
+      return;
+    }
+    logger.debug("closeIgnoredFiles: checking...");
+    const cutoff = getCutoff();
+    for (const path in entries) {
+      const entry = entries[path];
+      if (
+        entry.time <= cutoff &&
+        !supportAutoclose(path) &&
+        openSyncDocs[path] != null
+      ) {
+        logger.debug("closeIgnoredFiles: closing due to inactivity", { path });
+        closeSyncDoc(path);
+      }
+    }
+  }
+}
+
+const closeSyncDoc = reuseInFlight(async (path: string) => {
+  logger.debug("close", { path });
+  const syncDoc = openSyncDocs[path];
+  if (syncDoc == null) {
+    return;
+  }
+  delete openSyncDocs[path];
+  try {
+    await syncDoc.close();
+  } catch (err) {
+    // TODO: maybe this could get saved in a nats key-value store?
+    logger.debug(`WARNING -- issue closing syncdoc -- ${err}`);
+  }
+});
+
+const openSyncDoc = reuseInFlight(async (path: string) => {
+  // todo -- will be async and needs to handle SyncDB and all the config...
+  logger.debug("open", { path });
+  const syncDoc = openSyncDocs[path];
+  if (syncDoc != null) {
+    return syncDoc;
+  }
+  const client = getClient();
+  openSyncDocs[path] = new SyncString({
+    project_id,
+    path,
+    client,
+  });
+  return openSyncDocs[path]!;
+});

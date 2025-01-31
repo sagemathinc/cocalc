@@ -35,7 +35,7 @@ import { isEqual } from "lodash";
 
 const PREFIX = `open-files`;
 
-interface Entry {
+export interface Entry {
   // path to file relative to HOME
   path: string;
   // compute server id or 0/not defined for home base
@@ -78,6 +78,8 @@ export class OpenFiles {
   private jc;
   private sha1;
   private project_id: string;
+  public state: "ready" | "closed" = "ready";
+  private watches: any[] = [];
 
   constructor({ env, project_id }: { env: NatsEnv; project_id: string }) {
     this.sha1 = env.sha1 ?? sha1;
@@ -85,6 +87,14 @@ export class OpenFiles {
     this.jc = env.jc;
     this.project_id = project_id;
   }
+
+  close = () => {
+    this.state = "closed";
+    for (const w of this.watches) {
+      w.close();
+      this.watches = [];
+    }
+  };
 
   // When a client has a file open, they should periodically
   // touch it to indicate that it is open.
@@ -111,7 +121,7 @@ export class OpenFiles {
     }
   };
 
-  close = async ({ path }: { path: string }) => {
+  closeFile = async ({ path }: { path: string }) => {
     const kv = await this.getKv();
     const key = this.getKey({ path });
     const mesg = await kv.get(key);
@@ -147,9 +157,13 @@ export class OpenFiles {
       // we assume that we ONLY delete old items which are not relevant
       ignoreDeletes: true,
     });
+    this.watches.push(w);
     for await (const mesg of w) {
       // no need to check for 'mesg.value.length' due to ignoreDeletes above.
       yield this.decode(mesg);
+      if (this.state == "closed") {
+        return;
+      }
     }
   }
 

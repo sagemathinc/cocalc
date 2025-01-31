@@ -635,7 +635,7 @@ export class SyncDoc extends EventEmitter {
         return;
       }
       this.last_user_change = new Date();
-      this.client.mark_file({
+      this.client.mark_file?.({
         project_id: this.project_id,
         path: this.path,
         action: "edit",
@@ -1272,7 +1272,10 @@ export class SyncDoc extends EventEmitter {
           );
           break;
         case "database":
-          synctable = await this.client.synctable_database(
+          if (this.client.synctable_database == null) {
+            throw Error("database server not supported by project");
+          }
+          synctable = await this.client.synctable_database?.(
             query,
             options,
             throttle_changes,
@@ -3065,8 +3068,8 @@ export class SyncDoc extends EventEmitter {
     ) {
       return;
     }
-    if (last_err && typeof this.client.log_error === "function") {
-      this.client.log_error({
+    if (last_err && typeof this.client.log_error != null) {
+      this.client.log_error?.({
         string_id: this.string_id,
         path: this.path,
         project_id: this.project_id,

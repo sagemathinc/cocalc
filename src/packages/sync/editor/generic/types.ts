@@ -115,21 +115,21 @@ export interface ProjectClient extends EventEmitter {
 }
 
 export interface Client extends ProjectClient {
-  log_error: (opts: {
+  log_error?: (opts: {
     project_id: string;
     path: string;
     string_id: string;
     error: any;
   }) => void;
 
-  mark_file: (opts: {
+  mark_file?: (opts: {
     project_id: string;
     path: string;
     action: string;
     ttl: number;
   }) => void;
 
-  synctable_database: (
+  synctable_database?: (
     query: any,
     options: any,
     throttle_changes?: number,
