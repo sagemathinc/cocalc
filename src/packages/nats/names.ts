@@ -1,3 +1,16 @@
+/*
+Names we use with nats.
+
+For Jetstream:
+
+project-{project_id}-{compute_server_id}[.-service][.-sha1(path)]
+
+For Subjects:
+
+ project.{project-id}.{compute_server_id}[.{service}][.{path}]
+
+*/
+
 import { sha1 } from "@cocalc/util/misc";
 import generateVouchers from "@cocalc/util/vouchers";
 
@@ -7,7 +20,7 @@ export function randomId() {
   return generateVouchers({ count: 1, length: 10 })[0];
 }
 
-// project-{project_id}-{compute_server_id}[.-service][.-sha1(path)]
+
 
 export function projectSubject({
   project_id,

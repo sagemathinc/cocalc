@@ -77,6 +77,7 @@ export interface WebappClient extends EventEmitter {
   is_signed_in: () => boolean;
   synctable_project: Function;
   synctable_nats: Function;
+  pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -159,6 +160,7 @@ class Client extends EventEmitter implements WebappClient {
   is_signed_in: () => boolean;
   synctable_project: Function;
   synctable_nats: Function;
+  pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -261,6 +263,7 @@ class Client extends EventEmitter implements WebappClient {
       this.sync_client,
     );
     this.synctable_nats = this.nats_client.synctable;
+    this.pubsub_nats = this.nats_client.pubsub;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);

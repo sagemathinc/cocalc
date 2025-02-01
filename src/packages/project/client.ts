@@ -49,6 +49,7 @@ import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import synctable_nats from "@cocalc/project/nats/synctable";
+import pubsub from "@cocalc/project/nats/pubsub";
 
 const winston = getLogger("client");
 
@@ -508,6 +509,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   synctable_nats = async (query, options?) => {
     return await synctable_nats(query, options);
+  };
+
+  pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
+    return await pubsub({ path, name });
   };
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely

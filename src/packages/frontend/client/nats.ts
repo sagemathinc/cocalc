@@ -15,6 +15,7 @@ import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { OpenFiles } from "@cocalc/nats/sync/open-files";
+import { PubSub } from "@cocalc/nats/sync/pubsub";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -185,6 +186,7 @@ export class NatsClient {
         obj?: object;
         atomic?: boolean;
         stream?: boolean;
+        pubsub?: boolean;
         throttleChanges?: number;
         // for tables specific to a project, e.g., syncstrings in a project
         project_id?: string;
@@ -267,4 +269,16 @@ export class NatsClient {
     }
     return this.openFilesCache[project_id]!;
   });
+
+  pubsub = async ({
+    project_id,
+    path,
+    name,
+  }: {
+    project_id: string;
+    path?: string;
+    name: string;
+  }) => {
+    return new PubSub({ project_id, path, name, env: await this.getEnv() });
+  };
 }

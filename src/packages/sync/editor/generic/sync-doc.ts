@@ -600,6 +600,10 @@ export class SyncDoc extends EventEmitter {
       // will actually always be non-null due to above
       this.cursor_last_time = x.time;
     }
+    if (this.useNats) {
+      this.cursors_table.set(x);
+      return;
+    }
     this.cursors_table.set(x, "none");
     await this.cursors_table.save();
   };
@@ -1059,7 +1063,7 @@ export class SyncDoc extends EventEmitter {
     for (const x of ["syncstring", "patches", "cursors"]) {
       const t = this[x + "_table"];
       if (t != null) {
-        t.on("close", () => this.close());
+        t.on("close", this.close);
       }
     }
   }
@@ -1849,14 +1853,22 @@ export class SyncDoc extends EventEmitter {
 
   private async init_cursors(): Promise<void> {
     const dbg = this.dbg("init_cursors");
-    if (this.useNats) {
-      dbg('skipping for now')
-      return;
-    }
     if (!this.cursors) {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
+    if (this.useNats) {
+      dbg("NATS cursors support using pub/sub");
+      this.cursors_table = await this.client.synctable_nats({
+        project_id: this.project_id,
+        path: this.path,
+        name: "cursors",
+        pubsub: true,
+      });
+
+      return;
+    }
+
     dbg("getting cursors ephemeral table");
     const query = {
       cursors: [

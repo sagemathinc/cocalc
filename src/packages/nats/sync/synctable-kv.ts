@@ -88,12 +88,12 @@ function isSingletonQuery(query) {
   const table = keys(query)[0];
   const pattern = query[table][0];
   for (const key of client_db.primary_keys(table)) {
-    if (pattern[key] !== null) {
-      // a primary key is specified, so there can be only one match
-      return true;
+    if (pattern[key] === null) {
+      // part of primary key is NOT specified, so not singleton
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 export class SyncTableKV extends EventEmitter {
