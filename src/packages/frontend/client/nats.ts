@@ -177,37 +177,52 @@ export class NatsClient {
     };
   };
 
-  synctable = async (
-    query,
-    options?: {
-      obj?: object;
-      atomic?: boolean;
-      stream?: boolean;
-      throttleChanges?: number;
-      // for tables specific to a project, e.g., syncstrings in a project
-      project_id?: string;
-    },
-  ): Promise<SyncTable> => {
-    query = parse_query(query);
-    const table = keys(query)[0];
-    const obj = options?.obj;
-    if (obj != null) {
-      for (const k in obj) {
-        query[table][0][k] = obj[k];
-      }
-    }
-    if (options?.project_id != null && query[table][0]["project_id"] === null) {
-      query[table][0]["project_id"] = options.project_id;
-    }
-    const s = createSyncTable({
-      ...options,
+  private synctableCache: { [key: string]: SyncTable } = {};
+  synctable = reuseInFlight(
+    async (
       query,
-      env: await this.getEnv(),
-      account_id: this.client.account_id,
-    });
-    await s.init();
-    return s;
-  };
+      options?: {
+        obj?: object;
+        atomic?: boolean;
+        stream?: boolean;
+        throttleChanges?: number;
+        // for tables specific to a project, e.g., syncstrings in a project
+        project_id?: string;
+      },
+    ): Promise<SyncTable> => {
+      query = parse_query(query);
+      const key = JSON.stringify(query);
+      if (this.synctableCache[key] != null) {
+        return this.synctableCache[key];
+      }
+      const table = keys(query)[0];
+      const obj = options?.obj;
+      if (obj != null) {
+        for (const k in obj) {
+          query[table][0][k] = obj[k];
+        }
+      }
+      if (
+        options?.project_id != null &&
+        query[table][0]["project_id"] === null
+      ) {
+        query[table][0]["project_id"] = options.project_id;
+      }
+      const s = createSyncTable({
+        ...options,
+        query,
+        env: await this.getEnv(),
+        account_id: this.client.account_id,
+      });
+      this.synctableCache[key] = s;
+      // @ts-ignore
+      s.on("closed", () => {
+        delete this.synctableCache[key];
+      });
+      await s.init();
+      return s;
+    },
+  );
 
   changefeedInterest = async (query, noError?: boolean) => {
     // express interest

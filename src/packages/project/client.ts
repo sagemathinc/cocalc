@@ -139,6 +139,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       throw Error("BUG: Client already created!");
     }
     ALREADY_CREATED = true;
+    if (process.env.HOME != null) {
+      // client assumes curdir is HOME
+      process.chdir(process.env.HOME);
+    }
     this.project_id = data.project_id;
     this.dbg("constructor")();
     this.setMaxListeners(300); // every open file/table/sync db listens for connect event, which adds up.

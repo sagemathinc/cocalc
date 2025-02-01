@@ -1146,7 +1146,7 @@ export class SyncDoc extends EventEmitter {
       await this.async_close();
       dbg("async_close -- successfully saved all data to database");
     } catch (err) {
-      dbg("async_close -- ERROR -- ", err);
+      dbg(`async_close -- ERROR -- ${err}`);
     }
     // this avoids memory leaks:
     close(this);

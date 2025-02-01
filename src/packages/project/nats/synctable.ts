@@ -31,6 +31,9 @@ const synctable = reuseInFlight(
       });
       await s.init();
       cache[key] = s;
+      s.on("closed", () => {
+        delete cache[key];
+      });
     }
     return cache[key];
   },

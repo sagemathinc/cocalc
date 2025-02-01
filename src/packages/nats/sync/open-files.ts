@@ -91,7 +91,7 @@ export class OpenFiles {
   close = () => {
     this.state = "closed";
     for (const w of this.watches) {
-      w.close();
+      w.stop();
       this.watches = [];
     }
   };

@@ -242,9 +242,10 @@ export class SyncTableStream extends EventEmitter {
       // already closed
       return;
     }
-    this.consumer?.close();
-    delete this.consumer;
     this.set_state("closed");
+    this.removeAllListeners();
+    this.consumer?.delete();
+    delete this.consumer;
   };
 
   delete = async (_obj) => {

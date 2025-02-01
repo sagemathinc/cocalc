@@ -2,8 +2,10 @@ import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { getKv, toKey, type NatsEnv, natsKeyPrefix } from "./synctable-kv";
 import { sha1 } from "@cocalc/util/misc";
+import { EventEmitter } from "events";
+export type State = "disconnected" | "connected" | "closed";
 
-export class SyncTableKVAtomic {
+export class SyncTableKVAtomic extends EventEmitter {
   private kv?;
   private nc;
   private jc;
@@ -13,6 +15,7 @@ export class SyncTableKVAtomic {
   private primaryKeys: string[];
   private project_id?: string;
   private account_id?: string;
+  private state: State = "disconnected";
 
   constructor({
     query,
@@ -25,6 +28,7 @@ export class SyncTableKVAtomic {
     account_id?: string;
     project_id?: string;
   }) {
+    super();
     this.sha1 = env.sha1 ?? sha1;
     this.nc = env.nc;
     this.jc = env.jc;
@@ -36,12 +40,22 @@ export class SyncTableKVAtomic {
     this.primaryKeys = client_db.primary_keys(table);
   }
 
+  private set_state = (state: State): void => {
+    this.state = state;
+    this.emit(state);
+  };
+
+  get_state = () => {
+    return this.state;
+  };
+
   init = async () => {
     this.kv = await getKv({
       nc: this.nc,
       project_id: this.project_id,
       account_id: this.account_id,
     });
+    this.set_state("connected");
   };
 
   private primaryString = (obj): string => {
@@ -98,7 +112,16 @@ export class SyncTableKVAtomic {
       key: `${this.natsKeyPrefix}.>`,
     });
     for await (const { value } of w) {
+      if (this.state == "closed") {
+        return;
+      }
       yield this.jc.decode(value);
     }
   }
+
+  close = () => {
+    this.set_state("closed");
+    this.removeAllListeners();
+    // TODO: stop watchers... ?
+  };
 }

@@ -3,7 +3,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project already, if any
 
-    await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).terminate()
+    await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'api'})
 
 1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
 
@@ -38,6 +38,7 @@ import getLogger from "@cocalc/backend/logger";
 import { type ProjectApi } from "@cocalc/nats/project-api";
 import getConnection from "@cocalc/project/nats/connection";
 import { getSubject } from "../names";
+import { terminate as terminateOpenFiles } from "@cocalc/project/nats/open-files";
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
@@ -56,12 +57,23 @@ async function listen(subscription, subject) {
     const request = jc.decode(mesg.data) ?? ({} as any);
     // logger.debug("got message", request);
     if (request.name == "system.terminate") {
-      // special hook so admin can terminate handling. This is useful for development.
-      console.warn("TERMINATING listening on ", subject);
-      logger.debug("TERMINATING listening on ", subject);
-      mesg.respond(jc.encode({ status: "terminating" }));
-      subscription.close();
-      return;
+      // TODO: should be part of handleApiRequest below, but done differently because
+      // one case halts this loop
+      const { service } = request.args[0] ?? {};
+      if (service == "open-files") {
+        terminateOpenFiles();
+        mesg.respond(jc.encode({ status: "terminating", service }));
+        continue;
+      } else if (service == "api") {
+        // special hook so admin can terminate handling. This is useful for development.
+        console.warn("TERMINATING listening on ", subject);
+        logger.debug("TERMINATING listening on ", subject);
+        mesg.respond(jc.encode({ status: "terminating", service }));
+        subscription.close();
+        return;
+      } else {
+        mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
+      }
     }
     handleApiRequest(request, mesg);
   }

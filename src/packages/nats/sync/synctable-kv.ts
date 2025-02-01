@@ -218,7 +218,8 @@ export class SyncTableKV extends EventEmitter {
   close = () => {
     this.state = "closed";
     this.emit(this.state);
-    this.updateListener?.close();
+    this.removeAllListeners();
+    this.updateListener?.stop();
     this.data = {};
   };
 

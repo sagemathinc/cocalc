@@ -3,6 +3,11 @@ Handle opening files in a project to save/load from disk and also enable compute
 
 DEVELOPMENT:
 
+0. From the browser, terminate this api server running in the project already, if any
+
+    await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'open-files'})
+
+
 Set env variables as in a project, then:
 
 > require("@cocalc/project/nats/open-files").init()
@@ -14,7 +19,6 @@ import { compute_server_id, project_id } from "@cocalc/project/data";
 import { getEnv } from "./env";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { getClient } from "@cocalc/project/client";
-//import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -22,17 +26,35 @@ import { delay } from "awaiting";
 
 const logger = getLogger("project:nats:open-files");
 
+let openFiles: OpenFiles | null = null;
+
 export async function init() {
   logger.debug("init");
-  const openFiles = new OpenFiles({
+  openFiles = new OpenFiles({
     project_id,
     env: await getEnv(),
   });
-  const entries: { [path: string]: Entry } = {};
-  closeIgnoredFiles(entries, openFiles);
-  for await (const entry of await openFiles.watch()) {
-    entries[entry.path] = entry;
-    await handleEntry(entry);
+  runLoop();
+}
+
+async function runLoop() {
+  logger.debug("starting run loop");
+  if (openFiles != null) {
+    const entries: { [path: string]: Entry } = {};
+    closeIgnoredFiles(entries, openFiles);
+    for await (const entry of await openFiles.watch()) {
+      entries[entry.path] = entry;
+      await handleEntry(entry);
+    }
+  }
+  logger.debug("exiting open files run loop");
+}
+
+export function terminate() {
+  logger.debug("terminating open-files service");
+  openFiles?.close();
+  for (const path in openSyncDocs) {
+    closeSyncDoc(path);
   }
 }
 
