@@ -38,6 +38,7 @@ export async function nsc(
   args: string[],
   { noAccount }: { noAccount?: boolean } = {},
 ) {
+  // console.log(`nsc ${args.join(" ")}`);
   return await nsc0(noAccount ? args : [...args, "-a", natsAccountName]);
 }
 
@@ -228,6 +229,19 @@ export async function addProjectPermission({ account_id, project_id }) {
     "--allow-sub",
     `project.${project_id}.>,*.project-${project_id}.>`,
     "--allow-pub",
+    `project.${project_id}.>,*.project-${project_id}.>`,
+  ]);
+  await pushToServer();
+}
+
+export async function removeProjectPermission({ account_id, project_id }) {
+  const name = getNatsUserName({ account_id });
+  await nsc([
+    "edit",
+    "signing-key",
+    "--sk",
+    name,
+    "--rm",
     `project.${project_id}.>,*.project-${project_id}.>`,
   ]);
   await pushToServer();
