@@ -103,6 +103,7 @@ export class SyncTableKV extends EventEmitter {
   private sha1;
   public readonly table;
   public readonly natsKeyPrefix;
+  private allFields: Set<string>;
   private primaryKeys: string[];
   private primaryKeysSet: Set<string>;
   private fields: string[];
@@ -143,6 +144,7 @@ export class SyncTableKV extends EventEmitter {
     );
     const table = keys(query)[0];
     this.table = table;
+    this.allFields = new Set(Object.keys(query[table][0]));
     this.primaryKeys = client_db.primary_keys(table);
     this.primaryKeysSet = new Set(this.primaryKeys);
     this.project_id = project_id ?? query[table][0].project_id;
@@ -204,7 +206,7 @@ export class SyncTableKV extends EventEmitter {
 
   save = async () => {
     // TODO -- right now it is instantly saving on any change...
-  }
+  };
 
   delete = (obj) => {
     if (Map.isMap(obj)) {
@@ -271,17 +273,27 @@ export class SyncTableKV extends EventEmitter {
         this.data[prefix] = {};
       }
       const s = this.data[prefix];
-      if (update && s != null) {
-        const k = this.primaryString(s);
-        this.emit("change-no-throttle", [k]);
-        this.changedKeys.add(k);
-        this.throttledChangeEvent();
+      if (update && s != null && Object.keys(s).length > 0) {
+        let k;
+        try {
+          k = this.primaryString(s);
+        } catch {
+          // s could be {} or just not enough if filled in to compute key.
+          k = null;
+        }
+        if (k != null) {
+          this.emit("change-no-throttle", [k]);
+          this.changedKeys.add(k);
+          this.throttledChangeEvent();
+        }
       }
       if (s != null) {
         if (value.length == 0 && this.primaryKeysSet.has(field)) {
           delete this.data[prefix];
         } else {
-          s[field] = this.jc.decode(value);
+          if (this.allFields.has(field)) {
+            s[field] = this.jc.decode(value);
+          }
           if (Object.keys(s).length == 0) {
             delete this.data[prefix];
           }
@@ -306,7 +318,6 @@ export class SyncTableKV extends EventEmitter {
     if (this.primaryKeys.length === 1) {
       const k = obj[this.primaryKeys[0]];
       if (k == null) {
-        console.log({ obj });
         throw Error(`primary key '${this.primaryKeys[0]}' not set for object`);
       }
       return toKey(k)!;
@@ -376,6 +387,9 @@ export class SyncTableKV extends EventEmitter {
         if (val != null) {
           const i = key.lastIndexOf(".");
           const field = key.slice(i + 1);
+          if (!this.allFields.has(field)) {
+            continue;
+          }
           const prefix = key.slice(0, i);
           if (all[prefix] == null) {
             all[prefix] = {};

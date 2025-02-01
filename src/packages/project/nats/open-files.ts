@@ -20,9 +20,11 @@ import { getEnv } from "./env";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { getClient } from "@cocalc/project/client";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
+import { client_db } from "@cocalc/util/db-schema";
 
 const logger = getLogger("project:nats:open-files");
 
@@ -140,16 +142,84 @@ const closeSyncDoc = reuseInFlight(async (path: string) => {
 
 const openSyncDoc = reuseInFlight(async (path: string) => {
   // todo -- will be async and needs to handle SyncDB and all the config...
-  logger.debug("open", { path });
+  logger.debug("openSyncDoc", { path });
   const syncDoc = openSyncDocs[path];
   if (syncDoc != null) {
-    return syncDoc;
+    return;
   }
   const client = getClient();
-  openSyncDocs[path] = new SyncString({
-    project_id,
-    path,
-    client,
-  });
-  return openSyncDocs[path]!;
+  let x;
+  try {
+    const string_id = client_db.sha1(project_id, path);
+    const syncstrings = await client.synctable_nats(
+      { syncstrings: [{ string_id, doctype: null }] },
+      {
+        stream: false,
+        atomic: false,
+        immutable: false,
+      },
+    );
+    x = await getTypeAndOpts(syncstrings);
+  } catch (err) {
+    logger.debug(`openSyncDoc failed ${err}`);
+    return;
+  }
+  const { type, opts } = x;
+  logger.debug("openSyncDoc got", { path, type, opts });
+  console.log("openSyncDoc got", { path, type, opts });
+
+  let doc;
+  if (type == "string") {
+    doc = new SyncString({
+      ...opts,
+      project_id,
+      path,
+      client,
+    });
+  } else {
+    doc = new SyncDB({
+      ...opts,
+      project_id,
+      path,
+      client,
+    });
+  }
+  openSyncDocs[path] = doc;
+  return;
 });
+
+async function getTypeAndOpts(
+  syncstrings,
+): Promise<{ type: string; opts: any }> {
+  let s = syncstrings.get_one();
+  if (s == null) {
+    await syncstrings.wait(() => {
+      s = syncstrings.get_one();
+      return s != null;
+    });
+  }
+  console.log("s = ", s);
+  const opts: any = {};
+  let type: string = "";
+
+  let doctype = s.doctype;
+  if (doctype != null) {
+    try {
+      doctype = JSON.parse(doctype);
+    } catch {
+      doctype = {};
+    }
+    if (doctype.opts != null) {
+      for (const k in doctype.opts) {
+        opts[k] = doctype.opts[k];
+      }
+    }
+    type = doctype.type;
+  }
+  opts.doctype = doctype;
+  if (type !== "db" && type !== "string") {
+    // fallback type
+    type = "string";
+  }
+  return { type, opts };
+}

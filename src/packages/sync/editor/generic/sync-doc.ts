@@ -1392,15 +1392,23 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed(
       "init_all -- before init patch_list, cursors, evaluator, ipywidgets",
     );
-    await Promise.all([
-      this.init_patch_list(),
-      this.init_cursors(),
-      this.init_evaluator(),
-      this.init_ipywidgets(),
-    ]);
-    this.assert_not_closed("init_all -- after init patch_list");
+    //     await Promise.all([
+    //       this.init_patch_list(),
+    //       this.init_cursors(),
+    //       this.init_evaluator(),
+    //       this.init_ipywidgets(),
+    //     ]);
+    await this.init_patch_list();
+    this.assert_not_closed("init_all -- successful init_patch_list");
+    await this.init_cursors();
+    this.assert_not_closed("init_all -- successful init_patch_cursors");
+    await this.init_evaluator();
+    this.assert_not_closed("init_all -- successful init_evaluator");
+    await this.init_ipywidgets();
+    this.assert_not_closed("init_all -- successful init_ipywidgets");
 
     this.init_table_close_handlers();
+    this.assert_not_closed("init_all -- successful init_table_close_handlers");
 
     log("file_use_interval");
     this.init_file_use_interval();
@@ -1841,6 +1849,10 @@ export class SyncDoc extends EventEmitter {
 
   private async init_cursors(): Promise<void> {
     const dbg = this.dbg("init_cursors");
+    if (this.useNats) {
+      dbg('skipping for now')
+      return;
+    }
     if (!this.cursors) {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
@@ -2489,7 +2501,7 @@ export class SyncDoc extends EventEmitter {
     }
     const dbg = this.dbg("handle_syncstring_save_state");
     dbg(
-      `state=${state}; this.syncstring_save_state=${this.syncstring_save_state}; this.state=${state}`,
+      `state='${state}', this.syncstring_save_state='${this.syncstring_save_state}', this.state='${this.state}'`,
     );
     if (
       this.state === "ready" &&
