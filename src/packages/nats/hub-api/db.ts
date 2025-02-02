@@ -2,6 +2,7 @@ import { authFirst } from "./util";
 
 export const db = {
   userQuery: authFirst,
+  touch: authFirst,
 };
 
 export interface DB {
@@ -11,4 +12,11 @@ export interface DB {
     query: any;
     options?: any[];
   }) => Promise<any>;
+
+  touch: (opts: {
+    account_id: string;
+    project_id?: string;
+    path?: string;
+    action?: string;
+  }) => Promise<void>;
 }
