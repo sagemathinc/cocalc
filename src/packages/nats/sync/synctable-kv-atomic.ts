@@ -93,12 +93,20 @@ export class SyncTableKVAtomic extends EventEmitter {
     return mesg?.sm?.data != null ? this.jc.decode(mesg.sm.data) : null;
   };
 
-  get = async (obj?) => {
+  get = async (obj?, options: { natsKeys?: boolean } = {}) => {
     if (obj == null) {
       const raw = await getAllFromKv({
         kv: this.kv,
         key: `${this.natsKeyPrefix}.>`,
       });
+      if (options.natsKeys) {
+        // gets everything as a map with NATS keys but decoded values.
+        // This is used by the database changefeed stuff.
+        for (const key in raw) {
+          raw[key] = this.jc.decode(raw[key]);
+        }
+        return raw;
+      }
       const all: any = {};
       for (const x of Object.values(raw)) {
         const value = this.jc.decode(x);

@@ -146,6 +146,11 @@ const createChangefeed = reuseInFlight(
     /*
     This code is complicated because it has to be.
 
+    0. Extra work to avoid ever setting a key in the nats kv if
+       we don't have to.  Nat's doesn't do anything to avoid broadcasting
+       changes, so this is very valuable. For a supercluster it will
+       be a critical optimization.
+
     1. The initial set could
        take a long time and still be happening as we get updates
        later.  Thus we MUST use a work queue to ensure that every
@@ -164,9 +169,32 @@ const createChangefeed = reuseInFlight(
 
     */
 
-    const map: { [key: string]: object } = {};
+    // initalize map with exactly what is *currently* in the nats kv,
+    // so we can be sure to never set anything we don't need to set.
+    const map = await synctable.get(null, { natsKeys: true });
+    const queue: {
+      action: "insert" | "update" | "delete";
+      obj: object;
+    }[] = [];
 
-    const queue: { action: "insert" | "update" | "delete"; obj: object }[] = [];
+    const deleteMap = (key, obj) => {
+      if (map[key] !== undefined) {
+        delete map[key];
+        queue.push({ action: "delete", obj });
+      }
+    };
+
+    const setMap = (key, obj) => {
+      const cur = map[key];
+      // always merge set
+      const value = { ...cur, ...obj };
+      // json so dates compare as strings.  Yes, we could make this faster, but this
+      // is entirely in the server.
+      if (JSON.stringify(cur) != JSON.stringify(value)) {
+        map[key] = value;
+        queue.push({ action: "update", obj: value });
+      }
+    };
 
     const synctableSetRows = async (rows) => {
       if (rows.length == 0) {
@@ -227,8 +255,7 @@ const createChangefeed = reuseInFlight(
         return;
       }
       for (const obj of rows) {
-        map[synctable.getKey(obj)] = obj;
-        queue.push({ action: "insert", obj });
+        setMap(synctable.getKey(obj), obj);
       }
       processQueue();
     };
@@ -238,17 +265,14 @@ const createChangefeed = reuseInFlight(
       // e.g., {"action":"insert","new_val":{"title":"testingxxxxx","project_id":"81e0c408-ac65-4114-bad5-5f4b6539bd0e"}}
       const key = synctable.getKey(new_val ?? old_val);
       if (action == "insert") {
-        map[key] = new_val;
-        queue.push({ action, obj: map[key] });
+        setMap(key, new_val);
       } else if (action == "update") {
         // update -- since atomic have to get the current value;
         // this of course assumes there is one process writing to
         // this part of the key value store (the atomic business).
-        map[key] = { ...map[key], ...new_val };
-        queue.push({ action, obj: map[key] });
+        setMap(key, new_val);
       } else if (action == "delete") {
-        delete map[key];
-        queue.push({ action, obj: old_val });
+        deleteMap(key, old_val);
       } else if (action == "close") {
         cancelChangefeed(changes);
       }
@@ -295,6 +319,8 @@ const createChangefeed = reuseInFlight(
       watch();
       return;
     } catch (err) {
+      // if anything goes wrong, make sure we don't think the changefeed is working.
+      cancelChangefeed(changes);
       throw err;
     }
   },
