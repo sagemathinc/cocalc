@@ -3,6 +3,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { getKv, toKey, type NatsEnv, natsKeyPrefix } from "./synctable-kv";
 import { sha1 } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
+import { numKeys } from "@cocalc/nats/util";
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTableKVAtomic extends EventEmitter {
@@ -94,22 +95,35 @@ export class SyncTableKVAtomic extends EventEmitter {
 
   get = async (obj?) => {
     if (obj == null) {
-      // everything
-      const keys = await this.kv.keys(`${this.natsKeyPrefix}.>`);
+      // get everything.  NOte that getting the keys, then the value
+      // for each key, which is what the JS API docs suggests (?)... is **insanely slow**.
+      // Instead use watch and stop when we have enough.
+      // This is *slightly* dangerous, in case the size of the kv store changed maybe right
+      // after computing the size, but it's a risk we must take.
+      const key = `${this.natsKeyPrefix}.>`;
+      const total = await numKeys(this.kv, key);
+      const watch = await this.kv.watch({ key });
+      let count = 0;
       const all: any = {};
-      for await (const key of keys) {
-        const value = this.decode(await this.kv.get(key));
+      for await (const x of watch) {
+        const value = this.jc.decode(x.value);
         all[this.primaryString(value)] = value;
+        count += 1;
+        if (count >= total) {
+          break;
+        }
       }
       return all;
+    } else {
+      return this.decode(await this.kv.get(this.getKey(obj)));
     }
-    return this.decode(await this.kv.get(this.getKey(obj)));
   };
 
-  // watch for changes
+  // watch for new changes
   async *watch() {
     const w = await this.kv.watch({
       key: `${this.natsKeyPrefix}.>`,
+      include: "updates",
     });
     for await (const { value } of w) {
       if (this.state == "closed") {

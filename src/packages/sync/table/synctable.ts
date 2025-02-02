@@ -19,7 +19,7 @@ let DEBUG: boolean = false;
 
 // enable experimental nats database backed changefeed.
 // for this to work you must explicitly run the server in @cocalc/database/nats
-const USE_NATS = false;
+const USE_NATS = true;
 
 export function set_debug(x: boolean): void {
   DEBUG = x;
