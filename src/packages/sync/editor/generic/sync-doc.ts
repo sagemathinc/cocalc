@@ -55,6 +55,9 @@ const READ_ONLY_CHECK_INTERVAL_MS = 7500;
 // cursors less responsive.
 const CURSOR_THROTTLE_MS = 750;
 
+// NATS is much faster and can handle load, and cursors only uses pub/sub
+const CURSOR_THROTTLE_NATS_MS = 150;
+
 // Ignore file changes for this long after save to disk.
 const RECENT_SAVE_TO_DISK_MS = 2000;
 
@@ -580,8 +583,25 @@ export class SyncDoc extends EventEmitter {
       // table not initialized yet
       return;
     }
+    if (this.useNats) {
+      const time = this.client.server_time().valueOf();
+      const x: {
+        user_id: number;
+        locs: any;
+        time: number;
+      } = {
+        user_id: this.my_user_id,
+        locs,
+        time,
+      };
+      // will actually always be non-null due to above
+      this.cursor_last_time = new Date(x.time);
+      this.cursors_table.set(x);
+      return;
+    }
+
     const x: {
-      string_id: string;
+      string_id?: string;
       user_id: number;
       locs: any[];
       time?: Date;
@@ -600,18 +620,18 @@ export class SyncDoc extends EventEmitter {
       // will actually always be non-null due to above
       this.cursor_last_time = x.time;
     }
-    if (this.useNats) {
-      this.cursors_table.set(x);
-      return;
-    }
     this.cursors_table.set(x, "none");
     await this.cursors_table.save();
   };
 
-  set_cursor_locs = throttle(this.setCursorLocsNoThrottle, CURSOR_THROTTLE_MS, {
-    leading: true,
-    trailing: true,
-  });
+  set_cursor_locs = throttle(
+    this.setCursorLocsNoThrottle,
+    USE_NATS ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
+    {
+      leading: true,
+      trailing: true,
+    },
+  );
 
   private init_file_use_interval(): void {
     if (this.file_use_interval == null) {
@@ -1859,13 +1879,32 @@ export class SyncDoc extends EventEmitter {
     }
     if (this.useNats) {
       dbg("NATS cursors support using pub/sub");
-      this.cursors_table = await this.client.synctable_nats({
+      this.cursors_table = await this.client.pubsub_nats({
         project_id: this.project_id,
         path: this.path,
         name: "cursors",
-        pubsub: true,
       });
-
+      this.cursors_table.on(
+        "change",
+        (obj: { user_id: number; locs: any; time: number }) => {
+          const account_id = this.users[obj.user_id];
+          if (!account_id) {
+            return;
+          }
+          if (obj.locs == null && !this.cursor_map.has(account_id)) {
+            // gone, and already gone.
+            return;
+          }
+          if (obj.locs != null) {
+            // changed
+            this.cursor_map = this.cursor_map.set(account_id, fromJS(obj));
+          } else {
+            // deleted
+            this.cursor_map = this.cursor_map.delete(account_id);
+          }
+          this.emit("cursor_activity", account_id);
+        },
+      );
       return;
     }
 
@@ -1910,7 +1949,7 @@ export class SyncDoc extends EventEmitter {
         this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
       }
     });
-    this.cursors_table.on("change", this.handle_cursors_change.bind(this));
+    this.cursors_table.on("change", this.handle_cursors_change);
 
     if (this.cursors_table.setOnDisconnect != null) {
       // setOnDisconnect is available, so clear our
@@ -1928,7 +1967,7 @@ export class SyncDoc extends EventEmitter {
     dbg("done");
   }
 
-  private handle_cursors_change(keys): void {
+  private handle_cursors_change = (keys) => {
     if (this.state === "closed") {
       return;
     }
@@ -1957,7 +1996,7 @@ export class SyncDoc extends EventEmitter {
       }
       this.emit("cursor_activity", account_id);
     }
-  }
+  };
 
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
@@ -1991,7 +2030,7 @@ export class SyncDoc extends EventEmitter {
         excludeSelf == "always" ||
         (excludeSelf == "heuristic" &&
           this.cursor_last_time >=
-            (map.getIn([account_id, "time"], new Date(0)) as Date))
+            new Date(map.getIn([account_id, "time"], 0) as number))
       ) {
         map = map.delete(account_id);
       }
