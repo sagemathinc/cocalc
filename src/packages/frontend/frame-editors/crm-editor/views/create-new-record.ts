@@ -65,19 +65,18 @@ async function create(dbtable, obj): Promise<number | null> {
   // is likely to be ours.
   // TODO: this is fine until we do this properly since probably it's
   // just one admin manually using this.
-  const recent = (
-    await webapp_client.async_query({
-      query: {
-        [dbtable]: [
-          {
-            id: null,
-            created: { ">=": { relative_time: -15, unit: "seconds" } },
-          },
-        ],
-      },
-      options: [{ order_by: "-created" }],
-    })
-  ).query[dbtable];
+  const result = await webapp_client.async_query({
+    query: {
+      [dbtable]: [
+        {
+          id: null,
+          created: { ">=": { relative_time: -15, unit: "seconds" } },
+        },
+      ],
+    },
+    options: [{ order_by: "-created" }],
+  });
+  const recent = result.query[dbtable];
   return recent[0].id;
 }
 
@@ -85,7 +84,7 @@ async function create(dbtable, obj): Promise<number | null> {
 function fillInAtomicSearch(
   x,
   dbtable,
-  { field, operator, value }: AtomicSearch
+  { field, operator, value }: AtomicSearch,
 ) {
   if (!field || !operator || value === undefined) {
     // only partially input so not being used.  (TODO?)

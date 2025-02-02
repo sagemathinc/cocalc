@@ -69,14 +69,14 @@ export class QueryClient {
         if (err) {
           throw Error(err);
         }
-        const result = await this.client.nats_client.hub.db.userQuery({
+        const query = await this.client.nats_client.hub.db.userQuery({
           query: opts.query,
           options: opts.options,
         });
         if (opts.cb == null) {
-          return result;
+          return { query };
         } else {
-          opts.cb(undefined, { query: result });
+          opts.cb(undefined, { query });
         }
       } catch (err) {
         if (opts.cb == null) {
