@@ -5,7 +5,7 @@ To do development:
 
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.callHub({name:"terminate"})
+   await cc.client.nats_client.hub.system.terminate({service:'api'})
 
 2. Run this script standalone:
 
@@ -39,6 +39,7 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
+import { terminate as terminateDatabase } from "@cocalc/database/nats";
 
 const logger = getLogger("server:nats:api");
 
@@ -53,16 +54,33 @@ export async function initAPI() {
   const sub = nc.subscribe(subject, { queue: "0" });
   for await (const mesg of sub) {
     const request = jc.decode(mesg.data) ?? ({} as any);
-    if (request.name == "terminate") {
+    if (request.name == "system.terminate") {
       // special hook so admin can terminate handling. This is useful for development.
       const { account_id } = getUserId(mesg.subject);
       if (!(!!account_id && (await userIsInGroup(account_id, "admin")))) {
-        throw Error("only admin can terminate");
+        mesg.respond(jc.encode({ error: "only admin can terminate" }));
+        continue;
       }
-      mesg.respond(jc.encode({ status: "terminating" }));
-      return;
+      // TODO: should be part of handleApiRequest below, but done differently because
+      // one case halts this loop
+      const { service } = request.args[0] ?? {};
+      if (service == "database") {
+        terminateDatabase();
+        mesg.respond(jc.encode({ status: "terminating", service }));
+        continue;
+      } else if (service == "api") {
+        // special hook so admin can terminate handling. This is useful for development.
+        console.warn("TERMINATING listening on ", subject);
+        logger.debug("TERMINATING listening on ", subject);
+        mesg.respond(jc.encode({ status: "terminating", service }));
+        sub.unsubscribe();
+        return;
+      } else {
+        mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
+      }
+    } else {
+      handleApiRequest(request, mesg);
     }
-    handleApiRequest(request, mesg);
   }
 }
 

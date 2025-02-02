@@ -6,3 +6,5 @@ export { addProjectPermission };
 export function ping() {
   return { now: Date.now() };
 }
+
+export async function terminate() {}

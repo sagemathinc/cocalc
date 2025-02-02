@@ -18,6 +18,7 @@ import { EventEmitter } from "events";
 import { wait } from "@cocalc/util/async-wait";
 import { throttle } from "lodash";
 import { fromJS, Map } from "immutable";
+import { getAllFromKv } from "@cocalc/nats/util";
 
 export function natsKeyPrefix({
   query,
@@ -379,12 +380,12 @@ export class SyncTableKV extends EventEmitter {
     const kv = await this.getKv();
     if (obj == null) {
       // everything known in this table by the project
-      const keys = await kv.keys(`${this.natsKeyPrefix}.>`);
+      const raw = await getAllFromKv({ kv, key: `${this.natsKeyPrefix}.>` });
       const all: any = {};
-      for await (const key of keys) {
-        const mesg = await kv.get(key);
-        const val = mesg?.sm?.data ? this.jc.decode(mesg.sm.data) : null;
-        if (val != null) {
+      for (const key in raw) {
+        const x = raw[key];
+        if (x) {
+          const val = this.jc.decode(x);
           const i = key.lastIndexOf(".");
           const field = key.slice(i + 1);
           if (!this.allFields.has(field)) {

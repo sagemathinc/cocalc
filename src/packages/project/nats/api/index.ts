@@ -69,13 +69,14 @@ async function listen(subscription, subject) {
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
         mesg.respond(jc.encode({ status: "terminating", service }));
-        subscription.close();
+        subscription.unsubscribe();
         return;
       } else {
         mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
       }
+    } else {
+      handleApiRequest(request, mesg);
     }
-    handleApiRequest(request, mesg);
   }
 }
 

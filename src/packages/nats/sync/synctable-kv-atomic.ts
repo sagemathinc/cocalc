@@ -3,7 +3,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { getKv, toKey, type NatsEnv, natsKeyPrefix } from "./synctable-kv";
 import { sha1 } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
-import { numKeys } from "@cocalc/nats/util";
+import { getAllFromKv } from "@cocalc/nats/util";
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTableKVAtomic extends EventEmitter {
@@ -95,23 +95,14 @@ export class SyncTableKVAtomic extends EventEmitter {
 
   get = async (obj?) => {
     if (obj == null) {
-      // get everything.  NOte that getting the keys, then the value
-      // for each key, which is what the JS API docs suggests (?)... is **insanely slow**.
-      // Instead use watch and stop when we have enough.
-      // This is *slightly* dangerous, in case the size of the kv store changed maybe right
-      // after computing the size, but it's a risk we must take.
-      const key = `${this.natsKeyPrefix}.>`;
-      const total = await numKeys(this.kv, key);
-      const watch = await this.kv.watch({ key });
-      let count = 0;
+      const raw = await getAllFromKv({
+        kv: this.kv,
+        key: `${this.natsKeyPrefix}.>`,
+      });
       const all: any = {};
-      for await (const x of watch) {
-        const value = this.jc.decode(x.value);
+      for (const x of Object.values(raw)) {
+        const value = this.jc.decode(x);
         all[this.primaryString(value)] = value;
-        count += 1;
-        if (count >= total) {
-          break;
-        }
       }
       return all;
     } else {

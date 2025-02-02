@@ -19,7 +19,6 @@ export class NatsChangefeed extends EventEmitter {
     this.client = client;
     this.query = query;
     this.options = options;
-    console.log('changefeed-nats', this.query, this.options);
   }
 
   connect = async () => {
