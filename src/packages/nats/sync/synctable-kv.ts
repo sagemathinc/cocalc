@@ -346,7 +346,7 @@ export class SyncTableKV extends EventEmitter {
     return this.sha1(this.primaryString(this.fillInFromQuery(obj)));
   };
 
-  private getKey = (obj, field?: string): string => {
+  getKey = (obj, field?: string): string => {
     const x = this.singleton
       ? this.natsKeyPrefix
       : `${this.natsKeyPrefix}.${this.natObjectKey(obj)}`;

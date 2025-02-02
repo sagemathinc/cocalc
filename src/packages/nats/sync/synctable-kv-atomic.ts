@@ -75,7 +75,7 @@ export class SyncTableKVAtomic extends EventEmitter {
     return this.sha1(this.primaryString(obj));
   };
 
-  private getKey = (obj): string => {
+  getKey = (obj): string => {
     return `${this.natsKeyPrefix}.${this.natObjectKey(obj)}`;
   };
 

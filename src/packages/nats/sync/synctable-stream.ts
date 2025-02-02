@@ -143,6 +143,8 @@ export class SyncTableStream extends EventEmitter {
     return toKey(this.primaryKeys.map((pk) => obj2[pk]))!;
   };
 
+  getKey = this.primaryString;
+
   private publish = (mesg) => {
     // console.log("publishing ", { subject: this.subject, mesg });
     this.nc.publish(this.subject, this.jc.encode(mesg));
