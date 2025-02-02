@@ -19,6 +19,9 @@ export class NatsChangefeed extends EventEmitter {
     this.client = client;
     this.query = query;
     this.options = options;
+    if (this.options != null && this.options.length > 0) {
+      console.log("NatsChangefeed -- todo: options not implemented", options);
+    }
   }
 
   connect = async () => {
