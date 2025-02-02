@@ -13,8 +13,9 @@ export class NatsChangefeed extends EventEmitter {
   private options;
   private state: State = "disconnected";
   private natsSynctable?;
+  private watch?;
 
-  constructor({ client, query, options }: { client; query; options }) {
+  constructor({ client, query, options }: { client; query; options? }) {
     super();
     this.client = client;
     this.query = query;
@@ -27,11 +28,15 @@ export class NatsChangefeed extends EventEmitter {
   connect = async () => {
     this.natsSynctable = await this.client.nats_client.changefeed(this.query);
     this.interest();
-    this.watch();
+    this.startWatch();
     return Object.values(await this.natsSynctable.get());
   };
 
   close = (): void => {
+    if (this.watch != null) {
+      this.watch.stop();
+      delete this.watch;
+    }
     this.state = "closed";
     this.emit("close");
   };
@@ -48,14 +53,13 @@ export class NatsChangefeed extends EventEmitter {
       await delay(30000);
     }
   };
-  private watch = async () => {
+
+  private startWatch = async () => {
     if (this.natsSynctable == null) {
       return;
     }
-    for await (const new_val of await this.natsSynctable.watch()) {
-      if (this.state == "closed") {
-        return;
-      }
+    this.watch = await this.natsSynctable.watch();
+    for await (const new_val of this.watch) {
       this.emit("update", { action: "update", new_val });
     }
   };

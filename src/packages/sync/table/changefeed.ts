@@ -107,7 +107,6 @@ export class Changefeed extends EventEmitter {
     this.do_query({
       query: this.query,
       changes: true,
-      timeout: 30,
       options: this.options,
       cb: (err, resp) => {
         if (first_time) {

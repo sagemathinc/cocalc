@@ -1,4 +1,4 @@
-// Get the number of keys in a nats kv store, matching a given subject:
+// Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
   let num = 0;
   for await (const _ of await kv.keys(x)) {
@@ -31,10 +31,11 @@ export async function getAllFromKv({
   if (total == 0) {
     return all;
   }
-  const watch = await kv.watch({ key });
+  const watch = await kv.watch({ key, ignoreDeletes: true });
   let id: any = 0;
   for await (const { key, value } of watch) {
     all[key] = value;
+
     count += 1;
 
     if (id) {
