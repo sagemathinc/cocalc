@@ -2,7 +2,7 @@
 Configure nats-server, i.e., generate configuration files.
 
 
-echo "await require('@cocalc/backend/nats/conf').configureNatsServer()" | node
+node -e "require('@cocalc/backend/nats/conf').main()"
 
 */
 
@@ -16,6 +16,7 @@ import nsc from "./nsc";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { startServer } from "./server";
 import { kill } from "node:process";
+import { delay } from "awaiting";
 
 const logger = getLogger("backend:nats:install");
 
@@ -63,9 +64,19 @@ ${await configureNsc()}
   );
 
   const pid = startServer();
-  // push initial operator/account/user configuration so its possible
-  // to configure other accounts
-  await nsc(["push", "-u", natsServerUrl]);
+  let d = 1000;
+  while (true) {
+    try {
+      // push initial operator/account/user configuration so its possible
+      // to configure other accounts
+      await nsc(["push", "-u", natsServerUrl]);
+      break;
+    } catch (err) {
+      console.log(err);
+      await delay(d);
+      d = Math.min(15000, d * 1.3);
+    }
+  }
   kill(pid);
 }
 
@@ -101,4 +112,9 @@ export async function configureNsc() {
   const i = stdout.indexOf("system_account");
   const j = stdout.indexOf("\n", i + 1);
   return stdout.slice(0, j);
+}
+
+export async function main() {
+  await configureNatsServer();
+  process.exit(0);
 }

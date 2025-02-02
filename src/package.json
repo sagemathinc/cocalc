@@ -18,8 +18,8 @@
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r test",
     "prettier-all": "cd packages/",
-    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/data/nats && ./bin/nats-server -c server.conf",
-    "nats": "echo 'Starting NATS subshell where you can use: nsc, nats, nats-server'; XDG_DATA_HOME=${COCALC_ROOT:=$INIT_CWD}/data XDG_CONFIG_HOME=${COCALC_ROOT:=$INIT_CWD}/data PATH=${COCALC_ROOT:=$INIT_CWD}/data/nats/bin:$PATH  PS1=\"nats> \" bash"
+    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && cd ${COCALC_ROOT:=$INIT_CWD}/data/nats && ./bin/nats-server -c server.conf",
+    "nats": "echo; echo '# Put the following in your ~/.bashrc or use this subshell'; echo; echo \"export XDG_DATA_HOME=${COCALC_ROOT:=$INIT_CWD}/data\"; echo \"export XDG_CONFIG_HOME=${COCALC_ROOT:=$INIT_CWD}/data\"; echo \"export PATH=${COCALC_ROOT:=$INIT_CWD}/data/nats/bin:\\$PATH\"; echo;  echo; XDG_DATA_HOME=${COCALC_ROOT:=$INIT_CWD}/data XDG_CONFIG_HOME=${COCALC_ROOT:=$INIT_CWD}/data PATH=${COCALC_ROOT:=$INIT_CWD}/data/nats/bin:$PATH bash"
   },
   "repository": {
     "type": "git",
