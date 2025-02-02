@@ -56,9 +56,11 @@ To install required dependencies, run
 hand, you prefer that development packages be installed globally, you can jump directly to the above `pip install` 
 command outside the context of a virtual environment.
 
-## Initial Build
+## Build and Start
 
-Launch the install and build **for doing development:** 
+Launch the install and build **for doing development.**
+
+If you export the PORT environment variable, that determines what port everything listens on.  This determines subtle things about configuration, so do this once and for all in a consistent way.
 
 **Note**: If you installed `pnpm` locally (instead of globally), simply run `npm run` in place of `pnpm` to execute
 these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts).
@@ -67,7 +69,7 @@ these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/sc
 ~/cocalc/src$ pnpm build-dev
 ```
 
-This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm build-dev` finishes successfully, you can start using CoCalc by starting the database, nats server and the backend hub in three terminals.  \(Note that 'pnpm nats\-server' will download, install and configure NATS automatically.\)
+This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm build-dev` finishes successfully, you can start using CoCalc by starting the database, nats server and the backend hub in three terminals.  \(Note that 'pnpm nats\-server' will download, install and configure NATS automatically.\)  You can start the database, nats\-server and hub in any order.
 
 ```sh
 ~/cocalc/src$ pnpm database    # in one terminal
