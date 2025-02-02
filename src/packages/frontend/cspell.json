@@ -30,9 +30,12 @@
     "tidyverse",
     "timetravel",
     "undelete",
-    "undeleting"
+    "undeleting",
+    "tolerations"
   ],
   "ignoreWords": [
+    "LLMs",
+    "LLM",
     "antd",
     "ipynb",
     "kernelspec",

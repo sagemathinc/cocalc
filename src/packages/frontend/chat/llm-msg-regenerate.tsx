@@ -162,7 +162,9 @@ export function RegenerateLLM({
       label: (
         <>
           <LanguageModelVendorAvatar model={model} />{" "}
-          <Text strong>{display}</Text> (the same){" "}
+          <Text>
+            <Text strong>{display}</Text> (the same)
+          </Text>{" "}
           <LLMModelPrice model={model} floatRight />
         </>
       ),
