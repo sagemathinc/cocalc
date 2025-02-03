@@ -1474,6 +1474,9 @@ importers:
       '@langchain/openai':
         specifier: ^0.3.17
         version: 0.3.17(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
+      '@nats-io/jetstream':
+        specifier: 3.0.0-36
+        version: 3.0.0-36
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4

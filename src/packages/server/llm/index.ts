@@ -42,7 +42,7 @@ import {
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
@@ -97,15 +97,25 @@ function wrapStream(stream?: ChatOptions["stream"]) {
 
   const throttled = throttle(
     () => {
-      if (buffer.length === 0) return;
-      if (closed) throw new Error("stream closed");
+      if (buffer.length === 0) {
+        return;
+      }
+      if (closed) {
+        throw new Error("stream closed");
+      }
       // if the last object in buffer is the end object, remove it
       closed = buffer[buffer.length - 1] === end;
-      if (closed) buffer.pop();
+      if (closed) {
+        buffer.pop();
+      }
       const str = buffer.join("");
       buffer.length = 0;
-      stream(str);
-      if (closed) stream();
+      if (str.length > 0) {
+        stream(str);
+      }
+      if (closed) {
+        stream();
+      }
     },
     THROTTLE_STREAM_MS,
     { leading: true, trailing: true },
@@ -132,19 +142,20 @@ async function evaluateImpl({
   stream,
   maxTokens,
 }: ChatOptions): Promise<string> {
-  log.debug("evaluateImpl", {
-    input,
-    history,
-    system,
-    account_id,
-    analytics_cookie,
-    project_id,
-    path,
-    model,
-    tag,
-    stream: stream != null,
-    maxTokens,
-  });
+  // LARGE -- e.g., complete input -- only uncomment when developing if you need this.
+  //   log.debug("evaluateImpl", {
+  //     input,
+  //     history,
+  //     system,
+  //     account_id,
+  //     analytics_cookie,
+  //     project_id,
+  //     path,
+  //     model,
+  //     tag,
+  //     stream: stream != null,
+  //     maxTokens,
+  //   });
 
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });

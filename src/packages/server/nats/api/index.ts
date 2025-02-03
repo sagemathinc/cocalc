@@ -67,13 +67,13 @@ export async function initAPI() {
       logger.debug(`Terminate service '${service}'`);
       if (service == "database") {
         terminateDatabase();
-        mesg.respond(jc.encode({ status: "terminating", service }));
+        mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {
         // special hook so admin can terminate handling. This is useful for development.
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
-        mesg.respond(jc.encode({ status: "terminating", service }));
+        mesg.respond(jc.encode({ status: "terminated", service }));
         sub.unsubscribe();
         return;
       } else {
@@ -104,11 +104,13 @@ async function handleApiRequest(request, mesg) {
 
 import * as purchases from "./purchases";
 import * as db from "./db";
+import * as llm from "./llm";
 import * as system from "./system";
 
 export const hubApi: HubApi = {
   system,
   db,
+  llm,
   purchases,
 };
 

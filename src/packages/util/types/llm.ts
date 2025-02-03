@@ -12,7 +12,7 @@ export interface ChatOutput {
   completion_tokens: number;
 }
 
-export interface ChatOptions {
+export interface ChatOptionsApi {
   input: string; // new input that user types
   system?: string; // extra setup that we add for relevance and context
   account_id?: string;
@@ -22,13 +22,16 @@ export interface ChatOptions {
   history?: History;
   model?: LanguageModel; // default is defined by server setting default_llm
   tag?: string;
+  maxTokens?: number;
+}
+
+export interface ChatOptions extends ChatOptionsApi {
   // If stream is set, then everything works as normal with two exceptions:
   // - The stream function is called with bits of the output as they are produced,
   //   until the output is done and then it is called with undefined.
   // - Maybe the total_tokens, which is stored in the database for analytics,
   //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
   stream?: (output?: string) => void;
-  maxTokens?: number;
 }
 
 // This could be Ollama or CustomOpenAI

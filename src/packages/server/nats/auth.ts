@@ -119,7 +119,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const goalSub = new Set(["_INBOX.>", "$JS.API.>"]);
 
   if (userType == "account") {
-    goalSub.add(`$KV.account-${userId}.>`);
+    goalSub.add(`*.account-${userId}.>`);
 
     const pool = getPool();
     // all RUNNING projects with the user's group

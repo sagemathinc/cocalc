@@ -29,7 +29,6 @@ db_schema            = require('@cocalc/util/db-schema')
 { REMEMBER_ME_COOKIE_NAME } = require("@cocalc/backend/auth/cookie-names");
 generateHash     = require("@cocalc/server/auth/hash").default;
 passwordHash     = require("@cocalc/backend/auth/password-hash").default;
-llm              = require('@cocalc/server/llm/index');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project   = require("@cocalc/server/projects/create").default;
@@ -1700,27 +1699,6 @@ class exports.Client extends EventEmitter
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
 
-    mesg_chatgpt: (mesg) =>
-        dbg = @dbg("mesg_chatgpt")
-        dbg(mesg.text)
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        if mesg.stream
-            try
-                stream = (text) =>
-                    @push_to_client(message.chatgpt_response(id:mesg.id, text:text, multi_response:text?))
-                await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
-            catch err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"#{err}")
-        else
-            try
-                output = await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
-                @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
-            catch err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"#{err}")
 
     # These are deprecated. Not the best approach.
     mesg_openai_embeddings_search: (mesg) =>

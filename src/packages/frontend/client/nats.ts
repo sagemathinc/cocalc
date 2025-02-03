@@ -16,6 +16,7 @@ import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
+import type { ChatOptions } from "@cocalc/util/types/llm";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -280,5 +281,35 @@ export class NatsClient {
     name: string;
   }) => {
     return new PubSub({ project_id, path, name, env: await this.getEnv() });
+  };
+
+  // Evaluate the llm.  This streams the result if stream is given an option,
+  // AND it also always returns the result.
+  llm = async (opts: ChatOptions) => {
+    const { stream, ...options } = opts;
+    const { subject, streamName } = await this.hub.llm.evaluate(options);
+    // making an ephemeral consumer
+    const nc = await this.getConnection();
+    const js = jetstream.jetstream(nc);
+    const jsm = await jetstream.jetstreamManager(nc);
+    const { name } = await jsm.consumers.add(streamName, {
+      filter_subject: subject,
+    });
+    const consumer = await js.consumers.get(streamName, name);
+    const messages = await consumer.fetch();
+    const decoder = new TextDecoder("utf-8");
+    let accumulate = "";
+    for await (const mesg of messages) {
+      if (mesg.data.length == 0) {
+        // done.
+        stream?.(undefined); // indicates done
+        messages.stop();
+        break;
+      }
+      const text = decoder.decode(mesg.data);
+      accumulate += text;
+      stream?.(text);
+    }
+    return accumulate;
   };
 }

@@ -62,13 +62,13 @@ async function listen(subscription, subject) {
       const { service } = request.args[0] ?? {};
       if (service == "open-files") {
         terminateOpenFiles();
-        mesg.respond(jc.encode({ status: "terminating", service }));
+        mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {
         // special hook so admin can terminate handling. This is useful for development.
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
-        mesg.respond(jc.encode({ status: "terminating", service }));
+        mesg.respond(jc.encode({ status: "terminated", service }));
         subscription.unsubscribe();
         return;
       } else {

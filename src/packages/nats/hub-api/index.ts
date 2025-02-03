@@ -2,18 +2,21 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { type Purchases, purchases } from "./purchases";
 import { type System, system } from "./system";
 import { type DB, db } from "./db";
+import { type LLM, llm } from "./llm";
 import { handleErrorMessage } from "@cocalc/nats/util";
 
 export interface HubApi {
   system: System;
   db: DB;
   purchases: Purchases;
+  llm: LLM;
 }
 
 const HubApiStructure = {
   system,
   db,
   purchases,
+  llm,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {
