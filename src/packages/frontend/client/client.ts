@@ -8,7 +8,6 @@ import { delay } from "awaiting";
 import { alert_message } from "../alerts";
 import { StripeClient } from "./stripe";
 import { ProjectCollaborators } from "./project-collaborators";
-import { SupportTickets } from "./support";
 import { Messages } from "./messages";
 import { QueryClient } from "./query";
 import { TimeClient } from "./time";
@@ -49,7 +48,6 @@ export interface WebappClient extends EventEmitter {
 
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -131,7 +129,6 @@ class Client extends EventEmitter implements WebappClient {
   account_id?: string;
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -210,9 +207,6 @@ class Client extends EventEmitter implements WebappClient {
     this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
     this.project_collaborators = bind_methods(
       new ProjectCollaborators(this.async_call.bind(this)),
-    );
-    this.support_tickets = bind_methods(
-      new SupportTickets(this.async_call.bind(this)),
     );
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));

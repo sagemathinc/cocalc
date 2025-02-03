@@ -1526,20 +1526,6 @@ class exports.Client extends EventEmitter
 
 
     ###
-    Support Tickets → Zendesk
-    ###
-    mesg_create_support_ticket: (mesg) =>
-        dbg = @dbg("mesg_create_support_ticket")
-        dbg('deprecated')
-        @error_to_client(id:mesg.id, error:'deprecated')
-
-    mesg_get_support_tickets: (mesg) =>
-        # retrieves the support tickets the user with the current account_id
-        dbg = @dbg("mesg_get_support_tickets")
-        dbg('deprecated')
-        @error_to_client(id:mesg.id, error:'deprecated')
-
-    ###
     Stripe-integration billing code
     ###
     handle_stripe_mesg: (mesg) =>
