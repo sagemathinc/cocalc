@@ -64,6 +64,7 @@ export async function initAPI() {
       // TODO: should be part of handleApiRequest below, but done differently because
       // one case halts this loop
       const { service } = request.args[0] ?? {};
+      logger.debug(`Terminate service '${service}'`);
       if (service == "database") {
         terminateDatabase();
         mesg.respond(jc.encode({ status: "terminating", service }));

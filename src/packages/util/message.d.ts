@@ -102,7 +102,6 @@ export const user_auth_token: any;
 export const metrics: any;
 export const start_metrics: any;
 export const get_available_upgrades: any;
-export const touch_project: any;
 export const disconnect_from_project: any;
 export const available_upgrades: any;
 export const remove_all_upgrades: any;

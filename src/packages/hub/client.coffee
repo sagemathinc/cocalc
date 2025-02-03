@@ -1570,91 +1570,6 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
-    ###
-    Data Query
-    ###
-    mesg_query: (mesg) =>
-        dbg = @dbg("user_query")
-        query = mesg.query
-        if not query?
-            @error_to_client(id:mesg.id, error:"malformed query")
-            return
-        # CRITICAL: don't enable this except for serious debugging, since it can result in HUGE output
-        #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
-        first = true
-        if mesg.changes
-            @_query_changefeeds ?= {}
-            @_query_changefeeds[mesg.id] = true
-        mesg_id = mesg.id
-        @database.user_query
-            client_id  : @id
-            account_id : @account_id
-            query      : query
-            options    : mesg.options
-            changes    : if mesg.changes then mesg_id
-            cb         : (err, result) =>
-                if @closed  # connection closed, so nothing further to do with this
-                    return
-                if result?.action == 'close'
-                    err = 'close'
-                if err
-                    dbg("user_query(query='#{misc.to_json(query)}') error:", err)
-                    if @_query_changefeeds?[mesg_id]
-                        delete @_query_changefeeds[mesg_id]
-                    @error_to_client(id:mesg_id, error:"#{err}")   # Ensure err like Error('foo') can be JSON'd
-                    if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
-                        dbg("changefeed got messed up, so cancel it:")
-                        @database.user_query_cancel_changefeed(id : mesg_id)
-                else
-                    if mesg.changes and not first
-                        resp = result
-                        resp.id = mesg_id
-                        resp.multi_response = true
-                    else
-                        first = false
-                        resp = mesg
-                        resp.query = result
-                    @push_to_client(resp)
-
-    query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds?
-            cb?(); return
-        cnt = misc.len(@_query_changefeeds)
-        if cnt == 0
-            cb?(); return
-        dbg = @dbg("query_cancel_all_changefeeds")
-        v = @_query_changefeeds
-        dbg("cancel #{cnt} changefeeds")
-        delete @_query_changefeeds
-        f = (id, cb) =>
-            dbg("cancel id=#{id}")
-            @database.user_query_cancel_changefeed
-                id : id
-                cb : (err) =>
-                    if err
-                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
-                    else
-                        dbg("FEED: canceled changefeed -- #{id}")
-                    cb()
-        async.map(misc.keys(v), f, (err) => cb?(err))
-
-    mesg_query_cancel: (mesg) =>
-        if not @_query_changefeeds?[mesg.id]?
-            # no such changefeed
-            @success_to_client(id:mesg.id)
-        else
-            # actualy cancel it.
-            if @_query_changefeeds?
-                delete @_query_changefeeds[mesg.id]
-            @database.user_query_cancel_changefeed
-                id : mesg.id
-                cb : (err, resp) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        mesg.resp = resp
-                        @push_to_client(mesg)
-
 
     ###
     Support Tickets → Zendesk
@@ -1866,37 +1781,6 @@ class exports.Client extends EventEmitter
             else
                 local_hub_connection.disconnect_from_project(mesg.project_id)
                 @push_to_client(message.success(id:mesg.id))
-
-    mesg_touch_project: (mesg) =>
-        dbg = @dbg('mesg_touch_project')
-        async.series([
-            (cb) =>
-                dbg("checking conditions")
-                @_check_project_access(mesg.project_id, cb)
-            (cb) =>
-                # IMPORTANT: do this ensure_connection_to_project *first*, since
-                # it is critical always ensure this, and the @touch below gives
-                # an error if done more than once per 45s, whereas we may want
-                # to check much more frequently that we have a TCP connection
-                # to the project.
-                f = @database.ensure_connection_to_project
-                if f?
-                    dbg("also create socket connection (so project can query db, etc.)")
-                    # We do NOT block on this -- it can take a while.
-                    f(mesg.project_id)
-                cb()
-            (cb) =>
-                @touch
-                    project_id : mesg.project_id
-                    action     : 'touch'
-                    cb         : cb
-        ], (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"unable to touch project #{mesg.project_id} -- #{err}")
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
 
     mesg_get_syncdoc_history: (mesg) =>
         dbg = @dbg('mesg_syncdoc_history')

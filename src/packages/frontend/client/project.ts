@@ -457,7 +457,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.call(message.touch_project({ project_id }));
+      await this.client.nats_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.

@@ -14,7 +14,7 @@ export interface DB {
   }) => Promise<any>;
 
   touch: (opts: {
-    account_id: string;
+    account_id?: string;
     project_id?: string;
     path?: string;
     action?: string;
