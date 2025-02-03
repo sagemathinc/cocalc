@@ -8,7 +8,6 @@ import { delay } from "awaiting";
 import { alert_message } from "../alerts";
 import { StripeClient } from "./stripe";
 import { ProjectCollaborators } from "./project-collaborators";
-import { SupportTickets } from "./support";
 import { Messages } from "./messages";
 import { QueryClient } from "./query";
 import { TimeClient } from "./time";
@@ -22,10 +21,10 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
+import { NatsClient } from "./nats";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
-import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
@@ -49,7 +48,6 @@ export interface WebappClient extends EventEmitter {
 
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -63,6 +61,7 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -74,6 +73,8 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
+  synctable_nats: Function;
+  pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -128,7 +129,6 @@ class Client extends EventEmitter implements WebappClient {
   account_id?: string;
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -142,6 +142,7 @@ class Client extends EventEmitter implements WebappClient {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -154,6 +155,8 @@ class Client extends EventEmitter implements WebappClient {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
+  synctable_nats: Function;
+  pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
   exec: Function;
@@ -205,9 +208,6 @@ class Client extends EventEmitter implements WebappClient {
     this.project_collaborators = bind_methods(
       new ProjectCollaborators(this.async_call.bind(this)),
     );
-    this.support_tickets = bind_methods(
-      new SupportTickets(this.async_call.bind(this)),
-    );
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
@@ -231,6 +231,7 @@ class Client extends EventEmitter implements WebappClient {
       new UsersClient(this.call.bind(this), this.async_call.bind(this)),
     );
     this.tracking_client = bind_methods(new TrackingClient(this));
+    this.nats_client = bind_methods(new NatsClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
     this.idle_client = bind_methods(new IdleClient(this));
 
@@ -241,7 +242,9 @@ class Client extends EventEmitter implements WebappClient {
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
     this.exec = this.project_client.exec.bind(this.project_client);
-    this.touch_project = this.project_client.touch_project.bind(this.project_client);
+    this.touch_project = this.project_client.touch_project.bind(
+      this.project_client,
+    );
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
@@ -252,6 +255,8 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_project = this.sync_client.synctable_project.bind(
       this.sync_client,
     );
+    this.synctable_nats = this.nats_client.synctable;
+    this.pubsub_nats = this.nats_client.pubsub;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);
@@ -284,7 +289,6 @@ class Client extends EventEmitter implements WebappClient {
       this.time_client.ping(); // this will ping periodically
     });
 
-    this.init_prom_client();
     this.init_global_cocalc();
 
     bind_methods(this);
@@ -293,10 +297,6 @@ class Client extends EventEmitter implements WebappClient {
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
     setup_global_cocalc(this);
-  }
-
-  private init_prom_client(): void {
-    this.on("start_metrics", start_metrics);
   }
 
   public dbg(f): Function {
@@ -340,6 +340,19 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
+
+  touchOpenFile = async ({
+    project_id,
+    path,
+    id,
+  }: {
+    project_id: string;
+    path: string;
+    id?: number;
+  }) => {
+    const x = await this.nats_client.openFiles(project_id);
+    await x.touch({ path, id });
+  };
 }
 
 export const webapp_client = new Client();

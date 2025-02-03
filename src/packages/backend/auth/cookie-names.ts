@@ -32,3 +32,5 @@ export const API_COOKIE_NAME =
   `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}api_key`;
 
 log.debug("API_COOKIE_NAME", API_COOKIE_NAME);
+
+export const NATS_JWT_COOKIE_NAME = `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}cocalc_nats_jwt_cookie`;

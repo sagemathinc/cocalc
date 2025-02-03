@@ -18,7 +18,10 @@ Sign in works as follows:
 
 import getPool from "@cocalc/database/pool";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import {
+  NATS_JWT_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
 import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 import getParams from "lib/api/get-params";
@@ -91,6 +94,8 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
       maxAge: ttl_s * 1000,
       sameSite: samesite_remember_me,
     });
+    // ensure there is no stale JWT cookie
+    res.clearCookie(NATS_JWT_COOKIE_NAME);
   } catch (err) {
     res.json({ error: `Problem setting cookie -- ${err.message}.` });
     return;

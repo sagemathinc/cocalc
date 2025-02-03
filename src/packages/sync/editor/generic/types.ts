@@ -95,6 +95,9 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
+  synctable_nats: (query: any, obj?) => Promise<any>;
+  pubsub_nats: (query: any, obj?) => Promise<any>;
+
   // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
@@ -113,21 +116,21 @@ export interface ProjectClient extends EventEmitter {
 }
 
 export interface Client extends ProjectClient {
-  log_error: (opts: {
+  log_error?: (opts: {
     project_id: string;
     path: string;
     string_id: string;
     error: any;
   }) => void;
 
-  mark_file: (opts: {
+  mark_file?: (opts: {
     project_id: string;
     path: string;
     action: string;
     ttl: number;
   }) => void;
 
-  synctable_database: (
+  synctable_database?: (
     query: any,
     options: any,
     throttle_changes?: number,
@@ -136,6 +139,8 @@ export interface Client extends ProjectClient {
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
+
+  touchOpenFile?: (opts: { project_id: string; path: string }) => Promise<void>;
 }
 
 export interface DocType {

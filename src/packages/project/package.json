@@ -4,6 +4,7 @@
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
+    "./nats": "./dist/nats/index.js",
     "./*": "./dist/*.js"
   },
   "keywords": [
@@ -22,6 +23,7 @@
     "@cocalc/comm": "workspace:*",
     "@cocalc/frontend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/project": "workspace:*",
@@ -30,6 +32,8 @@
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@nats-io/jetstream": "3.0.0-36",
+    "@nats-io/kv": "3.0.0-30",
     "@nteract/messaging": "^7.0.20",
     "@types/lodash": "^4.14.202",
     "@types/primus": "^7.3.9",
@@ -52,6 +56,8 @@
     "lean-client-js-node": "^1.2.12",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "nats": "^2.29.1",
+    "node-pty": "^1.0.0",
     "pidusage": "^1.2.0",
     "prettier": "^3.0.2",
     "primus": "^8.0.9",
@@ -82,9 +88,7 @@
     "clean": "rm -rf dist"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

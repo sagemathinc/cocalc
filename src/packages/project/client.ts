@@ -27,7 +27,7 @@ import { join } from "node:path";
 import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
@@ -48,6 +48,8 @@ import * as sage_session from "./sage_session";
 import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
+import synctable_nats from "@cocalc/project/nats/synctable";
+import pubsub from "@cocalc/project/nats/pubsub";
 
 const winston = getLogger("client");
 
@@ -86,7 +88,8 @@ export function init() {
 
 export function getClient(): Client {
   if (client == null) {
-    throw Error("BUG: Client not initialized!");
+    init();
+    //throw Error("BUG: Client not initialized!");
   }
   return client;
 }
@@ -137,6 +140,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       throw Error("BUG: Client already created!");
     }
     ALREADY_CREATED = true;
+    if (process.env.HOME != null) {
+      // client assumes curdir is HOME
+      process.chdir(process.env.HOME);
+    }
     this.project_id = data.project_id;
     this.dbg("constructor")();
     this.setMaxListeners(300); // every open file/table/sync db listens for connect event, which adds up.
@@ -500,6 +507,14 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
+  synctable_nats = async (query, options?) => {
+    return await synctable_nats(query, options);
+  };
+
+  pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
+    return await pubsub({ path, name });
+  };
+
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
 
@@ -612,7 +627,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string, _compute_server_id?:number) {}
+  touch_project(_project_id: string, _compute_server_id?: number) {}
 
   async get_syncdoc_history(string_id: string, patches = false) {
     const dbg = this.dbg("get_syncdoc_history");

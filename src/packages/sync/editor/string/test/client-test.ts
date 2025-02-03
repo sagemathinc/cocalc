@@ -171,6 +171,13 @@ export class Client extends EventEmitter implements Client0 {
     throw Error("not implemented");
   }
 
+  async synctable_nats(_query: any): Promise<SyncTable> {
+    throw Error("not implemented");
+  }
+  async pubsub_nats(_query: any): Promise<SyncTable> {
+    throw Error("not implemented");
+  }
+
   // account_id or project_id
   public client_id(): string {
     return this._client_id;

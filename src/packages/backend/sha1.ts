@@ -2,12 +2,14 @@
 sha1 hash functionality
 */
 
-import { createHash } from "crypto";
+import { createHash, type BinaryToTextEncoding } from "crypto";
 
 // compute sha1 hash of data in hex
-export function sha1(data: Buffer | string): string {
+export function sha1(
+  data: Buffer | string,
+  encoding: BinaryToTextEncoding = "hex",
+): string {
   const sha1sum = createHash("sha1");
-
   if (typeof data === "string") {
     sha1sum.update(data, "utf8");
   } else {
@@ -20,11 +22,16 @@ export function sha1(data: Buffer | string): string {
     sha1sum.update(uint8Array);
   }
 
-  return sha1sum.digest("hex");
+  return sha1sum.digest(encoding);
+}
+
+export function sha1base64(data: Buffer | string): string {
+  return sha1(data, "base64");
 }
 
 // Compute a uuid v4 from the Sha-1 hash of data.
 // Optionally, if knownSha1 is given, just uses that, rather than recomputing it.
+// WARNING: try to avoid using this, since it discards information!
 export function uuidsha1(data: Buffer | string, knownSha1?: string): string {
   const s = knownSha1 ?? sha1(data);
   let i = -1;

@@ -47,7 +47,7 @@ interface CoCalcSSLEnvConfig extends Dict<string> {
   SMC_DB_SSL_CA_FILE?: string;
   SMC_DB_SSL_CLIENT_CERT_FILE?: string;
   SMC_DB_SSL_CLIENT_KEY_FILE?: string;
-  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?:string;
+  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?: string;
 }
 
 // This interface is used to specify environment variables to be passed to the "psql" command for
@@ -75,11 +75,14 @@ export interface PsqlSSLEnvConfig {
 // We extend the existing ConnectionOptions interface to include certificate file paths, since these
 // are used when connecting to Postgres outside of Node (e.g., for raw psql queries).
 //
-export type SSLConfig = ConnectionOptions & {
-  caFile?: string;
-  clientCertFile?: string;
-  clientKeyFile?: string;
-} | boolean | undefined;
+export type SSLConfig =
+  | (ConnectionOptions & {
+      caFile?: string;
+      clientCertFile?: string;
+      clientKeyFile?: string;
+    })
+  | boolean
+  | undefined;
 
 /**
  * Converts an environment-variable-driven SSLEnvConfig into a superset of the SSL context expected
@@ -87,7 +90,9 @@ export type SSLConfig = ConnectionOptions & {
  *
  * @param env
  */
-export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): SSLConfig {
+export function sslConfigFromCoCalcEnv(
+  env: CoCalcSSLEnvConfig = process.env,
+): SSLConfig {
   const sslConfig: SSLConfig = {};
 
   if (env.SMC_DB_SSL_CA_FILE) {
@@ -101,7 +106,7 @@ export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): S
   }
 
   if (env.SMC_DB_SSL_CLIENT_KEY_FILE) {
-    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE
+    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE;
     sslConfig.key = readFileSync(env.SMC_DB_SSL_CLIENT_KEY_FILE);
   }
 
@@ -109,7 +114,9 @@ export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): S
     sslConfig.passphrase = env.SMC_DB_SSL_CLIENT_KEY_PASSPHRASE;
   }
 
-  return isEmpty(sslConfig) ? (env.SMC_DB_SSL?.toLowerCase() === "true") : sslConfig;
+  return isEmpty(sslConfig)
+    ? env.SMC_DB_SSL?.toLowerCase() === "true"
+    : sslConfig;
 }
 
 /**
@@ -174,6 +181,7 @@ export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 export const blobstore: "disk" | "sqlite" =
   (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
+export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";

@@ -69,6 +69,19 @@ export {
 import sha1 from "sha1";
 export { sha1 };
 
+function base16ToBase64(hex) {
+  return Buffer.from(hex, 'hex').toString('base64')
+//   let bytes: number[] = [];
+//   for (let c = 0; c < hex.length; c += 2) {
+//     bytes.push(parseInt(hex.substr(c, 2), 16));
+//   }
+//   return btoa(String.fromCharCode.apply(null, bytes));
+}
+
+export function sha1base64(s) {
+  return base16ToBase64(sha1(s));
+}
+
 import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
 import * as immutable from "immutable";

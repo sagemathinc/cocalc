@@ -17,12 +17,12 @@ import {
   is_object,
   len,
   auxFileToOriginal,
+  sha1,
 } from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
 import { debounce } from "lodash";
-import sha1 from "sha1";
 
 type State = "init" | "ready" | "closed";
 

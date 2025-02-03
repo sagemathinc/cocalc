@@ -25,7 +25,6 @@ import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
@@ -54,7 +53,6 @@ export class PassportLogin {
   private readonly database: PostgreSQL;
   // passed on to do the login
   private opts: PassportLoginOpts;
-  private record_sign_in: Function;
 
   constructor(opts: PassportLoginOpts) {
     const L = logger.extend("constructor").debug;
@@ -62,7 +60,6 @@ export class PassportLogin {
     this.passports = opts.passports;
     //this.exclusiveDomains = this.mapExclusiveDomains();
     this.database = opts.database;
-    this.record_sign_in = opts.record_sign_in;
 
     this.opts = opts;
 
@@ -138,12 +135,8 @@ export class PassportLogin {
       await this.checkExistingEmails(this.opts, locals);
       // if no account yet → create one
       await this.maybeCreateAccount(this.opts, locals);
-      // record a sign-in activity, if we deal with an existing account
-      await this.maybeRecordSignIn(this.opts, locals);
       // if update_on_login is true, update the account with the new profile data
       await this.maybeUpdateAccountAndPassport(this.opts, locals);
-      // deal with the case where user wants an API key
-      await this.maybeProvisionAPIKey(locals);
       // check if user is banned?
       await this.isUserBanned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
@@ -463,26 +456,6 @@ export class PassportLogin {
     });
   }
 
-  // if the above created no new account (and hence we had an account_id before that)
-  // we record that we signed in a user
-  private async maybeRecordSignIn(
-    opts: PassportLoginOpts,
-    locals: PassportLoginLocals,
-  ): Promise<void> {
-    if (locals.new_account_created) return;
-    const L = logger.extend("maybe_record_sign_in").debug;
-
-    // don't make client wait for this -- it's just a log message for us.
-    L(`no new account → record_sign_in: ${opts.req.ip}`);
-    this.record_sign_in({
-      ip_address: opts.req.ip,
-      successful: true,
-      remember_me: locals.has_valid_remember_me,
-      email_address: locals.email_address,
-      account_id: locals.account_id,
-      database: this.database,
-    });
-  }
 
   // optionally, SSO strategies can be configured to always update fields of the user
   // with the data they provide. right now that's first and last name.
@@ -515,39 +488,6 @@ export class PassportLogin {
     });
   }
 
-  // There is a special case, where an api_key was requested.
-  // This is chekced here, key created, and the client is redirected to a special (local) URL
-  private async maybeProvisionAPIKey(
-    locals: PassportLoginLocals,
-  ): Promise<void> {
-    if (!locals.get_api_key) return;
-    if (!locals.account_id) return; // typescript cares about this.
-    const L = logger.extend("maybe_provision_api_key").debug;
-
-    // Just handle getting api key here.
-    if (locals.new_account_created) {
-      locals.action = "regenerate"; // obvious
-    } else {
-      locals.action = "get";
-    }
-
-    locals.api_key = await legacyManageApiKey({
-      account_id: locals.account_id,
-      action: locals.action,
-    });
-
-    // if there is no key
-    if (!locals.api_key) {
-      L("must generate key, since don't already have it");
-      locals.api_key = await legacyManageApiKey({
-        account_id: locals.account_id,
-        action: "regenerate",
-      });
-    }
-    // we got a key ...
-    // NOTE: See also code to generate similar URL in @cocalc/frontend/account/init.ts
-    locals.target = `https://authenticated?api_key=${locals.api_key}`;
-  }
 
   // ebfore recording the sign-in below, we check if a user is banned
   private async isUserBanned(account_id, email_address): Promise<boolean> {

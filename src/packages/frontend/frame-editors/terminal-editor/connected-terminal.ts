@@ -11,6 +11,8 @@ extra support for being connected to:
   - frame-editor (via actions)
 */
 
+const USE_NATS = true;
+
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
@@ -40,6 +42,7 @@ import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
+import { NatsTerminalConnection } from "./nats-terminal-connection";
 
 declare const $: any;
 
@@ -271,7 +274,37 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal_settings = settings;
   }
 
+  connectNats = async () => {
+    try {
+      this.ignore_terminal_data = true;
+      this.set_connection_status("connecting");
+      const conn = new NatsTerminalConnection({
+        path: this.term_path,
+        project_id: this.project_id,
+        terminalResize: this.terminal_resize,
+        openPaths: this.open_paths,
+        closePaths: this.close_paths,
+        compute_server_id: await this.getComputeServerId(),
+      });
+      this.conn = conn as any;
+      conn.on("close", this.connect);
+      conn.on("data", this._handle_data_from_project);
+      conn.once("ready", () => {
+        this.ignore_terminal_data = false;
+        this.set_connection_status("connected");
+        this.scroll_to_bottom();
+      });
+      await conn.init();
+    } catch (err) {
+      this.set_connection_status("disconnected");
+      throw err;
+    }
+  };
+
   async connect(): Promise<void> {
+    if (USE_NATS) {
+      return await this.connectNats();
+    }
     this.assert_not_closed();
 
     this.last_geom = undefined;
@@ -349,7 +382,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn.write(data);
   }
 
-  private _handle_data_from_project(data: any): void {
+  private _handle_data_from_project = (data: any): void => {
     //console.log("data", data);
     this.assert_not_closed();
     if (data == null) {
@@ -372,7 +405,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       default:
         console.warn("TERMINAL: no way to handle data -- ", data);
     }
-  }
+  };
 
   private activity() {
     this.project_actions.flag_file_activity(this.path);
@@ -501,6 +534,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     rows?: number;
     cols?: number;
     payload: any;
+    ignore?: string;
     id?: number;
   }): void {
     //console.log("handle_mesg", this.id, mesg);
@@ -523,7 +557,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.no_ignore();
         break;
       case "close":
-        this.close_request();
+        if (mesg.ignore != this.id) {
+          this.close_request();
+        }
         break;
       case "computeServerId":
         if (this.actions.store != null && this.actions.setState != null) {
@@ -572,7 +608,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   // Try to resize terminal to given number of rows and columns.
   // This should not throw an exception no matter how wrong the input
   // actually is.
-  private terminal_resize(opts: { cols: number; rows: number }): void {
+  private terminal_resize = (opts: { cols: number; rows: number }) => {
     // console.log("terminal_resize", opts);
     // terminal.resize only takes integers, hence the floor;
     // we use floor to avoid cutting off a line halfway.
@@ -602,7 +638,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } catch (err) {
       console.warn("Error resizing terminal", err, rows, cols);
     }
-  }
+  };
 
   // Stop ignoring terminal data... but ONLY once
   // the render buffer is also empty.
@@ -711,7 +747,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     project_actions.close_tab(path);
   }
 
-  close_paths(paths: Path[]): void {
+  close_paths = (paths: Path[]): void => {
     if (!this.is_visible) {
       return;
     }
@@ -720,7 +756,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this._close_path(x.file);
       }
     }
-  }
+  };
 
   resize(rows: number, cols: number): void {
     if (this.terminal.cols === cols && this.terminal.rows === rows) {

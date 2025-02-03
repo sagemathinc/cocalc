@@ -11,8 +11,6 @@ declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
 import { wrap_log } from "@cocalc/util/misc";
-import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
-import * as prom_client from "./prom-client";
 
 // import this specifically to cause th
 import checkFeaturesEnabled from "@cocalc/frontend/misc/check-features-enabled";
@@ -48,26 +46,6 @@ export function init() {
 
   // enable logging
   wrap_log();
-
-  // finally, record start time
-  // TODO compute and report startup initialization time
-  if (prom_client.enabled) {
-    const browser_info_gauge = prom_client.new_gauge(
-      "browser_info",
-      "Information about the browser",
-      ["browser", "mobile", "touch", "git_version"]
-    );
-    browser_info_gauge
-      .labels(get_browser(), IS_MOBILE, IS_TOUCH, COCALC_GIT_REVISION ?? "N/A")
-      .set(1);
-    const initialization_time_gauge = prom_client.new_gauge(
-      "initialization_seconds",
-      "Time from loading app.html page until last.coffee is completely done"
-    );
-    initialization_time_gauge.set(
-      (new Date().getTime() - (window as any).webapp_initial_start_time) / 1000
-    );
-  }
 
   // check for localStorage, etc.
   checkFeaturesEnabled();

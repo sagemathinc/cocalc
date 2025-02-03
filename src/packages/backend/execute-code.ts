@@ -149,7 +149,7 @@ async function executeCodeNoAggregate(
   opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
   opts.ulimit_timeout ??= true;
   opts.err_on_exit ??= true;
-  opts.verbose ??= true;
+  opts.verbose ??= false;
 
   if (opts.verbose) {
     log.debug(`input: ${opts.command} ${opts.args?.join(" ")}`);
