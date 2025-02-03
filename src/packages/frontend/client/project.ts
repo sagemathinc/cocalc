@@ -613,20 +613,7 @@ export class ProjectClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    if (this.client.account_id == null) {
-      throw Error("must be logged in");
-    }
-    if (!is_valid_uuid_string(opts.project_id)) {
-      throw Error("project_id must be a valid uuid");
-    }
-    if (opts.project_id == null && !opts.password) {
-      throw Error("must provide password for non-project api key");
-    }
-    // because message always uses id, so we have to use something else!
-    const opts2: any = { ...opts };
-    delete opts2.id;
-    opts2.key_id = opts.id;
-    return (await this.call(message.api_keys(opts2))).response;
+    return await this.client.nats_client.hub.system.manageApiKeys(opts);
   }
 
   computeServers = (project_id) => {

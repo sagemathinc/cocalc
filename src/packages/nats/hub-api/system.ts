@@ -1,5 +1,9 @@
 import { noAuth, authFirst } from "./util";
 import type { Customize } from "@cocalc/util/db-schema/server-settings";
+import type {
+  ApiKey,
+  Action as ApiKeyAction,
+} from "@cocalc/util/db-schema/api-keys";
 
 export const system = {
   getCustomize: noAuth,
@@ -7,6 +11,7 @@ export const system = {
   addProjectPermission: authFirst,
   terminate: authFirst,
   userTracking: authFirst,
+  manageApiKeys: authFirst,
 };
 
 export interface System {
@@ -20,9 +25,19 @@ export interface System {
   //   - only admin can do this.
   //   - useful for development
   terminate: (service: "database" | "api") => Promise<void>;
+
   userTracking: (opts: {
     event: string;
     value: object;
     account_id?: string;
   }) => Promise<void>;
+
+  manageApiKeys: (opts: {
+    account_id?: string;
+    action: ApiKeyAction;
+    project_id?: string;
+    name?: string;
+    expire?: Date;
+    id?: number;
+  }) => Promise<ApiKey[] | undefined>;
 }

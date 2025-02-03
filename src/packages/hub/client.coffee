@@ -19,12 +19,9 @@ clients              = require('./clients').getClients()
 auth                 = require('./auth')
 auth_token           = require('./auth-token')
 local_hub_connection = require('./local_hub_connection')
-sign_in              = require('@cocalc/server/hub/sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-manageApiKeys        = require("@cocalc/server/api/manage").default
-{legacyManageApiKey} = require("@cocalc/server/api/manage")
 purchase_license     = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
@@ -394,12 +391,6 @@ class exports.Client extends EventEmitter
         # Record that this connection is authenticated as user with given uuid.
         @account_id = signed_in_mesg.account_id
 
-        sign_in.record_sign_in
-            ip_address      : @ip_address
-            successful      : true
-            account_id      : signed_in_mesg.account_id
-            database        : @database
-
         # Get user's group from database.
         @get_groups()
 
@@ -575,15 +566,6 @@ class exports.Client extends EventEmitter
             if mesg.event == 'get_all_activity'
                 dbg("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
-
-    mesg_sign_in: (mesg) =>
-        sign_in.sign_in
-            client   : @
-            mesg     : mesg
-            logger   : @logger
-            database : @database
-            host     : @_opts.host
-            port     : @_opts.port
 
     mesg_sign_out: (mesg) =>
         if not @account_id?
@@ -1624,33 +1606,6 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:err.toString())
 
     #  END stripe-related functionality
-
-    mesg_api_key: (mesg) =>
-        try
-            api_key = await legacyManageApiKey
-                account_id : @account_id
-                password   : mesg.password
-                action     : mesg.action
-            if api_key
-                @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
-            else
-                @success_to_client(id:mesg.id)
-        catch err
-            @error_to_client(id:mesg.id, error:err)
-
-    mesg_api_keys: (mesg) =>
-        try
-            response = await manageApiKeys
-                account_id : @account_id
-                password   : mesg.password
-                action     : mesg.action
-                project_id : mesg.project_id
-                id         : mesg.key_id
-                expire     : mesg.expire
-                name       : mesg.name
-            @push_to_client(message.api_keys_response(id:mesg.id, response:response))
-        catch err
-            @error_to_client(id:mesg.id, error:err)
 
     mesg_user_auth: (mesg) =>
         auth_token.get_user_auth_token

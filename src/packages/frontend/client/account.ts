@@ -173,24 +173,6 @@ export class AccountClient {
     );
   }
 
-  // legacy api:  getting, setting, deleting, etc., the api key for this account
-  public async api_key(
-    action: "get" | "delete" | "regenerate",
-    password: string,
-  ): Promise<string> {
-    if (this.client.account_id == null) {
-      throw Error("must be logged in");
-    }
-    return (
-      await this.call(
-        message.api_key({
-          action,
-          password,
-        }),
-      )
-    ).api_key;
-  }
-
   // new interface: getting, setting, editing, deleting, etc., the  api keys for a project
   public async api_keys(opts: {
     action: "get" | "delete" | "create" | "edit";
@@ -199,13 +181,6 @@ export class AccountClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    if (this.client.account_id == null) {
-      throw Error("must be logged in");
-    }
-    // because message always uses id, so we have to use something else!
-    const opts2: any = { ...opts };
-    delete opts2.id;
-    opts2.key_id = opts.id;
-    return (await this.call(message.api_keys(opts2))).response;
+    return await this.client.nats_client.hub.system.manageApiKeys(opts);
   }
 }

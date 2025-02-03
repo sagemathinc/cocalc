@@ -40,7 +40,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
       setError("");
       if (save) onSave(oneLine);
     } catch (err) {
-      setError(err.message);
+      setError(`${err}`);
     }
   }
 
@@ -48,7 +48,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     try {
       setEditing(JSON.stringify(jsonic(editing), null, 2));
     } catch (err) {
-      setError(err.message);
+      setError(`${err}`);
     }
   }
 
