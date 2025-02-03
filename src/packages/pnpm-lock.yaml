@@ -559,9 +559,6 @@ importers:
       project-name-generator:
         specifier: ^2.1.6
         version: 2.1.9
-      prom-client:
-        specifier: ^13.0.0
-        version: 13.2.0
       prop-types:
         specifier: ^15.7.2
         version: 15.8.1

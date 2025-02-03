@@ -99,8 +99,6 @@ export const api_keys: any;
 export const api_keys_response: any;
 export const user_auth: any;
 export const user_auth_token: any;
-export const metrics: any;
-export const start_metrics: any;
 export const get_available_upgrades: any;
 export const disconnect_from_project: any;
 export const available_upgrades: any;

@@ -22,3 +22,4 @@ export async function userTracking({
 }): Promise<void> {
   await record_user_tracking(db(), account_id!, event, value);
 }
+

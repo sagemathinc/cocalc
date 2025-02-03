@@ -2633,26 +2633,6 @@ Revoke a temporary authentication token for an account.
 """
 */
 
-// client --> hub
-message2({
-  event: "metrics",
-  fields: {
-    metrics: {
-      init: required,
-      desc: "object containing the metrics",
-    },
-  },
-});
-
-message2({
-  event: "start_metrics",
-  fields: {
-    interval_s: {
-      init: required,
-      desc: "tells client that it should submit metrics to the hub every interval_s seconds",
-    },
-  },
-});
 
 // Info about available upgrades for a given user
 API(

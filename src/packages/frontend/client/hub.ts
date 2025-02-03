@@ -225,9 +225,6 @@ export class HubClient {
         }
         break;
 
-      case "start_metrics":
-        this.client.emit("start_metrics", mesg.interval_s);
-        break;
     }
 
     // the call f(null, mesg) below can mutate mesg (!), so we better save the id here.

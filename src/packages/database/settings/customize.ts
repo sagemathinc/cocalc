@@ -126,8 +126,6 @@ export default async function getCustomize(
       strategies,
 
       verifyEmailAddresses: settings.verify_emails && settings.email_enabled,
-
-      userTracking: settings.user_tracking,
     };
   }
   return fields ? copy_with(cachedCustomize, fields) : cachedCustomize;

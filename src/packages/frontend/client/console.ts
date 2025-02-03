@@ -48,7 +48,6 @@ export function setup_global_cocalc(client): void {
   cocalc.misc = require("@cocalc/util/misc");
   cocalc.immutable = require("immutable");
   cocalc.done = cocalc.misc.done;
-  cocalc.prom_client = require("../prom-client");
   cocalc.schema = require("@cocalc/util/schema");
   cocalc.redux = redux;
   cocalc.load_eruda = load_eruda;

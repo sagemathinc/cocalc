@@ -26,7 +26,6 @@ import { NatsClient } from "./nats";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
-import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
@@ -296,7 +295,6 @@ class Client extends EventEmitter implements WebappClient {
       this.time_client.ping(); // this will ping periodically
     });
 
-    this.init_prom_client();
     this.init_global_cocalc();
 
     bind_methods(this);
@@ -305,10 +303,6 @@ class Client extends EventEmitter implements WebappClient {
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
     setup_global_cocalc(this);
-  }
-
-  private init_prom_client(): void {
-    this.on("start_metrics", start_metrics);
   }
 
   public dbg(f): Function {

@@ -95,27 +95,6 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45
 
-# How frequently we tell the browser clients to report metrics back to us.
-# Set to 0 to completely disable metrics collection from clients.
-CLIENT_METRICS_INTERVAL_S = if DEBUG2 then 15 else 60*2
-
-# recording metrics and statistics
-metrics_recorder = require('./metrics-recorder')
-
-# setting up client metrics
-mesg_from_client_total         = metrics_recorder.new_counter('mesg_from_client_total',
-                                     'counts Client::handle_json_message_from_client invocations', ['event'])
-push_to_client_stats_h         = metrics_recorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
-                                     buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-                                     labels: ['event']
-                                 )
-
-# All known metrics from connected clients.  (Map from id to metrics.)
-# id is deleted from this when client disconnects.
-client_metrics = metrics_recorder.client_metrics
-
-if not misc.is_object(client_metrics)
-    throw Error("metrics_recorder must have a client_metrics attribute map")
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -181,9 +160,6 @@ class exports.Client extends EventEmitter
         # cookie used for login is still valid.  If the cookie is gone
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
-
-        if CLIENT_METRICS_INTERVAL_S
-            @push_to_client(message.start_metrics(interval_s:CLIENT_METRICS_INTERVAL_S))
 
     touch: (opts={}) =>
         if not @account_id  # not logged in
@@ -255,9 +231,7 @@ class exports.Client extends EventEmitter
             @database.cancel_user_queries(client_id:@id)
 
         delete @_project_cache
-        delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
-        @query_cancel_all_changefeeds()
         @closed = true
         @emit('close')
         @compute_session_uuids = []
@@ -360,7 +334,6 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
-                push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
@@ -597,7 +570,6 @@ class exports.Client extends EventEmitter
                 # handler *should* handle any possible error, but just in case something
                 # not expected goes wrong... we do this
                 @error_to_client(id:mesg.id, error:"${err}")
-            mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
             if mesg.event == 'get_all_activity'
@@ -1702,36 +1674,6 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
-
-    # Receive and store in memory the latest metrics status from the client.
-    mesg_metrics: (mesg) =>
-        dbg = @dbg('mesg_metrics')
-        dbg()
-        if not mesg?.metrics
-            return
-        metrics = mesg.metrics
-        #dbg('GOT: ', misc.to_json(metrics))
-        if not misc.is_array(metrics)
-            # client is messing with us...?
-            return
-        for metric in metrics
-            if not misc.is_array(metric?.values)
-                # what?
-                return
-            if metric.values.length == 0
-                return
-            for v in metric.values
-                if not misc.is_object(v?.labels)
-                    # what?
-                    return
-            switch metric.type
-                when 'gauge'
-                    metric.aggregator = 'average'
-                else
-                    metric.aggregator = 'sum'
-
-        client_metrics[@id] = metrics
-        #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 
     _check_project_access: (project_id, cb) =>
         if not @account_id?

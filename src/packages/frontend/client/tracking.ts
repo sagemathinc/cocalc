@@ -16,13 +16,6 @@ export class TrackingClient {
     this.client = client;
   }
 
-  // Send metrics to the hub this client is connected to.
-  // There is no confirmation or response that this succeeded,
-  // which is fine, since dropping some metrics is fine.
-  send_metrics = (metrics: object): void => {
-    this.client.hub_client.send(message.metrics({ metrics }));
-  };
-
   user_tracking = async (event: string, value: object): Promise<void> => {
     if (this.userTrackingEnabled == null) {
       this.userTrackingEnabled = redux
