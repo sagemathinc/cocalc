@@ -32,6 +32,7 @@ import {
   toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
+import ShowError from "@cocalc/frontend/components/error";
 
 const { CheckableTag } = AntdTag;
 
@@ -461,16 +462,11 @@ export default function SiteSettings({ close }) {
         }}
       >
         <Warning />
-        {error && (
-          <Alert
-            type="error"
-            showIcon
-            closable
-            description={error}
-            onClose={() => setError("")}
-            style={{ margin: "30px auto", maxWidth: "800px" }}
-          />
-        )}
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "30px auto", maxWidth: "800px" }}
+        />
         <Row key="filter">
           <Col span={12}>
             <Buttons />

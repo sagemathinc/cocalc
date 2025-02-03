@@ -119,7 +119,8 @@ export type SiteSettingsKeys =
   | "compute_servers_hyperstack_enabled"
   | "cloud_filesystems_enabled"
   | "insecure_test_mode"
-  | "samesite_remember_me";
+  | "samesite_remember_me"
+  | "user_tracking";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -971,5 +972,11 @@ export const site_settings_conf: SiteSettings = {
     valid: ["strict", "lax", "none"],
     to_val: (x) => `${x}`,
     tags: ["Security"],
+  },
+  user_tracking: {
+    name: "User Tracking",
+    desc: "If enabled, then information about what users do in the frontend browser gets temporarily recorded in the user_tracking table of the database.",
+    default: "no",
+    valid: only_booleans,
   },
 } as const;
