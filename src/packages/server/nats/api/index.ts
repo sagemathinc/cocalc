@@ -39,7 +39,7 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import { terminate as terminateDatabase } from "@cocalc/database/nats";
+import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 
 const logger = getLogger("server:nats:api");
 

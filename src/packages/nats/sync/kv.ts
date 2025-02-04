@@ -115,11 +115,12 @@ export class KV extends EventEmitter {
   };
 
   delete = async (key) => {
-    if (this.all == null) {
+    if (this.all == null || this.revisions == null) {
       throw Error("not ready");
     }
     if (this.all[key] != null) {
-      await this.kv.delete(key);
+      const newRevision = await this.kv.delete(key);
+      this.revisions[key] = newRevision;
     }
     delete this.all[key];
   };
@@ -138,6 +139,9 @@ export class KV extends EventEmitter {
     }
     if (isEqual(this.all[key], value)) {
       return;
+    }
+    if (value === undefined) {
+      return await this.delete(key);
     }
     const revision = this.revisions[key];
     const val = this.env.jc.encode(value);

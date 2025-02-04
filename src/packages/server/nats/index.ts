@@ -1,6 +1,6 @@
 import getLogger from "@cocalc/backend/logger";
 import { initAPI } from "./api";
-import { init as initDatabase } from "@cocalc/database/nats";
+import { init as initDatabase } from "@cocalc/database/nats/changefeeds";
 
 const logger = getLogger("server:nats");
 
