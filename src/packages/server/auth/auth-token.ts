@@ -2,6 +2,7 @@ import isAdmin from "@cocalc/server/accounts/is-admin";
 import { generate } from "random-key";
 import getPool from "@cocalc/database/pool";
 import isPasswordCorrect from "./is-password-correct";
+import centralLog from "@cocalc/database/postgres/central-log";
 
 // map {account_id:{user_account_id:timestamp}}
 const ban: { [account_id: string]: { [user_account_id: string]: number } } = {};
@@ -25,7 +26,8 @@ export async function generateUserAuthToken({
       `banned -- please wait at least #{BAN_TIME_MS/1000}s before trying again`,
     );
   }
-  if (!(await isAdmin(account_id))) {
+  const is_admin = await isAdmin(account_id);
+  if (!is_admin) {
     // not admin, so check password
     if (!(await isPasswordCorrect({ account_id: user_account_id, password }))) {
       if (ban[account_id] == null) {
@@ -43,6 +45,10 @@ export async function generateUserAuthToken({
     "INSERT INTO auth_tokens (auth_token, expire, account_id) VALUES($1, NOW()+INTERVAL '12 hours', $2)",
     [authToken, account_id],
   );
+  await centralLog({
+    event: "auth-token",
+    value: { account_id, user_account_id, is_admin },
+  });
   return authToken;
 }
 
