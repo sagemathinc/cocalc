@@ -11,3 +11,11 @@ export const authFirst = ({ args, account_id, project_id }) => {
 };
 
 export const noAuth = ({ args }) => args;
+
+// make no changes, except throw error if account_id not set (i.e., user not signed in)
+export const requireAccount = ({ args, account_id }) => {
+  if (!account_id) {
+    throw Error("user must be signed in");
+  }
+  return args;
+};

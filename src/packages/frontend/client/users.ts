@@ -5,7 +5,6 @@
 
 import { User } from "../frame-editors/generic/client";
 import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
-import api from "./api";
 import TTL from "@isaacs/ttlcache";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { WebappClient } from "./client";
@@ -84,7 +83,11 @@ export class UsersClient {
   getNames = reuseInFlight(async (account_ids: string[]) => {
     const x: {
       [account_id: string]:
-        | { first_name: string; last_name: string }
+        | {
+            first_name: string;
+            last_name: string;
+            profile?: { color?: string; image?: string };
+          }
         | undefined;
     } = {};
     const v: string[] = [];
@@ -96,7 +99,7 @@ export class UsersClient {
       }
     }
     if (v.length > 0) {
-      const { names } = await api("/accounts/get-names", { account_ids: v });
+      const names = await this.client.nats_client.hub.system.getNames(v);
       for (const account_id of v) {
         // iterate over v to record accounts that don't exist too
         x[account_id] = names[account_id];

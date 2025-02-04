@@ -1,4 +1,4 @@
-import { noAuth, authFirst } from "./util";
+import { noAuth, authFirst, requireAccount } from "./util";
 import type { Customize } from "@cocalc/util/db-schema/server-settings";
 import type {
   ApiKey,
@@ -16,6 +16,7 @@ export const system = {
   generateUserAuthToken: authFirst,
   revokeUserAuthToken: noAuth,
   userSearch: authFirst,
+  getNames: requireAccount,
 };
 
 export interface System {
@@ -60,4 +61,14 @@ export interface System {
     admin?: boolean;
     only_email?: boolean;
   }) => Promise<UserSearchResult[]>;
+
+  getNames: (account_ids: string[]) => Promise<{
+    [account_id: string]:
+      | {
+          first_name: string;
+          last_name: string;
+          profile?: { color?: string; image?: string };
+        }
+      | undefined;
+  }>;
 }

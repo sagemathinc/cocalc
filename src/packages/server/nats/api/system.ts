@@ -9,6 +9,7 @@ export { manageApiKeys };
 import { type UserSearchResult } from "@cocalc/util/db-schema/accounts";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import search from "@cocalc/server/accounts/search";
+export { getNames } from "@cocalc/server/accounts/get-name";
 
 export function ping() {
   return { now: Date.now() };
