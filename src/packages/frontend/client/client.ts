@@ -225,9 +225,7 @@ class Client extends EventEmitter implements WebappClient {
     this.jupyter_client = bind_methods(
       new JupyterClient(this.async_call.bind(this)),
     );
-    this.users_client = bind_methods(
-      new UsersClient(this.call.bind(this), this.async_call.bind(this)),
-    );
+    this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
     this.nats_client = bind_methods(new NatsClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));

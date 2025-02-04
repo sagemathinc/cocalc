@@ -4,6 +4,7 @@ import type {
   ApiKey,
   Action as ApiKeyAction,
 } from "@cocalc/util/db-schema/api-keys";
+import { type UserSearchResult } from "@cocalc/util/db-schema/accounts";
 
 export const system = {
   getCustomize: noAuth,
@@ -14,6 +15,7 @@ export const system = {
   manageApiKeys: authFirst,
   generateUserAuthToken: authFirst,
   revokeUserAuthToken: noAuth,
+  userSearch: authFirst,
 };
 
 export interface System {
@@ -50,4 +52,12 @@ export interface System {
   }) => Promise<string>;
 
   revokeUserAuthToken: (authToken: string) => Promise<void>;
+
+  userSearch: (opts: {
+    account_id?: string;
+    query: string;
+    limit?: number;
+    admin?: boolean;
+    only_email?: boolean;
+  }) => Promise<UserSearchResult[]>;
 }

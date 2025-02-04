@@ -31,7 +31,6 @@ passwordHash     = require("@cocalc/backend/auth/password-hash").default;
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project   = require("@cocalc/server/projects/create").default;
-user_search      = require("@cocalc/server/accounts/search").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 setEmailAddress  = require("@cocalc/server/accounts/set-email-address").default;
@@ -937,42 +936,6 @@ class exports.Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
-
-    mesg_user_search: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to search for users."))
-            return
-
-        if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
-            # hard cap at 50... (for non-admin)
-            mesg.limit = 50
-        locals = {results: undefined}
-        async.series([
-            (cb) =>
-                if mesg.admin
-                    @assert_user_is_in_group('admin', cb)
-                else
-                    cb()
-            (cb) =>
-                @touch()
-                opts =
-                    query  : mesg.query
-                    limit  : mesg.limit
-                    admin  : mesg.admin
-                    active : mesg.active
-                    only_email: mesg.only_email
-                try
-                    locals.results = await user_search(opts)
-                    cb(undefined)
-                catch err
-                    cb(err)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
-        )
-
 
     # this is an async function
     allow_urls_in_emails: (project_id) =>

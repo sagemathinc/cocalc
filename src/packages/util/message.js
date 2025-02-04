@@ -1051,23 +1051,7 @@ API(
       },
     },
     desc: `\
-There are two possible item types in the query list: email addresses
-and strings that are not email addresses. An email query item will return
-account id, first name, last name, and email address for the unique
-account with that email address, if there is one. A string query item
-will return account id, first name, and last name for all matching
-accounts.
 
-We do not reveal email addresses of users queried by name to non admins.
-
-String query matches first and last names that start with the given string.
-If a string query item consists of two strings separated by space,
-the search will return accounts in which the first name begins with one
-of the two strings and the last name begins with the other.
-String and email queries may be mixed in the list for a single
-user_search call. Searches are case-insensitive.
-
-Note: there is a hard limit of 50 returned items in the results.
 
 Examples:
 

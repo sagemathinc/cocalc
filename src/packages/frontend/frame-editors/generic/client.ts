@@ -15,6 +15,8 @@ import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
 import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
+import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
+export { type User };
 
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
@@ -250,16 +252,6 @@ export function get_editor_settings(): Map<string, any> {
     }
   }
   return Map(); // not loaded
-}
-
-export interface User {
-  account_id: string;
-  created?: number; // since commit 63e8e9954dc51632cf
-  email_address?: string;
-  first_name?: string;
-  last_active?: number; // since commit 63e8e9954dc51632cf
-  last_name?: string;
-  banned?: boolean;
 }
 
 export async function user_search(opts: {
