@@ -21,6 +21,7 @@ import {
   ADMIN_SEARCH_LIMIT,
   type UserSearchResult as User,
 } from "@cocalc/util/db-schema/accounts";
+export { type User };
 
 const logger = getLogger("accounts/search");
 

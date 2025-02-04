@@ -14,12 +14,15 @@ import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import { round2up } from "@cocalc/util/misc";
+import type { WebappClient } from "./client";
 
 export class PurchasesClient {
   api: typeof purchasesApi;
+  client: WebappClient;
 
-  constructor() {
+  constructor(client: WebappClient) {
     this.api = purchasesApi;
+    this.client = client;
   }
   async getQuotas(): Promise<{
     minBalance: number;
@@ -29,7 +32,7 @@ export class PurchasesClient {
   }
 
   async getBalance(): Promise<number> {
-    return await purchasesApi.getBalance();
+    return await this.client.nats_client.hub.purchases.getBalance();
   }
 
   async getSpendRate(): Promise<number> {

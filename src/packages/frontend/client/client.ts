@@ -220,8 +220,7 @@ class Client extends EventEmitter implements WebappClient {
 
     this.admin_client = bind_methods(new AdminClient(this));
     this.openai_client = bind_methods(new LLMClient(this));
-    //this.purchases_client = bind_methods(new PurchasesClient(this));
-    this.purchases_client = bind_methods(new PurchasesClient());
+    this.purchases_client = bind_methods(new PurchasesClient(this));
     this.jupyter_client = bind_methods(
       new JupyterClient(this.async_call.bind(this)),
     );

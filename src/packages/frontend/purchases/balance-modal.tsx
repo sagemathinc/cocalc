@@ -1,12 +1,12 @@
 import { Button, Flex, Modal, Space, Spin } from "antd";
 import Balance from "./balance";
 import { useEffect, useRef, useState } from "react";
-import { getBalance as getBalanceUsingApi } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export default function BalanceModal({
   onRefresh,
@@ -25,7 +25,7 @@ export default function BalanceModal({
       setError("");
       setLoading(true);
       // this triggers an update indirectly
-      await getBalanceUsingApi();
+      await webapp_client.purchases_client.getBalance();
       await refreshPaymentsRef.current?.();
     } catch (err) {
       setError(`${err}`);

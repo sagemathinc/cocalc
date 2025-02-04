@@ -1,11 +1,11 @@
+import { authFirst } from "./util";
+
 export interface Purchases {
-  getBalance: ({ account_id }) => Promise<number>;
-  getMinBalance: (account_id) => Promise<number>;
+  getBalance: (opts?: { account_id?: string }) => Promise<number>;
+  getMinBalance: (opts?: { account_id?: string }) => Promise<number>;
 }
 
 export const purchases = {
-  getBalance: ({ account_id }) => {
-    return [{ account_id }];
-  },
-  getMinBalance: ({ account_id }) => [account_id],
+  getBalance: authFirst,
+  getMinBalance: authFirst,
 };
