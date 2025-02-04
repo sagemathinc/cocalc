@@ -17,7 +17,7 @@ This is a simple KV wrapper around NATS's KV, for small KV stores, suitable for 
     is in the local cache on multiple nodes at once anywhere, and be 100% certain to never overwrite
     data in complicated objects.  Of course, you have to assume "await set()" will sometimes fail.
 
-  - set "pipelines" in that MAX_PARALLEL_SET key/value pairs are set at once, without waiting
+  - set "pipelines" in that MAX_PARALLEL key/value pairs are set at once, without waiting
     for each set to get ACK'd from the server before doing more sets.  This makes this massively
     faster for bigger objects, but means that if "await set({...})" fails, you don't immediately
     know which keys were successfully set and which failed, though all that worked will get
@@ -33,7 +33,7 @@ DEVELOPMENT:
 ~/cocalc/src/packages/server$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/kv"); s = new a.KV({name:'test',env,subjects:['foo.>']}); await s.init();
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/kv"); s = new a.KV({name:'test',env,filter:['foo.>']}); await s.init();
 
 > await s.set({"foo.x":10}) // or s.set("foo.x", 10)
 > s.get()
@@ -44,9 +44,9 @@ undefined
 {}
 > await s.set({"foo.x":10, "foo.bar":20})
 
-// Since the subjects are disjoint these are totally different:
+// Since the filters are disjoint these are totally different:
 
-> t = new a.KV({name:'test',env,subjects:['bar.>']}); await t.init();
+> t = new a.KV({name:'test',env,filter:['bar.>']}); await t.init();
 > await t.get()
 {}
 > await t.set({"bar.abc":10})
@@ -57,7 +57,7 @@ undefined
 { 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
 
 // The union:
-> u = new a.KV({name:'test',env,subjects:['bar.>', 'foo.>']}); await u.init();
+> u = new a.KV({name:'test',env,filter:['bar.>', 'foo.>']}); await u.init();
 > u.get()
 { 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
 > await s.set({'foo.x':999})
@@ -74,28 +74,29 @@ import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
 
-const MAX_PARALLEL_SET = 50;
+const MAX_PARALLEL = 50;
 
 export class KV extends EventEmitter {
   public readonly name: string;
   private options?;
-  private subjects?: string | string[];
+  private filter?: string[];
   private env: NatsEnv;
   private kv?;
   private watch?;
   private all?: { [key: string]: any };
   private revisions?: { [key: string]: number };
+  private times?: { [key: string]: Date };
 
   constructor({
     name,
     env,
+    filter,
     options,
-    subjects,
   }: {
     name: string;
-    // optionally restrict to subset of named kv store matching these subjects.
+    // filter: optionally restrict to subset of named kv store matching these subjects.
     // NOTE: any key name that you *set or delete* should match one of these
-    subjects?: string | string[];
+    filter?: string | string[];
     env: NatsEnv;
     options?;
   }) {
@@ -103,7 +104,12 @@ export class KV extends EventEmitter {
     this.env = env;
     this.name = name;
     this.options = options;
-    this.subjects = subjects;
+    this.filter =
+      filter == null
+        ? undefined
+        : typeof filter == "string"
+          ? [filter]
+          : filter;
     return new Proxy(this, {
       set(target, prop, value) {
         target.setOne(prop, value);
@@ -124,11 +130,12 @@ export class KV extends EventEmitter {
       compression: true,
       ...this.options,
     });
-    const { all, revisions } = await getAllFromKv({
+    const { all, revisions, times } = await getAllFromKv({
       kv: this.kv,
-      key: this.subjects,
+      key: this.filter,
     });
     this.revisions = revisions;
+    this.times = times;
     for (const key in all) {
       all[key] = this.env.jc.decode(all[key]);
     }
@@ -143,9 +150,11 @@ export class KV extends EventEmitter {
       // we assume that we ONLY delete old items which are not relevant
       ignoreDeletes: true,
       include: "updates",
+      key: this.filter,
     });
     //for await (const { key, value } of this.watch) {
-    for await (const { revision, key, value } of this.watch) {
+    for await (const x of this.watch) {
+      const { revision, key, value, sm } = x;
       if (this.revisions == null || this.all == null) {
         return;
       }
@@ -153,8 +162,10 @@ export class KV extends EventEmitter {
       if (value.length == 0) {
         // delete
         delete this.all[key];
+        delete this.times[key];
       } else {
         this.all[key] = this.env.jc.decode(value);
+        this.times[key] = sm.time;
       }
       this.emit("change", key, this.all[key]);
     }
@@ -163,12 +174,16 @@ export class KV extends EventEmitter {
   close = () => {
     this.watch?.stop();
     delete this.all;
+    delete this.times;
     delete this.revisions;
     this.emit("closed");
     this.removeAllListeners();
   };
 
   get = (key?) => {
+    if (this.all == null) {
+      throw Error("not initialized");
+    }
     if (key == undefined) {
       return { ...this.all };
     } else {
@@ -176,11 +191,18 @@ export class KV extends EventEmitter {
     }
   };
 
+  time = (key?) => {
+    if (key == null) {
+      return this.times;
+    } else {
+      return this.times?.[key];
+    }
+  };
   private matches = (key: string) => {
-    if (this.subjects == null) {
+    if (this.filter == null) {
       return true;
     }
-    for (const pattern of this.subjects) {
+    for (const pattern of this.filter) {
       if (matchesPattern({ pattern, subject: key })) {
         return true;
       }
@@ -188,10 +210,10 @@ export class KV extends EventEmitter {
     return false;
   };
 
-  delete = async (key) => {
+  delete = async (key, revision?) => {
     if (!this.matches(key)) {
       throw Error(
-        `delete: key (=${key}) must match one of the subjects: ${JSON.stringify(this.subjects)}`,
+        `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
     }
     if (this.all == null || this.revisions == null) {
@@ -201,8 +223,11 @@ export class KV extends EventEmitter {
       const cur = this.all[key];
       try {
         delete this.all[key];
-        const newRevision = await this.kv.delete(key);
+        const newRevision = await this.kv.delete(key, {
+          previousSeq: revision ?? this.revisions[key],
+        });
         this.revisions[key] = newRevision;
+        delete this.times[key];
       } catch (err) {
         if (cur === undefined) {
           delete this.all[key];
@@ -214,9 +239,40 @@ export class KV extends EventEmitter {
     }
   };
 
+  // delete everything matching the filter that hasn't been set
+  // in the given amount of ms.  Returns number of deleted records.
+  // NOTE: This could throw an exception if something that would expire
+  // were changed right when this is run then it would get expired
+  // but shouldn't.  In that case, run it again.
+  expire = async (ageMs: number): Promise<number> => {
+    if (!ageMs) {
+      throw Error("ageMs must be set");
+    }
+    if (this.times == null || this.all == null) {
+      throw Error("not initialized");
+    }
+    const cutoff = new Date(Date.now() - ageMs);
+    // make copy of revisions *before* we start deleting so that
+    // if a key is changed exactly while deleting we get an error
+    // and don't accidently delete it!
+    const revisions = { ...this.revisions };
+    const toDelete = Object.keys(this.all).filter(
+      (key) => this.times?.[key] != null && this.times[key] <= cutoff,
+    );
+    if (toDelete.length > 0) {
+      await awaitMap(toDelete, MAX_PARALLEL, async (key) => {
+        await this.delete(key, revisions[key]);
+      });
+    }
+    return toDelete.length;
+  };
+
   // delete all that we know about
   clear = async () => {
-    await awaitMap(Object.keys(this.all), MAX_PARALLEL_SET, this.delete);
+    if (this.all == null) {
+      throw Error("not initialized");
+    }
+    await awaitMap(Object.keys(this.all), MAX_PARALLEL, this.delete);
   };
 
   set = async (...args) => {
@@ -227,7 +283,7 @@ export class KV extends EventEmitter {
     const obj = args[0];
     await awaitMap(
       Object.keys(obj),
-      MAX_PARALLEL_SET,
+      MAX_PARALLEL,
       async (key) => await this.setOne(key, obj[key]),
     );
   };
@@ -235,7 +291,7 @@ export class KV extends EventEmitter {
   private setOne = async (key, value) => {
     if (!this.matches(key)) {
       throw Error(
-        `set: key (=${key}) must match one of the subjects: ${JSON.stringify(this.subjects)}`,
+        `set: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
     }
     if (this.all == null || this.revisions == null) {

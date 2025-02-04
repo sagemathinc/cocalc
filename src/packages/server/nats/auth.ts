@@ -18,8 +18,7 @@ DOCS:
 
 USAGE:
 
-a = require('@cocalc/server/nats/auth');
-await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
+a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
 await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
 */
 
@@ -124,6 +123,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);
+    goalPub.add(`*.account-${userId}.>`);
 
     const pool = getPool();
     // all RUNNING projects with the user's group

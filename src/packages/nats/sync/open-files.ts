@@ -171,7 +171,7 @@ export class OpenFiles {
   // delete entries that haven't been touched in ageMs milliseconds.
   // default=a month
   // returns number of deleted objects.
-  deleteOld = async (ageMs: number = 1000 * 60 * 60 * 730): Promise<number> => {
+  expire = async (ageMs: number = 1000 * 60 * 60 * 730): Promise<number> => {
     let n = 0;
     const cutoff = new Date(Date.now() - ageMs);
     const kv = await this.getKv();

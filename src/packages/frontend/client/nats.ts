@@ -18,6 +18,7 @@ import { OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
+import { KV } from "@cocalc/nats/sync/kv";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -323,4 +324,33 @@ export class NatsClient {
     }
     return this.theSystemKv!;
   });
+
+  private kvCache: { [key: string]: KV } = {};
+  kv = reuseInFlight(
+    async ({
+      name,
+      filter,
+      options,
+    }: {
+      name: string;
+      filter?: string | string[];
+      options?;
+    }) => {
+      const key = JSON.stringify([name, filter, options]);
+      if (this.kvCache[key] == null) {
+        const kv = new KV({
+          name,
+          filter,
+          options,
+          env: await this.getEnv(),
+        });
+        await kv.init();
+        this.kvCache[key] = kv;
+        kv.on("closed", () => {
+          delete this.kvCache[key];
+        });
+      }
+      return this.kvCache[key];
+    },
+  );
 }

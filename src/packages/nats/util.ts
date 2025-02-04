@@ -27,19 +27,22 @@ export async function getAllFromKv({
 }): Promise<{
   all: { [key: string]: any };
   revisions: { [key: string]: number };
+  times: { [key: string]: Date };
 }> {
   const total = await numKeys(kv, key);
   let count = 0;
   const all: any = {};
   const revisions: { [key: string]: number } = {};
+  const times: { [key: string]: Date } = {};
   if (total == 0) {
-    return { all, revisions };
+    return { all, revisions, times };
   }
   const watch = await kv.watch({ key, ignoreDeletes: true });
   let id: any = 0;
-  for await (const { key, value, revision } of watch) {
+  for await (const { key, value, revision, sm } of watch) {
     all[key] = value;
     revisions[key] = revision;
+    times[key] = sm.time;
 
     count += 1;
 
@@ -60,7 +63,7 @@ export async function getAllFromKv({
       watch.stop();
     }, timeout);
   }
-  return { all, revisions };
+  return { all, revisions, times };
 }
 
 export function handleErrorMessage(mesg) {
