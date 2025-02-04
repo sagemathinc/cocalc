@@ -73,3 +73,25 @@ export function handleErrorMessage(mesg) {
   }
   return mesg;
 }
+
+// Returns true if the subject matches the NATS pattern.
+export function matchesPattern({
+  pattern,
+  subject,
+}: {
+  pattern: string;
+  subject: string;
+}): boolean {
+  const subParts = subject.split(".");
+  const patParts = pattern.split(".");
+  let i = 0,
+    j = 0;
+  while (i < subParts.length && j < patParts.length) {
+    if (patParts[j] === ">") return true;
+    if (patParts[j] !== "*" && patParts[j] !== subParts[i]) return false;
+    i++;
+    j++;
+  }
+
+  return i === subParts.length && j === patParts.length;
+}
