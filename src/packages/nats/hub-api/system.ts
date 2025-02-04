@@ -12,6 +12,8 @@ export const system = {
   terminate: authFirst,
   userTracking: authFirst,
   manageApiKeys: authFirst,
+  generateUserAuthToken: authFirst,
+  revokeUserAuthToken: noAuth,
 };
 
 export interface System {
@@ -40,4 +42,12 @@ export interface System {
     expire?: Date;
     id?: number;
   }) => Promise<ApiKey[] | undefined>;
+
+  generateUserAuthToken: (opts: {
+    account_id?: string;
+    user_account_id: string;
+    password?: string;
+  }) => Promise<string>;
+
+  revokeUserAuthToken: (authToken: string) => Promise<void>;
 }
