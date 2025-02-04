@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore dval
+
 import { List, Map } from "immutable";
 import { fromPairs, isEqual } from "lodash";
 
@@ -143,7 +145,7 @@ export function useCurrentUsage({
 
   function memory(usage) {
     if (runQuota == null) return;
-    // this also displays the "dedicated memory" amount, past of entire limite
+    // this also displays the "dedicated memory" amount, past of entire limit
     const mem_req = runQuota.get("memory_request"); // mb
     const mem_limit = runQuota.get("memory_limit"); // mb
     const { mem_rss } = usage;
@@ -180,7 +182,7 @@ export function useCurrentUsage({
     return;
   }
 
-  function whenWillProjectStopp() {
+  function whenWillProjectStop() {
     if (last_edited == null) return;
     const always_running = runQuota?.get("always_running") ?? false;
     if (always_running) return; // not applicable
@@ -222,7 +224,7 @@ export function useCurrentUsage({
           const key = upgrade2quota_key(name);
           switch (name) {
             case "mintime":
-              return [key, whenWillProjectStopp()];
+              return [key, whenWillProjectStop()];
             case "disk_quota":
               return [key, disk(usage)];
             case "memory_request":

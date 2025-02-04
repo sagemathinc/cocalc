@@ -5,12 +5,22 @@ This shows an overview of configured quotas for all services,
 and lets you adjust any of them.
 */
 
-import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  InputNumber,
+  Progress,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
 import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
-import { getServiceCosts } from "@cocalc/frontend/purchases/api";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
@@ -23,6 +33,7 @@ import { SectionDivider } from "./util";
 export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
 export const PRESETS = [0, 25, 100, 2000];
+export const PRESETS_LLM = [0, 5, 10, 20];
 export const STEP = 5;
 
 interface ServiceQuota {
@@ -142,33 +153,56 @@ export default function AllQuotasConfig() {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
       align: "center" as "center",
-      render: (quota: number, _record: ServiceQuota, index: number) => (
-        <div>
-          <div style={{ marginBottom: "15px", whiteSpace: "nowrap" }}>
-            {PRESETS.map((amount) => (
-              <Preset
-                key={amount}
-                index={index}
-                amount={amount}
-                handleQuotaChange={(a, b) => {
-                  handleQuotaChange(a, b);
+      render: (quota: number, _record: ServiceQuota, index: number) => {
+        const presets =
+          QUOTA_SPEC[_record.service]?.category === "ai" ? PRESETS_LLM : PRESETS;
+
+        return (
+          <Dropdown
+            menu={{
+              items: presets.map((preset) => ({
+                key: preset.toString(),
+                label: `$${preset}`,
+                onClick: () => {
+                  handleQuotaChange(index, preset);
                   handleSave();
+                },
+              })),
+            }}
+            trigger={["click"]}
+            overlayStyle={{ minWidth: "100px" }}
+          >
+            <div style={{ display: "flex" }}>
+              <InputNumber
+                min={0}
+                value={quota}
+                onChange={(newQuota) =>
+                  handleQuotaChange(index, newQuota as number)
+                }
+                formatter={(value) => `$${value}`}
+                step={STEP}
+                onBlur={handleSave}
+                style={{
+                  borderRight: "none",
+                  borderRadius: "5px 0 0 5px",
+                  width: "120px",
                 }}
               />
-            ))}
-          </div>
-          <InputNumber
-            min={0}
-            value={quota}
-            onChange={(newQuota) =>
-              handleQuotaChange(index, newQuota as number)
-            }
-            formatter={(value) => `$${value}`}
-            step={STEP}
-            onBlur={handleSave}
-          />
-        </div>
-      ),
+              <Button
+                style={{
+                  border: "1px solid #d9d9d9",
+                  borderLeft: "none",
+                  borderRadius: "0 5px 5px 0",
+                  padding: "0 8px",
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="caret-down" />
+              </Button>
+            </div>
+          </Dropdown>
+        );
+      },
     },
     {
       title: "This Month Spend (USD)",
