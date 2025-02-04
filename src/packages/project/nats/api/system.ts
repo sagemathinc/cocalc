@@ -52,3 +52,25 @@ export { get_configuration as configuration };
 
 import { canonical_paths } from "../../browser-websocket/canonical-path";
 export { canonical_paths as canonicalPaths };
+
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { readFile, writeFile } from "fs/promises";
+
+export async function writeTextFileToProject({
+  path,
+  content,
+}: {
+  path: string;
+  content: string;
+}): Promise<void> {
+  await ensureContainingDirectoryExists(path);
+  await writeFile(path, content);
+}
+
+export async function readTextFileFromProject({
+  path,
+}: {
+  path: string;
+}): Promise<string> {
+  return (await readFile(path)).toString();
+}

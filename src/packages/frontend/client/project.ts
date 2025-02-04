@@ -69,19 +69,35 @@ export class ProjectClient {
     return await this.client.async_call({ message });
   }
 
-  public async write_text_file(opts: {
+  private natsApi = (project_id: string) => {
+    return this.client.nats_client.projectApi({ project_id });
+  };
+
+  public async write_text_file({
+    project_id,
+    path,
+    content,
+  }: {
     project_id: string;
     path: string;
     content: string;
   }): Promise<void> {
-    return await this.call(message.write_text_file_to_project(opts));
+    await this.natsApi(project_id).system.writeTextFileToProject({
+      path,
+      content,
+    });
   }
 
-  public async read_text_file(opts: {
+  public async read_text_file({
+    project_id,
+    path,
+  }: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): Promise<string> {
-    return (await this.call(message.read_text_file_from_project(opts))).content;
+    return await this.natsApi(project_id).system.readTextFileFromProject({
+      path,
+    });
   }
 
   // Like "read_text_file" above, except the callback
@@ -317,13 +333,6 @@ export class ProjectClient {
       opts.compute_server_id,
     );
     return { files: listing };
-  }
-
-  public async public_get_text_file(opts: {
-    project_id: string;
-    path: string;
-  }): Promise<string> {
-    return (await this.call(message.public_get_text_file(opts))).data;
   }
 
   public async find_directories(opts: {

@@ -20,6 +20,9 @@ export const system = {
   realpath: true,
   canonicalPaths: true,
 
+  writeTextFileToProject: true,
+  readTextFileFromProject: true,
+
   configuration: true,
 
   ping: true,
@@ -41,6 +44,12 @@ export interface System {
   realpath: (path: string) => Promise<string>;
   canonicalPaths: (paths: string[]) => Promise<string[]>;
 
+  writeTextFileToProject: (opts: {
+    path: string;
+    content: string;
+  }) => Promise<void>;
+  readTextFileFromProject: (opts: { path: string }) => Promise<string>;
+
   configuration: (
     aspect: ConfigurationAspect,
     no_cache?,
@@ -49,5 +58,4 @@ export interface System {
   ping: () => Promise<{ now: number }>;
 
   exec: (opts: ExecuteCodeOptions) => Promise<ExecuteCodeOutput>;
-
 }
