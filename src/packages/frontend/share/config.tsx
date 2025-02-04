@@ -106,7 +106,7 @@ interface Props {
 
 // ensures the custom font sizes in the text of the first row is consistent
 const FONTSIZE_TOP = "12pt";
-const ACCESS_LEVEL_OPTION_SYLE: CSS = { fontSize: FONTSIZE_TOP };
+const ACCESS_LEVEL_OPTION_STYLE: CSS = { fontSize: FONTSIZE_TOP };
 
 const STATES = {
   private: "Private",
@@ -294,7 +294,7 @@ export default function Configure(props: Props) {
                       name="sharing_options"
                       value="public_listed"
                       disabled={!props.has_network_access}
-                      style={ACCESS_LEVEL_OPTION_SYLE}
+                      style={ACCESS_LEVEL_OPTION_STYLE}
                     >
                       <Icon name="eye" style={{ marginRight: "5px" }} />
                       <SC>{STATES.public_listed}</SC> - on the{" "}
@@ -311,7 +311,7 @@ export default function Configure(props: Props) {
                     <Radio
                       name="sharing_options"
                       value="public_unlisted"
-                      style={ACCESS_LEVEL_OPTION_SYLE}
+                      style={ACCESS_LEVEL_OPTION_STYLE}
                     >
                       <Icon name="eye-slash" style={{ marginRight: "5px" }} />
                       <SC>{STATES.public_unlisted}</SC> - only people with the
@@ -323,7 +323,7 @@ export default function Configure(props: Props) {
                         <Radio
                           name="sharing_options"
                           value="authenticated"
-                          style={ACCESS_LEVEL_OPTION_SYLE}
+                          style={ACCESS_LEVEL_OPTION_STYLE}
                         >
                           <Icon
                             name={SHARE_AUTHENTICATED_ICON}
@@ -338,7 +338,7 @@ export default function Configure(props: Props) {
                     <Radio
                       name="sharing_options"
                       value="private"
-                      style={ACCESS_LEVEL_OPTION_SYLE}
+                      style={ACCESS_LEVEL_OPTION_STYLE}
                     >
                       <Icon name="lock" style={{ marginRight: "5px" }} />
                       <SC>{STATES.private}</SC> - only collaborators on this
