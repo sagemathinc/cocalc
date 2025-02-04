@@ -755,63 +755,6 @@ class exports.Client extends EventEmitter
                 cb(undefined, project)
         )
 
-    mesg_create_project: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
-            return
-        @touch()
-
-        dbg = @dbg('mesg_create_project')
-
-        project_id = undefined
-        project    = undefined
-
-        async.series([
-            (cb) =>
-                dbg("create project entry in database")
-                try
-                    opts =
-                        account_id  : @account_id
-                        title       : mesg.title
-                        description : mesg.description
-                        image       : mesg.image
-                        license     : mesg.license
-                        noPool      : mesg.noPool
-                    project_id = await create_project(opts)
-                    cb(undefined)
-                catch err
-                    cb(err)
-            (cb) =>
-                cb() # we don't need to wait for project to start running before responding to user that project was created.
-                dbg("open project...")
-                # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
-                # also, in single dev mode, this ensures that project path is created, so can copy
-                # files to the project, etc.
-                # Also, if mesg.start is set, the project gets started below.
-                try
-                    project = await @projectControl(project_id)
-                    await project.state(force:true, update:true)
-                    if mesg.start
-                        await project.start()
-                        await delay(5000) # just in case
-                        await project.start()
-                    else
-                        dbg("not auto-starting the new project")
-                catch err
-                    dbg("failed to start project running -- #{err}")
-        ], (err) =>
-            if err
-                dbg("error; project #{project_id} -- #{err}")
-                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(err)}")
-            else
-                dbg("SUCCESS: project #{project_id}")
-                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                # As an optimization, we start the process of opening the project, since the user is likely
-                # to open the project soon anyways.
-                dbg("start process of opening project")
-                @get_project {project_id:project_id}, 'write', (err, project) =>
-        )
-
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err

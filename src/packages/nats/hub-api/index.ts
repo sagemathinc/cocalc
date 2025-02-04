@@ -1,12 +1,14 @@
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Purchases, purchases } from "./purchases";
 import { type System, system } from "./system";
+import { type Projects, projects } from "./projects";
 import { type DB, db } from "./db";
 import { type LLM, llm } from "./llm";
 import { handleErrorMessage } from "@cocalc/nats/util";
 
 export interface HubApi {
   system: System;
+  projects: Projects;
   db: DB;
   purchases: Purchases;
   llm: LLM;
@@ -14,6 +16,7 @@ export interface HubApi {
 
 const HubApiStructure = {
   system,
+  projects,
   db,
   purchases,
   llm,

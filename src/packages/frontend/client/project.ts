@@ -502,19 +502,17 @@ export class ProjectClient {
     description: string;
     image?: string;
     start?: boolean;
-    license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
-    noPool?: boolean; // never use pool
+    // "license_id1,license_id2,..." -- if given, create project with these licenses applied
+    license?: string;
+    // never use pool
+    noPool?: boolean;
   }): Promise<string> {
-    const { project_id } = await this.client.async_call({
-      allow_post: false, // since gets called for anonymous and cookie not yet set.
-      message: message.create_project(opts),
-    });
-
+    const project_id =
+      await this.client.nats_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
     });
-
     return project_id;
   }
 

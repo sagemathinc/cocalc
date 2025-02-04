@@ -9,7 +9,6 @@ import { type UserSearchResult } from "@cocalc/util/db-schema/accounts";
 export const system = {
   getCustomize: noAuth,
   ping: noAuth,
-  addProjectPermission: authFirst,
   terminate: authFirst,
   userTracking: authFirst,
   manageApiKeys: authFirst,
@@ -24,8 +23,6 @@ export interface System {
   getCustomize: (fields?: string[]) => Promise<Customize>;
   // ping server and get back the current time
   ping: () => { now: number };
-  // request to have NATS permissions to project subjects.
-  addProjectPermission: (opts: { project_id: string }) => Promise<void>;
   // terminate a service:
   //   - only admin can do this.
   //   - useful for development

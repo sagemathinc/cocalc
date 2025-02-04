@@ -1,7 +1,5 @@
 import getCustomize from "@cocalc/database/settings/customize";
 export { getCustomize };
-import { addProjectPermission } from "@cocalc/server/nats/auth";
-export { addProjectPermission };
 import { record_user_tracking } from "@cocalc/database/postgres/user-tracking";
 import { db } from "@cocalc/database";
 import manageApiKeys from "@cocalc/server/api/manage";

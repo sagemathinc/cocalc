@@ -11,6 +11,7 @@ To do development:
 
     echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
 
+
 3. Optional: start more servers -- requests get randomly routed to exactly one of them:
 
     echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
@@ -106,9 +107,11 @@ import * as purchases from "./purchases";
 import * as db from "./db";
 import * as llm from "./llm";
 import * as system from "./system";
+import * as projects from "./projects";
 
 export const hubApi: HubApi = {
   system,
+  projects,
   db,
   llm,
   purchases,
@@ -120,6 +123,11 @@ async function getResponse({ name, args, account_id, project_id }) {
   if (f == null) {
     throw Error(`unknown function '${name}'`);
   }
-  const args2 = transformArgs({ name, args, account_id, project_id });
+  const args2 = await transformArgs({
+    name,
+    args,
+    account_id,
+    project_id,
+  });
   return await f(...args2);
 }

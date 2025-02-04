@@ -19,3 +19,15 @@ export const requireAccount = ({ args, account_id }) => {
   }
   return args;
 };
+
+export const authFirstRequireAccount = async ({ args, account_id }) => {
+  if (args[0] == null) {
+    args[0] = {} as any;
+  }
+  if (!account_id) {
+    throw Error("user must be signed in");
+  }
+  args[0].account_id = account_id;
+  return args;
+};
+

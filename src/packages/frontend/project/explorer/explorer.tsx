@@ -451,7 +451,6 @@ const Explorer0 = rclass(
               quotas={this.props.get_total_project_quotas(
                 this.props.project_id,
               )}
-              is_commercial={require("@cocalc/frontend/customize").commercial}
               is_logged_in={!!this.props.is_logged_in}
             />
             <br />

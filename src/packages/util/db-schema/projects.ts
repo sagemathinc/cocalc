@@ -697,3 +697,19 @@ export function isExecOptsBlocking(opts: unknown): opts is ExecOptsBlocking {
 export type ExecOutput = ExecuteCodeOutput & {
   time: number; // time in ms, from user point of view.
 };
+
+export interface CreateProjectOptions {
+  account_id?: string;
+  title?: string;
+  description?: string;
+  // (optional) image ID
+  image?: string;
+  // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
+  license?: string;
+  public_path_id?: string; // may imply use of a license
+  // noPool = do not allow using the pool (e.g., need this when creating projects to put in the pool);
+  // not a real issue since when creating for pool account_id is null, and then we wouldn't use the pool...
+  noPool?: boolean;
+  // start running the moment the project is created -- uses more resources, but possibly better user experience
+  start?: boolean;
+}

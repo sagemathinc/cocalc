@@ -153,7 +153,7 @@ export class NatsClient {
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
-        await this.hub.system.addProjectPermission({ project_id });
+        await this.hub.projects.addProjectPermission({ project_id });
         resp = await nc.request(subject, mesg, { timeout });
       } else {
         throw err;
