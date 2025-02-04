@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore isdir
+
 import { Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
