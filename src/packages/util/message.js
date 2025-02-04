@@ -2448,39 +2448,6 @@ and provide that to a user.  When they visit that URL, they will be temporarily 
   }),
 );
 
-// hub --> client
-message({
-  event: "user_auth_token",
-  id: undefined,
-  auth_token: required,
-}); // 24 character string
-
-/*
-* Not fully implemented yet
-* client --> hub
-API message2
-    event        : 'revoke_auth_token'
-    fields:
-        id:
-           init  : undefined
-           desc  : 'A unique UUID for the query'
-        auth_token:
-           init  : required
-           desc  : 'an authentication token obtained using user_auth (24 character string)'
-    desc         : """
-Example:
-
-Revoke a temporary authentication token for an account.
-```
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d auth_token=BQokikJOvBiI2HlWgH4olfQ2 \\
-    https://cocalc.com/api/v1/revoke_auth_token
-  ==> {"event":"success","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
-```
-"""
-*/
-
-
 // Info about available upgrades for a given user
 API(
   message2({

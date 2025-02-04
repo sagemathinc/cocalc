@@ -218,9 +218,7 @@ class Client extends EventEmitter implements WebappClient {
     this.sync_string = this.sync_client.sync_string;
     this.sync_db = this.sync_client.sync_db;
 
-    this.admin_client = bind_methods(
-      new AdminClient(this.async_call.bind(this)),
-    );
+    this.admin_client = bind_methods(new AdminClient(this));
     this.openai_client = bind_methods(new LLMClient(this));
     //this.purchases_client = bind_methods(new PurchasesClient(this));
     this.purchases_client = bind_methods(new PurchasesClient());
