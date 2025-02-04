@@ -24,17 +24,22 @@ export async function getAllFromKv({
   kv;
   key?: string | string[];
   timeout?: number;
-}): Promise<{ [key: string]: any }> {
+}): Promise<{
+  all: { [key: string]: any };
+  revisions: { [key: string]: number };
+}> {
   const total = await numKeys(kv, key);
   let count = 0;
   const all: any = {};
+  const revisions: { [key: string]: number } = {};
   if (total == 0) {
-    return all;
+    return { all, revisions };
   }
   const watch = await kv.watch({ key, ignoreDeletes: true });
   let id: any = 0;
-  for await (const { key, value } of watch) {
+  for await (const { key, value, revision } of watch) {
     all[key] = value;
+    revisions[key] = revision;
 
     count += 1;
 
@@ -55,7 +60,7 @@ export async function getAllFromKv({
       watch.stop();
     }, timeout);
   }
-  return all;
+  return { all, revisions };
 }
 
 export function handleErrorMessage(mesg) {

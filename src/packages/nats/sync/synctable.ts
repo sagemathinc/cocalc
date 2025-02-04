@@ -1,4 +1,5 @@
-import { SyncTableKV, type NatsEnv } from "./synctable-kv";
+import { type NatsEnv } from "@cocalc/nats/types";
+import { SyncTableKV } from "./synctable-kv";
 import { SyncTableKVAtomic } from "./synctable-kv-atomic";
 import { SyncTableStream } from "./synctable-stream";
 

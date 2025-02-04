@@ -28,7 +28,8 @@ null
 
 */
 
-import { getKv, type NatsEnv } from "./synctable-kv";
+import { type NatsEnv } from "@cocalc/nats/types";
+import { getKv } from "./synctable-kv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { sha1 } from "@cocalc/util/misc";
 import { isEqual } from "lodash";
@@ -92,8 +93,8 @@ export class OpenFiles {
     this.state = "closed";
     for (const w of this.watches) {
       w.stop();
-      this.watches = [];
     }
+    this.watches = [];
   };
 
   // When a client has a file open, they should periodically

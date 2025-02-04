@@ -38,7 +38,7 @@ s9.sparks['cb'].write('blah')
 */
 
 import { EventEmitter } from "events";
-import { type NatsEnv } from "@cocalc/nats/sync/synctable-kv";
+import { type NatsEnv } from "@cocalc/nats/types";
 import { delay } from "awaiting";
 
 export type Role = "client" | "server";

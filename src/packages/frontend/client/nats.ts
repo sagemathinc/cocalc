@@ -17,6 +17,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
+import { SystemKv } from "@cocalc/nats/system";
 
 export class NatsClient {
   /*private*/ client: WebappClient;
@@ -28,6 +29,7 @@ export class NatsClient {
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
+  private theSystemKv?: SystemKv;
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -312,4 +314,13 @@ export class NatsClient {
     }
     return accumulate;
   };
+
+  systemKv = reuseInFlight(async () => {
+    if (this.theSystemKv == null) {
+      const s = new SystemKv(await this.getEnv());
+      await s.init();
+      this.theSystemKv = s;
+    }
+    return this.theSystemKv!;
+  });
 }

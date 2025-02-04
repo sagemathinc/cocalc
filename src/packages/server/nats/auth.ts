@@ -112,11 +112,15 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const userType = getCoCalcUserType(cocalcUser);
   // TODO: jetstream permissions are WAY TO BROAD.
   const goalPub = new Set([
-    "_INBOX.>",
-    `hub.${userType}.${userId}.>`,
-    "$JS.API.>",
+    "_INBOX.>", // so can use request/response
+    `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
+    "$JS.API.>", // so can use Jestream: TODO: too much???!
   ]);
-  const goalSub = new Set(["_INBOX.>", "$JS.API.>"]);
+  const goalSub = new Set([
+    "_INBOX.>", // so can user request/response
+    "$JS.API.>", // TODO! This needs to be restrained more, I think??! Don't know.
+    "system.>", // access to READ the system info kv store.
+  ]);
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);

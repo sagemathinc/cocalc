@@ -15,15 +15,9 @@ import { keys } from "lodash";
 import { cmp_Date, is_array, isValidUUID, sha1 } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
+import { type NatsEnv } from "@cocalc/nats/types";
 
 export type State = "disconnected" | "connected" | "closed";
-
-interface NatsEnv {
-  nc; // nats connection
-  jc; // jsoncodec
-  // compute sha1 hash efficiently (set differently on backend)
-  sha1?: (string) => string;
-}
 
 function toKey(x): string | undefined {
   if (x === undefined) {

@@ -19,6 +19,7 @@ import { wait } from "@cocalc/util/async-wait";
 import { throttle } from "lodash";
 import { fromJS, Map } from "immutable";
 import { getAllFromKv } from "@cocalc/nats/util";
+import { type NatsEnv } from "@cocalc/nats/types";
 
 export function natsKeyPrefix({
   query,
@@ -66,13 +67,6 @@ export async function getKv({
   }
   const kvm = new Kvm(nc);
   return await kvm.create(name, { compression: true, ...options });
-}
-
-export interface NatsEnv {
-  nc; // nats connection
-  jc; // jsoncodec
-  // compute sha1 hash efficiently (set differently on backend)
-  sha1?: (string) => string;
 }
 
 export function toKey(x): string | undefined {
@@ -380,7 +374,10 @@ export class SyncTableKV extends EventEmitter {
     const kv = await this.getKv();
     if (obj == null) {
       // everything known in this table by the project
-      const raw = await getAllFromKv({ kv, key: `${this.natsKeyPrefix}.>` });
+      const { all: raw } = await getAllFromKv({
+        kv,
+        key: `${this.natsKeyPrefix}.>`,
+      });
       const all: any = {};
       for (const key in raw) {
         const x = raw[key];

@@ -1,6 +1,32 @@
+/*
+
+
+TODO: This is a kv store where you atomically do updates.  The way this is written, two clents
+might make a change to the same object at the same time and one overwrites the other.
+However, I just realized with NATS we can easily prevent this!! There is a version
+option to update, so using that instead of put make it possible to detect if there's a
+potential conflict, then fix and retry!!!
+
+(See packages/nats/sync/kv.ts for how to do this properly!)
+
+   * Updates the existing entry provided that the previous sequence
+   * for the Kv is at the specified version. This ensures that the
+   * KV has not been modified prior to the update.
+   * @param k
+   * @param data
+   * @param version
+  update(k: string, data: Payload, version: number): Promise<number>;
+
+
+The synctable-kv.ts file has another one where each key:value in a single object is its own key:value
+in the store.
+
+*/
+
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
-import { getKv, toKey, type NatsEnv, natsKeyPrefix } from "./synctable-kv";
+import { getKv, toKey, natsKeyPrefix } from "./synctable-kv";
+import { type NatsEnv } from "@cocalc/nats/types";
 import { sha1 } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { getAllFromKv } from "@cocalc/nats/util";
@@ -17,6 +43,7 @@ export class SyncTableKVAtomic extends EventEmitter {
   private project_id?: string;
   private account_id?: string;
   private state: State = "disconnected";
+  private watches: any[] = [];
 
   constructor({
     query,
@@ -95,7 +122,7 @@ export class SyncTableKVAtomic extends EventEmitter {
 
   get = async (obj?, options: { natsKeys?: boolean } = {}) => {
     if (obj == null) {
-      const raw = await getAllFromKv({
+      const { all: raw } = await getAllFromKv({
         kv: this.kv,
         key: `${this.natsKeyPrefix}.>`,
       });
@@ -124,6 +151,7 @@ export class SyncTableKVAtomic extends EventEmitter {
       key: `${this.natsKeyPrefix}.>`,
       include: "updates",
     });
+    this.watches.push(w);
     for await (const { value } of w) {
       if (this.state == "closed") {
         return;
@@ -135,6 +163,9 @@ export class SyncTableKVAtomic extends EventEmitter {
   close = () => {
     this.set_state("closed");
     this.removeAllListeners();
-    // TODO: stop watchers... ?
+    for (const w of this.watches) {
+      w.stop();
+    }
+    this.watches = [];
   };
 }
