@@ -7,6 +7,7 @@
     "./hub-api": "./dist/hub-api/index.js",
     "./hub-api/*": "./dist/hub-api/*.js",
     "./project-api": "./dist/project-api/index.js",
+    "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
   },
   "scripts": {

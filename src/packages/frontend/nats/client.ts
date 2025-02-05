@@ -1,17 +1,18 @@
 import * as nats from "nats.ws";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import type { WebappClient } from "./client";
+import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { randomId } from "@cocalc/nats/names";
-import { projectSubject } from "@cocalc/nats/names";
+import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
+import { type BrowserApi, initBrowserApi } from "@cocalc/nats/browser-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { OpenFiles } from "@cocalc/nats/sync/open-files";
@@ -19,9 +20,11 @@ import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
+import { initApi } from "@cocalc/frontend/nats/api";
+import { delay } from "awaiting";
 
 export class NatsClient {
-  /*private*/ client: WebappClient;
+  client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
   private nc?: Awaited<ReturnType<typeof nats.connect>>;
@@ -35,7 +38,17 @@ export class NatsClient {
   constructor(client: WebappClient) {
     this.client = client;
     this.hub = initHubApi(this.callHub);
+    this.initBrowserApi();
   }
+
+  private initBrowserApi = async () => {
+    await delay(100);
+    try {
+      await initApi();
+    } catch (err) {
+      console.warn("ERROR -- failed to initialize browser api", err);
+    }
+  };
 
   getConnection = reuseInFlight(async () => {
     if (this.nc != null) {
@@ -161,6 +174,53 @@ export class NatsClient {
       }
     }
     return this.jc.decode(resp.data);
+  };
+
+  private callBrowser = async ({
+    service = "api",
+    sessionId,
+    name,
+    args = [],
+    timeout = 5000,
+  }: {
+    service?: string;
+    sessionId: string;
+    name: string;
+    args: any[];
+    timeout?: number;
+  }) => {
+    const nc = await this.getConnection();
+    const subject = browserSubject({
+      account_id: this.client.account_id,
+      sessionId,
+      service,
+    });
+    const mesg = this.jc.encode({
+      name,
+      args,
+    });
+    console.log("request to subject", { subject, name, args });
+    const resp = await nc.request(subject, mesg, { timeout });
+    return this.jc.decode(resp.data);
+  };
+
+  browserApi = ({
+    sessionId,
+    timeout,
+  }: {
+    sessionId: string;
+    timeout?: number;
+  }): BrowserApi => {
+    const callBrowserApi = async ({ name, args }) => {
+      return await this.callBrowser({
+        sessionId,
+        timeout,
+        service: "api",
+        name,
+        args,
+      });
+    };
+    return initBrowserApi(callBrowserApi);
   };
 
   request = async (subject: string, data: string) => {

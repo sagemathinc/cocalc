@@ -20,8 +20,6 @@ export function randomId() {
   return generateVouchers({ count: 1, length: 10 })[0];
 }
 
-
-
 export function projectSubject({
   project_id,
   compute_server_id = 0,
@@ -66,4 +64,8 @@ export function projectStreamName({
     }
   }
   return streamName;
+}
+
+export function browserSubject({ account_id, sessionId, service }) {
+  return `${sessionId}.account-${account_id}.${service}`;
 }
