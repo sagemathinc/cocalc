@@ -21,6 +21,7 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { initApi } from "@cocalc/frontend/nats/api";
+import { delay } from "awaiting";
 
 export class NatsClient {
   client: WebappClient;
@@ -37,10 +38,12 @@ export class NatsClient {
   constructor(client: WebappClient) {
     this.client = client;
     this.hub = initHubApi(this.callHub);
-    setTimeout(this.initBrowserApi, 1);
+    this.initBrowserApi();
   }
 
   private initBrowserApi = async () => {
+    // have to delay so that this.client is fully created.
+    await delay(1);
     try {
       await initApi();
     } catch (err) {
@@ -101,15 +104,20 @@ export class NatsClient {
   }) => {
     const nc = await this.getConnection();
     const subject = `hub.account.${this.client.account_id}.${service}`;
-    const resp = await nc.request(
-      subject,
-      this.jc.encode({
-        name,
-        args,
-      }),
-      { timeout },
-    );
-    return this.jc.decode(resp.data);
+    try {
+      const resp = await nc.request(
+        subject,
+        this.jc.encode({
+          name,
+          args,
+        }),
+        { timeout },
+      );
+      return this.jc.decode(resp.data);
+    } catch (err) {
+      err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+      throw err;
+    }
   };
 
   // Returns api for RPC calls to the project with typescript support!
@@ -197,7 +205,7 @@ export class NatsClient {
       name,
       args,
     });
-    console.log("request to subject", { subject, name, args });
+    // console.log("request to subject", { subject, name, args });
     const resp = await nc.request(subject, mesg, { timeout });
     return this.jc.decode(resp.data);
   };
@@ -298,8 +306,8 @@ export class NatsClient {
         args: [{ changes: true, query }],
       });
     } catch (err) {
-      console.log("changefeedInterest -- error", query);
       if (noError) {
+        console.warn("changefeedInterest -- error", query);
         console.warn(err);
         return;
       } else {

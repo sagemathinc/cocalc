@@ -2,11 +2,10 @@
 
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'changefeeds'})
+   await cc.client.nats_client.hub.system.terminate({service:'db'})
 
 2. Run this
 
-   echo "require('@cocalc/database/nats/changefeeds').init()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
 
 */
 
@@ -29,7 +28,7 @@ import { delay } from "awaiting";
 import type { Subscription } from "nats";
 import { debounce } from "lodash";
 
-const logger = getLogger("database:nats");
+const logger = getLogger("database:nats:changefeeds");
 
 const DEBOUNCE_SAVE_TO_JETSTREAM = 100;
 const MAX_TIME_SAVE_TO_JETSTREAM = 30000;
@@ -61,19 +60,21 @@ async function handleRequest(mesg, nc) {
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
+    // logger.debug(`got request: "${JSON.stringify({ name, args })}"`);
     if (!name) {
       throw Error("api endpoint name must be given in message");
     }
-    logger.debug("handling database request:", {
-      account_id,
-      project_id,
-      name,
-      //args,
-    });
+    //     logger.debug("handling server='db' request:", {
+    //       account_id,
+    //       project_id,
+    //       name,
+    //     });
     resp = await getResponse({ name, args, account_id, project_id, nc });
   } catch (err) {
+    // logger.debug("ERROR", err);
     resp = { error: `${err}` };
   }
+  // logger.debug(`Responding with "${JSON.stringify(resp)}"`);
   mesg.respond(jc.encode(resp));
 }
 
@@ -258,6 +259,7 @@ const createChangefeed = reuseInFlight(
         setMap(synctable.getKey(obj), obj);
       }
       processQueue();
+      cb();
     };
 
     const handleUpdate = ({ action, new_val, old_val }) => {
@@ -315,6 +317,7 @@ const createChangefeed = reuseInFlight(
           }
         }
       };
+
       // do not block on this.
       watch();
       return;
