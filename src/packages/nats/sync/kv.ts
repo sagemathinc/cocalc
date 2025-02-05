@@ -155,7 +155,7 @@ export class KV extends EventEmitter {
     //for await (const { key, value } of this.watch) {
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
-      if (this.revisions == null || this.all == null) {
+      if (this.revisions == null || this.all == null || this.times == null) {
         return;
       }
       this.revisions[key] = revision;
@@ -216,7 +216,7 @@ export class KV extends EventEmitter {
         `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
     }
-    if (this.all == null || this.revisions == null) {
+    if (this.all == null || this.revisions == null || this.times == null) {
       throw Error("not ready");
     }
     if (this.all[key] !== undefined) {
