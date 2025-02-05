@@ -40,7 +40,7 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
+import { terminate as terminateChangefeeds } from "@cocalc/database/nats/changefeeds";
 
 const logger = getLogger("server:nats:api");
 
@@ -66,8 +66,8 @@ export async function initAPI() {
       // one case halts this loop
       const { service } = request.args[0] ?? {};
       logger.debug(`Terminate service '${service}'`);
-      if (service == "database") {
-        terminateDatabase();
+      if (service == "changefeeds") {
+        terminateChangefeeds();
         mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {

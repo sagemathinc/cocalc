@@ -2,11 +2,11 @@
 
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'database'})
+   await cc.client.nats_client.hub.system.terminate({service:'changefeeds'})
 
 2. Run this
 
- echo "require('@cocalc/database/nats').init()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
+   echo "require('@cocalc/database/nats/changefeeds').init()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
 
 */
 

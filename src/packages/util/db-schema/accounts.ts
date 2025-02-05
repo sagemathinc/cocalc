@@ -917,3 +917,5 @@ export interface UserSearchResult {
   // of users queried by substring searches, obviously.
   email_address?: string;
 }
+
+export const ACCOUNT_ID_COOKIE_NAME = 'account_id';

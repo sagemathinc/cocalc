@@ -21,7 +21,6 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { initApi } from "@cocalc/frontend/nats/api";
-import { delay } from "awaiting";
 
 export class NatsClient {
   client: WebappClient;
@@ -38,11 +37,10 @@ export class NatsClient {
   constructor(client: WebappClient) {
     this.client = client;
     this.hub = initHubApi(this.callHub);
-    this.initBrowserApi();
+    setTimeout(this.initBrowserApi, 1);
   }
 
   private initBrowserApi = async () => {
-    await delay(100);
     try {
       await initApi();
     } catch (err) {
@@ -300,6 +298,7 @@ export class NatsClient {
         args: [{ changes: true, query }],
       });
     } catch (err) {
+      console.log("changefeedInterest -- error", query);
       if (noError) {
         console.warn(err);
         return;

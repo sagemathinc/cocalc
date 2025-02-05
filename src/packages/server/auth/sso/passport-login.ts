@@ -27,7 +27,6 @@ import { set_email_address_verified } from "@cocalc/database/postgres/account-qu
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import generateHash from "@cocalc/server/auth/hash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
 import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
@@ -43,7 +42,7 @@ import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -456,7 +455,6 @@ export class PassportLogin {
     });
   }
 
-
   // optionally, SSO strategies can be configured to always update fields of the user
   // with the data they provide. right now that's first and last name.
   // email address is a bit more tricky and not implemented.
@@ -488,7 +486,6 @@ export class PassportLogin {
     });
   }
 
-
   // ebfore recording the sign-in below, we check if a user is banned
   private async isUserBanned(account_id, email_address): Promise<boolean> {
     const is_banned = await isBanned(account_id);
@@ -506,7 +503,7 @@ export class PassportLogin {
   // SSO strategies can configure the expiration of that cookie – e.g. super
   // paranoid ones can set this to 1 day.
   private async handleNewSignIn(
-    opts: PassportLoginOpts,
+    { req, res }: PassportLoginOpts,
     locals: PassportLoginLocals,
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
@@ -519,17 +516,11 @@ export class PassportLogin {
 
     L("passport created: set remember_me cookie, so user gets logged in");
 
-    L(`create remember_me cookie in database: ttl=${opts.cookie_ttl_s}s`);
-    const { value, ttl_s } = await createRememberMeCookie(
-      locals.account_id,
-      opts.cookie_ttl_s,
-    );
-
-    L(`actually set remember_me cookie in client. ttl=${ttl_s}s`);
-    const { samesite_remember_me } = await getServerSettings();
-    locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
-      maxAge: ttl_s * 1000,
-      sameSite: samesite_remember_me,
+    L(`create remember_me cookie in database`);
+    await setSignInCookies({
+      account_id: locals.account_id,
+      req,
+      res,
     });
   }
 }

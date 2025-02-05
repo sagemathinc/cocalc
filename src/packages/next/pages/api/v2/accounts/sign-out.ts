@@ -19,6 +19,7 @@ import {
   AccountSignOutOutputSchema,
 } from "lib/api/schema/accounts/sign-out";
 import {
+  ACCOUNT_ID_COOKIE_NAME,
   NATS_JWT_COOKIE_NAME,
   REMEMBER_ME_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
@@ -47,6 +48,7 @@ async function signOut(req, res): Promise<void> {
   // also delete any security relevant cookies for safety and to avoid confusion.
   res.clearCookie(NATS_JWT_COOKIE_NAME);
   res.clearCookie(REMEMBER_ME_COOKIE_NAME);
+  res.clearCookie(ACCOUNT_ID_COOKIE_NAME);
 }
 
 export default apiRoute({

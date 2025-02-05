@@ -28,6 +28,10 @@ import { version } from "@cocalc/util/smc-version";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
+import Cookies from "js-cookie";
+import { basePathCookieName } from "@cocalc/util/misc";
+import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -41,11 +45,17 @@ const log = debug("cocalc");
 // all the sync activity logging and everything that calls
 // client.dbg.
 
+const ACCOUNT_ID_COOKIE = decodeURIComponent(
+  basePathCookieName({
+    basePath: appBasePath,
+    name: ACCOUNT_ID_COOKIE_NAME,
+  }),
+);
+
 export type AsyncCall = (opts: object) => Promise<any>;
 
 export interface WebappClient extends EventEmitter {
   account_id?: string;
-
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
@@ -126,7 +136,7 @@ Connection events:
 */
 
 class Client extends EventEmitter implements WebappClient {
-  account_id?: string;
+  account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
@@ -188,7 +198,6 @@ class Client extends EventEmitter implements WebappClient {
 
   constructor() {
     super();
-
     if (DEBUG) {
       this.dbg = this.dbg.bind(this);
     } else {

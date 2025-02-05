@@ -70,12 +70,12 @@ import sha1 from "sha1";
 export { sha1 };
 
 function base16ToBase64(hex) {
-  return Buffer.from(hex, 'hex').toString('base64')
-//   let bytes: number[] = [];
-//   for (let c = 0; c < hex.length; c += 2) {
-//     bytes.push(parseInt(hex.substr(c, 2), 16));
-//   }
-//   return btoa(String.fromCharCode.apply(null, bytes));
+  return Buffer.from(hex, "hex").toString("base64");
+  //   let bytes: number[] = [];
+  //   for (let c = 0; c < hex.length; c += 2) {
+  //     bytes.push(parseInt(hex.substr(c, 2), 16));
+  //   }
+  //   return btoa(String.fromCharCode.apply(null, bytes));
 }
 
 export function sha1base64(s) {
@@ -2684,4 +2684,14 @@ export function tail(s: string, lines: number) {
 
   // Return the substring starting from the next character after the last newline
   return s.slice(lastIndex + 2);
+}
+
+export function basePathCookieName({
+  basePath,
+  name,
+}: {
+  basePath: string;
+  name: string;
+}): string {
+  return `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}${name}`;
 }

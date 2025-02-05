@@ -5,15 +5,12 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { type BrowserApi } from "@cocalc/nats/browser-api";
 import { browserSubject } from "@cocalc/nats/names";
-import { delay } from "awaiting";
 
 export async function initApi() {
   console.log("init nats browser api - x");
   const sessionId = webapp_client.nats_client.sessionId;
-  console.log({ sessionId });
-  // TODO: neeed to wait for signed in event!
-  while (!webapp_client.account_id) {
-    await delay(200);
+  if (!webapp_client.account_id) {
+    throw Error("must be signed in");
   }
   const subject = browserSubject({
     account_id: webapp_client.account_id,

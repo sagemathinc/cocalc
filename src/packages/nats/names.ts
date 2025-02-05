@@ -33,6 +33,9 @@ export function projectSubject({
   service?: string;
   path?: string;
 }): string {
+  if (!project_id) {
+    throw Error("project_id must be set");
+  }
   let subject = `project.${project_id}.${compute_server_id}`;
   if (service) {
     subject += "." + service;
@@ -56,6 +59,9 @@ export function projectStreamName({
   service?: string;
   path?: string;
 }): string {
+  if (!project_id) {
+    throw Error("project_id must be set");
+  }
   let streamName = `project-${project_id}-${compute_server_id}`;
   if (service) {
     streamName += "-" + service;
@@ -67,5 +73,14 @@ export function projectStreamName({
 }
 
 export function browserSubject({ account_id, sessionId, service }) {
+  if (!sessionId) {
+    throw Error("sessionId must be set");
+  }
+  if (!account_id) {
+    throw Error("account_id must be set");
+  }
+  if (!service) {
+    throw Error("service must be set");
+  }
   return `${sessionId}.account-${account_id}.${service}`;
 }

@@ -19,6 +19,7 @@ Sign in works as follows:
 import getPool from "@cocalc/database/pool";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import {
+  ACCOUNT_ID_COOKIE_NAME,
   NATS_JWT_COOKIE_NAME,
   REMEMBER_ME_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
@@ -27,8 +28,8 @@ import Cookies from "cookies";
 import getParams from "lib/api/get-params";
 import { verify } from "password-hash";
 import { Request, Response } from "express";
-// import reCaptcha from "@cocalc/server/auth/recaptcha";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 export default async function signIn(req: Request, res: Response) {
   let { email, password } = getParams(req);
@@ -80,24 +81,14 @@ export async function getAccount(
 }
 
 export async function signUserIn(req, res, account_id: string): Promise<void> {
-  let value, ttl_s;
   try {
-    ({ value, ttl_s } = await createRememberMeCookie(account_id));
-  } catch (err) {
-    res.json({ error: `Problem creating session cookie -- ${err.message}.` });
-    return;
-  }
-  try {
-    const { samesite_remember_me } = await getServerSettings();
-    const cookies = new Cookies(req, res, { secure: true });
-    cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
-      maxAge: ttl_s * 1000,
-      sameSite: samesite_remember_me,
+    await setSignInCookies({
+      req,
+      res,
+      account_id,
     });
-    // ensure there is no stale JWT cookie
-    res.clearCookie(NATS_JWT_COOKIE_NAME);
   } catch (err) {
-    res.json({ error: `Problem setting cookie -- ${err.message}.` });
+    res.json({ error: `Problem setting auth cookies -- ${err}` });
     return;
   }
   res.json({ account_id });
