@@ -114,11 +114,15 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     "_INBOX.>", // so can use request/response
     `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
     "$JS.API.>", // so can use Jestream: TODO: too much???!
+    "$SRV.>", // TODO: obviously vastly too general!
+    ">",
   ]);
   const goalSub = new Set([
     "_INBOX.>", // so can user request/response
     "$JS.API.>", // TODO! This needs to be restrained more, I think??! Don't know.
     "system.>", // access to READ the system info kv store.
+    "$SRV.>", // TODO: obviously vastly too general!
+    ">",
   ]);
 
   if (userType == "account") {

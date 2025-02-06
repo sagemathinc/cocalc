@@ -72,6 +72,7 @@ export function projectStreamName({
   return streamName;
 }
 
+
 export function browserSubject({ account_id, sessionId, service }) {
   if (!sessionId) {
     throw Error("sessionId must be set");

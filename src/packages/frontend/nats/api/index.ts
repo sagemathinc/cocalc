@@ -4,28 +4,36 @@
 
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { type BrowserApi } from "@cocalc/nats/browser-api";
+import { Svcm } from "@nats-io/services";
 import { browserSubject } from "@cocalc/nats/names";
 
 export async function initApi() {
   console.log("init nats browser api - x");
-  const sessionId = webapp_client.nats_client.sessionId;
-  if (!webapp_client.account_id) {
+  const { account_id } = webapp_client;
+  if (!account_id) {
     throw Error("must be signed in");
   }
+  const { sessionId } = webapp_client.nats_client;
+  console.log("create browser microservice");
+  const { jc, nc } = await webapp_client.nats_client.getEnv();
+  // @ts-ignore
+  const svcm = new Svcm(nc);
   const subject = browserSubject({
-    account_id: webapp_client.account_id,
+    account_id,
     sessionId,
     service: "api",
   });
-  console.log({ subject });
-  console.log("init browser API", { sessionId, subject });
-  const { jc, nc } = await webapp_client.nats_client.getEnv();
-  const subscription = nc.subscribe(subject);
-  listen({ subscription, jc });
+  const service = await svcm.add({
+    name: `account-${account_id}`,
+    version: "0.1.0",
+    description: "CoCalc Web Browser",
+  });
+  const api = service.addEndpoint("api", { subject });
+  listen({ api, jc });
 }
 
-async function listen({ subscription, jc }) {
-  for await (const mesg of subscription) {
+async function listen({ api, jc }) {
+  for await (const mesg of api) {
     const request = jc.decode(mesg.data);
     handleApiRequest({ request, mesg, jc });
   }

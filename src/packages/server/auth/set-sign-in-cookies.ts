@@ -46,5 +46,6 @@ async function setAccountIdCookie({ req, res, account_id, maxAge }) {
   const cookies = new Cookies(req, res, { secure: false, httpOnly: false });
   cookies.set(ACCOUNT_ID_COOKIE_NAME, account_id, {
     maxAge,
+    httpOnly: false,
   });
 }

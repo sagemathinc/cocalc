@@ -41,6 +41,7 @@ import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
+import { Svcm } from "@nats-io/services";
 
 const logger = getLogger("server:nats:api");
 
@@ -52,8 +53,17 @@ export async function initAPI() {
     queue: "0",
   });
   const nc = await getConnection();
-  const sub = nc.subscribe(subject, { queue: "0" });
-  for await (const mesg of sub) {
+  // @ts-ignore
+  const svcm = new Svcm(nc);
+
+  const service = await svcm.add({
+    name: "hub-server",
+    version: "0.1.0",
+    description: "CoCalc Hub Server",
+  });
+
+  const api = service.addEndpoint("api", { subject });
+  for await (const mesg of api) {
     const request = jc.decode(mesg.data) ?? ({} as any);
     if (request.name == "system.terminate") {
       // special hook so admin can terminate handling. This is useful for development.
@@ -75,7 +85,7 @@ export async function initAPI() {
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
         mesg.respond(jc.encode({ status: "terminated", service }));
-        sub.unsubscribe();
+        api.stop();
         return;
       } else {
         mesg.respond(jc.encode({ error: `Unknown service ${service}` }));

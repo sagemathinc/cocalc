@@ -22,6 +22,7 @@
     "@cocalc/database": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@nats-io/services": "3.0.0-25",
     "@types/lodash": "^4.14.202",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
@@ -59,7 +60,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

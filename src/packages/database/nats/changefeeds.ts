@@ -25,8 +25,9 @@ import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import type { Subscription } from "nats";
 import { debounce } from "lodash";
+import { Svcm, type ServiceMsg } from "@nats-io/services";
+import { type QueuedIterator } from "nats";
 
 const logger = getLogger("database:nats:changefeeds");
 
@@ -35,22 +36,33 @@ const MAX_TIME_SAVE_TO_JETSTREAM = 30000;
 
 const jc = JSONCodec();
 
-let subscription: Subscription | null = null;
+let api: QueuedIterator<ServiceMsg> | null = null;
 export async function init() {
   const subject = "hub.*.*.db";
   logger.debug(`init -- subject='${subject}', options=`, {
     queue: "0",
   });
   const nc = await getConnection();
-  subscription = nc.subscribe(subject, { queue: "0" });
-  for await (const mesg of subscription) {
+
+  // @ts-ignore
+  const svcm = new Svcm(nc);
+
+  const service = await svcm.add({
+    name: "db-server",
+    version: "0.1.0",
+    description: "CoCalc Database Service (changefeeds)",
+  });
+
+  const api = service.addEndpoint("api", { subject });
+
+  for await (const mesg of api) {
     handleRequest(mesg, nc);
   }
 }
 
 export function terminate() {
   logger.debug("terminating");
-  subscription?.unsubscribe();
+  api?.stop();
   // also, stop reporting data into the streams
   cancelAllChangefeeds();
 }
@@ -265,6 +277,11 @@ const createChangefeed = reuseInFlight(
     const handleUpdate = ({ action, new_val, old_val }) => {
       // action = 'insert', 'update', 'delete', 'close'
       // e.g., {"action":"insert","new_val":{"title":"testingxxxxx","project_id":"81e0c408-ac65-4114-bad5-5f4b6539bd0e"}}
+      const obj = new_val ?? old_val;
+      if (obj == null) {
+        // nothing we can do with this
+        return;
+      }
       const key = synctable.getKey(new_val ?? old_val);
       if (action == "insert") {
         setMap(key, new_val);

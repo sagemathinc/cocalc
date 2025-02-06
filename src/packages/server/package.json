@@ -60,6 +60,7 @@
     "@langchain/mistralai": "^0.2.0",
     "@langchain/openai": "^0.3.17",
     "@nats-io/jetstream": "3.0.0-36",
+    "@nats-io/services": "3.0.0-25",
     "@node-saml/passport-saml": "^4.0.4",
     "@passport-js/passport-twitter": "^1.0.8",
     "@passport-next/passport-google-oauth2": "^1.0.0",

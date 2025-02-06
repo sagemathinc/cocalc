@@ -22,6 +22,7 @@ import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
+import { Svcm } from "@nats-io/services";
 
 export class NatsClient {
   client: WebappClient;
@@ -420,4 +421,11 @@ export class NatsClient {
       return this.kvCache[key];
     },
   );
+
+  microservicesClient = async () => {
+    const nc = await this.getConnection();
+    // @ts-ignore
+    const svcm = new Svcm(nc);
+    return svcm.client();
+  };
 }

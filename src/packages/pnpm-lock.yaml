@@ -177,6 +177,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@nats-io/services':
+        specifier: 3.0.0-25
+        version: 3.0.0-25
       '@types/lodash':
         specifier: ^4.14.202
         version: 4.17.9
@@ -319,6 +322,9 @@ importers:
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30
+      '@nats-io/services':
+        specifier: 3.0.0-25
+        version: 3.0.0-25
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -1287,6 +1293,9 @@ importers:
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30
+      '@nats-io/services':
+        specifier: 3.0.0-25
+        version: 3.0.0-25
       '@nteract/messaging':
         specifier: ^7.0.20
         version: 7.0.20
@@ -1477,6 +1486,9 @@ importers:
       '@nats-io/jetstream':
         specifier: 3.0.0-36
         version: 3.0.0-36
+      '@nats-io/services':
+        specifier: 3.0.0-25
+        version: 3.0.0-25
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -3939,6 +3951,9 @@ packages:
   '@nats-io/nats-core@3.0.0-49':
     resolution: {integrity: sha512-Xe7LjCdhtL4pXk2czwUE8Y1elTy/zo3ZzpoIwOO+/uJPughEsSxCpqygPrDqWcOG2uWVB9G1wxjg8r0Y9StovQ==}
 
+  '@nats-io/nats-core@3.0.0-50':
+    resolution: {integrity: sha512-Kur1/yhzNrpcpu+OhsQ89k9Ge1woEWJd5FV3tpp0BtpRWMlIth3StBiADguynbKSQCkBAOUQ+C0kRnFW8zOIeg==}
+
   '@nats-io/nkeys@2.0.2':
     resolution: {integrity: sha512-0JTyVl9P+UJyjUBDWP9589TuUKXJQ8tDkVRgi02X/MMzW997+4FykirvZEkIe6ZAhiLIBN+NpN8ULMMt6mDrbA==}
     engines: {node: '>=18.0.0'}
@@ -3946,6 +3961,9 @@ packages:
   '@nats-io/nuid@2.0.3':
     resolution: {integrity: sha512-TpA3HEBna/qMVudy+3HZr5M3mo/L1JPofpVT4t0HkFGkz2Cn9wrlrQC8tvR8Md5Oa9//GtGG26eN0qEWF5Vqew==}
     engines: {node: '>= 18.x'}
+
+  '@nats-io/services@3.0.0-25':
+    resolution: {integrity: sha512-/wS4kYCT6QzikDUJV/vjlnoXmhrXCyLsjBP0J3PNaxFZeUbpPo2uqqHQTwGRia26vfNvlGHMODSHSNgxw8SkPg==}
 
   '@nestjs/axios@3.0.3':
     resolution: {integrity: sha512-h6TCn3yJwD6OKqqqfmtRS5Zo4E46Ip2n+gK1sqwzNBC+qxQ9xpCu+ODVRFur6V3alHSCSBxb3nNtt73VEdluyA==}
@@ -14956,11 +14974,20 @@ snapshots:
       '@nats-io/nkeys': 2.0.2
       '@nats-io/nuid': 2.0.3
 
+  '@nats-io/nats-core@3.0.0-50':
+    dependencies:
+      '@nats-io/nkeys': 2.0.2
+      '@nats-io/nuid': 2.0.3
+
   '@nats-io/nkeys@2.0.2':
     dependencies:
       tweetnacl: 1.0.3
 
   '@nats-io/nuid@2.0.3': {}
+
+  '@nats-io/services@3.0.0-25':
+    dependencies:
+      '@nats-io/nats-core': 3.0.0-50
 
   '@nestjs/axios@3.0.3(@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1))(axios@1.7.4)(rxjs@7.8.1)':
     dependencies:

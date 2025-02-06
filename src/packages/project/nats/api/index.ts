@@ -3,7 +3,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project already, if any
 
-    await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'api'})
+    await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'api'})
 
 1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
 
@@ -39,21 +39,31 @@ import { type ProjectApi } from "@cocalc/nats/project-api";
 import getConnection from "@cocalc/project/nats/connection";
 import { getSubject } from "../names";
 import { terminate as terminateOpenFiles } from "@cocalc/project/nats/open-files";
+import { Svcm } from "@nats-io/services";
+import { compute_server_id, project_id } from "@cocalc/project/data";
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
 
 export async function init() {
   const subject = getSubject({ service: "api" });
-  logger.debug(`initAPI -- subject='${subject}'`);
   const nc = await getConnection();
-  const subscription = nc.subscribe(subject);
+  // @ts-ignore
+  const svcm = new Svcm(nc);
+  const name = `project-${project_id}`;
+  logger.debug(`creating API microservice ${name}`);
+  const service = await svcm.add({
+    name,
+    version: "0.1.0",
+    description: `CoCalc ${compute_server_id ? "Compute Server" : "Project"}`,
+  });
+  const api = service.addEndpoint("api", { subject });
   logger.debug(`initAPI -- subscribed to subject='${subject}'`);
-  listen(subscription, subject);
+  listen(api, subject);
 }
 
-async function listen(subscription, subject) {
-  for await (const mesg of subscription) {
+async function listen(api, subject) {
+  for await (const mesg of api) {
     const request = jc.decode(mesg.data) ?? ({} as any);
     // logger.debug("got message", request);
     if (request.name == "system.terminate") {
@@ -69,7 +79,7 @@ async function listen(subscription, subject) {
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
         mesg.respond(jc.encode({ status: "terminated", service }));
-        subscription.unsubscribe();
+        api.stop();
         return;
       } else {
         mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
