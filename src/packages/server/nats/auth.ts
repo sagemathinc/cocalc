@@ -113,21 +113,27 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const goalPub = new Set([
     "_INBOX.>", // so can use request/response
     `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
-    "$JS.API.>", // so can use Jestream: TODO: too much???!
-    "$SRV.>", // TODO: obviously vastly too general!
-    ">",
+    "$JS.API.INFO",
   ]);
   const goalSub = new Set([
     "_INBOX.>", // so can user request/response
-    "$JS.API.>", // TODO! This needs to be restrained more, I think??! Don't know.
+    //"$JS.API.>", // TODO! This needs to be restrained more, I think??! Don't know.
     "system.>", // access to READ the system info kv store.
-    "$SRV.>", // TODO: obviously vastly too general!
-    ">",
   ]);
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);
     goalPub.add(`*.account-${userId}.>`);
+
+    // microservices api
+    goalSub.add(`$SRV.*.account-${userId}.>`);
+    goalSub.add(`$SRV.*.account-${userId}`);
+    goalSub.add(`$SRV.*`);
+    goalPub.add(`$SRV.*`);
+
+    // jetstream
+    goalPub.add(`$JS.API.*.*.KV_account-${userId}`);
+    goalPub.add(`$JS.API.*.*.KV_account-${userId}.>`);
 
     const pool = getPool();
     // all RUNNING projects with the user's group
@@ -139,6 +145,11 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
 
       goalPub.add(`*.project-${project_id}.>`);
       goalSub.add(`*.project-${project_id}.>`);
+      goalPub.add(`$JS.*.*.*.KV_project-${project_id}`);
+      goalPub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
+      goalPub.add(`$JS.*.*.*.project-${project_id}-patches`);
+      goalPub.add(`$JS.*.*.*.project-${project_id}-patches.>`);
+      goalPub.add(`$JS.*.*.*.*.project-${project_id}-patches.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
@@ -150,6 +161,16 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
 
     goalPub.add(`*.project-${userId}.>`);
     goalSub.add(`*.project-${userId}.>`);
+
+    // microservices api
+    goalSub.add(`$SRV.*.project-${userId}.>`);
+    goalSub.add(`$SRV.*.project-${userId}`);
+    goalSub.add(`$SRV.*`);
+    goalPub.add(`$SRV.*`);
+
+    // jetstream
+    goalPub.add(`$JS.API.*.*.KV_project-${userId}`);
+    goalPub.add(`$JS.API.*.*.KV_project-${userId}.>`);
   }
 
   // **Subject Permissions SYNC Algorithm **
@@ -237,7 +258,7 @@ export async function addProjectPermission({ account_id, project_id }) {
     "--allow-sub",
     `project.${project_id}.>,*.project-${project_id}.>`,
     "--allow-pub",
-    `project.${project_id}.>,*.project-${project_id}.>`,
+    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.project-${project_id}-patches,$JS.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>`,
   ]);
   await pushToServer();
 }
@@ -250,7 +271,7 @@ export async function removeProjectPermission({ account_id, project_id }) {
     "--sk",
     name,
     "--rm",
-    `project.${project_id}.>,*.project-${project_id}.>`,
+    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.KV_project-${project_id}-patches,$JS.*.*.*.KV_project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>`,
   ]);
   await pushToServer();
 }

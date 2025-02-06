@@ -33,7 +33,7 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   close = (): void => {
-    this.natsSynctable.close();
+    this.natsSynctable?.close();
     this.state = "closed";
     this.emit("close");
   };

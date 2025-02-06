@@ -147,6 +147,9 @@ export class SyncTableKVAtomic extends EventEmitter {
 
   // watch for new changes
   async *watch() {
+    if (this.kv == null) {
+      throw Error("not initialized");
+    }
     const w = await this.kv.watch({
       key: `${this.natsKeyPrefix}.>`,
       include: "updates",
