@@ -198,7 +198,8 @@ export class KV extends EventEmitter {
       return this.times?.[key];
     }
   };
-  private matches = (key: string) => {
+
+  isValidKey = (key: string) => {
     if (this.filter == null) {
       return true;
     }
@@ -211,7 +212,7 @@ export class KV extends EventEmitter {
   };
 
   delete = async (key, revision?) => {
-    if (!this.matches(key)) {
+    if (!this.isValidKey(key)) {
       throw Error(
         `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
@@ -289,7 +290,7 @@ export class KV extends EventEmitter {
   };
 
   private setOne = async (key, value) => {
-    if (!this.matches(key)) {
+    if (!this.isValidKey(key)) {
       throw Error(
         `set: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
