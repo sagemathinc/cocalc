@@ -1,5 +1,6 @@
 import { getLogger } from "@cocalc/project/logger";
 import { connect, jwtAuthenticator } from "nats";
+import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 
 const logger = getLogger("project:nats:connection");
 
@@ -11,6 +12,7 @@ export default async function getConnection() {
       throw Error("environment variable COCALC_NATS_JWT *must* be set");
     }
     nc = await connect({
+      ...CONNECT_OPTIONS,
       authenticator: jwtAuthenticator(process.env.COCALC_NATS_JWT),
     });
     logger.debug(`connected to ${nc.getServer()}`);

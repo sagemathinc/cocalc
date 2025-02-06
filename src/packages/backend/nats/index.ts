@@ -6,6 +6,7 @@ import { connect, credsAuthenticator } from "nats";
 export { getEnv } from "./env";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 
 const logger = getLogger("backend:nats");
 
@@ -30,9 +31,8 @@ export const getConnection = reuseInFlight(async () => {
     try {
       const creds = await getCreds();
       nc = await connect({
+        ...CONNECT_OPTIONS,
         authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
-        // bound on how long after network or server goes down until starts working again
-        pingInterval: 10000,
       });
       logger.debug(`connected to ${nc.getServer()}`);
     } catch (err) {

@@ -17,18 +17,10 @@ Sign in works as follows:
 */
 
 import getPool from "@cocalc/database/pool";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import {
-  ACCOUNT_ID_COOKIE_NAME,
-  NATS_JWT_COOKIE_NAME,
-  REMEMBER_ME_COOKIE_NAME,
-} from "@cocalc/backend/auth/cookie-names";
 import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
-import Cookies from "cookies";
 import getParams from "lib/api/get-params";
 import { verify } from "password-hash";
 import { Request, Response } from "express";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 export default async function signIn(req: Request, res: Response) {

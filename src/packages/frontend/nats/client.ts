@@ -23,6 +23,7 @@ import { KV } from "@cocalc/nats/sync/kv";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
+import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 
 export class NatsClient {
   client: WebappClient;
@@ -64,19 +65,16 @@ export class NatsClient {
     }
     const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
     console.log(`NATS: connecting to ${server}...`);
+    const options = {
+      ...CONNECT_OPTIONS,
+      servers: [server],
+    };
     try {
-      this.nc = await nats.connect({
-        servers: [server],
-        // this pingInterval determines how long from when the browser's network connection dies
-        // and comes back, until nats starts working again.
-        pingInterval: 10000,
-      });
+      this.nc = await nats.connect(options);
     } catch (err) {
       console.log("NATS: set the JWT cookie and try again");
       await fetch(join(appBasePath, "nats"));
-      this.nc = await nats.connect({
-        servers: [server],
-      });
+      this.nc = await nats.connect(options);
     }
     console.log(`NATS: connected to ${server}`);
     return this.nc;

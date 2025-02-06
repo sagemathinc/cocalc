@@ -5,8 +5,6 @@ for streaming data.
 This is ONLY for the scope of patches in a single project.
 
 It uses a NATS stream to store the elements in a well defined order.
-
-
 */
 
 import { jetstreamManager, jetstream } from "@nats-io/jetstream";
