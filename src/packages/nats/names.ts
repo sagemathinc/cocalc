@@ -48,21 +48,19 @@ export function projectSubject({
 
 export function projectStreamName({
   project_id,
-  compute_server_id = 0,
   // service = optional name of the microservice, e.g., 'api', 'terminal'
   service,
   // path = optional name of specific path for that microservice -- replaced by its sha1
   path,
 }: {
   project_id: string;
-  compute_server_id?: number;
   service?: string;
   path?: string;
 }): string {
   if (!project_id) {
     throw Error("project_id must be set");
   }
-  let streamName = `project-${project_id}-${compute_server_id}`;
+  let streamName = `project-${project_id}`;
   if (service) {
     streamName += "-" + service;
     if (path) {
@@ -71,7 +69,6 @@ export function projectStreamName({
   }
   return streamName;
 }
-
 
 export function browserSubject({ account_id, sessionId, service }) {
   if (!sessionId) {

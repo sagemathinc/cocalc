@@ -11,7 +11,7 @@ const client = uuid();
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
-  private compute_server_id: number;
+  //private compute_server_id: number;
   private path: string;
   private subject: string;
   private cmd_subject: string;
@@ -44,7 +44,7 @@ export class NatsTerminalConnection extends EventEmitter {
   }) {
     super();
     this.project_id = project_id;
-    this.compute_server_id = compute_server_id;
+    //this.compute_server_id = compute_server_id;
     this.path = path;
     this.terminalResize = terminalResize;
     this.keep = keep;
@@ -123,7 +123,6 @@ export class NatsTerminalConnection extends EventEmitter {
     const { nats_client } = webapp_client;
     const streamName = projectStreamName({
       project_id: this.project_id,
-      compute_server_id: this.compute_server_id,
       service: "terminal",
     });
     const nc = await nats_client.getConnection();

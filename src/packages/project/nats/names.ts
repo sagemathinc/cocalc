@@ -6,5 +6,5 @@ export function getSubject(opts: { path?; service? }) {
 }
 
 export function getStreamName(opts: { path?; service? }) {
-  return projectStreamName({ ...opts, compute_server_id, project_id });
+  return projectStreamName({ ...opts, project_id });
 }

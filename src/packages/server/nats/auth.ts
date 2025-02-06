@@ -150,6 +150,9 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
       goalPub.add(`$JS.*.*.*.project-${project_id}-patches`);
       goalPub.add(`$JS.*.*.*.project-${project_id}-patches.>`);
       goalPub.add(`$JS.*.*.*.*.project-${project_id}-patches.>`);
+      goalPub.add(`$JS.*.*.*.project-${project_id}-terminal`);
+      goalPub.add(`$JS.*.*.*.project-${project_id}-terminal.>`);
+      goalPub.add(`$JS.*.*.*.*.project-${project_id}-terminal.>`);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
@@ -171,6 +174,12 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     // jetstream
     goalPub.add(`$JS.API.*.*.KV_project-${userId}`);
     goalPub.add(`$JS.API.*.*.KV_project-${userId}.>`);
+    goalPub.add(`$JS.*.*.*.project-${userId}-patches`);
+    goalPub.add(`$JS.*.*.*.project-${userId}-patches.>`);
+    goalPub.add(`$JS.*.*.*.*.project-${userId}-patches.>`);
+    goalPub.add(`$JS.*.*.*.project-${userId}-terminal`);
+    goalPub.add(`$JS.*.*.*.project-${userId}-terminal.>`);
+    goalPub.add(`$JS.*.*.*.*.project-${userId}-terminal.>`);
   }
 
   // **Subject Permissions SYNC Algorithm **
@@ -258,7 +267,7 @@ export async function addProjectPermission({ account_id, project_id }) {
     "--allow-sub",
     `project.${project_id}.>,*.project-${project_id}.>`,
     "--allow-pub",
-    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.project-${project_id}-patches,$JS.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>`,
+    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.project-${project_id}-patches,$JS.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.project-${project_id}-terminal,$JS.*.*.*.project-${project_id}-terminal.>,$JS.*.*.*.*.project-${project_id}-terminal.>`,
   ]);
   await pushToServer();
 }
