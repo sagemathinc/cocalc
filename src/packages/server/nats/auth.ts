@@ -139,47 +139,24 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     // all RUNNING projects with the user's group
     const query = `SELECT project_id, users#>>'{${userId},group}' AS group FROM projects WHERE state#>>'{state}'='running' AND users ? '${userId}' ORDER BY project_id`;
     const { rows } = await pool.query(query);
-    for (const { project_id /*, group */ } of rows) {
-      goalPub.add(`project.${project_id}.>`);
-      goalSub.add(`project.${project_id}.>`);
-
-      goalPub.add(`*.project-${project_id}.>`);
-      goalSub.add(`*.project-${project_id}.>`);
-      goalPub.add(`$JS.*.*.*.KV_project-${project_id}`);
-      goalPub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
-      goalPub.add(`$JS.*.*.*.project-${project_id}-patches`);
-      goalPub.add(`$JS.*.*.*.project-${project_id}-patches.>`);
-      goalPub.add(`$JS.*.*.*.*.project-${project_id}-patches.>`);
-      goalPub.add(`$JS.*.*.*.project-${project_id}-terminal`);
-      goalPub.add(`$JS.*.*.*.project-${project_id}-terminal.>`);
-      goalPub.add(`$JS.*.*.*.*.project-${project_id}-terminal.>`);
+    for (const { project_id } of rows) {
+      const { pub, sub } = projectSubjects(project_id);
+      add(goalSub, sub);
+      add(goalPub, pub);
     }
     // TODO: there will be other subjects
     // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
     // will listen to, e.g., for timetravel editing.
   } else if (userType == "project") {
-    // the project can publish to anything under its own subject:
-    goalPub.add(`project.${userId}.>`);
-    goalSub.add(`project.${userId}.>`);
-
-    goalPub.add(`*.project-${userId}.>`);
-    goalSub.add(`*.project-${userId}.>`);
-
     // microservices api
     goalSub.add(`$SRV.*.project-${userId}.>`);
     goalSub.add(`$SRV.*.project-${userId}`);
     goalSub.add(`$SRV.*`);
     goalPub.add(`$SRV.*`);
 
-    // jetstream
-    goalPub.add(`$JS.API.*.*.KV_project-${userId}`);
-    goalPub.add(`$JS.API.*.*.KV_project-${userId}.>`);
-    goalPub.add(`$JS.*.*.*.project-${userId}-patches`);
-    goalPub.add(`$JS.*.*.*.project-${userId}-patches.>`);
-    goalPub.add(`$JS.*.*.*.*.project-${userId}-patches.>`);
-    goalPub.add(`$JS.*.*.*.project-${userId}-terminal`);
-    goalPub.add(`$JS.*.*.*.project-${userId}-terminal.>`);
-    goalPub.add(`$JS.*.*.*.*.project-${userId}-terminal.>`);
+    const { pub, sub } = projectSubjects(userId);
+    add(goalSub, sub);
+    add(goalPub, pub);
   }
 
   // **Subject Permissions SYNC Algorithm **
@@ -259,28 +236,31 @@ export async function addProjectPermission({ account_id, project_id }) {
     throw Error("user must be collaborator on project");
   }
   const name = getNatsUserName({ account_id });
+  const { pub, sub } = projectSubjects(project_id);
   await nsc([
     "edit",
     "signing-key",
     "--sk",
     name,
     "--allow-sub",
-    `project.${project_id}.>,*.project-${project_id}.>`,
+    Array.from(sub).join(","),
     "--allow-pub",
-    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.project-${project_id}-patches,$JS.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>,$JS.*.*.*.project-${project_id}-terminal,$JS.*.*.*.project-${project_id}-terminal.>,$JS.*.*.*.*.project-${project_id}-terminal.>`,
+    Array.from(pub).join(","),
   ]);
   await pushToServer();
 }
 
 export async function removeProjectPermission({ account_id, project_id }) {
   const name = getNatsUserName({ account_id });
+  const { pub, sub } = projectSubjects(project_id);
+  add(pub, sub);
   await nsc([
     "edit",
     "signing-key",
     "--sk",
     name,
     "--rm",
-    `project.${project_id}.>,*.project-${project_id}.>,$JS.*.*.*.KV_project-${project_id},$JS.*.*.*.KV_project-${project_id}.>,$JS.*.*.*.KV_project-${project_id}-patches,$JS.*.*.*.KV_project-${project_id}-patches.>,$JS.*.*.*.*.project-${project_id}-patches.>`,
+    Array.from(pub).join(","),
   ]);
   await pushToServer();
 }
@@ -349,19 +329,37 @@ export async function createNatsUser(cocalcUser: CoCalcUser) {
   pushToServer();
 }
 
-// export async function updateActiveCollaborators(project_id: string) {
-//   const pool = getPool();
-//   const { rows } = await pool.query(
-//     "select account_id from accounts where account_id=any(select jsonb_object_keys(users)::uuid from projects where project_id=$1) and last_active >= now() - interval '1 day'",
-//     [project_id],
-//   );
-// }
-
 export async function getJwt(cocalcUser: CoCalcUser): Promise<string> {
   try {
     return await getNatsUserJwt(cocalcUser);
   } catch (_err) {
     await createNatsUser(cocalcUser);
     return await getNatsUserJwt(cocalcUser);
+  }
+}
+
+function projectSubjects(project_id: string) {
+  const pub = new Set<string>([]);
+  const sub = new Set<string>([]);
+  pub.add(`project.${project_id}.>`);
+  sub.add(`project.${project_id}.>`);
+
+  pub.add(`*.project-${project_id}.>`);
+  sub.add(`*.project-${project_id}.>`);
+
+  pub.add(`$JS.*.*.*.KV_project-${project_id}`);
+  pub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
+
+  for (const name of ["patches", "terminal"]) {
+    pub.add(`$JS.*.*.*.project-${project_id}-${name}`);
+    pub.add(`$JS.*.*.*.project-${project_id}-${name}.>`);
+    pub.add(`$JS.*.*.*.*.project-${project_id}-${name}.>`);
+  }
+  return { pub, sub };
+}
+
+function add(X: Set<string>, Y: Set<string>) {
+  for (const y of Y) {
+    X.add(y);
   }
 }
