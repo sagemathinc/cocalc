@@ -130,21 +130,7 @@ export class KV extends EventEmitter {
     this.env = env;
     this.name = name;
     this.options = options;
-    this.filter =
-      filter == null
-        ? undefined
-        : typeof filter == "string"
-          ? [filter]
-          : filter;
-    //     return new Proxy(this, {
-    //       set(target, prop, value) {
-    //         target.setOne(prop, value);
-    //         return true;
-    //       },
-    //       get(target, prop) {
-    //         return target[prop] ?? target.all?.[String(prop)];
-    //       },
-    //     });
+    this.filter = typeof filter == "string" ? [filter] : filter;
   }
 
   init = reuseInFlight(async () => {

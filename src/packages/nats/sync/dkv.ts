@@ -103,8 +103,8 @@ export class DKV extends EventEmitter {
       remote?: any;
     }) => any;
     // filter: optionally restrict to subset of named kv store matching these subjects.
-    // NOTE: any key name that you *set or delete* should match one of these
-    filter?: string | string[];
+    // NOTE: any key name that you *set or delete* must match one of these
+    filter: string | string[];
     options?;
   }) {
     super();

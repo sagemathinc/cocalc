@@ -350,10 +350,10 @@ function projectSubjects(project_id: string) {
   pub.add(`$JS.*.*.*.KV_project-${project_id}`);
   pub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
 
-  for (const name of ["patches", "terminal"]) {
-    pub.add(`$JS.*.*.*.project-${project_id}-${name}`);
-    pub.add(`$JS.*.*.*.project-${project_id}-${name}.>`);
-    pub.add(`$JS.*.*.*.*.project-${project_id}-${name}.>`);
+  for (const name of ["", "-patches", "-terminal"]) {
+    pub.add(`$JS.*.*.*.project-${project_id}${name}`);
+    pub.add(`$JS.*.*.*.project-${project_id}${name}.>`);
+    pub.add(`$JS.*.*.*.*.project-${project_id}${name}.>`);
   }
   return { pub, sub };
 }

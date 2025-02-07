@@ -21,6 +21,7 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { DKV } from "@cocalc/nats/sync/dkv";
+import { Stream } from "@cocalc/nats/sync/stream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
@@ -436,10 +437,10 @@ export class NatsClient {
   }: {
     account_id?: string;
     project_id?: string;
-    filter?: string | string[];
+    filter: string | string[];
     options?;
-    merge?: (opts: { ancestor; local; remote }) => any;
-  } = {}) => {
+    merge?: (opts: { ancestor?; local?; remote?; key?: string }) => any;
+  }) => {
     if (!account_id && !project_id) {
       account_id = this.client.account_id;
     }
@@ -454,6 +455,43 @@ export class NatsClient {
     await dkv.init();
     return dkv;
   };
+
+  // Browser client gets one stream for each account and one for each project.
+  // Use the filters to restrict, e.g., to events about a particular file.
+  private streamCache: { [key: string]: Stream } = {};
+  stream = reuseInFlight(
+    async ({
+      account_id,
+      project_id,
+      filter,
+      options,
+    }: {
+      account_id?: string;
+      project_id?: string;
+      subjects: string | string[];
+      filter: string;
+      options?;
+    }) => {
+      const name = kvName({ account_id, project_id });
+      const subjects = `${name}.>`;
+      const key = JSON.stringify([name, subjects, filter, options]);
+      if (this.streamCache[key] == null) {
+        const stream = new Stream({
+          name,
+          subjects,
+          filter,
+          options,
+          env: await this.getEnv(),
+        });
+        await stream.init();
+        this.streamCache[key] = stream;
+        stream.on("closed", () => {
+          delete this.streamCache[key];
+        });
+      }
+      return this.streamCache[key];
+    },
+  );
 
   microservicesClient = async () => {
     const nc = await this.getConnection();
