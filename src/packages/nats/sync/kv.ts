@@ -110,15 +110,15 @@ export class KV extends EventEmitter {
         : typeof filter == "string"
           ? [filter]
           : filter;
-    return new Proxy(this, {
-      set(target, prop, value) {
-        target.setOne(prop, value);
-        return true;
-      },
-      get(target, prop) {
-        return target[prop] ?? target.all?.[String(prop)];
-      },
-    });
+    //     return new Proxy(this, {
+    //       set(target, prop, value) {
+    //         target.setOne(prop, value);
+    //         return true;
+    //       },
+    //       get(target, prop) {
+    //         return target[prop] ?? target.all?.[String(prop)];
+    //       },
+    //     });
   }
 
   init = reuseInFlight(async () => {
@@ -147,8 +147,7 @@ export class KV extends EventEmitter {
   private startWatch = async () => {
     // watch for changes
     this.watch = await this.kv.watch({
-      // we assume that we ONLY delete old items which are not relevant
-      ignoreDeletes: true,
+      ignoreDeletes: false,
       include: "updates",
       key: this.filter,
     });
@@ -159,6 +158,7 @@ export class KV extends EventEmitter {
         return;
       }
       this.revisions[key] = revision;
+      const prev = this.all[key];
       if (value.length == 0) {
         // delete
         delete this.all[key];
@@ -167,7 +167,7 @@ export class KV extends EventEmitter {
         this.all[key] = this.env.jc.decode(value);
         this.times[key] = sm.time;
       }
-      this.emit("change", key, this.all[key]);
+      this.emit("change", key, this.all[key], prev);
     }
   };
 
