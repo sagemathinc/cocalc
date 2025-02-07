@@ -20,6 +20,25 @@ export function randomId() {
   return generateVouchers({ count: 1, length: 10 })[0];
 }
 
+export function kvName({
+  project_id,
+  account_id,
+}: {
+  project_id?: string;
+  account_id?: string;
+}) {
+  if (project_id) {
+    if (account_id) {
+      throw Error("both account_id and project_id can't be set");
+    }
+    return `project-${project_id}`;
+  }
+  if (!account_id) {
+    throw Error("at least one of account_id and project_id must be set");
+  }
+  return `account-${account_id}`;
+}
+
 export function projectSubject({
   project_id,
   compute_server_id = 0,

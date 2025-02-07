@@ -199,6 +199,14 @@ export class KV extends EventEmitter {
     }
   };
 
+  assertValidKey = (key: string) => {
+    if (!this.isValidKey(key)) {
+      throw Error(
+        `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
+      );
+    }
+  };
+
   isValidKey = (key: string) => {
     if (this.filter == null) {
       return true;
@@ -212,11 +220,7 @@ export class KV extends EventEmitter {
   };
 
   delete = async (key, revision?) => {
-    if (!this.isValidKey(key)) {
-      throw Error(
-        `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
-      );
-    }
+    this.assertValidKey(key);
     if (this.all == null || this.revisions == null || this.times == null) {
       throw Error("not ready");
     }
@@ -306,20 +310,8 @@ export class KV extends EventEmitter {
     }
     const revision = this.revisions[key];
     const val = this.env.jc.encode(value);
-    const cur = this.all[key];
-    try {
-      this.all[key] = value;
-      const newRevision = await this.kv.put(key, val, {
-        previousSeq: revision,
-      });
-      this.revisions[key] = newRevision;
-    } catch (err) {
-      if (cur === undefined) {
-        delete this.all[key];
-      } else {
-        this.all[key] = cur;
-      }
-      throw err;
-    }
+    await this.kv.put(key, val, {
+      previousSeq: revision,
+    });
   };
 }
