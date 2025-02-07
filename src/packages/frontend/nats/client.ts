@@ -20,7 +20,7 @@ import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
-import { EventuallyConsistentKV } from "@cocalc/nats/sync/eventually-consistent-kv";
+import { DKV } from "@cocalc/nats/sync/dkv";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
@@ -404,7 +404,10 @@ export class NatsClient {
       project_id?: string;
       filter?: string | string[];
       options?;
-    }) => {
+    } = {}) => {
+      if (!account_id && !project_id) {
+        account_id = this.client.account_id;
+      }
       const name = kvName({ account_id, project_id });
       const key = JSON.stringify([name, filter, options]);
       if (this.kvCache[key] == null) {
@@ -424,32 +427,32 @@ export class NatsClient {
     },
   );
 
-  eckv = async ({
+  dkv = async ({
     account_id,
     project_id,
     filter,
     options,
-    resolve,
+    merge,
   }: {
     account_id?: string;
     project_id?: string;
     filter?: string | string[];
     options?;
-    resolve: (opts: { ancestor; local; remote }) => any;
-  }) => {
+    merge?: (opts: { ancestor; local; remote }) => any;
+  } = {}) => {
     if (!account_id && !project_id) {
       account_id = this.client.account_id;
     }
     const name = kvName({ account_id, project_id });
-    const eckv = new EventuallyConsistentKV({
+    const dkv = new DKV({
       name,
       filter,
       options,
-      resolve,
+      merge,
       env: await this.getEnv(),
     });
-    await eckv.init();
-    return eckv;
+    await dkv.init();
+    return dkv;
   };
 
   microservicesClient = async () => {

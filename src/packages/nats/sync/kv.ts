@@ -1,32 +1,58 @@
 /*
-This is a simple KV wrapper around NATS's KV, for small KV stores, suitable for configuration data.
+Always Consistent Centralized Key Value Store
 
-- it emits an event ('change', key, value) whenever anything changes
+- You give one or more subjects and this provides an asynchronous but consistent
+  way to work with the KV store of keys matching any of those subjects,
+  inside of the named KV store.
+- The get operation is sync. (It can of course be slightly out of date, but that is detected
+  if you try to immediately write it.)
+- The set will fail if the local cached value (returned by get) turns out to be out of date.
+- Also delete and set will fail if the NATS connection is down or times out.
+- For an eventually consistent sync wrapper around this, use DKV, defined in the sibling file dkv.ts.
 
-- explicitly call "await this.init()" to initialize it
+This is a simple KV wrapper around NATS's KV, for small KV stores. Each client holds a local cache
+of all data, which is used to ensure set's are a no-op if there is no change.  Also, this automates
+ensuring that if you do a read-modify-write, this will succeed only if nobody else makes a change
+before you.
 
-- calling get() synchronously provides ALL the data.
+- You must explicitly call "await store.init()" to initialize it before using it.
 
-- call await set({key:value, key2:value2, ...}) to set data, with the following semantics:
+- The store emits an event ('change', key, newValue, previousValue) whenever anything changes
 
-  - set ONLY makes a change if our local version (this.get()[key]) of the value is different from
-    what you're trying to set the value to, where different is defiend by lodash isEqual.
+- Calling "store.get()" provides ALL the data and is synchronous.   It uses various API tricks to
+  ensure this is fast and is updated when there is any change from upstream.  Use "store.get(key)"
+  to get the value of one key.
 
-  - if our local version this.get()[key] was not the most recent version in NATS, then the set will
+- Use "await store.set(key,value)" or "await store.set({key:value, key2:value2, ...})" to set data,
+  with the following semantics:
+
+  - set ONLY makes a change if our local version ("store.get(key)") of the value is different from
+    what you're trying to set the value to, where different is defined by lodash isEqual.
+
+  - if our local version this.get(key) was not the most recent version in NATS, then the set will
     definitely throw an exception! This is fantastic because it means you can modify and save what
     is in the local cache on multiple nodes at once anywhere, and be 100% certain to never overwrite
-    data in complicated objects.  Of course, you have to assume "await set()" will sometimes fail.
+    data in complicated objects.  Of course, you have to assume "await store.set(...)" WILL
+    sometimes fail.
 
-  - set "pipelines" in that MAX_PARALLEL key/value pairs are set at once, without waiting
-    for each set to get ACK'd from the server before doing more sets.  This makes this massively
-    faster for bigger objects, but means that if "await set({...})" fails, you don't immediately
-    know which keys were successfully set and which failed, though all that worked will get
-    updated soon and reflected in get().
+  - Set with multiple keys "pipelines" in that MAX_PARALLEL key/value pairs are set at once, without
+    waiting for every single individual set to get ACK'd from the server before doing more sets.
+    This makes this **massively** faster, but means that if "await store.set(...)" fails, you don't
+    immediately know which keys were successfully set and which failed, though all keys worked will get
+    updated soon and reflected in store.get().
+
+- Use "await store.expire(ageMs)" to delete every key that was last changed at least ageMs
+  milliseconds in the past.
+
+  TODO/WARNING: the timestamps are defined by NATS (and its clock), but
+  the definition of "ageMs in the past" is defined by the client where this is called. Thus
+  if the client's clock is off, that would be a huge problem.  An obvious solution is to
+  get the current time from NATS, and use that.  I don't know a "good" way to get the current
+  time except maybe publishing a message to myself...?
 
 TODO:
 
 - [ ] maybe expose some functionality related to versions/history?
-
 
 DEVELOPMENT:
 
