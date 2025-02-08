@@ -2,8 +2,8 @@
 Consistent Centralized Event Stream = ordered list of messages
 
 TODO:
-  - ability to easily initialize with only the most recent n messages or
-    only messages starting at time t.
+  - ability to easily initialize with only messages starting at a given seq
+  - load old messages starting at a given seq.
   - maybe the limits and other config should be stored in a KV store so
     they are sync'd between clients automatically.  That's what NATS surely
     does internally.
@@ -32,6 +32,8 @@ With browser client using a project:
 
 In browser:
 > s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+
+
 */
 
 import { EventEmitter } from "events";
@@ -88,6 +90,8 @@ export interface StreamOptions {
   env: NatsEnv;
   natsStreamOptions?;
   limits?: Partial<FilteredStreamLimitOptions>;
+  // only load historic messages starting at the given seq number.
+  start_seq?: number;
 }
 
 export class Stream extends EventEmitter {
@@ -98,6 +102,7 @@ export class Stream extends EventEmitter {
   private filter?: string;
   private subject?: string;
   private env: NatsEnv;
+  private start_seq?: number;
   private js;
   private jsm;
   private stream?;
@@ -114,6 +119,7 @@ export class Stream extends EventEmitter {
     filter,
     natsStreamOptions,
     limits,
+    start_seq,
   }: StreamOptions) {
     super();
     this.env = env;
@@ -135,6 +141,7 @@ export class Stream extends EventEmitter {
       throw Error("subjects must be at least one string");
     }
     this.filter = filter;
+    this.start_seq = start_seq;
     this.limits = {
       max_msgs: -1,
       max_age: 0,
@@ -201,6 +208,9 @@ export class Stream extends EventEmitter {
       inactive_threshold: nanos(EPHEMERAL_CONSUMER_THRESH),
     };
     let startOptions;
+    if (startSeq == null && this.start_seq != null) {
+      startSeq = this.start_seq;
+    }
     if (startSeq != null) {
       startOptions = {
         deliver_policy: "by_start_sequence",
