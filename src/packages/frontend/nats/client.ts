@@ -6,7 +6,7 @@ import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { randomId } from "@cocalc/nats/names";
-import { browserSubject, projectSubject, jsName } from "@cocalc/nats/names";
+import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
@@ -18,9 +18,8 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
-import { SystemKv } from "@cocalc/nats/system";
-import { KV } from "@cocalc/nats/sync/kv";
-import { DKV } from "@cocalc/nats/sync/dkv";
+import { kv, type KVOptions } from "@cocalc/nats/sync/kv";
+import { dkv, type DKVOptions } from "@cocalc/nats/sync/dkv";
 import { stream, type UserStreamOptions } from "@cocalc/nats/sync/stream";
 import { dstream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
@@ -38,7 +37,6 @@ export class NatsClient {
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
-  private theSystemKv?: SystemKv;
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -385,90 +383,32 @@ export class NatsClient {
     return accumulate;
   };
 
-  systemKv = reuseInFlight(async () => {
-    if (this.theSystemKv == null) {
-      const s = new SystemKv(await this.getEnv());
-      await s.init();
-      this.theSystemKv = s;
-    }
-    return this.theSystemKv!;
-  });
-
-  private kvCache: { [key: string]: KV } = {};
-  kv = reuseInFlight(
-    async ({
-      account_id,
-      project_id,
-      filter,
-      options,
-    }: {
-      account_id?: string;
-      project_id?: string;
-      filter?: string | string[];
-      options?;
-    } = {}) => {
-      if (!account_id && !project_id) {
-        account_id = this.client.account_id;
-      }
-      const name = jsName({ account_id, project_id });
-      const key = JSON.stringify([name, filter, options]);
-      if (this.kvCache[key] == null) {
-        const kv = new KV({
-          name,
-          filter,
-          options,
-          env: await this.getEnv(),
-        });
-        await kv.init();
-        this.kvCache[key] = kv;
-        kv.on("closed", () => {
-          delete this.kvCache[key];
-        });
-      }
-      return this.kvCache[key];
-    },
-  );
-
-  dkv = async ({
-    account_id,
-    project_id,
-    filter,
-    options,
-    merge,
-  }: {
-    account_id?: string;
-    project_id?: string;
-    filter: string | string[];
-    options?;
-    merge?: (opts: { ancestor?; local?; remote?; key?: string }) => any;
-  }) => {
-    if (!account_id && !project_id) {
-      account_id = this.client.account_id;
-    }
-    const name = jsName({ account_id, project_id });
-    const dkv = new DKV({
-      name,
-      filter,
-      options,
-      merge,
-      env: await this.getEnv(),
-    });
-    await dkv.init();
-    return dkv;
-  };
-
   stream = async (opts: Partial<UserStreamOptions>) => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
-    return await stream({ ...opts, env: await this.getEnv() });
+    return await stream({ env: await this.getEnv(), ...opts });
   };
 
   dstream = async (opts: Partial<UserStreamOptions>) => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
-    return await dstream({ ...opts, env: await this.getEnv() });
+    return await dstream({ env: await this.getEnv(), ...opts });
+  };
+
+  kv = async (opts: Partial<KVOptions>) => {
+    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
+    //       throw Error("account client can't set limits on public stream");
+    //     }
+    return await kv({ env: await this.getEnv(), ...opts });
+  };
+
+  dkv = async (opts: Partial<DKVOptions>) => {
+    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
+    //       throw Error("account client can't set limits on public stream");
+    //     }
+    return await dkv({ env: await this.getEnv(), ...opts });
   };
 
   microservicesClient = async () => {

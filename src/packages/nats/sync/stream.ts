@@ -47,6 +47,9 @@ import { nanos, type Nanos } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
+import { map as awaitMap } from "awaiting";
+
+const MAX_PARALLEL = 50;
 
 // confirm that ephemeral consumer still exists every 15 seconds:
 // In case of a long disconnect from the network, this is what
@@ -201,6 +204,10 @@ export class Stream extends EventEmitter {
   get length() {
     return this.messages.length;
   }
+
+  push = async (...args) => {
+    await awaitMap(args, MAX_PARALLEL, this.publish);
+  };
 
   publish = async (mesg: any, subject?: string, options?) => {
     if (this.js == null) {

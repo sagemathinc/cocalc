@@ -108,6 +108,15 @@ export class DStream extends EventEmitter {
     this.save();
   };
 
+  push = (...args) => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
+    for (const mesg of args) {
+      this.publish(mesg);
+    }
+  };
+
   hasUnsavedChanges = () => {
     if (this.stream == null) {
       return false;

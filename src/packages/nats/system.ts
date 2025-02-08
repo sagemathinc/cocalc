@@ -19,9 +19,9 @@ Type ".help" for more information.
 
 */
 
-import { KV } from "@cocalc/nats/sync/kv";
+import { GeneralKV } from "@cocalc/nats/sync/general-kv";
 
-export class SystemKv extends KV {
+export class SystemKv extends GeneralKV {
   constructor(env) {
     super({ env, name: "system" });
   }
