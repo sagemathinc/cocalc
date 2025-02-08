@@ -98,3 +98,13 @@ export function matchesPattern({
 
   return i === subParts.length && j === patParts.length;
 }
+
+// Converts the specified millis into Nanos
+export function nanos(millis: number): number {
+  return millis * 1000000;
+}
+
+// Convert the specified Nanos into millis
+export function millis(ns: number): number {
+  return Math.floor(ns / 1000000);
+}

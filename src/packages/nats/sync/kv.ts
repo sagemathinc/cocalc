@@ -163,7 +163,6 @@ export class KV extends EventEmitter {
       include: "updates",
       key: this.filter,
     });
-    //for await (const { key, value } of this.watch) {
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
       if (this.revisions == null || this.all == null || this.times == null) {

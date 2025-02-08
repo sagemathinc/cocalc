@@ -18,7 +18,7 @@ DOCS:
 
 USAGE:
 
-a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'275f1db7-bf37-4b44-b9aa-d64694269c9f'})
+a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'6aae57c6-08f1-4bb5-848b-3ceb53e61ede'})
 await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
 */
 

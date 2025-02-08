@@ -6,7 +6,7 @@ import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
 import { randomId } from "@cocalc/nats/names";
-import { browserSubject, projectSubject, kvName } from "@cocalc/nats/names";
+import { browserSubject, projectSubject, jsName } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
@@ -21,7 +21,7 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { DKV } from "@cocalc/nats/sync/dkv";
-import { Stream } from "@cocalc/nats/sync/stream";
+import { stream } from "@cocalc/nats/sync/stream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
@@ -409,7 +409,7 @@ export class NatsClient {
       if (!account_id && !project_id) {
         account_id = this.client.account_id;
       }
-      const name = kvName({ account_id, project_id });
+      const name = jsName({ account_id, project_id });
       const key = JSON.stringify([name, filter, options]);
       if (this.kvCache[key] == null) {
         const kv = new KV({
@@ -444,7 +444,7 @@ export class NatsClient {
     if (!account_id && !project_id) {
       account_id = this.client.account_id;
     }
-    const name = kvName({ account_id, project_id });
+    const name = jsName({ account_id, project_id });
     const dkv = new DKV({
       name,
       filter,
@@ -456,42 +456,13 @@ export class NatsClient {
     return dkv;
   };
 
-  // Browser client gets one stream for each account and one for each project.
-  // Use the filters to restrict, e.g., to events about a particular file.
-  private streamCache: { [key: string]: Stream } = {};
-  stream = reuseInFlight(
-    async ({
-      account_id,
-      project_id,
-      filter,
-      options,
-    }: {
-      account_id?: string;
-      project_id?: string;
-      subjects: string | string[];
-      filter: string;
-      options?;
-    }) => {
-      const name = kvName({ account_id, project_id });
-      const subjects = `${name}.>`;
-      const key = JSON.stringify([name, subjects, filter, options]);
-      if (this.streamCache[key] == null) {
-        const stream = new Stream({
-          name,
-          subjects,
-          filter,
-          options,
-          env: await this.getEnv(),
-        });
-        await stream.init();
-        this.streamCache[key] = stream;
-        stream.on("closed", () => {
-          delete this.streamCache[key];
-        });
-      }
-      return this.streamCache[key];
-    },
-  );
+  stream = async (opts: {
+    account_id?: string;
+    project_id?: string;
+    name: string;
+  }) => {
+    return await stream({ ...opts, env: await this.getEnv() });
+  };
 
   microservicesClient = async () => {
     const nc = await this.getConnection();
