@@ -1,13 +1,6 @@
 /*
 Consistent Centralized Event Stream = ordered list of messages
 
-TODO:
-  - ability to easily initialize with only messages starting at a given seq
-  - load old messages starting at a given seq.
-  - maybe the limits and other config should be stored in a KV store so
-    they are sync'd between clients automatically.  That's what NATS surely
-    does internally.
-
 DEVELOPMENT:
 
 # note the package directory!!
@@ -33,6 +26,11 @@ With browser client using a project:
 
 In browser:
 > s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+
+TODO:
+  - maybe the limits and other config should be stored in a KV store so
+    they are sync'd between clients automatically.  That's what NATS surely
+    does internally.
 
 
 */
@@ -176,8 +174,17 @@ export class Stream extends EventEmitter {
     this.startFetch();
   });
 
-  get = () => {
-    return [...this.messages];
+  get = (n?) => {
+    if (n == null) {
+      return [...this.messages];
+    } else {
+      return this.messages[n];
+    }
+  };
+
+  // get sequence number of n-th message in stream
+  seq = (n) => {
+    return this.raw[n]?.seq;
   };
 
   get length() {
@@ -203,7 +210,9 @@ export class Stream extends EventEmitter {
     return resp;
   };
 
-  private getConsumer = async ({ startSeq }: { startSeq?: number } = {}) => {
+  private getConsumer = async ({ start_seq }: { start_seq?: number } = {}) => {
+    // NOTE: do not cache or modify this in this function getConsumer,
+    // since it is also called by load and when reconnecting.
     const js = jetstream(this.env.nc);
     const jsm = await jetstreamManager(this.env.nc);
     // making an ephemeral consumer, which is automatically destroyed by NATS
@@ -213,13 +222,13 @@ export class Stream extends EventEmitter {
       inactive_threshold: nanos(EPHEMERAL_CONSUMER_THRESH),
     };
     let startOptions;
-    if (startSeq == null && this.start_seq != null) {
-      startSeq = this.start_seq;
+    if (start_seq == null && this.start_seq != null) {
+      start_seq = this.start_seq;
     }
-    if (startSeq != null) {
+    if (start_seq != null) {
       startOptions = {
         deliver_policy: "by_start_sequence",
-        opt_start_seq: startSeq,
+        opt_start_seq: start_seq,
       };
     } else {
       startOptions = {};
@@ -284,8 +293,8 @@ export class Stream extends EventEmitter {
           // starting AFTER the last event we retrieved
           this.watch.stop(); // stop current watch
           // make new one:
-          const startSeq = this.raw[this.raw.length - 1]?.seq + 1;
-          this.startFetch({ startSeq });
+          const start_seq = this.raw[this.raw.length - 1]?.seq + 1;
+          this.startFetch({ start_seq });
           return; // because startFetch creates a new consumer monitor loop
         }
       }
@@ -293,17 +302,21 @@ export class Stream extends EventEmitter {
     await delay(CONSUMER_MONITOR_INTERVAL);
   };
 
-  private handle = (raw, noEmit = false) => {
-    let event;
+  private decode = (raw) => {
     try {
-      event = this.env.jc.decode(raw.data);
+      return this.env.jc.decode(raw.data);
     } catch {
-      event = raw.data;
+      // better than crashing
+      return raw.data;
     }
-    this.messages.push(event);
+  };
+
+  private handle = (raw, noEmit = false) => {
+    const mesg = this.decode(raw);
+    this.messages.push(mesg);
     this.raw.push(raw);
     if (!noEmit) {
-      this.emit("change", event, raw);
+      this.emit("change", mesg, raw);
     }
   };
 
@@ -420,6 +433,38 @@ export class Stream extends EventEmitter {
     ENFORCE_LIMITS_THROTTLE_MS,
     { leading: true, trailing: true },
   );
+
+  // load older messages starting at start_seq
+  load = async ({ start_seq }: { start_seq: number }) => {
+    if (this.start_seq == null) {
+      // we already loaded everything on initialization; there can't be anything older.
+      return;
+    }
+    const consumer = await this.getConsumer({ start_seq });
+    const info = await consumer.info();
+    const fetch = await consumer.fetch();
+    let i = 0;
+    // grab the messages.  This should be very efficient since it
+    // internally grabs them in batches.
+    const raw: any[] = [];
+    const messages: any[] = [];
+    const cur = this.raw[0]?.seq;
+    for await (const x of fetch) {
+      if (cur != null && x.seq >= cur) {
+        break;
+      }
+      raw.push(x);
+      messages.push(this.decode(x));
+      i += 1;
+      if (i >= info.num_pending) {
+        break;
+      }
+    }
+    // mutate the arrows this.raw and this.messages by splicing in
+    // raw and messages at the beginning:
+    this.raw.unshift(...raw);
+    this.messages.unshift(...messages);
+  };
 }
 
 // One stream for each account and one for each project.

@@ -8,8 +8,7 @@ DEVELOPMENT:
 ~/cocalc/src/packages/backend n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> env = await require("@cocalc/backend/nats/env").getEnv()
- a = require("@cocalc/nats/sync/dstream"); s = await a.dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env})
+> a = require("@cocalc/backend/nats/sync"); s = await a.dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo'})
 
 
 */
@@ -67,12 +66,23 @@ export class DStream extends EventEmitter {
     delete this.raw;
   };
 
-  get = () => {
-    return [...this.messages, ...Object.values(this.local)];
+  get = (n?) => {
+    if (n == null) {
+      return [...this.messages, ...Object.values(this.local)];
+    } else {
+      return (
+        this.messages[n] ?? Object.values(this.local)[n - this.messages.length]
+      );
+    }
+  };
+
+  // sequence number of n-th message
+  seq = (n) => {
+    return this.raw[n]?.seq;
   };
 
   get length() {
-    return this.messages.length;
+    return this.messages.length + Object.keys(this.local).length;
   }
 
   publish = (mesg, subject?: string) => {
@@ -124,6 +134,13 @@ export class DStream extends EventEmitter {
     // NOTE: ES6 spec guarantees "String keys are returned in the order in which they were added to the object."
     await awaitMap(Object.keys(this.local), MAX_PARALLEL, f);
   });
+
+  load = async (opts) => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
+    await this.stream.load(opts);
+  };
 }
 
 const dstreamCache: { [key: string]: DStream } = {};
