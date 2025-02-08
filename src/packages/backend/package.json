@@ -24,6 +24,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.12",
     "@types/watchpack": "^2.4.4",

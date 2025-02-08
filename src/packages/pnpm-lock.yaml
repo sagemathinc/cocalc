@@ -76,6 +76,9 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util

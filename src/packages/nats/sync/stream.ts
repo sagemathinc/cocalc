@@ -10,7 +10,8 @@ TODO:
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/server$ n
+# note the package directory!!
+~/cocalc/src/packages/backend n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = new a.Stream({name:'test',env,subjects:'foo',filter:'foo'}); await s.init();
@@ -178,6 +179,10 @@ export class Stream extends EventEmitter {
   get = () => {
     return [...this.messages];
   };
+
+  get length() {
+    return this.messages.length;
+  }
 
   publish = async (mesg: any, subject?: string, options?) => {
     if (this.js == null) {
@@ -430,6 +435,9 @@ export interface UserStreamOptions {
 }
 
 export function userStreamOptionsKey(options: UserStreamOptions) {
+  if (!options.name) {
+    throw Error("name must be specified");
+  }
   const { env, ...x } = options;
   return JSON.stringify(x);
 }

@@ -4,7 +4,10 @@ Eventually Consistent Distributed Event Stream
 DEVELOPMENT:
 
 
-# in node:
+# in node -- note the package directory!!
+~/cocalc/src/packages/backend n
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
 > env = await require("@cocalc/backend/nats/env").getEnv()
  a = require("@cocalc/nats/sync/dstream"); s = await a.dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env})
 
@@ -67,6 +70,10 @@ export class DStream extends EventEmitter {
   get = () => {
     return [...this.messages, ...Object.values(this.local)];
   };
+
+  get length() {
+    return this.messages.length;
+  }
 
   publish = (mesg, subject?: string) => {
     const id = randomId();
