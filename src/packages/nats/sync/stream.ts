@@ -1,5 +1,5 @@
 /*
-Consistent Centralized Event Stream
+Consistent Centralized Event Stream = ordered list of messages
 
 TODO:
  - ability to easily initialize with only the last n messages or
@@ -24,6 +24,10 @@ With browser client using a project:
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env})
 
 
+# Involving a limit:
+
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env, limits:{maxMessages:20}})
+
 */
 
 import { EventEmitter } from "events";
@@ -33,6 +37,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
 import { nanos } from "@cocalc/nats/util";
 import { delay } from "awaiting";
+import { debounce } from "lodash";
 
 // confirm that ephemeral consumer still exists every 15 seconds:
 // In case of a long disconnect from the network, this is what
@@ -45,6 +50,14 @@ const CONSUMER_MONITOR_INTERVAL = 15 * 1000;
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
 const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 
+interface StreamLimitOptions {
+  maxMessages?: number;
+  maxSize?: {
+    maxTotalSize: number;
+    getMessageSize: (message) => number;
+  };
+}
+
 export interface StreamOptions {
   name: string;
   // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
@@ -52,22 +65,25 @@ export interface StreamOptions {
   subject?: string;
   filter?: string;
   env: NatsEnv;
-  options?;
+  natsStreamOptions?;
+  limits?: StreamLimitOptions;
 }
 
 export class Stream extends EventEmitter {
   public readonly name: string;
-  private options?;
+  private natsStreamOptions?;
+  private limits?: StreamLimitOptions;
   private subjects: string | string[];
   private filter?: string;
   private subject?: string;
   private env: NatsEnv;
   private js;
+  private jsm;
   private stream?;
   private watch?;
-  // don't do "this.raw=" or "this.events=" anywhere in this class!
+  // don't do "this.raw=" or "this.messages=" anywhere in this class!
   public readonly raw: any[] = [];
-  public readonly events: any[] = [];
+  public readonly messages: any[] = [];
 
   constructor({
     name,
@@ -75,14 +91,15 @@ export class Stream extends EventEmitter {
     subject,
     subjects,
     filter,
-    options,
+    natsStreamOptions,
+    limits,
   }: StreamOptions) {
     super();
     this.env = env;
     // create a jetstream client so we can publish to the stream
     this.js = jetstream(env.nc);
     this.name = name;
-    this.options = options;
+    this.natsStreamOptions = natsStreamOptions;
     if (
       subject == null &&
       filter != null &&
@@ -97,33 +114,39 @@ export class Stream extends EventEmitter {
       throw Error("subjects must be at least one string");
     }
     this.filter = filter;
+    this.limits = limits;
   }
 
   init = reuseInFlight(async () => {
     if (this.stream != null) {
       return;
     }
-    const jsm = await jetstreamManager(this.env.nc);
+    this.jsm = await jetstreamManager(this.env.nc);
     const options = {
       subjects: this.subjects,
       compression: "s2",
       // our streams are relatively small so a longer duplicate window than 2 minutes seems ok.
       duplicate_window: nanos(1000 * 60 * 15),
-      ...this.options,
+      ...this.natsStreamOptions,
     };
     try {
-      this.stream = await jsm.streams.add({
+      this.stream = await this.jsm.streams.add({
         name: this.name,
         ...options,
       });
     } catch (err) {
       // probably already exists, so try to modify to have the requested properties.
-      this.stream = await jsm.streams.update(this.name, options);
+      this.stream = await this.jsm.streams.update(this.name, options);
     }
     this.startFetch();
   });
 
+  get = () => {
+    return [...this.messages];
+  };
+
   publish = async (event: any, subject?: string, options?) => {
+    this.expire();
     return await this.js.publish(
       subject ?? this.subject,
       this.env.jc.encode(event),
@@ -182,7 +205,7 @@ export class Stream extends EventEmitter {
 
     this.monitorConsumer(consumer);
 
-    // STAGE 2: Watch for new events.  It's the same consumer though,
+    // STAGE 2: Watch for new mesg.  It's the same consumer though,
     // so we are **guaranteed** not to miss anything.
     this.emit("connected");
     const consume = await consumer.consume();
@@ -223,11 +246,12 @@ export class Stream extends EventEmitter {
     } catch {
       event = raw.data;
     }
-    this.events.push(event);
+    this.messages.push(event);
     this.raw.push(raw);
     if (!noEmit) {
       this.emit("change", event, raw);
     }
+    this.expire();
   };
 
   close = () => {
@@ -237,34 +261,69 @@ export class Stream extends EventEmitter {
     this.watch.stop();
     delete this.watch;
     delete this.stream;
+    delete this.jsm;
     this.emit("closed");
     this.removeAllListeners();
   };
+
+  // ensure any limits are satisfied, i.e., delete old messages.
+  private expire = debounce(
+    reuseInFlight(async () => {
+      if (this.limits == null || this.jsm == null) {
+        return;
+      }
+      const maxMessages = this.limits.maxMessages ?? 0;
+      if (maxMessages > 0 && this.messages.length > maxMessages) {
+        // ensure there are at most this.limits.maxMessages messages
+        // by deleting this oldest ones
+        const i = this.messages.length - maxMessages + 1;
+        if (i >= 0 && i < this.messages.length) {
+          const { seq } = this.raw[i];
+          try {
+            await this.jsm.streams.purge(this.name, {
+              filter: this.filter,
+              seq,
+            });
+            this.messages.splice(0, i - 1);
+            this.raw.splice(0, i - 1);
+          } catch (err) {
+            if (err.code != "TIMEOUT") {
+              console.log(`WARNING: discarding old messages - ${err}`);
+            }
+          }
+        }
+      }
+    }),
+    3000,
+    { leading: false, trailing: true },
+  );
 }
 
 // One stream for each account and one for each project.
-// Use the filters to restrict, e.g., to events about a particular file.
+// Use the filters to restrict, e.g., to message about a particular file.
 
 export interface UserStreamOptions {
   env: NatsEnv;
   name: string;
   account_id?: string;
   project_id?: string;
+  limits?: StreamLimitOptions;
 }
 
 const streamCache: { [key: string]: Stream } = {};
 export const stream = reuseInFlight(
-  async ({ env, account_id, project_id, name }: UserStreamOptions) => {
+  async ({ env, account_id, project_id, name, limits }: UserStreamOptions) => {
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", name);
-    const key = JSON.stringify([name, jsname]);
+    const key = JSON.stringify([name, jsname, limits]);
     if (streamCache[key] == null) {
       const stream = new Stream({
         name: jsname,
         subjects,
         subject: filter,
         filter,
+        limits,
         env,
       });
       await stream.init();
@@ -277,6 +336,11 @@ export const stream = reuseInFlight(
   },
   {
     createKey: (args) =>
-      JSON.stringify([args[0].account_id, args[0].project_id, args[0].name]),
+      JSON.stringify([
+        args[0].account_id,
+        args[0].project_id,
+        args[0].name,
+        args[0].limits,
+      ]),
   },
 );

@@ -15,21 +15,20 @@ import { EventEmitter } from "events";
 import { Stream, type StreamOptions, type UserStreamOptions } from "./stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type JSONValue } from "@cocalc/util/types";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 const MAX_PARALLEL = 50;
 
 export class DStream extends EventEmitter {
   private stream?: Stream;
-  private events: JSONValue[];
+  private messages: any[];
   private raw: any[];
-  private local: { [id: string]: { event: JSONValue; subject?: string } } = {};
+  private local: { [id: string]: { mesg: any; subject?: string } } = {};
 
   constructor(opts: StreamOptions) {
     super();
     this.stream = new Stream(opts);
-    this.events = this.stream.events;
+    this.messages = this.stream.messages;
     this.raw = this.stream.raw;
   }
 
@@ -55,14 +54,18 @@ export class DStream extends EventEmitter {
     // @ts-ignore
     delete this.local;
     // @ts-ignore
-    delete this.events;
+    delete this.messages;
     // @ts-ignore
     delete this.raw;
   };
 
-  publish = (event: JSONValue, subject?: string) => {
+  get = () => {
+    return [...this.messages, ...Object.values(this.local)];
+  };
+
+  publish = (mesg, subject?: string) => {
     const id = randomId();
-    this.local[id] = { event, subject };
+    this.local[id] = { mesg, subject };
     this.save();
   };
 
@@ -101,28 +104,30 @@ export class DStream extends EventEmitter {
       if (this.stream == null) {
         throw Error("closed");
       }
-      const { event, subject } = this.local[id];
+      const { mesg, subject } = this.local[id];
       // @ts-ignore
-      await this.stream.publish(event, subject, { msgID: id });
+      await this.stream.publish(mesg, subject, { msgID: id });
       delete this.local[id];
     };
+    // NOTE: ES6 spec guarantees "String keys are returned in the order in which they were added to the object."
     await awaitMap(Object.keys(this.local), MAX_PARALLEL, f);
   });
 }
 
 const dstreamCache: { [key: string]: DStream } = {};
 export const dstream = reuseInFlight(
-  async ({ env, account_id, project_id, name }: UserStreamOptions) => {
+  async ({ env, account_id, project_id, name, limits }: UserStreamOptions) => {
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", name);
-    const key = JSON.stringify([name, jsname]);
+    const key = JSON.stringify([name, jsname, limits]);
     if (dstreamCache[key] == null) {
       const dstream = new DStream({
         name: jsname,
         subjects,
         subject: filter,
         filter,
+        limits,
         env,
       });
       await dstream.init();
@@ -135,6 +140,11 @@ export const dstream = reuseInFlight(
   },
   {
     createKey: (args) =>
-      JSON.stringify([args[0].account_id, args[0].project_id, args[0].name]),
+      JSON.stringify([
+        args[0].account_id,
+        args[0].project_id,
+        args[0].name,
+        args[0].limits,
+      ]),
   },
 );
