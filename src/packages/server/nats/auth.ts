@@ -117,9 +117,13 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   ]);
   const goalSub = new Set([
     "_INBOX.>", // so can user request/response
-    //"$JS.API.>", // TODO! This needs to be restrained more, I think??! Don't know.
     "system.>", // access to READ the system info kv store.
   ]);
+
+  // the public jetstream: this makes it available *read only* to all accounts and projects.
+  goalPub.add("$JS.API.*.*.public");
+  goalPub.add("$JS.API.*.*.public.>");
+  goalPub.add("$JS.API.CONSUMER.MSG.NEXT.public.>");
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);
@@ -131,7 +135,7 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     goalSub.add(`$SRV.*`);
     goalPub.add(`$SRV.*`);
 
-    // jetstream
+    // the account-specific kv stores
     goalPub.add(`$JS.API.*.*.KV_account-${userId}`);
     goalPub.add(`$JS.API.*.*.KV_account-${userId}.>`);
 
@@ -144,9 +148,6 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
       add(goalSub, sub);
       add(goalPub, pub);
     }
-    // TODO: there will be other subjects
-    // TODO: something similar for projects, e.g., they can publish to a channel that browser clients
-    // will listen to, e.g., for timetravel editing.
   } else if (userType == "project") {
     // microservices api
     goalSub.add(`$SRV.*.project-${userId}.>`);

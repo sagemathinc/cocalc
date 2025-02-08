@@ -8,7 +8,11 @@ DEVELOPMENT:
 ~/cocalc/src/packages/backend n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> a = require("@cocalc/backend/nats/sync"); s = await a.dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo'})
+
+> s = await require("@cocalc/backend/nats/sync").dstream({name:'test'});
+
+
+> s = await require("@cocalc/backend/nats/sync").dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo'});0
 
 
 */
@@ -24,6 +28,8 @@ import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
+import { isNumericString } from "@cocalc/util/misc";
+
 const MAX_PARALLEL = 50;
 
 export class DStream extends EventEmitter {
@@ -37,6 +43,13 @@ export class DStream extends EventEmitter {
     this.stream = new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
+    return new Proxy(this, {
+      get(target, prop) {
+        return typeof prop == "string" && isNumericString(prop)
+          ? target.get(parseInt(prop))
+          : target[String(prop)];
+      },
+    });
   }
 
   init = reuseInFlight(async () => {
@@ -68,10 +81,14 @@ export class DStream extends EventEmitter {
 
   get = (n?) => {
     if (n == null) {
-      return [...this.messages, ...Object.values(this.local)];
+      return [
+        ...this.messages,
+        ...Object.values(this.local).map((x) => x.mesg),
+      ];
     } else {
       return (
-        this.messages[n] ?? Object.values(this.local)[n - this.messages.length]
+        this.messages[n] ??
+        Object.values(this.local)[n - this.messages.length]?.mesg
       );
     }
   };

@@ -7,6 +7,9 @@ DEVELOPMENT:
 ~/cocalc/src/packages/backend n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
+> s = await require("@cocalc/backend/nats/sync").stream({name:'test'})
+
+
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = new a.Stream({name:'test',env,subjects:'foo',filter:'foo'}); await s.init();
 
 
@@ -43,6 +46,7 @@ import { jsName, streamSubject } from "@cocalc/nats/names";
 import { nanos, type Nanos } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
+import { isNumericString } from "@cocalc/util/misc";
 
 // confirm that ephemeral consumer still exists every 15 seconds:
 // In case of a long disconnect from the network, this is what
@@ -148,6 +152,13 @@ export class Stream extends EventEmitter {
       max_msg_size: -1,
       ...limits,
     };
+    return new Proxy(this, {
+      get(target, prop) {
+        return typeof prop == "string" && isNumericString(prop)
+          ? target.get(parseInt(prop))
+          : target[String(prop)];
+      },
+    });
   }
 
   init = reuseInFlight(async () => {
@@ -316,7 +327,7 @@ export class Stream extends EventEmitter {
     this.messages.push(mesg);
     this.raw.push(raw);
     if (!noEmit) {
-      this.emit("change", mesg, raw);
+      this.emit("change", mesg);
     }
   };
 

@@ -36,7 +36,7 @@ export function jsName({
     return `project-${project_id}`;
   }
   if (!account_id) {
-    throw Error("at least one of account_id and project_id must be set");
+    return "public";
   }
   return `account-${account_id}`;
 }
@@ -55,7 +55,7 @@ export function streamSubject({
     return `project.${project_id}.stream.>`;
   }
   if (!account_id) {
-    throw Error("at least one of account_id and project_id must be set");
+    return "public.stream.>";
   }
   return `account.${account_id}.stream.>`;
 }

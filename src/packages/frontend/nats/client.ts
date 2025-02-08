@@ -21,7 +21,7 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { DKV } from "@cocalc/nats/sync/dkv";
-import { stream } from "@cocalc/nats/sync/stream";
+import { stream, type UserStreamOptions } from "@cocalc/nats/sync/stream";
 import { dstream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
@@ -457,19 +457,17 @@ export class NatsClient {
     return dkv;
   };
 
-  stream = async (opts: {
-    account_id?: string;
-    project_id?: string;
-    name: string;
-  }) => {
+  stream = async (opts: Partial<UserStreamOptions>) => {
+    if (!opts.account_id && !opts.project_id && opts.limits != null) {
+      throw Error("account client can't set limits on public stream");
+    }
     return await stream({ ...opts, env: await this.getEnv() });
   };
 
-  dstream = async (opts: {
-    account_id?: string;
-    project_id?: string;
-    name: string;
-  }) => {
+  dstream = async (opts: Partial<UserStreamOptions>) => {
+    if (!opts.account_id && !opts.project_id && opts.limits != null) {
+      throw Error("account client can't set limits on public stream");
+    }
     return await dstream({ ...opts, env: await this.getEnv() });
   };
 
