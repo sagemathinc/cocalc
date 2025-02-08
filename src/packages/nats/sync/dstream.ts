@@ -12,7 +12,12 @@ DEVELOPMENT:
 */
 
 import { EventEmitter } from "events";
-import { Stream, type StreamOptions, type UserStreamOptions } from "./stream";
+import {
+  Stream,
+  type StreamOptions,
+  type UserStreamOptions,
+  userStreamOptionsKey,
+} from "./stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -116,19 +121,19 @@ export class DStream extends EventEmitter {
 
 const dstreamCache: { [key: string]: DStream } = {};
 export const dstream = reuseInFlight(
-  async ({ env, account_id, project_id, name, limits }: UserStreamOptions) => {
+  async (options: UserStreamOptions) => {
+    const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", name);
-    const key = JSON.stringify([name, jsname, limits]);
+    const key = userStreamOptionsKey(options);
     if (dstreamCache[key] == null) {
       const dstream = new DStream({
+        ...options,
         name: jsname,
         subjects,
         subject: filter,
         filter,
-        limits,
-        env,
       });
       await dstream.init();
       dstreamCache[key] = dstream;
@@ -139,12 +144,6 @@ export const dstream = reuseInFlight(
     return dstreamCache[key];
   },
   {
-    createKey: (args) =>
-      JSON.stringify([
-        args[0].account_id,
-        args[0].project_id,
-        args[0].name,
-        args[0].limits,
-      ]),
+    createKey: (args) => userStreamOptionsKey(args[0]),
   },
 );

@@ -426,23 +426,29 @@ export interface UserStreamOptions {
   account_id?: string;
   project_id?: string;
   limits?: FilteredStreamLimitOptions;
+  start_seq?: number;
+}
+
+export function userStreamOptionsKey(options: UserStreamOptions) {
+  const { env, ...x } = options;
+  return JSON.stringify(x);
 }
 
 const streamCache: { [key: string]: Stream } = {};
 export const stream = reuseInFlight(
-  async ({ env, account_id, project_id, name, limits }: UserStreamOptions) => {
+  async (options: UserStreamOptions) => {
+    const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", name);
-    const key = JSON.stringify([name, jsname, limits]);
+    const key = userStreamOptionsKey(options);
     if (streamCache[key] == null) {
       const stream = new Stream({
+        ...options,
         name: jsname,
         subjects,
         subject: filter,
         filter,
-        limits,
-        env,
       });
       await stream.init();
       streamCache[key] = stream;
@@ -453,12 +459,6 @@ export const stream = reuseInFlight(
     return streamCache[key];
   },
   {
-    createKey: (args) =>
-      JSON.stringify([
-        args[0].account_id,
-        args[0].project_id,
-        args[0].name,
-        args[0].limits,
-      ]),
+    createKey: (args) => userStreamOptionsKey(args[0]),
   },
 );
