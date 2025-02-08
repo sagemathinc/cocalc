@@ -216,6 +216,9 @@ export class DKV extends EventEmitter {
   };
 
   hasUnsavedChanges = () => {
+    if (this.kv == null) {
+      return false;
+    }
     return this.changed.size > 0 || Object.keys(this.local).length > 0;
   };
 

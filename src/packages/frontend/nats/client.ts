@@ -22,6 +22,7 @@ import { SystemKv } from "@cocalc/nats/system";
 import { KV } from "@cocalc/nats/sync/kv";
 import { DKV } from "@cocalc/nats/sync/dkv";
 import { stream } from "@cocalc/nats/sync/stream";
+import { dstream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
@@ -462,6 +463,14 @@ export class NatsClient {
     name: string;
   }) => {
     return await stream({ ...opts, env: await this.getEnv() });
+  };
+
+  dstream = async (opts: {
+    account_id?: string;
+    project_id?: string;
+    name: string;
+  }) => {
+    return await dstream({ ...opts, env: await this.getEnv() });
   };
 
   microservicesClient = async () => {

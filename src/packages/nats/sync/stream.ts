@@ -2,10 +2,10 @@
 Consistent Centralized Event Stream
 
 TODO:
- - ability to easily initialize with only the
-   last n messages or only messages going back
-   to time t
-
+ - ability to easily initialize with only the last n messages or
+   only messages going back to time t
+ - automatically delete data according to various rules, e.g., needed
+   for terminal, but
 
 DEVELOPMENT:
 
@@ -45,6 +45,16 @@ const CONSUMER_MONITOR_INTERVAL = 15 * 1000;
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
 const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 
+export interface StreamOptions {
+  name: string;
+  // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
+  subjects: string | string[];
+  subject?: string;
+  filter?: string;
+  env: NatsEnv;
+  options?;
+}
+
 export class Stream extends EventEmitter {
   public readonly name: string;
   private options?;
@@ -55,7 +65,8 @@ export class Stream extends EventEmitter {
   private js;
   private stream?;
   private watch?;
-  private raw: any[] = [];
+  // don't do "this.raw=" or "this.events=" anywhere in this class!
+  public readonly raw: any[] = [];
   public readonly events: any[] = [];
 
   constructor({
@@ -65,15 +76,7 @@ export class Stream extends EventEmitter {
     subjects,
     filter,
     options,
-  }: {
-    name: string;
-    // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
-    subjects: string | string[];
-    subject?: string;
-    filter?: string;
-    env: NatsEnv;
-    options?;
-  }) {
+  }: StreamOptions) {
     super();
     this.env = env;
     // create a jetstream client so we can publish to the stream
@@ -104,6 +107,8 @@ export class Stream extends EventEmitter {
     const options = {
       subjects: this.subjects,
       compression: "s2",
+      // our streams are relatively small so a longer duplicate window than 2 minutes seems ok.
+      duplicate_window: nanos(1000 * 60 * 15),
       ...this.options,
     };
     try {
@@ -118,10 +123,11 @@ export class Stream extends EventEmitter {
     this.startFetch();
   });
 
-  publish = async (event, subject?) => {
+  publish = async (event: any, subject?: string, options?) => {
     return await this.js.publish(
       subject ?? this.subject,
       this.env.jc.encode(event),
+      options,
     );
   };
 
@@ -239,19 +245,16 @@ export class Stream extends EventEmitter {
 // One stream for each account and one for each project.
 // Use the filters to restrict, e.g., to events about a particular file.
 
+export interface UserStreamOptions {
+  env: NatsEnv;
+  name: string;
+  account_id?: string;
+  project_id?: string;
+}
+
 const streamCache: { [key: string]: Stream } = {};
 export const stream = reuseInFlight(
-  async ({
-    env,
-    account_id,
-    project_id,
-    name,
-  }: {
-    env: NatsEnv;
-    name: string;
-    account_id?: string;
-    project_id?: string;
-  }) => {
+  async ({ env, account_id, project_id, name }: UserStreamOptions) => {
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", name);
