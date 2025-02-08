@@ -100,11 +100,13 @@ export function matchesPattern({
 }
 
 // Converts the specified millis into Nanos
-export function nanos(millis: number): number {
+export type Nanos = number;
+export function nanos(millis: number): Nanos {
   return millis * 1000000;
 }
 
 // Convert the specified Nanos into millis
-export function millis(ns: number): number {
+export function millis(ns: Nanos): number {
   return Math.floor(ns / 1000000);
 }
+

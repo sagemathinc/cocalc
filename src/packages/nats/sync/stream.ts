@@ -2,10 +2,11 @@
 Consistent Centralized Event Stream = ordered list of messages
 
 TODO:
- - ability to easily initialize with only the last n messages or
-   only messages going back to time t
- - automatically delete data according to various rules, e.g., needed
-   for terminal, but
+  - ability to easily initialize with only the most recent n messages or
+    only messages starting at time t.
+  - maybe the limits and other config should be stored in a KV store so
+    they are sync'd between clients automatically.  That's what NATS surely
+    does internally.
 
 DEVELOPMENT:
 
@@ -24,10 +25,13 @@ With browser client using a project:
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env})
 
 
-# Involving a limit:
+# Involving limits:
 
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env, limits:{maxMessages:20}})
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env, limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+> s.get()
 
+In browser:
+> s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
 */
 
 import { EventEmitter } from "events";
@@ -35,9 +39,9 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { jetstreamManager, jetstream } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
-import { nanos } from "@cocalc/nats/util";
+import { nanos, type Nanos } from "@cocalc/nats/util";
 import { delay } from "awaiting";
-import { debounce } from "lodash";
+import { throttle } from "lodash";
 
 // confirm that ephemeral consumer still exists every 15 seconds:
 // In case of a long disconnect from the network, this is what
@@ -50,12 +54,29 @@ const CONSUMER_MONITOR_INTERVAL = 15 * 1000;
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
 const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 
-interface StreamLimitOptions {
-  maxMessages?: number;
-  maxSize?: {
-    maxTotalSize: number;
-    getMessageSize: (message) => number;
-  };
+// We re-implement exactly the same stream-wide limits that NATS has,
+// but instead, these are for the stream **with the given filter**.
+// Limits are enforced by all clients *client side* within a few seconds of any
+// client making changes.
+// For API consistency, max_age is is in nano-seconds.  Also, obviously
+// the true limit is the minimum of the full NATS stream limits and
+// these limits.
+const ENFORCE_LIMITS_THROTTLE_MS = 3000;
+interface FilteredStreamLimitOptions {
+  // How many messages may be in a Stream, oldest messages will be removed
+  // if the Stream exceeds this size. -1 for unlimited.
+  max_msgs: number;
+  // Maximum age of any message in the stream matching the filter,
+  // expressed in nanoseconds. 0 for unlimited.
+  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)" to give input in ms.
+  max_age: Nanos;
+  // How big the Stream may be, when the combined stream size matching the filter
+  // exceeds this old messages are removed. -1 for unlimited.
+  // This is enforced only on write, so if you change it, it only applies
+  // to future messages.
+  max_bytes: number;
+  // The largest message that will be accepted by the Stream. -1 for unlimited.
+  max_msg_size: number;
 }
 
 export interface StreamOptions {
@@ -66,13 +87,13 @@ export interface StreamOptions {
   filter?: string;
   env: NatsEnv;
   natsStreamOptions?;
-  limits?: StreamLimitOptions;
+  limits?: Partial<FilteredStreamLimitOptions>;
 }
 
 export class Stream extends EventEmitter {
   public readonly name: string;
   private natsStreamOptions?;
-  private limits?: StreamLimitOptions;
+  private limits: FilteredStreamLimitOptions;
   private subjects: string | string[];
   private filter?: string;
   private subject?: string;
@@ -114,7 +135,13 @@ export class Stream extends EventEmitter {
       throw Error("subjects must be at least one string");
     }
     this.filter = filter;
-    this.limits = limits;
+    this.limits = {
+      max_msgs: -1,
+      max_age: 0,
+      max_bytes: -1,
+      max_msg_size: -1,
+      ...limits,
+    };
   }
 
   init = reuseInFlight(async () => {
@@ -145,13 +172,23 @@ export class Stream extends EventEmitter {
     return [...this.messages];
   };
 
-  publish = async (event: any, subject?: string, options?) => {
-    this.expire();
-    return await this.js.publish(
-      subject ?? this.subject,
-      this.env.jc.encode(event),
-      options,
-    );
+  publish = async (mesg: any, subject?: string, options?) => {
+    if (this.js == null) {
+      throw Error("closed");
+    }
+    const data = this.env.jc.encode(mesg);
+    if (
+      this.limits.max_msg_size > -1 &&
+      data.length > this.limits.max_msg_size
+    ) {
+      throw Error(
+        `message size exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
+      );
+    }
+    this.enforceLimits();
+    const resp = await this.js.publish(subject ?? this.subject, data, options);
+    this.enforceLimits();
+    return resp;
   };
 
   private getConsumer = async ({ startSeq }: { startSeq?: number } = {}) => {
@@ -207,11 +244,13 @@ export class Stream extends EventEmitter {
 
     // STAGE 2: Watch for new mesg.  It's the same consumer though,
     // so we are **guaranteed** not to miss anything.
+    this.enforceLimits();
     this.emit("connected");
     const consume = await consumer.consume();
     this.watch = consume;
     for await (const mesg of consume) {
       this.handle(mesg, false);
+      this.enforceLimits();
     }
   };
 
@@ -251,7 +290,6 @@ export class Stream extends EventEmitter {
     if (!noEmit) {
       this.emit("change", event, raw);
     }
-    this.expire();
   };
 
   close = () => {
@@ -262,40 +300,110 @@ export class Stream extends EventEmitter {
     delete this.watch;
     delete this.stream;
     delete this.jsm;
+    delete this.js;
     this.emit("closed");
     this.removeAllListeners();
   };
 
+  // delete all messages up to and including the
+  // one at position index, i.e., this.messages[index]
+  // is deleted.
+  // NOTE: other clients will NOT see the result of a purge,
+  // except when done implicitly via limits, since all clients
+  // truncate this.raw and this.messages directly.
+  purge = async ({ index = -1 }: { index?: number } = {}) => {
+    // console.log("purge", { index });
+    if (index >= this.raw.length - 1 || index == -1) {
+      index = this.raw.length - 1;
+      // everything
+      // console.log("purge everything");
+      await this.jsm.streams.purge(this.name, {
+        filter: this.filter,
+      });
+    } else {
+      const { seq } = this.raw[index + 1];
+      await this.jsm.streams.purge(this.name, {
+        filter: this.filter,
+        seq,
+      });
+    }
+    this.messages.splice(0, index + 1);
+    this.raw.splice(0, index + 1);
+  };
+
   // ensure any limits are satisfied, i.e., delete old messages.
-  private expire = debounce(
+  private enforceLimits = throttle(
     reuseInFlight(async () => {
-      if (this.limits == null || this.jsm == null) {
+      if (this.jsm == null) {
         return;
       }
-      const maxMessages = this.limits.maxMessages ?? 0;
-      if (maxMessages > 0 && this.messages.length > maxMessages) {
-        // ensure there are at most this.limits.maxMessages messages
-        // by deleting this oldest ones
-        const i = this.messages.length - maxMessages + 1;
-        if (i >= 0 && i < this.messages.length) {
-          const { seq } = this.raw[i];
-          try {
-            await this.jsm.streams.purge(this.name, {
-              filter: this.filter,
-              seq,
-            });
-            this.messages.splice(0, i - 1);
-            this.raw.splice(0, i - 1);
-          } catch (err) {
-            if (err.code != "TIMEOUT") {
-              console.log(`WARNING: discarding old messages - ${err}`);
+      const { max_msgs, max_age, max_bytes } = this.limits;
+      // we check with each defined limit if some old messages
+      // should be dropped, and if so move limit forward.  If
+      // it is above -1 at the end, we do the drop.
+      let index = -1;
+      const setIndex = (i, _limit) => {
+        // console.log("setIndex", { i, _limit });
+        index = Math.max(i, index);
+      };
+      //max_msgs
+      if (max_msgs > -1 && this.messages.length > max_msgs) {
+        // ensure there are at most this.limits.max_msgs messages
+        // by deleting the oldest ones up to a specified point.
+        const i = this.messages.length - max_msgs;
+        if (i > 0) {
+          setIndex(i - 1, "max_msgs");
+        }
+      }
+
+      // max_age
+      if (max_age > 0) {
+        // expire messages older than max_age nanoseconds
+        const recent = this.raw[this.raw.length - 1];
+        if (recent != null) {
+          // to avoid potential clock skew, we define *now* as the time of the most
+          // recent message.  For us, this should be fine, since we only impose limits
+          // when writing new messages, and none of these limits are guaranteed.
+          const now = recent.info.timestampNanos;
+          const cutoff = now - max_age;
+          for (let i = this.raw.length - 1; i >= 0; i--) {
+            if (this.raw[i].info.timestampNanos < cutoff) {
+              // it just went over the limit.  Everything before
+              // and including the i-th message must be deleted.
+              setIndex(i, "max_age");
+              break;
             }
           }
         }
       }
+
+      // max_bytes
+      if (max_bytes >= 0) {
+        let t = 0;
+        for (let i = this.raw.length - 1; i >= 0; i--) {
+          t += this.raw[i].data.length;
+          if (t > max_bytes) {
+            // it just went over the limit.  Everything before
+            // and including the i-th message must be deleted.
+            setIndex(i, "max_bytes");
+            break;
+          }
+        }
+      }
+
+      if (index > -1) {
+        try {
+          // console.log("imposing limit via purge ", { index });
+          await this.purge({ index });
+        } catch (err) {
+          if (err.code != "TIMEOUT") {
+            console.log(`WARNING: purging old messages - ${err}`);
+          }
+        }
+      }
     }),
-    3000,
-    { leading: false, trailing: true },
+    ENFORCE_LIMITS_THROTTLE_MS,
+    { leading: true, trailing: true },
   );
 }
 
@@ -307,7 +415,7 @@ export interface UserStreamOptions {
   name: string;
   account_id?: string;
   project_id?: string;
-  limits?: StreamLimitOptions;
+  limits?: FilteredStreamLimitOptions;
 }
 
 const streamCache: { [key: string]: Stream } = {};
