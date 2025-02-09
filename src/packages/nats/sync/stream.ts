@@ -48,6 +48,7 @@ import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
 import { map as awaitMap } from "awaiting";
+import { sha1 } from "@cocalc/util/misc";
 
 const MAX_PARALLEL = 50;
 
@@ -88,7 +89,10 @@ interface FilteredStreamLimitOptions {
 }
 
 export interface StreamOptions {
+  // what it's called by us
   name: string;
+  // actually name of the jetstream in NATS
+  jsname: string;
   // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
   subjects: string | string[];
   subject?: string;
@@ -102,6 +106,7 @@ export interface StreamOptions {
 
 export class Stream extends EventEmitter {
   public readonly name: string;
+  public readonly jsname: string;
   private natsStreamOptions?;
   private limits: FilteredStreamLimitOptions;
   private subjects: string | string[];
@@ -119,6 +124,7 @@ export class Stream extends EventEmitter {
 
   constructor({
     name,
+    jsname,
     env,
     subject,
     subjects,
@@ -132,6 +138,7 @@ export class Stream extends EventEmitter {
     // create a jetstream client so we can publish to the stream
     this.js = jetstream(env.nc);
     this.name = name;
+    this.jsname = jsname;
     this.natsStreamOptions = natsStreamOptions;
     if (
       subject == null &&
@@ -178,12 +185,12 @@ export class Stream extends EventEmitter {
     };
     try {
       this.stream = await this.jsm.streams.add({
-        name: this.name,
+        name: this.jsname,
         ...options,
       });
     } catch (err) {
       // probably already exists, so try to modify to have the requested properties.
-      this.stream = await this.jsm.streams.update(this.name, options);
+      this.stream = await this.jsm.streams.update(this.jsname, options);
     }
     this.startFetch();
   });
@@ -251,11 +258,11 @@ export class Stream extends EventEmitter {
     } else {
       startOptions = {};
     }
-    const { name } = await jsm.consumers.add(this.name, {
+    const { name } = await jsm.consumers.add(this.jsname, {
       ...options,
       ...startOptions,
     });
-    return await js.consumers.get(this.name, name);
+    return await js.consumers.get(this.jsname, name);
   };
 
   private startFetch = async (options?) => {
@@ -363,12 +370,12 @@ export class Stream extends EventEmitter {
       index = this.raw.length - 1;
       // everything
       // console.log("purge everything");
-      await this.jsm.streams.purge(this.name, {
+      await this.jsm.streams.purge(this.jsname, {
         filter: this.filter,
       });
     } else {
       const { seq } = this.raw[index + 1];
-      await this.jsm.streams.purge(this.name, {
+      await this.jsm.streams.purge(this.jsname, {
         filter: this.filter,
         seq,
       });
@@ -511,12 +518,13 @@ export const stream = reuseInFlight(
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
-    const filter = subjects.replace(">", name);
+    const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
     const key = userStreamOptionsKey(options);
     if (streamCache[key] == null) {
       const stream = new Stream({
         ...options,
-        name: jsname,
+        name,
+        jsname,
         subjects,
         subject: filter,
         filter,

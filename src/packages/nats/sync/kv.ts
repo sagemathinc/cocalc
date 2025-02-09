@@ -16,6 +16,7 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralKV } from "./general-kv";
 import { jsName } from "@cocalc/nats/names";
+import { sha1 } from "@cocalc/util/misc";
 
 export interface KVOptions {
   name: string;
@@ -27,15 +28,17 @@ export interface KVOptions {
 export class KV extends EventEmitter {
   generalKV?: GeneralKV;
   name: string;
+  private prefix: string;
 
   constructor({ name, account_id, project_id, env }: KVOptions) {
     super();
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name;
+    this.prefix = (env.sha1 ?? sha1)(name);
     this.generalKV = new GeneralKV({
       name: kvname,
-      filter: `${name}.>`,
+      filter: `${this.prefix}.>`,
       env,
     });
     this.init();
@@ -83,7 +86,7 @@ export class KV extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    this.generalKV.delete(`${this.name}.${key}`);
+    this.generalKV.delete(`${this.prefix}.${key}`);
   };
 
   get = (key?) => {
@@ -94,11 +97,11 @@ export class KV extends EventEmitter {
       const obj = this.generalKV.get();
       const x: any = {};
       for (const k in obj) {
-        x[k.slice(this.name.length + 1)] = obj[k];
+        x[k.slice(this.prefix.length + 1)] = obj[k];
       }
       return x;
     } else {
-      return this.generalKV.get(`${this.name}.${key}`);
+      return this.generalKV.get(`${this.prefix}.${key}`);
     }
   };
 
@@ -106,7 +109,7 @@ export class KV extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.set(`${this.name}.${key}`, value);
+    await this.generalKV.set(`${this.prefix}.${key}`, value);
   };
 }
 

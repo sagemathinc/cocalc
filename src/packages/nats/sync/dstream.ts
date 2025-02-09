@@ -29,10 +29,12 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
+import { sha1 } from "@cocalc/util/misc";
 
 const MAX_PARALLEL = 50;
 
 export class DStream extends EventEmitter {
+  public readonly name: string;
   private stream?: Stream;
   private messages: any[];
   private raw: any[];
@@ -40,6 +42,7 @@ export class DStream extends EventEmitter {
 
   constructor(opts: StreamOptions) {
     super();
+    this.name = opts.name;
     this.stream = new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
@@ -175,12 +178,13 @@ export const dstream = reuseInFlight(
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
-    const filter = subjects.replace(">", name);
+    const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
     const key = userStreamOptionsKey(options);
     if (dstreamCache[key] == null) {
       const dstream = new DStream({
         ...options,
-        name: jsname,
+        name,
+        jsname,
         subjects,
         subject: filter,
         filter,

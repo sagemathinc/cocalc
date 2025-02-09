@@ -16,6 +16,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralDKV, type MergeFunction } from "./general-dkv";
 import { userKvKey, type KVOptions } from "./kv";
 import { jsName } from "@cocalc/nats/names";
+import { sha1 } from "@cocalc/util/misc";
 
 export interface DKVOptions extends KVOptions {
   merge: MergeFunction;
@@ -24,15 +25,20 @@ export interface DKVOptions extends KVOptions {
 export class DKV extends EventEmitter {
   generalDKV?: GeneralDKV;
   name: string;
+  private prefix: string;
 
   constructor({ name, account_id, project_id, merge, env }: DKVOptions) {
     super();
+    if (env == null) {
+      throw Error("env must not be null");
+    }
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name;
+    this.prefix = (env.sha1 ?? sha1)(name);
     this.generalDKV = new GeneralDKV({
       name: kvname,
-      filter: `${name}.>`,
+      filter: `${this.prefix}.>`,
       env,
       merge,
     });
@@ -81,7 +87,7 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.delete(`${this.name}.${key}`);
+    this.generalDKV.delete(`${this.prefix}.${key}`);
   };
 
   get = (key?) => {
@@ -92,11 +98,11 @@ export class DKV extends EventEmitter {
       const obj = this.generalDKV.get();
       const x: any = {};
       for (const k in obj) {
-        x[k.slice(this.name.length + 1)] = obj[k];
+        x[k.slice(this.prefix.length + 1)] = obj[k];
       }
       return x;
     } else {
-      return this.generalDKV.get(`${this.name}.${key}`);
+      return this.generalDKV.get(`${this.prefix}.${key}`);
     }
   };
 
@@ -104,7 +110,7 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.set(`${this.name}.${key}`, value);
+    this.generalDKV.set(`${this.prefix}.${key}`, value);
   };
 }
 
