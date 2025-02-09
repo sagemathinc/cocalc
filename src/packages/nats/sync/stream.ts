@@ -277,6 +277,9 @@ export class Stream extends EventEmitter {
     // First we get info so we know how many messages
     // are already in the stream:
     const info = await consumer.info();
+    if (info.num_pending == 0) {
+      return consumer;
+    }
     const fetch = await consumer.fetch();
     this.watch = fetch;
     let i = 0;

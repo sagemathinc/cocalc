@@ -6,21 +6,22 @@ import {
 import { kv as createKV, type KV } from "@cocalc/nats/sync/kv";
 import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
 import { getEnv } from "./env";
+import { project_id } from "@cocalc/project/data";
 
 export type { Stream, DStream, KV, DKV };
 
 export async function stream(opts) {
-  return await createStream({ ...opts, env: await getEnv() });
+  return await createStream({ project_id, env: await getEnv(), ...opts });
 }
 
 export async function dstream(opts) {
-  return await createDstream({ ...opts, env: await getEnv() });
+  return await createDstream({ project_id, env: await getEnv(), ...opts });
 }
 
 export async function kv(opts) {
-  return await createKV({ ...opts, env: await getEnv() });
+  return await createKV({ project_id, env: await getEnv(), ...opts });
 }
 
 export async function dkv(opts) {
-  return await createDKV({ ...opts, env: await getEnv() });
+  return await createDKV({ project_id, env: await getEnv(), ...opts });
 }

@@ -14,7 +14,6 @@ import { JSONCodec } from "nats";
 import { getLogger } from "@cocalc/project/logger";
 import { readlink, realpath } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/nats/sync";
-import { project_id } from "@cocalc/project/data";
 import { getSubject } from "./names";
 import getConnection from "./connection";
 
@@ -141,7 +140,7 @@ class Session {
   };
 
   createStream = async () => {
-    this.stream = await dstream({ name: this.streamName, project_id });
+    this.stream = await dstream({ name: this.streamName });
   };
 
   init = async () => {
@@ -160,7 +159,7 @@ class Session {
       args.push(path_split(initFilename).tail);
     }
     const cwd = getCWD(head, this.options.cwd);
-    logger.debug("creating pty with size", this.size);
+    logger.debug("creating pty");
     this.pty = spawn(command, args, {
       cwd,
       env,
@@ -168,7 +167,9 @@ class Session {
       cols: this.size?.cols,
     });
     this.state = "running";
+    logger.debug("creating stream");
     await this.createStream();
+    logger.debug("connect stream to pty");
     this.pty.onData((data) => {
       this.handleBackendMessages(data);
       this.stream.publish({ data });

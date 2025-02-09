@@ -1,17 +1,20 @@
 /*
 How to do development (so in a dev project doing cc-in-cc dev).
 
-0. From the browser, terminate this api server running in the project already, if any
+0. From the browser, terminate this api server running in the project:
 
-    await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'api'})
+    > await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'api'})
+
+    {status: 'terminated', service: 'api'}
 
 1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
 
     - COCALC_NATS_JWT -- this has the valid JWT issued to grant the project rights to use nats
     - COCALC_PROJECT_ID
 
-You can type the following into the miniterminal in a project and copy the output into a terminal here to
-setup the same environment and make starting this server act like this part of a project.
+You can type the following into the miniterminal in a project and copy the output into
+a terminal here to setup the same environment and make starting this server act like
+this part of a project.
 
     export | grep -E "COCALC|HOME"
 
@@ -21,7 +24,7 @@ setup the same environment and make starting this server act like this part of a
 
 or just run node and paste
 
-    require("@cocalc/project/nats/api").init()
+    require("@cocalc/project/nats/api/index").init()
 
 if you want to easily be able to grab some state, e.g., global.x = {...} in some code.
 

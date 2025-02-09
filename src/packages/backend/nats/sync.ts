@@ -10,17 +10,17 @@ import { getEnv } from "@cocalc/backend/nats/env";
 export type { Stream, DStream, KV, DKV };
 
 export async function stream(opts) {
-  return await createStream({ ...opts, env: await getEnv() });
+  return await createStream({ env: await getEnv(), ...opts });
 }
 
 export async function dstream(opts) {
-  return await createDstream({ ...opts, env: await getEnv() });
+  return await createDstream({ env: await getEnv(), ...opts });
 }
 
 export async function kv(opts) {
-  return await createKV({ ...opts, env: await getEnv() });
+  return await createKV({ env: await getEnv(), ...opts });
 }
 
 export async function dkv(opts) {
-  return await createDKV({ ...opts, env: await getEnv() });
+  return await createDKV({ env: await getEnv(), ...opts });
 }
