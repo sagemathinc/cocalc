@@ -147,7 +147,7 @@ export class GeneralDKV extends EventEmitter {
     delete this.merge;
   };
 
-  private handleRemoteChange = ({ key, remote, prev }) => {
+  private handleRemoteChange = ({ key, value: remote, prev }) => {
     const local = this.local[key];
     let value: any = remote;
     if (local !== undefined) {

@@ -3,9 +3,8 @@ Use NATS simple pub/sub to share state for something *ephemeral* in a project.
 */
 
 import { projectSubject } from "@cocalc/nats/names";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, State } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
-import { State } from "./synctable-kv-atomic";
 
 export class PubSub extends EventEmitter {
   private subject: string;

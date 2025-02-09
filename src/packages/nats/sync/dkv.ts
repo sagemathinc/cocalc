@@ -118,9 +118,19 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    return this.generalDKV.time(
+    const times = this.generalDKV.time(
       key ? `${this.prefix}.${this.sha1(key)}` : undefined,
     );
+    if (key != null || times == null) {
+      return times;
+    }
+    const obj = this.generalDKV.get();
+    const x: any = {};
+    for (const k in obj) {
+      const { key } = obj[k];
+      x[key] = times[k];
+    }
+    return x;
   };
 
   get = (key?) => {

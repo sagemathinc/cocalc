@@ -14,7 +14,11 @@ Set env variables as in a project (see  api/index.ts ), then:
 
 */
 
-import { OpenFiles, Entry } from "@cocalc/nats/sync/open-files";
+import {
+  createOpenFiles,
+  OpenFiles,
+  Entry,
+} from "@cocalc/nats/sync/open-files";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { getEnv } from "./env";
@@ -33,22 +37,22 @@ let openFiles: OpenFiles | null = null;
 
 export async function init() {
   logger.debug("init");
-  openFiles = new OpenFiles({
+  openFiles = await createOpenFiles({
     project_id,
     env: await getEnv(),
   });
   runLoop();
 }
 
-async function runLoop() {
+function runLoop() {
   logger.debug("starting run loop");
   if (openFiles != null) {
     const entries: { [path: string]: Entry } = {};
     closeIgnoredFiles(entries, openFiles);
-    for await (const entry of await openFiles.watch()) {
+    openFiles.on("change", (entry) => {
       entries[entry.path] = entry;
-      await handleEntry(entry);
-    }
+      handleChange(entry);
+    });
   }
   logger.debug("exiting open files run loop");
 }
@@ -69,9 +73,10 @@ function getCutoff() {
   return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
 }
 
-async function handleEntry({ path, id = 0, open, time }: Entry) {
+async function handleChange({ path, open, time }: Entry) {
   const syncDoc = openSyncDocs[path];
   const isOpenHere = syncDoc != null;
+  const id = 0; // todo
   if (id != compute_server_id) {
     if (isOpenHere) {
       // close it here
@@ -105,9 +110,9 @@ function supportAutoclose(path: string) {
 }
 
 async function closeIgnoredFiles(entries, openFiles) {
-  while (openFiles.state == "ready") {
+  while (openFiles.state == "connected") {
     await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
-    if (openFiles.state != "ready") {
+    if (openFiles.state != "connected") {
       return;
     }
     logger.debug("closeIgnoredFiles: checking...");
@@ -199,7 +204,6 @@ async function getTypeAndOpts(
       return s != null;
     });
   }
-  console.log("s = ", s);
   const opts: any = {};
   let type: string = "";
 

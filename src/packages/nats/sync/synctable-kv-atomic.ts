@@ -26,11 +26,10 @@ in the store.
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { getKv, toKey, natsKeyPrefix } from "./synctable-kv";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, State } from "@cocalc/nats/types";
 import { sha1 } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { getAllFromKv } from "@cocalc/nats/util";
-export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTableKVAtomic extends EventEmitter {
   private kv?;

@@ -348,14 +348,14 @@ class Client extends EventEmitter implements WebappClient {
   touchOpenFile = async ({
     project_id,
     path,
-    id,
+    // id,
   }: {
     project_id: string;
     path: string;
     id?: number;
   }) => {
     const x = await this.nats_client.openFiles(project_id);
-    await x.touch({ path, id });
+    await x.touch({ path });
   };
 }
 

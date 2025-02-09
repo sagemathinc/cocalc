@@ -15,7 +15,7 @@ import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
 import { type BrowserApi, initBrowserApi } from "@cocalc/nats/browser-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
-import { OpenFiles } from "@cocalc/nats/sync/open-files";
+import { createOpenFiles, OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions } from "@cocalc/nats/sync/kv";
@@ -333,9 +333,12 @@ export class NatsClient {
 
   openFiles = reuseInFlight(async (project_id: string) => {
     if (this.openFilesCache[project_id] == null) {
-      this.openFilesCache[project_id] = new OpenFiles({
+      this.openFilesCache[project_id] = await createOpenFiles({
         project_id,
         env: await this.getEnv(),
+      });
+      this.openFilesCache[project_id].on("closed", () => {
+        delete this.openFilesCache[project_id];
       });
     }
     return this.openFilesCache[project_id]!;
