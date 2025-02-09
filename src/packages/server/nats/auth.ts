@@ -19,7 +19,7 @@ DOCS:
 USAGE:
 
 a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'6aae57c6-08f1-4bb5-848b-3ceb53e61ede'})
-await a.configureNatsUser({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
+await a.configureNatsUser({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'})
 */
 
 import getPool from "@cocalc/database/pool";
@@ -351,7 +351,7 @@ function projectSubjects(project_id: string) {
   pub.add(`$JS.*.*.*.KV_project-${project_id}`);
   pub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
 
-  for (const name of ["", "-patches", "-terminal"]) {
+  for (const name of ["", "-patches"]) {
     pub.add(`$JS.*.*.*.project-${project_id}${name}`);
     pub.add(`$JS.*.*.*.project-${project_id}${name}.>`);
     pub.add(`$JS.*.*.*.*.project-${project_id}${name}.>`);
