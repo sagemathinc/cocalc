@@ -23,6 +23,8 @@ const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
+const HISTORY_LIMIT_BYTES = 20000;
+
 const jc = JSONCodec();
 
 const sessions: { [name: string]: Session } = {};
@@ -140,7 +142,10 @@ class Session {
   };
 
   createStream = async () => {
-    this.stream = await dstream({ name: this.streamName });
+    this.stream = await dstream({
+      name: this.streamName,
+      limits: { max_bytes: HISTORY_LIMIT_BYTES },
+    });
   };
 
   init = async () => {
