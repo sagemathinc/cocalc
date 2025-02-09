@@ -26,6 +26,7 @@ export class DKV extends EventEmitter {
   generalDKV?: GeneralDKV;
   name: string;
   private prefix: string;
+  private sha1;
 
   constructor({ name, account_id, project_id, merge, env }: DKVOptions) {
     super();
@@ -35,7 +36,8 @@ export class DKV extends EventEmitter {
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name;
-    this.prefix = (env.sha1 ?? sha1)(name);
+    this.sha1 = env.sha1 ?? sha1;
+    this.prefix = this.sha1(name);
     this.generalDKV = new GeneralDKV({
       name: kvname,
       filter: `${this.prefix}.>`,
@@ -87,7 +89,7 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.delete(`${this.prefix}.${key}`);
+    this.generalDKV.delete(`${this.prefix}.${this.sha1(key)}`);
   };
 
   get = (key?) => {
@@ -98,11 +100,12 @@ export class DKV extends EventEmitter {
       const obj = this.generalDKV.get();
       const x: any = {};
       for (const k in obj) {
-        x[k.slice(this.prefix.length + 1)] = obj[k];
+        const { key, value } = obj[k];
+        x[key] = value;
       }
       return x;
     } else {
-      return this.generalDKV.get(`${this.prefix}.${key}`);
+      return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
     }
   };
 
@@ -110,7 +113,7 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.set(`${this.prefix}.${key}`, value);
+    this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
   };
 }
 

@@ -29,13 +29,15 @@ export class KV extends EventEmitter {
   generalKV?: GeneralKV;
   name: string;
   private prefix: string;
+  private sha1;
 
   constructor({ name, account_id, project_id, env }: KVOptions) {
     super();
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name;
-    this.prefix = (env.sha1 ?? sha1)(name);
+    this.sha1 = env.sha1 ?? sha1;
+    this.prefix = this.sha1(name);
     this.generalKV = new GeneralKV({
       name: kvname,
       filter: `${this.prefix}.>`,
@@ -82,11 +84,19 @@ export class KV extends EventEmitter {
     this.removeAllListeners();
   };
 
-  delete = (key) => {
+  delete = async (key) => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    this.generalKV.delete(`${this.prefix}.${key}`);
+    await this.generalKV.delete(`${this.prefix}.${this.sha1(key)}`);
+  };
+
+  // delete everything
+  clear = async () => {
+    if (this.generalKV == null) {
+      throw Error("closed");
+    }
+    await this.generalKV.clear();
   };
 
   get = (key?) => {
@@ -97,11 +107,12 @@ export class KV extends EventEmitter {
       const obj = this.generalKV.get();
       const x: any = {};
       for (const k in obj) {
-        x[k.slice(this.prefix.length + 1)] = obj[k];
+        const { key, value } = obj[k];
+        x[key] = value;
       }
       return x;
     } else {
-      return this.generalKV.get(`${this.prefix}.${key}`);
+      return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
     }
   };
 
@@ -109,7 +120,10 @@ export class KV extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.set(`${this.prefix}.${key}`, value);
+    await this.generalKV.set(`${this.prefix}.${this.sha1(key)}`, {
+      key,
+      value,
+    });
   };
 }
 
