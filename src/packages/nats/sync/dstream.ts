@@ -147,13 +147,12 @@ export class DStream extends EventEmitter {
         await this.attemptToSave();
         //console.log("successfully saved");
       } catch {
+        d = Math.min(10000, d * 1.3) + Math.random() * 100;
+        await delay(d);
         //(err) {
         // console.log("problem saving", err);
       }
-      if (this.hasUnsavedChanges()) {
-        d = Math.min(10000, d * 1.3) + Math.random() * 100;
-        await delay(d);
-      } else {
+      if (!this.hasUnsavedChanges()) {
         return;
       }
     }

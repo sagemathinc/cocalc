@@ -251,12 +251,11 @@ export class GeneralDKV extends EventEmitter {
         await this.attemptToSave();
         //console.log("successfully saved");
       } catch {
-        // console.log("temporary issue saving")
-      }
-      if (this.hasUnsavedChanges()) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-      } else {
+        // console.log("temporary issue saving")
+      }
+      if (!this.hasUnsavedChanges()) {
         return;
       }
     }
