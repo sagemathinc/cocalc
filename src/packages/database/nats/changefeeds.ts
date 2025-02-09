@@ -6,6 +6,7 @@
 
 2. Run this
 
+   require("@cocalc/database/nats/changefeeds").init()
 
 */
 
@@ -25,14 +26,10 @@ import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { debounce } from "lodash";
 import { Svcm, type ServiceMsg } from "@nats-io/services";
 import { type QueuedIterator } from "nats";
 
 const logger = getLogger("database:nats:changefeeds");
-
-const DEBOUNCE_SAVE_TO_JETSTREAM = 100;
-const MAX_TIME_SAVE_TO_JETSTREAM = 30000;
 
 const jc = JSONCodec();
 
@@ -155,112 +152,10 @@ const createChangefeed = reuseInFlight(
       atomic: true,
     });
     await synctable.init();
-
-    /*
-    This code is complicated because it has to be.
-
-    0. Extra work to avoid ever setting a key in the nats kv if
-       we don't have to.  Nat's doesn't do anything to avoid broadcasting
-       changes, so this is very valuable. For a supercluster it will
-       be a critical optimization.
-
-    1. The initial set could
-       take a long time and still be happening as we get updates
-       later.  Thus we MUST use a work queue to ensure that every
-       update happens in the order it was received and also after
-       the initial state is set.
-
-    2. We keep a map in memory of the current value of all objects
-       so that in the case of an *update* we do not have to read
-       the last received value, which would take extra time and be
-       particularly hard given the queue issue in 1.
-
-    3. Saving to NATS could obviously fail intermittenly, e.g., if
-       NATS is down for some reason or there are network issues.
-       We retry with exponential backoff several times and
-       finally give up... TODO: user is not informed about this yet.
-
-    */
-
-    // initalize map with exactly what is *currently* in the nats kv,
-    // so we can be sure to never set anything we don't need to set.
-    const map = await synctable.get(null, { natsKeys: true });
-    const queue: {
-      action: "insert" | "update" | "delete";
-      obj: object;
-    }[] = [];
-
-    const deleteMap = (key, obj) => {
-      if (map[key] !== undefined) {
-        delete map[key];
-        queue.push({ action: "delete", obj });
-      }
-    };
-
-    const setMap = (key, obj) => {
-      const cur = map[key];
-      // always merge set
-      const value = { ...cur, ...obj };
-      // json so dates compare as strings.  Yes, we could make this faster, but this
-      // is entirely in the server.
-      if (JSON.stringify(cur) != JSON.stringify(value)) {
-        map[key] = value;
-        queue.push({ action: "update", obj: value });
-      }
-    };
-
-    const synctableSetRows = async (rows) => {
-      if (rows.length == 0) {
-        return;
-      }
-      const v = rows.map(synctable.set);
-      // wait for confirmation that sets are done
-      let d = 2000;
-      let t = 0;
-      while (
-        t < MAX_TIME_SAVE_TO_JETSTREAM &&
-        changefeedHashes[changes] != null
-      ) {
-        const s = Date.now();
-        try {
-          await Promise.all(v);
-          return;
-        } catch (err) {
-          logger.debug(`failed to save updates to NATS -- ${err}`);
-          await delay(d);
-          d = Math.min(10000, d * 1.3);
-        }
-        t += Date.now() - s;
-      }
-      logger.debug(
-        "WARNING: couldn't save to NATS after many attempts -- we cancel this whole changefeed",
-      );
-      cancelChangefeed(changes);
-    };
-
-    const processQueue = debounce(
-      reuseInFlight(async () => {
-        const work = [...queue];
-        // clear queue
-        queue.length = 0;
-        const rows: any[] = [];
-        for (const { action, obj } of work) {
-          if (action == "delete") {
-            // if we hit a delete, we have to handle everything up
-            // to this point, then do the delete.
-            await synctableSetRows(rows);
-            rows.length = 0;
-            await synctable.delete(obj);
-          } else {
-            rows.push(obj);
-          }
-        }
-        // handle anything left (will be everything if no deletes)
-        await synctableSetRows(rows);
-      }),
-      DEBOUNCE_SAVE_TO_JETSTREAM,
-      { leading: true, trailing: true },
-    );
+    //     if (global.z == null) {
+    //       global.z = {};
+    //     }
+    //     global.z[synctable.table] = synctable;
 
     const handleFirst = ({ cb, err, rows }) => {
       if (err || rows == null) {
@@ -268,9 +163,8 @@ const createChangefeed = reuseInFlight(
         return;
       }
       for (const obj of rows) {
-        setMap(synctable.getKey(obj), obj);
+        synctable.set(obj);
       }
-      processQueue();
       cb();
     };
 
@@ -282,20 +176,13 @@ const createChangefeed = reuseInFlight(
         // nothing we can do with this
         return;
       }
-      const key = synctable.getKey(new_val ?? old_val);
-      if (action == "insert") {
-        setMap(key, new_val);
-      } else if (action == "update") {
-        // update -- since atomic have to get the current value;
-        // this of course assumes there is one process writing to
-        // this part of the key value store (the atomic business).
-        setMap(key, new_val);
+      if (action == "insert" || action == "update") {
+        synctable.set(new_val);
       } else if (action == "delete") {
-        deleteMap(key, old_val);
+        synctable.delete(old_val);
       } else if (action == "close") {
         cancelChangefeed(changes);
       }
-      processQueue();
     };
 
     const f = (cb) => {

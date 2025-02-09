@@ -1,3 +1,5 @@
+import jsonStableStringify from "json-stable-stringify";
+
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
   let num = 0;
@@ -108,4 +110,14 @@ export function nanos(millis: number): Nanos {
 // Convert the specified Nanos into millis
 export function millis(ns: Nanos): number {
   return Math.floor(ns / 1000000);
+}
+
+export function toKey(x): string | undefined {
+  if (x === undefined) {
+    return undefined;
+  } else if (typeof x === "object") {
+    return jsonStableStringify(x);
+  } else {
+    return `${x}`;
+  }
 }

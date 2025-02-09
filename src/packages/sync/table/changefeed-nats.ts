@@ -13,7 +13,6 @@ export class NatsChangefeed extends EventEmitter {
   private options;
   private state: State = "disconnected";
   private natsSynctable?;
-  private watch?;
 
   constructor({ client, query, options }: { client; query; options? }) {
     super();
@@ -29,13 +28,13 @@ export class NatsChangefeed extends EventEmitter {
     this.natsSynctable = await this.client.nats_client.changefeed(this.query);
     this.interest();
     this.startWatch();
-    return Object.values(await this.natsSynctable.get());
+    return Object.values(this.natsSynctable.get());
   };
 
   close = (): void => {
     this.natsSynctable?.close();
     this.state = "closed";
-    this.emit("close");
+    this.emit("close"); // yes "close" not "closed" ;-(
   };
 
   get_state = (): string => {
@@ -51,13 +50,12 @@ export class NatsChangefeed extends EventEmitter {
     }
   };
 
-  private startWatch = async () => {
+  private startWatch = () => {
     if (this.natsSynctable == null) {
       return;
     }
-    this.watch = await this.natsSynctable.watch();
-    for await (const new_val of this.watch) {
-      this.emit("update", { action: "update", new_val });
-    }
+    this.natsSynctable.on("change", ({ value: new_val, prev: old_val }) => {
+      this.emit("update", { action: "update", new_val, old_val });
+    });
   };
 }

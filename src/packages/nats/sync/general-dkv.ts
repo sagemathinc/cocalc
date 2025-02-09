@@ -157,7 +157,14 @@ export class GeneralDKV extends EventEmitter {
         delete this.local[key];
       } else {
         try {
-          value = this.merge?.({ key, local, remote, prev });
+          value = this.merge?.({ key, local, remote, prev }) ?? local;
+//           console.log("handle merge conflict", {
+//             key,
+//             local,
+//             remote,
+//             prev,
+//             value,
+//           });
         } catch {
           // user provided a merge function that throws an exception. We select local, since
           // it is the newest, i.e., "last write wins"

@@ -348,14 +348,14 @@ function projectSubjects(project_id: string) {
   pub.add(`*.project-${project_id}.>`);
   sub.add(`*.project-${project_id}.>`);
 
+  // The unique project-wide jetstream key:value store
   pub.add(`$JS.*.*.*.KV_project-${project_id}`);
   pub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
 
-  for (const name of ["", "-patches"]) {
-    pub.add(`$JS.*.*.*.project-${project_id}${name}`);
-    pub.add(`$JS.*.*.*.project-${project_id}${name}.>`);
-    pub.add(`$JS.*.*.*.*.project-${project_id}${name}.>`);
-  }
+  // The unique project-wide jetstream stream:
+  pub.add(`$JS.*.*.*.project-${project_id}`);
+  pub.add(`$JS.*.*.*.project-${project_id}.>`);
+  pub.add(`$JS.*.*.*.*.project-${project_id}.>`);
   return { pub, sub };
 }
 
