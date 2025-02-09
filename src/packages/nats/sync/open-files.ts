@@ -100,6 +100,7 @@ export class OpenFiles {
   // When a client has a file open, they should periodically
   // touch it to indicate that it is open.
   // updates timestamp and ensures open=true.
+  // id = compute_server_id.
   touch = async (obj0: { path: string; id?: number }) => {
     // just read and write it back, which updates the timestamp
     // no encode/decode needed.

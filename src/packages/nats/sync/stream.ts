@@ -77,7 +77,8 @@ interface FilteredStreamLimitOptions {
   max_msgs: number;
   // Maximum age of any message in the stream matching the filter,
   // expressed in nanoseconds. 0 for unlimited.
-  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)" to give input in ms.
+  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)"
+  // to give input in milliseconds.
   max_age: Nanos;
   // How big the Stream may be, when the combined stream size matching the filter
   // exceeds this old messages are removed. -1 for unlimited.
@@ -231,7 +232,7 @@ export class Stream extends EventEmitter {
       data.length > this.limits.max_msg_size
     ) {
       throw Error(
-        `message size exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
+        `message size (=${data.length}) exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
       );
     }
     this.enforceLimits();

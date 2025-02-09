@@ -14,7 +14,7 @@ Type ".help" for more information.
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { GeneralKV } from "./general-kv";
+import { GeneralKV, type KVLimits } from "./general-kv";
 import { jsName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 
@@ -23,6 +23,7 @@ export interface KVOptions {
   account_id?: string;
   project_id?: string;
   env: NatsEnv;
+  limits?: KVLimits;
 }
 
 export class KV extends EventEmitter {
@@ -31,7 +32,7 @@ export class KV extends EventEmitter {
   private prefix: string;
   private sha1;
 
-  constructor({ name, account_id, project_id, env }: KVOptions) {
+  constructor({ name, account_id, project_id, env, limits }: KVOptions) {
     super();
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
@@ -42,6 +43,7 @@ export class KV extends EventEmitter {
       name: kvname,
       filter: `${this.prefix}.>`,
       env,
+      limits,
     });
     this.init();
     return new Proxy(this, {

@@ -109,4 +109,3 @@ export function nanos(millis: number): Nanos {
 export function millis(ns: Nanos): number {
   return Math.floor(ns / 1000000);
 }
-

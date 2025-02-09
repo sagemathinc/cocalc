@@ -95,12 +95,42 @@ undefined
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { Kvm } from "@nats-io/kv";
-import { getAllFromKv, matchesPattern } from "@cocalc/nats/util";
+import {
+  getAllFromKv,
+  matchesPattern,
+  millis,
+  type Nanos,
+} from "@cocalc/nats/util";
 import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
+import { throttle } from "lodash";
 
 const MAX_PARALLEL = 50;
+
+// Note that the limit options are named in exactly the same was as for streams,
+// which is convenient for consistency.  This is not consistent with NATS's
+// own KV store limit naming.
+const ENFORCE_LIMITS_THROTTLE_MS = 3000;
+export interface KVLimits {
+  // How many keys may be in the KV store. Oldest keys will be removed
+  // if the key-value store exceeds this size. -1 for unlimited.
+  max_msgs: number;
+
+  // Maximum age of any key, expressed in nanoseconds. 0 for unlimited.
+  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)"
+  // to give input in milliseconds.
+  max_age: Nanos; // nanoseconds!
+
+  // The maximum number of bytes to store in this KV, which means
+  // the total of the bytes used to store everything.  Since we store
+  // the key with each value (to have arbitrary keys), this includes
+  // the size of the keys.
+  max_bytes: number;
+
+  // The maximum size of any single value, including the key.
+  max_msg_size: number;
+}
 
 export class GeneralKV extends EventEmitter {
   public readonly name: string;
@@ -112,12 +142,15 @@ export class GeneralKV extends EventEmitter {
   private all?: { [key: string]: any };
   private revisions?: { [key: string]: number };
   private times?: { [key: string]: Date };
+  private sizes?: { [key: string]: number };
+  private limits: KVLimits;
 
   constructor({
     name,
     env,
     filter,
     options,
+    limits,
   }: {
     name: string;
     // filter: optionally restrict to subset of named kv store matching these subjects.
@@ -125,8 +158,17 @@ export class GeneralKV extends EventEmitter {
     filter?: string | string[];
     env: NatsEnv;
     options?;
+    limits?: KVLimits;
   }) {
     super();
+    this.limits = {
+      max_msgs: -1,
+      max_age: 0,
+      max_bytes: -1,
+      max_msg_size: -1,
+      ...limits,
+    };
+
     this.env = env;
     this.name = name;
     this.options = options;
@@ -148,7 +190,9 @@ export class GeneralKV extends EventEmitter {
     });
     this.revisions = revisions;
     this.times = times;
+    this.sizes = {};
     for (const key in all) {
+      this.sizes[key] = all[key].length;
       all[key] = this.env.jc.decode(all[key]);
     }
     this.all = all;
@@ -165,7 +209,12 @@ export class GeneralKV extends EventEmitter {
     });
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
-      if (this.revisions == null || this.all == null || this.times == null) {
+      if (
+        this.revisions == null ||
+        this.all == null ||
+        this.times == null ||
+        this.sizes == null
+      ) {
         return;
       }
       this.revisions[key] = revision;
@@ -174,11 +223,14 @@ export class GeneralKV extends EventEmitter {
         // delete
         delete this.all[key];
         delete this.times[key];
+        delete this.sizes[key];
       } else {
         this.all[key] = this.env.jc.decode(value);
         this.times[key] = sm.time;
+        this.sizes[key] = value.length;
       }
       this.emit("change", key, this.all[key], prev);
+      this.enforceLimits();
     }
   };
 
@@ -187,6 +239,7 @@ export class GeneralKV extends EventEmitter {
     delete this.all;
     delete this.times;
     delete this.revisions;
+    delete this.sizes;
     this.emit("closed");
     this.removeAllListeners();
   };
@@ -232,7 +285,12 @@ export class GeneralKV extends EventEmitter {
 
   delete = async (key, revision?) => {
     this.assertValidKey(key);
-    if (this.all == null || this.revisions == null || this.times == null) {
+    if (
+      this.all == null ||
+      this.revisions == null ||
+      this.times == null ||
+      this.sizes == null
+    ) {
       throw Error("not ready");
     }
     if (this.all[key] !== undefined) {
@@ -244,6 +302,7 @@ export class GeneralKV extends EventEmitter {
         });
         this.revisions[key] = newRevision;
         delete this.times[key];
+        delete this.sizes[key];
       } catch (err) {
         if (cur === undefined) {
           delete this.all[key];
@@ -260,14 +319,28 @@ export class GeneralKV extends EventEmitter {
   // NOTE: This could throw an exception if something that would expire
   // were changed right when this is run then it would get expired
   // but shouldn't.  In that case, run it again.
-  expire = async (ageMs: number): Promise<number> => {
-    if (!ageMs) {
-      throw Error("ageMs must be set");
+  expire = async ({
+    cutoff,
+    ageMs,
+  }: {
+    cutoff?: Date;
+    ageMs?: number;
+  }): Promise<number> => {
+    if (!ageMs && !cutoff) {
+      throw Error("one of ageMs or cutoff must be set");
+    }
+    if (ageMs && cutoff) {
+      throw Error("exactly one of ageMs or cutoff must be set");
     }
     if (this.times == null || this.all == null) {
       throw Error("not initialized");
     }
-    const cutoff = new Date(Date.now() - ageMs);
+    if (ageMs && !cutoff) {
+      cutoff = new Date(Date.now() - ageMs);
+    }
+    if (cutoff == null) {
+      throw Error("impossible");
+    }
     // make copy of revisions *before* we start deleting so that
     // if a key is changed exactly while deleting we get an error
     // and don't accidently delete it!
@@ -321,8 +394,119 @@ export class GeneralKV extends EventEmitter {
     }
     const revision = this.revisions[key];
     const val = this.env.jc.encode(value);
+    if (
+      this.limits.max_msg_size > -1 &&
+      val.length > this.limits.max_msg_size
+    ) {
+      throw Error(
+        `message key:value size (=${val.length}) exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
+      );
+    }
     await this.kv.put(key, val, {
       previousSeq: revision,
     });
   };
+
+  // ensure any limits are satisfied, always by deleting old keys
+  private enforceLimits = throttle(
+    reuseInFlight(async () => {
+      if (this.all == null || this.times == null || this.sizes == null) {
+        return;
+      }
+      const { max_msgs, max_age, max_bytes } = this.limits;
+      let times: { time: Date; key: string }[] | null = null;
+      const getTimes = (): { time: Date; key: string }[] => {
+        if (times == null) {
+          // this is potentially a little worrisome regarding performance, but
+          // it has to be done, or we have to do something elsewhere to maintain
+          // this info.  The intention with these kv's is they are small and all
+          // in memory.
+          const v: { time: Date; key: string }[] = [];
+          for (const key in this.times) {
+            v.push({ time: this.times[key], key });
+          }
+          v.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+          times = v;
+        }
+        return times!;
+      };
+
+      // we check with each defined limit if some old messages
+      // should be dropped, and if so move limit forward.  If
+      // it is above -1 at the end, we do the drop.
+      let index = -1;
+      const setIndex = (i, _limit) => {
+        // console.log("setIndex", { i, _limit });
+        index = Math.max(i, index);
+      };
+
+      //max_msgs = max number of keys
+      const v = Object.keys(this.all);
+      if (max_msgs > -1 && v.length > max_msgs) {
+        // ensure there are at most this.limits.max_msgs messages
+        // by deleting the oldest ones up to a specified point.
+        const i = v.length - max_msgs;
+        if (i > 0) {
+          setIndex(i - 1, "max_msgs");
+        }
+      }
+
+      // max_age
+      if (max_age > 0) {
+        const times = getTimes();
+        if (times.length > 1) {
+          // expire messages older than max_age nanoseconds
+          // to avoid potential clock skew, we define *now* as the time of the most
+          // recent message.  For us, this should be fine, since we only impose limits
+          // when writing new messages, and none of these limits are guaranteed.
+          const now = times[times.length - 1].time.valueOf();
+          const cutoff = new Date(now - millis(max_age));
+          for (let i = times.length - 2; i >= 0; i--) {
+            if (times[i].time < cutoff) {
+              // it just went over the limit.  Everything before
+              // and including the i-th message should be deleted.
+              setIndex(i, "max_age");
+              break;
+            }
+          }
+        }
+      }
+
+      // max_bytes
+      if (max_bytes >= 0) {
+        let t = 0;
+        const times = getTimes();
+        for (let i = times.length - 1; i >= 0; i--) {
+          t += this.sizes[times[i].key];
+          if (t > max_bytes) {
+            // it just went over the limit.  Everything before
+            // and including the i-th message must be deleted.
+            setIndex(i, "max_bytes");
+            break;
+          }
+        }
+      }
+
+      if (index > -1 && this.times != null) {
+        try {
+          // console.log("enforceLimits: deleting ", { index });
+          const times = getTimes();
+          const toDelete = times.slice(0, index + 1).map(({ key }) => key);
+          if (toDelete.length > 0) {
+            // console.log("enforceLImits: deleting ", toDelete.length, " keys");
+            const revisions = { ...this.revisions };
+            await awaitMap(toDelete, MAX_PARALLEL, async (key) => {
+              await this.delete(key, revisions[key]);
+            });
+          }
+        } catch (err) {
+          if (err.code != "TIMEOUT") {
+            console.log(`WARNING: expiring old messages - ${err}`);
+          }
+        }
+      }
+    }),
+    ENFORCE_LIMITS_THROTTLE_MS,
+    { leading: true, trailing: true },
+  );
 }
