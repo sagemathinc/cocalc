@@ -80,17 +80,17 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.on("change", (_, value, prev) => {
+    this.generalDKV.on("change", ({ value, prev }) => {
       if (value != null) {
-        this.emit("change", value.key, value.value);
+        this.emit("change", { key: value.key, value: value.value });
       } else if (prev != null) {
         // value is null so it's a delete
-        this.emit("change", prev.key);
+        this.emit("change", { key: prev.key });
       }
     });
-    this.generalDKV.on("reject", (_, value) => {
+    this.generalDKV.on("reject", ({ value }) => {
       if (value != null) {
-        this.emit("reject", value.key, value.value);
+        this.emit("reject", { key: value.key, value: value.value });
       }
     });
     await this.generalDKV.init();

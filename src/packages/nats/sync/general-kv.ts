@@ -234,7 +234,7 @@ export class GeneralKV extends EventEmitter {
         this.times[key] = sm.time;
         this.sizes[key] = value.length;
       }
-      this.emit("change", key, this.all[key], prev);
+      this.emit("change", { key, value: this.all[key], prev });
       this.enforceLimits();
     }
   };

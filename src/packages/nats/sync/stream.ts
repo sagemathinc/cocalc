@@ -50,6 +50,12 @@ import { isNumericString } from "@cocalc/util/misc";
 import { map as awaitMap } from "awaiting";
 import { sha1 } from "@cocalc/util/misc";
 
+class PublishRejectError extends Error {
+  code: string;
+  mesg: any;
+  subject?: string;
+}
+
 const MAX_PARALLEL = 50;
 
 // confirm that ephemeral consumer still exists every 15 seconds:
@@ -231,12 +237,30 @@ export class Stream extends EventEmitter {
       this.limits.max_msg_size > -1 &&
       data.length > this.limits.max_msg_size
     ) {
-      throw Error(
+      const err = new PublishRejectError(
         `message size (=${data.length}) exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
       );
+      err.code = "REJECT";
+      err.mesg = mesg;
+      err.subject = subject;
+      throw err;
     }
     this.enforceLimits();
-    const resp = await this.js.publish(subject ?? this.subject, data, options);
+    let resp;
+    try {
+      resp = await this.js.publish(subject ?? this.subject, data, options);
+    } catch (err) {
+      if (err.code == "MAX_PAYLOAD_EXCEEDED") {
+        // nats rejects due to payload size
+        const err2 = new PublishRejectError(`${err}`);
+        err2.code = "REJECT";
+        err2.mesg = mesg;
+        err2.subject = subject;
+        throw err2;
+      } else {
+        throw err;
+      }
+    }
     this.enforceLimits();
     return resp;
   };

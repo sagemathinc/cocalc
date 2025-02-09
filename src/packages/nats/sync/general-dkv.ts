@@ -29,13 +29,13 @@ is a DKV, you can also access the underlying KV via "store.kv".
 
   - call "store.unsavedChanges()" to see the unsaved keys.
 
-- The 3-way merge function takes as input {local,remote,ancestor,key}, where
+- The 3-way merge function takes as input {local,remote,prev,key}, where
     - key = the key where there's a conflict
     - local = your version of the value
     - remote = the remote value, which conflicts in that isEqual(local,remote) is false.
-    - ancestor = a known common ancestor of local and remote.
+    - prev = a known common prev of local and remote.
 
-    (any of local, remote or ancestor can be undefined, e.g., no previous value or a key was deleted)
+    (any of local, remote or prev can be undefined, e.g., no previous value or a key was deleted)
 
   You can do anything synchronously you want to resolve such conflicts, i.e., there are no
   axioms that have to be satisifed.  If the 3-way merge function throws an exception (or is
@@ -76,12 +76,14 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
+import { map as awaitMap } from "awaiting";
 
 const TOMBSTONE = Symbol("tombstone");
+const MAX_PARALLEL = 50;
 
 export type MergeFunction = (opts: {
   key: string;
-  ancestor: any;
+  prev: any;
   local: any;
   remote: any;
 }) => any;
@@ -105,7 +107,7 @@ export class GeneralDKV extends EventEmitter {
     // 3-way merge conflict resolution
     merge?: (opts: {
       key: string;
-      ancestor?: any;
+      prev?: any;
       local?: any;
       remote?: any;
     }) => any;
@@ -145,7 +147,7 @@ export class GeneralDKV extends EventEmitter {
     delete this.merge;
   };
 
-  private handleRemoteChange = (key, remote, ancestor) => {
+  private handleRemoteChange = ({ key, remote, prev }) => {
     const local = this.local[key];
     let value: any = remote;
     if (local !== undefined) {
@@ -155,7 +157,7 @@ export class GeneralDKV extends EventEmitter {
         delete this.local[key];
       } else {
         try {
-          value = this.merge?.({ key, local, remote, ancestor });
+          value = this.merge?.({ key, local, remote, prev });
         } catch {
           // user provided a merge function that throws an exception. We select local, since
           // it is the newest, i.e., "last write wins"
@@ -170,7 +172,7 @@ export class GeneralDKV extends EventEmitter {
         }
       }
     }
-    this.emit("change", key, value, ancestor);
+    this.emit("change", { key, value, prev });
   };
 
   get = (key?) => {
@@ -268,19 +270,25 @@ export class GeneralDKV extends EventEmitter {
         }
       }
     }
-    try {
-      await this.kv.set(obj);
-    } catch (err) {
-      if (err.code == "REJECT" && err.key) {
-        this.emit("reject", err.key, this.local[err.key]);
-        delete this.local[err.key];
+    const f = async (key) => {
+      if (this.kv == null) {
+        // closed
+        return;
       }
-      throw err;
-    }
-    for (const key in obj) {
-      if (obj[key] === this.local[key] && !this.changed.has(key)) {
-        delete this.local[key];
+      try {
+        await this.kv.set(key, obj[key]);
+        if (obj[key] === this.local[key] && !this.changed.has(key)) {
+          // successfully saved this
+          delete this.local[key];
+        }
+      } catch (err) {
+        if (err.code == "REJECT" && err.key) {
+          delete this.local[err.key]; // can never save this.
+          this.emit("reject", { key: err.key, value: this.local[err.key] });
+        }
+        throw err;
       }
-    }
+    };
+    await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
   });
 }

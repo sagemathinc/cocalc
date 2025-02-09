@@ -156,11 +156,21 @@ export class DStream extends EventEmitter {
         throw Error("closed");
       }
       const { mesg, subject } = this.local[id];
-      // @ts-ignore
-      await this.stream.publish(mesg, subject, { msgID: id });
-      delete this.local[id];
+      try {
+        // @ts-ignore
+        await this.stream.publish(mesg, subject, { msgID: id });
+        delete this.local[id];
+      } catch (err) {
+        if (err.code == "REJECT") {
+          delete this.local[id];
+          this.emit("reject", err.mesg, err.subject);
+        } else {
+          throw err;
+        }
+      }
     };
-    // NOTE: ES6 spec guarantees "String keys are returned in the order in which they were added to the object."
+    // NOTE: ES6 spec guarantees "String keys are returned in the order
+    // in which they were added to the object."
     await awaitMap(Object.keys(this.local), MAX_PARALLEL, f);
   });
 
