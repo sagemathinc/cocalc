@@ -63,11 +63,11 @@ const MAX_PARALLEL = 50;
 // ensures we successfully get properly updated.
 const CONSUMER_MONITOR_INTERVAL = 15 * 1000;
 
-// Have server keep ephemeral consumers alive for an hour.  This
+// Have server keep ephemeral consumers alive for 5 minutes.  This
 // means even if we drop from the internet for up to an hour, the server
 // doesn't forget about our consumer.  But even if we are forgotten,
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
-const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
+const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.

@@ -140,7 +140,7 @@ export class DStream extends EventEmitter {
     return Object.values(this.local);
   };
 
-  private save = reuseInFlight(async () => {
+  save = reuseInFlight(async () => {
     let d = 100;
     while (true) {
       try {
@@ -171,7 +171,8 @@ export class DStream extends EventEmitter {
       } catch (err) {
         if (err.code == "REJECT") {
           delete this.local[id];
-          this.emit("reject", err.mesg, err.subject);
+          // err has mesg and subject set.
+          this.emit("reject", err);
         } else {
           throw err;
         }

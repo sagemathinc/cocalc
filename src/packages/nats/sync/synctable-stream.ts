@@ -7,13 +7,13 @@ This is ONLY for the scope of patches in a single project.
 It uses a NATS stream to store the elements in a well defined order.
 */
 
-import { jetstreamManager, jetstream } from "@nats-io/jetstream";
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
 import { cmp_Date, is_array, isValidUUID, sha1 } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
+import { dstream, DStream } from "./dstream";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -28,26 +28,20 @@ function toKey(x): string | undefined {
 }
 
 export class SyncTableStream extends EventEmitter {
-  private nc;
-  private jc;
-  private sha1;
   public readonly table;
   private primaryKeys: string[];
   private project_id?: string;
-  private account_id?: string;
-  private streamName: string;
-  private streamSubject: string;
   private path: string;
-  private subject: string;
   private string_id: string;
   private data: any = {};
-  private consumer?;
   private state: State = "disconnected";
+  private env;
+  private dstream?: DStream;
 
   constructor({
     query,
     env,
-    account_id,
+    account_id: _account_id,
     project_id,
   }: {
     query;
@@ -56,72 +50,46 @@ export class SyncTableStream extends EventEmitter {
     project_id?: string;
   }) {
     super();
-    this.sha1 = env.sha1 ?? sha1;
-    this.nc = env.nc;
-    this.jc = env.jc;
+    this.env = env;
     const table = keys(query)[0];
     this.table = table;
     if (table != "patches") {
       throw Error("only the patches table is supported");
     }
     this.project_id = project_id ?? query[table][0].project_id;
-    this.account_id = account_id ?? query[table][0].account_id;
     if (!isValidUUID(this.project_id)) {
       throw Error("query MUST specify a valid project_id");
-    }
-    if (this.account_id && !isValidUUID(this.account_id)) {
-      throw Error("query MUST specify a valid account_id");
     }
     this.path = query[table][0].path;
     if (!this.path) {
       throw Error("path MUST be specified");
     }
-    query[table][0].string_id = this.string_id = this.sha1(
+    query[table][0].string_id = this.string_id = (env.sha1 ?? sha1)(
       `${this.project_id}${this.path}`,
     );
-    this.streamName = `project-${this.project_id}-${this.table}`;
-    this.streamSubject = `project.${this.project_id}.${this.table}.>`;
-    this.subject = `project.${this.project_id}.${this.table}.${query[table][0].string_id}`;
     this.primaryKeys = client_db.primary_keys(table);
   }
 
-  private createStream = async () => {
-    const jsm = await jetstreamManager(this.nc);
-    try {
-      await jsm.streams.add({
-        name: this.streamName,
-        subjects: [this.streamSubject],
-        compression: "s2",
-      });
-    } catch (err) {
-      console.log("createStream", err);
-      // probably already exists
-      await jsm.streams.update(this.streamName, {
-        subjects: [this.streamSubject],
-        compression: "s2" as any,
-      });
-    }
-  };
-
-  private getConsumer = async () => {
-    const js = jetstream(this.nc);
-    const jsm = await jetstreamManager(this.nc);
-    // making an ephemeral consumer
-    const { name } = await jsm.consumers.add(this.streamName, {
-      filter_subject: this.subject,
-    });
-    return await js.consumers.get(this.streamName, name);
-  };
-
   init = async () => {
-    await this.createStream();
-    this.consumer = await this.getConsumer();
-    await this.readData();
-    this.set_state("connected");
-    this.listenForUpdates();
+    const name = `patches-${this.string_id}`;
+    this.dstream = await dstream({
+      name,
+      project_id: this.project_id,
+      env: this.env,
+    });
+    this.dstream.on("change", (mesg) => {
+      this.handle(mesg, true);
+    });
+    this.dstream.on("reject", (err) => {
+      console.warn("synctable-stream: REJECTED - ", err);
+    });
+    for (const mesg of this.dstream.get()) {
+      this.handle(mesg, false);
+    }
+    this.setState("connected");
   };
 
-  private set_state = (state: State): void => {
+  private setState = (state: State): void => {
     this.state = state;
     this.emit(state);
   };
@@ -137,31 +105,25 @@ export class SyncTableStream extends EventEmitter {
 
   getKey = this.primaryString;
 
-  private publish = (mesg) => {
-    // console.log("publishing ", { subject: this.subject, mesg });
-    this.nc.publish(this.subject, this.jc.encode(mesg));
-  };
-
   set = (obj) => {
     // console.log("set", obj);
     // delete string_id since it is redundant info
     const key = this.primaryString(obj);
     if (this.data[key] != null) {
-      // no changes to existing keys -- just ignore.
-      // TODO?
-      // console.log("set - skip", obj);
       return;
     }
     const { string_id, ...obj2 } = obj;
     // console.log("set - publish", obj);
-    this.publish(obj2);
+    if (this.dstream == null) {
+      throw Error("closed");
+    }
+    this.dstream.push(obj2);
   };
 
-  private handle = (mesg, changeEvent: boolean) => {
+  private handle = (obj, changeEvent: boolean) => {
     if (this.state == "closed") {
       return true;
     }
-    const obj = this.jc.decode(mesg.data);
     const key = this.primaryString(obj);
     this.data[key] = { ...obj, time: new Date(obj.time) };
     if (this.data[key].prev != null) {
@@ -169,35 +131,6 @@ export class SyncTableStream extends EventEmitter {
     }
     if (changeEvent) {
       this.emit("change", [key]);
-    }
-    return false;
-  };
-
-  // load initial data
-  private readData = async () => {
-    const consumer = this.consumer!;
-    const messages = await consumer.fetch({
-      max_messages: 100000,
-      expires: 1000,
-    });
-    for await (const mesg of messages) {
-      if (this.handle(mesg, false)) {
-        return;
-      }
-      if (mesg.info.pending == 0) {
-        // no further messages
-        break;
-      }
-    }
-  };
-
-  // listen for new data
-  private listenForUpdates = async () => {
-    const consumer = this.consumer!;
-    for await (const mesg of await consumer.consume()) {
-      if (this.handle(mesg, true)) {
-        return;
-      }
     }
   };
 
@@ -236,20 +169,21 @@ export class SyncTableStream extends EventEmitter {
       // already closed
       return;
     }
-    this.set_state("closed");
+    this.setState("closed");
     this.removeAllListeners();
-    this.consumer?.delete();
-    delete this.consumer;
+    this.dstream?.close();
+    delete this.dstream;
   };
 
   delete = async (_obj) => {
     throw Error("delete: not implemented for stream synctable");
   };
 
-  // no-op because we always immediately publish changes on set.
-  save = () => {};
+  save = () => {
+    this.dstream?.save();
+  };
+
   has_uncommitted_changes = () => {
-    // todo - if disconnected (?)
-    return false;
+    return this.dstream?.hasUnsavedChanges();
   };
 }
