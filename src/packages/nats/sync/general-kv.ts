@@ -106,6 +106,11 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
 import { throttle } from "lodash";
 
+class RejectError extends Error {
+  code: string;
+  key: string;
+}
+
 const MAX_PARALLEL = 50;
 
 // Note that the limit options are named in exactly the same was as for streams,
@@ -398,13 +403,29 @@ export class GeneralKV extends EventEmitter {
       this.limits.max_msg_size > -1 &&
       val.length > this.limits.max_msg_size
     ) {
-      throw Error(
+      // we reject due to our own size reasons
+      const err = new RejectError(
         `message key:value size (=${val.length}) exceeds max_msg_size=${this.limits.max_msg_size} bytes`,
       );
+      err.code = "REJECT";
+      err.key = key;
+      throw err;
     }
-    await this.kv.put(key, val, {
-      previousSeq: revision,
-    });
+    try {
+      await this.kv.put(key, val, {
+        previousSeq: revision,
+      });
+    } catch (err) {
+      if (err.code == "MAX_PAYLOAD_EXCEEDED") {
+        // nats rejects due to payload size
+        const err2 = new RejectError(`${err}`);
+        err2.code = "REJECT";
+        err2.key = key;
+        throw err2;
+      } else {
+        throw err;
+      }
+    }
   };
 
   // ensure any limits are satisfied, always by deleting old keys

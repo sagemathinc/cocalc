@@ -28,7 +28,14 @@ export class DKV extends EventEmitter {
   private prefix: string;
   private sha1;
 
-  constructor({ name, account_id, project_id, merge, env }: DKVOptions) {
+  constructor({
+    name,
+    account_id,
+    project_id,
+    merge,
+    env,
+    limits,
+  }: DKVOptions) {
     super();
     if (env == null) {
       throw Error("env must not be null");
@@ -43,6 +50,7 @@ export class DKV extends EventEmitter {
       filter: `${this.prefix}.>`,
       env,
       merge,
+      limits,
     });
     this.init();
     return new Proxy(this, {
@@ -72,6 +80,19 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
+    this.generalDKV.on("change", (_, value, prev) => {
+      if (value != null) {
+        this.emit("change", value.key, value.value);
+      } else if (prev != null) {
+        // value is null so it's a delete
+        this.emit("change", prev.key);
+      }
+    });
+    this.generalDKV.on("reject", (_, value) => {
+      if (value != null) {
+        this.emit("reject", value.key, value.value);
+      }
+    });
     await this.generalDKV.init();
   });
 
@@ -114,6 +135,21 @@ export class DKV extends EventEmitter {
       throw Error("closed");
     }
     this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
+  };
+
+  hasUnsavedChanges = () => {
+    if (this.generalDKV == null) {
+      return false;
+    }
+    return this.generalDKV.hasUnsavedChanges();
+  };
+
+  unsavedChanges = () => {
+    const generalDKV = this.generalDKV;
+    if (generalDKV == null) {
+      return [];
+    }
+    return generalDKV.unsavedChanges().map((key) => generalDKV.get(key)?.key);
   };
 }
 

@@ -71,7 +71,7 @@ TODO:
 */
 
 import { EventEmitter } from "events";
-import { GeneralKV } from "./general-kv";
+import { GeneralKV, type KVLimits } from "./general-kv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { isEqual } from "lodash";
@@ -98,6 +98,7 @@ export class GeneralDKV extends EventEmitter {
     filter,
     merge,
     options,
+    limits,
   }: {
     name: string;
     env: NatsEnv;
@@ -112,10 +113,12 @@ export class GeneralDKV extends EventEmitter {
     // NOTE: any key name that you *set or delete* must match one of these
     filter: string | string[];
     options?;
+    limits?: KVLimits;
   }) {
     super();
     this.merge = merge;
-    this.kv = new GeneralKV({ name, env, filter, options });
+    //this.limits = limits;
+    this.kv = new GeneralKV({ name, env, filter, options, limits });
   }
 
   init = reuseInFlight(async () => {
@@ -144,13 +147,13 @@ export class GeneralDKV extends EventEmitter {
 
   private handleRemoteChange = (key, remote, ancestor) => {
     const local = this.local[key];
+    let value: any = remote;
     if (local !== undefined) {
       if (isEqual(local, remote)) {
         // we have a local change, but it's the same change as remote, so just
         // forget about our local change.
         delete this.local[key];
       } else {
-        let value;
         try {
           value = this.merge?.({ key, local, remote, ancestor });
         } catch {
@@ -167,7 +170,7 @@ export class GeneralDKV extends EventEmitter {
         }
       }
     }
-    this.emit("change", key);
+    this.emit("change", key, value, ancestor);
   };
 
   get = (key?) => {
@@ -239,8 +242,7 @@ export class GeneralDKV extends EventEmitter {
         await this.attemptToSave();
         //console.log("successfully saved");
       } catch {
-        //(err) {
-        // console.log("problem saving", err);
+        // console.log("temporary issue saving")
       }
       if (this.hasUnsavedChanges()) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
@@ -266,7 +268,15 @@ export class GeneralDKV extends EventEmitter {
         }
       }
     }
-    await this.kv.set(obj);
+    try {
+      await this.kv.set(obj);
+    } catch (err) {
+      if (err.code == "REJECT" && err.key) {
+        this.emit("reject", err.key, this.local[err.key]);
+        delete this.local[err.key];
+      }
+      throw err;
+    }
     for (const key in obj) {
       if (obj[key] === this.local[key] && !this.changed.has(key)) {
         delete this.local[key];
