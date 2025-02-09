@@ -4,7 +4,8 @@ import { JSONCodec } from "nats.ws";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { projectStreamName, projectSubject } from "@cocalc/nats/names";
+import { type DStream } from "@cocalc/nats/sync/dstream";
+import { projectSubject } from "@cocalc/nats/names";
 
 const jc = JSONCodec();
 const client = uuid();
@@ -13,10 +14,9 @@ export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   //private compute_server_id: number;
   private path: string;
-  private subject: string;
   private cmd_subject: string;
   private state: null | "running" | "init" | "closed";
-  private consumer?;
+  private stream?: DStream;
   // keep = optional number of messages to retain between clients/sessions/view, i.e.,
   // "amount of history". This is global to all terminals in the project.
   private keep?: number;
@@ -51,12 +51,6 @@ export class NatsTerminalConnection extends EventEmitter {
     this.openPaths = openPaths;
     this.closePaths = closePaths;
     this.project = webapp_client.nats_client.projectApi({ project_id });
-    this.subject = projectSubject({
-      project_id,
-      compute_server_id,
-      service: "terminal",
-      path,
-    });
     this.cmd_subject = projectSubject({
       project_id,
       compute_server_id,
@@ -109,7 +103,9 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   end = () => {
-    // todo
+    this.stream?.close();
+    delete this.stream;
+    // todo -- anything else?
     this.state = "closed";
   };
 
@@ -118,40 +114,21 @@ export class NatsTerminalConnection extends EventEmitter {
     await this.project.terminal.create({ path: this.path });
   });
 
-  private getConsumer = async () => {
+  private getStream = async () => {
     // TODO: idempotent, but move to project
     const { nats_client } = webapp_client;
-    const streamName = projectStreamName({
+    return await nats_client.dstream({
+      name: `terminal-${this.path}`,
       project_id: this.project_id,
-      service: "terminal",
     });
-    const nc = await nats_client.getConnection();
-    const js = nats_client.jetstream.jetstream(nc);
-    // consumer doesn't exist, so setup everything.
-    const jsm = await nats_client.jetstream.jetstreamManager(nc);
-    // making an ephemeral consumer for just one subject (e.g., this terminal frame)
-    const { name } = await jsm.consumers.add(streamName, {
-      filter_subject: this.subject,
-    });
-    return await js.consumers.get(streamName, name);
   };
 
   init = async () => {
     this.state = "init";
     await this.start();
-    this.consumer = await this.getConsumer();
+    this.stream = await this.getStream();
     this.consumeDataStream();
     this.subscribeToCommands();
-  };
-
-  private handle = (mesg) => {
-    if (this.state == "closed") {
-      return true;
-    }
-    const x = jc.decode(mesg.data) as any;
-    if (x?.data != null) {
-      this.emit("data", x?.data);
-    }
   };
 
   private subscribeToCommands = async () => {
@@ -184,33 +161,22 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
-  private consumeDataStream = async () => {
-    if (this.consumer == null) {
+  private handleStreamMessage = (mesg) => {
+    const data = mesg?.data;
+    if (data) {
+      this.emit("data", data);
+    }
+  };
+
+  private consumeDataStream = () => {
+    if (this.stream == null) {
       return;
     }
-    const messages = await this.consumer.fetch({
-      max_messages: 100000, // should only be a few hundred in practice
-      expires: 1000,
-    });
-    for await (const mesg of messages) {
-      if (this.handle(mesg)) {
-        return;
-      }
-      if (mesg.info.pending == 0) {
-        // no further messages pending, so switch to consuming below
-        // TODO: I don't know if there is some chance to miss a message?
-        //       This is a *terminal* so purely visual so not too critical.
-        break;
-      }
+    for (const mesg of this.stream.get()) {
+      this.handleStreamMessage(mesg);
     }
-
     this.setReady();
-
-    for await (const mesg of await this.consumer.consume()) {
-      if (this.handle(mesg)) {
-        return;
-      }
-    }
+    this.stream.on("change", this.handleStreamMessage);
   };
 
   private setReady = async () => {

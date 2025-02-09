@@ -11,17 +11,15 @@ import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JSONCodec } from "nats";
-import { jetstreamManager } from "@nats-io/jetstream";
 import { getLogger } from "@cocalc/project/logger";
 import { readlink, realpath } from "node:fs/promises";
+import { dstream, type DStream } from "@cocalc/project/nats/sync";
+import { project_id } from "@cocalc/project/data";
+import { getSubject } from "./names";
 import getConnection from "./connection";
-import { getSubject, getStreamName } from "./names";
 
 const logger = getLogger("server:nats:terminal");
 
-const DEFAULT_KEEP = 300;
-const MIN_KEEP = 5;
-const MAX_KEEP = 2000;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
@@ -86,7 +84,6 @@ export async function terminalCommand({ path, cmd, ...args }) {
 }
 
 class Session {
-  private nc;
   private path: string;
   private options;
   private pty?;
@@ -95,21 +92,17 @@ class Session {
   public subject: string;
   private cmd_subject: string;
   private state: "running" | "off" = "off";
+  private stream: DStream;
   private streamName: string;
-  private keep: number;
+  private nc;
 
   constructor({ path, options, nc }) {
     logger.debug("create session ", { path, options });
-    this.nc = nc;
     this.path = path;
     this.options = options;
-    this.keep = Math.max(
-      MIN_KEEP,
-      Math.min(this.options.keep ?? DEFAULT_KEEP, MAX_KEEP),
-    );
-    this.subject = getSubject({ service: "terminal", path });
     this.cmd_subject = getSubject({ service: "terminal-cmd", path });
-    this.streamName = getStreamName({ service: "terminal" });
+    this.streamName = `terminal-${path}`;
+    this.nc = nc;
   }
 
   write = async (data) => {
@@ -121,6 +114,7 @@ class Session {
 
   restart = async () => {
     this.pty?.destroy();
+    this.stream?.close();
     delete this.pty;
     await this.init();
   };
@@ -147,24 +141,7 @@ class Session {
   };
 
   createStream = async () => {
-    // idempotent so don't have to check if there is already a stream
-    const nc = this.nc;
-    const jsm = await jetstreamManager(nc);
-    try {
-      await jsm.streams.add({
-        name: this.streamName,
-        subjects: [getSubject({ service: "terminal" }) + ".>"],
-        compression: "s2",
-        max_msgs_per_subject: this.keep,
-      });
-    } catch (_err) {
-      // probably already exists
-      await jsm.streams.update(this.streamName, {
-        subjects: [getSubject({ service: "terminal" }) + ".>"],
-        compression: "s2" as any,
-        max_msgs_per_subject: this.keep,
-      });
-    }
+    this.stream = await dstream({ name: this.streamName, project_id });
   };
 
   init = async () => {
@@ -194,17 +171,13 @@ class Session {
     await this.createStream();
     this.pty.onData((data) => {
       this.handleBackendMessages(data);
-      this.publish({ data });
+      this.stream.publish({ data });
     });
     this.pty.onExit((status) => {
-      this.publish({ data: EXIT_MESSAGE });
-      this.publish({ ...status, exit: true });
+      this.stream.publish({ data: EXIT_MESSAGE });
+      this.stream.publish({ ...status, exit: true });
       this.state = "off";
     });
-  };
-
-  private publish = (mesg) => {
-    this.nc.publish(this.subject, jc.encode(mesg));
   };
 
   private publishCommand = (mesg) => {
@@ -319,13 +292,11 @@ class Session {
       if (i == -1) {
         // continue to wait... unless too long
         if (this.backendMessagesBuffer.length > 10000) {
-          console.log("huge reset");
           this.resetBackendMessagesBuffer();
         }
         return;
       }
       const s = this.backendMessagesBuffer.slice(5, i);
-      console.log("endup up with ", { s });
       this.resetBackendMessagesBuffer();
       logger.debug(
         `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,

@@ -221,7 +221,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   }
 
-  close(): void {
+  close = (): void => {
     this.assert_not_closed();
     this.set_connection_status("disconnected");
     this.state = "closed";
@@ -233,7 +233,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     close(this);
     this.state = "closed";
-  }
+  };
 
   private disconnect(): void {
     if (this.conn === undefined) {

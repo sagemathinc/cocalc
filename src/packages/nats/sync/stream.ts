@@ -192,7 +192,12 @@ export class Stream extends EventEmitter {
       // probably already exists, so try to modify to have the requested properties.
       this.stream = await this.jsm.streams.update(this.jsname, options);
     }
-    this.startFetch();
+    const consumer = await this.fetchInitialData();
+    if (this.stream == null) {
+      // closed *during* initial load
+      return;
+    }
+    this.watchForNewData(consumer);
   });
 
   get = (n?) => {
@@ -265,7 +270,7 @@ export class Stream extends EventEmitter {
     return await js.consumers.get(this.jsname, name);
   };
 
-  private startFetch = async (options?) => {
+  private fetchInitialData = async (options?) => {
     const consumer = await this.getConsumer(options);
     // This goes in two stages:
     // STAGE 1: Get what is in the stream now.
@@ -284,6 +289,10 @@ export class Stream extends EventEmitter {
         break;
       }
     }
+    return consumer;
+  };
+
+  private watchForNewData = async (consumer) => {
     if (this.stream == null) {
       // closed *during* initial load
       return;
@@ -319,12 +328,18 @@ export class Stream extends EventEmitter {
           this.watch.stop(); // stop current watch
           // make new one:
           const start_seq = this.raw[this.raw.length - 1]?.seq + 1;
-          this.startFetch({ start_seq });
-          return; // because startFetch creates a new consumer monitor loop
+          const consumer = await this.fetchInitialData({ start_seq });
+          if (this.stream == null) {
+            // closed
+            return;
+          }
+          this.watchForNewData(consumer);
+
+          return; // because watchForNewData creates a new consumer monitor loop
         }
       }
+      await delay(CONSUMER_MONITOR_INTERVAL);
     }
-    await delay(CONSUMER_MONITOR_INTERVAL);
   };
 
   private decode = (raw) => {
