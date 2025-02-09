@@ -30,6 +30,7 @@ import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/util/misc";
+import { millis } from "@cocalc/nats/util";
 
 const MAX_PARALLEL = 50;
 
@@ -99,6 +100,14 @@ export class DStream extends EventEmitter {
   // sequence number of n-th message
   seq = (n) => {
     return this.raw[n]?.seq;
+  };
+
+  time = (n) => {
+    const r = this.raw[n];
+    if (r == null) {
+      return;
+    }
+    return new Date(millis(r?.info.timestampNanos));
   };
 
   get length() {

@@ -232,3 +232,64 @@ export class OpenFiles {
     };
   };
 }
+
+import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
+export class OpenFiles2 {
+  private project_id: string;
+  private env: NatsEnv;
+  private dkv?: DKV;
+
+  constructor({ env, project_id }: { env: NatsEnv; project_id: string }) {
+    this.env;
+    this.project_id = project_id;
+  }
+
+  init = async () => {
+    this.dkv = await dkv({
+      name: "open-files",
+      project_id: this.project_id,
+      env: this.env,
+    });
+  };
+
+  close = () => {
+    if (this.dkv == null) {
+      return;
+    }
+    this.dkv.close();
+    delete this.dkv;
+  };
+
+  // When a client has a file open, they should periodically
+  // touch it to indicate that it is open.
+  // updates timestamp and ensures open=true.
+  // do we need compute server?
+//   touch = async ({ path }: { path: string }) => {
+//     const { dkv } = this;
+//     if (dkv == null) {
+//       throw Error("closed");
+//     }
+//     cur = dkv.get(path);
+//     const newValue = { ...cur, path };
+
+//     // just read and write it back, which updates the timestamp
+//     // no encode/decode needed.
+//     const obj = { ...validObject(obj0), open: true };
+//     const key = this.getKey(obj);
+//     const kv = await this.getKv();
+//     const mesg = await kv.get(key);
+//     if (mesg == null || mesg.sm.data.length == 0) {
+//       // no current entry -- create new
+//       await this.set(obj);
+//     } else {
+//       const cur = this.decode(mesg, true);
+//       const newValue = { ...cur, ...obj };
+//       if (!isEqual(cur, newValue)) {
+//         await this.set(newValue);
+//       } else {
+//         // update existing by just rewriting it back; this updates timestamp too
+//         await kv.put(key, mesg.sm.data);
+//       }
+//     }
+//   };
+}

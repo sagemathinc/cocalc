@@ -8,9 +8,10 @@ DEVELOPMENT:
     await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'open-files'})
 
 
-Set env variables as in a project, then:
+Set env variables as in a project (see  api/index.ts ), then:
 
 > require("@cocalc/project/nats/open-files").init()
+
 */
 
 import { OpenFiles, Entry } from "@cocalc/nats/sync/open-files";

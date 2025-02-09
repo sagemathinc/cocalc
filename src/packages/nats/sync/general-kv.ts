@@ -260,7 +260,7 @@ export class GeneralKV extends EventEmitter {
     }
   };
 
-  time = (key?) => {
+  time = (key?: string) => {
     if (key == null) {
       return this.times;
     } else {

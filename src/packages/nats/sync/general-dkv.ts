@@ -196,6 +196,13 @@ export class GeneralDKV extends EventEmitter {
     return x;
   };
 
+  time = (key?: string) => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    return this.kv.time(key);
+  };
+
   private assertValidKey = (key) => {
     if (this.kv == null) {
       throw Error("closed");

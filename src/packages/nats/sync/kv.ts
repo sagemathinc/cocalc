@@ -101,6 +101,16 @@ export class KV extends EventEmitter {
     await this.generalKV.clear();
   };
 
+  // server assigned time
+  time = (key?: string) => {
+    if (this.generalKV == null) {
+      throw Error("closed");
+    }
+    return this.generalKV.time(
+      key ? `${this.prefix}.${this.sha1(key)}` : undefined,
+    );
+  };
+
   get = (key?) => {
     if (this.generalKV == null) {
       throw Error("closed");

@@ -43,7 +43,7 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { jetstreamManager, jetstream } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
-import { nanos, type Nanos } from "@cocalc/nats/util";
+import { nanos, type Nanos, millis } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
@@ -215,9 +215,18 @@ export class Stream extends EventEmitter {
     }
   };
 
-  // get sequence number of n-th message in stream
+  // get server assigned global sequence number of n-th message in stream
   seq = (n) => {
     return this.raw[n]?.seq;
+  };
+
+  // get server assigned time of n-th message in stream
+  time = (n): Date | undefined => {
+    const r = this.raw[n];
+    if (r == null) {
+      return;
+    }
+    return new Date(millis(r?.info.timestampNanos));
   };
 
   get length() {

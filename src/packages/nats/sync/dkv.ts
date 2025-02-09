@@ -113,6 +113,16 @@ export class DKV extends EventEmitter {
     this.generalDKV.delete(`${this.prefix}.${this.sha1(key)}`);
   };
 
+  // server assigned time
+  time = (key?: string) => {
+    if (this.generalDKV == null) {
+      throw Error("closed");
+    }
+    return this.generalDKV.time(
+      key ? `${this.prefix}.${this.sha1(key)}` : undefined,
+    );
+  };
+
   get = (key?) => {
     if (this.generalDKV == null) {
       throw Error("closed");

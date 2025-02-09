@@ -10,18 +10,18 @@ import { project_id } from "@cocalc/project/data";
 
 export type { Stream, DStream, KV, DKV };
 
-export async function stream(opts) {
+export async function stream(opts): Promise<Stream> {
   return await createStream({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function dstream(opts) {
+export async function dstream(opts): Promise<DStream> {
   return await createDstream({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function kv(opts) {
+export async function kv(opts): Promise<KV> {
   return await createKV({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function dkv(opts) {
+export async function dkv(opts): Promise<DKV> {
   return await createDKV({ project_id, env: await getEnv(), ...opts });
 }
