@@ -1,4 +1,6 @@
 /*
+DEPRECATED
+
 Nats implementation of the idea of a "SyncTable".
 
 This is ONLY for synctables in the scope of a single project, e.g.,

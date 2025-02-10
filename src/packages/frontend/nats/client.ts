@@ -20,6 +20,7 @@ import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions } from "@cocalc/nats/sync/kv";
 import { dkv, type DKVOptions } from "@cocalc/nats/sync/dkv";
+import { dko, type DKOOptions } from "@cocalc/nats/sync/dko";
 import { stream, type UserStreamOptions } from "@cocalc/nats/sync/stream";
 import { dstream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
@@ -316,9 +317,9 @@ export class NatsClient {
     }
   };
 
-  changefeed = async (query) => {
+  changefeed = async (query, { atomic = true }: { atomic?: boolean } = {}) => {
     this.changefeedInterest(query, true);
-    return await this.synctable(query, { atomic: true });
+    return await this.synctable(query, { atomic });
   };
 
   // DEPRECATED
@@ -412,6 +413,13 @@ export class NatsClient {
     //       throw Error("account client can't set limits on public stream");
     //     }
     return await dkv({ env: await this.getEnv(), ...opts });
+  };
+
+  dko = async (opts: Partial<DKOOptions>) => {
+    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
+    //       throw Error("account client can't set limits on public stream");
+    //     }
+    return await dko({ env: await this.getEnv(), ...opts });
   };
 
   microservicesClient = async () => {

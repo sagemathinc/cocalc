@@ -4,7 +4,7 @@ Always Consistent Centralized Key Value Store
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/backend n
+~/cocalc/src/packages/backend$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > t = await require("@cocalc/backend/nats/sync").dkv({name:'test'})
@@ -27,6 +27,7 @@ export class DKV extends EventEmitter {
   name: string;
   private prefix: string;
   private sha1;
+  private opts;
 
   constructor({
     name,
@@ -45,13 +46,14 @@ export class DKV extends EventEmitter {
     this.name = name;
     this.sha1 = env.sha1 ?? sha1;
     this.prefix = this.sha1(name);
-    this.generalDKV = new GeneralDKV({
+    this.opts = {
       name: kvname,
       filter: `${this.prefix}.>`,
       env,
       merge,
       limits,
-    });
+    };
+
     this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
@@ -77,9 +79,10 @@ export class DKV extends EventEmitter {
   }
 
   init = reuseInFlight(async () => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
+    if (this.generalDKV != null) {
+      return;
     }
+    this.generalDKV = new GeneralDKV(this.opts);
     this.generalDKV.on("change", ({ value, prev }) => {
       if (value != null) {
         this.emit("change", { key: value.key, value: value.value });
@@ -102,6 +105,8 @@ export class DKV extends EventEmitter {
     }
     this.generalDKV.close();
     delete this.generalDKV;
+    // @ts-ignore
+    delete this.opts;
     this.emit("closed");
     this.removeAllListeners();
   };
@@ -170,6 +175,10 @@ export class DKV extends EventEmitter {
       return [];
     }
     return generalDKV.unsavedChanges().map((key) => generalDKV.get(key)?.key);
+  };
+
+  save = async () => {
+    await this.generalDKV?.save();
   };
 }
 

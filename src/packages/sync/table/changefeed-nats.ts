@@ -25,7 +25,9 @@ export class NatsChangefeed extends EventEmitter {
   }
 
   connect = async () => {
-    this.natsSynctable = await this.client.nats_client.changefeed(this.query);
+    this.natsSynctable = await this.client.nats_client.changefeed(this.query, {
+      atomic: true,
+    });
     this.interest();
     this.startWatch();
     const v = this.natsSynctable.get();

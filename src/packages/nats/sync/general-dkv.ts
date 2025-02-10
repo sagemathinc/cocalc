@@ -158,13 +158,13 @@ export class GeneralDKV extends EventEmitter {
       } else {
         try {
           value = this.merge?.({ key, local, remote, prev }) ?? local;
-//           console.log("handle merge conflict", {
-//             key,
-//             local,
-//             remote,
-//             prev,
-//             value,
-//           });
+          //           console.log("handle merge conflict", {
+          //             key,
+          //             local,
+          //             remote,
+          //             prev,
+          //             value,
+          //           });
         } catch {
           // user provided a merge function that throws an exception. We select local, since
           // it is the newest, i.e., "last write wins"
@@ -251,7 +251,7 @@ export class GeneralDKV extends EventEmitter {
     return Object.keys(this.local);
   };
 
-  private save = reuseInFlight(async () => {
+  save = reuseInFlight(async () => {
     let d = 100;
     while (true) {
       try {
