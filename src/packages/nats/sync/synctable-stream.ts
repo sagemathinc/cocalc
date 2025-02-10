@@ -14,6 +14,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { dstream, DStream } from "./dstream";
+import { fromJS, Map } from "immutable";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -37,19 +38,23 @@ export class SyncTableStream extends EventEmitter {
   private state: State = "disconnected";
   private env;
   private dstream?: DStream;
+  private getHook: Function;
 
   constructor({
     query,
     env,
     account_id: _account_id,
     project_id,
+    immutable,
   }: {
     query;
     env: NatsEnv;
     account_id?: string;
     project_id?: string;
+    immutable?: boolean;
   }) {
     super();
+    this.getHook = immutable ? fromJS : (x) => x;
     this.env = env;
     const table = keys(query)[0];
     this.table = table;
@@ -106,6 +111,9 @@ export class SyncTableStream extends EventEmitter {
   getKey = this.primaryString;
 
   set = (obj) => {
+    if (Map.isMap(obj)) {
+      obj = obj.toJS();
+    }
     // console.log("set", obj);
     // delete string_id since it is redundant info
     const key = this.primaryString(obj);
@@ -136,18 +144,17 @@ export class SyncTableStream extends EventEmitter {
 
   get = (obj?) => {
     if (obj == null) {
-      // CAREFUL
-      return this.data;
+      return this.getHook(this.data);
     }
     if (typeof obj == "string") {
-      return this.data[obj];
+      return this.getHook(this.data[obj]);
     }
     if (is_array(obj)) {
       const x: any = {};
       for (const key of obj) {
         x[this.primaryString(key)] = this.get(key);
       }
-      return x;
+      return this.getHook(x);
     }
     let key;
     if (typeof obj == "object") {
@@ -155,7 +162,7 @@ export class SyncTableStream extends EventEmitter {
     } else {
       key = `${key}`;
     }
-    return this.data[key];
+    return this.getHook(this.data[key]);
   };
 
   getSortedTimes = () => {

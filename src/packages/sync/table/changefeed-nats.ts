@@ -46,11 +46,24 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   private interest = async () => {
-    await delay(30000);
+    let d = 10000;
+    await delay(d);
     while (this.state != "closed") {
       // console.log("express interest in", this.query);
-      await this.client.nats_client.changefeedInterest(this.query);
-      await delay(30000);
+      try {
+        await this.client.nats_client.changefeedInterest(this.query);
+        d = Math.min(45000, 1.3 * d) + Math.random();
+      } catch (err) {
+        if (err.code != "TIMEOUT") {
+          // it's normal for this to throw a TIMEOUT error whenever the browser isn't connected to NATS,
+          // so we only log it to the console if it is unexpected.
+          console.log("WARNING: issue updating changefeed interest", err);
+        } else {
+          // reset to be more frequently since likely disconnected.
+          d = 10000;
+        }
+      }
+      await delay(d);
     }
   };
 
@@ -59,7 +72,12 @@ export class NatsChangefeed extends EventEmitter {
       return;
     }
     this.natsSynctable.on("change", ({ value: new_val, prev: old_val }) => {
-      this.emit("update", { action: "update", new_val, old_val });
+      // console.log("natsSynctable, change, ", { new_val, old_val });
+      if (new_val == null) {
+        this.emit("delete", { action: "delete", old_val });
+      } else {
+        this.emit("update", { action: "update", new_val, old_val });
+      }
     });
   };
 }

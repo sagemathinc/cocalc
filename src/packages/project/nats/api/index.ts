@@ -95,11 +95,12 @@ async function listen(api, subject) {
 
 async function handleApiRequest(request, mesg) {
   let resp;
+  const { name, args } = request as any;
   try {
-    const { name, args } = request as any;
-    logger.debug("handling project.api request:", { name });
+    // logger.debug("handling project.api request:", { name });
     resp = (await getResponse({ name, args })) ?? null;
   } catch (err) {
+    logger.debug(`project.api request err = ${err}`, { name });
     resp = { error: `${err}` };
   }
   mesg.respond(jc.encode(resp));
