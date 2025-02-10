@@ -10,33 +10,32 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 const jc = JSONCodec();
 
 const cache: { [key: string]: SyncTable } = {};
-const synctable = reuseInFlight(
-  async (query, options: { obj?; atomic?: boolean; stream?: boolean }) => {
-    const key = JSON.stringify(query);
-    if (cache[key] == null) {
-      const nc = await getConnection();
-      query = parse_query(query);
-      const table = keys(query)[0];
-      const obj = options?.obj;
-      if (obj != null) {
-        for (const k in obj) {
-          query[table][0][k] = obj[k];
-        }
+const synctable = reuseInFlight(async (query, options?) => {
+  const key = JSON.stringify(query);
+  if (cache[key] == null) {
+    const nc = await getConnection();
+    query = parse_query(query);
+    const table = keys(query)[0];
+    const obj = options?.obj;
+    if (obj != null) {
+      for (const k in obj) {
+        query[table][0][k] = obj[k];
       }
-      query[table][0].project_id = project_id;
-      const s = createSyncTable({
-        ...options,
-        query,
-        env: { sha1, jc, nc },
-      });
-      await s.init();
-      cache[key] = s;
-      s.on("closed", () => {
-        delete cache[key];
-      });
     }
-    return cache[key];
-  },
-);
+    query[table][0].project_id = project_id;
+    const s = createSyncTable({
+      project_id,
+      ...options,
+      query,
+      env: { sha1, jc, nc },
+    });
+    await s.init();
+    cache[key] = s;
+    s.on("closed", () => {
+      delete cache[key];
+    });
+  }
+  return cache[key];
+});
 
 export default synctable;

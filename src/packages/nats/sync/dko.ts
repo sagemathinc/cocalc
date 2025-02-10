@@ -65,6 +65,10 @@ export class DKO extends EventEmitter {
       name: dkoPrefix(this.opts.name),
     });
     this.dkv.on("change", ({ key: path, value }) => {
+      if (path == null) {
+        // TODO: why would this happen?
+        return;
+      }
       const { key, field } = this.fromPath(path);
       if (!field) {
         this.emit("change", { key });
@@ -73,6 +77,10 @@ export class DKO extends EventEmitter {
       }
     });
     this.dkv.on("reject", ({ key: path, value }) => {
+      if (path == null) {
+        // TODO: would this happen?
+        return;
+      }
       const { key, field } = this.fromPath(path);
       if (!field) {
         this.emit("reject", { key });

@@ -14,6 +14,7 @@ import { dko as createDko, type DKO } from "./dko";
 import jsonStableStringify from "json-stable-stringify";
 import { toKey } from "@cocalc/nats/util";
 import { wait } from "@cocalc/util/async-wait";
+import { fromJS, Map } from "immutable";
 
 export class SyncTableKVAtomic extends EventEmitter {
   public readonly table;
@@ -25,6 +26,7 @@ export class SyncTableKVAtomic extends EventEmitter {
   private state: State = "disconnected";
   private dkv?: DKV | DKO;
   private env;
+  private getHook: Function;
 
   constructor({
     query,
@@ -32,20 +34,27 @@ export class SyncTableKVAtomic extends EventEmitter {
     account_id,
     project_id,
     atomic,
+    immutable,
   }: {
     query;
     env: NatsEnv;
     account_id?: string;
     project_id?: string;
     atomic?: boolean;
+    immutable?: boolean;
   }) {
     super();
     this.atomic = !!atomic;
+    this.getHook = immutable ? fromJS : (x) => x;
     this.query = query;
     this.env = env;
     this.table = keys(query)[0];
-    this.account_id = account_id ?? query[this.table][0].account_id;
-    this.project_id = project_id;
+    if (query[this.table][0].string_id && query[this.table][0].project_id) {
+      this.project_id = query[this.table][0].project_id;
+    } else {
+      this.account_id = account_id ?? query[this.table][0].account_id;
+      this.project_id = project_id;
+    }
     this.primaryKeys = client_db.primary_keys(this.table);
   }
 
@@ -58,17 +67,34 @@ export class SyncTableKVAtomic extends EventEmitter {
     return this.state;
   };
 
+  private getName = () => {
+    const primary: any = {};
+    const spec = this.query[this.table][0];
+    for (const key of this.primaryKeys) {
+      const val = spec[key];
+      if (val != null) {
+        primary[key] = val;
+      }
+    }
+    if (Object.keys(primary).length == 0) {
+      return this.table;
+    } else {
+      return `${this.table}-${jsonStableStringify(primary)}`;
+    }
+  };
+
   init = async () => {
+    const name = this.getName();
     if (this.atomic) {
       this.dkv = await createDkv({
-        name: jsonStableStringify(this.query),
+        name,
         account_id: this.account_id,
         project_id: this.project_id,
         env: this.env,
       });
     } else {
       this.dkv = await createDko({
-        name: jsonStableStringify(this.query),
+        name,
         account_id: this.account_id,
         project_id: this.project_id,
         env: this.env,
@@ -87,7 +113,10 @@ export class SyncTableKVAtomic extends EventEmitter {
     if (typeof obj_or_key == "string") {
       return obj_or_key;
     }
-    const obj = obj_or_key;
+    let obj = obj_or_key;
+    if (Map.isMap(obj)) {
+      obj = obj.toJS();
+    }
     if (this.primaryKeys.length === 1) {
       return toKey(obj[this.primaryKeys[0]] ?? "")!;
     } else {
@@ -98,6 +127,9 @@ export class SyncTableKVAtomic extends EventEmitter {
 
   set = (obj) => {
     if (this.dkv == null) throw Error("closed");
+    if (Map.isMap(obj)) {
+      obj = obj.toJS();
+    }
     this.dkv.set(this.getKey(obj), obj);
   };
 
@@ -109,9 +141,9 @@ export class SyncTableKVAtomic extends EventEmitter {
   get = (obj_or_key?) => {
     if (this.dkv == null) throw Error("closed");
     if (obj_or_key == null) {
-      return this.dkv.get();
+      return this.getHook(this.dkv.get());
     }
-    return this.dkv.get(this.getKey(obj_or_key));
+    return this.getHook(this.dkv.get(this.getKey(obj_or_key)));
   };
 
   get_one = () => {

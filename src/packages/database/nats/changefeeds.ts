@@ -158,7 +158,8 @@ const createChangefeed = reuseInFlight(
       env,
       account_id: opts.account_id,
       project_id: opts.project_id,
-      atomic: true,
+      atomic: false,
+      immutable: false,
     });
 
     await synctable.init();

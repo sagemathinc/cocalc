@@ -256,6 +256,7 @@ export class NatsClient {
       options?: {
         obj?: object;
         atomic?: boolean;
+        immutable?: boolean;
         stream?: boolean;
         pubsub?: boolean;
         throttleChanges?: number;
@@ -264,7 +265,7 @@ export class NatsClient {
       },
     ): Promise<SyncTable> => {
       query = parse_query(query);
-      const key = JSON.stringify(query);
+      const key = JSON.stringify({ query, options });
       if (this.synctableCache[key] != null) {
         return this.synctableCache[key];
       }
@@ -317,9 +318,9 @@ export class NatsClient {
     }
   };
 
-  changefeed = async (query, { atomic = true }: { atomic?: boolean } = {}) => {
+  changefeed = async (query, options?) => {
     this.changefeedInterest(query, true);
-    return await this.synctable(query, { atomic });
+    return await this.synctable(query, options);
   };
 
   // DEPRECATED

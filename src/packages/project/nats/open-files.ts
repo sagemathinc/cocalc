@@ -41,20 +41,12 @@ export async function init() {
     project_id,
     env: await getEnv(),
   });
-  runLoop();
-}
-
-function runLoop() {
-  logger.debug("starting run loop");
-  if (openFiles != null) {
-    const entries: { [path: string]: Entry } = {};
-    closeIgnoredFiles(entries, openFiles);
-    openFiles.on("change", (entry) => {
-      entries[entry.path] = entry;
-      handleChange(entry);
-    });
-  }
-  logger.debug("exiting open files run loop");
+  const entries: { [path: string]: Entry } = {};
+  closeIgnoredFiles(entries, openFiles);
+  openFiles.on("change", (entry) => {
+    entries[entry.path] = entry;
+    handleChange(entry);
+  });
 }
 
 export function terminate() {
@@ -167,12 +159,11 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
     );
     x = await getTypeAndOpts(syncstrings);
   } catch (err) {
-    logger.debug(`openSyncDoc failed ${err}`);
+    logger.debug(`openSyncDoc failed - error = ${err}`);
     return;
   }
   const { type, opts } = x;
   logger.debug("openSyncDoc got", { path, type, opts });
-  console.log("openSyncDoc got", { path, type, opts });
 
   let doc;
   if (type == "string") {
@@ -197,6 +188,7 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
 async function getTypeAndOpts(
   syncstrings,
 ): Promise<{ type: string; opts: any }> {
+  global.z = {syncstrings}
   let s = syncstrings.get_one();
   if (s == null) {
     await syncstrings.wait(() => {

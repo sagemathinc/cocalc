@@ -16,6 +16,7 @@ export function createSyncTable({
   project_id,
   atomic,
   stream,
+  immutable,
   ...options
 }: {
   query;
@@ -24,11 +25,14 @@ export function createSyncTable({
   project_id?: string;
   atomic?: boolean;
   stream?: boolean;
-  immutable?: boolean; // if true for SyncTableKVAtomic, then get/get_one output immutable.js objects
+  immutable?: boolean; // if true, then get/set works with immutable.js objects instead.
 }) {
   if (stream) {
     if (atomic === false) {
       throw Error("streams must be atomic");
+    }
+    if (immutable) {
+      throw Error("immutable not yet supported for streams");
     }
     return new SyncTableStream({
       query,
@@ -38,22 +42,13 @@ export function createSyncTable({
       ...options,
     });
   } else {
-    if (options?.immutable !== undefined) {
-      // for now if immutable specified at all, do this (for now so project save works)
-      return new SyncTableKV({
-        query,
-        env,
-        account_id,
-        project_id,
-        ...options,
-      });
-    }
     return new SyncTableKVAtomic({
       query,
       env,
       account_id,
       project_id,
       atomic,
+      immutable,
       ...options,
     });
   }
