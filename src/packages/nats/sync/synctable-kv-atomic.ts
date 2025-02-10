@@ -65,7 +65,11 @@ export class SyncTableKVAtomic extends EventEmitter {
     this.set_state("connected");
   };
 
-  getKey = (obj): string => {
+  getKey = (obj_or_key): string => {
+    if (typeof obj_or_key == "string") {
+      return obj_or_key;
+    }
+    const obj = obj_or_key;
     if (this.primaryKeys.length === 1) {
       return toKey(obj[this.primaryKeys[0]] ?? "")!;
     } else {
@@ -79,17 +83,17 @@ export class SyncTableKVAtomic extends EventEmitter {
     this.dkv.set(this.getKey(obj), obj);
   };
 
-  delete = (obj) => {
+  delete = (obj_or_key) => {
     if (this.dkv == null) throw Error("closed");
-    this.dkv.delete(this.getKey(obj));
+    this.dkv.delete(this.getKey(obj_or_key));
   };
 
-  get = (obj?) => {
+  get = (obj_or_key?) => {
     if (this.dkv == null) throw Error("closed");
-    if (obj == null) {
+    if (obj_or_key == null) {
       return this.dkv.get();
     }
-    return this.dkv.get(this.getKey(obj));
+    return this.dkv.get(this.getKey(obj_or_key));
   };
 
   close = () => {

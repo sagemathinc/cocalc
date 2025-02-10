@@ -8,6 +8,8 @@
 
    require("@cocalc/database/nats/changefeeds").init()
 
+   echo 'require("@cocalc/database/nats/changefeeds").init()' | node
+
 */
 
 import getLogger from "@cocalc/backend/logger";
@@ -26,14 +28,13 @@ import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { Svcm, type ServiceMsg } from "@nats-io/services";
-import { type QueuedIterator } from "nats";
+import { Svcm } from "@nats-io/services";
 
 const logger = getLogger("database:nats:changefeeds");
 
 const jc = JSONCodec();
 
-let api: QueuedIterator<ServiceMsg> | null = null;
+let api: any | null = null;
 export async function init() {
   const subject = "hub.*.*.db";
   logger.debug(`init -- subject='${subject}', options=`, {
@@ -50,7 +51,7 @@ export async function init() {
     description: "CoCalc Database Service (changefeeds)",
   });
 
-  const api = service.addEndpoint("api", { subject });
+  api = service.addEndpoint("api", { subject });
 
   for await (const mesg of api) {
     handleRequest(mesg, nc);
@@ -58,8 +59,9 @@ export async function init() {
 }
 
 export function terminate() {
-  logger.debug("terminating");
+  logger.debug("terminating service");
   api?.stop();
+  api = null;
   // also, stop reporting data into the streams
   cancelAllChangefeeds();
 }
@@ -133,14 +135,21 @@ function cancelAllChangefeeds() {
 const createChangefeed = reuseInFlight(
   async (opts, nc) => {
     const query = opts.query;
-    const hash = sha1(jsonStableStringify(query));
+    // the query *AND* the user making it define the thing:
+    const user = { account_id: opts.account_id, project_id: opts.project_id };
+    const hash = sha1(
+      jsonStableStringify({
+        query,
+        ...user,
+      }),
+    );
     const now = Date.now();
     if (changefeedInterest[hash]) {
       changefeedInterest[hash] = now;
-      logger.debug("using existing changefeed for", queryTable(query));
+      logger.debug("using existing changefeed for", queryTable(query), user);
       return;
     }
-    logger.debug("creating new changefeed for", queryTable(query));
+    logger.debug("creating new changefeed for", queryTable(query), user);
     const changes = uuid();
     changefeedHashes[changes] = hash;
     const env = { nc, jc, sha1 };
@@ -151,6 +160,7 @@ const createChangefeed = reuseInFlight(
       project_id: opts.project_id,
       atomic: true,
     });
+
     await synctable.init();
     //     if (global.z == null) {
     //       global.z = {};
@@ -162,8 +172,16 @@ const createChangefeed = reuseInFlight(
         cb(err ?? "missing result");
         return;
       }
+      const current = synctable.get();
+      const databaseKeys = new Set<string>();
       for (const obj of rows) {
+        databaseKeys.add(synctable.getKey(obj));
         synctable.set(obj);
+      }
+      for (const key in current) {
+        if (!databaseKeys.has(key)) {
+          synctable.delete(key);
+        }
       }
       cb();
     };
@@ -177,7 +195,9 @@ const createChangefeed = reuseInFlight(
         return;
       }
       if (action == "insert" || action == "update") {
-        synctable.set(new_val);
+        const cur = synctable.get(new_val);
+        // logger.debug({ table: queryTable(query), action, new_val, old_val });
+        synctable.set({ ...cur, ...new_val });
       } else if (action == "delete") {
         synctable.delete(old_val);
       } else if (action == "close") {
