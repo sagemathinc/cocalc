@@ -1,70 +1,49 @@
 import jsonStableStringify from "json-stable-stringify";
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
-export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
-  let num = 0;
-  for await (const _ of await kv.keys(x)) {
-    num += 1;
-  }
-  return num;
-}
+// export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
+//   let num = 0;
+//   for await (const _ of await kv.keys(x)) {
+//     num += 1;
+//   }
+//   return num;
+// }
 
 // get everything from a KV store matching a subject pattern.
-// TRICK!  Note that getting the keys, then the value
-// for each key, which is what the JS API docs suggests (?)...
-// is **INSANELY SLOW**!
-// Instead count the keys, then use watch and stop when we have them all.
-// It's ridiculous but fast, and is *slightly* dangerous, since the size
-// of the kv store changed maybe right after computing the size, but
-// it's a risk we must take.   We put in a 5s default timeout to avoid
-// any possibility of hanging forever as a result.
 export async function getAllFromKv({
   kv,
   key = ">",
-  timeout = 5000,
 }: {
   kv;
   key?: string | string[];
-  timeout?: number;
 }): Promise<{
   all: { [key: string]: any };
   revisions: { [key: string]: number };
   times: { [key: string]: Date };
 }> {
-  const total = await numKeys(kv, key);
-  let count = 0;
+  // const t = Date.now();
+  // console.log("start getAllFromKv", key);
   const all: any = {};
   const revisions: { [key: string]: number } = {};
   const times: { [key: string]: Date } = {};
-  if (total == 0) {
-    return { all, revisions, times };
-  }
-  const watch = await kv.watch({ key, ignoreDeletes: true });
-  let id: any = 0;
-  for await (const { key, value, revision, sm } of watch) {
-    all[key] = value;
-    revisions[key] = revision;
-    times[key] = sm.time;
-
-    count += 1;
-
-    if (id) {
-      clearTimeout(id);
-      id = 0;
+  const watch = await kv.watch({ key, ignoreDeletes: false });
+  if (watch._data._info.num_pending > 0) {
+    for await (const { key, value, revision, sm } of watch) {
+      if (value.length > 0) {
+        // we MUST check value.length because we do NOT ignoreDeletes.
+        // we do NOT ignore deletes so that sm.di.pending goes down to 0.
+        // Otherwise, there is no way in general to know when we are done.
+        all[key] = value;
+        revisions[key] = revision;
+        times[key] = sm.time;
+      }
+      // console.log("getAllFromKv", key, sm.di.pending);
+      if (sm.di.pending <= 0) {
+        break;
+      }
     }
-    if (count >= total) {
-      break;
-    }
-    // make a timeout so if the wait from one iteration to the
-    // next in the loop is more than this amount, it stops.
-    // This should never happen unless the network were somehow VERY slow
-    // or the kv size shrunk at the exactly wrong time (and even then,
-    // it might work due to delete notifications).  This is only about
-    // getting data from NATS, not the database, so should always be fast.
-    id = setTimeout(() => {
-      watch.stop();
-    }, timeout);
   }
+  // console.log("finished getAllFromKv", key, (Date.now() - t) / 1000, "seconds");
   return { all, revisions, times };
 }
 

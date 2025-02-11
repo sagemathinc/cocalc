@@ -28,7 +28,9 @@ export class NatsChangefeed extends EventEmitter {
 
   connect = async () => {
     this.natsSynctable = await this.client.nats_client.changefeed(this.query, {
-      atomic: false,
+      // atomic=false means less data transfer on changes, but simply does not scale up
+      // well and is hence quite slow overall.
+      atomic: true,
       immutable: false,
     });
     this.interest();
@@ -85,7 +87,6 @@ export class NatsChangefeed extends EventEmitter {
         } else {
           x = { action: "insert", new_val, key };
         }
-        console.log("natsSynctable, change, ", x);
         this.emit("update", x);
       },
     );

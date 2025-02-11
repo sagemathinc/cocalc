@@ -153,16 +153,21 @@ const createChangefeed = reuseInFlight(
     const changes = uuid();
     changefeedHashes[changes] = hash;
     const env = { nc, jc, sha1 };
+    // If you change any settings below, you might also have to change them in
+    //   src/packages/sync/table/changefeed-nats.ts
     const synctable = createSyncTable({
       query,
       env,
       account_id: opts.account_id,
       project_id: opts.project_id,
-      atomic: false,
+      // atomic = false is just way too slow due to the huge number of distinct
+      // messages, which NATS is not as good with.
+      atomic: true,
       immutable: false,
     });
 
     await synctable.init();
+
     //     if (global.z == null) {
     //       global.z = {};
     //     }
