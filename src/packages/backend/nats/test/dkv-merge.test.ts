@@ -3,7 +3,7 @@
 
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-//import { delay } from "awaiting";
+import { diff_match_patch } from "@cocalc/util/dmp";
 
 async function getKvs(opts?) {
   const name = `test-${Math.random()}`;
@@ -100,22 +100,72 @@ describe("test a trivial merge conflict resolution function", () => {
   });
 });
 
-describe("test a sophisticated 3-way merge of strings conflict resolution function", () => {
+describe("test a 3-way merge of strings conflict resolution function", () => {
+  const dmp = new diff_match_patch();
+  const threeWayMerge = (opts: {
+    prev: string;
+    local: string;
+    remote: string;
+  }) => {
+    return dmp.patch_apply(
+      dmp.patch_make(opts.prev, opts.local),
+      opts.remote,
+    )[0];
+  };
   it("sets up and resolves a merge conflict", async () => {
     const { kv1, kv2 } = await getKvs({
       merge: ({ local, remote, prev = "" }) => {
         // our merge strategy is to replace the value by 'conflict'
-        return `${local}${remote}${prev}`;
+        return threeWayMerge({ local, remote, prev });
       },
     });
-    kv1.set("x", 'cocalc');
+    kv1.set("x", "cocalc");
     await kv1.save();
     if (kv2["x"] != "cocalc") {
       // might have to wait
       await once(kv2, "change");
     }
     expect(kv2["x"]).toEqual("cocalc");
+    await kv2.save();
 
+    kv2.set("x", "cocalc!");
+    kv1.set("x", "LOVE cocalc");
+    await kv2.save();
+    if (kv1.get("x") != "LOVE cocalc!") {
+      await once(kv1, "change");
+    }
+    expect(kv1.get("x")).toEqual("LOVE cocalc!");
+    await kv1.save();
+    if (kv2.get("x") != "LOVE cocalc!") {
+      await once(kv2, "change");
+    }
+    expect(kv2.get("x")).toEqual("LOVE cocalc!");
+  });
+});
 
+describe("test a 3-way merge of that merges objects", () => {
+  it("sets up and resolves a merge conflict", async () => {
+    const { kv1, kv2 } = await getKvs({
+      merge: ({ local, remote }) => {
+        return { ...remote, ...local };
+      },
+    });
+    kv1.set("x", { a: 5 });
+    await kv1.save();
+    await once(kv2, "change");
+    expect(kv2["x"]).toEqual({ a: 5 });
+
+    kv1.set("x", { a: 5, b: 15, c: 12 });
+    kv2.set("x", { a: 5, b: 7, d: 3 });
+    await kv2.save();
+    if (kv1.get("x").d != 3) {
+      await once(kv1, "change");
+    }
+    expect(kv1.get("x")).toEqual({ a: 5, b: 15, c: 12, d: 3 });
+    await kv1.save();
+    if (kv2.get("x").b != 15) {
+      await once(kv2, "change");
+    }
+    expect(kv2.get("x")).toEqual({ a: 5, b: 15, c: 12, d: 3 });
   });
 });

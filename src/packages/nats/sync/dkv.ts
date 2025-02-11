@@ -239,7 +239,7 @@ export class DKV extends EventEmitter {
   };
 
   save = async () => {
-    await this.generalDKV?.save();
+    return await this.generalDKV?.save();
   };
 }
 

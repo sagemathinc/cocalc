@@ -317,13 +317,21 @@ export class GeneralDKV extends EventEmitter {
 
   save = reuseInFlight(async () => {
     if (this.noAutosave) {
-      await this.attemptToSave();
-      return;
+      return await this.attemptToSave();
+      // one example error when there's a conflict brewing:
+      /*
+        {
+          code: 10071,
+          name: 'JetStreamApiError',
+          message: 'wrong last sequence: 84492'
+        }
+        */
     }
     let d = 100;
     while (true) {
+      let status;
       try {
-        await this.attemptToSave();
+        status = await this.attemptToSave();
         //console.log("successfully saved");
       } catch {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
@@ -331,7 +339,7 @@ export class GeneralDKV extends EventEmitter {
         // console.log("temporary issue saving")
       }
       if (!this.hasUnsavedChanges()) {
-        return;
+        return status;
       }
     }
   });
@@ -341,10 +349,14 @@ export class GeneralDKV extends EventEmitter {
       throw Error("closed");
     }
     this.changed.clear();
+    const status = { unsaved: 0, set: 0, delete: 0 };
     const obj = { ...this.local };
     for (const key in obj) {
       if (obj[key] === TOMBSTONE) {
+        status.unsaved += 1;
         await this.kv.delete(key);
+        status.delete += 1;
+        status.unsaved -= 1;
         delete obj[key];
         if (!this.changed.has(key)) {
           this.saved[key] = this.local[key];
@@ -357,7 +369,10 @@ export class GeneralDKV extends EventEmitter {
         return;
       }
       try {
+        status.unsaved += 1;
         await this.kv.set(key, obj[key]);
+        status.unsaved -= 1;
+        status.set += 1;
         if (obj[key] === this.local[key] && !this.changed.has(key)) {
           // successfully saved this
           this.saved[key] = this.local[key];
@@ -367,11 +382,13 @@ export class GeneralDKV extends EventEmitter {
           const value = this.local[err.key];
           delete this.local[err.key]; // can never save this.
           delete this.saved[err.key]; // can never save this.
+          status.unsaved -= 1;
           this.emit("reject", { key: err.key, value });
         }
         throw err;
       }
     };
     await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
+    return status;
   });
 }
