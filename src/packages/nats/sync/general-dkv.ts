@@ -91,11 +91,8 @@ export type MergeFunction = (opts: {
 export class GeneralDKV extends EventEmitter {
   private kv?: GeneralKV;
   private merge?: MergeFunction;
-  // local values that have NOT been saved to NATS:
   private local: { [key: string]: any } = {};
-  // local values that HAVE been saved to NATS but may not yet be in this.kv.get()
-  private localSaved: { [key: string]: any } = {};
-  // these may have been changed locally:
+  private saved: { [key: string]: any } = {};
   private changed: Set<string> = new Set();
 
   constructor({
@@ -152,15 +149,14 @@ export class GeneralDKV extends EventEmitter {
   };
 
   private handleRemoteChange = ({ key, value: remote, prev }) => {
-    // local = value we have NOT saved:
-    const local = this.local[key] ?? this.localSaved[key];
+    const local = this.local[key];
     let value: any = remote;
     if (local !== undefined) {
       if (isEqual(local, remote)) {
         // we have a local change, but it's the same change as remote, so just
         // forget about our local change.
         delete this.local[key];
-        delete this.localSaved[key];
+        delete this.saved[key];
       } else {
         try {
           value = this.merge?.({ key, local, remote, prev }) ?? local;
@@ -179,11 +175,10 @@ export class GeneralDKV extends EventEmitter {
         if (isEqual(value, remote)) {
           // no change, so forget our local value
           delete this.local[key];
-          delete this.localSaved[key];
+          delete this.saved[key];
         } else {
           // resolve with the new value, or if it is undefined, a TOMBSTONE, meaning choice is to delete.
           this.local[key] = value ?? TOMBSTONE;
-          delete this.localSaved[key];
         }
       }
     }
@@ -196,7 +191,7 @@ export class GeneralDKV extends EventEmitter {
     }
     if (key != null) {
       this.assertValidKey(key);
-      const local = this.local[key] ?? this.localSaved[key];
+      const local = this.local[key];
       if (local === TOMBSTONE) {
         return undefined;
       }
@@ -204,18 +199,23 @@ export class GeneralDKV extends EventEmitter {
     }
     const x = { ...this.kv.get(), ...this.local };
     for (const key in this.local) {
-      if ((this.local[key] ?? this.localSaved[key]) === TOMBSTONE) {
+      if (this.local[key] === TOMBSTONE) {
         delete x[key];
       }
     }
     return x;
   };
 
+  get length() {
+    // not efficient
+    return Object.keys(this.get()).length;
+  }
+
   has = (key: string): boolean => {
     if (this.kv == null) {
       throw Error("closed");
     }
-    const a = this.local[key] ?? this.localSaved[key];
+    const a = this.local[key];
     if (a === TOMBSTONE) {
       return false;
     }
@@ -267,14 +267,12 @@ export class GeneralDKV extends EventEmitter {
     if (args.length == 2) {
       this.assertValidKey(args[0]);
       this.local[args[0]] = args[1] ?? TOMBSTONE;
-      delete this.localSaved[args[0]];
       this.changed.add(args[0]);
     } else {
       const obj = args[0];
       for (const key in obj) {
         this.assertValidKey(key);
         this.local[key] = obj[key] ?? TOMBSTONE;
-        delete this.localSaved[key];
         this.changed.add(key);
       }
     }
@@ -285,11 +283,13 @@ export class GeneralDKV extends EventEmitter {
     if (this.kv == null) {
       return false;
     }
-    return this.changed.size > 0 || Object.keys(this.local).length > 0;
+    return this.unsavedChanges().length > 0;
   };
 
   unsavedChanges = () => {
-    return Object.keys(this.local);
+    return Object.keys(this.local).filter(
+      (key) => this.local[key] !== this.saved[key],
+    );
   };
 
   save = reuseInFlight(async () => {
@@ -320,8 +320,7 @@ export class GeneralDKV extends EventEmitter {
         await this.kv.delete(key);
         delete obj[key];
         if (!this.changed.has(key)) {
-          this.localSaved[key] = this.local[key];
-          delete this.local[key];
+          this.saved[key] = this.local[key];
         }
       }
     }
@@ -334,14 +333,13 @@ export class GeneralDKV extends EventEmitter {
         await this.kv.set(key, obj[key]);
         if (obj[key] === this.local[key] && !this.changed.has(key)) {
           // successfully saved this
-          this.localSaved[key] = this.local[key];
-          delete this.local[key];
+          this.saved[key] = this.local[key];
         }
       } catch (err) {
         if (err.code == "REJECT" && err.key) {
           const value = this.local[err.key];
           delete this.local[err.key]; // can never save this.
-          delete this.localSaved[err.key];
+          delete this.saved[err.key]; // can never save this.
           this.emit("reject", { key: err.key, value });
         }
         throw err;

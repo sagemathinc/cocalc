@@ -174,6 +174,11 @@ export class DKV extends EventEmitter {
     }
   };
 
+  get length() {
+    // not efficient?
+    return Object.keys(this.get()).length;
+  }
+
   set = (key: string, value: any) => {
     if (this.generalDKV == null) {
       throw Error("closed");
