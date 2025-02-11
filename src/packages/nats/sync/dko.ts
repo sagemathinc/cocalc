@@ -40,7 +40,7 @@ export class DKO extends EventEmitter {
       },
       set(target, prop, value) {
         prop = String(prop);
-        if (prop == "_eventsCount") {
+        if (prop == "_eventsCount" || prop == "_events") {
           target[prop] = value;
           return true;
         }

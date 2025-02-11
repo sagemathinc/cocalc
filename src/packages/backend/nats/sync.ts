@@ -14,16 +14,16 @@ export async function stream(opts): Promise<Stream> {
   return await createStream({ env: await getEnv(), ...opts });
 }
 
-export async function dstream(opts): Promise<DStream> {
-  return await createDstream({ env: await getEnv(), ...opts });
+export async function dstream(opts, options?): Promise<DStream> {
+  return await createDstream({ env: await getEnv(), ...opts }, options);
 }
 
 export async function kv(opts): Promise<KV> {
   return await createKV({ env: await getEnv(), ...opts });
 }
 
-export async function dkv(opts): Promise<DKV> {
-  return await createDKV({ env: await getEnv(), ...opts });
+export async function dkv(opts, options?): Promise<DKV> {
+  return await createDKV({ env: await getEnv(), ...opts }, options);
 }
 
 export async function dko(opts): Promise<DKO> {

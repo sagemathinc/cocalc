@@ -62,7 +62,7 @@ export class DKV extends EventEmitter {
       },
       set(target, prop, value) {
         prop = String(prop);
-        if (prop == "_eventsCount") {
+        if (prop == "_eventsCount" || prop == "_events") {
           target[prop] = value;
           return true;
         }
@@ -188,17 +188,25 @@ export class DKV extends EventEmitter {
 
 const cache: { [key: string]: DKV } = {};
 export const dkv = reuseInFlight(
-  async (opts: DKVOptions) => {
-    const key = userKvKey(opts);
-    if (cache[key] == null) {
+  async (opts: DKVOptions, { noCache }: { noCache?: boolean } = {}) => {
+    const f = async () => {
       const k = new DKV(opts);
       await k.init();
+      return k;
+    };
+    if (noCache) {
+      // especially useful for unit testing.
+      return await f();
+    }
+    const key = userKvKey(opts);
+    if (cache[key] == null) {
+      const k = await f();
       k.on("closed", () => delete cache[key]);
       cache[key] = k;
     }
     return cache[key]!;
   },
   {
-    createKey: (args) => userKvKey(args[0]),
+    createKey: (args) => userKvKey(args[0]) + JSON.stringify(args[1]),
   },
 );
