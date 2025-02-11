@@ -6,6 +6,8 @@
 import { EventEmitter } from "events";
 import type { State } from "./changefeed";
 import { delay } from "awaiting";
+//import { CHANGEFEED_INTEREST_PERIOD_MS } from "@cocalc/nats/sync/synctable";
+const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
 
 export class NatsChangefeed extends EventEmitter {
   private client;
@@ -52,7 +54,8 @@ export class NatsChangefeed extends EventEmitter {
       // console.log("express interest in", this.query);
       try {
         await this.client.nats_client.changefeedInterest(this.query);
-        d = Math.min(45000, 1.3 * d) + Math.random();
+        d =
+          Math.min(CHANGEFEED_INTEREST_PERIOD_MS / 3, 1.3 * d) + Math.random();
       } catch (err) {
         if (err.code != "TIMEOUT") {
           // it's normal for this to throw a TIMEOUT error whenever the browser isn't connected to NATS,
@@ -71,13 +74,20 @@ export class NatsChangefeed extends EventEmitter {
     if (this.natsSynctable == null) {
       return;
     }
-    this.natsSynctable.on("change", ({ value: new_val, prev: old_val }) => {
-      // console.log("natsSynctable, change, ", { new_val, old_val });
-      if (new_val == null) {
-        this.emit("delete", { action: "delete", old_val });
-      } else {
-        this.emit("update", { action: "update", new_val, old_val });
-      }
-    });
+    this.natsSynctable.on(
+      "change",
+      ({ key, value: new_val, prev: old_val }) => {
+        let x;
+        if (new_val == null) {
+          x = { action: "delete", old_val, key };
+        } else if (old_val !== undefined) {
+          x = { action: "update", new_val, old_val, key };
+        } else {
+          x = { action: "insert", new_val, key };
+        }
+        console.log("natsSynctable, change, ", x);
+        this.emit("update", x);
+      },
+    );
   };
 }

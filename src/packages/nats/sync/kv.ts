@@ -1,10 +1,12 @@
 /*
 Always Consistent Centralized Key Value Store
 
+NOTE: I think this isn't used by anything actually. Note it doesn't emit
+change events.    Maybe we should delete this.
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/backend n
+~/cocalc/src/packages/backend$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > t = await require("@cocalc/backend/nats/sync").kv({name:'test'})

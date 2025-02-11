@@ -78,7 +78,7 @@ import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 
-const TOMBSTONE = Symbol("tombstone");
+export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 50;
 
 export type MergeFunction = (opts: {

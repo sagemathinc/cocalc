@@ -66,16 +66,25 @@ export class DKO extends EventEmitter {
     });
     this.dkv.on("change", ({ key: path, value }) => {
       if (path == null) {
-        // TODO: why would this happen?
+        // TODO: could this happen?
         return;
       }
       const { key, field } = this.fromPath(path);
       if (!field) {
+        // there is no field part of the path, which happens
+        // only for delete of entire object, after setting all
+        // the fields to null.
         this.emit("change", { key });
       } else {
+        if (value === undefined && this.dkv?.get(key) == null) {
+          // don't emit change setting fields to undefined if the
+          // object was already deleted.
+          return;
+        }
         this.emit("change", { key, field, value });
       }
     });
+
     this.dkv.on("reject", ({ key: path, value }) => {
       if (path == null) {
         // TODO: would this happen?
@@ -118,6 +127,7 @@ export class DKO extends EventEmitter {
     if (fields == null) {
       return;
     }
+    this.dkv.delete(key);
     for (const field of fields) {
       this.dkv.delete(this.toPath(key, field));
     }

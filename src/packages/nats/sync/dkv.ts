@@ -13,7 +13,7 @@ Type ".help" for more information.
 
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { GeneralDKV, type MergeFunction } from "./general-dkv";
+import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
 import { userKvKey, type KVOptions } from "./kv";
 import { jsName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
@@ -84,11 +84,15 @@ export class DKV extends EventEmitter {
     }
     this.generalDKV = new GeneralDKV(this.opts);
     this.generalDKV.on("change", ({ value, prev }) => {
-      if (value != null) {
-        this.emit("change", { key: value.key, value: value.value });
+      if (value != null && value !== TOMBSTONE) {
+        this.emit("change", {
+          key: value.key,
+          value: value.value,
+          prev: prev?.value,
+        });
       } else if (prev != null) {
         // value is null so it's a delete
-        this.emit("change", { key: prev.key });
+        this.emit("change", { key: prev.key, prev: prev.value });
       }
     });
     this.generalDKV.on("reject", ({ value }) => {

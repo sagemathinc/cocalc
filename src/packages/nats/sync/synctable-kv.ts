@@ -102,7 +102,13 @@ export class SyncTableKV extends EventEmitter {
     }
     this.dkv.on("change", (x) => {
       if (!this.atomic) {
-        x = { ...x, value: this.dkv?.get(x.key) };
+        if (x.value === undefined) {
+          // delete
+          x = { ...x, prev: this.dkv?.get(x.key) };
+        } else {
+          // change
+          x = { ...x, value: this.dkv?.get(x.key) };
+        }
       }
       this.emit("change", x);
     });

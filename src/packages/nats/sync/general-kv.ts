@@ -301,19 +301,12 @@ export class GeneralKV extends EventEmitter {
     if (this.all[key] !== undefined) {
       const cur = this.all[key];
       try {
-        delete this.all[key];
         const newRevision = await this.kv.delete(key, {
           previousSeq: revision ?? this.revisions[key],
         });
         this.revisions[key] = newRevision;
-        delete this.times[key];
-        delete this.sizes[key];
       } catch (err) {
-        if (cur === undefined) {
-          delete this.all[key];
-        } else {
-          this.all[key] = cur;
-        }
+        this.all[key] = cur;
         throw err;
       }
     }

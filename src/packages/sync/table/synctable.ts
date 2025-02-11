@@ -1563,6 +1563,7 @@ export class SyncTable extends EventEmitter {
       change.old_val,
       change.action,
       this.coerce_types,
+      change.key,
     );
     if (key != null) {
       changed_keys.push(key);
@@ -1594,6 +1595,7 @@ export class SyncTable extends EventEmitter {
     old_val: any,
     action: string,
     coerce: boolean,
+    key?: string,
   ): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
@@ -1601,14 +1603,16 @@ export class SyncTable extends EventEmitter {
     }
 
     if (action === "delete") {
-      old_val = fromJS(old_val);
-      if (old_val == null) {
-        throw Error("old_val must not be null for delete action");
+      if (!key) {
+        old_val = fromJS(old_val);
+        if (old_val == null) {
+          throw Error("old_val must not be null for delete action");
+        }
+        if (coerce && this.coerce_types) {
+          old_val = this.do_coerce_types(old_val);
+        }
+        key = this.obj_to_key(old_val);
       }
-      if (coerce && this.coerce_types) {
-        old_val = this.do_coerce_types(old_val);
-      }
-      const key = this.obj_to_key(old_val);
       if (key == null || !this.value.has(key)) {
         return; // already gone
       }
@@ -1623,7 +1627,7 @@ export class SyncTable extends EventEmitter {
     if (coerce && this.coerce_types) {
       new_val = this.do_coerce_types(new_val);
     }
-    const key = this.obj_to_key(new_val);
+    key = this.obj_to_key(new_val);
     if (key == null) {
       // This means the primary key is null or missing, which
       // shouldn't happen.  Maybe it could in some edge case.
