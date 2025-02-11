@@ -1606,7 +1606,9 @@ export class SyncTable extends EventEmitter {
       if (!key) {
         old_val = fromJS(old_val);
         if (old_val == null) {
-          throw Error("old_val must not be null for delete action");
+          throw Error(
+            "old_val must not be null or key must be specified for delete action",
+          );
         }
         if (coerce && this.coerce_types) {
           old_val = this.do_coerce_types(old_val);

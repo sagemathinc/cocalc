@@ -137,14 +137,8 @@ export class MessagesActions extends Actions<MessagesState> {
     }
   };
 
-  handleTableUpdate = (updatedMessages) => {
+  handleTableUpdate = (messages) => {
     const store = this.getStore();
-    let messages = store.get("messages");
-    if (messages == null) {
-      messages = updatedMessages;
-    } else {
-      messages = messages.merge(updatedMessages);
-    }
     messages = getNotExpired(messages);
     const threads = getThreads(messages);
     this.setState({ messages, threads });
