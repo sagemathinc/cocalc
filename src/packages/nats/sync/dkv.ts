@@ -24,6 +24,7 @@ import { sha1 } from "@cocalc/util/misc";
 
 export interface DKVOptions extends KVOptions {
   merge: MergeFunction;
+  noAutosave?: boolean;
 }
 
 export class DKV extends EventEmitter {
@@ -39,6 +40,7 @@ export class DKV extends EventEmitter {
     project_id,
     merge,
     env,
+    noAutosave,
     limits,
   }: DKVOptions) {
     super();
@@ -55,6 +57,7 @@ export class DKV extends EventEmitter {
       filter: `${this.prefix}.>`,
       env,
       merge,
+      noAutosave,
       limits,
     };
 
@@ -86,7 +89,41 @@ export class DKV extends EventEmitter {
     if (this.generalDKV != null) {
       return;
     }
-    this.generalDKV = new GeneralDKV(this.opts);
+    // the merge conflict algorithm must be adapted since we encode
+    // keys and values specially in this class.
+    const merge = (opts) => {
+      // here is what the input might look like:
+      //   opts = {
+      //   key: '71d7616250fed4dc27b70ee3b934178a3b196bbb.11f6ad8ec52a2984abaafd7c3b516503785c2072',
+      //   remote: { key: 'x', value: 10 },
+      //   local: { key: 'x', value: 5 },
+      //   prev:  { key: 'x', value: 3 }
+      //   }
+      const key = opts.local?.key;
+      if (key == null) {
+        console.warn("BUG in merge conflict resolution", opts);
+        throw Error("local key must be defined");
+      }
+      const local = opts.local.value;
+      const remote = opts.remote?.value;
+      const prev = opts.prev?.value;
+
+      let value;
+      try {
+        value = this.opts.merge?.({ key, local, remote, prev }) ?? local;
+      } catch (err) {
+        console.warn("exception in merge conflict resolution", err);
+        value = local;
+      }
+      //       console.log(
+      //         "conflict resolution: ",
+      //         { key, local, remote, prev },
+      //         "-->",
+      //         { value },
+      //       );
+      return { key, value };
+    };
+    this.generalDKV = new GeneralDKV({ ...this.opts, merge });
     this.generalDKV.on("change", ({ value, prev }) => {
       if (value != null && value !== TOMBSTONE) {
         this.emit("change", {

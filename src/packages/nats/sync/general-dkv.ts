@@ -94,6 +94,7 @@ export class GeneralDKV extends EventEmitter {
   private local: { [key: string]: any } = {};
   private saved: { [key: string]: any } = {};
   private changed: Set<string> = new Set();
+  private noAutosave: boolean;
 
   constructor({
     name,
@@ -101,6 +102,7 @@ export class GeneralDKV extends EventEmitter {
     filter,
     merge,
     options,
+    noAutosave,
     limits,
   }: {
     name: string;
@@ -115,11 +117,16 @@ export class GeneralDKV extends EventEmitter {
     // filter: optionally restrict to subset of named kv store matching these subjects.
     // NOTE: any key name that you *set or delete* must match one of these
     filter: string | string[];
-    options?;
     limits?: KVLimits;
+    // if noAutosave is set, local changes are never saved until you explicitly
+    // call "await this.save()", which will try once to save.  New changes may
+    // not be saved though.
+    noAutosave?: boolean;
+    options?;
   }) {
     super();
     this.merge = merge;
+    this.noAutosave = !!noAutosave;
     //this.limits = limits;
     this.kv = new GeneralKV({ name, env, filter, options, limits });
   }
@@ -149,7 +156,7 @@ export class GeneralDKV extends EventEmitter {
   };
 
   private handleRemoteChange = ({ key, value: remote, prev }) => {
-    const local = this.local[key];
+    const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
     let value: any = remote;
     if (local !== undefined) {
       if (isEqual(local, remote)) {
@@ -158,8 +165,10 @@ export class GeneralDKV extends EventEmitter {
         delete this.local[key];
         delete this.saved[key];
       } else {
+        //console.log("merge conflict", { key, remote, local, prev });
         try {
           value = this.merge?.({ key, local, remote, prev }) ?? local;
+          // console.log("merge conflict --> ", value);
           //           console.log("handle merge conflict", {
           //             key,
           //             local,
@@ -167,18 +176,26 @@ export class GeneralDKV extends EventEmitter {
           //             prev,
           //             value,
           //           });
-        } catch {
+        } catch (err) {
+          console.warn("exception in merge conflict resolution", err);
           // user provided a merge function that throws an exception. We select local, since
           // it is the newest, i.e., "last write wins"
           value = local;
+          // console.log("merge conflict ERROR --> ", err, value);
         }
         if (isEqual(value, remote)) {
           // no change, so forget our local value
           delete this.local[key];
           delete this.saved[key];
         } else {
-          // resolve with the new value, or if it is undefined, a TOMBSTONE, meaning choice is to delete.
-          this.local[key] = value ?? TOMBSTONE;
+          // resolve with the new value, or if it is undefined, a TOMBSTONE,
+          // meaning choice is to delete.
+          // console.log("conflict resolution: ", { key, value });
+          if (value === TOMBSTONE) {
+            this.delete(key);
+          } else {
+            this.set(key, value);
+          }
         }
       }
     }
@@ -247,7 +264,9 @@ export class GeneralDKV extends EventEmitter {
   delete = (key) => {
     this.assertValidKey(key);
     this._delete(key);
-    this.save();
+    if (!this.noAutosave) {
+      this.save();
+    }
   };
 
   clear = () => {
@@ -260,7 +279,9 @@ export class GeneralDKV extends EventEmitter {
     for (const key in this.local) {
       this._delete(key);
     }
-    this.save();
+    if (!this.noAutosave) {
+      this.save();
+    }
   };
 
   set = (...args) => {
@@ -276,7 +297,9 @@ export class GeneralDKV extends EventEmitter {
         this.changed.add(key);
       }
     }
-    this.save();
+    if (!this.noAutosave) {
+      this.save();
+    }
   };
 
   hasUnsavedChanges = () => {
@@ -293,6 +316,10 @@ export class GeneralDKV extends EventEmitter {
   };
 
   save = reuseInFlight(async () => {
+    if (this.noAutosave) {
+      await this.attemptToSave();
+      return;
+    }
     let d = 100;
     while (true) {
       try {

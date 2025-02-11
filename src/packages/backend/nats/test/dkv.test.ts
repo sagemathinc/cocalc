@@ -1,6 +1,5 @@
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-
 import { delay } from "awaiting";
 
 describe("create a public dkv and do basic operations", () => {
