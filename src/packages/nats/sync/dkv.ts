@@ -9,6 +9,10 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > t = await require("@cocalc/backend/nats/sync").dkv({name:'test'})
 
+
+UNIT TESTS: See backend/nats/test/
+
+They aren't right here, because this module doesn't have info to connect to NATS.
 */
 
 import { EventEmitter } from "events";
@@ -122,6 +126,10 @@ export class DKV extends EventEmitter {
     this.generalDKV.delete(`${this.prefix}.${this.sha1(key)}`);
   };
 
+  clear = () => {
+    this.generalDKV?.clear();
+  };
+
   // server assigned time
   time = (key?: string) => {
     if (this.generalDKV == null) {
@@ -140,6 +148,13 @@ export class DKV extends EventEmitter {
       x[key] = times[k];
     }
     return x;
+  };
+
+  has = (key: string) => {
+    if (this.generalDKV == null) {
+      throw Error("closed");
+    }
+    return this.generalDKV.has(`${this.prefix}.${this.sha1(key)}`);
   };
 
   get = (key?) => {

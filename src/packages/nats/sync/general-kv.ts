@@ -260,6 +260,10 @@ export class GeneralKV extends EventEmitter {
     }
   };
 
+  has = (key: string): boolean => {
+    return this.all?.[key] !== undefined;
+  };
+
   time = (key?: string) => {
     if (key == null) {
       return this.times;
