@@ -8,6 +8,21 @@ for this architecture:
  - nsc
 
 We assume curl and python3 are installed.
+
+DEVELOPMENT:
+
+Installation happens automatically, e.g,. when you do 'pnpm nats-server' or
+start the hub via 'pnpm hub'.   However, you can explicitly do
+an install as follows:
+
+~/cocalc/src/packages/backend/nats$ DEBUG=cocalc:* DEBUG_CONSOLE=yes node
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
+> await require('@cocalc/backend/nats/install').install()
+
+Installing just the server:
+
+> await require('@cocalc/backend/nats/install').installNatsServer()
 */
 
 import { nats } from "@cocalc/backend/data";
@@ -17,7 +32,9 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import getLogger from "@cocalc/backend/logger";
 
 const VERSIONS = {
-  "nats-server": "v2.11.0-preview.2",
+  // https://github.com/nats-io/nats-server/releases
+  "nats-server": "v2.10.26-RC.2",
+  // https://github.com/nats-io/natscli/releases
   nats: "v0.1.6",
 };
 
@@ -62,7 +79,7 @@ async function getVersion(name: string) {
   }
 }
 
-async function installNatsServer(noUpgrade) {
+export async function installNatsServer(noUpgrade) {
   if (noUpgrade && (await pathExists(join(bin, "nats-server")))) {
     return;
   }
@@ -72,9 +89,10 @@ async function installNatsServer(noUpgrade) {
     );
     return;
   }
-  logger.debug("installing nats-server");
+  const command = `curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@${VERSIONS["nats-server"]} | sh`;
+  logger.debug("installing nats-server: ", command);
   await executeCode({
-    command: `curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@${VERSIONS["nats-server"]} | sh`,
+    command,
     path: bin,
     verbose: true,
   });
@@ -113,7 +131,7 @@ export async function installNsc(noUpgrade) {
   }
 }
 
-async function installNatsCli(noUpgrade) {
+export async function installNatsCli(noUpgrade) {
   if (noUpgrade && (await pathExists(join(bin, "nats")))) {
     return;
   }
