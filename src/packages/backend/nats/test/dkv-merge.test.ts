@@ -1,5 +1,9 @@
-// Testing merge conflicts with dkv
-// pnpm exec jest --watch --forceExit --detectOpenHandles "dkv-merge.test.ts"
+/*
+Testing merge conflicts with dkv
+
+DEVELOPMENT:
+pnpm exec jest --watch --forceExit --detectOpenHandles "dkv-merge.test.ts"
+*/
 
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";

@@ -90,6 +90,7 @@ export type MergeFunction = (opts: {
 
 export class GeneralDKV extends EventEmitter {
   private kv?: GeneralKV;
+  private jc?;
   private merge?: MergeFunction;
   private local: { [key: string]: any } = {};
   private saved: { [key: string]: any } = {};
@@ -119,8 +120,8 @@ export class GeneralDKV extends EventEmitter {
     filter: string | string[];
     limits?: KVLimits;
     // if noAutosave is set, local changes are never saved until you explicitly
-    // call "await this.save()", which will try once to save.  New changes may
-    // not be saved though.
+    // call "await this.save()", which will try once to save.  Changes made during
+    // the save may not be saved though.
     noAutosave?: boolean;
     options?;
   }) {
@@ -128,6 +129,7 @@ export class GeneralDKV extends EventEmitter {
     this.merge = merge;
     this.noAutosave = !!noAutosave;
     //this.limits = limits;
+    this.jc = env.jc;
     this.kv = new GeneralKV({ name, env, filter, options, limits });
   }
 
@@ -165,7 +167,7 @@ export class GeneralDKV extends EventEmitter {
         delete this.local[key];
         delete this.saved[key];
       } else {
-        //console.log("merge conflict", { key, remote, local, prev });
+        // console.log("merge conflict", { key, remote, local, prev });
         try {
           value = this.merge?.({ key, local, remote, prev }) ?? local;
           // console.log("merge conflict --> ", value);
@@ -284,16 +286,28 @@ export class GeneralDKV extends EventEmitter {
     }
   };
 
+  private toValue = (obj) => {
+    if (obj === undefined) {
+      return TOMBSTONE;
+    }
+    // It's EXTREMELY important that anything we save to NATS has the property that
+    // jc.decode(jc.encode(obj)) is the identity map. That is very much NOT
+    // the case for stuff that set gets called on, e.g., {a:new Date()}.
+    // Thus before storing it in in any way, we ensure this immediately:
+    return this.jc.decode(this.jc.encode(obj));
+  };
+
   set = (...args) => {
     if (args.length == 2) {
       this.assertValidKey(args[0]);
-      this.local[args[0]] = args[1] ?? TOMBSTONE;
+      const obj = this.toValue(args[1]);
+      this.local[args[0]] = obj;
       this.changed.add(args[0]);
     } else {
       const obj = args[0];
       for (const key in obj) {
         this.assertValidKey(key);
-        this.local[key] = obj[key] ?? TOMBSTONE;
+        this.local[key] = this.toValue(obj[key]);
         this.changed.add(key);
       }
     }
@@ -333,14 +347,14 @@ export class GeneralDKV extends EventEmitter {
       try {
         status = await this.attemptToSave();
         //console.log("successfully saved");
-      } catch {
-        d = Math.min(10000, d * 1.3) + Math.random() * 100;
-        await delay(d);
-        // console.log("temporary issue saving")
+      } catch (_err) {
+        //console.log("temporary issue saving", this.kv?.name, _err);
       }
       if (!this.hasUnsavedChanges()) {
         return status;
       }
+      d = Math.min(10000, d * 1.3) + Math.random() * 100;
+      await delay(d);
     }
   });
 
@@ -373,7 +387,7 @@ export class GeneralDKV extends EventEmitter {
         await this.kv.set(key, obj[key]);
         status.unsaved -= 1;
         status.set += 1;
-        if (obj[key] === this.local[key] && !this.changed.has(key)) {
+        if (!this.changed.has(key)) {
           // successfully saved this
           this.saved[key] = this.local[key];
         }

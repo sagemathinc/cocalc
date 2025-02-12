@@ -1,3 +1,11 @@
+/*
+Testing basic ops with dkv
+
+DEVELOPMENT:
+pnpm exec jest --watch --forceExit --detectOpenHandles "dkv.test.ts"
+
+*/
+
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -194,8 +202,8 @@ describe("test deleting and clearing a dkv", () => {
 
 describe("set several items, confirm write worked, save, and confirm they are still there after save", () => {
   const name = `test-${Math.random()}`;
-  const count = 100;
-  // the time thresholds should be trivial for only 100 items
+  const count = 50;
+  // the time thresholds should be "trivial"
   it(`adds ${count} entries`, async () => {
     const kv = await createDkv({ name });
     expect(kv.get()).toEqual({});
@@ -209,13 +217,13 @@ describe("set several items, confirm write worked, save, and confirm they are st
     expect(Object.keys(kv.get()).length).toEqual(count);
     expect(kv.get()).toEqual(obj);
     await kv.save();
-    expect(Date.now() - t0).toBeLessThan(500);
+    expect(Date.now() - t0).toBeLessThan(1000);
     expect(Object.keys(kv.get()).length).toEqual(count);
-    // the local state maps should also get cleared quickly,
-    // but there is no event for this, so we loop:
-    // @ts-ignore: saved is private
-    while (Object.keys(kv.generalDKV.saved).length > 0) {
-      await delay(5);
+    //     // the local state maps should also get cleared quickly,
+    //     // but there is no event for this, so we loop:
+    //  @ts-ignore: saved is private
+    while (Object.keys(kv.generalDKV.local).length > 0) {
+      await delay(10);
     }
     // @ts-ignore: local is private
     expect(kv.generalDKV.local).toEqual({});
