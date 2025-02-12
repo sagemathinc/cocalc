@@ -36,7 +36,11 @@ export function jsName({
     return `project-${project_id}`;
   }
   if (!account_id) {
-    return "public";
+    if (process.env.COCALC_TEST_MODE) {
+      return "test";
+    } else {
+      return "public";
+    }
   }
   return `account-${account_id}`;
 }
@@ -86,6 +90,9 @@ export function streamSubject({
     return `project.${project_id}.stream.>`;
   }
   if (!account_id) {
+    if (process.env.COCALC_TEST_MODE) {
+      return "test.stream.>";
+    }
     return "public.stream.>";
   }
   return `account.${account_id}.stream.>`;
