@@ -208,6 +208,9 @@ export class Stream extends EventEmitter {
   });
 
   get = (n?) => {
+    if (this.js == null) {
+      throw Error("closed");
+    }
     if (n == null) {
       return [...this.messages];
     } else {

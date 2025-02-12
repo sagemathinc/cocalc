@@ -34,15 +34,21 @@ import { millis } from "@cocalc/nats/util";
 
 const MAX_PARALLEL = 50;
 
+export interface DStreamOptions extends StreamOptions {
+  noAutosave?: boolean;
+}
+
 export class DStream extends EventEmitter {
   public readonly name: string;
   private stream?: Stream;
   private messages: any[];
   private raw: any[];
+  private noAutosave: boolean;
   private local: { [id: string]: { mesg: any; subject?: string } } = {};
 
-  constructor(opts: StreamOptions) {
+  constructor(opts: DStreamOptions) {
     super();
+    this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
     this.stream = new Stream(opts);
     this.messages = this.stream.messages;
@@ -67,9 +73,12 @@ export class DStream extends EventEmitter {
     this.emit("connected");
   });
 
-  close = () => {
+  close = async () => {
     if (this.stream == null) {
       return;
+    }
+    if (!this.noAutosave) {
+      await this.save();
     }
     this.stream.close();
     this.emit("closed");
@@ -84,6 +93,9 @@ export class DStream extends EventEmitter {
   };
 
   get = (n?) => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
     if (n == null) {
       return [
         ...this.messages,
@@ -117,7 +129,9 @@ export class DStream extends EventEmitter {
   publish = (mesg, subject?: string) => {
     const id = randomId();
     this.local[id] = { mesg, subject };
-    this.save();
+    if (!this.noAutosave) {
+      this.save();
+    }
   };
 
   push = (...args) => {
