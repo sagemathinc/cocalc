@@ -349,8 +349,10 @@ if (
   throw Error("make typescript happy");
 }
 schema.projects_all.user_query.get.options = [];
+schema.projects_all.user_query.get.options_load = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];
+schema.projects_all.user_query.get.pg_where_load = ["projects"];
 
 // Table that provides extended read info about a single project
 // but *ONLY* for admin.
