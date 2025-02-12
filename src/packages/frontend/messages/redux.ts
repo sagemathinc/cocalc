@@ -138,7 +138,6 @@ export class MessagesActions extends Actions<MessagesState> {
   };
 
   handleTableUpdate = (messages) => {
-    const store = this.getStore();
     messages = getNotExpired(messages);
     const threads = getThreads(messages);
     this.setState({ messages, threads });

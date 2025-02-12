@@ -594,6 +594,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
       }
     }
     const all_paths = deleted_file_variations(path);
+    const open_files = this.get("open_files");
+    if (open_files == null) {
+      return;
+    }
     for (const file of this.get("open_files").keys()) {
       if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
         if (!this.has_file_been_viewed(file)) {

@@ -107,8 +107,9 @@ function queryTable(query) {
   return Object.keys(query)[0];
 }
 
-const changefeedInterest: { [hash: string]: number } = {};
 const changefeedHashes: { [id: string]: string } = {};
+const changefeedInterest: { [hash: string]: number } = {};
+const changefeedSynctables: { [hash: string]: any } = {};
 
 function cancelChangefeed(id) {
   logger.debug("cancelChangefeed", { id });
@@ -117,6 +118,8 @@ function cancelChangefeed(id) {
     // already canceled
     return;
   }
+  changefeedSynctables[hash]?.close();
+  delete changefeedSynctables[hash];
   delete changefeedInterest[hash];
   delete changefeedHashes[id];
   db().user_query_cancel_changefeed({ id });
@@ -165,8 +168,13 @@ const createChangefeed = reuseInFlight(
       atomic: true,
       immutable: false,
     });
+    changefeedSynctables[hash] = synctable;
 
-    await synctable.init();
+    try {
+      await synctable.init();
+    } catch (err) {
+      cancelChangefeed(changes);
+    }
 
     //     if (global.z == null) {
     //       global.z = {};
@@ -245,6 +253,7 @@ const createChangefeed = reuseInFlight(
               query,
             );
             cancelChangefeed(changes);
+            return;
           }
         }
       };
