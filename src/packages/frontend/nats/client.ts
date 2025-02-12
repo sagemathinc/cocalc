@@ -5,7 +5,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
 import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
-import { randomId } from "@cocalc/nats/names";
+import { inboxPrefix, randomId } from "@cocalc/nats/names";
 import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
@@ -70,6 +70,7 @@ export class NatsClient {
     const options = {
       ...CONNECT_OPTIONS,
       servers: [server],
+      inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
     };
     try {
       this.nc = await nats.connect(options);

@@ -41,6 +41,37 @@ export function jsName({
   return `account-${account_id}`;
 }
 
+/*
+Custom inbox prefix per "user"!
+
+So can receive response to requests, and that you can ONLY receive responses
+to your own messages and nobody else's!  This must be used in conjunction with
+the inboxPrefix client option when connecting.  Note that the NATS docs
+  https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization
+do not explain this, instead just emphasizing you're screwed but not giving
+the solution, which is very disconcerting!  There are a couple of places in
+our code where we create connections, and these all must be aware of the
+inbox prefix we use.
+
+This is explained in this natsbyexample page:
+
+https://natsbyexample.com/examples/auth/private-inbox/cli
+*/
+export function inboxPrefix({
+  account_id,
+  project_id,
+}: {
+  account_id?: string;
+  project_id?: string;
+}) {
+  if (!account_id && !project_id) {
+    // the hubs
+    return "_INBOX.hub";
+  }
+  // a project or account:
+  return `_INBOX.${jsName({ account_id, project_id })}`;
+}
+
 export function streamSubject({
   project_id,
   account_id,

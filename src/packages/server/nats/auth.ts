@@ -30,6 +30,7 @@ import { natsAccountName } from "@cocalc/backend/nats/conf";
 import { throttle } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { inboxPrefix } from "@cocalc/nats/names";
 
 const logger = getLogger("server:nats:auth");
 
@@ -43,7 +44,7 @@ export async function nsc(
 
 // TODO: consider making the names shorter strings using https://www.npmjs.com/package/short-uuid
 
-// A CoCalc User is (so far): a project or an account.
+// A CoCalc User is (so far): a project or account or a hub (not covered here).
 type CoCalcUser =
   | {
       account_id: string;
@@ -111,13 +112,13 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const userType = getCoCalcUserType(cocalcUser);
   // TODO: jetstream permissions are WAY TO BROAD.
   const goalPub = new Set([
-    "_INBOX.>", // so can use request/response
+    // "_INBOX.>", // !!!! TODO: so can create responses to requests -- fix this it is horribly insecure!!!!!
     `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
     "$JS.API.INFO",
   ]);
   const goalSub = new Set([
-    "_INBOX.>", // so can user request/response
-    "system.>", // access to READ the system info kv store.
+    inboxPrefix(cocalcUser) + ".>",
+    "public.>", // access to READ the public system info kv store.
   ]);
 
   // the public jetstream: this makes it available *read only* to all accounts and projects.
@@ -204,7 +205,18 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
       }
     }
   }
-  const args = ["edit", "signing-key", "--sk", name];
+  // We edit the signing key rather than the user, so the cookie in the user's
+  // browser stays small and never has to change.
+
+  // Also,--allow-pub-response is explained at
+  // https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization#allow-responses-map
+  // and makes it so we don't have to allow any user to publish to
+  // all of _INBOX.>, which might be bad, since one user could in theory
+  // publish a response to a different user's request (though in practice
+  // the subject is random so not feasible).  Defense in depth.
+
+  const args = ["edit", "signing-key", "--sk", name, "--allow-pub-response"];
+
   let changed = false;
   if (rm.length > 0) {
     // --rm applies to both pub and sub and happens after adding,

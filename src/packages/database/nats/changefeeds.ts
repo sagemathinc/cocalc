@@ -194,7 +194,7 @@ const createChangefeed = reuseInFlight(
       }
       for (const key in current) {
         if (!databaseKeys.has(key)) {
-          console.log("remove from synctable", key);
+          // console.log("remove from synctable", key);
           synctable.delete(key);
         }
       }

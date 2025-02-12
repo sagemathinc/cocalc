@@ -7,6 +7,7 @@ export { getEnv } from "./env";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
+import { inboxPrefix } from "@cocalc/nats/names";
 
 const logger = getLogger("backend:nats");
 
@@ -33,6 +34,7 @@ export const getConnection = reuseInFlight(async () => {
       nc = await connect({
         ...CONNECT_OPTIONS,
         authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
+        inboxPrefix: inboxPrefix({}),
       });
       logger.debug(`connected to ${nc.getServer()}`);
     } catch (err) {
