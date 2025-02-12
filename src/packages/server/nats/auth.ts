@@ -138,6 +138,8 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     // the account-specific kv stores
     goalPub.add(`$JS.API.*.*.KV_account-${userId}`);
     goalPub.add(`$JS.API.*.*.KV_account-${userId}.>`);
+    // this FC is needed for "flow control" - without this, you get random hangs forever at scale!
+    goalPub.add(`$JS.FC.KV_account-${userId}.>`);
 
     const pool = getPool();
     // all RUNNING projects with the user's group
@@ -351,6 +353,8 @@ function projectSubjects(project_id: string) {
   // The unique project-wide jetstream key:value store
   pub.add(`$JS.*.*.*.KV_project-${project_id}`);
   pub.add(`$JS.*.*.*.KV_project-${project_id}.>`);
+  // this FC is needed for "flow control" - without this, you get random hangs forever at scale!
+  pub.add(`$JS.FC.KV_project-${project_id}.>`);
 
   // The unique project-wide jetstream stream:
   pub.add(`$JS.*.*.*.project-${project_id}`);

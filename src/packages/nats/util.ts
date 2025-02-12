@@ -28,17 +28,17 @@ export async function getAllFromKv({
   const times: { [key: string]: Date } = {};
   const watch = await kv.watch({ key, ignoreDeletes: false });
   if (watch._data._info.num_pending > 0) {
-    for await (const { key, value, revision, sm } of watch) {
+    for await (const { key: key0, value, revision, sm } of watch) {
       if (value.length > 0) {
         // we MUST check value.length because we do NOT ignoreDeletes.
         // we do NOT ignore deletes so that sm.di.pending goes down to 0.
         // Otherwise, there is no way in general to know when we are done.
-        all[key] = value;
-        revisions[key] = revision;
-        times[key] = sm.time;
+        all[key0] = value;
+        revisions[key0] = revision;
+        times[key0] = sm.time;
       }
-      // console.log("getAllFromKv", key, sm.di.pending);
       if (sm.di.pending <= 0) {
+        // **NOTE!  This will hang and never get hit if you don't have the $JC.FC.... auth enabled!!!!**
         break;
       }
     }
