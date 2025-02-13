@@ -704,6 +704,7 @@ Table({
           salesloft_id: null,
           sign_up_usage_intent: null,
           owner_id: null,
+          deleted: null,
         },
       },
       set: {
@@ -918,4 +919,4 @@ export interface UserSearchResult {
   email_address?: string;
 }
 
-export const ACCOUNT_ID_COOKIE_NAME = 'account_id';
+export const ACCOUNT_ID_COOKIE_NAME = "account_id";

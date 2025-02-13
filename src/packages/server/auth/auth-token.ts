@@ -42,8 +42,8 @@ export async function generateUserAuthToken({
   const authToken = generate(24);
   const pool = getPool();
   await pool.query(
-    "INSERT INTO auth_tokens (auth_token, expire, account_id) VALUES($1, NOW()+INTERVAL '12 hours', $2)",
-    [authToken, account_id],
+    "INSERT INTO auth_tokens (auth_token, expire, account_id, created_by, created, is_admin) VALUES($1, NOW()+INTERVAL '12 hours', $2, $3, NOW(), $4)",
+    [authToken, user_account_id, account_id, is_admin],
   );
   await centralLog({
     event: "auth-token",
