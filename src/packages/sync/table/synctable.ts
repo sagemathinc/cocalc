@@ -19,7 +19,7 @@ let DEBUG: boolean = false;
 
 // enable experimental nats database backed changefeed.
 // for this to work you must explicitly run the server in @cocalc/database/nats/changefeeds
-const USE_NATS = true;
+const USE_NATS = true && !process.env.COCALC_TEST_MODE;
 
 export function set_debug(x: boolean): void {
   DEBUG = x;
@@ -730,7 +730,7 @@ export class SyncTable extends EventEmitter {
     delete this.changefeed;
   }
 
-  private async create_changefeed_connection(): Promise<any[]> {
+  private create_changefeed_connection = async (): Promise<any[]> => {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
@@ -763,7 +763,7 @@ export class SyncTable extends EventEmitter {
         }
       }
     }
-  }
+  };
 
   private async wait_until_ready_to_query_db(): Promise<void> {
     const dbg = this.dbg("wait_until_ready_to_query_db");

@@ -19,7 +19,7 @@ EVENTS:
 - ... TODO
 */
 
-const USE_NATS = true;
+const USE_NATS = true && !process.env.COCALC_TEST_MODE;
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
@@ -282,6 +282,9 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
+    // NOTE: Do not use nats in test mode, since there we use a minimal "fake" client
+    // that does all communication internally without a network.
+
     this.useNats = USE_NATS;
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
