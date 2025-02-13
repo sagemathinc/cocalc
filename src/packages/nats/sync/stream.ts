@@ -49,6 +49,7 @@ import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
 import { map as awaitMap } from "awaiting";
 import { sha1 } from "@cocalc/util/misc";
+import refCache from "@cocalc/util/refcache";
 
 class PublishRejectError extends Error {
   code: string;
@@ -557,6 +558,7 @@ export interface UserStreamOptions {
   project_id?: string;
   limits?: FilteredStreamLimitOptions;
   start_seq?: number;
+  noCache?: boolean;
 }
 
 export function userStreamOptionsKey(options: UserStreamOptions) {
@@ -567,32 +569,22 @@ export function userStreamOptionsKey(options: UserStreamOptions) {
   return JSON.stringify(x);
 }
 
-const streamCache: { [key: string]: Stream } = {};
-export const stream = reuseInFlight(
-  async (options: UserStreamOptions) => {
+export const stream = refCache<UserStreamOptions, Stream>({
+  createKey: userStreamOptionsKey,
+  createObject: async (options) => {
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
-    const key = userStreamOptionsKey(options);
-    if (streamCache[key] == null) {
-      const stream = new Stream({
-        ...options,
-        name,
-        jsname,
-        subjects,
-        subject: filter,
-        filter,
-      });
-      await stream.init();
-      streamCache[key] = stream;
-      stream.on("closed", () => {
-        delete streamCache[key];
-      });
-    }
-    return streamCache[key];
+    const stream = new Stream({
+      ...options,
+      name,
+      jsname,
+      subjects,
+      subject: filter,
+      filter,
+    });
+    await stream.init();
+    return stream;
   },
-  {
-    createKey: (args) => userStreamOptionsKey(args[0]),
-  },
-);
+});

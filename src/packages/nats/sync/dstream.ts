@@ -31,6 +31,7 @@ import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/util/misc";
 import { millis } from "@cocalc/nats/util";
+import refCache from "@cocalc/util/refcache";
 
 const MAX_PARALLEL = 250;
 
@@ -230,45 +231,22 @@ export class DStream extends EventEmitter {
   };
 }
 
-const dstreamCache: { [key: string]: DStream } = {};
-export const dstream = reuseInFlight(
-  async (
-    options: UserStreamOptions,
-    { noCache }: { noCache?: boolean } = {},
-  ) => {
+export const dstream = refCache<UserStreamOptions, DStream>({
+  createKey: userStreamOptionsKey,
+  createObject: async (options) => {
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
     const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
-    const f = async () => {
-      const dstream = new DStream({
-        ...options,
-        name,
-        jsname,
-        subjects,
-        subject: filter,
-        filter,
-      });
-      await dstream.init();
-      return dstream;
-    };
-    if (noCache) {
-      // especially useful for unit testing.
-      return await f();
-    }
-
-    const key = userStreamOptionsKey(options);
-    if (dstreamCache[key] == null) {
-      const dstream = await f();
-      dstreamCache[key] = dstream;
-      dstream.on("closed", () => {
-        delete dstreamCache[key];
-      });
-    }
-    return dstreamCache[key];
+    const dstream = new DStream({
+      ...options,
+      name,
+      jsname,
+      subjects,
+      subject: filter,
+      filter,
+    });
+    await dstream.init();
+    return dstream;
   },
-  {
-    createKey: (args) =>
-      userStreamOptionsKey(args[0]) + JSON.stringify(args[1]),
-  },
-);
+});

@@ -32,6 +32,7 @@ import Cookies from "js-cookie";
 import { basePathCookieName } from "@cocalc/util/misc";
 import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -83,7 +84,7 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_nats: Function;
+  synctable_nats: NatsSyncTableFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
@@ -165,7 +166,7 @@ class Client extends EventEmitter implements WebappClient {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_nats: Function;
+  synctable_nats: NatsSyncTableFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;

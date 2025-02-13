@@ -2,7 +2,9 @@
 Testing merge conflicts with dkv
 
 DEVELOPMENT:
+
 pnpm exec jest --watch --forceExit --detectOpenHandles "dkv-merge.test.ts"
+
 */
 
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
@@ -14,12 +16,10 @@ async function getKvs(opts?) {
   // We disable autosave so that we have more precise control of how conflicts
   // get resolved, etc. for testing purposes.
   const kv1 = await createDkv(
-    { name, noAutosave: true, ...opts },
-    { noCache: true },
+    { name, noAutosave: true, ...opts, noCache: true },
   );
   const kv2 = await createDkv(
-    { name, noAutosave: true, ...opts },
-    { noCache: true },
+    { name, noAutosave: true, ...opts, noCache: true },
   );
   return { kv1, kv2 };
 }

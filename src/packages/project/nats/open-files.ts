@@ -6,6 +6,8 @@ DEVELOPMENT:
 0. From the browser, terminate open-files api service running in the project already, if any
 
     await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'open-files'})
+
+
     // {status: 'terminated', service: 'open-files'}
 
 
@@ -31,6 +33,7 @@ import {
   type OpenFiles,
   type OpenFileEntry,
 } from "@cocalc/project/nats/sync";
+import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import { /*compute_server_id,*/ project_id } from "@cocalc/project/data";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
@@ -40,7 +43,6 @@ import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
-import { client_db } from "@cocalc/util/db-schema";
 
 const logger = getLogger("project:nats:open-files");
 
@@ -142,15 +144,15 @@ async function closeIgnoredFilesLoop() {
       "currently open paths...",
     );
     const cutoff = getCutoff();
-    for (const path of paths) {
-      const entry = openFiles.get(path);
+    for (const entry of openFiles.getAll()) {
       if (
+        entry != null &&
         entry.time != null &&
         entry.time <= cutoff &&
-        supportAutoclose(path)
+        supportAutoclose(entry.path)
       ) {
-        logger.debug("closeIgnoredFiles: closing due to inactivity", { path });
-        closeSyncDoc(path);
+        logger.debug("closeIgnoredFiles: closing due to inactivity", entry);
+        closeSyncDoc(entry.path);
       }
     }
   }
@@ -179,36 +181,24 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
     return;
   }
   const client = getClient();
-  let x;
-  try {
-    const string_id = client_db.sha1(project_id, path);
-    const syncstrings = await client.synctable_nats(
-      { syncstrings: [{ string_id, doctype: null }] },
-      {
-        stream: false,
-        atomic: false,
-        immutable: false,
-      },
-    );
-    x = await getTypeAndOpts(syncstrings);
-  } catch (err) {
-    logger.debug(`openSyncDoc failed - error = ${err}`);
-    return;
-  }
-  const { type, opts } = x;
-  logger.debug("openSyncDoc got", { path, type, opts });
+  const doctype = await getSyncDocType({
+    project_id,
+    path,
+    client,
+  });
+  logger.debug("openSyncDoc got", { path, doctype });
 
   let doc;
-  if (type == "string") {
+  if (doctype.type == "string") {
     doc = new SyncString({
-      ...opts,
+      ...doctype.opts,
       project_id,
       path,
       client,
     });
   } else {
     doc = new SyncDB({
-      ...opts,
+      ...doctype.opts,
       project_id,
       path,
       client,
@@ -217,40 +207,3 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
   openSyncDocs[path] = doc;
   return;
 });
-
-async function getTypeAndOpts(
-  syncstrings,
-): Promise<{ type: string; opts: any }> {
-  // global.z = { syncstrings };
-  let s = syncstrings.get_one();
-  if (s?.doctype == null) {
-    // wait until there is a syncstring and its doctype is set:
-    await syncstrings.wait(() => {
-      s = syncstrings.get_one();
-      return s?.doctype != null;
-    });
-  }
-  const opts: any = {};
-  let type: string = "";
-
-  let doctype = s.doctype;
-  if (doctype != null) {
-    try {
-      doctype = JSON.parse(doctype);
-    } catch {
-      doctype = {};
-    }
-    if (doctype.opts != null) {
-      for (const k in doctype.opts) {
-        opts[k] = doctype.opts[k];
-      }
-    }
-    type = doctype.type;
-  }
-  opts.doctype = doctype;
-  if (type !== "db" && type !== "string") {
-    // fallback type
-    type = "string";
-  }
-  return { type, opts };
-}

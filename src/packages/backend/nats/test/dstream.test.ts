@@ -63,8 +63,8 @@ describe("create two dstreams and observe sync between them", () => {
   const name = `test-${Math.random()}`;
   let s1, s2;
   it("creates two distinct dstream objects s1 and s2 with the same name", async () => {
-    s1 = await createDstream({ name, noAutosave: true }, { noCache: true });
-    s2 = await createDstream({ name, noAutosave: true }, { noCache: true });
+    s1 = await createDstream({ name, noAutosave: true, noCache: true });
+    s2 = await createDstream({ name, noAutosave: true, noCache: true });
     // definitely distinct
     expect(s1 === s2).toBe(false);
   });

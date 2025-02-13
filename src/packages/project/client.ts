@@ -50,6 +50,7 @@ import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import synctable_nats from "@cocalc/project/nats/synctable";
 import pubsub from "@cocalc/project/nats/pubsub";
+import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
 
 const winston = getLogger("client");
 
@@ -507,7 +508,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
-  synctable_nats = async (query, options?) => {
+  synctable_nats: NatsSyncTableFunction = async (query, options?) => {
     return await synctable_nats(query, options);
   };
 

@@ -4,7 +4,11 @@ import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
-import { createSyncTable, type SyncTable } from "@cocalc/nats/sync/synctable";
+import {
+  createSyncTable,
+  type NatsSyncTable,
+  NatsSyncTableFunction,
+} from "@cocalc/nats/sync/synctable";
 import { inboxPrefix, randomId } from "@cocalc/nats/names";
 import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
@@ -250,54 +254,30 @@ export class NatsClient {
     };
   };
 
-  private synctableCache: { [key: string]: SyncTable } = {};
-  synctable = reuseInFlight(
-    async (
+  synctable: NatsSyncTableFunction = async (
+    query,
+    options?,
+  ): Promise<NatsSyncTable> => {
+    query = parse_query(query);
+    const table = keys(query)[0];
+    const obj = options?.obj;
+    if (obj != null) {
+      for (const k in obj) {
+        query[table][0][k] = obj[k];
+      }
+    }
+    if (options?.project_id != null && query[table][0]["project_id"] === null) {
+      query[table][0]["project_id"] = options.project_id;
+    }
+    const s = createSyncTable({
+      ...options,
       query,
-      options?: {
-        obj?: object;
-        atomic?: boolean;
-        immutable?: boolean;
-        stream?: boolean;
-        pubsub?: boolean;
-        throttleChanges?: number;
-        // for tables specific to a project, e.g., syncstrings in a project
-        project_id?: string;
-      },
-    ): Promise<SyncTable> => {
-      query = parse_query(query);
-      const key = JSON.stringify({ query, options });
-      if (this.synctableCache[key] != null) {
-        return this.synctableCache[key];
-      }
-      const table = keys(query)[0];
-      const obj = options?.obj;
-      if (obj != null) {
-        for (const k in obj) {
-          query[table][0][k] = obj[k];
-        }
-      }
-      if (
-        options?.project_id != null &&
-        query[table][0]["project_id"] === null
-      ) {
-        query[table][0]["project_id"] = options.project_id;
-      }
-      const s = createSyncTable({
-        ...options,
-        query,
-        env: await this.getEnv(),
-        account_id: this.client.account_id,
-      });
-      this.synctableCache[key] = s;
-      // @ts-ignore
-      s.on("closed", () => {
-        delete this.synctableCache[key];
-      });
-      await s.init();
-      return s;
-    },
-  );
+      env: await this.getEnv(),
+      account_id: this.client.account_id,
+    });
+    await s.init();
+    return s;
+  };
 
   changefeedInterest = async (query, noError?: boolean) => {
     // express interest
@@ -389,35 +369,35 @@ export class NatsClient {
     return accumulate;
   };
 
-  stream = async (opts: Partial<UserStreamOptions>) => {
+  stream = async (opts: Partial<UserStreamOptions> & { name: string }) => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
     return await stream({ env: await this.getEnv(), ...opts });
   };
 
-  dstream = async (opts: Partial<UserStreamOptions>) => {
+  dstream = async (opts: Partial<UserStreamOptions> & { name: string }) => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
     return await dstream({ env: await this.getEnv(), ...opts });
   };
 
-  kv = async (opts: Partial<KVOptions>) => {
+  kv = async (opts: Partial<KVOptions> & { name: string }) => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }
     return await kv({ env: await this.getEnv(), ...opts });
   };
 
-  dkv = async (opts: Partial<DKVOptions>) => {
+  dkv = async (opts: Partial<DKVOptions> & { name: string }) => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }
     return await dkv({ env: await this.getEnv(), ...opts });
   };
 
-  dko = async (opts: Partial<DKOOptions>) => {
+  dko = async (opts: Partial<DKOOptions> & { name: string }) => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }

@@ -1,23 +1,29 @@
 import { type NatsEnv } from "@cocalc/nats/types";
 import { SyncTableKV } from "./synctable-kv";
 import { SyncTableStream } from "./synctable-stream";
+import { refCacheSync } from "@cocalc/util/refcache";
 
-export type SyncTable = SyncTableStream | SyncTableKV;
+export type NatsSyncTable = SyncTableStream | SyncTableKV;
+
+export type NatsSyncTableFunction = (
+  query: { [table: string]: { [field: string]: any }[] },
+  options?: {
+    obj?: object;
+    atomic?: boolean;
+    immutable?: boolean;
+    stream?: boolean;
+    pubsub?: boolean;
+    throttleChanges?: number;
+    // for tables specific to a project, e.g., syncstrings in a project
+    project_id?: string;
+  },
+) => Promise<NatsSyncTable>;
 
 // When the database is watching tables for changefeeds, if it doesn't get a clear expression
 // of interest from a client every this much time, it automatically stops.
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
 
-export function createSyncTable({
-  query,
-  env,
-  account_id,
-  project_id,
-  atomic,
-  stream,
-  immutable,
-  ...options
-}: {
+interface Options {
   query;
   env: NatsEnv;
   account_id?: string;
@@ -25,25 +31,18 @@ export function createSyncTable({
   atomic?: boolean;
   stream?: boolean;
   immutable?: boolean; // if true, then get/set works with immutable.js objects instead.
-}) {
-  if (stream) {
-    return new SyncTableStream({
-      query,
-      env,
-      account_id,
-      project_id,
-      immutable,
-      ...options,
-    });
+  noCache?: boolean;
+}
+
+function createObject(options: Options) {
+  if (options.stream) {
+    return new SyncTableStream(options);
   } else {
-    return new SyncTableKV({
-      query,
-      env,
-      account_id,
-      project_id,
-      atomic,
-      immutable,
-      ...options,
-    });
+    return new SyncTableKV(options);
   }
 }
+
+export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
+  createKey: (opts) => JSON.stringify({ ...opts, env: undefined }),
+  createObject,
+});

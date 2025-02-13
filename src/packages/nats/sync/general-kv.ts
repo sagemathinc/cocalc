@@ -163,7 +163,7 @@ export class GeneralKV extends EventEmitter {
     filter?: string | string[];
     env: NatsEnv;
     options?;
-    limits?: KVLimits;
+    limits?: Partial<KVLimits>;
   }) {
     super();
     this.limits = {

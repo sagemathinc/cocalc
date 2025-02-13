@@ -85,18 +85,16 @@ export class OpenFiles extends EventEmitter {
   };
 
   init = async () => {
-    const d = await dkv(
-      {
-        name: "open-files",
-        project_id: this.project_id,
-        env: this.env,
-        limits: {
-          max_age: nanos(MAX_AGE_MS),
-        },
-        noAutosave: this.noAutosave,
+    const d = await dkv({
+      name: "open-files",
+      project_id: this.project_id,
+      env: this.env,
+      limits: {
+        max_age: nanos(MAX_AGE_MS),
       },
-      { noCache: this.noCache },
-    );
+      noAutosave: this.noAutosave,
+      noCache: this.noCache,
+    });
     this.dkv = d;
     d.on("change", ({ key: path }) => {
       const entry = this.get(path);

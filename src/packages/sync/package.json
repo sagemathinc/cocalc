@@ -15,21 +15,14 @@
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@types/debug": "^4.1.12",
     "@types/lodash": "^4.14.202",
     "async": "^1.5.2",

@@ -1902,6 +1902,9 @@ importers:
 
   sync:
     dependencies:
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/sync':
         specifier: workspace:*
         version: 'link:'

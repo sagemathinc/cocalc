@@ -19,13 +19,15 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralKV, type KVLimits } from "./general-kv";
 import { jsName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
+import refCache from "@cocalc/util/refcache";
 
 export interface KVOptions {
   name: string;
   account_id?: string;
   project_id?: string;
   env: NatsEnv;
-  limits?: KVLimits;
+  limits?: Partial<KVLimits>;
+  noCache?: boolean;
 }
 
 export class KV extends EventEmitter {
@@ -149,19 +151,12 @@ export function userKvKey(options: KVOptions) {
   return JSON.stringify(x);
 }
 
-const cache: { [key: string]: KV } = {};
-export const kv = reuseInFlight(
-  async (opts: KVOptions) => {
-    const key = userKvKey(opts);
-    if (cache[key] == null) {
-      const k = new KV(opts);
-      await k.init();
-      k.on("closed", () => delete cache[key]);
-      cache[key] = k;
-    }
-    return cache[key]!;
+
+export const kv = refCache<KVOptions, KV>({
+  createKey: userKvKey,
+  createObject: async (opts) => {
+    const k = new KV(opts);
+    await k.init();
+    return k;
   },
-  {
-    createKey: (args) => userKvKey(args[0]),
-  },
-);
+});

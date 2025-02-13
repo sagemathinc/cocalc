@@ -38,20 +38,32 @@ describe("create a public dkv and do basic operations", () => {
   });
 });
 
-describe("opens a dkv twice and verifies it was cached", () => {
+describe("opens a dkv twice and verifies the cached works and is reference counted", () => {
   let kv1;
   let kv2;
   const name = `test-${Math.random()}`;
 
-  it("creates the dkv twice", async () => {
+  it("creates the same dkv twice", async () => {
     kv1 = await createDkv({ name });
     kv2 = await createDkv({ name });
     expect(kv1.get()).toEqual({});
     expect(kv1 === kv2).toBe(true);
   });
-  it("closes", async () => {
+
+  it("closes kv1 (one reference)", async () => {
     kv1.close();
+    expect(kv2.get).not.toThrow();
+  });
+
+  it("closes kv2 (another reference)", async () => {
+    kv2.close();
+    // really closed!
     expect(kv2.get).toThrow("closed");
+  });
+
+  it("create and see it is new now", async () => {
+    kv1 = await createDkv({ name });
+    expect(kv1 === kv2).toBe(false);
   });
 });
 
@@ -61,8 +73,8 @@ describe("opens a dkv twice at once and observe sync", () => {
   const name = `test-${Math.random()}`;
 
   it("creates the dkv twice", async () => {
-    kv1 = await createDkv({ name }, { noCache: true });
-    kv2 = await createDkv({ name }, { noCache: true });
+    kv1 = await createDkv({ name, noCache: true });
+    kv2 = await createDkv({ name, noCache: true });
     expect(kv1.get()).toEqual({});
     expect(kv2.get()).toEqual({});
     expect(kv1 === kv2).toBe(false);
@@ -129,8 +141,8 @@ describe("test deleting and clearing a dkv", () => {
 
   const reset = async () => {
     const name = `test-${Math.random()}`;
-    kv1 = await createDkv({ name }, { noCache: true });
-    kv2 = await createDkv({ name }, { noCache: true });
+    kv1 = await createDkv({ name, noCache: true });
+    kv2 = await createDkv({ name, noCache: true });
   };
 
   it("creates the dkv twice without caching so can make sure sync works", async () => {
@@ -257,7 +269,7 @@ describe("create many distinct clients at once, write to all of them, and see th
 
   it(`creates the ${count} clients`, async () => {
     for (let i = 0; i < count; i++) {
-      clients[i] = await createDkv({ name }, { noCache: true });
+      clients[i] = await createDkv({ name,  noCache: true });
     }
   });
 
@@ -301,8 +313,8 @@ describe("tests involving null/undefined values", () => {
   const name = `test-${Math.random()}`;
 
   it("creates the dkv twice", async () => {
-    kv1 = await createDkv({ name, noAutosave: true }, { noCache: true });
-    kv2 = await createDkv({ name, noAutosave: true }, { noCache: true });
+    kv1 = await createDkv({ name, noAutosave: true, noCache: true });
+    kv2 = await createDkv({ name, noAutosave: true, noCache: true });
     expect(kv1.get()).toEqual({});
     expect(kv1 === kv2).toBe(false);
   });

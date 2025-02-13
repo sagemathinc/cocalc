@@ -21,9 +21,10 @@ import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
 import { userKvKey, type KVOptions } from "./kv";
 import { jsName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
+import refCache from "@cocalc/util/refcache";
 
 export interface DKVOptions extends KVOptions {
-  merge: MergeFunction;
+  merge?: MergeFunction;
   noAutosave?: boolean;
 }
 
@@ -69,7 +70,7 @@ export class DKV extends EventEmitter {
       },
       set(target, prop, value) {
         prop = String(prop);
-        if (prop == "_eventsCount" || prop == "_events") {
+        if (prop == "_eventsCount" || prop == "_events" || prop == "close") {
           target[prop] = value;
           return true;
         }
@@ -251,27 +252,11 @@ export class DKV extends EventEmitter {
   };
 }
 
-const cache: { [key: string]: DKV } = {};
-export const dkv = reuseInFlight(
-  async (opts: DKVOptions, { noCache }: { noCache?: boolean } = {}) => {
-    const f = async () => {
-      const k = new DKV(opts);
-      await k.init();
-      return k;
-    };
-    if (noCache) {
-      // especially useful for unit testing.
-      return await f();
-    }
-    const key = userKvKey(opts);
-    if (cache[key] == null) {
-      const k = await f();
-      k.on("closed", () => delete cache[key]);
-      cache[key] = k;
-    }
-    return cache[key]!;
+export const dkv = refCache<DKVOptions, DKV>({
+  createKey: userKvKey,
+  createObject: async (opts) => {
+    const k = new DKV(opts);
+    await k.init();
+    return k;
   },
-  {
-    createKey: (args) => userKvKey(args[0]) + JSON.stringify(args[1]),
-  },
-);
+});

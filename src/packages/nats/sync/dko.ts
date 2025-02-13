@@ -18,6 +18,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
 import { userKvKey } from "./kv";
 import { is_object } from "@cocalc/util/misc";
+import refCache from "@cocalc/util/refcache";
 
 export interface DKOOptions extends DKVOptions {
   sep?: string;
@@ -40,7 +41,7 @@ export class DKO extends EventEmitter {
       },
       set(target, prop, value) {
         prop = String(prop);
-        if (prop == "_eventsCount" || prop == "_events") {
+        if (prop == "_eventsCount" || prop == "_events" || prop == "close") {
           target[prop] = value;
           return true;
         }
@@ -133,6 +134,10 @@ export class DKO extends EventEmitter {
     }
   };
 
+  clear = () => {
+    this.dkv?.clear();
+  };
+
   get = (key?) => {
     if (this.dkv == null) {
       throw Error("closed");
@@ -209,22 +214,14 @@ export class DKO extends EventEmitter {
   };
 }
 
-const cache: { [key: string]: DKO } = {};
-export const dko = reuseInFlight(
-  async (opts: DKOOptions) => {
-    const key = userKvKey(opts);
-    if (cache[key] == null) {
-      const k = new DKO(opts);
-      await k.init();
-      k.on("closed", () => delete cache[key]);
-      cache[key] = k;
-    }
-    return cache[key]!;
+export const dko = refCache<DKOOptions, DKO>({
+  createKey: userKvKey,
+  createObject: async (opts) => {
+    const k = new DKO(opts);
+    await k.init();
+    return k;
   },
-  {
-    createKey: (args) => userKvKey(args[0]),
-  },
-);
+});
 
 function dkoPrefix(name: string): string {
   return `__dko__${name}`;
