@@ -11,9 +11,15 @@ DEVELOPMENT:
 
 Set env variables as in a project (see  api/index.ts ), then in nodejs:
 
-> x = require("@cocalc/project/nats/open-files").init()
+DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:open-files node
+
+> x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
+[ 'openFiles', 'openSyncDocs' ]
+
 > x.openFiles.getAll();
+
 > Object.keys(x.openSyncDocs)
+
 > s = x.openSyncDocs['z4.tasks']
 // now you can directly work with the syncdoc for a given file,
 // but from the perspective of the project, not the browser!
@@ -217,10 +223,11 @@ async function getTypeAndOpts(
 ): Promise<{ type: string; opts: any }> {
   // global.z = { syncstrings };
   let s = syncstrings.get_one();
-  if (s == null) {
+  if (s?.doctype == null) {
+    // wait until there is a syncstring and its doctype is set:
     await syncstrings.wait(() => {
       s = syncstrings.get_one();
-      return s != null;
+      return s?.doctype != null;
     });
   }
   const opts: any = {};
