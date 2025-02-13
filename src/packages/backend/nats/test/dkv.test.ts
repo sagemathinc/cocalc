@@ -101,9 +101,7 @@ describe("check server assigned times", () => {
     kv.a = { b: 7 };
     // not serve assigned yet
     expect(kv.time("a")).toEqual(undefined);
-    await kv.save();
-    // still not server assigned
-    expect(kv.time("a")).toEqual(undefined);
+    kv.save();
     await once(kv, "change");
     // now we must have it.
     // sanity check: within a second

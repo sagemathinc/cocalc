@@ -145,6 +145,9 @@ describe("get sequence number and time of message", () => {
   });
 
   it("and time is bigger", async () => {
+    if (s.time(1) == null) {
+      await once(s, "change");
+    }
     expect(s.time(0).getTime()).toBeLessThan(s.time(1).getTime());
   });
 });
