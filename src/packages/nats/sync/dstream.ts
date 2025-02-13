@@ -32,7 +32,7 @@ import { isNumericString } from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/util/misc";
 import { millis } from "@cocalc/nats/util";
 
-const MAX_PARALLEL = 50;
+const MAX_PARALLEL = 250;
 
 export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
@@ -217,7 +217,13 @@ export class DStream extends EventEmitter {
     };
     // NOTE: ES6 spec guarantees "String keys are returned in the order
     // in which they were added to the object."
-    await awaitMap(Object.keys(this.local), MAX_PARALLEL, f);
+    const ids = Object.keys(this.local);
+    const t = Date.now();
+    await awaitMap(ids, MAX_PARALLEL, f);
+    console.log(
+      `saving ${ids.length} messages ${MAX_PARALLEL} at once took `,
+      Date.now() - t,
+    );
   });
 
   // load older messages starting at start_seq

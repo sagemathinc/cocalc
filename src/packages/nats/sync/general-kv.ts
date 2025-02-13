@@ -111,7 +111,7 @@ class RejectError extends Error {
   key: string;
 }
 
-const MAX_PARALLEL = 50;
+const MAX_PARALLEL = 250;
 
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's

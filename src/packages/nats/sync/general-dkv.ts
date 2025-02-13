@@ -79,7 +79,7 @@ import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 
 export const TOMBSTONE = Symbol("tombstone");
-const MAX_PARALLEL = 50;
+const MAX_PARALLEL = 250;
 
 export type MergeFunction = (opts: {
   key: string;

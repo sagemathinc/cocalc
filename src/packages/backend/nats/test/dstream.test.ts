@@ -9,7 +9,6 @@ pnpm exec jest --watch --forceExit --detectOpenHandles "dstream.test.ts"
 
 import { dstream as createDstream } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-// import { delay } from "awaiting";
 
 async function create() {
   const name = `test-${Math.random()}`;
@@ -217,7 +216,7 @@ describe("testing start_seq", () => {
 
 describe("a little bit of a stress test", () => {
   const name = `test-${Math.random()}`;
-  const count = 250;
+  const count = 100;
   let s;
   it(`creates a stream and pushes ${count} messages`, async () => {
     s = await createDstream({
@@ -228,6 +227,8 @@ describe("a little bit of a stress test", () => {
       s.push({ i });
     }
     expect(s.length).toBe(count);
+    // NOTE: warning -- this is **MUCH SLOWER**, e.g., 10x slower,
+    // running under jest, hence why count is small.
     await s.save();
     expect(s.length).toBe(count);
   });
