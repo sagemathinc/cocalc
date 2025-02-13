@@ -44,7 +44,9 @@ export class DStream extends EventEmitter {
   private messages: any[];
   private raw: any[];
   private noAutosave: boolean;
+  // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: { mesg: any; subject?: string } } = {};
+  private saved: { [seq: number]: any } = {};
 
   constructor(opts: DStreamOptions) {
     super();
@@ -66,8 +68,9 @@ export class DStream extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (...args) => {
-      this.emit("change", ...args);
+    this.stream.on("change", (mesg, raw) => {
+      delete this.saved[raw.seq];
+      this.emit("change", mesg);
     });
     await this.stream.init();
     this.emit("connected");
@@ -99,19 +102,31 @@ export class DStream extends EventEmitter {
     if (n == null) {
       return [
         ...this.messages,
+        ...Object.values(this.saved),
         ...Object.values(this.local).map((x) => x.mesg),
       ];
     } else {
-      return (
-        this.messages[n] ??
-        Object.values(this.local)[n - this.messages.length]?.mesg
-      );
+      if (n < this.messages.length) {
+        return this.messages[n];
+      }
+      const v = Object.keys(this.saved);
+      if (n < v.length + this.messages.length) {
+        return v[n - this.messages.length];
+      }
+      return Object.values(this.local)[n - this.messages.length - v.length]
+        ?.mesg;
     }
   };
 
   // sequence number of n-th message
   seq = (n) => {
-    return this.raw[n]?.seq;
+    if (n < this.raw.length) {
+      return this.raw[n]?.seq;
+    }
+    const v = Object.keys(this.saved);
+    if (n < v.length + this.raw.length) {
+      return parseInt(v[n - this.raw.length]);
+    }
   };
 
   time = (n) => {
@@ -123,7 +138,11 @@ export class DStream extends EventEmitter {
   };
 
   get length() {
-    return this.messages.length + Object.keys(this.local).length;
+    return (
+      this.messages.length +
+      Object.keys(this.saved).length +
+      Object.keys(this.local).length
+    );
   }
 
   publish = (mesg, subject?: string) => {
@@ -151,7 +170,7 @@ export class DStream extends EventEmitter {
   };
 
   unsavedChanges = () => {
-    return Object.values(this.local);
+    return Object.values(this.local).map(({ mesg }) => mesg);
   };
 
   save = reuseInFlight(async () => {
@@ -180,7 +199,11 @@ export class DStream extends EventEmitter {
       const { mesg, subject } = this.local[id];
       try {
         // @ts-ignore
-        await this.stream.publish(mesg, subject, { msgID: id });
+        const { seq } = await this.stream.publish(mesg, subject, { msgID: id });
+        if ((this.raw[this.raw.length - 1]?.seq ?? -1) < seq) {
+          // it still isn't in this.raw
+          this.saved[seq] = mesg;
+        }
         delete this.local[id];
       } catch (err) {
         if (err.code == "REJECT") {
@@ -197,7 +220,8 @@ export class DStream extends EventEmitter {
     await awaitMap(Object.keys(this.local), MAX_PARALLEL, f);
   });
 
-  load = async (opts) => {
+  // load older messages starting at start_seq
+  load = async (opts: { start_seq: number }) => {
     if (this.stream == null) {
       throw Error("closed");
     }

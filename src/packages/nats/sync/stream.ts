@@ -396,7 +396,7 @@ export class Stream extends EventEmitter {
     this.messages.push(mesg);
     this.raw.push(raw);
     if (!noEmit) {
-      this.emit("change", mesg);
+      this.emit("change", mesg, raw);
     }
   };
 

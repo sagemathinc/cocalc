@@ -36,6 +36,14 @@ describe("create a dstream and do some basic operations", () => {
     expect(s[0]).toEqual(mesg);
   });
 
+  it("verifies that unsaved changes works properly", async () => {
+    expect(s.hasUnsavedChanges()).toBe(true);
+    expect(s.unsavedChanges()).toEqual([mesg]);
+    await s.save();
+    expect(s.hasUnsavedChanges()).toBe(false);
+    expect(s.unsavedChanges()).toEqual([]);
+  });
+
   it("confirm persistence: closes and re-opens stream and confirms message is still there", async () => {
     const name = s.name;
     await s.save();
@@ -117,13 +125,13 @@ describe("get sequence number and time of message", () => {
   });
 
   it("save and get server assigned sequence number", async () => {
-    await s.save();
+    s.save();
+    await once(s, "change");
     const n = s.seq(0);
     expect(n).toBeGreaterThan(0);
   });
 
-  it("save and get server assigned time", async () => {
-    await s.save();
+  it("get server assigned time", async () => {
     const t = s.time(0);
     // since testing on the same machine as server, these times should be close:
     expect(t.getTime() - Date.now()).toBeLessThan(5000);
@@ -168,4 +176,59 @@ describe("closing also saves by default, but not if autosave is off", () => {
   });
 });
 
+describe("testing start_seq", () => {
+  const name = `test-${Math.random()}`;
+  let seq;
+  it("creates a stream and adds 3 messages, noting their assigned sequence numbers", async () => {
+    const s = await createDstream({ name, noAutosave: true });
+    s.push(1, 2, 3);
+    expect(s.get()).toEqual([1, 2, 3]);
+    // save, thus getting sequence numbers
+    s.save();
+    while (s.seq(2) == null) {
+      s.save();
+      await once(s, "change");
+    }
+    seq = [s.seq(0), s.seq(1), s.seq(2)];
+    // tests partly that these are integers...
+    const n = seq.reduce((a, b) => a + b, 0);
+    expect(typeof n).toBe("number");
+    expect(n).toBeGreaterThan(2);
+    await s.close();
+  });
 
+  let s;
+  it("it opens the stream but starting with the last sequence number, so only one message", async () => {
+    s = await createDstream({
+      name,
+      noAutosave: true,
+      start_seq: seq[2],
+    });
+    expect(s.length).toBe(1);
+    expect(s.get()).toEqual([3]);
+  });
+
+  it("it then pulls in the previous message, so now two messages are loaded", async () => {
+    await s.load({ start_seq: seq[1] });
+    expect(s.length).toBe(2);
+    expect(s.get()).toEqual([2, 3]);
+  });
+});
+
+describe("a little bit of a stress test", () => {
+  const name = `test-${Math.random()}`;
+  const count = 250;
+  let s;
+  it(`creates a stream and pushes ${count} messages`, async () => {
+    s = await createDstream({
+      name,
+      noAutosave: true,
+    });
+    for (let i = 0; i < count; i++) {
+      s.push({ i });
+    }
+    expect(s.length).toBe(count);
+    await s.save();
+    expect(s.length).toBe(count);
+  });
+});
