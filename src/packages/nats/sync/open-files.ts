@@ -50,8 +50,15 @@ export interface Entry {
   count?: number;
 }
 
-export async function createOpenFiles({ env, project_id }) {
-  const openFiles = new OpenFiles({ env, project_id });
+interface Options {
+  env: NatsEnv;
+  project_id: string;
+  noAutosave?: boolean;
+  noCache?: boolean;
+}
+
+export async function createOpenFiles(opts: Options) {
+  const openFiles = new OpenFiles(opts);
   await openFiles.init();
   return openFiles;
 }
@@ -59,13 +66,17 @@ export async function createOpenFiles({ env, project_id }) {
 export class OpenFiles extends EventEmitter {
   private project_id: string;
   private env: NatsEnv;
+  private noCache?: boolean;
+  private noAutosave?: boolean;
   private dkv?: DKV;
   public state: "disconnected" | "connected" | "closed" = "disconnected";
 
-  constructor({ env, project_id }: { env: NatsEnv; project_id: string }) {
+  constructor({ env, project_id, noAutosave, noCache }: Options) {
     super();
     this.env = env;
     this.project_id = project_id;
+    this.noAutosave = noAutosave;
+    this.noCache = noCache;
   }
 
   private setState = (state: State) => {
@@ -74,14 +85,18 @@ export class OpenFiles extends EventEmitter {
   };
 
   init = async () => {
-    const d = await dkv({
-      name: "open-files",
-      project_id: this.project_id,
-      env: this.env,
-      limits: {
-        max_age: nanos(MAX_AGE_MS),
+    const d = await dkv(
+      {
+        name: "open-files",
+        project_id: this.project_id,
+        env: this.env,
+        limits: {
+          max_age: nanos(MAX_AGE_MS),
+        },
+        noAutosave: this.noAutosave,
       },
-    });
+      { noCache: this.noCache },
+    );
     this.dkv = d;
     d.on("change", ({ key: path }) => {
       const entry = this.get(path);
@@ -139,6 +154,11 @@ export class OpenFiles extends EventEmitter {
     }
   };
 
+  // causes file to be immediately closed on backend
+  // no matter what, unrelated to how many users have it
+  // open or what type of file it is.  Obviously, frontend
+  // clients also may need to pay attention to this, since they
+  // can just immediately reopen the file.
   closeFile = (path: string) => {
     const dkv = this.getDkv();
     dkv.set(path, { ...dkv.get(path), open: false });
@@ -151,13 +171,28 @@ export class OpenFiles extends EventEmitter {
     });
   };
 
-  get = (path: string): Entry => {
+  get = (path: string): Entry | undefined => {
     const x = this.getDkv().get(path);
+    if (x == null) {
+      return x;
+    }
     return { ...x, path, time: this.time(path) };
   };
 
   delete = (path) => {
     this.getDkv().delete(path);
+  };
+
+  clear = () => {
+    this.getDkv().clear();
+  };
+
+  save = async () => {
+    await this.getDkv().save();
+  };
+
+  hasUnsavedChanges = () => {
+    return this.getDkv().hasUnsavedChanges();
   };
 
   time = (path?: string) => {
