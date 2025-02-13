@@ -8,8 +8,13 @@ import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
 import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
 import { getEnv } from "./env";
 import { project_id } from "@cocalc/project/data";
+import {
+  createOpenFiles,
+  type OpenFiles,
+  Entry as OpenFileEntry,
+} from "@cocalc/nats/sync/open-files";
 
-export type { Stream, DStream, KV, DKV };
+export type { Stream, DStream, KV, DKV, OpenFiles, OpenFileEntry };
 
 export async function stream(opts): Promise<Stream> {
   return await createStream({ project_id, env: await getEnv(), ...opts });
@@ -29,4 +34,8 @@ export async function dkv(opts): Promise<DKV> {
 
 export async function dko(opts): Promise<DKO> {
   return await createDKO({ project_id, env: await getEnv(), ...opts });
+}
+
+export async function openFiles(): Promise<OpenFiles> {
+  return await createOpenFiles({ env: await getEnv(), project_id });
 }

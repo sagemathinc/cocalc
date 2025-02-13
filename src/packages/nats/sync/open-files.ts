@@ -5,11 +5,12 @@ DEVELOPMENT:
 
 Change to packages/backend, since packages/nats doesn't have a way to connect:
 
-~/cocalc/src/packages/backend node
-> z = await require('@cocalc/nats/sync/open-files').createOpenFiles({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf', env:await require('@cocalc/backend/nats').getEnv()})
+~/cocalc/src/packages/backend$ node
+
+> z = await require('@cocalc/backend/nats/sync').openFiles('00847397-d6a8-4cb0-96a8-6ef64ac3e6cf')
 > z.touch({path:'a.txt'})
 > z.get({path:'a.txt'})
-{ open: true, count: 1 }
+{ open: true, count: 1, time:2025-02-09T16:37:20.713Z }
 > z.touch({path:'a.txt'})
 > z.get({path:'a.txt'})
 { open: true, count: 2 }
@@ -20,6 +21,11 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 {
   'a.txt': { open: true, count: 3 },
   'foo/b.md': { open: true, count: 1 }
+
+Frontend Dev in browser:
+
+z = await cc.client.nats_client.openFiles('00847397-d6a8-4cb0-96a8-6ef64ac3e6cf')
+z.get()
 }
 */
 
@@ -40,9 +46,7 @@ export interface Entry {
   // last time  this entry was changed -- this is automatically set
   // correctly by the NATS server in a consistent way:
   //   https://github.com/nats-io/nats-server/discussions/3095
-  // It gets updated even if you set an object to itself (making no change).
   time?: Date;
-  //
   count?: number;
 }
 
@@ -79,10 +83,12 @@ export class OpenFiles extends EventEmitter {
       },
     });
     this.dkv = d;
-    d.on("change", ({ key: path, value }) => {
-      const time = d.time(path);
-      const { open } = value ?? {};
-      this.emit("change", { path, open, time } as Entry);
+    d.on("change", ({ key: path }) => {
+      const entry = this.get(path);
+      if (entry != null) {
+        // not deleted and timestamp is set:
+        this.emit("change", entry as Entry);
+      }
     });
     this.setState("connected");
   };
@@ -112,8 +118,7 @@ export class OpenFiles extends EventEmitter {
   // When a client has a file open, they should periodically
   // touch it to indicate that it is open.
   // updates timestamp and ensures open=true.
-  // do we need compute server?
-  touch = ({ path }: { path: string }) => {
+  touch = (path: string) => {
     const dkv = this.getDkv();
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
@@ -121,20 +126,41 @@ export class OpenFiles extends EventEmitter {
     dkv.set(path, { open: true, count: count + 1 });
   };
 
-  closeFile = ({ path }: { path: string }) => {
+  setError = (path: string, err?: any) => {
+    const dkv = this.getDkv();
+    if (!err) {
+      const current = { ...dkv.get(path) };
+      delete current.error;
+      dkv.set(path, current);
+    } else {
+      const current = { ...dkv.get(path) };
+      current.error = { time: Date.now(), error: `${err}` };
+      dkv.set(path, current);
+    }
+  };
+
+  closeFile = (path: string) => {
     const dkv = this.getDkv();
     dkv.set(path, { ...dkv.get(path), open: false });
   };
 
-  get = (obj?: { path: string }) => {
-    return this.getDkv().get(obj?.path);
+  getAll = (): Entry[] => {
+    const x = this.getDkv().get();
+    return Object.keys(x).map((path) => {
+      return { ...x[path], path, time: this.time(path) };
+    });
   };
 
-  delete = ({ path }: { path: string }) => {
+  get = (path: string): Entry => {
+    const x = this.getDkv().get(path);
+    return { ...x, path, time: this.time(path) };
+  };
+
+  delete = (path) => {
     this.getDkv().delete(path);
   };
 
-  time = (obj?: { path: string }) => {
-    return this.getDkv().time(obj?.path);
+  time = (path?: string) => {
+    return this.getDkv().time(path);
   };
 }

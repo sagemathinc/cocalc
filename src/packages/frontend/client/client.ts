@@ -355,7 +355,7 @@ class Client extends EventEmitter implements WebappClient {
     id?: number;
   }) => {
     const x = await this.nats_client.openFiles(project_id);
-    await x.touch({ path });
+    await x.touch(path);
   };
 }
 

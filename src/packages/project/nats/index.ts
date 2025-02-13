@@ -2,7 +2,8 @@
 Start the NATS servers:
 
 - the new api
-- legacy api
+- the open files tracker
+- websocket api (temporary/legacy shim)
 */
 
 import { getLogger } from "@cocalc/project/logger";
