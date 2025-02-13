@@ -2,6 +2,7 @@
 Testing basic ops with dkv
 
 DEVELOPMENT:
+
 pnpm exec jest --watch --forceExit --detectOpenHandles "dkv.test.ts"
 
 */
@@ -293,5 +294,50 @@ describe("create many distinct clients at once, write to all of them, and see th
       expect(client.length).toEqual(count);
       expect(client.get()).toEqual(combined);
     }
+  });
+});
+
+describe("tests involving null/undefined values", () => {
+  let kv1;
+  let kv2;
+  const name = `test-${Math.random()}`;
+
+  it("creates the dkv twice", async () => {
+    kv1 = await createDkv({ name, noAutosave: true }, { noCache: true });
+    kv2 = await createDkv({ name, noAutosave: true }, { noCache: true });
+    expect(kv1.get()).toEqual({});
+    expect(kv1 === kv2).toBe(false);
+  });
+
+  it("sets a value to null, which is fully supported like any other value", () => {
+    kv1.a = null;
+    expect(kv1.a).toBe(null);
+    expect(kv1.a === null).toBe(true);
+    expect(kv1.length).toBe(1);
+  });
+
+  it("make sure null value sync's as expected", async () => {
+    kv1.save();
+    await once(kv2, "change");
+    expect(kv2.a).toBe(null);
+    expect(kv2.a === null).toBe(true);
+    expect(kv2.length).toBe(1);
+  });
+
+  it("sets a value to undefined, which is the same as deleting a value", () => {
+    kv1.a = undefined;
+    expect(kv1.a).toBe(undefined);
+    expect(kv1.a === undefined).toBe(true);
+    expect(kv1.length).toBe(0);
+    expect(kv1.get()).toEqual({});
+  });
+
+  it("make sure undefined (i.e., delete) sync's as expected", async () => {
+    kv1.save();
+    await once(kv2, "change");
+    expect(kv2.a).toBe(undefined);
+    expect(kv2.a === undefined).toBe(true);
+    expect(kv2.length).toBe(0);
+    expect(kv1.get()).toEqual({});
   });
 });

@@ -220,6 +220,14 @@ export class DKV extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
+    if (value === undefined) {
+      // undefined can't be JSON encoded, so we can't possibly represent it, and this
+      // *must* be treated as a delete.
+      // NOTE that jc.encode encodes null and undefined the same, so supporting this
+      // as a value is just begging for misery.
+      this.delete(key);
+      return;
+    }
     this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
   };
 

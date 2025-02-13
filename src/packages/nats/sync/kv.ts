@@ -1,7 +1,7 @@
 /*
 Always Consistent Centralized Key Value Store
 
-NOTE: I think this isn't used by anything actually. Note it doesn't emit
+NOTE: I think this isn't used by anything actually.  Note it doesn't emit
 change events.    Maybe we should delete this.
 
 DEVELOPMENT:
