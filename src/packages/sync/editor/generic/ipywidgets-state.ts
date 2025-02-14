@@ -421,7 +421,7 @@ export class IpywidgetsState extends EventEmitter {
     fire_change_event: boolean = true,
     merge?: "none" | "shallow" | "deep",
   ): void => {
-    const dbg = this.dbg("set");
+    //const dbg = this.dbg("set");
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
@@ -431,7 +431,8 @@ export class IpywidgetsState extends EventEmitter {
       //defaultMerge = "shallow";
       // we manually do the shallow merge only on the data field.
       const current = this.get_model_value(model_id);
-      dbg("value: before", { data, current });
+      // this can be HUGE:
+      // dbg("value: before", { data, current });
       if (current != null) {
         for (const k in data) {
           if (is_object(data[k]) && is_object(current[k])) {
@@ -442,7 +443,7 @@ export class IpywidgetsState extends EventEmitter {
         }
         data = current;
       }
-      dbg("value -- after", { merged: data });
+      // dbg("value -- after", { merged: data });
       defaultMerge = "none";
     } else if (type == "buffers") {
       // it's critical to not throw away existing buffers when

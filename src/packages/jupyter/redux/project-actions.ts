@@ -199,7 +199,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.syncdb.ipywidgets_state.on(
       "change",
-      this.handle_ipywidgets_state_change.bind(this),
+      this.handle_ipywidgets_state_change,
     );
 
     this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
@@ -1379,7 +1379,7 @@ export class JupyterActions extends JupyterActions0 {
   // object changes, e.g., in response to a user moving a slider in the browser.
   // It crafts a comm message that is sent to the running Jupyter kernel telling
   // it about this change by calling send_comm_message_to_kernel.
-  private handle_ipywidgets_state_change(keys): void {
+  private handle_ipywidgets_state_change = (keys): void => {
     if (this.is_closed()) {
       return;
     }
@@ -1441,10 +1441,12 @@ export class JupyterActions extends JupyterActions0 {
         );
         */
       } else {
-        throw Error(`invalid synctable state -- unknown type '${type}'`);
+        const m = `Jupyter: unknown type '${type}'`;
+        console.warn(m);
+        dbg(m);
       }
     }
-  }
+  };
 
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");

@@ -77,8 +77,8 @@ export class NatsChangefeed extends EventEmitter {
       return;
     }
     this.natsSynctable.on(
-      "change",
-      ({ key, value: new_val, prev: old_val }) => {
+      "changefeed",
+      (_, { key, value: new_val, prev: old_val }) => {
         let x;
         if (new_val == null) {
           x = { action: "delete", old_val, key };

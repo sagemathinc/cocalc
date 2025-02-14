@@ -110,7 +110,10 @@ export class SyncTableKV extends EventEmitter {
           x = { ...x, value: this.dkv?.get(x.key) };
         }
       }
-      this.emit("change", x);
+      // change api was to emit array of keys.
+      // We also use this packages/sync/table/changefeed-nats.ts which needs the value,
+      // so we emit that object second.
+      this.emit("change", [x.key], x);
     });
     this.set_state("connected");
   };
