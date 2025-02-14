@@ -43,6 +43,9 @@ import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
+import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
+import { filename_extension, original_path } from "@cocalc/util/misc";
+import { get_blob_store } from "@cocalc/jupyter/blobs";
 
 const logger = getLogger("project:nats:open-files");
 
@@ -188,22 +191,44 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
   });
   logger.debug("openSyncDoc got", { path, doctype });
 
-  let doc;
+  let syncdoc;
   if (doctype.type == "string") {
-    doc = new SyncString({
+    syncdoc = new SyncString({
       ...doctype.opts,
       project_id,
       path,
       client,
     });
   } else {
-    doc = new SyncDB({
+    syncdoc = new SyncDB({
       ...doctype.opts,
       project_id,
       path,
       client,
     });
   }
-  openSyncDocs[path] = doc;
+  openSyncDocs[path] = syncdoc;
+
+  syncdoc.on("error", (err) => {
+    closeSyncDoc(path);
+    openFiles?.setError(path, err);
+    logger.debug(`syncdoc error -- ${err}`, path);
+  });
+
+  // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
+  const ext = filename_extension(path);
+  switch (ext) {
+    case "sage-jupyter2":
+      logger.debug("initializing Jupyter backend for ", path);
+      await get_blob_store(); // make sure jupyter blobstore is available
+      await initJupyterRedux(syncdoc, client);
+      const path1 = original_path(syncdoc.get_path());
+      syncdoc.on("closed", async () => {
+        logger.debug("removing Jupyter backend for ", path1);
+        await removeJupyterRedux(path1, project_id);
+      });
+      break;
+  }
+
   return;
 });

@@ -40,6 +40,7 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
+import { debounce } from "lodash";
 
 const { close, required, defaults } = misc;
 
@@ -204,7 +205,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this._client.callNatsService == null) {
       throw Error("api not available");
     }
-    console.log("callNatsService ", { endpoint, query, timeout_ms });
     const resp = await this._client.callNatsService({
       project_id: this.project_id,
       path: this.path,
@@ -212,7 +212,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       mesg: { endpoint, query },
       timeout: timeout_ms,
     });
-    console.log("api_call got response", resp);
     return resp;
   }
 
@@ -274,43 +273,50 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // real version is in derived class that project runs.
   }
 
-  fetch_jupyter_kernels = async (): Promise<void> => {
-    let data;
-    const f = async () => {
-      data = await this.api_call("kernels", undefined, 5000);
+  fetch_jupyter_kernels = debounce(
+    reuseInFlight(async (): Promise<void> => {
+      let data;
+      const f = async () => {
+        data = await this.api_call("kernels", undefined, 5000);
+        if (this._state === "closed") {
+          return;
+        }
+      };
+      try {
+        await retry_until_success({
+          max_time: 1000 * 15, // up to 15 seconds
+          start_delay: 3000,
+          max_delay: 10000,
+          f,
+          desc: "jupyter:fetch_jupyter_kernels",
+        });
+      } catch (err) {
+        this.set_error(err);
+        return;
+      }
       if (this._state === "closed") {
         return;
       }
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 15, // up to 15 seconds
-        start_delay: 500,
-        max_delay: 5000,
-        f,
-        desc: "jupyter:fetch_jupyter_kernels",
-      });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
-    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-    const kernels = immutable
-      .fromJS(data ?? [])
-      .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
-    const key: string = await this.store.jupyter_kernel_key();
-    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-    this.setState({ kernels });
-    // We must also update the kernel info (e.g., display name), now that we
-    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
-    this.setState({ kernel_info });
-    await this.update_select_kernel_data(); // e.g. "kernel_selection" is drived from "kernels"
-    this.check_select_kernel();
-  };
+      // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+      const kernels = immutable
+        .fromJS(data ?? [])
+        .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
+      const key: string = await this.store.jupyter_kernel_key();
+      jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+      this.setState({ kernels });
+      // We must also update the kernel info (e.g., display name), now that we
+      // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+      const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+      this.setState({ kernel_info });
+      // e.g. "kernel_selection" is derived from "kernels"
+      await this.update_select_kernel_data();
+      this.check_select_kernel();
+    }),
+    // this debounce basically "caches the result" for this long
+    // after attempts to get the kernels:
+    3000,
+    { leading: true, trailing: false },
+  );
 
   set_jupyter_kernels = async () => {
     if (this.store == null) return;

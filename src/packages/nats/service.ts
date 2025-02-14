@@ -20,6 +20,7 @@ export interface ServiceDescription {
   account_id?: string;
   compute_server_id?: number;
   path?: string;
+  description?: string;
 }
 
 export interface ServiceCall extends ServiceDescription {
@@ -78,6 +79,30 @@ export function serviceSubject({
   return segments.join(".");
 }
 
+export function serviceName({
+  service,
+  account_id,
+  project_id,
+  compute_server_id,
+}: ServiceDescription): string {
+  let segments;
+  if (!project_id && !account_id) {
+    segments = [service];
+  } else if (project_id) {
+    segments = [`project-${project_id}`, compute_server_id ?? "-", service];
+  } else if (account_id) {
+    segments = [`account-${account_id}`, service];
+  }
+  return segments.join("-");
+}
+
+export function serviceDescription({
+  description,
+  path,
+}: ServiceDescription): string {
+  return [description, path ? `\nPath: ${path}` : ""].join("");
+}
+
 interface Options extends ServiceDescription {
   env?: NatsEnv;
   description?: string;
@@ -102,9 +127,9 @@ export class NatsService {
     const svcm = new Svcm(this.options.env.nc);
 
     const service = await svcm.add({
-      name: this.options.service,
+      name: serviceName(this.options),
       version: this.options.version ?? "0.0.1",
-      description: this.options.description,
+      description: serviceDescription(this.options),
     });
 
     this.api = service.addEndpoint("api", { subject: this.subject });

@@ -677,10 +677,10 @@ export class SyncDoc extends EventEmitter {
     this.on("user-change", this.throttled_file_use as any);
   }
 
-  private set_state(state: State): void {
+  private set_state = (state: State): void => {
     this.state = state;
     this.emit(state);
-  }
+  };
 
   public get_state = (): State => {
     return this.state;

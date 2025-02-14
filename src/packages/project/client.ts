@@ -659,7 +659,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // Returns unknown if don't know
   // Returns false if definitely not.
   public is_deleted(filename: string, _project_id: string) {
-    return getListingsTable()?.isDeleted(filename);
+    return !!getListingsTable()?.isDeleted(filename);
   }
 
   public async set_deleted(

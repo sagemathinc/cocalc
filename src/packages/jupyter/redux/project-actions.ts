@@ -164,6 +164,9 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     this._initialize_manager_already_done = true;
 
+    dbg("initialize Jupyter NATS api handler");
+    await this.initNatsApi();
+
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
@@ -202,8 +205,28 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
 
     // initialize the websocket api
-    this.initWebsocketApi();
+    if (false) {
+      this.initWebsocketApi();
+    }
   }
+
+  private initNatsApi = async () => {
+    if (this._client.createNatsService == null) {
+      throw Error("unable to initialize nats API");
+    }
+    const api = await this._client.createNatsService({
+      service: "api",
+      project_id: this.project_id,
+      path: this.path,
+      description: `Jupyter API for "${this.path}"`,
+      handler: async ({ endpoint, query }) => {
+        return await handleApiRequest(this.path, endpoint, query);
+      },
+    });
+    this.syncdb.on("closed", () => {
+      api.close();
+    });
+  };
 
   private async _first_load() {
     const dbg = this.dbg("_first_load");
