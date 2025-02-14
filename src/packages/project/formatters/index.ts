@@ -46,13 +46,17 @@ const logger = getLogger("project:formatters");
 export async function run_formatter({
   path,
   options,
+  syncstring,
 }: {
   path: string;
   options: Options;
+  syncstring?;
 }): Promise<FormatResult> {
   const client = getClient();
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
-  const syncstring = client.syncdoc({ path });
+  if (syncstring == null) {
+    syncstring = client.syncdoc({ path });
+  }
   if (syncstring == null || syncstring.get_state() == "closed") {
     return {
       status: "error",

@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 0. From the browser, terminate open-files api service running in the project already, if any
 
-    await cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'}).system.terminate({service:'open-files'})
+    await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'open-files'})
 
 
     // {status: 'terminated', service: 'open-files'}
@@ -46,10 +46,12 @@ import { delay } from "awaiting";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
+import { createFormatterService } from "./formatter";
 
 const logger = getLogger("project:nats:open-files");
 
 let openFiles: OpenFiles | null = null;
+let formatter: any = null;
 
 export async function init() {
   logger.debug("init");
@@ -68,8 +70,10 @@ export async function init() {
     handleChange(entry);
   });
 
+  formatter = await createFormatterService({ openSyncDocs });
+
   // usefule for development
-  return { openFiles, openSyncDocs };
+  return { openFiles, openSyncDocs, formatter, terminate };
 }
 
 export function terminate() {
@@ -79,6 +83,9 @@ export function terminate() {
   }
   openFiles?.close();
   openFiles = null;
+
+  formatter?.close();
+  formatter = null;
 }
 
 const openSyncDocs: { [path: string]: SyncDoc } = {};

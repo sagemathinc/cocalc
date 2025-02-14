@@ -528,7 +528,11 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   };
 
   createNatsService: CreateNatsServiceFunction = async (options) => {
-    return createNatsService({ ...options, env: await getEnv() });
+    return createNatsService({
+      ...options,
+      project_id: this.project_id,
+      env: await getEnv(),
+    });
   };
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely

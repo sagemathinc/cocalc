@@ -246,11 +246,14 @@ export class API {
   formatter = async (
     path: string,
     config: FormatterConfig,
-    compute_server_id?: number,
+    //compute_server_id?: number,
   ): Promise<FormatResult> => {
     const options: FormatterOptions = this.check_formatter_available(config);
-    const api = this.getApi({ compute_server_id });
-    const { result } = await api.editor.formatter({ path, options });
+    const { result } = await webapp_client.callNatsService({
+      project_id: this.project_id,
+      service: "formatter",
+      mesg: { path, options },
+    });
     return result;
   };
 

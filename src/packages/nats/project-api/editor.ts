@@ -1,16 +1,11 @@
 import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { RunNotebookOptions } from "@cocalc/util/jupyter/nbgrader-types";
-import type {
-  Options as FormatterOptions,
-  FormatResult,
-} from "@cocalc/util/code-formatter";
+import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
 
 export const editor = {
   jupyterStripNotebook: true,
   jupyterNbconvert: true,
   jupyterRunNotebook: true,
-
-  formatter: true,
   formatterString: true,
 };
 
@@ -19,12 +14,7 @@ export interface Editor {
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
   jupyterRunNotebook: (opts: RunNotebookOptions) => Promise<string>;
 
-  // returns a patch to transform doc into formatted form.
-  formatter: (opts: {
-    path: string;
-    options: FormatterOptions;
-  }) => Promise<{ result: FormatResult }>;
-
+  // returns a patch to transform str into formatted form.
   formatterString: (opts: {
     str: string;
     options: FormatterOptions;
