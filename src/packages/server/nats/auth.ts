@@ -124,16 +124,14 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   goalPub.add("$JS.API.*.*.public");
   goalPub.add("$JS.API.*.*.public.>");
   goalPub.add("$JS.API.CONSUMER.MSG.NEXT.public.>");
+  
+  // microservices info api
+  goalSub.add(`$SRV.>`);
+  goalPub.add(`$SRV.*`);
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);
     goalPub.add(`*.account-${userId}.>`);
-
-    // microservices api
-    goalSub.add(`$SRV.*.account-${userId}.>`);
-    goalSub.add(`$SRV.*.account-${userId}`);
-    goalSub.add(`$SRV.*`);
-    goalPub.add(`$SRV.*`);
 
     // the account-specific kv stores
     goalPub.add(`$JS.API.*.*.KV_account-${userId}`);
@@ -151,12 +149,6 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
       add(goalPub, pub);
     }
   } else if (userType == "project") {
-    // microservices api
-    goalSub.add(`$SRV.*.project-${userId}.>`);
-    goalSub.add(`$SRV.*.project-${userId}`);
-    goalSub.add(`$SRV.*`);
-    goalPub.add(`$SRV.*`);
-
     const { pub, sub } = projectSubjects(userId);
     add(goalSub, sub);
     add(goalPub, pub);
