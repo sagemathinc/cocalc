@@ -254,7 +254,7 @@ export class API {
       project_id: this.project_id,
       compute_server_id,
     });
-    return await formatter({ path, options });
+    return await formatter.call({ path, options });
   };
 
   formatter_string = async (

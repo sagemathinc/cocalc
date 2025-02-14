@@ -41,6 +41,7 @@ import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { debounce } from "lodash";
+import { jupyter as natsJupyterService } from "@cocalc/nats/service/project";
 
 const { close, required, defaults } = misc;
 
@@ -202,17 +203,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed -- jupyter actions -- api_call");
     }
-    if (this._client.callNatsService == null) {
-      throw Error("api not available");
-    }
-    const resp = await this._client.callNatsService({
+    const service = natsJupyterService({
       project_id: this.project_id,
       path: this.path,
-      service: "api",
-      mesg: { endpoint, query },
-      timeout: timeout_ms,
     });
-    return resp;
+    return await service.call({ endpoint, query }, timeout_ms);
   }
 
   protected dbg = (f: string) => {

@@ -5,19 +5,8 @@ import { getEnv } from "@cocalc/nats/client";
 export function natsService<Message, Response>(
   options: Omit<Options, "handler">,
 ) {
-  const S = new NatsService<Message, Response>(options);
-  return S as CallableNatsServiceInstance<Message, Response>;
+  return new NatsService<Message, Response>(options);
 }
-
-interface CallableNatsService<Message, Response> {
-  (mesg: Message, timeout?: number): Promise<Response>;
-}
-
-export type CallableNatsServiceInstance<Message, Response> = NatsService<
-  Message,
-  Response
-> &
-  CallableNatsService<Message, Response>;
 
 export class NatsService<Message, Response> {
   private service?: NatsService0;
@@ -25,11 +14,6 @@ export class NatsService<Message, Response> {
 
   constructor(options: Omit<Options, "handler">) {
     this.options = options;
-    return new Proxy(this, {
-      apply: (target, _thisArg, argumentsList) => {
-        return target.call.apply(target, argumentsList);
-      },
-    });
   }
 
   listen = async (handler: (mesg: Message) => Promise<Response>) => {
