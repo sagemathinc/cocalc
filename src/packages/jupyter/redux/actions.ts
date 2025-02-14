@@ -42,6 +42,7 @@ import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { debounce } from "lodash";
 import { jupyter as natsJupyterService } from "@cocalc/nats/service/project";
+import { type JupyterApiEndpoint } from "@cocalc/nats/service/project";
 
 const { close, required, defaults } = misc;
 
@@ -196,10 +197,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   starts, it creates this service.
   */
   protected async api_call(
-    endpoint: string,
+    endpoint: JupyterApiEndpoint,
     query?: any,
     timeout_ms?: number,
-  ): Promise<any> {
+  ) {
     if (this._state === "closed") {
       throw Error("closed -- jupyter actions -- api_call");
     }

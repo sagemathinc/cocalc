@@ -18,8 +18,20 @@ export function formatter({ compute_server_id = 0, project_id }) {
   );
 }
 
+export type JupyterApiEndpoint =
+  | "signal"
+  | "save_ipynb_file"
+  | "kernel_info"
+  | "more_output"
+  | "complete"
+  | "introspect"
+  | "store"
+  | "comm"
+  | "ipywidgets-get-buffer"
+  | "kernels";
+
 interface JupyterApiMessage {
-  endpoint: string;
+  endpoint: JupyterApiEndpoint;
   query?: any;
 }
 
