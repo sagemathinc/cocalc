@@ -126,6 +126,7 @@ function register(
               .getProjectStore(project_id)
               ?.getIn(["open_files", actions.timeTravelActions.path])
           ) {
+            actions.timeTravelActions.close();
             redux.removeActions(actions.timeTravelActions.name);
             redux.removeStore(actions.timeTravelActions.name);
           }

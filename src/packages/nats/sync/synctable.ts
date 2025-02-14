@@ -45,4 +45,5 @@ function createObject(options: Options) {
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
   createKey: (opts) => JSON.stringify({ ...opts, env: undefined }),
   createObject,
+  // name: "synctable-nats",
 });

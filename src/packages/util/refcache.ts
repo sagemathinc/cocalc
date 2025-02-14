@@ -12,9 +12,11 @@ export default function refCache<
 >({
   createKey,
   createObject,
+  name,
 }: {
   createKey?: (opts: Options) => string;
   createObject: (opts: Options) => Promise<T>;
+  name?: string;
 }) {
   const cache: { [key: string]: T } = {};
   const count: { [key: number]: T } = {};
@@ -33,9 +35,19 @@ export default function refCache<
     const key = createKey(opts);
     if (cache[key] != undefined) {
       count[key] += 1;
+      if (name) {
+        console.log("refCache: cache hit", {
+          name,
+          key,
+          count: count[key],
+        });
+      }
       return cache[key];
     }
     const obj = await createObjectReuseInFlight(opts);
+    if (name) {
+      console.log("refCache: create", { name, key });
+    }
     if (cache[key] != null) {
       // it's possible after the above await that a
       // different call to get already setup the cache, count, etc.
@@ -48,6 +60,9 @@ export default function refCache<
     close[key] = obj.close;
     obj.close = () => {
       count[key] -= 1;
+      if (name) {
+        console.log("refCache: close", { name, key, count: count[key] });
+      }
       if (count[key] <= 0) {
         obj.close = close[key];
         obj.close?.();
@@ -69,9 +84,11 @@ export function refCacheSync<
 >({
   createKey,
   createObject,
+  name,
 }: {
   createKey?: (opts: Options) => string;
   createObject: (opts: Options) => T;
+  name?: string;
 }) {
   const cache: { [key: string]: T } = {};
   const count: { [key: number]: T } = {};
@@ -86,15 +103,28 @@ export function refCacheSync<
     const key = createKey(opts);
     if (cache[key] != undefined) {
       count[key] += 1;
+      if (name) {
+        console.log("refCacheSync: cache hit", {
+          name,
+          key,
+          count: count[key],
+        });
+      }
       return cache[key];
     }
     const obj = createObject(opts);
+    if (name) {
+      console.log("refCacheSync: create", { name, key });
+    }
     // we are *the* one setting things up.
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
     obj.close = () => {
       count[key] -= 1;
+      if (name) {
+        console.log("refCacheSync: close", { name, key, count: count[key] });
+      }
       if (count[key] <= 0) {
         obj.close = close[key];
         obj.close?.();

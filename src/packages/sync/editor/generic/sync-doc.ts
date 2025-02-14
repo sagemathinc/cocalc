@@ -1392,10 +1392,28 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
+    if (this.client == null) {
+      // dbg shouldn't be called after this synctable is closed, so in this
+      // case we clean up.  There's a tricky cases involving timetravel
+      // in two tabs at once that could trigger this.
+      // In particular, the following breaks this:
+      //  - open a.txt and timetravel in that frame
+      //  - shift click the timetravel button to open another time travel tab
+      //  - close the a.txt tab entirely
+      //  - close timetravel (thus all tabs closed)
+      //  - open a.txt again
+      //  - type something and the patch update queue and this dbg gets triggered.
+      // The real problem as explained in frontend/frame-editors/frame-tree/frame-tree.tsx
+      // about timetravel is that it's hacky.
+      return () => {};
+      //       return (...args) => {
+      //         console.warn(`BUG: use of a closed syncdoc -- SyncDoc.${f}`, ...args);
+      //       };
+    }
     //     if (this.useNats) {
     //       return (...args) => console.log(f, ...args);
     //     }
-    return this.client?.dbg(`SyncDoc('${this.path}').${f}`);
+    return this.client.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
   private async init_all(): Promise<void> {
