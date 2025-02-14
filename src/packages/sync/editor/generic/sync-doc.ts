@@ -1716,7 +1716,11 @@ export class SyncDoc extends EventEmitter {
   };
 
   private update_if_file_is_read_only = async (): Promise<void> => {
-    this.set_read_only(await this.file_is_read_only());
+    const read_only = await this.file_is_read_only();
+    if (this.state == "closed") {
+      return;
+    }
+    this.set_read_only(read_only);
   };
 
   private init_load_from_disk = async (): Promise<void> => {

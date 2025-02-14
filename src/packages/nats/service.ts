@@ -12,7 +12,9 @@ an error too.
 
 import { Svcm } from "@nats-io/services";
 import { type NatsEnv } from "@cocalc/nats/types";
-import { sha1 } from "@cocalc/util/misc";
+import { sha1, trunc_middle } from "@cocalc/util/misc";
+
+const DEFAULT_TIMEOUT = 5000;
 
 export interface ServiceDescription {
   service: string;
@@ -35,9 +37,27 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   }
   const { nc, jc } = opts.env;
   const subject = serviceSubject(opts);
-  const resp = await nc.request(subject, jc.encode(opts.mesg), {
-    timeout: opts.timeout,
-  });
+  let resp;
+  const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
+  try {
+    resp = await nc.request(subject, jc.encode(opts.mesg), {
+      timeout,
+    });
+  } catch (err) {
+    if (err.name == "NatsError") {
+      const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
+      if (err.code == "503") {
+        throw Error(
+          `Not Available: service ${p}${opts.service} is not available`,
+        );
+      } else if (err.code == "TIMEOUT") {
+        throw Error(
+          `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,
+        );
+      }
+    }
+    throw err;
+  }
   const result = jc.decode(resp.data);
   if (result?.error) {
     throw Error(result.error);

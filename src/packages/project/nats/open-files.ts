@@ -140,7 +140,7 @@ function supportAutoclose(path: string): boolean {
 async function closeIgnoredFilesLoop() {
   while (openFiles != null && openFiles.state == "connected") {
     await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
-    if (openFiles.state != "connected") {
+    if (openFiles?.state != "connected") {
       return;
     }
     const paths = Object.keys(openSyncDocs);
