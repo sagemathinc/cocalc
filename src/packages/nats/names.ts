@@ -99,29 +99,28 @@ export function streamSubject({
 }
 
 export function projectSubject({
-  project_id,
-  compute_server_id = 0,
-  // service = optional name of the microservice, e.g., 'api', 'terminal'
   service,
+  project_id,
+  compute_server_id,
   // path = optional name of specific path for that microservice -- replaced by its sha1
   path,
 }: {
   project_id: string;
+  service: string;
   compute_server_id?: number;
-  service?: string;
   path?: string;
 }): string {
   if (!project_id) {
     throw Error("project_id must be set");
   }
-  let subject = `project.${project_id}.${compute_server_id}`;
-  if (service) {
-    subject += "." + service;
-    if (path) {
-      subject += "." + sha1(path);
-    }
-  }
-  return subject;
+  const segments = [
+    "project",
+    project_id,
+    compute_server_id ?? "-",
+    service ?? "-",
+    path ? sha1(path) : "-",
+  ];
+  return segments.join(".");
 }
 
 export function projectStreamName({

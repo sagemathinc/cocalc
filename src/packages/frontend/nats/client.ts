@@ -31,6 +31,11 @@ import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
+import { callNatsService, createNatsService } from "@cocalc/nats/service";
+import type {
+  CallNatsServiceFunction,
+  CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
 
 export class NatsClient {
   client: WebappClient;
@@ -87,10 +92,18 @@ export class NatsClient {
     return this.nc;
   });
 
+  callNatsService: CallNatsServiceFunction = async (options) => {
+    return await callNatsService({ ...options, env: await this.getEnv() });
+  };
+
+  createNatsService: CreateNatsServiceFunction = async (options) => {
+    return createNatsService({ ...options, env: await this.getEnv() });
+  };
+
   // deprecated!
   projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
     const nc = await this.getConnection();
-    const subject = `${projectSubject({ project_id })}.browser-api`;
+    const subject = projectSubject({ project_id, service: "browser-api" });
     const resp = await nc.request(subject, this.jc.encode(mesg), {
       timeout,
     });
@@ -162,13 +175,13 @@ export class NatsClient {
   }: {
     service?: string;
     project_id: string;
-    compute_server_id: number;
+    compute_server_id?: number;
     name: string;
     args: any[];
     timeout?: number;
   }) => {
     const nc = await this.getConnection();
-    const subject = `${projectSubject({ project_id, compute_server_id })}.${service}`;
+    const subject = projectSubject({ project_id, compute_server_id, service });
     const mesg = this.jc.encode({
       name,
       args,
@@ -307,7 +320,11 @@ export class NatsClient {
   // DEPRECATED
   primus = async (project_id: string) => {
     return getPrimusConnection({
-      subject: `${projectSubject({ project_id, compute_server_id: 0 })}.primus`,
+      subject: projectSubject({
+        project_id,
+        compute_server_id: 0,
+        service: "primus",
+      }),
       env: await this.getEnv(),
       role: "client",
       id: this.sessionId,

@@ -1303,6 +1303,16 @@ export class SyncDoc extends EventEmitter {
         atomic: false,
         immutable: true,
       });
+    } else if (this.useNats) {
+      synctable = await this.client.synctable_nats(query, {
+        obj: {
+          project_id: this.project_id,
+          path: this.path,
+        },
+        stream: false,
+        atomic: true,
+        immutable: true,
+      });
     } else {
       switch (this.data_server) {
         case "project":

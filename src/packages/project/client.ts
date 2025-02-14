@@ -51,6 +51,13 @@ import { get_syncdoc } from "./sync/sync-doc";
 import synctable_nats from "@cocalc/project/nats/synctable";
 import pubsub from "@cocalc/project/nats/pubsub";
 import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import { getEnv } from "@cocalc/project/nats/env";
+import {
+  callNatsService,
+  createNatsService,
+  type CallNatsServiceFunction,
+  type CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
 
 const winston = getLogger("client");
 
@@ -514,6 +521,14 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
     return await pubsub({ path, name });
+  };
+
+  callNatsService: CallNatsServiceFunction = async (options) => {
+    return await callNatsService({ ...options, env: await getEnv() });
+  };
+
+  createNatsService: CreateNatsServiceFunction = async (options) => {
+    return createNatsService({ ...options, env: await getEnv() });
   };
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely

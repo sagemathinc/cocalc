@@ -972,6 +972,9 @@ importers:
       '@cocalc/jupyter':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -1072,6 +1075,9 @@ importers:
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30
+      '@nats-io/services':
+        specifier: 3.0.0-25
+        version: 3.0.0-25
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0

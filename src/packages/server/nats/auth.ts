@@ -112,7 +112,6 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const userType = getCoCalcUserType(cocalcUser);
   // TODO: jetstream permissions are WAY TO BROAD.
   const goalPub = new Set([
-    // "_INBOX.>", // !!!! TODO: so can create responses to requests -- fix this it is horribly insecure!!!!!
     `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
     "$JS.API.INFO",
   ]);

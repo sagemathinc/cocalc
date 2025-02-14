@@ -178,6 +178,10 @@ export class Client extends EventEmitter implements Client0 {
     throw Error("pubsub_nats: not implemented");
   }
 
+  async natsRequest(_subject: string, _mesg: any, _options?) {
+    throw Error("natsRequest: not implemented");
+  }
+
   // account_id or project_id
   public client_id(): string {
     return this._client_id;

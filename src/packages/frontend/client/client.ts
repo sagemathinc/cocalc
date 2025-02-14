@@ -33,6 +33,10 @@ import { basePathCookieName } from "@cocalc/util/misc";
 import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import type {
+  CallNatsServiceFunction,
+  CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -85,6 +89,8 @@ export interface WebappClient extends EventEmitter {
   is_signed_in: () => boolean;
   synctable_project: Function;
   synctable_nats: NatsSyncTableFunction;
+  callNatsService: CallNatsServiceFunction;
+  createNatsService: CreateNatsServiceFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
@@ -167,6 +173,8 @@ class Client extends EventEmitter implements WebappClient {
   is_signed_in: () => boolean;
   synctable_project: Function;
   synctable_nats: NatsSyncTableFunction;
+  callNatsService: CallNatsServiceFunction;
+  createNatsService: CreateNatsServiceFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
@@ -262,6 +270,8 @@ class Client extends EventEmitter implements WebappClient {
     );
     this.synctable_nats = this.nats_client.synctable;
     this.pubsub_nats = this.nats_client.pubsub;
+    this.callNatsService = this.nats_client.callNatsService;
+    this.createNatsService = this.nats_client.createNatsService;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);

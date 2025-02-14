@@ -20,7 +20,7 @@ import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import {
   JupyterStore,
@@ -39,7 +39,6 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
-import { once } from "@cocalc/util/async-utils";
 import latexEnvs from "@cocalc/util/latex-envs";
 
 const { close, required, defaults } = misc;
@@ -190,66 +189,30 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  private apiCallHandler: {
-    id: number; // this is a sequential id used for request/response pairing
-    // when get response from computer server, one of these callbacks gets called:
-    responseCallbacks: { [id: number]: (err: any, response?: any) => void };
-  } | null = null;
-
-  private initApiCallHandler = () => {
-    this.apiCallHandler = { id: 0, responseCallbacks: {} };
-    const { responseCallbacks } = this.apiCallHandler;
-    this.syncdb.on("message", (data) => {
-      const cb = responseCallbacks[data.id];
-      if (cb != null) {
-        delete responseCallbacks[data.id];
-        if (data.response?.event == "error") {
-          cb(data.response.message ?? "error");
-        } else {
-          cb(undefined, data.response);
-        }
-      }
-    });
-  };
-
+  /*
+  When the Syncdoc for Jupyter that is responsible for running computations
+  starts, it creates this service.
+  */
   protected async api_call(
     endpoint: string,
     query?: any,
     timeout_ms?: number,
   ): Promise<any> {
-    if (this._state === "closed" || this.syncdb == null) {
+    if (this._state === "closed") {
       throw Error("closed -- jupyter actions -- api_call");
     }
-    if (this.syncdb.get_state() == "init") {
-      await once(this.syncdb, "ready");
+    if (this._client.callNatsService == null) {
+      throw Error("api not available");
     }
-    if (this.apiCallHandler == null) {
-      this.initApiCallHandler();
-    }
-    if (this.apiCallHandler == null) {
-      throw Error("bug");
-    }
-
-    this.apiCallHandler.id += 1;
-    const { id, responseCallbacks } = this.apiCallHandler;
-    await this.syncdb.sendMessageToProject({
-      event: "api-request",
-      id,
+    console.log("callNatsService ", { endpoint, query, timeout_ms });
+    const resp = await this._client.callNatsService({
+      project_id: this.project_id,
       path: this.path,
-      endpoint,
-      query,
+      service: "api",
+      mesg: { endpoint, query },
+      timeout: timeout_ms,
     });
-    const waitForResponse = (cb) => {
-      if (timeout_ms) {
-        setTimeout(() => {
-          if (responseCallbacks[id] == null) return;
-          cb("timeout");
-          delete responseCallbacks[id];
-        }, timeout_ms);
-      }
-      responseCallbacks[id] = cb;
-    };
-    const resp = await callback(waitForResponse);
+    console.log("api_call got response", resp);
     return resp;
   }
 
