@@ -48,6 +48,9 @@ import { filename_extension, original_path } from "@cocalc/util/misc";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { createFormatterService } from "./formatter";
 
+// ensure nats connection stuff is initialized
+import "@cocalc/backend/nats";
+
 const logger = getLogger("project:nats:open-files");
 
 let openFiles: OpenFiles | null = null;
@@ -55,6 +58,7 @@ let formatter: any = null;
 
 export async function init() {
   logger.debug("init");
+
   openFiles = await createOpenFiles();
 
   // initialize

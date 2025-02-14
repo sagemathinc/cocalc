@@ -6,3 +6,5 @@ export interface NatsEnv {
 }
 
 export type State = "disconnected" | "connected" | "closed";
+
+export type NatsEnvFunction = () => Promise<NatsEnv>;

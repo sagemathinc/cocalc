@@ -3,11 +3,18 @@ import { nats } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { connect, credsAuthenticator } from "nats";
-export { getEnv } from "./env";
+import { getEnv } from "./env";
+export { getEnv };
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { inboxPrefix } from "@cocalc/nats/names";
+import { setNatsClient } from "@cocalc/nats/client";
+
+export function init() {
+  setNatsClient({ getNatsEnv: getEnv });
+}
+init();
 
 const logger = getLogger("backend:nats");
 

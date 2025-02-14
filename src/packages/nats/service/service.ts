@@ -32,6 +32,7 @@ export interface ServiceCall extends ServiceDescription {
 }
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
+  // console.log("callNatsService", opts);
   if (opts.env == null) {
     throw Error("NATS env must be specified");
   }
@@ -123,7 +124,7 @@ export function serviceDescription({
   return [description, path ? `\nPath: ${path}` : ""].join("");
 }
 
-interface Options extends ServiceDescription {
+export interface Options extends ServiceDescription {
   env?: NatsEnv;
   description?: string;
   version?: string;
@@ -163,6 +164,7 @@ export class NatsService {
     const jc = this.options.env.jc;
     for await (const mesg of this.api) {
       const request = jc.decode(mesg.data) ?? ({} as any);
+      // console.log("handle nats service call", request);
       let resp;
       try {
         resp = await this.options.handler(request);

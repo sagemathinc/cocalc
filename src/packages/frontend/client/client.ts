@@ -37,6 +37,8 @@ import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
+import type { NatsEnvFunction } from "@cocalc/nats/types";
+import { setNatsClient } from "@cocalc/nats/client";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -91,6 +93,7 @@ export interface WebappClient extends EventEmitter {
   synctable_nats: NatsSyncTableFunction;
   callNatsService: CallNatsServiceFunction;
   createNatsService: CreateNatsServiceFunction;
+  getNatsEnv: NatsEnvFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
@@ -175,6 +178,7 @@ class Client extends EventEmitter implements WebappClient {
   synctable_nats: NatsSyncTableFunction;
   callNatsService: CallNatsServiceFunction;
   createNatsService: CreateNatsServiceFunction;
+  getNatsEnv: NatsEnvFunction;
   pubsub_nats: Function;
   project_websocket: Function;
   prettier: Function;
@@ -272,6 +276,7 @@ class Client extends EventEmitter implements WebappClient {
     this.pubsub_nats = this.nats_client.pubsub;
     this.callNatsService = this.nats_client.callNatsService;
     this.createNatsService = this.nats_client.createNatsService;
+    this.getNatsEnv = this.nats_client.getEnv;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);
@@ -371,3 +376,4 @@ class Client extends EventEmitter implements WebappClient {
 }
 
 export const webapp_client = new Client();
+setNatsClient(webapp_client);

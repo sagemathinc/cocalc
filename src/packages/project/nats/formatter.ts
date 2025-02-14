@@ -2,25 +2,23 @@
 File formatting service.
 */
 
-import { getClient } from "@cocalc/project/client";
 import { run_formatter, type Options } from "../formatters";
+import * as services from "@cocalc/nats/service/project";
+import { compute_server_id, project_id } from "@cocalc/project/data";
 
 interface Message {
   path: string;
   options: Options;
 }
 
+const formatter = services.formatter({ compute_server_id, project_id });
+
 export async function createFormatterService({ openSyncDocs }) {
-  const client = getClient();
-  return await client.createNatsService({
-    service: "formatter",
-    description: "Format code in an open file.",
-    handler: async (opts: Message) => {
-      const syncstring = openSyncDocs[opts.path];
-      if (syncstring == null) {
-        throw Error(`"${opts.path}" is not opened`);
-      }
-      return { result: await run_formatter({ ...opts, syncstring }) };
-    },
+  return formatter.listen(async (opts: Message) => {
+    const syncstring = openSyncDocs[opts.path];
+    if (syncstring == null) {
+      throw Error(`"${opts.path}" is not opened`);
+    }
+    return await run_formatter({ ...opts, syncstring });
   });
 }

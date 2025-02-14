@@ -51,13 +51,15 @@ import { get_syncdoc } from "./sync/sync-doc";
 import synctable_nats from "@cocalc/project/nats/synctable";
 import pubsub from "@cocalc/project/nats/pubsub";
 import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
-import { getEnv } from "@cocalc/project/nats/env";
+import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
 import {
   callNatsService,
   createNatsService,
   type CallNatsServiceFunction,
   type CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
+import type { NatsEnvFunction } from "@cocalc/nats/types";
+import { setNatsClient } from "@cocalc/nats/client";
 
 const winston = getLogger("client");
 
@@ -91,6 +93,7 @@ export function init() {
     throw Error("BUG: Client already initialized!");
   }
   client = new Client();
+  setNatsClient(client);
   return client;
 }
 
@@ -524,16 +527,18 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   };
 
   callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService({ ...options, env: await getEnv() });
+    return await callNatsService({ ...options, env: await getNatsEnv() });
   };
 
   createNatsService: CreateNatsServiceFunction = async (options) => {
     return createNatsService({
       ...options,
       project_id: this.project_id,
-      env: await getEnv(),
+      env: await getNatsEnv(),
     });
   };
+
+  getNatsEnv: NatsEnvFunction = async () => await getNatsEnv();
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
