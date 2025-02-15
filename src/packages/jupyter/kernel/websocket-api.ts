@@ -11,7 +11,7 @@ various messages related to working with Jupyter.
 import { get_existing_kernel } from "@cocalc/jupyter/kernel";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import { bufferToBase64 } from "@cocalc/util/base64";
-import { type JupyterApiEndpoint } from "@cocalc/nats/service/project";
+import { type JupyterApiEndpoint } from "@cocalc/nats/service/jupyter";
 
 export async function handleApiRequest(
   path: string,
@@ -22,7 +22,7 @@ export async function handleApiRequest(
   if(endpoint == 'kernels') {
     return await get_kernel_data();
   }
-  
+
   // Now endpoints that do depend on a specific kernel.
   const kernel = get_existing_kernel(path);
   if (kernel == null) {

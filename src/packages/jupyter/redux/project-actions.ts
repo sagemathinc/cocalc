@@ -34,7 +34,7 @@ import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
-import { jupyter as natsJupyterService } from "@cocalc/nats/service/project";
+import { createNatsJupyterService } from "@cocalc/nats/service/jupyter";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
@@ -216,12 +216,30 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("unable to initialize nats API");
     }
     const path = this.path;
-    const service = natsJupyterService({
+    //     const f = async ({ endpoint, query }) => {
+    //       return await handleApiRequest(path, endpoint, query);
+    //     });
+    const f = (endpoint) => {
+      return async (query) => {
+        return await handleApiRequest(path, endpoint, query);
+      };
+    };
+    const impl = {
+      signal: f("signal"),
+      save_ipynb_file: f("save_ipynb_file"),
+      kernel_info: f("kernel_info"),
+      more_output: f("more_output"),
+      complete: f("complete"),
+      introspect: f("introspect"),
+      store: f("store"),
+      comm: f("comm"),
+      "ipywidgets-get-buffer": f("ipywidgets-get-buffer"),
+      kernels: f("kernels"),
+    };
+    const service = await createNatsJupyterService({
       project_id: this.project_id,
       path,
-    });
-    service.listen(async ({ endpoint, query }) => {
-      return await handleApiRequest(path, endpoint, query);
+      impl,
     });
     this.syncdb.on("closed", () => {
       service.close();

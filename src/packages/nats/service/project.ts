@@ -2,7 +2,7 @@
 Services in a project.
 */
 
-import { natsService } from "./typed";
+import { createServiceClient, createServiceHandler } from "./typed";
 
 import type {
   Options as FormatterOptions,
@@ -12,36 +12,35 @@ import type {
 // TODO: we may change it to NOT take compute server and have this listening from
 // project and all compute servers... and have only the one with the file open
 // actually reply.
-export function formatter({ compute_server_id = 0, project_id }) {
-  return natsService<{ path: string; options: FormatterOptions }, FormatResult>(
-    { project_id, compute_server_id, service: "formatter" },
-  );
+interface FormatterApi {
+  formatter: (opts: {
+    path: string;
+    options: FormatterOptions;
+  }) => Promise<FormatResult>;
 }
 
-export type JupyterApiEndpoint =
-  | "signal"
-  | "save_ipynb_file"
-  | "kernel_info"
-  | "more_output"
-  | "complete"
-  | "introspect"
-  | "store"
-  | "comm"
-  | "ipywidgets-get-buffer"
-  | "kernels";
-
-interface JupyterApiMessage {
-  endpoint: JupyterApiEndpoint;
-  query?: any;
-}
-
-type JupyterApiResponse = any;
-
-export function jupyter({ project_id, path }) {
-  return natsService<JupyterApiMessage, JupyterApiResponse>({
+export function formatterClient({ compute_server_id = 0, project_id }) {
+  return createServiceClient<FormatterApi>({
     project_id,
-    path,
-    service: "api",
-    description: "Jupyter notebook compute API",
+    compute_server_id,
+    service: "formatter",
+  });
+}
+
+export async function createFormatterService({
+  compute_server_id = 0,
+  project_id,
+  impl,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+  impl: FormatterApi;
+}) {
+  return await createServiceHandler<FormatterApi>({
+    project_id,
+    compute_server_id,
+    service: "formatter",
+    description: "Code formatter API",
+    impl,
   });
 }

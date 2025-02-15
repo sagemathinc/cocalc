@@ -36,7 +36,7 @@ import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import * as services from "@cocalc/nats/service/project";
+import { formatterClient } from "@cocalc/nats/service/project";
 
 export class API {
   private conn;
@@ -250,11 +250,11 @@ export class API {
     compute_server_id?: number,
   ): Promise<FormatResult> => {
     const options: FormatterOptions = this.check_formatter_available(config);
-    const formatter = services.formatter({
+    const client = formatterClient({
       project_id: this.project_id,
       compute_server_id,
     });
-    return await formatter.call({ path, options });
+    return await client.formatter({ path, options });
   };
 
   formatter_string = async (

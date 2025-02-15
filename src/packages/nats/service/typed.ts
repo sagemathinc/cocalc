@@ -1,44 +1,31 @@
 import { callNatsService, createNatsService } from "./service";
-import type { NatsService as NatsService0, Options } from "./service";
-import { getEnv } from "@cocalc/nats/client";
+import type { Options, ServiceCall } from "./service";
 
-export function natsService<Message, Response>(
-  options: Omit<Options, "handler">,
-) {
-  return new NatsService<Message, Response>(options);
+export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
+  return new Proxy(
+    {},
+    {
+      get: (_, prop) => {
+        if (typeof prop !== "string") {
+          return undefined;
+        }
+        return async (...args) => {
+          return await callNatsService({
+            ...options,
+            mesg: { name: prop, args },
+          });
+        };
+      },
+    },
+  ) as Api;
 }
 
-export class NatsService<Message, Response> {
-  private service?: NatsService0;
-  private options: Omit<Options, "handler">;
-
-  constructor(options: Omit<Options, "handler">) {
-    this.options = options;
-  }
-
-  listen = async (handler: (mesg: Message) => Promise<Response>) => {
-    this.service = await createNatsService({
-      ...this.options,
-      handler,
-      env: await getEnv(),
-    });
-    return this.service;
-  };
-
-  close = () => {
-    this.service?.close();
-    delete this.service;
-    // @ts-ignore
-    delete this.options;
-  };
-
-  call = async (mesg: Message, timeout?: number): Promise<Response> => {
-    const resp = await callNatsService({
-      ...this.options,
-      env: await getEnv(),
-      timeout,
-      mesg,
-    });
-    return resp as Response;
-  };
+export async function createServiceHandler<Api>({
+  impl,
+  ...options
+}: Omit<Options, "handler"> & { impl: Api }) {
+  return await createNatsService({
+    ...options,
+    handler: async (mesg) => await impl[mesg.name](...mesg.args),
+  });
 }
