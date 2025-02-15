@@ -2,6 +2,8 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { SyncTableKV } from "./synctable-kv";
 import { SyncTableStream } from "./synctable-stream";
 import { refCacheSync } from "@cocalc/util/refcache";
+import { type KVLimits } from "./general-kv";
+import { type FilteredStreamLimitOptions } from "./stream";
 
 export type NatsSyncTable = SyncTableStream | SyncTableKV;
 
@@ -32,6 +34,7 @@ interface Options {
   stream?: boolean;
   immutable?: boolean; // if true, then get/set works with immutable.js objects instead.
   noCache?: boolean;
+  limits?: Partial<KVLimits> | Partial<FilteredStreamLimitOptions>;
 }
 
 function createObject(options: Options) {
@@ -45,5 +48,4 @@ function createObject(options: Options) {
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
   createKey: (opts) => JSON.stringify({ ...opts, env: undefined }),
   createObject,
-  // name: "synctable-nats",
 });

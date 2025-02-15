@@ -15,6 +15,7 @@ import jsonStableStringify from "json-stable-stringify";
 import { toKey } from "@cocalc/nats/util";
 import { wait } from "@cocalc/util/async-wait";
 import { fromJS, Map } from "immutable";
+import { type KVLimits } from "./general-kv";
 
 export class SyncTableKV extends EventEmitter {
   public readonly table;
@@ -27,6 +28,7 @@ export class SyncTableKV extends EventEmitter {
   private dkv?: DKV | DKO;
   private env;
   private getHook: Function;
+  private limits?: Partial<KVLimits>;
 
   constructor({
     query,
@@ -35,6 +37,7 @@ export class SyncTableKV extends EventEmitter {
     project_id,
     atomic,
     immutable,
+    limits,
   }: {
     query;
     env: NatsEnv;
@@ -42,11 +45,13 @@ export class SyncTableKV extends EventEmitter {
     project_id?: string;
     atomic?: boolean;
     immutable?: boolean;
+    limits?: Partial<KVLimits>;
   }) {
     super();
     this.atomic = !!atomic;
     this.getHook = immutable ? fromJS : (x) => x;
     this.query = query;
+    this.limits = limits;
     this.env = env;
     this.table = keys(query)[0];
     if (query[this.table][0].string_id && query[this.table][0].project_id) {
@@ -91,6 +96,7 @@ export class SyncTableKV extends EventEmitter {
         account_id: this.account_id,
         project_id: this.project_id,
         env: this.env,
+        limits: this.limits,
       });
     } else {
       this.dkv = await createDko({
@@ -98,6 +104,7 @@ export class SyncTableKV extends EventEmitter {
         account_id: this.account_id,
         project_id: this.project_id,
         env: this.env,
+        limits: this.limits,
       });
     }
     this.dkv.on("change", (x) => {

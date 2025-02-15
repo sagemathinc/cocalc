@@ -1275,7 +1275,12 @@ export class SyncDoc extends EventEmitter {
   ): Promise<SyncTable> => {
     this.assert_not_closed("synctable");
     const dbg = this.dbg("synctable");
-    if (!this.ephemeral && this.persistent && this.data_server == "project") {
+    if (
+      !this.useNats &&
+      !this.ephemeral &&
+      this.persistent &&
+      this.data_server == "project"
+    ) {
       // persistent table in a non-ephemeral syncdoc, so ensure that table is
       // persisted to database (not just in memory).
       options = options.concat([{ persistent: true }]);
@@ -1312,6 +1317,17 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: true,
         immutable: true,
+      });
+    } else if (this.useNats && (query.eval_inputs || query.eval_outputs)) {
+      synctable = await this.client.synctable_nats(query, {
+        obj: {
+          project_id: this.project_id,
+          path: this.path,
+        },
+        stream: false,
+        atomic: true,
+        immutable: true,
+        limits: { max_age: 30000 },
       });
     } else if (this.useNats) {
       synctable = await this.client.synctable_nats(query, {
@@ -1886,7 +1902,7 @@ export class SyncDoc extends EventEmitter {
             this._save_patch(new_time, JSON.parse(obj.patch))
     */
 
-  private async init_evaluator(): Promise<void> {
+  private init_evaluator = async () => {
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext !== "sagews") {
@@ -1897,9 +1913,9 @@ export class SyncDoc extends EventEmitter {
     this.evaluator = new Evaluator(this, this.client, this.synctable);
     await this.evaluator.init();
     dbg("done");
-  }
+  };
 
-  private async init_ipywidgets(): Promise<void> {
+  private init_ipywidgets = async () => {
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext != "sage-jupyter2") {
@@ -1914,9 +1930,9 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-  }
+  };
 
-  private async init_cursors(): Promise<void> {
+  private init_cursors = async () => {
     const dbg = this.dbg("init_cursors");
     if (!this.cursors) {
       dbg("done -- do not care about cursors for this syncdoc.");
@@ -2010,7 +2026,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     dbg("done");
-  }
+  };
 
   private handle_cursors_change = (keys) => {
     if (this.state === "closed") {

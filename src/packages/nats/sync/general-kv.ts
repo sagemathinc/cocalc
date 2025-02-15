@@ -522,7 +522,10 @@ export class GeneralKV extends EventEmitter {
             });
           }
         } catch (err) {
-          if (err.code != "TIMEOUT") {
+          // code 10071 is for "JetStreamApiError: wrong last sequence", which is
+          // expected when there are multiple clients, since all of them try to impose
+          // limits up at once.
+          if (err.code != "TIMEOUT" && err.code != 10071) {
             console.log(`WARNING: expiring old messages - ${err}`);
           }
         }

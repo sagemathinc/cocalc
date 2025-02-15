@@ -1479,19 +1479,19 @@ export function retry_until_success(opts: {
         }
         if (err && opts.warn != null) {
           opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
+            `retry_until_success(${opts.name}) -- err=${err}`,
           );
         }
         if (opts.log != null) {
           opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
+            `retry_until_success(${opts.name}) -- err=${err}`,
           );
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
           opts.cb?.(
             `maximum tries (=${
               opts.max_tries
-            }) exceeded - last error ${JSON.stringify(err)}`,
+            }) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -1507,7 +1507,7 @@ export function retry_until_success(opts: {
           opts.cb?.(
             `maximum time (=${
               opts.max_time
-            }ms) exceeded - last error ${JSON.stringify(err)}`,
+            }ms) exceeded - last error ${err}`,
             err,
           );
           return;

@@ -252,6 +252,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
     conn.open();
   });
 
+  //   conn.on("data", (data) => {
+  //     console.log("project websocket received data", data);
+  //   });
+
   return conn;
 }
 

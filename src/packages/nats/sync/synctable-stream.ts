@@ -15,6 +15,7 @@ import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { dstream, DStream } from "./dstream";
 import { fromJS, Map } from "immutable";
+import { type FilteredStreamLimitOptions } from "./stream";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -39,6 +40,7 @@ export class SyncTableStream extends EventEmitter {
   private env;
   private dstream?: DStream;
   private getHook: Function;
+  private limits?: Partial<FilteredStreamLimitOptions>;
 
   constructor({
     query,
@@ -46,16 +48,19 @@ export class SyncTableStream extends EventEmitter {
     account_id: _account_id,
     project_id,
     immutable,
+    limits,
   }: {
     query;
     env: NatsEnv;
     account_id?: string;
     project_id?: string;
     immutable?: boolean;
+    limits?: Partial<FilteredStreamLimitOptions>;
   }) {
     super();
     this.getHook = immutable ? fromJS : (x) => x;
     this.env = env;
+    this.limits = limits;
     const table = keys(query)[0];
     this.table = table;
     if (table != "patches") {
@@ -81,6 +86,7 @@ export class SyncTableStream extends EventEmitter {
       name,
       project_id: this.project_id,
       env: this.env,
+      limits: this.limits,
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);
