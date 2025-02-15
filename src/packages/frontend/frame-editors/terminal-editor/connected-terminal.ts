@@ -290,9 +290,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       conn.on("close", this.connect);
       conn.on("data", this._handle_data_from_project);
       conn.once("ready", () => {
+        delete this.last_geom;
         this.ignore_terminal_data = false;
         this.set_connection_status("connected");
         this.scroll_to_bottom();
+        this.terminal.refresh(0, this.terminal.rows - 1);
+        this.init_keyhandler();
+        this.measure_size();
       });
       await conn.init();
     } catch (err) {
@@ -471,25 +475,24 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.keyhandler_initialized = true;
     this.terminal.attachCustomKeyEventHandler((event) => {
-      /*
-      console.log("key", {
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        shiftKey: event.shiftKey,
-        key: event.key,
-      });
-      */
+      if (event.type !== "keydown") {
+        // ignore this
+        return true;
+      }
+      //       console.log("key", {
+      //         type: event.type,
+      //         ctrlKey: event.ctrlKey,
+      //         metaKey: event.metaKey,
+      //         shiftKey: event.shiftKey,
+      //         key: event.key,
+      //       });
+
       // record that terminal is being actively used.
       this.last_active = Date.now();
       this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.actions.unpause(this.id);
-      }
-
-      if (event.type === "keypress") {
-        // ignore this
-        return true;
       }
 
       if (
@@ -639,6 +642,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       console.warn("Error resizing terminal", err, rows, cols);
     }
   };
+
+  i;
 
   // Stop ignoring terminal data... but ONLY once
   // the render buffer is also empty.
@@ -852,19 +857,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   measure_size(): void {
-    const geom = this.fitAddon.proposeDimensions();
-    // console.log('measure_size', geom);
-    if (geom == null) return;
-    const { rows, cols } = geom;
     if (this.ignore_terminal_data) {
-      // during the initial render
-      this.terminal_resize({ rows, cols });
+      // during initial load
+      return;
     }
-    if (
-      this.last_geom !== undefined &&
-      this.last_geom.rows === rows &&
-      this.last_geom.cols === cols
-    ) {
+    const geom = this.fitAddon.proposeDimensions();
+    //     console.log("measure_size", {
+    //       geom,
+    //       ignore: this.ignore_terminal_data,
+    //       last_geom: this.last_geom,
+    //     });
+    if (geom == null) {
+      return;
+    }
+    const { rows, cols } = geom;
+    if (this.last_geom?.rows === rows && this.last_geom?.cols === cols) {
       return;
     }
     this.last_geom = { rows, cols };
