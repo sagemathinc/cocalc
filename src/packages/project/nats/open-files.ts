@@ -47,7 +47,7 @@ import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { createFormatterService } from "./formatter";
-import { type TerminalService } from "@cocalc/nats/service/terminal";
+import { type NatsService } from "@cocalc/nats/service/service";
 import { createTerminalService } from "./terminal";
 
 // ensure nats connection stuff is initialized
@@ -57,7 +57,7 @@ const logger = getLogger("project:nats:open-files");
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
-const openDocs: { [path: string]: SyncDoc | TerminalService } = {};
+const openDocs: { [path: string]: SyncDoc | NatsService } = {};
 
 export async function init() {
   logger.debug("init");
@@ -196,7 +196,7 @@ const openDoc = reuseInFlight(async (path: string) => {
   }
 
   if (path.endsWith(".term")) {
-    const service = createTerminalService(path);
+    const service = await createTerminalService(path);
     openDocs[path] = service;
     return;
   }

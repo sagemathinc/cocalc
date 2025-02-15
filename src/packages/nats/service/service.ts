@@ -13,6 +13,7 @@ an error too.
 import { Svcm } from "@nats-io/services";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { sha1, trunc_middle } from "@cocalc/util/misc";
+import { getEnv } from "@cocalc/nats/client";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -33,10 +34,8 @@ export interface ServiceCall extends ServiceDescription {
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
   // console.log("callNatsService", opts);
-  if (opts.env == null) {
-    throw Error("NATS env must be specified");
-  }
-  const { nc, jc } = opts.env;
+  const env = opts.env ?? (await getEnv());
+  const { nc, jc } = env;
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
@@ -48,9 +47,8 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     if (err.name == "NatsError") {
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
       if (err.code == "503") {
-        throw Error(
-          `Not Available: service ${p}${opts.service} is not available`,
-        );
+        err.message = `Not Available: service ${p}${opts.service} is not available`;
+        throw err;
       } else if (err.code == "TIMEOUT") {
         throw Error(
           `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,
@@ -142,10 +140,8 @@ export class NatsService {
   }
 
   init = async () => {
-    if (this.options.env == null) {
-      throw Error("NATS env must be specified");
-    }
-    const svcm = new Svcm(this.options.env.nc);
+    const env = this.options.env ?? (await getEnv());
+    const svcm = new Svcm(env.nc);
 
     const service = await svcm.add({
       name: serviceName(this.options),
@@ -158,10 +154,8 @@ export class NatsService {
   };
 
   private listen = async () => {
-    if (this.options.env == null) {
-      throw Error("NATS env must be specified");
-    }
-    const jc = this.options.env.jc;
+    const env = this.options.env ?? (await getEnv());
+    const jc = env.jc;
     for await (const mesg of this.api) {
       const request = jc.decode(mesg.data) ?? ({} as any);
       // console.log("handle nats service call", request);

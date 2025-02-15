@@ -16,7 +16,7 @@ import { readlink, realpath } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/nats/sync";
 import { getSubject } from "./names";
 import getConnection from "./connection";
-import { terminalService } from "@cocalc/nats/service/terminal";
+import { createTerminalServer } from "@cocalc/nats/service/terminal";
 import { project_id } from "@cocalc/project/data";
 import { isEqual } from "lodash";
 
@@ -32,38 +32,70 @@ const jc = JSONCodec();
 
 const sessions: { [name: string]: Session } = {};
 
-export function createTerminalService(path: string) {
-  const service = terminalService({ path, project_id });
-  service.listen(async (mesg) => {
-    if (mesg == null) {
-      throw Error("invalid message -- must not be null");
+export async function createTerminalService(path: string) {
+  let options: any = undefined;
+  const getSession = async (noCreate?: boolean) => {
+    const cur = sessions[path];
+    if (cur == null) {
+      if (noCreate) {
+        throw Error("no terminal session");
+      }
+      await createTerminal({ ...options, path });
+      return sessions[path];
     }
-    if (mesg.event == "create-session") {
-      const note = await createTerminal({ ...mesg, path });
-      return { status: "ok", note };
-    }
-    const session = sessions[path];
-    if (session == null) {
-      throw Error("no session");
-    }
-    switch (mesg.event) {
-      case "write":
-        if (typeof mesg.data != "string") {
-          throw Error(`data must be a string -- ${JSON.stringify(mesg.data)}`);
-        }
-        return session.write(mesg.data);
-      case "restart":
-        return session.restart();
-      case "size":
-        return session.setSize(mesg);
-      case "cwd":
-        return await session.getCwd();
-      default:
-        // @ts-ignore
-        throw Error(`unknown message type ${mesg.event}`);
-    }
-  });
-  return service;
+    return cur;
+  };
+  const impl = {
+    create: async (opts: {
+      env?: { [key: string]: string };
+      command?: string;
+      args?: string[];
+      cwd?: string;
+    }): Promise<{ success: "ok"; note?: string }> => {
+      // save options to reuse.
+      options = opts;
+      const note = await createTerminal({ ...opts, path });
+      return { success: "ok", note };
+    },
+
+    write: async (data: string): Promise<void> => {
+      if (typeof data != "string") {
+        throw Error(`data must be a string -- ${JSON.stringify(data)}`);
+      }
+      const session = await getSession();
+      await session.write(data);
+    },
+
+    restart: async () => {
+      const session = await getSession();
+      await session.restart();
+    },
+
+    cwd: async () => {
+      const session = await getSession();
+      return await session.getCwd();
+    },
+
+    kill: async () => {
+      try {
+        const session = await getSession(true);
+        await session.close();
+      } catch {
+        return;
+      }
+    },
+
+    size: async (opts: { rows: number; cols: number; client: string }) => {
+      const session = await getSession();
+      session.setSize(opts);
+    },
+
+    boot: async (opts: { client: string }): Promise<void> => {
+      console.log("boot", opts);
+    },
+  };
+
+  return await createTerminalServer({ path, project_id, impl });
 }
 
 function closeTerminal(path: string) {

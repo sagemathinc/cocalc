@@ -7,8 +7,8 @@ import { delay } from "awaiting";
 import { type DStream } from "@cocalc/nats/sync/dstream";
 import { projectSubject } from "@cocalc/nats/names";
 import {
-  terminalService,
-  type TerminalService,
+  createTerminalClient,
+  type TerminalServiceApi,
 } from "@cocalc/nats/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
@@ -27,7 +27,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private terminalResize;
   private openPaths;
   private closePaths;
-  private service: TerminalService;
+  private service: TerminalServiceApi;
   private options?;
 
   constructor({
@@ -53,7 +53,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.path = path;
     this.options = options;
     this.touchLoop({ project_id, path });
-    this.service = terminalService({ project_id, path });
+    this.service = createTerminalClient({ project_id, path });
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
@@ -88,20 +88,20 @@ export class NatsTerminalConnection extends EventEmitter {
           // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
           return;
         }
-        await this.service.call({ event: "size", rows, cols, client });
+        await this.service.size({ rows, cols, client });
       } else if (data.cmd == "cwd") {
-        await this.service.call({ event: "cwd" });
+        await this.service.cwd();
       } else if (data.cmd == "boot") {
-        await this.service.call({ event: "boot", client });
+        await this.service.boot({ client });
       } else if (data.cmd == "kill") {
-        await this.service.call({ event: "kill" });
+        await this.service.kill();
       } else {
         throw Error(`todo -- implement cmd ${JSON.stringify(data)}`);
       }
       return;
     }
     try {
-      await this.service.call({ event: "write", data });
+      this.service.write(data);
     } catch (err) {
       console.log(err);
       // TODO: obviously wrong!  A timeout would restart our poor terminal!
@@ -137,7 +137,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   private start = reuseInFlight(async () => {
-    await this.service.call({ ...this.options, event: "create-session" });
+    await this.service.create(this.options);
   });
 
   private getStream = async () => {
