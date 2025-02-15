@@ -16,13 +16,13 @@ Set env variables as in a project (see  api/index.ts ), then in nodejs:
 DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:open-files node
 
 > x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
-[ 'openFiles', 'openSyncDocs' ]
+[ 'openFiles', 'openDocs', 'formatter', 'terminate' ]
 
 > x.openFiles.getAll();
 
-> Object.keys(x.openSyncDocs)
+> Object.keys(x.openDocs)
 
-> s = x.openSyncDocs['z4.tasks']
+> s = x.openDocs['z4.tasks']
 // now you can directly work with the syncdoc for a given file,
 // but from the perspective of the project, not the browser!
 
@@ -47,6 +47,8 @@ import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { createFormatterService } from "./formatter";
+import { type TerminalService } from "@cocalc/nats/service/terminal";
+import { createTerminalService } from "./terminal";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/backend/nats";
@@ -55,6 +57,7 @@ const logger = getLogger("project:nats:open-files");
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
+const openDocs: { [path: string]: SyncDoc | TerminalService } = {};
 
 export async function init() {
   logger.debug("init");
@@ -74,16 +77,16 @@ export async function init() {
     handleChange(entry);
   });
 
-  formatter = await createFormatterService({ openSyncDocs });
+  formatter = await createFormatterService({ openSyncDocs: openDocs });
 
   // usefule for development
-  return { openFiles, openSyncDocs, formatter, terminate };
+  return { openFiles, openDocs, formatter, terminate };
 }
 
 export function terminate() {
   logger.debug("terminating open-files service");
-  for (const path in openSyncDocs) {
-    closeSyncDoc(path);
+  for (const path in openDocs) {
+    closeDoc(path);
   }
   openFiles?.close();
   openFiles = null;
@@ -92,17 +95,13 @@ export function terminate() {
   formatter = null;
 }
 
-const openSyncDocs: { [path: string]: SyncDoc } = {};
-// for dev
-export { openSyncDocs };
-
 function getCutoff() {
   return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
 }
 
 async function handleChange({ path, open, time }: OpenFileEntry) {
   logger.debug("handleChange", { path, open, time });
-  const syncDoc = openSyncDocs[path];
+  const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
   // TODO: need another table with compute server mappings
   //   const id = 0; // todo
@@ -110,7 +109,7 @@ async function handleChange({ path, open, time }: OpenFileEntry) {
   //     if (isOpenHere) {
   //       // close it here
   //       logger.debug("handleChange: closing", { path });
-  //       closeSyncDoc(path);
+  //       closeDoc(path);
   //     }
   //     // no further responsibility
   //     return;
@@ -118,7 +117,7 @@ async function handleChange({ path, open, time }: OpenFileEntry) {
   if (!open) {
     if (isOpenHere) {
       logger.debug("handleChange: closing", { path });
-      closeSyncDoc(path);
+      closeDoc(path);
     }
     return;
   }
@@ -126,7 +125,7 @@ async function handleChange({ path, open, time }: OpenFileEntry) {
     if (!isOpenHere) {
       logger.debug("handleChange: opening", { path });
       // users actively care about this file being opened HERE, but it isn't
-      openSyncDoc(path);
+      openDoc(path);
     }
     return;
   }
@@ -147,7 +146,7 @@ async function closeIgnoredFilesLoop() {
     if (openFiles?.state != "connected") {
       return;
     }
-    const paths = Object.keys(openSyncDocs);
+    const paths = Object.keys(openDocs);
     if (paths.length == 0) {
       logger.debug("closeIgnoredFiles: no paths currently open");
       continue;
@@ -166,41 +165,49 @@ async function closeIgnoredFilesLoop() {
         supportAutoclose(entry.path)
       ) {
         logger.debug("closeIgnoredFiles: closing due to inactivity", entry);
-        closeSyncDoc(entry.path);
+        closeDoc(entry.path);
       }
     }
   }
 }
 
-const closeSyncDoc = reuseInFlight(async (path: string) => {
+const closeDoc = reuseInFlight(async (path: string) => {
   logger.debug("close", { path });
-  const syncDoc = openSyncDocs[path];
-  if (syncDoc == null) {
+  const doc = openDocs[path];
+  if (doc == null) {
     return;
   }
-  delete openSyncDocs[path];
+  delete openDocs[path];
   try {
-    await syncDoc.close();
+    await doc.close();
   } catch (err) {
-    logger.debug(`WARNING -- issue closing syncdoc -- ${err}`);
+    logger.debug(`WARNING -- issue closing doc -- ${err}`);
     openFiles?.setError(path, err);
   }
 });
 
-const openSyncDoc = reuseInFlight(async (path: string) => {
+const openDoc = reuseInFlight(async (path: string) => {
   // todo -- will be async and needs to handle SyncDB and all the config...
-  logger.debug("openSyncDoc", { path });
-  const syncDoc = openSyncDocs[path];
-  if (syncDoc != null) {
+  logger.debug("openDoc", { path });
+
+  const doc = openDocs[path];
+  if (doc != null) {
     return;
   }
+
+  if (path.endsWith(".term")) {
+    const service = createTerminalService(path);
+    openDocs[path] = service;
+    return;
+  }
+
   const client = getClient();
   const doctype = await getSyncDocType({
     project_id,
     path,
     client,
   });
-  logger.debug("openSyncDoc got", { path, doctype });
+  logger.debug("openDoc got", { path, doctype });
 
   let syncdoc;
   if (doctype.type == "string") {
@@ -218,10 +225,10 @@ const openSyncDoc = reuseInFlight(async (path: string) => {
       client,
     });
   }
-  openSyncDocs[path] = syncdoc;
+  openDocs[path] = syncdoc;
 
   syncdoc.on("error", (err) => {
-    closeSyncDoc(path);
+    closeDoc(path);
     openFiles?.setError(path, err);
     logger.debug(`syncdoc error -- ${err}`, path);
   });

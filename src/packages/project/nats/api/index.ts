@@ -107,13 +107,11 @@ async function handleApiRequest(request, mesg) {
 }
 
 import * as system from "./system";
-import * as terminal from "./terminal";
 import * as editor from "./editor";
 import * as sync from "./sync";
 
 export const projectApi: ProjectApi = {
   system,
-  terminal,
   editor,
   sync,
 };

@@ -73,6 +73,12 @@ export class OpenFiles extends EventEmitter {
 
   constructor({ env, project_id, noAutosave, noCache }: Options) {
     super();
+    if (!env) {
+      throw Error("env must be specified");
+    }
+    if (!project_id) {
+      throw Error("project_id must be specified");
+    }
     this.env = env;
     this.project_id = project_id;
     this.noAutosave = noAutosave;
@@ -132,6 +138,9 @@ export class OpenFiles extends EventEmitter {
   // touch it to indicate that it is open.
   // updates timestamp and ensures open=true.
   touch = (path: string) => {
+    if (!path) {
+      throw Error("path must be specified");
+    }
     const dkv = this.getDkv();
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.

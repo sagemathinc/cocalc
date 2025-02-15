@@ -16,6 +16,9 @@ import { readlink, realpath } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/nats/sync";
 import { getSubject } from "./names";
 import getConnection from "./connection";
+import { terminalService } from "@cocalc/nats/service/terminal";
+import { project_id } from "@cocalc/project/data";
+import { isEqual } from "lodash";
 
 const logger = getLogger("server:nats:terminal");
 
@@ -29,6 +32,48 @@ const jc = JSONCodec();
 
 const sessions: { [name: string]: Session } = {};
 
+export function createTerminalService(path: string) {
+  const service = terminalService({ path, project_id });
+  service.listen(async (mesg) => {
+    if (mesg == null) {
+      throw Error("invalid message -- must not be null");
+    }
+    if (mesg.event == "create-session") {
+      const note = await createTerminal({ ...mesg, path });
+      return { status: "ok", note };
+    }
+    const session = sessions[path];
+    if (session == null) {
+      throw Error("no session");
+    }
+    switch (mesg.event) {
+      case "write":
+        if (typeof mesg.data != "string") {
+          throw Error(`data must be a string -- ${JSON.stringify(mesg.data)}`);
+        }
+        return session.write(mesg.data);
+      case "restart":
+        return session.restart();
+      case "size":
+        return session.setSize(mesg);
+      case "cwd":
+        return await session.getCwd();
+      default:
+        // @ts-ignore
+        throw Error(`unknown message type ${mesg.event}`);
+    }
+  });
+  return service;
+}
+
+function closeTerminal(path: string) {
+  const cur = sessions[path];
+  if (cur != null) {
+    cur.close();
+    delete sessions[path];
+  }
+}
+
 export const createTerminal = reuseInFlight(
   async (params) => {
     if (params == null) {
@@ -38,12 +83,24 @@ export const createTerminal = reuseInFlight(
     if (!path) {
       throw Error("path must be specified");
     }
-    if (sessions[path] == null) {
-      const nc = await getConnection();
-      sessions[path] = new Session({ path, options, nc });
-      await sessions[path].init();
+    let note = "";
+    const cur = sessions[path];
+    if (cur != null) {
+      if (!isEqual(cur.options, options) || cur.state == "closed") {
+        // clean up -- we will make new one below
+        closeTerminal(path);
+        note += "Closed existing session. ";
+      } else {
+        // already have a working session with correct options
+        note += "Already have working session with same options. ";
+        return note;
+      }
     }
-    return { subject: sessions[path].subject };
+    note += "Creating new session.";
+    const nc = await getConnection();
+    sessions[path] = new Session({ path, options, nc });
+    await sessions[path].init();
+    return note;
   },
   {
     createKey: (args) => {
@@ -85,15 +142,13 @@ export async function terminalCommand({ path, cmd, ...args }) {
 }
 
 class Session {
+  public state: "running" | "off" | "closed" = "off";
+  public options;
   private path: string;
-  private options;
   private pty?;
   private size?: { rows: number; cols: number };
-  // the subject where we publish our output
-  public subject: string;
   private cmd_subject: string;
-  private state: "running" | "off" = "off";
-  private stream: DStream;
+  private stream?: DStream;
   private streamName: string;
   private nc;
 
@@ -118,6 +173,17 @@ class Session {
     this.stream?.close();
     delete this.pty;
     await this.init();
+  };
+
+  close = () => {
+    this.pty?.destroy();
+    this.stream?.close();
+    delete this.pty;
+    delete this.stream;
+    this.state = "closed";
+    if (sessions[this.path] === this) {
+      delete sessions[this.path];
+    }
   };
 
   private getHome = () => {
@@ -177,11 +243,11 @@ class Session {
     logger.debug("connect stream to pty");
     this.pty.onData((data) => {
       this.handleBackendMessages(data);
-      this.stream.publish({ data });
+      this.stream?.publish({ data });
     });
     this.pty.onExit((status) => {
-      this.stream.publish({ data: EXIT_MESSAGE });
-      this.stream.publish({ ...status, exit: true });
+      this.stream?.publish({ data: EXIT_MESSAGE });
+      this.stream?.publish({ ...status, exit: true });
       this.state = "off";
     });
   };

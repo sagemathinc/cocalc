@@ -285,6 +285,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         openPaths: this.open_paths,
         closePaths: this.close_paths,
         compute_server_id: await this.getComputeServerId(),
+        options: {
+          command: this.command,
+          args: this.args,
+          cwd: this.workingDir,
+          env: this.actions.get_term_env(),
+        },
       });
       this.conn = conn as any;
       conn.on("close", this.connect);

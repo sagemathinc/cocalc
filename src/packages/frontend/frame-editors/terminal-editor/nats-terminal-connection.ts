@@ -6,51 +6,57 @@ import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { type DStream } from "@cocalc/nats/sync/dstream";
 import { projectSubject } from "@cocalc/nats/names";
+import {
+  terminalService,
+  type TerminalService,
+} from "@cocalc/nats/service/terminal";
+import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
 const jc = JSONCodec();
 const client = uuid();
+
+type State = "init" | "running" | "closed";
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   //private compute_server_id: number;
   private path: string;
   private cmd_subject: string;
-  private state: null | "running" | "init" | "closed";
+  private state: State = "init";
   private stream?: DStream;
-  // keep = optional number of messages to retain between clients/sessions/view, i.e.,
-  // "amount of history". This is global to all terminals in the project.
-  private keep?: number;
   private terminalResize;
   private openPaths;
   private closePaths;
-  private project;
+  private service: TerminalService;
+  private options?;
 
   constructor({
     project_id,
     compute_server_id,
     path,
-    keep,
     terminalResize,
     openPaths,
     closePaths,
+    options,
   }: {
     project_id: string;
     compute_server_id: number;
     path: string;
-    keep?: number;
     terminalResize;
     openPaths;
     closePaths;
+    options?;
   }) {
     super();
     this.project_id = project_id;
     //this.compute_server_id = compute_server_id;
     this.path = path;
+    this.options = options;
+    this.touchLoop({ project_id, path });
+    this.service = terminalService({ project_id, path });
     this.terminalResize = terminalResize;
-    this.keep = keep;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
-    this.project = webapp_client.nats_client.projectApi({ project_id });
     this.cmd_subject = projectSubject({
       project_id,
       compute_server_id,
@@ -82,36 +88,56 @@ export class NatsTerminalConnection extends EventEmitter {
           // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
           return;
         }
+        await this.service.call({ event: "size", rows, cols, client });
+      } else if (data.cmd == "cwd") {
+        await this.service.call({ event: "cwd" });
+      } else if (data.cmd == "boot") {
+        await this.service.call({ event: "boot", client });
+      } else if (data.cmd == "kill") {
+        await this.service.call({ event: "kill" });
+      } else {
+        throw Error(`todo -- implement cmd ${JSON.stringify(data)}`);
       }
-      await this.project.terminal.command({ path: this.path, ...data, client });
       return;
     }
-    const f = async () => {
-      await this.project.terminal.write({
-        path: this.path,
-        data,
-        keep: this.keep,
-      });
-    };
-
     try {
-      await f();
-    } catch (_err) {
+      await this.service.call({ event: "write", data });
+    } catch (err) {
+      console.log(err);
+      // TODO: obviously wrong!  A timeout would restart our poor terminal!
       await this.start();
-      await f();
     }
   };
 
-  end = () => {
+  touchLoop = async ({ project_id, path }) => {
+    while (this.state != ("closed" as State)) {
+      try {
+        await webapp_client.touchOpenFile({
+          project_id,
+          path,
+        });
+      } catch (err) {
+        console.warn(err);
+      }
+      if (this.state == ("closed" as State)) {
+        break;
+      }
+      await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+    }
+  };
+
+  close = () => {
     this.stream?.close();
     delete this.stream;
-    // todo -- anything else?
     this.state = "closed";
   };
 
+  end = () => {
+    this.close();
+  };
+
   private start = reuseInFlight(async () => {
-    // ensure running:
-    await this.project.terminal.create({ path: this.path });
+    await this.service.call({ ...this.options, event: "create-session" });
   });
 
   private getStream = async () => {
