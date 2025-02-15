@@ -33,6 +33,7 @@ export class NatsChangefeed extends EventEmitter {
       atomic: true,
       immutable: false,
     });
+    this.state = "connected";
     this.interest();
     this.startWatch();
     const v = this.natsSynctable.get();
@@ -77,7 +78,7 @@ export class NatsChangefeed extends EventEmitter {
       return;
     }
     this.natsSynctable.on(
-      "changefeed",
+      "change",
       (_, { key, value: new_val, prev: old_val }) => {
         let x;
         if (new_val == null) {
