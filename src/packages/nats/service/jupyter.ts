@@ -3,20 +3,31 @@ Services in a project.
 */
 
 import { createServiceClient, createServiceHandler } from "./typed";
+import type { KernelInfo, KernelSpec } from "@cocalc/util/jupyter/types";
 
 const service = "api";
 
 interface JupyterApi {
-  signal: any;
-  save_ipynb_file: any;
-  kernel_info: any;
-  more_output: any;
-  complete: any;
-  introspect: any;
-  store: any;
-  comm: any;
-  "ipywidgets-get-buffer": any;
-  kernels: any;
+  signal: (signal: string) => Promise<void>;
+  save_ipynb_file: () => Promise<void>;
+  kernel_info: () => Promise<KernelInfo>;
+  more_output: (id: string) => Promise<any[]>;
+  complete: (opts: { code: string; cursor_pos: number }) => Promise<any>;
+  introspect: (opts: { code: string; cursor_pos: number }) => Promise<any>;
+  store: (opts: { key: string; value?: any }) => Promise<any>;
+  comm: (opts: {
+    msg_id: string;
+    comm_id: string;
+    target_name: string;
+    data: any;
+    buffers64?: string[];
+    buffers?: Buffer[];
+  }) => Promise<void>;
+  "ipywidgets-get-buffer": (opts: {
+    model_id;
+    buffer_path;
+  }) => Promise<{ buffer64: string }>;
+  kernels: () => Promise<KernelSpec[]>;
 }
 
 export type JupyterApiEndpoint = keyof JupyterApi;

@@ -5,6 +5,8 @@
 
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import type * as immutable from "immutable";
+import type { KernelSpec, KernelMetadata } from "@cocalc/util/jupyter/types";
+export type { KernelSpec, KernelMetadata };
 
 export type NotebookMode = "edit" | "escape";
 
@@ -54,29 +56,6 @@ export type BackendState =
   | "spawning"
   | "starting"
   | "running";
-
-export interface KernelSpec {
-  name: string;
-  display_name: string;
-  language: string;
-  interrupt_mode: string; // usually "signal"
-  env: { [key: string]: string }; // usually {}
-  metadata?: KernelMetadata;
-  resource_dir: string;
-  argv: string[]; // comamnd+args, how the kernel will be launched
-}
-
-export type KernelMetadata = {
-  // top level could contain a "cocalc" key, containing special settings understood by cocalc
-  cocalc?: {
-    priority?: number; // level 10 means it is important, on short list of choices, etc. 1 is low priority, for older versions
-    description: string; // Explains what the kernel is, eventually visible to the user
-    url: string; // a link to a website with more info about the kernel
-  } & {
-    // nested string/string key/value dictionary
-    [key: string]: string | Record<string, string>;
-  };
-};
 
 export interface LLMTools {
   model: LanguageModel;
