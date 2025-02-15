@@ -1317,6 +1317,10 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: true,
         immutable: true,
+        // for now just putting a 1-day limit on the ipywidgets table
+        // so we don't waste a ton of space.  We need to also clear this
+        // table on halt, startup, etc.
+        limits: { max_age: 1000 * 60 * 60 * 24 },
       });
     } else if (this.useNats && (query.eval_inputs || query.eval_outputs)) {
       synctable = await this.client.synctable_nats(query, {
