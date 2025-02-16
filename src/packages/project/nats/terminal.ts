@@ -89,10 +89,6 @@ export async function createTerminalService(path: string) {
       session.setSize(opts);
     },
 
-    boot: async (opts: { browser_id: string }): Promise<void> => {
-      console.log("boot", opts);
-    },
-
     close: async (browser_id: string) => {
       sessions[path]?.browserLeaving(browser_id);
     },

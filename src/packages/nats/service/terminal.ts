@@ -30,9 +30,7 @@ export interface TerminalServiceApi {
     browser_id: string;
   }) => Promise<void>;
 
-  boot: (opts: { browser_id: string }) => Promise<void>;
-
-  // send when this client is leaving.
+  // sent from browser to project when this client is leaving.
   close: (browser_id: string) => Promise<void>;
 }
 
@@ -68,8 +66,8 @@ export interface TerminalBrowserApi {
   // command is used for things like "open foo.txt" in the terminal.
   command: (mesg) => Promise<void>;
 
-  // used for kicking user out of the terminal
-  kick: (opts: { browser_id: string }) => Promise<void>;
+  // used for kicking all but the specified user out:
+  kick: (sender_browser_id: string) => Promise<void>;
 
   // tell browser to change its size
   size: (opts: { rows: number; cols: number }) => Promise<void>;

@@ -8,6 +8,7 @@ import {
   type TerminalServiceApi,
   createBrowserService,
   SIZE_TIMEOUT_MS,
+  createBrowserClient,
 } from "@cocalc/nats/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
@@ -85,8 +86,6 @@ export class NatsTerminalConnection extends EventEmitter {
         });
       } else if (data.cmd == "cwd") {
         await this.api.cwd();
-      } else if (data.cmd == "boot") {
-        await this.api.boot({ browser_id: webapp_client.browser_id });
       } else if (data.cmd == "kill") {
         await this.api.kill();
       } else {
@@ -188,6 +187,13 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
+  kick = async () => {
+    await createBrowserClient({
+      project_id: this.project_id,
+      path: this.path,
+    }).kick(webapp_client.browser_id);
+  };
+
   private createBrowserService = async () => {
     const impl = {
       command: async ({ event, paths }): Promise<void> => {
@@ -198,8 +204,11 @@ export class NatsTerminalConnection extends EventEmitter {
         }
       },
 
-      kick: async ({ browser_id }) => {
-        console.log(`everyone but ${browser_id} must go!`);
+      kick: async (sender_browser_id) => {
+        console.log(
+          `everyone but ${sender_browser_id} must go!`,
+          webapp_client.browser_id,
+        );
       },
 
       size: async ({ rows, cols }) => {
