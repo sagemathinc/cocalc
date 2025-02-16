@@ -10,13 +10,14 @@ import { path_split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { JSONCodec } from "nats";
 import { getLogger } from "@cocalc/project/logger";
 import { readlink, realpath } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/nats/sync";
-import { getSubject } from "./names";
-import getConnection from "./connection";
-import { createTerminalServer } from "@cocalc/nats/service/terminal";
+import {
+  createTerminalServer,
+  createBrowserClient,
+  SIZE_TIMEOUT_MS,
+} from "@cocalc/nats/service/terminal";
 import { project_id } from "@cocalc/project/data";
 import { isEqual } from "lodash";
 
@@ -28,9 +29,7 @@ const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = 20000;
 
-const jc = JSONCodec();
-
-const sessions: { [name: string]: Session } = {};
+const sessions: { [path: string]: Session } = {};
 
 export async function createTerminalService(path: string) {
   let options: any = undefined;
@@ -85,13 +84,17 @@ export async function createTerminalService(path: string) {
       }
     },
 
-    size: async (opts: { rows: number; cols: number; client: string }) => {
+    size: async (opts: { rows: number; cols: number; browser_id: string }) => {
       const session = await getSession();
       session.setSize(opts);
     },
 
-    boot: async (opts: { client: string }): Promise<void> => {
+    boot: async (opts: { browser_id: string }): Promise<void> => {
       console.log("boot", opts);
+    },
+
+    close: async (browser_id: string) => {
+      sessions[path]?.browserLeaving(browser_id);
     },
   };
 
@@ -129,8 +132,7 @@ export const createTerminal = reuseInFlight(
       }
     }
     note += "Creating new session.";
-    const nc = await getConnection();
-    sessions[path] = new Session({ path, options, nc });
+    sessions[path] = new Session({ path, options });
     await sessions[path].init();
     return note;
   },
@@ -179,18 +181,19 @@ class Session {
   private path: string;
   private pty?;
   private size?: { rows: number; cols: number };
-  private cmd_subject: string;
+  private browserApi: ReturnType<typeof createBrowserClient>;
   private stream?: DStream;
   private streamName: string;
-  private nc;
+  private clientSizes: {
+    [browser_id: string]: { rows: number; cols: number; time: number };
+  } = {};
 
-  constructor({ path, options, nc }) {
+  constructor({ path, options }) {
     logger.debug("create session ", { path, options });
     this.path = path;
+    this.browserApi = createBrowserClient({ project_id, path });
     this.options = options;
-    this.cmd_subject = getSubject({ service: "terminal-cmd", path });
     this.streamName = `terminal-${path}`;
-    this.nc = nc;
   }
 
   write = async (data) => {
@@ -216,6 +219,7 @@ class Session {
     if (sessions[this.path] === this) {
       delete sessions[this.path];
     }
+    this.clientSizes = {};
   };
 
   private getHome = () => {
@@ -284,24 +288,21 @@ class Session {
     });
   };
 
-  private publishCommand = (mesg) => {
-    this.nc.publish(this.cmd_subject, jc.encode(mesg));
-  };
-
-  private clientSizes = {};
   setSize = ({
-    client,
+    browser_id,
     rows,
     cols,
   }: {
-    client: string;
+    browser_id: string;
     rows: number;
     cols: number;
   }) => {
-    //this.clientSizes[client] = { rows, cols };
-    // just doing this silly hack for now -- we need to redo this algorithm to instead
-    // query all clients and when relevant, since no notion of connection.
-    this.clientSizes = { [client]: { rows, cols } };
+    this.clientSizes[browser_id] = { rows, cols, time: Date.now() };
+    this.resize();
+  };
+
+  browserLeaving = (browser_id: string) => {
+    delete this.clientSizes[browser_id];
     this.resize();
   };
 
@@ -318,8 +319,8 @@ class Session {
     logger.debug("resize", "new size", rows, cols);
     try {
       this.setSizePty({ rows, cols });
-      // broadcast out new size
-      this.publishCommand({ cmd: "size", rows, cols });
+      // tell browsers about out new size
+      this.browserApi.size({ rows, cols });
     } catch (err) {
       logger.debug("terminal channel -- WARNING: unable to resize term", err);
     }
@@ -344,7 +345,12 @@ class Session {
     }
     let rows: number = INFINITY;
     let cols: number = INFINITY;
+    const cutoff = Date.now() - SIZE_TIMEOUT_MS;
     for (const id in sizes) {
+      if ((sizes[id].time ?? 0) <= cutoff) {
+        delete sizes[id];
+        continue;
+      }
       if (sizes[id].rows) {
         // if, since 0 rows or 0 columns means *ignore*.
         rows = Math.min(rows, sizes[id].rows);
@@ -377,8 +383,6 @@ class Session {
     /* parse out messages like this:
             \x1b]49;"valid JSON string here"\x07
          and format and send them via our json channel.
-         NOTE: such messages also get sent via the
-         normal channel, but ignored by the client.
       */
     if (this.backendMessagesState === "none") {
       const i = data.indexOf("\x1b]49;");
@@ -405,16 +409,28 @@ class Session {
       logger.debug(
         `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,
       );
+      let mesg;
       try {
-        const payload = JSON.parse(s);
-        this.publishCommand({ cmd: "message", payload });
+        mesg = JSON.parse(s);
       } catch (err) {
         logger.warn(
           `handle_backend_message: error sending JSON payload ${JSON.stringify(
             s,
           )}, ${err}`,
         );
+        return;
       }
+      (async () => {
+        try {
+          await this.browserApi.command(mesg);
+        } catch (err) {
+          // could fail, e.g., if there are no browser clients suddenly.
+          logger.debug(
+            "WARNING: problem sending command to browser clients",
+            err,
+          );
+        }
+      })();
     }
   };
 }

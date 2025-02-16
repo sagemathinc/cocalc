@@ -4,6 +4,10 @@ Service for controlling a terminal served from a project/compute server.
 
 import { createServiceClient, createServiceHandler } from "./typed";
 
+export const SIZE_TIMEOUT_MS = 45000;
+
+// API that runs under Node.js in linux:
+
 export interface TerminalServiceApi {
   create: (opts: {
     env?: { [key: string]: string };
@@ -20,15 +24,24 @@ export interface TerminalServiceApi {
 
   kill: () => Promise<void>;
 
-  size: (opts: { rows: number; cols: number; client: string }) => Promise<void>;
+  size: (opts: {
+    rows: number;
+    cols: number;
+    browser_id: string;
+  }) => Promise<void>;
 
-  boot: (opts: { client: string }) => Promise<void>;
+  boot: (opts: { browser_id: string }) => Promise<void>;
+
+  // send when this client is leaving.
+  close: (browser_id: string) => Promise<void>;
 }
 
-const service = "terminal";
-
 export function createTerminalClient({ project_id, path }) {
-  return createServiceClient<TerminalServiceApi>({ project_id, path, service });
+  return createServiceClient<TerminalServiceApi>({
+    project_id,
+    path,
+    service: "project-api",
+  });
 }
 
 export async function createTerminalServer({
@@ -43,31 +56,48 @@ export async function createTerminalServer({
   return await createServiceHandler<TerminalServiceApi>({
     project_id,
     path,
-    service,
+    service: "project-api",
     description: "Terminal service.",
     impl,
   });
 }
 
-/*
-import { delay } from "awaiting";
-async function callWithRetry(f, maxTime) {
-  let d = 100;
-  const start = Date.now();
-  while (Date.now() - start < maxTime) {
-    try {
-      return await f();
-    } catch (err) {
-      if (err.code == "503") {
-        d = Math.min(3000, d * 1.3);
-        if (Date.now() + d - start >= maxTime) {
-          throw err;
-        }
-        await delay(d);
-        continue;
-      }
-      throw err;
-    }
-  }
+// API that runs in the browser:
+
+export interface TerminalBrowserApi {
+  // command is used for things like "open foo.txt" in the terminal.
+  command: (mesg) => Promise<void>;
+
+  // used for kicking user out of the terminal
+  kick: (opts: { browser_id: string }) => Promise<void>;
+
+  // tell browser to change its size
+  size: (opts: { rows: number; cols: number }) => Promise<void>;
 }
-*/
+
+export function createBrowserClient({ project_id, path }) {
+  return createServiceClient<TerminalBrowserApi>({
+    project_id,
+    path,
+    service: "browser-api",
+  });
+}
+
+export async function createBrowserService({
+  project_id,
+  path,
+  impl,
+}: {
+  project_id: string;
+  path: string;
+  impl: TerminalBrowserApi;
+}) {
+  return await createServiceHandler<TerminalBrowserApi>({
+    project_id,
+    path,
+    service: "browser-api",
+    description: "Browser Terminal service.",
+    all: true,
+    impl,
+  });
+}

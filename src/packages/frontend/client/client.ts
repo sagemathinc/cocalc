@@ -39,6 +39,7 @@ import type {
 } from "@cocalc/nats/service";
 import type { NatsEnvFunction } from "@cocalc/nats/types";
 import { setNatsClient } from "@cocalc/nats/client";
+import { randomId } from "@cocalc/nats/names";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -63,6 +64,7 @@ export type AsyncCall = (opts: object) => Promise<any>;
 
 export interface WebappClient extends EventEmitter {
   account_id?: string;
+  browser_id: string;
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
@@ -147,6 +149,7 @@ Connection events:
 
 class Client extends EventEmitter implements WebappClient {
   account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
+  browser_id: string = randomId();
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
@@ -218,7 +221,6 @@ class Client extends EventEmitter implements WebappClient {
         return (..._) => {};
       };
     }
-
     this.hub_client = bind_methods(new HubClient(this));
     this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
     this.is_connected = this.hub_client.is_connected.bind(this.hub_client);

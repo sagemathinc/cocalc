@@ -14,16 +14,24 @@ import { Svcm } from "@nats-io/services";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { sha1, trunc_middle } from "@cocalc/util/misc";
 import { getEnv } from "@cocalc/nats/client";
+import { randomId } from "@cocalc/nats/names";
 
 const DEFAULT_TIMEOUT = 5000;
 
 export interface ServiceDescription {
   service: string;
+
   project_id?: string;
-  account_id?: string;
   compute_server_id?: number;
+
+  account_id?: string;
+  browser_id?: string;
+
   path?: string;
   description?: string;
+
+  // if true and multiple servers are setup in same "location", then they ALL get to respond (sender gets first response).
+  all?: boolean;
 }
 
 export interface ServiceCall extends ServiceDescription {
@@ -76,41 +84,56 @@ export type CreateNatsServiceFunction = typeof createNatsService;
 
 export function serviceSubject({
   service,
+
   account_id,
+  browser_id,
+
   project_id,
   compute_server_id,
+
   path,
 }: ServiceDescription): string {
   let segments;
+  path = path ? sha1(path) : "-";
   if (!project_id && !account_id) {
     segments = ["public", service];
+  } else if (account_id) {
+    segments = [
+      "services",
+      `account-${account_id}`,
+      browser_id ?? "-",
+      project_id ?? "-",
+      path ?? "-",
+      service,
+    ];
   } else if (project_id) {
     segments = [
       "services",
       `project-${project_id}`,
       compute_server_id ?? "-",
       service,
-      path ? sha1(path) : "-",
+      path,
     ];
-  } else if (account_id) {
-    segments = ["services", `account-${account_id}`, service];
   }
   return segments.join(".");
 }
 
 export function serviceName({
   service,
+
   account_id,
+  browser_id,
+
   project_id,
   compute_server_id,
 }: ServiceDescription): string {
   let segments;
   if (!project_id && !account_id) {
     segments = [service];
+  } else if (account_id) {
+    segments = [`account-${account_id}`, browser_id ?? "-", service];
   } else if (project_id) {
     segments = [`project-${project_id}`, compute_server_id ?? "-", service];
-  } else if (account_id) {
-    segments = [`account-${account_id}`, service];
   }
   return segments.join("-");
 }
@@ -147,6 +170,7 @@ export class NatsService {
       name: serviceName(this.options),
       version: this.options.version ?? "0.0.1",
       description: serviceDescription(this.options),
+      queue: this.options.all ? randomId() : "0",
     });
 
     this.api = service.addEndpoint("api", { subject: this.subject });
@@ -177,3 +201,26 @@ export class NatsService {
     delete this.options;
   };
 }
+
+/*
+import { delay } from "awaiting";
+async function callWithRetry(f, maxTime) {
+  let d = 100;
+  const start = Date.now();
+  while (Date.now() - start < maxTime) {
+    try {
+      return await f();
+    } catch (err) {
+      if (err.code == "503") {
+        d = Math.min(3000, d * 1.3);
+        if (Date.now() + d - start >= maxTime) {
+          throw err;
+        }
+        await delay(d);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+*/

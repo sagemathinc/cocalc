@@ -1,68 +1,58 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { EventEmitter } from "events";
-import { JSONCodec } from "nats.ws";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { type DStream } from "@cocalc/nats/sync/dstream";
-import { projectSubject } from "@cocalc/nats/names";
 import {
   createTerminalClient,
   type TerminalServiceApi,
+  createBrowserService,
+  SIZE_TIMEOUT_MS,
 } from "@cocalc/nats/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
-
-const jc = JSONCodec();
-const client = uuid();
 
 type State = "init" | "running" | "closed";
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
-  //private compute_server_id: number;
   private path: string;
-  private cmd_subject: string;
   private state: State = "init";
   private stream?: DStream;
   private terminalResize;
   private openPaths;
   private closePaths;
-  private service: TerminalServiceApi;
+  private api: TerminalServiceApi;
+  private service?;
   private options?;
 
   constructor({
     project_id,
-    compute_server_id,
     path,
     terminalResize,
     openPaths,
     closePaths,
     options,
+    measureSize,
   }: {
     project_id: string;
-    compute_server_id: number;
     path: string;
     terminalResize;
     openPaths;
     closePaths;
     options?;
+    measureSize?;
   }) {
     super();
     this.project_id = project_id;
-    //this.compute_server_id = compute_server_id;
     this.path = path;
     this.options = options;
     this.touchLoop({ project_id, path });
-    this.service = createTerminalClient({ project_id, path });
+    this.sizeLoop(measureSize);
+    this.api = createTerminalClient({ project_id, path });
+    this.createBrowserService();
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
-    this.cmd_subject = projectSubject({
-      project_id,
-      compute_server_id,
-      service: "terminal-cmd",
-      path,
-    });
   }
 
   write = async (data) => {
@@ -88,20 +78,24 @@ export class NatsTerminalConnection extends EventEmitter {
           // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
           return;
         }
-        await this.service.size({ rows, cols, client });
+        await this.api.size({
+          rows,
+          cols,
+          browser_id: webapp_client.browser_id,
+        });
       } else if (data.cmd == "cwd") {
-        await this.service.cwd();
+        await this.api.cwd();
       } else if (data.cmd == "boot") {
-        await this.service.boot({ client });
+        await this.api.boot({ browser_id: webapp_client.browser_id });
       } else if (data.cmd == "kill") {
-        await this.service.kill();
+        await this.api.kill();
       } else {
         throw Error(`todo -- implement cmd ${JSON.stringify(data)}`);
       }
       return;
     }
     try {
-      this.service.write(data);
+      this.api.write(data);
     } catch (err) {
       console.log(err);
       // TODO: obviously wrong!  A timeout would restart our poor terminal!
@@ -126,9 +120,19 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
+  sizeLoop = async (measureSize) => {
+    while (this.state != ("closed" as State)) {
+      measureSize();
+      await delay(SIZE_TIMEOUT_MS / 1.3);
+    }
+  };
+
   close = () => {
     this.stream?.close();
     delete this.stream;
+    this.service?.close();
+    delete this.service;
+    this.api.close(webapp_client.browser_id);
     this.state = "closed";
   };
 
@@ -137,7 +141,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   private start = reuseInFlight(async () => {
-    await this.service.create(this.options);
+    await this.api.create(this.options);
   });
 
   private getStream = async () => {
@@ -154,37 +158,6 @@ export class NatsTerminalConnection extends EventEmitter {
     await this.start();
     this.stream = await this.getStream();
     this.consumeDataStream();
-    this.subscribeToCommands();
-  };
-
-  private subscribeToCommands = async () => {
-    const nc = await webapp_client.nats_client.getConnection();
-    const sub = nc.subscribe(this.cmd_subject);
-    for await (const mesg of sub) {
-      if (this.state == "closed") {
-        return;
-      }
-      this.handleCommand(mesg);
-    }
-  };
-
-  private handleCommand = async (mesg) => {
-    const x = jc.decode(mesg.data) as any;
-    switch (x.cmd) {
-      case "size":
-        this.terminalResize(x);
-        return;
-      case "message":
-        if (x.payload?.event == "open") {
-          this.openPaths(x.payload.paths);
-        } else if (x.payload?.event == "close") {
-          this.closePaths(x.payload.paths);
-        }
-        return;
-      default:
-        console.log("TODO -- unhandled message from project:", x);
-        return;
-    }
   };
 
   private handleStreamMessage = (mesg) => {
@@ -213,5 +186,30 @@ export class NatsTerminalConnection extends EventEmitter {
       this.state = "running";
       this.emit("ready");
     }
+  };
+
+  private createBrowserService = async () => {
+    const impl = {
+      command: async ({ event, paths }): Promise<void> => {
+        if (event == "open") {
+          this.openPaths(paths);
+        } else if (event == "close") {
+          this.closePaths(paths);
+        }
+      },
+
+      kick: async ({ browser_id }) => {
+        console.log(`everyone but ${browser_id} must go!`);
+      },
+
+      size: async ({ rows, cols }) => {
+        this.terminalResize({ rows, cols });
+      },
+    };
+    this.service = await createBrowserService({
+      project_id: this.project_id,
+      path: this.path,
+      impl,
+    });
   };
 }

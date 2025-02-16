@@ -284,7 +284,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         terminalResize: this.terminal_resize,
         openPaths: this.open_paths,
         closePaths: this.close_paths,
-        compute_server_id: await this.getComputeServerId(),
+        measureSize: this.measure_size,
         options: {
           command: this.command,
           args: this.args,
@@ -862,7 +862,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return this.terminal.options[option];
   }
 
-  measure_size(): void {
+  measure_size = (): void => {
     if (this.ignore_terminal_data) {
       // during initial load
       return;
@@ -882,7 +882,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.last_geom = { rows, cols };
     this.conn_write({ cmd: "size", rows, cols });
-  }
+  };
 
   copy(): void {
     const sel: string = this.terminal.getSelection();
