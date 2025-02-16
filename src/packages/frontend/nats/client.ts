@@ -393,11 +393,11 @@ export class NatsClient {
     return await stream({ env: await this.getEnv(), ...opts });
   };
 
-  dstream = async (opts: Partial<UserStreamOptions> & { name: string }) => {
+  dstream = async <T,>(opts: Partial<UserStreamOptions> & { name: string }) => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
-    return await dstream({ env: await this.getEnv(), ...opts });
+    return await dstream<T>({ env: await this.getEnv(), ...opts });
   };
 
   kv = async (opts: Partial<KVOptions> & { name: string }) => {

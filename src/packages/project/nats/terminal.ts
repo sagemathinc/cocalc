@@ -139,38 +139,6 @@ export const createTerminal = reuseInFlight(
   },
 );
 
-export async function writeToTerminal({ data, path }: { data; path }) {
-  const terminal = sessions[path];
-  if (terminal == null) {
-    throw Error(`no terminal session '${path}'`);
-  }
-  await terminal.write(data);
-}
-
-export async function restartTerminal({ path }: { path }) {
-  const terminal = sessions[path];
-  if (terminal == null) {
-    throw Error(`no terminal session '${path}'`);
-  }
-  await terminal.restart();
-}
-
-export async function terminalCommand({ path, cmd, ...args }) {
-  logger.debug("terminalCommand", { path, cmd, args });
-  const terminal = sessions[path];
-  if (terminal == null) {
-    throw Error(`no terminal session '${path}'`);
-  }
-  switch (cmd) {
-    case "size":
-      return terminal.setSize(args as any);
-    case "cwd":
-      return await terminal.getCwd();
-    default:
-      throw Error(`unknown cmd="${cmd}"`);
-  }
-}
-
 class Session {
   public state: "running" | "off" | "closed" = "off";
   public options;
@@ -178,7 +146,7 @@ class Session {
   private pty?;
   private size?: { rows: number; cols: number };
   private browserApi: ReturnType<typeof createBrowserClient>;
-  private stream?: DStream;
+  private stream?: DStream<string>;
   private streamName: string;
   private clientSizes: {
     [browser_id: string]: { rows: number; cols: number; time: number };
@@ -243,7 +211,7 @@ class Session {
   };
 
   createStream = async () => {
-    this.stream = await dstream({
+    this.stream = await dstream<string>({
       name: this.streamName,
       limits: { max_bytes: HISTORY_LIMIT_BYTES },
     });
@@ -276,7 +244,7 @@ class Session {
     logger.debug("creating stream");
     await this.createStream();
     logger.debug("connect stream to pty");
-    this.pty.onData((data) => {
+    this.pty.onData((data: string) => {
       this.handleBackendMessages(data);
       this.stream?.publish(data);
     });

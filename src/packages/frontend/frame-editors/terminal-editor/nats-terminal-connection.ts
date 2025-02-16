@@ -18,7 +18,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   private path: string;
   public state: State = "init";
-  private stream?: DStream;
+  private stream?: DStream<string>;
   private terminalResize;
   private openPaths;
   private closePaths;
@@ -158,9 +158,8 @@ export class NatsTerminalConnection extends EventEmitter {
   });
 
   private getStream = async () => {
-    // TODO: idempotent, but move to project
     const { nats_client } = webapp_client;
-    return await nats_client.dstream({
+    return await nats_client.dstream<string>({
       name: `terminal-${this.path}`,
       project_id: this.project_id,
     });
@@ -191,7 +190,7 @@ export class NatsTerminalConnection extends EventEmitter {
     if (this.stream == null) {
       return;
     }
-    const initData = this.stream.get().join("");
+    const initData = this.stream.getAll().join("");
     this.handleStreamData(initData);
     this.setReady();
     this.stream.on("change", this.handleStreamData);

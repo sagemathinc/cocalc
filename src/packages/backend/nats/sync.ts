@@ -15,8 +15,8 @@ export async function stream(opts): Promise<Stream> {
   return await createStream({ env: await getEnv(), ...opts });
 }
 
-export async function dstream(opts): Promise<DStream> {
-  return await createDstream({ env: await getEnv(), ...opts });
+export async function dstream<T = any>(opts): Promise<DStream<T>> {
+  return await createDstream<T>({ env: await getEnv(), ...opts });
 }
 
 export async function kv(opts): Promise<KV> {

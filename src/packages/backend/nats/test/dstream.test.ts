@@ -236,3 +236,18 @@ describe("a little bit of a stress test", () => {
     expect(s.length).toBe(count);
   });
 });
+
+describe("dstream typescript test", () => {
+  it("creates stream", async () => {
+    const name = `test-${Math.random()}`;
+    const s = await createDstream<string>({ name });
+
+    // write a message with the correct type
+    s.push("foo");
+
+    // wrong type -- no way to test this, but if you uncomment
+    // this you should get a typescript error:
+
+    // s.push({ foo: "bar" });
+  });
+});

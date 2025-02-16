@@ -32,6 +32,7 @@ import { isNumericString } from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/util/misc";
 import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
+import { type JsMsg } from "@nats-io/jetstream";
 
 const MAX_PARALLEL = 250;
 
@@ -39,15 +40,15 @@ export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
 }
 
-export class DStream extends EventEmitter {
+export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
   private stream?: Stream;
-  private messages: any[];
-  private raw: any[];
+  private messages: T[];
+  private raw: JsMsg[];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
-  private local: { [id: string]: { mesg: any; subject?: string } } = {};
-  private saved: { [seq: number]: any } = {};
+  private local: { [id: string]: { mesg: T; subject?: string } } = {};
+  private saved: { [seq: number]: T } = {};
 
   constructor(opts: DStreamOptions) {
     super();
@@ -96,31 +97,38 @@ export class DStream extends EventEmitter {
     delete this.raw;
   };
 
-  get = (n?) => {
+  get = (n?): T | T[] => {
     if (this.stream == null) {
       throw Error("closed");
     }
     if (n == null) {
-      return [
-        ...this.messages,
-        ...Object.values(this.saved),
-        ...Object.values(this.local).map((x) => x.mesg),
-      ];
+      return this.getAll();
     } else {
       if (n < this.messages.length) {
         return this.messages[n];
       }
       const v = Object.keys(this.saved);
       if (n < v.length + this.messages.length) {
-        return v[n - this.messages.length];
+        return this.saved[n - this.messages.length];
       }
       return Object.values(this.local)[n - this.messages.length - v.length]
         ?.mesg;
     }
   };
 
+  getAll = (): T[] => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
+    return [
+      ...this.messages,
+      ...Object.values(this.saved),
+      ...Object.values(this.local).map((x) => x.mesg),
+    ];
+  };
+
   // sequence number of n-th message
-  seq = (n) => {
+  seq = (n: number): number | undefined => {
     if (n < this.raw.length) {
       return this.raw[n]?.seq;
     }
@@ -130,7 +138,7 @@ export class DStream extends EventEmitter {
     }
   };
 
-  time = (n) => {
+  time = (n: number): Date | undefined => {
     const r = this.raw[n];
     if (r == null) {
       return;
@@ -138,7 +146,7 @@ export class DStream extends EventEmitter {
     return new Date(millis(r?.info.timestampNanos));
   };
 
-  get length() {
+  get length(): number {
     return (
       this.messages.length +
       Object.keys(this.saved).length +
@@ -146,7 +154,7 @@ export class DStream extends EventEmitter {
     );
   }
 
-  publish = (mesg, subject?: string) => {
+  publish = (mesg: T, subject?: string): void => {
     const id = randomId();
     this.local[id] = { mesg, subject };
     if (!this.noAutosave) {
@@ -154,7 +162,7 @@ export class DStream extends EventEmitter {
     }
   };
 
-  push = (...args) => {
+  push = (...args: T[]) => {
     if (this.stream == null) {
       throw Error("closed");
     }
@@ -163,14 +171,14 @@ export class DStream extends EventEmitter {
     }
   };
 
-  hasUnsavedChanges = () => {
+  hasUnsavedChanges = (): boolean => {
     if (this.stream == null) {
       return false;
     }
     return Object.keys(this.local).length > 0;
   };
 
-  unsavedChanges = () => {
+  unsavedChanges = (): T[] => {
     return Object.values(this.local).map(({ mesg }) => mesg);
   };
 
@@ -231,7 +239,7 @@ export class DStream extends EventEmitter {
   };
 }
 
-export const dstream = refCache<UserStreamOptions, DStream>({
+const cache = refCache<UserStreamOptions, DStream>({
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
     const { account_id, project_id, name } = options;
@@ -250,3 +258,9 @@ export const dstream = refCache<UserStreamOptions, DStream>({
     return dstream;
   },
 });
+
+export async function dstream<T>(
+  options: UserStreamOptions,
+): Promise<DStream<T>> {
+  return await cache(options);
+}
