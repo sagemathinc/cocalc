@@ -26,7 +26,6 @@ import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   aux_file,
   bind_methods,
@@ -91,8 +90,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private last_geom: { rows: number; cols: number } | undefined;
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
-  // conn = connection to project -- a primus websocket channel.
-  private conn?: Channel;
+  private conn?: NatsTerminalConnection;
   private touch_interval: any; // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
   public is_visible: boolean = false;
@@ -816,7 +814,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_terminal_data(): void {
     this.terminal.onData((data) => {
-      if (this.ignore_terminal_data) {
+      if (this.ignore_terminal_data && this.conn?.state == "init") {
         return;
       }
       this.conn_write(data);

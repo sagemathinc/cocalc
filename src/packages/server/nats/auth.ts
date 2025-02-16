@@ -114,6 +114,10 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   const goalPub = new Set([
     `hub.${userType}.${userId}.>`, // can talk as *only this user* to the hub's api's
     "$JS.API.INFO",
+    // everyone can publish to all inboxes.  This seems like a major security risk, but with
+    // request/reply, the reply subject under _inbox is a long random code that is only known
+    // for a moment by the sender and the service, so I think it is NOT a security risk.
+    "_INBOX.>",
   ]);
   const goalSub = new Set([
     inboxPrefix(cocalcUser) + ".>",
@@ -203,14 +207,20 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   // We edit the signing key rather than the user, so the cookie in the user's
   // browser stays small and never has to change.
 
-  // Also,--allow-pub-response is explained at
+  // There is an option --allow-pub-response explained at
   // https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization#allow-responses-map
-  // and makes it so we don't have to allow any user to publish to
+  // which is supposed to makes it so we don't have to allow any user to publish to
   // all of _INBOX.>, which might be bad, since one user could in theory
   // publish a response to a different user's request (though in practice
   // the subject is random so not feasible).  Defense in depth.
+  // It doesn't work in general though, e.g., when trying to get info about services.
 
-  const args = ["edit", "signing-key", "--sk", name, "--allow-pub-response"];
+  const args = [
+    "edit",
+    "signing-key",
+    "--sk",
+    name /*, "--allow-pub-response" */,
+  ];
 
   let changed = false;
   if (rm.length > 0) {

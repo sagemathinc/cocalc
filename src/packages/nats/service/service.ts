@@ -269,13 +269,16 @@ export async function waitForNatsService({
   let d = 100;
   let m = 100;
   const start = Date.now();
-  while ((await pingNatsService({ options, maxWait: m })).length == 0) {
+  let ping = await pingNatsService({ options, maxWait: m });
+  while (ping.length == 0) {
     d = Math.min(10000, d * 1.3);
     m = Math.min(1500, m * 1.3);
-    console.log("waiting for terminal api to start...", d);
     if (Date.now() - start + d >= maxWait) {
+      console.log(`timeout waiting for ${serviceName(options)} to start...`, d);
       throw Error("timeout");
     }
     await delay(d);
+    ping = await pingNatsService({ options, maxWait: m });
   }
+  return ping;
 }

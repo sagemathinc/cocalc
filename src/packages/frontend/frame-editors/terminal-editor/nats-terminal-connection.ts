@@ -12,12 +12,12 @@ import {
 } from "@cocalc/nats/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
-type State = "init" | "running" | "closed";
+type State = "disconnected" | "init" | "running" | "closed";
 
 export class NatsTerminalConnection extends EventEmitter {
   private project_id: string;
   private path: string;
-  private state: State = "init";
+  public state: State = "init";
   private stream?: DStream;
   private terminalResize;
   private openPaths;
@@ -56,14 +56,20 @@ export class NatsTerminalConnection extends EventEmitter {
     this.closePaths = closePaths;
   }
 
+  setState = (state: State) => {
+    this.state = state;
+    this.emit(state);
+  };
+
   write = async (data) => {
-    if (this.state == "init") {
+    if (this.state == "init" || this.state == "closed") {
       // ignore initial data while initializing.
       // This is the trickt to avoid "junk characters" on refresh/reconnect.
       return;
     }
-    if (this.state != "running") {
-      await this.start();
+    if (this.state == "disconnected") {
+      await this.init();
+      return;
     }
     if (typeof data != "string") {
       if (data.cmd == "size") {
@@ -97,8 +103,6 @@ export class NatsTerminalConnection extends EventEmitter {
       this.api.write(data);
     } catch (err) {
       console.log(err);
-      // TODO: obviously wrong!  A timeout would restart our poor terminal!
-      await this.start();
     }
   };
 
@@ -132,7 +136,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.service?.close();
     delete this.service;
     this.api.close(webapp_client.browser_id);
-    this.state = "closed";
+    this.setState("closed");
   };
 
   end = () => {
@@ -140,8 +144,17 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   private start = reuseInFlight(async () => {
-    await this.api.nats.waitFor();
-    await this.api.create(this.options);
+    this.setState("init");
+    try {
+      await this.api.nats.waitFor({ maxWait: 5000 });
+      await this.api.create(this.options);
+    } catch (err) {
+      this.setState("disconnected");
+      this.emit(
+        "data",
+        `\r\n\r\nUnable to start terminal - ${err}\r\n\r\n[Process not started - press any key]\r\n\r\n`,
+      );
+    }
   });
 
   private getStream = async () => {
@@ -154,8 +167,16 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   init = async () => {
-    this.state = "init";
+    this.setState("init");
     await this.start();
+    if (this.state == ("disconnected" as State)) {
+      // start failed
+      return;
+    }
+    if (this.stream != null) {
+      this.stream.close();
+      delete this.stream;
+    }
     this.stream = await this.getStream();
     this.consumeDataStream();
   };
@@ -182,10 +203,8 @@ export class NatsTerminalConnection extends EventEmitter {
     // wait until after render loop of terminal before allowing writing,
     // or we get corruption.
     await delay(100); // todo is there a better way to know how long to wait?
-    if (this.state == "init") {
-      this.state = "running";
-      this.emit("ready");
-    }
+    this.setState("running");
+    this.emit("ready");
   };
 
   private browserClient = () => {

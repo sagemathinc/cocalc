@@ -195,6 +195,9 @@ class Session {
   write = async (data) => {
     if (this.state == "off") {
       await this.restart();
+      // don't write when it starts it, since this is often a carriage return or space,
+      // which you don't want to send except to start it.
+      return;
     }
     this.pty?.write(data);
   };
