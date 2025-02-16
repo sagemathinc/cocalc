@@ -140,6 +140,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   private start = reuseInFlight(async () => {
+    await this.api.nats.waitFor();
     await this.api.create(this.options);
   });
 
@@ -187,11 +188,15 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
-  kick = async () => {
-    await createBrowserClient({
+  private browserClient = () => {
+    return createBrowserClient({
       project_id: this.project_id,
       path: this.path,
-    }).kick(webapp_client.browser_id);
+    });
+  };
+
+  kick = async () => {
+    await this.browserClient().kick(webapp_client.browser_id);
   };
 
   private createBrowserService = async () => {

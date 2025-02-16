@@ -10,11 +10,17 @@ Also if the handler throws an error, the caller will throw
 an error too.
 */
 
-import { Svcm } from "@nats-io/services";
+import {
+  Svcm,
+  type ServiceInfo,
+  type ServiceStats,
+  type ServiceIdentity,
+} from "@nats-io/services";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { sha1, trunc_middle } from "@cocalc/util/misc";
 import { getEnv } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
+import { delay } from "awaiting";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -202,25 +208,74 @@ export class NatsService {
   };
 }
 
-/*
-import { delay } from "awaiting";
-async function callWithRetry(f, maxTime) {
+interface ServiceClientOpts {
+  options: ServiceDescription;
+  maxWait?: number;
+  id?: string;
+}
+
+export async function pingNatsService({
+  options,
+  maxWait = 500,
+  id,
+}: ServiceClientOpts): Promise<ServiceIdentity[]> {
+  const env = await getEnv();
+  const svc = new Svcm(env.nc);
+  const m = svc.client({ maxWait, strategy: "stall" });
+  const v: ServiceIdentity[] = [];
+  for await (const ping of await m.ping(serviceName(options), id)) {
+    v.push(ping);
+  }
+  return v;
+}
+
+export async function natsServiceInfo({
+  options,
+  maxWait = 500,
+  id,
+}: ServiceClientOpts): Promise<ServiceInfo[]> {
+  const env = await getEnv();
+  const svc = new Svcm(env.nc);
+  const m = svc.client({ maxWait, strategy: "stall" });
+  const v: ServiceInfo[] = [];
+  for await (const info of await m.info(serviceName(options), id)) {
+    v.push(info);
+  }
+  return v;
+}
+
+export async function natsServiceStats({
+  options,
+  maxWait = 500,
+  id,
+}: ServiceClientOpts): Promise<ServiceStats[]> {
+  const env = await getEnv();
+  const svc = new Svcm(env.nc);
+  const m = svc.client({ maxWait, strategy: "stall" });
+  const v: ServiceStats[] = [];
+  for await (const stats of await m.stats(serviceName(options), id)) {
+    v.push(stats);
+  }
+  return v;
+}
+
+export async function waitForNatsService({
+  options,
+  maxWait = 30000,
+}: {
+  options: ServiceDescription;
+  maxWait?: number;
+}) {
   let d = 100;
+  let m = 100;
   const start = Date.now();
-  while (Date.now() - start < maxTime) {
-    try {
-      return await f();
-    } catch (err) {
-      if (err.code == "503") {
-        d = Math.min(3000, d * 1.3);
-        if (Date.now() + d - start >= maxTime) {
-          throw err;
-        }
-        await delay(d);
-        continue;
-      }
-      throw err;
+  while ((await pingNatsService({ options, maxWait: m })).length == 0) {
+    d = Math.min(10000, d * 1.3);
+    m = Math.min(1500, m * 1.3);
+    console.log("waiting for terminal api to start...", d);
+    if (Date.now() - start + d >= maxWait) {
+      throw Error("timeout");
     }
+    await delay(d);
   }
 }
-*/

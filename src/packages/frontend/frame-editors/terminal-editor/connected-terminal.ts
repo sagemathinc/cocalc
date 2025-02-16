@@ -800,7 +800,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   kick_other_users_out(): void {
-    this.conn.kick();
+    // @ts-ignore
+    this.conn?.kick();
   }
 
   kill(): void {

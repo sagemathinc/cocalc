@@ -1,5 +1,23 @@
-import { callNatsService, createNatsService } from "./service";
+import {
+  callNatsService,
+  createNatsService,
+  natsServiceInfo,
+  natsServiceStats,
+  pingNatsService,
+  waitForNatsService,
+} from "./service";
 import type { Options, ServiceCall } from "./service";
+
+export interface Extra {
+  info: typeof natsServiceInfo;
+  stats: typeof natsServiceStats;
+  ping: typeof pingNatsService;
+  waitFor: (opts?: { maxWait?: number }) => Promise<void>;
+}
+
+export interface ServiceApi {
+  nats: Extra;
+}
 
 export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
   return new Proxy(
@@ -9,6 +27,18 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
         if (typeof prop !== "string") {
           return undefined;
         }
+        if (prop == "nats") {
+          return {
+            info: async (opts: { id?: string; maxWait?: number } = {}) =>
+              await natsServiceInfo({ options, ...opts }),
+            stats: async (opts: { id?: string; maxWait?: number } = {}) =>
+              await natsServiceStats({ options, ...opts }),
+            ping: async (opts: { id?: string; maxWait?: number } = {}) =>
+              await pingNatsService({ options, ...opts }),
+            waitFor: async (opts: { maxWait?: number } = {}) =>
+              await waitForNatsService({ options, ...opts }),
+          };
+        }
         return async (...args) => {
           return await callNatsService({
             ...options,
@@ -17,7 +47,7 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
         };
       },
     },
-  ) as Api;
+  ) as Api & ServiceApi;
 }
 
 export async function createServiceHandler<Api>({

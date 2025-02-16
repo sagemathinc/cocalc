@@ -124,10 +124,14 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
   goalPub.add("$JS.API.*.*.public");
   goalPub.add("$JS.API.*.*.public.>");
   goalPub.add("$JS.API.CONSUMER.MSG.NEXT.public.>");
-  
-  // microservices info api
+
+  // microservices info api -- TODO: security concerns!
+  // Please don't tell me I have to name all microservice identically :-(
   goalSub.add(`$SRV.>`);
-  goalPub.add(`$SRV.*`);
+  goalPub.add(`$SRV.>`);
+  // TODO/security: just doing the following is enough if we don't need to use the client
+  // api to get stats/info about all services:
+  // goalPub.add(`$SRV.*`);
 
   if (userType == "account") {
     goalSub.add(`*.account-${userId}.>`);

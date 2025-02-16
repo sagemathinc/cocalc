@@ -8,7 +8,7 @@ export const SIZE_TIMEOUT_MS = 45000;
 
 // API that runs under Node.js in linux:
 
-export interface TerminalServiceApi {
+interface TerminalApi {
   create: (opts: {
     env?: { [key: string]: string };
     command?: string;
@@ -35,12 +35,14 @@ export interface TerminalServiceApi {
 }
 
 export function createTerminalClient({ project_id, path }) {
-  return createServiceClient<TerminalServiceApi>({
+  return createServiceClient<TerminalApi>({
     project_id,
     path,
     service: "project-api",
   });
 }
+
+export type TerminalServiceApi = ReturnType<typeof createTerminalClient>;
 
 export async function createTerminalServer({
   project_id,
@@ -49,9 +51,9 @@ export async function createTerminalServer({
 }: {
   project_id: string;
   path: string;
-  impl: TerminalServiceApi;
+  impl;
 }) {
-  return await createServiceHandler<TerminalServiceApi>({
+  return await createServiceHandler<TerminalApi>({
     project_id,
     path,
     service: "project-api",
