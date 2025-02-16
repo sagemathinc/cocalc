@@ -292,6 +292,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       });
       this.conn = conn as any;
       conn.on("close", this.connect);
+      conn.on("kick", this.close_request);
       conn.on("data", this._handle_data_from_project);
       conn.once("ready", () => {
         delete this.last_geom;
@@ -682,7 +683,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     await callback(g);
   }
 
-  close_request(): void {
+  close_request = (): void => {
     this.actions.set_error("You were removed from a terminal.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
@@ -695,7 +696,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } else {
       this.actions.close_frame(this.id);
     }
-  }
+  };
 
   private use_subframe(path: string): boolean {
     const this_path_ext = filename_extension(this.actions.path);

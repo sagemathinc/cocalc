@@ -229,10 +229,11 @@ export class NatsTerminalConnection extends EventEmitter {
       },
 
       kick: async (sender_browser_id) => {
-        console.log(
-          `everyone but ${sender_browser_id} must go!`,
-          webapp_client.browser_id,
-        );
+        if (sender_browser_id == webapp_client.browser_id) {
+          // I sent the kick
+          return;
+        }
+        this.emit("kick");
       },
 
       size: async ({ rows, cols }) => {
