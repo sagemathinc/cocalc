@@ -275,7 +275,7 @@ export function TerminalFlyout({
 
   function measure_size(): void {
     if (isMountedRef.current) {
-      terminalRef.current?.measure_size();
+      terminalRef.current?.measureSize();
     }
   }
 

@@ -278,11 +278,10 @@ class Session {
     logger.debug("connect stream to pty");
     this.pty.onData((data) => {
       this.handleBackendMessages(data);
-      this.stream?.publish({ data });
+      this.stream?.publish(data);
     });
-    this.pty.onExit((status) => {
-      this.stream?.publish({ data: EXIT_MESSAGE });
-      this.stream?.publish({ ...status, exit: true });
+    this.pty.onExit(() => {
+      this.stream?.publish(EXIT_MESSAGE);
       this.state = "off";
     });
   };
@@ -305,7 +304,7 @@ class Session {
     this.resize();
   };
 
-  private resize = () => {
+  private resize = async () => {
     if (this.pty == null) {
       // nothing to do
       return;
@@ -319,19 +318,19 @@ class Session {
     try {
       this.setSizePty({ rows, cols });
       // tell browsers about out new size
-      this.browserApi.size({ rows, cols });
+      await this.browserApi.size({ rows, cols });
     } catch (err) {
       logger.debug("terminal channel -- WARNING: unable to resize term", err);
     }
   };
 
   setSizePty = ({ rows, cols }: { rows: number; cols: number }) => {
-    logger.debug("setSize", { rows, cols });
+    // logger.debug("setSize", { rows, cols });
     if (this.pty == null) {
-      logger.debug("setSize: not doing since pty not defined");
+      // logger.debug("setSize: not doing since pty not defined");
       return;
     }
-    logger.debug("setSize", { rows, cols }, "DOING IT!");
+    // logger.debug("setSize", { rows, cols }, "DOING IT!");
 
     this.pty.resize(cols, rows);
     this.size = { rows, cols };

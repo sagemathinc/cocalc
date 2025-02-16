@@ -181,8 +181,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.consumeDataStream();
   };
 
-  private handleStreamMessage = (mesg) => {
-    const data = mesg?.data;
+  private handleStreamData = (data) => {
     if (data) {
       this.emit("data", data);
     }
@@ -192,11 +191,11 @@ export class NatsTerminalConnection extends EventEmitter {
     if (this.stream == null) {
       return;
     }
-    for (const mesg of this.stream.get()) {
-      this.handleStreamMessage(mesg);
+    for (const data of this.stream.get()) {
+      this.handleStreamData(data);
     }
     this.setReady();
-    this.stream.on("change", this.handleStreamMessage);
+    this.stream.on("change", this.handleStreamData);
   };
 
   private setReady = async () => {
