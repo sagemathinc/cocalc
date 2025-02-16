@@ -16,24 +16,24 @@ import {
 
 export type { Stream, DStream, KV, DKV, OpenFiles, OpenFileEntry };
 
-export async function stream(opts): Promise<Stream> {
-  return await createStream({ project_id, env: await getEnv(), ...opts });
+export async function stream<T = any>(opts): Promise<Stream<T>> {
+  return await createStream<T>({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function dstream<T=any>(opts): Promise<DStream<T>> {
+export async function dstream<T = any>(opts): Promise<DStream<T>> {
   return await createDstream<T>({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function kv(opts): Promise<KV> {
-  return await createKV({ project_id, env: await getEnv(), ...opts });
+export async function kv<T = any>(opts): Promise<KV<T>> {
+  return await createKV<T>({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function dkv(opts): Promise<DKV> {
-  return await createDKV({ project_id, env: await getEnv(), ...opts });
+export async function dkv<T = any>(opts): Promise<DKV<T>> {
+  return await createDKV<T>({ project_id, env: await getEnv(), ...opts });
 }
 
-export async function dko(opts): Promise<DKO> {
-  return await createDKO({ project_id, env: await getEnv(), ...opts });
+export async function dko<T = any>(opts): Promise<DKO<T>> {
+  return await createDKO<T>({ project_id, env: await getEnv(), ...opts });
 }
 
 export async function openFiles(): Promise<OpenFiles> {

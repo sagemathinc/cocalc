@@ -94,7 +94,7 @@ export class SyncTableStream extends EventEmitter {
     this.dstream.on("reject", (err) => {
       console.warn("synctable-stream: REJECTED - ", err);
     });
-    for (const mesg of this.dstream.get()) {
+    for (const mesg of this.dstream.getAll()) {
       this.handle(mesg, false);
     }
     this.setState("connected");

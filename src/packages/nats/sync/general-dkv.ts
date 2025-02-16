@@ -17,7 +17,7 @@ is a DKV, you can also access the underlying KV via "store.kv".
 
 - The store emits an event ('change', key) whenever anything changes.
 
-- Calling "store.get()" provides ALL the data, and "store.get(key)" gets one value.
+- Calling "store.getAll()" provides ALL the data, and "store.get(key)" gets one value.
 
 - Use "store.set(key,value)" or "store.set({key:value, key2:value2, ...})" to set data,
   with the following semantics:
@@ -88,8 +88,8 @@ export type MergeFunction = (opts: {
   remote: any;
 }) => any;
 
-export class GeneralDKV extends EventEmitter {
-  private kv?: GeneralKV;
+export class GeneralDKV<T = any> extends EventEmitter {
+  private kv?: GeneralKV<T>;
   private jc?;
   private merge?: MergeFunction;
   private local: { [key: string]: any } = {};
@@ -204,19 +204,28 @@ export class GeneralDKV extends EventEmitter {
     this.emit("change", { key, value, prev });
   };
 
-  get = (key?) => {
+  get = (key: string): T | undefined => {
     if (this.kv == null) {
       throw Error("closed");
     }
-    if (key != null) {
-      this.assertValidKey(key);
-      const local = this.local[key];
-      if (local === TOMBSTONE) {
-        return undefined;
-      }
-      return local ?? this.kv.get(key);
+    this.assertValidKey(key);
+    const local = this.local[key];
+    if (local === TOMBSTONE) {
+      return undefined;
     }
-    const x = { ...this.kv.get(), ...this.local };
+    return local ?? this.kv.get(key);
+  };
+
+  get length(): number {
+    // not efficient
+    return Object.keys(this.getAll()).length;
+  }
+
+  getAll = (): { [key: string]: T } => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    const x = { ...this.kv.getAll(), ...this.local };
     for (const key in this.local) {
       if (this.local[key] === TOMBSTONE) {
         delete x[key];
@@ -224,11 +233,6 @@ export class GeneralDKV extends EventEmitter {
     }
     return x;
   };
-
-  get length() {
-    // not efficient
-    return Object.keys(this.get()).length;
-  }
 
   has = (key: string): boolean => {
     if (this.kv == null) {
@@ -244,14 +248,14 @@ export class GeneralDKV extends EventEmitter {
     return this.kv.has(key);
   };
 
-  time = (key?: string) => {
+  time = (key?: string): { [key: string]: Date } | Date | undefined => {
     if (this.kv == null) {
       throw Error("closed");
     }
     return this.kv.time(key);
   };
 
-  private assertValidKey = (key) => {
+  private assertValidKey = (key): void => {
     if (this.kv == null) {
       throw Error("closed");
     }
@@ -275,7 +279,7 @@ export class GeneralDKV extends EventEmitter {
     if (this.kv == null) {
       throw Error("closed");
     }
-    for (const key in this.kv.get()) {
+    for (const key in this.kv.getAll()) {
       this._delete(key);
     }
     for (const key in this.local) {

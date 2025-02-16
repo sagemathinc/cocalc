@@ -62,33 +62,33 @@ Type ".help" for more information.
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/general-kv"); s = new a.GeneralKV({name:'test',env,filter:['foo.>']}); await s.init();
 
 > await s.set({"foo.x":10}) // or s.set("foo.x", 10)
-> s.get()
+> s.getAll()
 { 'foo.x': 10 }
 > await s.delete("foo.x")
 undefined
-> s.get()
+> s.getAll()
 {}
 > await s.set({"foo.x":10, "foo.bar":20})
 
 // Since the filters are disjoint these are totally different:
 
 > t = new a.KV({name:'test',env,filter:['bar.>']}); await t.init();
-> await t.get()
+> await t.getAll()
 {}
 > await t.set({"bar.abc":10})
 undefined
-> await t.get()
+> await t.getAll()
 { 'bar.abc': Uint8Array(2) [ 49, 48 ] }
-> await s.get()
+> await s.getAll()
 { 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
 
 // The union:
 > u = new a.KV({name:'test',env,filter:['bar.>', 'foo.>']}); await u.init();
-> u.get()
+> u.getAll()
 { 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
 > await s.set({'foo.x':999})
 undefined
-> u.get()
+> u.getAll()
 { 'foo.x': 999, 'foo.bar': 20, 'bar.abc': 10 }
 */
 
@@ -137,14 +137,14 @@ export interface KVLimits {
   max_msg_size: number;
 }
 
-export class GeneralKV extends EventEmitter {
+export class GeneralKV<T = any> extends EventEmitter {
   public readonly name: string;
   private options?;
   private filter?: string[];
   private env: NatsEnv;
   private kv?;
   private watch?;
-  private all?: { [key: string]: any };
+  private all?: { [key: string]: T };
   private revisions?: { [key: string]: number };
   private times?: { [key: string]: Date };
   private sizes?: { [key: string]: number };
@@ -249,26 +249,32 @@ export class GeneralKV extends EventEmitter {
     this.removeAllListeners();
   };
 
-  get = (key?) => {
+  get = (key: string): T => {
     if (this.all == null) {
       throw Error("not initialized");
     }
-    if (key == undefined) {
-      return { ...this.all };
-    } else {
-      return this.all?.[key];
-    }
+    return this.all[key];
   };
 
-  get length() {
-    return Object.keys(this.all ?? {}).length;
+  getAll = (): { [key: string]: T } => {
+    if (this.all == null) {
+      throw Error("not initialized");
+    }
+    return { ...this.all };
+  };
+
+  get length(): number {
+    if (this.all == null) {
+      throw Error("not initialized");
+    }
+    return Object.keys(this.all).length;
   }
 
   has = (key: string): boolean => {
     return this.all?.[key] !== undefined;
   };
 
-  time = (key?: string) => {
+  time = (key?: string): { [key: string]: Date } | Date | undefined => {
     if (key == null) {
       return this.times;
     } else {
@@ -276,7 +282,7 @@ export class GeneralKV extends EventEmitter {
     }
   };
 
-  assertValidKey = (key: string) => {
+  assertValidKey = (key: string): void => {
     if (!this.isValidKey(key)) {
       throw Error(
         `delete: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
@@ -284,7 +290,7 @@ export class GeneralKV extends EventEmitter {
     }
   };
 
-  isValidKey = (key: string) => {
+  isValidKey = (key: string): boolean => {
     if (this.filter == null) {
       return true;
     }
@@ -296,7 +302,7 @@ export class GeneralKV extends EventEmitter {
     return false;
   };
 
-  delete = async (key, revision?) => {
+  delete = async (key: string, revision?: number) => {
     this.assertValidKey(key);
     if (
       this.all == null ||
@@ -370,12 +376,11 @@ export class GeneralKV extends EventEmitter {
     await awaitMap(Object.keys(this.all), MAX_PARALLEL, this.delete);
   };
 
-  set = async (...args) => {
-    if (args.length == 2) {
-      await this.setOne(args[0], args[1]);
-      return;
-    }
-    const obj = args[0];
+  set = async (key: string, value: T) => {
+    await this.setOne(key, value);
+  };
+
+  setMany = async (obj: { [key: string]: T }) => {
     await awaitMap(
       Object.keys(obj),
       MAX_PARALLEL,
@@ -383,7 +388,7 @@ export class GeneralKV extends EventEmitter {
     );
   };
 
-  private setOne = async (key, value) => {
+  private setOne = async (key: string, value: T) => {
     if (!this.isValidKey(key)) {
       throw Error(
         `set: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,

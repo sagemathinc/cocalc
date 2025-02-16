@@ -119,7 +119,12 @@ describe("create open file tracker and do some basic operations", () => {
     expect(o2.get(file2).error.error).toBe("Error: test error");
     expect(typeof o2.get(file2).error.time == "number").toBe(true);
     expect(Math.abs(Date.now() - o2.get(file2).error.time)).toBeLessThan(10000);
-    o2.save();
+    try {
+      // get a conflict due to above so resolve it...
+      await o2.save();
+    } catch {
+      o2.save();
+    }
     if (!o1.get(file2).error) {
       await once(o1, "change", 250);
     }

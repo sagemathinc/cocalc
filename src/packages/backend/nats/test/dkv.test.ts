@@ -17,7 +17,7 @@ describe("create a public dkv and do basic operations", () => {
 
   it("creates the dkv", async () => {
     kv = await createDkv({ name });
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
   });
 
   it("adds a key to the dkv", () => {
@@ -34,11 +34,11 @@ describe("create a public dkv and do basic operations", () => {
 
   it("closes the kv", async () => {
     kv.close();
-    expect(kv.get).toThrow("closed");
+    expect(kv.getAll).toThrow("closed");
   });
 });
 
-describe("opens a dkv twice and verifies the cached works and is reference counted", () => {
+describe("opens a dkv twice and verifies the cache works and is reference counted", () => {
   let kv1;
   let kv2;
   const name = `test-${Math.random()}`;
@@ -46,19 +46,19 @@ describe("opens a dkv twice and verifies the cached works and is reference count
   it("creates the same dkv twice", async () => {
     kv1 = await createDkv({ name });
     kv2 = await createDkv({ name });
-    expect(kv1.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(true);
   });
 
   it("closes kv1 (one reference)", async () => {
     kv1.close();
-    expect(kv2.get).not.toThrow();
+    expect(kv2.getAll).not.toThrow();
   });
 
   it("closes kv2 (another reference)", async () => {
     kv2.close();
     // really closed!
-    expect(kv2.get).toThrow("closed");
+    expect(kv2.getAll).toThrow("closed");
   });
 
   it("create and see it is new now", async () => {
@@ -75,8 +75,8 @@ describe("opens a dkv twice at once and observe sync", () => {
   it("creates the dkv twice", async () => {
     kv1 = await createDkv({ name, noCache: true });
     kv2 = await createDkv({ name, noCache: true });
-    expect(kv1.get()).toEqual({});
-    expect(kv2.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
+    expect(kv2.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe("check server assigned times", () => {
 
   it("create a kv", async () => {
     kv = await createDkv({ name });
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
     expect(kv.time()).toEqual({});
   });
 
@@ -147,8 +147,8 @@ describe("test deleting and clearing a dkv", () => {
 
   it("creates the dkv twice without caching so can make sure sync works", async () => {
     await reset();
-    expect(kv1.get()).toEqual({});
-    expect(kv2.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
+    expect(kv2.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(false);
   });
 
@@ -217,7 +217,7 @@ describe("set several items, confirm write worked, save, and confirm they are st
   // the time thresholds should be "trivial"
   it(`adds ${count} entries`, async () => {
     const kv = await createDkv({ name });
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
     const obj: any = {};
     const t0 = Date.now();
     for (let i = 0; i < count; i++) {
@@ -225,11 +225,11 @@ describe("set several items, confirm write worked, save, and confirm they are st
       kv.set(`${i}`, i);
     }
     expect(Date.now() - t0).toBeLessThan(50);
-    expect(Object.keys(kv.get()).length).toEqual(count);
-    expect(kv.get()).toEqual(obj);
+    expect(Object.keys(kv.getAll()).length).toEqual(count);
+    expect(kv.getAll()).toEqual(obj);
     await kv.save();
     expect(Date.now() - t0).toBeLessThan(1000);
-    expect(Object.keys(kv.get()).length).toEqual(count);
+    expect(Object.keys(kv.getAll()).length).toEqual(count);
     //     // the local state maps should also get cleared quickly,
     //     // but there is no event for this, so we loop:
     //  @ts-ignore: saved is private
@@ -248,17 +248,17 @@ describe("do an insert and clear test", () => {
   const count = 100;
   it(`adds ${count} entries, saves, clears, and confirms empty`, async () => {
     const kv = await createDkv({ name });
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
     for (let i = 0; i < count; i++) {
       kv[`${i}`] = i;
     }
-    expect(Object.keys(kv.get()).length).toEqual(count);
+    expect(Object.keys(kv.getAll()).length).toEqual(count);
     await kv.save();
-    expect(Object.keys(kv.get()).length).toEqual(count);
+    expect(Object.keys(kv.getAll()).length).toEqual(count);
     kv.clear();
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
     await kv.save();
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
   });
 });
 
@@ -269,7 +269,7 @@ describe("create many distinct clients at once, write to all of them, and see th
 
   it(`creates the ${count} clients`, async () => {
     for (let i = 0; i < count; i++) {
-      clients[i] = await createDkv({ name,  noCache: true });
+      clients[i] = await createDkv({ name, noCache: true });
     }
   });
 
@@ -302,7 +302,7 @@ describe("create many distinct clients at once, write to all of them, and see th
     }
     for (const client of clients) {
       expect(client.length).toEqual(count);
-      expect(client.get()).toEqual(combined);
+      expect(client.getAll()).toEqual(combined);
     }
   });
 });
@@ -315,7 +315,7 @@ describe("tests involving null/undefined values", () => {
   it("creates the dkv twice", async () => {
     kv1 = await createDkv({ name, noAutosave: true, noCache: true });
     kv2 = await createDkv({ name, noAutosave: true, noCache: true });
-    expect(kv1.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(false);
   });
 
@@ -339,7 +339,7 @@ describe("tests involving null/undefined values", () => {
     expect(kv1.a).toBe(undefined);
     expect(kv1.a === undefined).toBe(true);
     expect(kv1.length).toBe(0);
-    expect(kv1.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
   });
 
   it("make sure undefined (i.e., delete) sync's as expected", async () => {
@@ -348,9 +348,6 @@ describe("tests involving null/undefined values", () => {
     expect(kv2.a).toBe(undefined);
     expect(kv2.a === undefined).toBe(true);
     expect(kv2.length).toBe(0);
-    expect(kv1.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
   });
 });
-
-
-

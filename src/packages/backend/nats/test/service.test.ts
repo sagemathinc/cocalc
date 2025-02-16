@@ -29,7 +29,7 @@ describe("create a service and test it out", () => {
     } catch (err) {
       t = `${err}`;
     }
-    expect(t).toContain("503");
+    expect(t).toContain("Not Available");
   });
 });
 

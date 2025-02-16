@@ -24,10 +24,10 @@ export interface DKOOptions extends DKVOptions {
   sep?: string;
 }
 
-export class DKO extends EventEmitter {
+export class DKO<T = any> extends EventEmitter {
   opts: DKOOptions;
   sep: string;
-  dkv?: DKV;
+  dkv?: DKV; // can't type this
 
   constructor(opts: DKOOptions) {
     super();
@@ -36,8 +36,11 @@ export class DKO extends EventEmitter {
     this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
-        target.delete(prop);
-        return true;
+        if (typeof prop == "string") {
+          target.delete(prop);
+          return true;
+        }
+        return false;
       },
       set(target, prop, value) {
         prop = String(prop);
@@ -61,7 +64,7 @@ export class DKO extends EventEmitter {
     if (this.dkv != null) {
       throw Error("already initialized");
     }
-    this.dkv = await createDKV({
+    this.dkv = await createDKV<{ [key: string]: any }>({
       ...this.opts,
       name: dkoPrefix(this.opts.name),
     });
@@ -120,7 +123,7 @@ export class DKO extends EventEmitter {
     return { key, field };
   };
 
-  delete = (key) => {
+  delete = (key: string) => {
     if (this.dkv == null) {
       throw Error("closed");
     }
@@ -138,40 +141,43 @@ export class DKO extends EventEmitter {
     this.dkv?.clear();
   };
 
-  get = (key?) => {
+  get = (key: string): T | undefined => {
     if (this.dkv == null) {
       throw Error("closed");
     }
-    if (key == null) {
-      // get everything
-      const all = this.dkv.get();
-      const result: any = {};
-      for (const x in all) {
-        const { key, field } = this.fromPath(x);
-        if (!field) {
-          continue;
-        }
-        if (result[key] == null) {
-          result[key] = { [field]: all[x] };
-        } else {
-          result[key][field] = all[x];
-        }
-      }
-      return result;
-    } else {
-      const fields = this.dkv.get(key);
-      if (fields == null) {
-        return undefined;
-      }
-      const x: any = {};
-      for (const field of fields) {
-        x[field] = this.dkv.get(this.toPath(key, field));
-      }
-      return x;
+    const fields = this.dkv.get(key);
+    if (fields == null) {
+      return undefined;
     }
+    const x: any = {};
+    for (const field of fields) {
+      x[field] = this.dkv.get(this.toPath(key, field));
+    }
+    return x;
   };
 
-  set = (key: string, obj: any) => {
+  getAll = (): { [key: string]: T } => {
+    // get everything
+    if (this.dkv == null) {
+      throw Error("closed");
+    }
+    const all = this.dkv.getAll();
+    const result: any = {};
+    for (const x in all) {
+      const { key, field } = this.fromPath(x);
+      if (!field) {
+        continue;
+      }
+      if (result[key] == null) {
+        result[key] = { [field]: all[x] };
+      } else {
+        result[key][field] = all[x];
+      }
+    }
+    return result;
+  };
+
+  set = (key: string, obj: T) => {
     if (this.dkv == null) {
       throw Error("closed");
     }
@@ -189,11 +195,11 @@ export class DKO extends EventEmitter {
     }
   };
 
-  hasUnsavedChanges = () => {
+  hasUnsavedChanges = (): boolean => {
     return !!this.dkv?.hasUnsavedChanges();
   };
 
-  unsavedChanges = () => {
+  unsavedChanges = (): { key: string; field: string }[] => {
     const dkv = this.dkv;
     if (dkv == null) {
       return [];
@@ -214,7 +220,7 @@ export class DKO extends EventEmitter {
   };
 }
 
-export const dko = refCache<DKOOptions, DKO>({
+export const cache = refCache<DKOOptions, DKO>({
   createKey: userKvKey,
   createObject: async (opts) => {
     const k = new DKO(opts);
@@ -225,4 +231,8 @@ export const dko = refCache<DKOOptions, DKO>({
 
 function dkoPrefix(name: string): string {
   return `__dko__${name}`;
+}
+
+export async function dko<T>(options: DKOOptions): Promise<DKO<T>> {
+  return await cache(options);
 }

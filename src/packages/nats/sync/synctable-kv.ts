@@ -157,7 +157,7 @@ export class SyncTableKV extends EventEmitter {
   get = (obj_or_key?) => {
     if (this.dkv == null) throw Error("closed");
     if (obj_or_key == null) {
-      return this.getHook(this.dkv.get());
+      return this.getHook(this.dkv.getAll());
     }
     return this.getHook(this.dkv.get(this.getKey(obj_or_key)));
   };
@@ -165,7 +165,7 @@ export class SyncTableKV extends EventEmitter {
   get_one = () => {
     if (this.dkv == null) throw Error("closed");
     // TODO: insanely inefficient, especially if !atomic!
-    for (const key in this.dkv.get()) {
+    for (const key in this.dkv.getAll()) {
       return this.get(key);
     }
   };

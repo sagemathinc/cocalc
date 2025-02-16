@@ -16,7 +16,7 @@ describe("create a public kv and do basic operations", () => {
 
   it("creates the kv", async () => {
     kv = await createDko({ name });
-    expect(kv.get()).toEqual({});
+    expect(kv.getAll()).toEqual({});
   });
 
   it("adds a key to the kv", () => {
@@ -39,7 +39,7 @@ describe("create a public kv and do basic operations", () => {
 
   it("closes the kv", async () => {
     kv.close();
-    expect(kv.get).toThrow("closed");
+    expect(kv.getAll).toThrow("closed");
   });
 });
 
@@ -51,19 +51,19 @@ describe("opens a kv twice and verifies the cached works and is reference counte
   it("creates the same kv twice", async () => {
     kv1 = await createDko({ name });
     kv2 = await createDko({ name });
-    expect(kv1.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(true);
   });
 
   it("closes kv1 (one reference)", async () => {
     kv1.close();
-    expect(kv2.get).not.toThrow();
+    expect(kv2.getAll).not.toThrow();
   });
 
   it("closes kv2 (another reference)", async () => {
     kv2.close();
     // really closed!
-    expect(kv2.get).toThrow("closed");
+    expect(kv2.getAll).toThrow("closed");
   });
 
   it("create and see it is new now", async () => {
@@ -80,8 +80,8 @@ describe("opens a kv twice at once and observe sync", () => {
   it("creates the kv twice", async () => {
     kv1 = await createDko({ name, noCache: true });
     kv2 = await createDko({ name, noCache: true });
-    expect(kv1.get()).toEqual({});
-    expect(kv2.get()).toEqual({});
+    expect(kv1.getAll()).toEqual({});
+    expect(kv2.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(false);
   });
 

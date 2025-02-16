@@ -22,11 +22,15 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/nats/sync/open-files";
 import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
-import { kv, type KVOptions } from "@cocalc/nats/sync/kv";
-import { dkv, type DKVOptions } from "@cocalc/nats/sync/dkv";
-import { dko, type DKOOptions } from "@cocalc/nats/sync/dko";
-import { stream, type UserStreamOptions } from "@cocalc/nats/sync/stream";
-import { dstream } from "@cocalc/nats/sync/dstream";
+import { kv, type KVOptions, type KV } from "@cocalc/nats/sync/kv";
+import { dkv, type DKVOptions, type DKV } from "@cocalc/nats/sync/dkv";
+import { dko, type DKOOptions, type DKO } from "@cocalc/nats/sync/dko";
+import {
+  stream,
+  type UserStreamOptions,
+  type Stream,
+} from "@cocalc/nats/sync/stream";
+import { dstream, type DStream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
@@ -386,39 +390,49 @@ export class NatsClient {
     return accumulate;
   };
 
-  stream = async (opts: Partial<UserStreamOptions> & { name: string }) => {
+  stream = async <T = any,>(
+    opts: Partial<UserStreamOptions> & { name: string },
+  ): Promise<Stream<T>> => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
-    return await stream({ env: await this.getEnv(), ...opts });
+    return await stream<T>({ env: await this.getEnv(), ...opts });
   };
 
-  dstream = async <T,>(opts: Partial<UserStreamOptions> & { name: string }) => {
+  dstream = async <T = any,>(
+    opts: Partial<UserStreamOptions> & { name: string },
+  ): Promise<DStream<T>> => {
     if (!opts.account_id && !opts.project_id && opts.limits != null) {
       throw Error("account client can't set limits on public stream");
     }
     return await dstream<T>({ env: await this.getEnv(), ...opts });
   };
 
-  kv = async (opts: Partial<KVOptions> & { name: string }) => {
+  kv = async <T = any,>(
+    opts: Partial<KVOptions> & { name: string },
+  ): Promise<KV<T>> => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }
-    return await kv({ env: await this.getEnv(), ...opts });
+    return await kv<T>({ env: await this.getEnv(), ...opts });
   };
 
-  dkv = async (opts: Partial<DKVOptions> & { name: string }) => {
+  dkv = async <T = any,>(
+    opts: Partial<DKVOptions> & { name: string },
+  ): Promise<DKV<T>> => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }
-    return await dkv({ env: await this.getEnv(), ...opts });
+    return await dkv<T>({ env: await this.getEnv(), ...opts });
   };
 
-  dko = async (opts: Partial<DKOOptions> & { name: string }) => {
+  dko = async <T = any,>(
+    opts: Partial<DKOOptions> & { name: string },
+  ): Promise<DKO<T>> => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
     //     }
-    return await dko({ env: await this.getEnv(), ...opts });
+    return await dko<T>({ env: await this.getEnv(), ...opts });
   };
 
   microservicesClient = async () => {

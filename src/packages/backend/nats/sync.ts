@@ -11,23 +11,23 @@ import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 
 export type { Stream, DStream, KV, DKV, DKO };
 
-export async function stream(opts): Promise<Stream> {
-  return await createStream({ env: await getEnv(), ...opts });
+export async function stream<T = any>(opts): Promise<Stream<T>> {
+  return await createStream<T>({ env: await getEnv(), ...opts });
 }
 
 export async function dstream<T = any>(opts): Promise<DStream<T>> {
   return await createDstream<T>({ env: await getEnv(), ...opts });
 }
 
-export async function kv(opts): Promise<KV> {
+export async function kv<T = any>(opts): Promise<KV<T>> {
   return await createKV({ env: await getEnv(), ...opts });
 }
 
-export async function dkv(opts): Promise<DKV> {
-  return await createDKV({ env: await getEnv(), ...opts });
+export async function dkv<T = any>(opts): Promise<DKV<T>> {
+  return await createDKV<T>({ env: await getEnv(), ...opts });
 }
 
-export async function dko(opts): Promise<DKO> {
+export async function dko<T = any>(opts): Promise<DKO<T>> {
   return await createDKO({ env: await getEnv(), ...opts });
 }
 

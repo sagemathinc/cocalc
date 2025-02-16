@@ -30,8 +30,8 @@ export interface KVOptions {
   noCache?: boolean;
 }
 
-export class KV extends EventEmitter {
-  generalKV?: GeneralKV;
+export class KV<T = any> extends EventEmitter {
+  generalKV?: GeneralKV<{ key: string; value: T }>;
   name: string;
   private prefix: string;
   private sha1;
@@ -52,8 +52,12 @@ export class KV extends EventEmitter {
     this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
-        target.delete(prop);
-        return true;
+        if (typeof prop == "string") {
+          target.delete(prop);
+          return true;
+        } else {
+          return false;
+        }
       },
       set(target, prop, value) {
         prop = String(prop);
@@ -90,7 +94,7 @@ export class KV extends EventEmitter {
     this.removeAllListeners();
   };
 
-  delete = async (key) => {
+  delete = async (key: string) => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
@@ -106,7 +110,7 @@ export class KV extends EventEmitter {
   };
 
   // server assigned time
-  time = (key?: string) => {
+  time = (key?: string): { [key: string]: Date } | Date | undefined => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
@@ -115,24 +119,27 @@ export class KV extends EventEmitter {
     );
   };
 
-  get = (key?) => {
+  get = (key: string): T | undefined => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    if (key == null) {
-      const obj = this.generalKV.get();
-      const x: any = {};
-      for (const k in obj) {
-        const { key, value } = obj[k];
-        x[key] = value;
-      }
-      return x;
-    } else {
-      return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
-    }
+    return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
   };
 
-  set = async (key: string, value: any) => {
+  getAll = (): { [key: string]: T } => {
+    if (this.generalKV == null) {
+      throw Error("closed");
+    }
+    const obj = this.generalKV.getAll();
+    const x: any = {};
+    for (const k in obj) {
+      const { key, value } = obj[k];
+      x[key] = value;
+    }
+    return x;
+  };
+
+  set = async (key: string, value: T) => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
@@ -151,8 +158,7 @@ export function userKvKey(options: KVOptions) {
   return JSON.stringify(x);
 }
 
-
-export const kv = refCache<KVOptions, KV>({
+export const cache = refCache<KVOptions, KV>({
   createKey: userKvKey,
   createObject: async (opts) => {
     const k = new KV(opts);
@@ -160,3 +166,7 @@ export const kv = refCache<KVOptions, KV>({
     return k;
   },
 });
+
+export async function kv<T>(options: KVOptions): Promise<KV<T>> {
+  return await cache(options);
+}

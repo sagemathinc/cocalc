@@ -25,7 +25,7 @@ With browser client using a project:
 # Involving limits:
 
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env, limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
-> s.get()
+> s.getAll()
 
 In browser:
 > s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
@@ -50,6 +50,7 @@ import { isNumericString } from "@cocalc/util/misc";
 import { map as awaitMap } from "awaiting";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
+import { type JsMsg } from "@nats-io/jetstream";
 
 class PublishRejectError extends Error {
   code: string;
@@ -112,7 +113,7 @@ export interface StreamOptions {
   start_seq?: number;
 }
 
-export class Stream extends EventEmitter {
+export class Stream<T = any> extends EventEmitter {
   public readonly name: string;
   public readonly jsname: string;
   private natsStreamOptions?;
@@ -127,8 +128,8 @@ export class Stream extends EventEmitter {
   private stream?;
   private watch?;
   // don't do "this.raw=" or "this.messages=" anywhere in this class!
-  public readonly raw: any[] = [];
-  public readonly messages: any[] = [];
+  public readonly raw: JsMsg[] = [];
+  public readonly messages: T[] = [];
 
   constructor({
     name,
@@ -208,24 +209,31 @@ export class Stream extends EventEmitter {
     this.watchForNewData(consumer);
   });
 
-  get = (n?) => {
+  get = (n?): T | T[] => {
     if (this.js == null) {
       throw Error("closed");
     }
     if (n == null) {
-      return [...this.messages];
+      return this.getAll();
     } else {
       return this.messages[n];
     }
   };
 
+  getAll = (): T[] => {
+    if (this.js == null) {
+      throw Error("closed");
+    }
+    return [...this.messages];
+  };
+
   // get server assigned global sequence number of n-th message in stream
-  seq = (n) => {
+  seq = (n: number): number | undefined => {
     return this.raw[n]?.seq;
   };
 
   // get server assigned time of n-th message in stream
-  time = (n): Date | undefined => {
+  time = (n: number): Date | undefined => {
     const r = this.raw[n];
     if (r == null) {
       return;
@@ -233,15 +241,15 @@ export class Stream extends EventEmitter {
     return new Date(millis(r?.info.timestampNanos));
   };
 
-  get length() {
+  get length(): number {
     return this.messages.length;
   }
 
-  push = async (...args) => {
+  push = async (...args: T[]) => {
     await awaitMap(args, MAX_PARALLEL, this.publish);
   };
 
-  publish = async (mesg: any, subject?: string, options?) => {
+  publish = async (mesg: T, subject?: string, options?) => {
     if (this.js == null) {
       throw Error("closed");
     }
@@ -389,7 +397,7 @@ export class Stream extends EventEmitter {
     }
   };
 
-  private decode = (raw) => {
+  private decode = (raw: JsMsg) => {
     try {
       return this.env.jc.decode(raw.data);
     } catch {
@@ -398,7 +406,7 @@ export class Stream extends EventEmitter {
     }
   };
 
-  private handle = (raw, noEmit = false) => {
+  private handle = (raw: JsMsg, noEmit = false) => {
     const mesg = this.decode(raw);
     this.messages.push(mesg);
     this.raw.push(raw);
@@ -575,7 +583,7 @@ export function userStreamOptionsKey(options: UserStreamOptions) {
   return JSON.stringify(x);
 }
 
-export const stream = refCache<UserStreamOptions, Stream>({
+export const cache = refCache<UserStreamOptions, Stream>({
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
     const { account_id, project_id, name } = options;
@@ -594,3 +602,9 @@ export const stream = refCache<UserStreamOptions, Stream>({
     return stream;
   },
 });
+
+export async function stream<T>(
+  options: UserStreamOptions,
+): Promise<Stream<T>> {
+  return await cache(options);
+}

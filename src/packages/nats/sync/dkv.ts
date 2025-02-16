@@ -28,7 +28,7 @@ export interface DKVOptions extends KVOptions {
   noAutosave?: boolean;
 }
 
-export class DKV extends EventEmitter {
+export class DKV<T = any> extends EventEmitter {
   generalDKV?: GeneralDKV;
   name: string;
   private prefix: string;
@@ -65,7 +65,9 @@ export class DKV extends EventEmitter {
     this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
-        target.delete(prop);
+        if (typeof prop == "string") {
+          target.delete(prop);
+        }
         return true;
       },
       set(target, prop, value) {
@@ -157,7 +159,7 @@ export class DKV extends EventEmitter {
     this.removeAllListeners();
   };
 
-  delete = (key) => {
+  delete = (key: string) => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
@@ -169,7 +171,7 @@ export class DKV extends EventEmitter {
   };
 
   // server assigned time
-  time = (key?: string) => {
+  time = (key?: string): Date | undefined | { [key: string]: Date } => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
@@ -179,7 +181,7 @@ export class DKV extends EventEmitter {
     if (key != null || times == null) {
       return times;
     }
-    const obj = this.generalDKV.get();
+    const obj = this.generalDKV.getAll();
     const x: any = {};
     for (const k in obj) {
       const { key } = obj[k];
@@ -188,36 +190,41 @@ export class DKV extends EventEmitter {
     return x;
   };
 
-  has = (key: string) => {
+  has = (key: string): boolean => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
     return this.generalDKV.has(`${this.prefix}.${this.sha1(key)}`);
   };
 
-  get = (key?) => {
+  get = (key: string): T | undefined => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    if (key == null) {
-      const obj = this.generalDKV.get();
-      const x: any = {};
-      for (const k in obj) {
-        const { key, value } = obj[k];
-        x[key] = value;
-      }
-      return x;
-    } else {
-      return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
-    }
+    return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
   };
 
-  get length() {
-    // not efficient?
-    return Object.keys(this.get()).length;
+  getAll = (): { [key: string]: T } => {
+    if (this.generalDKV == null) {
+      throw Error("closed");
+    }
+    const obj = this.generalDKV.getAll();
+    const x: any = {};
+    for (const k in obj) {
+      const { key, value } = obj[k];
+      x[key] = value;
+    }
+    return x;
+  };
+
+  get length(): number {
+    if (this.generalDKV == null) {
+      throw Error("closed");
+    }
+    return this.generalDKV.length;
   }
 
-  set = (key: string, value: any) => {
+  set = (key: string, value: T): void => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
@@ -232,14 +239,14 @@ export class DKV extends EventEmitter {
     this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
   };
 
-  hasUnsavedChanges = () => {
+  hasUnsavedChanges = (): boolean => {
     if (this.generalDKV == null) {
       return false;
     }
     return this.generalDKV.hasUnsavedChanges();
   };
 
-  unsavedChanges = () => {
+  unsavedChanges = (): T[] => {
     const generalDKV = this.generalDKV;
     if (generalDKV == null) {
       return [];
@@ -252,7 +259,7 @@ export class DKV extends EventEmitter {
   };
 }
 
-export const dkv = refCache<DKVOptions, DKV>({
+export const cache = refCache<DKVOptions, DKV>({
   createKey: userKvKey,
   createObject: async (opts) => {
     const k = new DKV(opts);
@@ -260,3 +267,7 @@ export const dkv = refCache<DKVOptions, DKV>({
     return k;
   },
 });
+
+export async function dkv<T>(options: DKVOptions): Promise<DKV<T>> {
+  return await cache(options);
+}

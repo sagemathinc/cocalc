@@ -17,7 +17,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 > z.time({path:'a.txt'})
 2025-02-09T16:36:58.510Z
 > z.touch({path:'foo/b.md',id:0})
-> z.get()
+> z.getAll()
 {
   'a.txt': { open: true, count: 3 },
   'foo/b.md': { open: true, count: 1 }
@@ -25,7 +25,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 Frontend Dev in browser:
 
 z = await cc.client.nats_client.openFiles('00847397-d6a8-4cb0-96a8-6ef64ac3e6cf')
-z.get()
+z.getAll()
 }
 */
 
@@ -172,7 +172,7 @@ export class OpenFiles extends EventEmitter {
   };
 
   getAll = (): Entry[] => {
-    const x = this.getDkv().get();
+    const x = this.getDkv().getAll();
     return Object.keys(x).map((path) => {
       return { ...x[path], path, time: this.time(path) };
     });

@@ -23,14 +23,14 @@ describe("create a dstream and do some basic operations", () => {
   });
 
   it("starts out empty", () => {
-    expect(s.get()).toEqual([]);
+    expect(s.getAll()).toEqual([]);
     expect(s.length).toEqual(0);
   });
 
   const mesg = { stdout: "hello" };
   it("publishes a message to the stream and confirms it is there", () => {
     s.push(mesg);
-    expect(s.get()).toEqual([mesg]);
+    expect(s.getAll()).toEqual([mesg]);
     expect(s.length).toEqual(1);
     expect(s[0]).toEqual(mesg);
   });
@@ -49,13 +49,13 @@ describe("create a dstream and do some basic operations", () => {
     // close s:
     await s.close();
     // using s fails
-    expect(s.get).toThrow("closed");
+    expect(s.getAll).toThrow("closed");
     // create new stream with same name
     const t = await createDstream({ name });
     // ensure it is NOT just from the cache
     expect(s === t).toBe(false);
     // make sure it has our message
-    expect(t.get()).toEqual([mesg]);
+    expect(t.getAll()).toEqual([mesg]);
   });
 });
 
@@ -76,7 +76,7 @@ describe("create two dstreams and observe sync between them", () => {
     s1.save();
     await once(s2, "change");
     expect(s2[0]).toEqual("hello");
-    expect(s2.get()).toEqual(["hello"]);
+    expect(s2.getAll()).toEqual(["hello"]);
   });
 
   it("now write to s2 and save and see that reflected in s1", async () => {
@@ -90,8 +90,8 @@ describe("create two dstreams and observe sync between them", () => {
     s1.push("s1");
     s2.push("s2");
     // our changes are reflected locally
-    expect(s1.get()).toEqual(["hello", "hi from s2", "s1"]);
-    expect(s2.get()).toEqual(["hello", "hi from s2", "s2"]);
+    expect(s1.getAll()).toEqual(["hello", "hi from s2", "s1"]);
+    expect(s2.getAll()).toEqual(["hello", "hi from s2", "s2"]);
     // now kick off the two saves *in parallel*
     s1.save();
     s2.save();
@@ -99,9 +99,9 @@ describe("create two dstreams and observe sync between them", () => {
     if (s2.length != s1.length) {
       await once(s2, "change");
     }
-    expect(s1.get()).toEqual(s2.get());
+    expect(s1.getAll()).toEqual(s2.getAll());
     // in fact s1,s2 is the order since we called s1.save first:
-    expect(s1.get()).toEqual(["hello", "hi from s2", "s1", "s2"]);
+    expect(s1.getAll()).toEqual(["hello", "hi from s2", "s1", "s2"]);
   });
 });
 
@@ -184,7 +184,7 @@ describe("testing start_seq", () => {
   it("creates a stream and adds 3 messages, noting their assigned sequence numbers", async () => {
     const s = await createDstream({ name, noAutosave: true });
     s.push(1, 2, 3);
-    expect(s.get()).toEqual([1, 2, 3]);
+    expect(s.getAll()).toEqual([1, 2, 3]);
     // save, thus getting sequence numbers
     s.save();
     while (s.seq(2) == null) {
@@ -207,13 +207,13 @@ describe("testing start_seq", () => {
       start_seq: seq[2],
     });
     expect(s.length).toBe(1);
-    expect(s.get()).toEqual([3]);
+    expect(s.getAll()).toEqual([3]);
   });
 
   it("it then pulls in the previous message, so now two messages are loaded", async () => {
     await s.load({ start_seq: seq[1] });
     expect(s.length).toBe(2);
-    expect(s.get()).toEqual([2, 3]);
+    expect(s.getAll()).toEqual([2, 3]);
   });
 });
 
