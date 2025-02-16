@@ -310,27 +310,33 @@ export class Stream extends EventEmitter {
 
   private fetchInitialData = async (options?) => {
     const consumer = await this.getConsumer(options);
-    // This goes in two stages:
-    // STAGE 1: Get what is in the stream now.
-    // First we get info so we know how many messages
-    // are already in the stream:
-    const info = await consumer.info();
-    if (info.num_pending == 0) {
-      return consumer;
-    }
-    const fetch = await consumer.fetch();
-    this.watch = fetch;
-    let i = 0;
     // grab the messages.  This should be very efficient since it
     // internally grabs them in batches.
-    for await (const mesg of fetch) {
-      this.handle(mesg, true);
-      i += 1;
-      if (i >= info.num_pending) {
-        break;
+    // This code seems exactly necessary and efficient, and most
+    // other things I tried ended too soon or hung. See also
+    // comment in getAllFromKv about permissions.
+    // const start = Date.now();
+    // let count = 0;
+    //try {
+    while (true) {
+      const info = await consumer.info();
+      if (info.num_pending == 0) {
+        return consumer;
+      }
+      const fetch = await consumer.fetch({ max_messages: 1000 });
+      this.watch = fetch;
+      for await (const mesg of fetch) {
+        // count += 1;
+        const pending = mesg.info.pending;
+        this.handle(mesg, true);
+        if (pending <= 0) {
+          return consumer;
+        }
       }
     }
-    return consumer;
+    //     } finally {
+    //       console.log("fetchInitialData", { count, time: Date.now() - start });
+    //     }
   };
 
   private watchForNewData = async (consumer) => {

@@ -270,11 +270,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   connect = async () => {
-    console.log("connect", this.state);
     try {
       this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
       await this.configureComputeServerId();
+      if (this.state == "closed") {
+        return;
+      }
       const conn = new NatsTerminalConnection({
         path: this.term_path,
         project_id: this.project_id,

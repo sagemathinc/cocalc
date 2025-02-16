@@ -191,9 +191,8 @@ export class NatsTerminalConnection extends EventEmitter {
     if (this.stream == null) {
       return;
     }
-    for (const data of this.stream.get()) {
-      this.handleStreamData(data);
-    }
+    const initData = this.stream.get().join("");
+    this.handleStreamData(initData);
     this.setReady();
     this.stream.on("change", this.handleStreamData);
   };
@@ -201,7 +200,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private setReady = async () => {
     // wait until after render loop of terminal before allowing writing,
     // or we get corruption.
-    await delay(100); // todo is there a better way to know how long to wait?
+    await delay(1); // todo is there a better way to know how long to wait?
     this.setState("running");
     this.emit("ready");
   };
