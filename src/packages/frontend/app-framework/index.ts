@@ -220,16 +220,19 @@ export class AppRedux extends AppReduxBase {
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
   // from the console when debugging, e.g., smc.redux.currentEditorActions()
   public currentEditor = (): {
-    actions: Actions<any> | undefined;
-    store: Store<any> | undefined;
+    project_id?: string;
+    path?: string;
+    account_id?: string;
+    actions?: Actions<any>;
+    store?: Store<any>;
   } => {
     const project_id = this.getStore("page").get("active_top_tab");
     const current: {
       project_id?: string;
       path?: string;
       account_id?: string;
-      actions?;
-      store?;
+      actions?: Actions<any>;
+      store?: Store<any>;
     } = { account_id: this.getStore("account")?.get("account_id") };
     if (!is_valid_uuid_string(project_id)) {
       return current;

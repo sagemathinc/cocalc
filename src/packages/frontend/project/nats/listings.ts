@@ -48,19 +48,26 @@ export class Listings extends EventEmitter {
     this.listingsClient.on("change", (path) => {
       this.emit("change", [path]);
     });
+    // cause load of all cached data into redux
+    this.emit("change", Object.keys(this.listingsClient.getAll()));
     // [ ] TODO: delete event for deleted paths
     this.setState("ready");
   };
 
   // Watch directory for changes.
   watch = async (path: string, force?): Promise<void> => {
-    this.listingsClient?.watch(path, force);
+    try {
+      await this.listingsClient?.watch(path, force);
+    } catch {}
   };
 
   get = async (
     path: string,
     trigger_start_project?: boolean,
   ): Promise<DirectoryListingEntry[] | undefined> => {
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
     const x = this.listingsClient?.get(path);
     if (x != null) {
       if (x.error) {
@@ -76,17 +83,27 @@ export class Listings extends EventEmitter {
   };
 
   getDeleted = async (path: string): Promise<List<string> | undefined> => {
-    // todo
-    return fromJS([]);
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
+    const x = this.listingsClient.get(path);
+    return fromJS(x?.deleted);
   };
 
-  undelete = async (path: string): Promise<void> => {};
+  undelete = async (filename: string): Promise<void> => {
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
+    this.listingsClient.undelete(filename);
+  };
 
   // true or false if known deleted or not; undefined if don't know yet.
   // TODO: technically we should check the all the
   // deleted_file_variations... but that is really an edge case
   // that probably doesn't matter much.
-  public isDeleted = (filename: string): boolean | undefined => {};
+  public isDeleted = (filename: string): boolean | undefined => {
+    return this.listingsClient?.isDeleted(filename);
+  };
 
   // Does a call to the project to directly determine whether or
   // not the given path exists.  This doesn't depend on the table.
@@ -122,24 +139,34 @@ export class Listings extends EventEmitter {
   getUsingDatabase = async (
     path: string,
   ): Promise<DirectoryListingEntry[] | undefined> => {
-    return this.listingsClient?.get(path)?.files;
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
+    return this.listingsClient.get(path)?.files;
   };
 
   // TODO: we now only know there are more, not how many
   getMissingUsingDatabase = async (
     path: string,
   ): Promise<number | undefined> => {
-    return this.listingsClient?.get(path)?.more ? 1 : 0;
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
+    return this.listingsClient.get(path)?.more ? 1 : 0;
   };
 
   getMissing = (path: string): number | undefined => {
-    return this.listingsClient?.get(path)?.more ? 1 : 0;
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
+    return this.listingsClient.get(path)?.more ? 1 : 0;
   };
 
   getListingDirectly = async (
     path: string,
     trigger_start_project?: boolean,
   ): Promise<DirectoryListingEntry[]> => {
+    console.trace("getListingDirectly", { path });
     // todo: trigger_start_project
     return await this.api.getListing({ path, hidden: true });
   };

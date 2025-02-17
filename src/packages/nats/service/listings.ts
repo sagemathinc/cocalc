@@ -75,6 +75,7 @@ export interface Listing {
   error?: string;
   time: number;
   more?: boolean;
+  deleted?: string[];
 }
 
 export async function getListingsKV(
@@ -141,8 +142,7 @@ export class ListingsClient extends EventEmitter {
     if (this.listings == null) {
       throw Error("not ready");
     }
-
-    this.listings.getAll();
+    return this.listings.getAll();
   };
 
   close = () => {
@@ -168,6 +168,21 @@ export class ListingsClient extends EventEmitter {
 
   getListing = async (opts) => {
     return await this.api.getListing(opts);
+  };
+
+  getDeleted = () => {};
+
+  isDeleted = (filename: string) => {
+    return false;
+  };
+
+  undelete = (path: string) => {
+    let deleted = this.getDeleted(path) ?? [];
+    if (!deleted.includes(path)) {
+      return;
+    }
+    deleted = deleted.filter((x) => x != path);
+    this.listings.set(path);
   };
 }
 

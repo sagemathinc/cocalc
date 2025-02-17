@@ -646,7 +646,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
       });
       listingsTable.on("change", async (paths) => {
-        console.log("change", paths);
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??
           immutable.Map();
