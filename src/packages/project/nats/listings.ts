@@ -16,13 +16,19 @@ import {
   getListingsKV,
   getListingsTimesKV,
   MAX_FILES_PER_DIRECTORY,
+  INTEREST_CUTOFF_MS,
+  type Listing,
+  type Times,
 } from "@cocalc/nats/service/listings";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { init as initClient } from "@cocalc/project/client";
-import type { DirectoryListingEntry } from "@cocalc/util/types";
 import { delay } from "awaiting";
 import { type DKV } from "./sync";
 import { type NatsService } from "@cocalc/nats/service";
+import { MultipathWatcher } from "@cocalc/backend/path-watcher";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("project:nats:listings");
 
 let listings: Listings | null;
 
@@ -42,6 +48,7 @@ const impl = {
 
 let service: NatsService | null;
 export async function init() {
+  logger.debug("init: initializing");
   initClient();
 
   service = await createListingsService({
@@ -52,6 +59,7 @@ export async function init() {
   const L = new Listings();
   await L.init();
   listings = L;
+  logger.debug("init: fully ready");
 }
 
 export async function close() {
@@ -60,28 +68,114 @@ export async function close() {
 }
 
 class Listings {
-  private listings: DKV<DirectoryListingEntry[]>;
-  private times: DKV<{
-    // time last files for a given directory were last updated
-    updated?: number;
-    // time user last expressed interest in a given directory
-    interest: number;
-  }>;
+  private listings: DKV<Listing>;
+
+  private times: DKV<Times>;
+
+  private watcher: MultipathWatcher;
+
+  private state: "init" | "ready" | "closed" = "init";
+
+  constructor() {
+    this.watcher = new MultipathWatcher();
+    this.watcher.on("change", this.updateListing);
+  }
 
   init = async () => {
+    logger.debug("Listings.init: start");
     this.listings = await getListingsKV({ project_id, compute_server_id });
     this.times = await getListingsTimesKV({ project_id, compute_server_id });
+    // start watching paths with recent interest
+    const cutoff = Date.now() - INTEREST_CUTOFF_MS;
+    const times = this.times.getAll();
+    for (const path in times) {
+      if ((times[path].interest ?? 0) >= cutoff) {
+        await this.updateListing(path);
+      }
+    }
+    this.monitorInterestLoop();
+    this.state = "ready";
+    logger.debug("Listings.init: done");
+  };
+
+  private monitorInterestLoop = async () => {
+    while (this.state != "closed") {
+      const cutoff = Date.now() - INTEREST_CUTOFF_MS;
+      const times = this.times.getAll();
+      for (const path in times) {
+        if ((times[path].interest ?? 0) <= cutoff) {
+          if (this.watcher.has(path)) {
+            logger.debug("monitorInterestLoop: stop watching", { path });
+            this.watcher.delete(path);
+          }
+        }
+      }
+      await delay(30 * 1000);
+    }
   };
 
   close = () => {
+    this.state = "closed";
+    this.watcher.close();
     this.listings?.close();
     this.times?.close();
   };
 
-  interest = async (path: string) => {
-    this.times.set(path, { ...this.times.get(path), interest: Date.now() });
-
-    console.log("ignoring ", MAX_FILES_PER_DIRECTORY);
-    this.listings.set(path, await getListing(path, true));
+  updateListing = async (path: string) => {
+    logger.debug("updateListing", { path });
+    path = canonicalPath(path);
+    this.watcher.add(canonicalPath(path));
+    const start = Date.now();
+    try {
+      let files = await getListing(path, true, {
+        limit: MAX_FILES_PER_DIRECTORY + 1,
+      });
+      const more = files.length == MAX_FILES_PER_DIRECTORY + 1;
+      if (more) {
+        files = files.slice(0, MAX_FILES_PER_DIRECTORY);
+      }
+      this.listings.set(path, {
+        files,
+        exists: true,
+        time: Date.now(),
+        more,
+      });
+      logger.debug("updateListing: success", {
+        path,
+        ms: Date.now() - start,
+        count: files.length,
+        more,
+      });
+    } catch (err) {
+      let error = `${err}`;
+      if (error.startsWith("Error: ")) {
+        error = error.slice("Error: ".length);
+      }
+      this.listings.set(path, {
+        error,
+        time: Date.now(),
+        exists: error.includes("ENOENT") ? false : undefined,
+      });
+      logger.debug("updateListing: error", {
+        path,
+        ms: Date.now() - start,
+        error,
+      });
+    }
   };
+
+  interest = async (path: string) => {
+    logger.debug("interest", { path });
+    path = canonicalPath(path);
+    this.times.set(path, { ...this.times.get(path), interest: Date.now() });
+    this.updateListing(path);
+  };
+}
+
+// this does a tiny amount to make paths more canonical.
+function canonicalPath(path: string): string {
+  if (path == "." || path == "~") {
+    return "";
+  }
+  return path;
 }

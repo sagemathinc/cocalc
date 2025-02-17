@@ -5,15 +5,19 @@ Service for expressing interest in directory listings in a project or compute se
 import { createServiceClient, createServiceHandler } from "./typed";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
-import { nanos } from "@cocalc/nats/util";
 
-export const MAX_FILES_PER_DIRECTORY = 300;
+// record info about at most this many files in a given directory
+export const MAX_FILES_PER_DIRECTORY = 10;
+//export const MAX_FILES_PER_DIRECTORY = 300;
 
-// discard any listing after this long without update
-const MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
+// cache listing info about at most this many directories
+export const MAX_DIRECTORIES = 3;
+// export const MAX_DIRECTORIES = 50;
 
-// save at most this many directories
-const MAX_DIRECTORIES = 50;
+// watch directorie with interest that is this recent
+export const INTEREST_CUTOFF_MS = 1000 * 30;
+
+//export const INTEREST_CUTOFF_MS = 1000 * 60 * 10;
 
 interface ListingsApi {
   // cause the directory listing key:value store to watch path
@@ -59,24 +63,41 @@ export async function createListingsService({
   });
 }
 
+const limits = {
+  max_msgs: MAX_DIRECTORIES,
+};
+
+export interface Listing {
+  files?: DirectoryListingEntry[];
+  exists?: boolean;
+  error?: string;
+  time: number;
+  more?: boolean;
+}
+
 export async function getListingsKV(
   opts: ListingsOptions,
-): Promise<DKV<DirectoryListingEntry[]>> {
-  return await dkv<DirectoryListingEntry[]>({
+): Promise<DKV<Listing>> {
+  return await dkv<Listing>({
     name: "listings",
-    limits: {
-      max_msgs: MAX_DIRECTORIES,
-      max_age: nanos(MAX_AGE_MS),
-    },
+    limits,
     ...opts,
   });
 }
 
+export interface Times {
+  // time last files for a given directory were attempted to be updated
+  updated?: number;
+  // time user last expressed interest in a given directory
+  interest?: number;
+}
+
 export async function getListingsTimesKV(
   opts: ListingsOptions,
-): Promise<DKV<{ updated?: number; interest: number }>> {
-  return await dkv<{ updated?: number; interest: number }>({
+): Promise<DKV<Times>> {
+  return await dkv<Times>({
     name: "listings-times",
+    limits,
     ...opts,
   });
 }

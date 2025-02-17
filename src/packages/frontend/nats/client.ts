@@ -462,6 +462,6 @@ export class NatsClient {
     project_id: string;
     compute_server_id?: number;
   }) => {
-    return await getListingsKV(opts);
+    return await getListingsTimesKV(opts);
   };
 }

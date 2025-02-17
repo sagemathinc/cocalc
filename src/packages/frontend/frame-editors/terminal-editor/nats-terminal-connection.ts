@@ -146,7 +146,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private start = reuseInFlight(async () => {
     this.setState("init");
     try {
-      await this.api.nats.waitFor({ maxWait: 5000 });
+      await this.api.nats.waitFor({ maxWait: 15000 });
       await this.api.create(this.options);
     } catch (err) {
       this.setState("disconnected");

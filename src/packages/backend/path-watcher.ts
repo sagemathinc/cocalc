@@ -4,7 +4,7 @@
  */
 
 /*
-Watch A DIRECTORY for changes of the files in *that* directory only (not recursive). 
+Watch A DIRECTORY for changes of the files in *that* directory only (not recursive).
 Use ./watcher.ts for a single file.
 
 Slightly generalized fs.watch that works even when the directory doesn't exist,
@@ -164,4 +164,41 @@ export class Watcher extends EventEmitter {
     this.watchContents?.close();
     close(this);
   }
+}
+
+export class MultipathWatcher extends EventEmitter {
+  private paths: { [path: string]: Watcher } = {};
+  private options;
+
+  constructor(options?) {
+    super();
+    this.options = options;
+  }
+
+  has = (path: string) => {
+    return this.paths[path] != null;
+  };
+
+  add = (path: string) => {
+    if (this.has(path)) {
+      // already watching
+      return;
+    }
+    this.paths[path] = new Watcher(path, this.options);
+    this.paths[path].on("change", () => this.emit("change", path));
+  };
+
+  delete = (path: string) => {
+    if (!this.has(path)) {
+      return;
+    }
+    this.paths[path].close();
+    delete this.paths[path];
+  };
+
+  close = () => {
+    for (const path in this.paths) {
+      this.delete(path);
+    }
+  };
 }
