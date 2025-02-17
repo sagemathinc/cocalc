@@ -50,6 +50,7 @@ export function setup_global_cocalc(client): void {
   cocalc.done = cocalc.misc.done;
   cocalc.schema = require("@cocalc/util/schema");
   cocalc.redux = redux;
+  cocalc.current = redux.currentEditor;
   cocalc.load_eruda = load_eruda;
   cocalc.compute = require("@cocalc/frontend/compute/api");
   console.log(

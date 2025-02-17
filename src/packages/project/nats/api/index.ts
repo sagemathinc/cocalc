@@ -3,7 +3,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project:
 
-    > await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'api'})
+    > await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
 
     {status: 'terminated', service: 'api'}
 

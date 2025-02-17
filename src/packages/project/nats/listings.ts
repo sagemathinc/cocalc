@@ -13,7 +13,7 @@ DEVELOPMENT:
 
 1. Stop listings service running in the project by running this in your browser:
 
-   await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'listings'})
+   await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'listings'})
 
     {status: 'terminated', service: 'listings'}
 

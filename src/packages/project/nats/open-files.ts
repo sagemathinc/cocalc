@@ -3,9 +3,9 @@ Handle opening files in a project to save/load from disk and also enable compute
 
 DEVELOPMENT:
 
-0. From the browser, terminate open-files api service running in the project already, if any
+0. From the browser with the project opened, terminate the open-files api service:
 
-    await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'open-files'})
+    await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'open-files'})
 
 
     // {status: 'terminated', service: 'open-files'}

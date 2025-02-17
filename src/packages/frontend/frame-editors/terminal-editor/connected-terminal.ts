@@ -726,7 +726,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // during initial load
       return;
     }
-    const geom = this.fitAddon.proposeDimensions();
+    const geom = this.fitAddon?.proposeDimensions();
     if (geom == null) {
       return;
     }
