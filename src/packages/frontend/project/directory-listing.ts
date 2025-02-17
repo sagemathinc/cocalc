@@ -114,7 +114,7 @@ export async function get_directory_listing(opts: ListingOpts) {
   }
 }
 
-import { Listings } from "./websocket/listings";
+import { Listings } from "./nats/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   log("get_directory_listing2", opts);

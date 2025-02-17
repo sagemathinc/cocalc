@@ -8,17 +8,18 @@ import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { EventEmitter } from "events";
 
 // record info about at most this many files in a given directory
-export const MAX_FILES_PER_DIRECTORY = 10;
-//export const MAX_FILES_PER_DIRECTORY = 300;
+//export const MAX_FILES_PER_DIRECTORY = 10;
+export const MAX_FILES_PER_DIRECTORY = 500;
 
 // cache listing info about at most this many directories
-export const MAX_DIRECTORIES = 3;
-// export const MAX_DIRECTORIES = 50;
+//export const MAX_DIRECTORIES = 3;
+export const MAX_DIRECTORIES = 50;
 
-// watch directorie with interest that is this recent
-export const INTEREST_CUTOFF_MS = 1000 * 30;
+// watch directories with interest that are this recent
+//export const INTEREST_CUTOFF_MS = 1000 * 30;
+export const INTEREST_CUTOFF_MS = 1000 * 60 * 10;
 
-//export const INTEREST_CUTOFF_MS = 1000 * 60 * 10;
+export const MIN_INTEREST_INTERVAL_MS = 15 * 1000;
 
 export interface ListingsApi {
   // cause the directory listing key:value store to watch path
@@ -36,7 +37,7 @@ interface ListingsOptions {
   compute_server_id?: number;
 }
 
-export function createListingsClient({
+export function createListingsApiClient({
   project_id,
   compute_server_id = 0,
 }: ListingsOptions) {
@@ -47,7 +48,7 @@ export function createListingsClient({
   });
 }
 
-export type ListingsServiceApi = ReturnType<typeof createListingsClient>;
+export type ListingsServiceApi = ReturnType<typeof createListingsApiClient>;
 
 export async function createListingsService({
   project_id,
@@ -108,8 +109,8 @@ export async function getListingsTimesKV(
 export class ListingsClient extends EventEmitter {
   options: { project_id: string; compute_server_id: number };
   api: ListingsApi;
-  times: DKV<Times>;
-  listings: DKV<Listing>;
+  times?: DKV<Times>;
+  listings?: DKV<Listing>;
 
   constructor({
     project_id,
@@ -123,24 +124,45 @@ export class ListingsClient extends EventEmitter {
   }
 
   init = async () => {
-    this.api = createListingsClient(this.options);
+    this.api = createListingsApiClient(this.options);
     this.times = await getListingsTimesKV(this.options);
     this.listings = await getListingsKV(this.options);
-    this.listings.on("change", (path) => this.emit("change", path));
+    this.listings.on("change", ({ key: path }) => this.emit("change", path));
   };
 
   get = (path: string): Listing | undefined => {
+    if (this.listings == null) {
+      throw Error("not ready");
+    }
     return this.listings.get(path);
   };
 
-  getAll = () => this.listings.getAll();
+  getAll = () => {
+    if (this.listings == null) {
+      throw Error("not ready");
+    }
 
-  close = () => {
-    this.times.close();
-    this.listings.close();
+    this.listings.getAll();
   };
 
-  watch = async (path) => {
+  close = () => {
+    this.times?.close();
+    delete this.times;
+    this.listings?.close();
+    delete this.listings;
+  };
+
+  watch = async (path, force = false) => {
+    if (this.times == null) {
+      throw Error("not ready");
+    }
+    if (!force) {
+      const last = this.times.get(path)?.interest ?? 0;
+      if (Math.abs(Date.now() - last) < MIN_INTEREST_INTERVAL_MS) {
+        // somebody already expressed interest very recently
+        return;
+      }
+    }
     await this.api.watch(path);
   };
 

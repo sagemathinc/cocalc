@@ -11,9 +11,15 @@
 
 DEVELOPMENT:
 
-1. Setup project environment variables as usual
+1. Stop listings service running in the project by running this in your browser:
 
-2. Stop listings service running in the project:
+   await cc.client.nats_client.projectApi({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'}).system.terminate({service:'listings'})
+
+    {status: 'terminated', service: 'listings'}
+
+
+2. Setup project environment variables as usual.
+
 
      define COCALC_PROJECT_ID, COCALC_NATS_JWT, etc., as usual.
 
@@ -45,22 +51,6 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project:nats:listings");
 
-let listings: Listings | null;
-
-const impl = {
-  // cause the directory listing key:value store to watch path
-  watch: async (path: string) => {
-    while (listings == null) {
-      await delay(3000);
-    }
-    listings.watch(path);
-  },
-
-  getListing: async ({ path, hidden }) => {
-    return await getListing(path, hidden);
-  },
-};
-
 let service: NatsService | null;
 export async function init() {
   logger.debug("init: initializing");
@@ -81,6 +71,22 @@ export async function close() {
   service?.close();
   listings?.close();
 }
+
+let listings: Listings | null;
+
+const impl = {
+  // cause the directory listing key:value store to watch path
+  watch: async (path: string) => {
+    while (listings == null) {
+      await delay(3000);
+    }
+    listings.watch(path);
+  },
+
+  getListing: async ({ path, hidden }) => {
+    return await getListing(path, hidden);
+  },
+};
 
 class Listings {
   private listings: DKV<Listing>;

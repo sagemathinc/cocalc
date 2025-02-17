@@ -90,7 +90,7 @@ let client: Client;
 
 export function init() {
   if (client != null) {
-    throw Error("BUG: Client already initialized!");
+    return client;
   }
   client = new Client();
   setNatsClient(client);
