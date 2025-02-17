@@ -40,11 +40,7 @@ import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
-import {
-  createListingsClient,
-  getListingsKV,
-  getListingsTimesKV,
-} from "@cocalc/nats/service/listings";
+import { listingsClient } from "@cocalc/nats/service/listings";
 
 export class NatsClient {
   client: WebappClient;
@@ -440,28 +436,17 @@ export class NatsClient {
     return await dko<T>({ env: await this.getEnv(), ...opts });
   };
 
-  microservicesClient = async () => {
+  microservices = async () => {
     const nc = await this.getConnection();
     // @ts-ignore
     const svcm = new Svcm(nc);
     return svcm.client();
   };
 
-  listings = (opts: { project_id: string; compute_server_id?: number }) => {
-    return createListingsClient(opts);
-  };
-
-  getListingsKV = async (opts: {
+  listings = async (opts: {
     project_id: string;
     compute_server_id?: number;
   }) => {
-    return await getListingsKV(opts);
-  };
-
-  getListingsTimesKV = async (opts: {
-    project_id: string;
-    compute_server_id?: number;
-  }) => {
-    return await getListingsTimesKV(opts);
+    return await listingsClient(opts);
   };
 }

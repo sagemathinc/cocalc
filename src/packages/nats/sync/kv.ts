@@ -45,7 +45,7 @@ export class KV<T = any> extends EventEmitter {
       throw Error("env must be defined");
     }
     this.sha1 = env.sha1 ?? sha1;
-    this.prefix = this.sha1(name);
+    this.prefix = this.sha1(this.name);
     this.generalKV = new GeneralKV({
       name: kvname,
       filter: `${this.prefix}.>`,

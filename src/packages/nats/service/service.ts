@@ -262,7 +262,16 @@ export async function waitForNatsService({
   let d = 100;
   let m = 100;
   const start = Date.now();
-  let ping = await pingNatsService({ options, maxWait: m });
+  const getPing = async (m: number) => {
+    try {
+      return await pingNatsService({ options, maxWait: m });
+    } catch {
+      // ping can fail, e.g, if not connected to nats at all or the ping
+      // service isn't up yet.
+      return [] as ServiceIdentity[];
+    }
+  };
+  let ping = await getPing(m);
   while (ping.length == 0) {
     d = Math.min(10000, d * 1.3);
     m = Math.min(1500, m * 1.3);
@@ -271,7 +280,7 @@ export async function waitForNatsService({
       throw Error("timeout");
     }
     await delay(d);
-    ping = await pingNatsService({ options, maxWait: m });
+    ping = await getPing(m);
   }
   return ping;
 }

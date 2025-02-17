@@ -47,7 +47,7 @@ export class DKV<T = any> extends EventEmitter {
     const kvname = jsName({ account_id, project_id });
     this.name = name + localLocationName(options);
     this.sha1 = env.sha1 ?? sha1;
-    this.prefix = this.sha1(name);
+    this.prefix = this.sha1(this.name);
     this.opts = {
       name: kvname,
       filter: `${this.prefix}.>`,

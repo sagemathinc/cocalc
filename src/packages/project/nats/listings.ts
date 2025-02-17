@@ -8,6 +8,21 @@
   few hundred (ordered by recent) files in that directory, all relative
   to the home directory.
 
+
+DEVELOPMENT:
+
+1. Setup project environment variables as usual
+
+2. Stop listings service running in the project:
+
+     define COCALC_PROJECT_ID, COCALC_NATS_JWT, etc., as usual.
+
+3. Start your own server
+
+.../src/packages/project/nats$ node
+
+> await require('@cocalc/project/nats/listings').init()
+
 */
 
 import getListing from "@cocalc/backend/get-listing";
@@ -34,11 +49,11 @@ let listings: Listings | null;
 
 const impl = {
   // cause the directory listing key:value store to watch path
-  interest: async (path: string) => {
+  watch: async (path: string) => {
     while (listings == null) {
       await delay(3000);
     }
-    listings.interest(path);
+    listings.watch(path);
   },
 
   getListing: async ({ path, hidden }) => {
@@ -164,8 +179,8 @@ class Listings {
     }
   };
 
-  interest = async (path: string) => {
-    logger.debug("interest", { path });
+  watch = async (path: string) => {
+    logger.debug("watch", { path });
     path = canonicalPath(path);
     this.times.set(path, { ...this.times.get(path), interest: Date.now() });
     this.updateListing(path);

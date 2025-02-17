@@ -54,7 +54,7 @@ const logger = getLogger("backend:path-watcher");
 const POLLING = true;
 
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "3000",
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
 );
 
 const ChokidarOpts: WatchOptions = {
