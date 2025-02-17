@@ -366,14 +366,20 @@ class Client extends EventEmitter implements WebappClient {
   touchOpenFile = async ({
     project_id,
     path,
-    // id,
+    setNotDeleted,
+    // id
   }: {
     project_id: string;
     path: string;
     id?: number;
+    // if file is deleted, this explicitly undeletes it.
+    setNotDeleted?: boolean;
   }) => {
     const x = await this.nats_client.openFiles(project_id);
-    await x.touch(path);
+    if (setNotDeleted) {
+      x.setNotDeleted(path);
+    }
+    x.touch(path);
   };
 }
 

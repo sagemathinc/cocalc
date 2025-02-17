@@ -13,7 +13,7 @@ DEVELOPMENT:
 
 Set env variables as in a project (see  api/index.ts ), then in nodejs:
 
-DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:open-files node
+DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
 
 > x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
 [ 'openFiles', 'openDocs', 'formatter', 'terminate' ]
@@ -49,11 +49,15 @@ import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { createFormatterService } from "./formatter";
 import { type NatsService } from "@cocalc/nats/service/service";
 import { createTerminalService } from "./terminal";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { map as awaitMap } from "awaiting";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/backend/nats";
 
 const logger = getLogger("project:nats:open-files");
+
+const FILE_DELETION_CHECK_INTERVAL_MS = 2000;
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
@@ -71,6 +75,10 @@ export async function init() {
 
   // start loop to watch for and close files that aren't touched frequently:
   closeIgnoredFilesLoop();
+
+  // watch if any file that is currently opened on this host gets deleted,
+  // and if so, mark it as such, and set it to closed.
+  watchForFileDeletionLoop();
 
   // handle changes
   openFiles.on("change", (entry) => {
@@ -99,10 +107,21 @@ function getCutoff() {
   return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
 }
 
-async function handleChange({ path, open, time }: OpenFileEntry) {
-  logger.debug("handleChange", { path, open, time });
+async function handleChange({ path, open, time, deleted }: OpenFileEntry) {
+  logger.debug("handleChange", { path, open, time, deleted });
   const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
+  if (deleted) {
+    if (await exists(path)) {
+      // it's back
+      openFiles?.setNotDeleted(path);
+    } else {
+      if (isOpenHere) {
+        closeDoc(path);
+      }
+      return;
+    }
+  }
   // TODO: need another table with compute server mappings
   //   const id = 0; // todo
   //   if (id != compute_server_id) {
@@ -168,6 +187,56 @@ async function closeIgnoredFilesLoop() {
         closeDoc(entry.path);
       }
     }
+  }
+}
+
+async function checkForFileDeletion(path: string) {
+  if (openFiles == null) {
+    return;
+  }
+  const entry = openFiles.get(path);
+  if (entry == null) {
+    return;
+  }
+  if (entry.deleted) {
+    // already set as deleted -- shouldn't still be opened
+    await closeDoc(entry.path);
+  } else {
+    // if file doesn't exist and still doesn't exist in 1 second,
+    // mark deleted, which also causes a close.
+    if (await exists(entry.path)) {
+      return;
+    }
+    // doesn't exist
+    await delay(250);
+    if (await exists(entry.path)) {
+      return;
+    }
+    // still doesn't exist
+    if (openFiles != null) {
+      openFiles.setDeleted(entry.path);
+      await closeDoc(entry.path);
+    }
+  }
+}
+
+async function watchForFileDeletionLoop() {
+  while (openFiles != null && openFiles.state == "connected") {
+    await delay(FILE_DELETION_CHECK_INTERVAL_MS);
+    if (openFiles?.state != "connected") {
+      return;
+    }
+    const paths = Object.keys(openDocs);
+    if (paths.length == 0) {
+      logger.debug("watchForFileDeletionLoop: no paths currently open");
+      continue;
+    }
+    logger.debug(
+      "watchForFileDeletionLoop: checking",
+      paths.length,
+      "currently open paths to see if any were deleted",
+    );
+    await awaitMap(paths, 20, checkForFileDeletion);
   }
 }
 

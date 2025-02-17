@@ -16,19 +16,19 @@ Type ".help" for more information.
 With browser client using a project:
 
 # in browser
-> s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo'})
+> s = await cc.client.nats_client.stream({project_id:cc.current().project_id,name:'foo'})
 
 # in node:
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env})
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env})
 
 
 # Involving limits:
 
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo', env, limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env, limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
 > s.getAll()
 
 In browser:
-> s = await cc.client.nats_client.stream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+> s = await cc.client.nats_client.stream({project_id:cc.current().project_id, name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
 
 TODO:
   - maybe the limits and other config should be stored in a KV store so

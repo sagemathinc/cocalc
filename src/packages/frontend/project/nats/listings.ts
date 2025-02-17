@@ -86,15 +86,15 @@ export class Listings extends EventEmitter {
     if (this.listingsClient == null) {
       throw Error("listings not ready");
     }
-    const x = this.listingsClient.get(path);
-    return fromJS(x?.deleted);
+    // TODO -- or not
+    return undefined;
   };
 
   undelete = async (filename: string): Promise<void> => {
     if (this.listingsClient == null) {
       throw Error("listings not ready");
     }
-    this.listingsClient.undelete(filename);
+    // TODO
   };
 
   // true or false if known deleted or not; undefined if don't know yet.
@@ -102,7 +102,8 @@ export class Listings extends EventEmitter {
   // deleted_file_variations... but that is really an edge case
   // that probably doesn't matter much.
   public isDeleted = (filename: string): boolean | undefined => {
-    return this.listingsClient?.isDeleted(filename);
+    // TODO
+    return false;
   };
 
   // Does a call to the project to directly determine whether or

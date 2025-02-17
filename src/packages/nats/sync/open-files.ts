@@ -7,7 +7,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 
 ~/cocalc/src/packages/backend$ node
 
-> z = await require('@cocalc/backend/nats/sync').openFiles('00847397-d6a8-4cb0-96a8-6ef64ac3e6cf')
+> z = await require('@cocalc/backend/nats/sync').openFiles({project_id:cc.current().project_id)
 > z.touch({path:'a.txt'})
 > z.get({path:'a.txt'})
 { open: true, count: 1, time:2025-02-09T16:37:20.713Z }
@@ -24,7 +24,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 
 Frontend Dev in browser:
 
-z = await cc.client.nats_client.openFiles('00847397-d6a8-4cb0-96a8-6ef64ac3e6cf')
+z = await cc.client.nats_client.openFiles({project_id:cc.current().project_id))
 z.getAll()
 }
 */
@@ -34,8 +34,8 @@ import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
 
-// 1 week
-const MAX_AGE_MS = 1000 * 60 * 60 * 168;
+// 1 day
+const MAX_AGE_MS = 1000 * 60 * 60 * 24;
 
 export interface Entry {
   // path to file relative to HOME
@@ -48,6 +48,13 @@ export interface Entry {
   //   https://github.com/nats-io/nats-server/discussions/3095
   time?: Date;
   count?: number;
+  // if the file was removed from disk (and not immmediately written back),
+  // then deleted gets set to the time when this happened (in ms since epoch)
+  // and the file is closed on the backend.  It won't be re-opened until
+  // either (1) the file is created on disk again, or (2) deleted is cleared.
+  // Note: the actual time here isn't really important -- what matter is the number
+  // is nonzero.  It's just used for a display to the user.
+  deleted?: number;
 }
 
 interface Options {
@@ -91,7 +98,7 @@ export class OpenFiles extends EventEmitter {
   };
 
   init = async () => {
-    const d = await dkv({
+    const d = await dkv<Entry>({
       name: "open-files",
       project_id: this.project_id,
       env: this.env,
@@ -100,6 +107,11 @@ export class OpenFiles extends EventEmitter {
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,
+      merge: ({ local, remote }) => {
+        // resolve conflicts by merging object state.  This is important so, e.g., the
+        // deleted state doesn't get overwritten on reconnect by clients that didn't know.
+        return { ...remote, ...local };
+      },
     });
     this.dkv = d;
     d.on("change", ({ key: path }) => {
@@ -144,8 +156,12 @@ export class OpenFiles extends EventEmitter {
     const dkv = this.getDkv();
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
-    const count = dkv.get(path)?.count ?? 0;
-    dkv.set(path, { open: true, count: count + 1 });
+    const cur = dkv.get(path);
+    dkv.set(path, {
+      ...cur,
+      open: true,
+      count: (cur?.count ?? 0) + 1,
+    });
   };
 
   setError = (path: string, err?: any) => {
@@ -169,6 +185,24 @@ export class OpenFiles extends EventEmitter {
   closeFile = (path: string) => {
     const dkv = this.getDkv();
     dkv.set(path, { ...dkv.get(path), open: false });
+  };
+
+  setDeleted = (path: string) => {
+    const dkv = this.getDkv();
+    dkv.set(path, { ...dkv.get(path), deleted: Date.now() });
+  };
+
+  isDeleted = (path: string) => {
+    return !!this.getDkv().get(path)?.deleted;
+  };
+
+  setNotDeleted = (path: string) => {
+    const dkv = this.getDkv();
+    const cur = dkv.get(path);
+    if (cur == null) {
+      return;
+    }
+    dkv.set(path, { ...cur, deleted: undefined });
   };
 
   getAll = (): Entry[] => {

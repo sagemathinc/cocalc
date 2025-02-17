@@ -1,5 +1,6 @@
 import * as nats from "nats.ws";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { redux } from "@cocalc/frontend/app-framework";
 import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
@@ -338,13 +339,29 @@ export class NatsClient {
 
   openFiles = reuseInFlight(async (project_id: string) => {
     if (this.openFilesCache[project_id] == null) {
-      this.openFilesCache[project_id] = await createOpenFiles({
+      const openFiles = await createOpenFiles({
         project_id,
         env: await this.getEnv(),
       });
-      this.openFilesCache[project_id].on("closed", () => {
+      this.openFilesCache[project_id] = openFiles;
+      openFiles.on("closed", () => {
         delete this.openFilesCache[project_id];
       });
+      openFiles.on("change", (entry) => {
+        if (entry.deleted) {
+          // if this file is opened here, close it.
+          ensureClosed({ project_id, path: entry.path, openFiles });
+        }
+      });
+      for (const entry of openFiles.getAll()) {
+        if (entry.deleted) {
+          ensureClosed({
+            project_id,
+            path: entry.path,
+            openFiles,
+          });
+        }
+      }
     }
     return this.openFilesCache[project_id]!;
   });
@@ -449,4 +466,26 @@ export class NatsClient {
   }) => {
     return await listingsClient(opts);
   };
+}
+
+async function ensureClosed({ project_id, path, openFiles }) {
+  // console.log("ensureClosed", { path });
+  if (!redux.hasProjectStore(project_id)) {
+    // console.log("ensureClosed: project not opened");
+    // file can't be opened if project isn't opened
+    return;
+  }
+  const store = redux.getProjectStore(project_id);
+  if (!store.get("open_files").has(path)) {
+    // console.log("ensureClosed: file not opened");
+    return;
+  }
+  if (await store.get_listings().exists(path)) {
+    // console.log("ensureClosed: file exists on disk -- setting not deleted");
+    openFiles.setNotDeleted(path);
+    return;
+  }
+  // console.log("ensureClosed: closing");
+  const actions = redux.getProjectActions(project_id);
+  actions.close_tab(path);
 }

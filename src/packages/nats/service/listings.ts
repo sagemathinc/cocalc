@@ -169,21 +169,6 @@ export class ListingsClient extends EventEmitter {
   getListing = async (opts) => {
     return await this.api.getListing(opts);
   };
-
-  getDeleted = () => {};
-
-  isDeleted = (filename: string) => {
-    return false;
-  };
-
-  undelete = (path: string) => {
-    let deleted = this.getDeleted(path) ?? [];
-    if (!deleted.includes(path)) {
-      return;
-    }
-    deleted = deleted.filter((x) => x != path);
-    this.listings.set(path);
-  };
 }
 
 export async function listingsClient(options) {

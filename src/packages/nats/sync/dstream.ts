@@ -12,7 +12,7 @@ Type ".help" for more information.
 > s = await require("@cocalc/backend/nats/sync").dstream({name:'test'});
 
 
-> s = await require("@cocalc/backend/nats/sync").dstream({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094',name:'foo'});0
+> s = await require("@cocalc/backend/nats/sync").dstream({project_id:cc.current().project_id,name:'foo'});0
 
 
 */
