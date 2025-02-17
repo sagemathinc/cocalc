@@ -16,7 +16,7 @@ import {
   type ServiceStats,
   type ServiceIdentity,
 } from "@nats-io/services";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, type Location } from "@cocalc/nats/types";
 import { sha1, trunc_middle } from "@cocalc/util/misc";
 import { getEnv } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
@@ -24,16 +24,9 @@ import { delay } from "awaiting";
 
 const DEFAULT_TIMEOUT = 5000;
 
-export interface ServiceDescription {
+export interface ServiceDescription extends Location {
   service: string;
 
-  project_id?: string;
-  compute_server_id?: number;
-
-  account_id?: string;
-  browser_id?: string;
-
-  path?: string;
   description?: string;
 
   // if true and multiple servers are setup in same "location", then they ALL get to respond (sender gets first response).
@@ -100,23 +93,23 @@ export function serviceSubject({
   path,
 }: ServiceDescription): string {
   let segments;
-  path = path ? sha1(path) : "-";
+  path = path ? sha1(path) : "_";
   if (!project_id && !account_id) {
     segments = ["public", service];
   } else if (account_id) {
     segments = [
       "services",
       `account-${account_id}`,
-      browser_id ?? "-",
-      project_id ?? "-",
-      path ?? "-",
+      browser_id ?? "_",
+      project_id ?? "_",
+      path ?? "_",
       service,
     ];
   } else if (project_id) {
     segments = [
       "services",
       `project-${project_id}`,
-      compute_server_id ?? "-",
+      compute_server_id ?? "_",
       service,
       path,
     ];

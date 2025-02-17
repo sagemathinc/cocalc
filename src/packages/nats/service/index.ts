@@ -3,5 +3,6 @@ export type {
   CallNatsServiceFunction,
   ServiceCall,
   CreateNatsServiceFunction,
+  NatsService,
 } from "./service";
 export { callNatsService, createNatsService } from "./service";

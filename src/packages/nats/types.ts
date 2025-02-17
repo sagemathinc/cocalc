@@ -8,3 +8,13 @@ export interface NatsEnv {
 export type State = "disconnected" | "connected" | "closed";
 
 export type NatsEnvFunction = () => Promise<NatsEnv>;
+
+export interface Location {
+  project_id?: string;
+  compute_server_id?: number;
+
+  account_id?: string;
+  browser_id?: string;
+
+  path?: string;
+}

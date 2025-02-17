@@ -19,6 +19,7 @@ import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
 import { userKvKey } from "./kv";
 import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
+import { getEnv } from "@cocalc/nats/client";
 
 export interface DKOOptions extends DKVOptions {
   sep?: string;
@@ -223,6 +224,9 @@ export class DKO<T = any> extends EventEmitter {
 export const cache = refCache<DKOOptions, DKO>({
   createKey: userKvKey,
   createObject: async (opts) => {
+    if (opts.env == null) {
+      opts.env = await getEnv();
+    }
     const k = new DKO(opts);
     await k.init();
     return k;

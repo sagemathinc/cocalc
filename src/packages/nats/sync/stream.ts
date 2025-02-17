@@ -51,6 +51,7 @@ import { map as awaitMap } from "awaiting";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
+import { getEnv } from "@cocalc/nats/client";
 
 class PublishRejectError extends Error {
   code: string;
@@ -586,6 +587,9 @@ export function userStreamOptionsKey(options: UserStreamOptions) {
 export const cache = refCache<UserStreamOptions, Stream>({
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
+    if (options.env == null) {
+      options.env = await getEnv();
+    }
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });

@@ -13,6 +13,7 @@ For Subjects:
 
 import { sha1 } from "@cocalc/util/misc";
 import generateVouchers from "@cocalc/util/vouchers";
+import type { Location } from "./types";
 
 // nice alphanumeric string that can be used as nats subject, and very
 // unlikely to randomly collide with another browser tab from this account.
@@ -21,7 +22,7 @@ export function randomId() {
 }
 
 // jetstream name -- we use this canonical name for the KV and the stream associated
-// to a project or account.  We use the same name for both.
+// to a location in cocalc.
 export function jsName({
   project_id,
   account_id,
@@ -43,6 +44,23 @@ export function jsName({
     }
   }
   return `account-${account_id}`;
+}
+
+export function localLocationName({
+  compute_server_id,
+  browser_id,
+  path,
+}: Location): string {
+  const v: string[] = [];
+  if (compute_server_id) {
+    v.push(`id=${compute_server_id}`);
+  } else if (browser_id) {
+    v.push(`id=${browser_id}`);
+  }
+  if (path) {
+    v.push(`path=${path}`);
+  }
+  return v.join(",");
 }
 
 /*

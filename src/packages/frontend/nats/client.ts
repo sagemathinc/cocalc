@@ -40,6 +40,11 @@ import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
+import {
+  createListingsClient,
+  getListingsKV,
+  getListingsTimesKV,
+} from "@cocalc/nats/service/listings";
 
 export class NatsClient {
   client: WebappClient;
@@ -440,5 +445,23 @@ export class NatsClient {
     // @ts-ignore
     const svcm = new Svcm(nc);
     return svcm.client();
+  };
+
+  listings = (opts: { project_id: string; compute_server_id?: number }) => {
+    return createListingsClient(opts);
+  };
+
+  getListingsKV = async (opts: {
+    project_id: string;
+    compute_server_id?: number;
+  }) => {
+    return await getListingsKV(opts);
+  };
+
+  getListingsTimesKV = async (opts: {
+    project_id: string;
+    compute_server_id?: number;
+  }) => {
+    return await getListingsKV(opts);
   };
 }

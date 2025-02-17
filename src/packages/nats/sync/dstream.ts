@@ -33,6 +33,7 @@ import { sha1 } from "@cocalc/util/misc";
 import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
+import { getEnv } from "@cocalc/nats/client";
 
 const MAX_PARALLEL = 250;
 
@@ -242,6 +243,9 @@ export class DStream<T = any> extends EventEmitter {
 const cache = refCache<UserStreamOptions, DStream>({
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
+    if (options.env == null) {
+      options.env = await getEnv();
+    }
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });

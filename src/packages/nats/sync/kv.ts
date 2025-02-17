@@ -14,18 +14,17 @@ Type ".help" for more information.
 */
 
 import { EventEmitter } from "events";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, type Location } from "@cocalc/nats/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralKV, type KVLimits } from "./general-kv";
-import { jsName } from "@cocalc/nats/names";
+import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
+import { getEnv } from "@cocalc/nats/client";
 
-export interface KVOptions {
+export interface KVOptions extends Location {
   name: string;
-  account_id?: string;
-  project_id?: string;
-  env: NatsEnv;
+  env?: NatsEnv;
   limits?: Partial<KVLimits>;
   noCache?: boolean;
 }
@@ -36,11 +35,15 @@ export class KV<T = any> extends EventEmitter {
   private prefix: string;
   private sha1;
 
-  constructor({ name, account_id, project_id, env, limits }: KVOptions) {
+  constructor(options: KVOptions) {
     super();
+    const { name, account_id, project_id, env, limits } = options;
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
-    this.name = name;
+    this.name = name + localLocationName(options);
+    if (env == null) {
+      throw Error("env must be defined");
+    }
     this.sha1 = env.sha1 ?? sha1;
     this.prefix = this.sha1(name);
     this.generalKV = new GeneralKV({
@@ -161,6 +164,9 @@ export function userKvKey(options: KVOptions) {
 export const cache = refCache<KVOptions, KV>({
   createKey: userKvKey,
   createObject: async (opts) => {
+    if (opts.env == null) {
+      opts.env = await getEnv();
+    }
     const k = new KV(opts);
     await k.init();
     return k;

@@ -19,9 +19,10 @@ import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
 import { userKvKey, type KVOptions } from "./kv";
-import { jsName } from "@cocalc/nats/names";
+import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
+import { getEnv } from "@cocalc/nats/client";
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -35,22 +36,16 @@ export class DKV<T = any> extends EventEmitter {
   private sha1;
   private opts;
 
-  constructor({
-    name,
-    account_id,
-    project_id,
-    merge,
-    env,
-    noAutosave,
-    limits,
-  }: DKVOptions) {
+  constructor(options: DKVOptions) {
     super();
+    const { name, account_id, project_id, merge, env, noAutosave, limits } =
+      options;
     if (env == null) {
       throw Error("env must not be null");
     }
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
-    this.name = name;
+    this.name = name + localLocationName(options);
     this.sha1 = env.sha1 ?? sha1;
     this.prefix = this.sha1(name);
     this.opts = {
@@ -262,6 +257,9 @@ export class DKV<T = any> extends EventEmitter {
 export const cache = refCache<DKVOptions, DKV>({
   createKey: userKvKey,
   createObject: async (opts) => {
+    if (opts.env == null) {
+      opts.env = await getEnv();
+    }
     const k = new DKV(opts);
     await k.init();
     return k;
