@@ -109,7 +109,7 @@ export async function getListingsTimesKV(
 
 export class ListingsClient extends EventEmitter {
   options: { project_id: string; compute_server_id: number };
-  api: ListingsApi;
+  api: Awaited<ReturnType<typeof createListingsApiClient>>;
   times?: DKV<Times>;
   listings?: DKV<Listing>;
 
@@ -125,10 +125,19 @@ export class ListingsClient extends EventEmitter {
   }
 
   init = async () => {
-    this.api = createListingsApiClient(this.options);
-    this.times = await getListingsTimesKV(this.options);
-    this.listings = await getListingsKV(this.options);
-    this.listings.on("change", ({ key: path }) => this.emit("change", path));
+    try {
+      this.api = createListingsApiClient(this.options);
+      this.times = await getListingsTimesKV(this.options);
+      this.listings = await getListingsKV(this.options);
+      this.listings.on("change", this.handleListingsChange);
+    } catch (err) {
+      this.close();
+      throw err;
+    }
+  };
+
+  handleListingsChange = ({ key: path }) => {
+    this.emit("change", path);
   };
 
   get = (path: string): Listing | undefined => {
@@ -146,10 +155,14 @@ export class ListingsClient extends EventEmitter {
   };
 
   close = () => {
+    this.removeAllListeners();
     this.times?.close();
     delete this.times;
-    this.listings?.close();
-    delete this.listings;
+    if (this.listings != null) {
+      this.listings.removeListener("change", this.handleListingsChange);
+      this.listings.close();
+      delete this.listings;
+    }
   };
 
   watch = async (path, force = false) => {

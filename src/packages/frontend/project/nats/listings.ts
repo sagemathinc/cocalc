@@ -16,6 +16,8 @@ import {
   type ListingsApi,
   MIN_INTEREST_INTERVAL_MS,
 } from "@cocalc/nats/service/listings";
+import { delay } from "awaiting";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export const WATCH_THROTTLE_MS = MIN_INTEREST_INTERVAL_MS;
 
@@ -40,11 +42,48 @@ export class Listings extends EventEmitter {
     this.init();
   }
 
-  private init = async () => {
-    this.listingsClient = await listingsClient({
-      project_id: this.project_id,
-      compute_server_id: this.compute_server_id,
-    });
+  private createClient = async () => {
+    let d = 3000;
+    const MAX_DELAY_MS = 15000;
+    while (this.state != "closed") {
+      try {
+        this.listingsClient = await listingsClient({
+          project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
+        });
+        // success!
+        return;
+      } catch (err) {
+        // console.log("creating listings client failed", err);
+        if (err.code == "PERMISSIONS_VIOLATION") {
+          try {
+//             console.log(
+//               `request update of our credentials to include ${this.project_id}, then try again`,
+//             );
+            await webapp_client.nats_client.hub.projects.addProjectPermission({
+              project_id: this.project_id,
+            });
+            continue;
+          } catch (err) {
+            // console.log("updating permissions failed", err);
+            d = Math.max(7000, d);
+          }
+        }
+      }
+      if (this.state == ("closed" as State)) return;
+      d = Math.min(MAX_DELAY_MS, d * 1.3);
+      await delay(d);
+    }
+  };
+
+  private init = reuseInFlight(async () => {
+    let start = Date.now();
+    await this.createClient();
+    // console.log("createClient finished in ", Date.now() - start, "ms");
+    if (this.state == "closed") return;
+    if (this.listingsClient == null) {
+      throw Error("bug");
+    }
     this.listingsClient.on("change", (path) => {
       this.emit("change", [path]);
     });
@@ -52,13 +91,44 @@ export class Listings extends EventEmitter {
     this.emit("change", Object.keys(this.listingsClient.getAll()));
     // [ ] TODO: delete event for deleted paths
     this.setState("ready");
-  };
+  });
 
   // Watch directory for changes.
   watch = async (path: string, force?): Promise<void> => {
+    if (this.state == "closed") {
+      return;
+    }
+    if (this.state != "ready") {
+      await this.init();
+    }
+    if (this.state != "ready") {
+      // failed forever or closed explicitly so don't care
+      return;
+    }
+    if (this.listingsClient == null) {
+      throw Error("listings not ready");
+    }
     try {
-      await this.listingsClient?.watch(path, force);
-    } catch {}
+      await this.listingsClient.watch(path, force);
+    } catch (err) {
+      if (err.code == "503") {
+        // The listings service isn't running in the project right now,
+        // e.g., maybe the project isn't running at all.
+        // So watch is a no-op, as it does nothing when listing
+        // server doesn't exist.  So we at least wait for a while
+        // e.g., maybe project is tarting, then try once more.
+        await this.listingsClient.api.nats.waitFor();
+        try {
+          await this.listingsClient.watch(path, force);
+        } catch (err) {
+          if (err.code != "503") {
+            throw err;
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
   };
 
   get = async (
