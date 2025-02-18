@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
+import { TypedMap, redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Listing } from "@cocalc/util/db-schema/listings";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
@@ -78,32 +78,14 @@ export class Listings extends EventEmitter {
       }
       return x.files;
     }
-    // TODO: trigger_start_project ?
+    if (trigger_start_project) {
+      if (
+        !(await redux.getActions("projects").start_project(this.project_id))
+      ) {
+        return;
+      }
+    }
     return await this.api.getListing({ path, hidden: true });
-  };
-
-  getDeleted = async (path: string): Promise<List<string> | undefined> => {
-    if (this.listingsClient == null) {
-      throw Error("listings not ready");
-    }
-    // TODO -- or not
-    return undefined;
-  };
-
-  undelete = async (filename: string): Promise<void> => {
-    if (this.listingsClient == null) {
-      throw Error("listings not ready");
-    }
-    // TODO
-  };
-
-  // true or false if known deleted or not; undefined if don't know yet.
-  // TODO: technically we should check the all the
-  // deleted_file_variations... but that is really an edge case
-  // that probably doesn't matter much.
-  public isDeleted = (filename: string): boolean | undefined => {
-    // TODO
-    return false;
   };
 
   // Does a call to the project to directly determine whether or
@@ -168,6 +150,13 @@ export class Listings extends EventEmitter {
     trigger_start_project?: boolean,
   ): Promise<DirectoryListingEntry[]> => {
     console.trace("getListingDirectly", { path });
+    if (trigger_start_project) {
+      if (
+        !(await redux.getActions("projects").start_project(this.project_id))
+      ) {
+        throw Error("project not running");
+      }
+    }
     // todo: trigger_start_project
     return await this.api.getListing({ path, hidden: true });
   };

@@ -17,7 +17,6 @@ if (typeof window !== "undefined" && window !== null) {
 
 import * as immutable from "immutable";
 
-import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
   project_redux_name,
@@ -38,7 +37,6 @@ import {
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
@@ -114,7 +112,7 @@ export interface ProjectStoreState {
   new_filename?: string;
   ext_selection?: string;
   // paths that were deleted
-  recentlyDeletedFiles?: immutable.Set<string>;
+  recentlyDeletedPaths?: immutable.Map<string, number>;
 
   // Project Log
   project_log?: ProjectLogMap;
@@ -583,70 +581,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return this.getIn(["open_files", path, "component"])?.Editor != null;
   }
 
-  private close_deleted_file(path: string): void {
-    const cur = this.get("current_path");
-    if (path == cur || misc.startswith(cur, path + "/")) {
-      // we are deleting the current directory, so let's cd to HOME.
-      const actions = redux.getProjectActions(this.project_id);
-      if (actions != null) {
-        actions.set_current_path("");
-      }
-    }
-    const all_paths = deleted_file_variations(path);
-    const open_files = this.get("open_files");
-    if (open_files == null) {
-      return;
-    }
-    for (const file of this.get("open_files").keys()) {
-      if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
-        if (!this.has_file_been_viewed(file)) {
-          // Hasn't even been viewed yet; when user clicks on the tab
-          // they get a dialog to undelete the file.
-          continue;
-        }
-        const actions = redux.getProjectActions(this.project_id);
-        if (actions != null) {
-          actions.close_tab(file);
-          alert_message({
-            type: "info",
-            message: `Closing '${file}' since it was deleted or moved.`,
-          });
-        }
-      } else {
-        const actions: any = redux.getEditorActions(this.project_id, file);
-        if (actions?.close_frames_with_path != null) {
-          // close subframes with given path.
-          if (actions.close_frames_with_path(path)) {
-            alert_message({
-              type: "info",
-              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
-            });
-          }
-        }
-      }
-    }
-  }
-
   public get_listings(compute_server_id: number | null = null): Listings {
     const computeServerId = compute_server_id ?? this.get("compute_server_id");
     if (this.listings[computeServerId] == null) {
       const listingsTable = listings(this.project_id, computeServerId);
       this.listings[computeServerId] = listingsTable;
       listingsTable.watch(this.get("current_path") ?? "", true);
-      listingsTable.on("deleted", async (paths) => {
-        for (const path of paths) {
-          if (this.listings[0] == null) return; // shouldn't happen
-          const deleted = await listingsTable.getDeleted(path);
-          if (deleted != null) {
-            for (let filename of deleted) {
-              if (path != "") {
-                filename = path + "/" + filename;
-              }
-              this.close_deleted_file(filename);
-            }
-          }
-        }
-      });
       listingsTable.on("change", async (paths) => {
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??

@@ -349,19 +349,19 @@ export class NatsClient {
       });
       openFiles.on("change", (entry) => {
         if (entry.deleted) {
-          // if this file is opened here, close it.
-          setDeleted({ project_id, path: entry.path, openFiles });
+          setDeleted({ project_id, path: entry.path, deleted: entry.deleted });
+        } else {
+          setNotDeleted({ project_id, path: entry.path });
         }
       });
-      for (const entry of openFiles.getAll()) {
-        if (entry.deleted) {
-          setDeleted({
-            project_id,
-            path: entry.path,
-            openFiles,
-          });
+      const recentlyDeletedPaths: any = {};
+      for (const { path, deleted } of openFiles.getAll()) {
+        if (deleted) {
+          recentlyDeletedPaths[path] = deleted;
         }
       }
+      const store = redux.getProjectStore(project_id);
+      store.setState({ recentlyDeletedPaths });
     }
     return this.openFilesCache[project_id]!;
   });
@@ -468,13 +468,18 @@ export class NatsClient {
   };
 }
 
-async function setDeleted({ project_id, path, openFiles }) {
-  // console.log("ensureClosed", { path });
+function setDeleted({ project_id, path, deleted }) {
   if (!redux.hasProjectStore(project_id)) {
-    // console.log("ensureClosed: project not opened");
-    // file can't be opened if project isn't opened
     return;
   }
   const actions = redux.getProjectActions(project_id);
-  actions.setRecentlyDeleted(path);
+  actions.setRecentlyDeleted(path, deleted);
+}
+
+function setNotDeleted({ project_id, path }) {
+  if (!redux.hasProjectStore(project_id)) {
+    return;
+  }
+  const actions = redux.getProjectActions(project_id);
+  actions.setRecentlyDeleted(path, 0);
 }

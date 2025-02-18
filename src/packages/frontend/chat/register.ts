@@ -23,7 +23,7 @@ export function initChat(project_id: string, path: string): ChatActions {
 
   if (startswith(path_split(path).tail, ".")) {
     // Sidechat being opened -- ensure chat isn't marked as deleted:
-    redux.getProjectStore(project_id)?.get_listings()?.undelete(path);
+    redux.getProjectActions(project_id)?.setNotDeleted(path);
   }
 
   const syncdb = webapp_client.sync_client.sync_db({
