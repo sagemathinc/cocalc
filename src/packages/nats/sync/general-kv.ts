@@ -261,12 +261,22 @@ export class GeneralKV<T = any> extends EventEmitter {
       if (this.watch == null) {
         continue;
       }
+      // To see this happen, get the open files, then delete the consumer associated
+      // to the watch:
+      // This is in a browser with a project opened:
+      //
+      // o = await cc.client.nats_client.openFiles(cc.current().project_id)
+      // o.dkv.generalDKV.kv.watch._data.delete()
+      //
+      // Now observe that "await o.dkv.generalDKV.kv.watch._data.info()" fails as below,
+      // but within a few seconds everything is fine again.
+
       try {
         await this.watch._data.info();
       } catch (err) {
         if (this.revisions == null) {
-        return;
-      }
+          return;
+        }
         if (
           err.name == "ConsumerNotFoundError" ||
           err.code == 10014 ||
