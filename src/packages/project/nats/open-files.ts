@@ -59,7 +59,7 @@ import "@cocalc/backend/nats";
 
 const logger = getLogger("project:nats:open-files");
 
-const FILE_DELETION_CHECK_INTERVAL_MS = 2000;
+const FILE_DELETION_CHECK_INTERVAL_MS = 3000;
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;

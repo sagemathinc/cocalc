@@ -113,6 +113,8 @@ export interface ProjectStoreState {
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
+  // paths that were deleted
+  recentlyDeletedFiles?: immutable.Set<string>;
 
   // Project Log
   project_log?: ProjectLogMap;

@@ -350,12 +350,12 @@ export class NatsClient {
       openFiles.on("change", (entry) => {
         if (entry.deleted) {
           // if this file is opened here, close it.
-          ensureClosed({ project_id, path: entry.path, openFiles });
+          setDeleted({ project_id, path: entry.path, openFiles });
         }
       });
       for (const entry of openFiles.getAll()) {
         if (entry.deleted) {
-          ensureClosed({
+          setDeleted({
             project_id,
             path: entry.path,
             openFiles,
@@ -468,24 +468,13 @@ export class NatsClient {
   };
 }
 
-async function ensureClosed({ project_id, path, openFiles }) {
+async function setDeleted({ project_id, path, openFiles }) {
   // console.log("ensureClosed", { path });
   if (!redux.hasProjectStore(project_id)) {
     // console.log("ensureClosed: project not opened");
     // file can't be opened if project isn't opened
     return;
   }
-  const store = redux.getProjectStore(project_id);
-  if (!store.get("open_files").has(path)) {
-    // console.log("ensureClosed: file not opened");
-    return;
-  }
-  if (await store.get_listings().exists(path)) {
-    // console.log("ensureClosed: file exists on disk -- setting not deleted");
-    openFiles.setNotDeleted(path);
-    return;
-  }
-  // console.log("ensureClosed: closing");
   const actions = redux.getProjectActions(project_id);
-  actions.close_tab(path);
+  actions.setRecentlyDeleted(path);
 }
