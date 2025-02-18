@@ -110,6 +110,7 @@ export class OpenFiles extends EventEmitter {
       merge: ({ local, remote }) => {
         // resolve conflicts by merging object state.  This is important so, e.g., the
         // deleted state doesn't get overwritten on reconnect by clients that didn't know.
+        //console.log("merge", local, remote, { ...remote, ...local });
         return { ...remote, ...local };
       },
     });
@@ -146,6 +147,14 @@ export class OpenFiles extends EventEmitter {
     return dkv;
   };
 
+  private set = (key, entry: Entry) => {
+    // remove time field, if there -- it is filled in automatically
+    entry = { ...entry };
+    // @ts-ignore
+    delete entry.time;
+    this.getDkv().set(key, entry);
+  };
+
   // When a client has a file open, they should periodically
   // touch it to indicate that it is open.
   // updates timestamp and ensures open=true.
@@ -157,7 +166,7 @@ export class OpenFiles extends EventEmitter {
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
     const cur = dkv.get(path);
-    dkv.set(path, {
+    this.set(path, {
       ...cur,
       open: true,
       count: (cur?.count ?? 0) + 1,
@@ -169,11 +178,11 @@ export class OpenFiles extends EventEmitter {
     if (!err) {
       const current = { ...dkv.get(path) };
       delete current.error;
-      dkv.set(path, current);
+      this.set(path, current);
     } else {
       const current = { ...dkv.get(path) };
       current.error = { time: Date.now(), error: `${err}` };
-      dkv.set(path, current);
+      this.set(path, current);
     }
   };
 
@@ -184,12 +193,12 @@ export class OpenFiles extends EventEmitter {
   // can just immediately reopen the file.
   closeFile = (path: string) => {
     const dkv = this.getDkv();
-    dkv.set(path, { ...dkv.get(path), open: false });
+    this.set(path, { ...dkv.get(path), open: false });
   };
 
   setDeleted = (path: string) => {
     const dkv = this.getDkv();
-    dkv.set(path, { ...dkv.get(path), deleted: Date.now() });
+    this.set(path, { ...dkv.get(path), deleted: Date.now() });
   };
 
   isDeleted = (path: string) => {
@@ -198,11 +207,13 @@ export class OpenFiles extends EventEmitter {
 
   setNotDeleted = (path: string) => {
     const dkv = this.getDkv();
-    const cur = dkv.get(path);
+    let cur = dkv.get(path);
     if (cur == null) {
       return;
     }
-    dkv.set(path, { ...cur, deleted: undefined });
+    cur = { ...cur };
+    delete cur.deleted;
+    this.set(path, cur);
   };
 
   getAll = (): Entry[] => {

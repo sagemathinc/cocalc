@@ -52,6 +52,7 @@ import { createTerminalService } from "./terminal";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
 import { unlink } from "fs/promises";
+import { join } from "path";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/backend/nats";
@@ -195,6 +196,12 @@ async function checkForFileDeletion(path: string) {
   if (openFiles == null) {
     return;
   }
+  if (path.endsWith(".term")) {
+    // term files are exempt -- we don't save data in them and often
+    // don't actually make the hidden ones for each frame in the
+    // filesystem at all.
+    return;
+  }
   const entry = openFiles.get(path);
   if (entry == null) {
     return;
@@ -203,27 +210,33 @@ async function checkForFileDeletion(path: string) {
     // already set as deleted -- shouldn't still be opened
     await closeDoc(entry.path);
   } else {
+    if (!process.env.HOME) {
+      // too dangerous
+      return;
+    }
+    const fullPath = join(process.env.HOME, entry.path);
     // if file doesn't exist and still doesn't exist in 1 second,
     // mark deleted, which also causes a close.
-    if (await exists(entry.path)) {
+    if (await exists(fullPath)) {
       return;
     }
     // doesn't exist
     await delay(250);
-    if (await exists(entry.path)) {
+    if (await exists(fullPath)) {
       return;
     }
     // still doesn't exist
     if (openFiles != null) {
+      logger.debug("checkForFileDeletion: marking as deleted -- ", entry);
       openFiles.setDeleted(entry.path);
-      await closeDoc(entry.path);
+      await closeDoc(fullPath);
       // closing a file may cause it to try to save to disk the last version,
       // so we delete it if that happens.
       // TODO: add an option to close everywhere to not do this, and/or make
       // it not save on close if the file doesn't exist.
       try {
-        if (await exists(entry.path)) {
-          await unlink(entry.path);
+        if (await exists(fullPath)) {
+          await unlink(fullPath);
         }
       } catch {}
     }

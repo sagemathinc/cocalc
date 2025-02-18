@@ -109,6 +109,8 @@ export class NatsTerminalConnection extends EventEmitter {
   touchLoop = async ({ project_id, path }) => {
     while (this.state != ("closed" as State)) {
       try {
+        // this marks the path as being of interest for editing and starts
+        // the service; it doesn't actually create a file on disk.
         await webapp_client.touchOpenFile({
           project_id,
           path,
