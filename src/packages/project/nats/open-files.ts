@@ -51,6 +51,7 @@ import { type NatsService } from "@cocalc/nats/service/service";
 import { createTerminalService } from "./terminal";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
+import { unlink } from "fs/promises";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/backend/nats";
@@ -216,6 +217,15 @@ async function checkForFileDeletion(path: string) {
     if (openFiles != null) {
       openFiles.setDeleted(entry.path);
       await closeDoc(entry.path);
+      // closing a file may cause it to try to save to disk the last version,
+      // so we delete it if that happens.
+      // TODO: add an option to close everywhere to not do this, and/or make
+      // it not save on close if the file doesn't exist.
+      try {
+        if (await exists(entry.path)) {
+          await unlink(entry.path);
+        }
+      } catch {}
     }
   }
 }

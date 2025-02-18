@@ -105,6 +105,7 @@ import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
 import { throttle } from "lodash";
+import { delay } from "awaiting";
 
 class RejectError extends Error {
   code: string;
@@ -112,6 +113,8 @@ class RejectError extends Error {
 }
 
 const MAX_PARALLEL = 250;
+
+const WATCH_MONITOR_INTERVAL = 15 * 1000;
 
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
@@ -149,6 +152,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private times?: { [key: string]: Date };
   private sizes?: { [key: string]: number };
   private limits: KVLimits;
+  private revision: number = 0;
 
   constructor({
     name,
@@ -194,6 +198,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       key: this.filter,
     });
     this.revisions = revisions;
+    this.revision = Math.max(0, ...Object.values(await revisions));
     this.times = times;
     this.sizes = {};
     for (const key in all) {
@@ -203,17 +208,22 @@ export class GeneralKV<T = any> extends EventEmitter {
     this.all = all;
     this.emit("connected");
     this.startWatch();
+    this.monitorWatch();
   });
 
-  private startWatch = async () => {
+  private startWatch = async ({
+    resumeFromRevision,
+  }: { resumeFromRevision?: number } = {}) => {
     // watch for changes
     this.watch = await this.kv.watch({
       ignoreDeletes: false,
       include: "updates",
       key: this.filter,
+      resumeFromRevision,
     });
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
+      this.revision = revision;
       if (
         this.revisions == null ||
         this.all == null ||
@@ -239,8 +249,49 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
   };
 
+  // For both the kv and streams as best I can tell we MUST periodically poll the
+  // server to see if the watch is still working.  If not we create a new one
+  // starting at the last revision we got.
+  private monitorWatch = async () => {
+    while (this.revisions != null) {
+      await delay(WATCH_MONITOR_INTERVAL);
+      if (this.revisions == null) {
+        return;
+      }
+      if (this.watch == null) {
+        continue;
+      }
+      try {
+        await this.watch._data.info();
+      } catch (err) {
+        if (this.revisions == null) {
+        return;
+      }
+        if (
+          err.name == "ConsumerNotFoundError" ||
+          err.code == 10014 ||
+          err.message == "consumer not found"
+        ) {
+          // if it is a consumer not found error, we make a new watch,
+          // starting AFTER the last revision we retrieved
+          this.watch.stop(); // stop current watch
+          // make new watch:
+          const resumeFromRevision = this.revision
+            ? this.revision + 1
+            : undefined;
+          this.startWatch({ resumeFromRevision });
+        }
+      }
+    }
+  };
+
   close = () => {
+    if (this.revisions == null) {
+      // already closed
+      return;
+    }
     this.watch?.stop();
+    delete this.watch;
     delete this.all;
     delete this.times;
     delete this.revisions;
