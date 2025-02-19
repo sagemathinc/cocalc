@@ -37,7 +37,7 @@ export function create_jupyter_actions(
   // Ensure meta_file isn't marked as deleted, which would block
   // opening the syncdb, which is clearly not the user's intention
   // at this point (since we're opening the ipynb file).
-  redux.getProjectStore(project_id)?.get_listings()?.undelete(syncdb_path);
+  redux.getProjectActions(project_id)?.setNotDeleted(syncdb_path);
 
   const syncdb = new_syncdb({
     ...SYNCDB_OPTIONS,

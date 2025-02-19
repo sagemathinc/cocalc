@@ -34,8 +34,9 @@ import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
 
-// 1 day
-const MAX_AGE_MS = 1000 * 60 * 60 * 24;
+// info about interest in open files (and also what was explicitly deleted) older
+// than this is automatically purged.
+const MAX_AGE_MS = 7 * (1000 * 60 * 60 * 24);
 
 export interface Entry {
   // path to file relative to HOME

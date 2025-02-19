@@ -77,7 +77,7 @@ export class Listings extends EventEmitter {
   };
 
   private init = reuseInFlight(async () => {
-    let start = Date.now();
+    //let start = Date.now();
     await this.createClient();
     // console.log("createClient finished in ", Date.now() - start, "ms");
     if (this.state == "closed") return;

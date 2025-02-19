@@ -42,6 +42,10 @@ import type {
   CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
 import { listingsClient } from "@cocalc/nats/service/listings";
+import {
+  computeServerManager,
+  type Options as ComputeServerManagerOptions,
+} from "@cocalc/nats/compute/manager";
 
 export class NatsClient {
   client: WebappClient;
@@ -465,6 +469,12 @@ export class NatsClient {
     compute_server_id?: number;
   }) => {
     return await listingsClient(opts);
+  };
+
+  computeServerManager = async (options: ComputeServerManagerOptions) => {
+    const M = computeServerManager(options);
+    await M.init();
+    return M;
   };
 }
 
