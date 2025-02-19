@@ -33,15 +33,22 @@ import { type NatsEnv, type State } from "@cocalc/nats/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
-import time from "@cocalc/nats/time";
+import getTime from "@cocalc/nats/time";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
 const MAX_AGE_MS = 7 * (1000 * 60 * 60 * 24);
 
-export interface Entry {
-  // path to file relative to HOME
-  path: string;
+interface Deleted {
+  // what deleted state is
+  deleted: boolean;
+  // when deleted state set
+  time: number;
+}
+
+// IMPORTANT: if you add/change any fields below, be sure to update
+// the merge conflict function!
+export interface KVEntry {
   // a web browser has the file open at this point in time (in ms)
   time?: number;
   // if the file was removed from disk (and not immmediately written back),
@@ -50,7 +57,46 @@ export interface Entry {
   // either (1) the file is created on disk again, or (2) deleted is cleared.
   // Note: the actual time here isn't really important -- what matter is the number
   // is nonzero.  It's just used for a display to the user.
-  deleted?: number;
+  // We store the deleted state *and* when this was set, so that in case
+  // of merge conflict we can do something sensible.
+  deleted?: Deleted;
+}
+
+function resolveMergeConflict(local: KVEntry, remote: KVEntry): KVEntry {
+  const time = mergeTime(remote?.time, local?.time);
+  const deleted = mergeDeleted(remote?.deleted, local?.deleted);
+  return {
+    time,
+    deleted,
+  };
+}
+
+export interface Entry extends KVEntry {
+  // path to file relative to HOME
+  path: string;
+}
+
+function mergeTime(
+  a: number | undefined,
+  b: number | undefined,
+): number | undefined {
+  // time of interest should clearly always be the largest known value so far.
+  if (a == null && b == null) {
+    return undefined;
+  }
+  return Math.max(a ?? 0, b ?? 0);
+}
+
+function mergeDeleted(a: Deleted | undefined, b: Deleted | undefined) {
+  if (a == null) {
+    return b;
+  }
+  if (b == null) {
+    return a;
+  }
+  // now both a and b are not null, so some merge is needed: we
+  // use last write wins.
+  return a.time >= b.time ? a : b;
 }
 
 interface Options {
@@ -94,7 +140,7 @@ export class OpenFiles extends EventEmitter {
   };
 
   init = async () => {
-    const d = await dkv<Entry>({
+    const d = await dkv<KVEntry>({
       name: "open-files",
       project_id: this.project_id,
       env: this.env,
@@ -103,12 +149,7 @@ export class OpenFiles extends EventEmitter {
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,
-      merge: ({ local, remote }) => {
-        // resolve conflicts by merging object state.  This is important so, e.g., the
-        // deleted state doesn't get overwritten on reconnect by clients that didn't know.
-        //console.log("merge", local, remote, { ...remote, ...local });
-        return { ...remote, ...local };
-      },
+      merge: ({ local, remote }) => resolveMergeConflict(local, remote),
     });
     this.dkv = d;
     d.on("change", ({ key: path }) => {
@@ -143,7 +184,7 @@ export class OpenFiles extends EventEmitter {
     return dkv;
   };
 
-  private set = (path, entry: Entry) => {
+  private set = (path, entry: KVEntry) => {
     this.getDkv().set(path, entry);
   };
 
@@ -158,16 +199,16 @@ export class OpenFiles extends EventEmitter {
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
     const cur = dkv.get(path);
-    let t;
+    let time;
     try {
-      t = time().valueOf();
+      time = getTime();
     } catch {
       // give up -- try again once initialized
       return;
     }
     this.set(path, {
       ...cur,
-      time: t,
+      time,
     });
   };
 
@@ -186,22 +227,22 @@ export class OpenFiles extends EventEmitter {
 
   setDeleted = (path: string) => {
     const dkv = this.getDkv();
-    this.set(path, { ...dkv.get(path), deleted: Date.now() });
+    this.set(path, {
+      ...dkv.get(path),
+      deleted: { deleted: true, time: getTime() },
+    });
   };
 
   isDeleted = (path: string) => {
-    return !!this.getDkv().get(path)?.deleted;
+    return !!this.getDkv().get(path)?.deleted?.deleted;
   };
 
   setNotDeleted = (path: string) => {
     const dkv = this.getDkv();
-    let cur = dkv.get(path);
-    if (cur == null) {
-      return;
-    }
-    cur = { ...cur };
-    delete cur.deleted;
-    this.set(path, cur);
+    this.set(path, {
+      ...dkv.get(path),
+      deleted: { deleted: false, time: getTime() },
+    });
   };
 
   getAll = (): Entry[] => {

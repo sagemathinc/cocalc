@@ -46,7 +46,7 @@ import {
   computeServerManager,
   type Options as ComputeServerManagerOptions,
 } from "@cocalc/nats/compute/manager";
-import time, { getTime, getSkew as getClockSkew } from "@cocalc/nats/time";
+import getTime, { getSkew } from "@cocalc/nats/time";
 
 export class NatsClient {
   client: WebappClient;
@@ -353,16 +353,20 @@ export class NatsClient {
         delete this.openFilesCache[project_id];
       });
       openFiles.on("change", (entry) => {
-        if (entry.deleted) {
-          setDeleted({ project_id, path: entry.path, deleted: entry.deleted });
+        if (entry.deleted?.deleted) {
+          setDeleted({
+            project_id,
+            path: entry.path,
+            deleted: entry.deleted.time,
+          });
         } else {
           setNotDeleted({ project_id, path: entry.path });
         }
       });
       const recentlyDeletedPaths: any = {};
       for (const { path, deleted } of openFiles.getAll()) {
-        if (deleted) {
-          recentlyDeletedPaths[path] = deleted;
+        if (deleted?.deleted) {
+          recentlyDeletedPaths[path] = deleted.time;
         }
       }
       const store = redux.getProjectStore(project_id);
@@ -478,16 +482,12 @@ export class NatsClient {
     return M;
   };
 
-  time = () => {
-    return time();
+  getTime = (): number => {
+    return getTime();
   };
 
-  getTime = async () => {
-    return await getTime();
-  };
-
-  getClockSkew = async () => {
-    return await getClockSkew();
+  getSkew = async (): Promise<number> => {
+    return await getSkew();
   };
 }
 

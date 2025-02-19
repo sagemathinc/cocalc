@@ -2,7 +2,7 @@
 Time sync entirely using nats itself.
 
 To use this, call the default export, which is a sync
-function that returns the current sync'd time, or
+function that returns the current sync'd time (in ms since epoch), or
 throws an error if the first time sync hasn't succeeded.
 This gets initialized by default on load of your process.
 
@@ -11,13 +11,15 @@ which is complicated overall.  Normal request/reply
 messages don't seem to have a timestamp, so I couldn't
 use them.
 
-import time, {getTime} from "@cocalc/nats/time";
+import getTime, {getSkew} from "@cocalc/nats/time";
 
-// sync - throws if hasn't connected and sync'd the first time:
-time();
+// sync - this throws if hasn't connected and sync'd the first time:
+
+getTime();  // -- ms since the epoch
 
 // async -- will wait to connect and tries to sync if haven't done so yet.  Otherwise same as sync:
-await getTime();
+// once this works you can definitely call getTime henceforth.
+await getSkew();
 
 */
 
@@ -73,7 +75,7 @@ const initDkv = reuseInFlight(async () => {
   });
 });
 
-// skew = amount to add to our clock to get sync'd clock
+// skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
 
 export async function getSkew(): Promise<number> {
@@ -92,7 +94,7 @@ export async function getSkew(): Promise<number> {
         const serverTime = dkv.time(key)?.valueOf();
         dkv.delete(key);
         const rtt = end - start;
-        skew = serverTime - (start + rtt / 2);
+        skew = start + rtt / 2 - serverTime;
         cb(undefined, skew);
       }
     };
@@ -106,16 +108,9 @@ export async function getSkew(): Promise<number> {
   return await callback(f);
 }
 
-export async function getTime(): Promise<Date> {
-  if (skew == null) {
-    await getSkew();
-  }
-  return time();
-}
-
-export default function time(): Date {
+export default function getTime(): number {
   if (skew == null) {
     throw Error("clock skew not known");
   }
-  return new Date(Date.now() + skew);
+  return Date.now() - skew;
 }

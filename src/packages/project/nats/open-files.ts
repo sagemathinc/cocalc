@@ -173,7 +173,7 @@ async function handleChange({
     return;
   }
 
-  if (deleted) {
+  if (deleted?.deleted) {
     if (await exists(path)) {
       // it's back
       openFiles?.setNotDeleted(path);
@@ -255,7 +255,7 @@ async function checkForFileDeletion(path: string) {
   if (entry == null) {
     return;
   }
-  if (entry.deleted) {
+  if (entry.deleted?.deleted) {
     // already set as deleted -- shouldn't still be opened
     await closeDoc(entry.path);
   } else {
