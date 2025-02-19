@@ -144,8 +144,8 @@ export function terminate() {
   computeServers = null;
 }
 
-function getCutoff() {
-  return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
+function getCutoff(): number {
+  return Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL;
 }
 
 function computeServerId(path: string): number {
@@ -154,7 +154,6 @@ function computeServerId(path: string): number {
 
 async function handleChange({
   path,
-  open,
   time,
   deleted,
   id,
@@ -162,7 +161,7 @@ async function handleChange({
   if (id == null) {
     id = computeServerId(path);
   }
-  logger.debug("handleChange", { path, open, time, deleted, id });
+  logger.debug("handleChange", { path, time, deleted, id });
   const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
 
@@ -186,14 +185,7 @@ async function handleChange({
     }
   }
 
-  if (!open) {
-    if (isOpenHere) {
-      logger.debug("handleChange: closing", { path });
-      closeDoc(path);
-    }
-    return;
-  }
-  if (time != null && open && time >= getCutoff()) {
+  if (time != null && time >= getCutoff()) {
     if (!isOpenHere) {
       logger.debug("handleChange: opening", { path });
       // users actively care about this file being opened HERE, but it isn't

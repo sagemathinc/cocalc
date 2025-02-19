@@ -33,6 +33,7 @@ import { type NatsEnv, type State } from "@cocalc/nats/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
+import time from "@cocalc/nats/time";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
@@ -41,14 +42,8 @@ const MAX_AGE_MS = 7 * (1000 * 60 * 60 * 24);
 export interface Entry {
   // path to file relative to HOME
   path: string;
-  // if true, then file should be opened, managed, and watched
-  // by home base or compute server
-  open?: boolean;
-  // last time  this entry was changed -- this is automatically set
-  // correctly by the NATS server in a consistent way:
-  //   https://github.com/nats-io/nats-server/discussions/3095
-  time?: Date;
-  count?: number;
+  // a web browser has the file open at this point in time (in ms)
+  time?: number;
   // if the file was removed from disk (and not immmediately written back),
   // then deleted gets set to the time when this happened (in ms since epoch)
   // and the file is closed on the backend.  It won't be re-opened until
@@ -148,12 +143,8 @@ export class OpenFiles extends EventEmitter {
     return dkv;
   };
 
-  private set = (key, entry: Entry) => {
-    // remove time field, if there -- it is filled in automatically
-    entry = { ...entry };
-    // @ts-ignore
-    delete entry.time;
-    this.getDkv().set(key, entry);
+  private set = (path, entry: Entry) => {
+    this.getDkv().set(path, entry);
   };
 
   // When a client has a file open, they should periodically
@@ -167,10 +158,16 @@ export class OpenFiles extends EventEmitter {
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
     const cur = dkv.get(path);
+    let t;
+    try {
+      t = time().valueOf();
+    } catch {
+      // give up -- try again once initialized
+      return;
+    }
     this.set(path, {
       ...cur,
-      open: true,
-      count: (cur?.count ?? 0) + 1,
+      time: t,
     });
   };
 
@@ -185,16 +182,6 @@ export class OpenFiles extends EventEmitter {
       current.error = { time: Date.now(), error: `${err}` };
       this.set(path, current);
     }
-  };
-
-  // causes file to be immediately closed on backend
-  // no matter what, unrelated to how many users have it
-  // open or what type of file it is.  Obviously, frontend
-  // clients also may need to pay attention to this, since they
-  // can just immediately reopen the file.
-  closeFile = (path: string) => {
-    const dkv = this.getDkv();
-    this.set(path, { ...dkv.get(path), open: false });
   };
 
   setDeleted = (path: string) => {
@@ -220,7 +207,7 @@ export class OpenFiles extends EventEmitter {
   getAll = (): Entry[] => {
     const x = this.getDkv().getAll();
     return Object.keys(x).map((path) => {
-      return { ...x[path], path, time: this.time(path) };
+      return { ...x[path], path };
     });
   };
 
@@ -229,7 +216,7 @@ export class OpenFiles extends EventEmitter {
     if (x == null) {
       return x;
     }
-    return { ...x, path, time: this.time(path) };
+    return { ...x, path };
   };
 
   delete = (path) => {
@@ -246,9 +233,5 @@ export class OpenFiles extends EventEmitter {
 
   hasUnsavedChanges = () => {
     return this.getDkv().hasUnsavedChanges();
-  };
-
-  time = (path?: string) => {
-    return this.getDkv().time(path);
   };
 }

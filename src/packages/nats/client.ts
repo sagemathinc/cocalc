@@ -5,6 +5,7 @@ interface Client {
   getNatsEnv: NatsEnvFunction;
   account_id?: string;
   project_id?: string;
+  compute_server_id?: number;
 }
 
 let globalClient: null | Client = null;

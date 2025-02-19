@@ -59,7 +59,6 @@ import {
   type CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
 import type { NatsEnvFunction } from "@cocalc/nats/types";
-import { setNatsClient } from "@cocalc/nats/client";
 
 const winston = getLogger("client");
 
@@ -86,21 +85,22 @@ if (!DEBUG) {
   winston.info(`create ${DEBUG_FILE} for much more verbose logging`);
 }
 
-let client: Client;
+let client: Client | null = null;
 
 export function init() {
   if (client != null) {
     return client;
   }
   client = new Client();
-  setNatsClient(client);
   return client;
 }
 
 export function getClient(): Client {
   if (client == null) {
     init();
-    //throw Error("BUG: Client not initialized!");
+  }
+  if (client == null) {
+    throw Error("BUG: Client not initialized!");
   }
   return client;
 }
@@ -110,7 +110,7 @@ let ALREADY_CREATED = false;
 type HubCB = CB<any, { event: "error"; error?: string }>;
 
 export class Client extends EventEmitter implements ProjectClientInterface {
-  private project_id: string;
+  public readonly project_id: string;
   private _connected: boolean;
 
   private _hub_callbacks: {

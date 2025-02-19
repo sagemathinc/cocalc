@@ -2,6 +2,7 @@ import { sha1 } from "@cocalc/backend/sha1";
 import getConnection from "./connection";
 import { JSONCodec } from "nats";
 import { setNatsClient } from "@cocalc/nats/client";
+import { compute_server_id, project_id } from "@cocalc/project/data";
 
 const jc = JSONCodec();
 export async function getEnv() {
@@ -10,6 +11,6 @@ export async function getEnv() {
 }
 
 export function init() {
-  setNatsClient({ getNatsEnv: getEnv });
+  setNatsClient({ getNatsEnv: getEnv, project_id, compute_server_id });
 }
 init();
