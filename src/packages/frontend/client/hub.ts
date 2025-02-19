@@ -113,7 +113,7 @@ export class HubClient {
   }
 
   public send(mesg: object): void {
-    //console.log("send at #{misc.mswalltime()}", mesg)
+    console.log("send to hub", mesg);
     const data = to_json_socket(mesg);
     this.mesg_data.sent_length += data.length;
     this.emit_mesg_data();
@@ -225,9 +225,6 @@ export class HubClient {
         }
         break;
 
-      case "start_metrics":
-        this.client.emit("start_metrics", mesg.interval_s);
-        break;
     }
 
     // the call f(null, mesg) below can mutate mesg (!), so we better save the id here.

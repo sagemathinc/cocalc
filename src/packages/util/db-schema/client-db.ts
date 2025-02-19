@@ -7,8 +7,8 @@
 
 import { is_array } from "../misc";
 import { SCHEMA } from "./index";
+import { sha1 } from "@cocalc/util/misc";
 
-const sha1 = require("sha1");
 class ClientDB {
   private _primary_keys_cache;
   public r;
@@ -69,7 +69,7 @@ class ClientDB {
     const v = t != null ? t.primary_key : undefined;
     if (v == null) {
       throw Error(
-        `primary key for table '${table}' must be explicitly specified in schema`
+        `primary key for table '${table}' must be explicitly specified in schema`,
       );
     }
     if (typeof v === "string") {

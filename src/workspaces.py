@@ -109,6 +109,7 @@ def all_packages() -> List[str]:
         'packages/sync',
         'packages/sync-client',
         'packages/sync-fs',
+        'packages/nats',
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
