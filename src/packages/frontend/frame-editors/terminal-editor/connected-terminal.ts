@@ -271,6 +271,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   connect = async () => {
     try {
+      if (this.conn != null) {
+        this.conn.removeListener("close", this.connect); // avoid infinite loop
+        this.conn.close();
+        delete this.conn;
+      }
       this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
       await this.configureComputeServerId();

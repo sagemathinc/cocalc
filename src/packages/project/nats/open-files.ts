@@ -77,6 +77,17 @@ export async function init() {
 
   computeServers = computeServerManager({ project_id });
   await computeServers.init();
+  computeServers.on("change", async ({ path, id }) => {
+    if (openFiles == null) {
+      return;
+    }
+    const entry = openFiles?.get(path);
+    if (entry != null) {
+      await handleChange({ ...entry, path, id });
+    } else {
+      await closeDoc(path);
+    }
+  });
 
   // initialize
   for (const entry of openFiles.getAll()) {
@@ -124,8 +135,16 @@ function computeServerId(path: string): number {
   return computeServers?.get(path) ?? 0;
 }
 
-async function handleChange({ path, open, time, deleted }: OpenFileEntry) {
-  const id = computeServerId(path);
+async function handleChange({
+  path,
+  open,
+  time,
+  deleted,
+  id,
+}: OpenFileEntry & { id?: number }) {
+  if (id == null) {
+    id = computeServerId(path);
+  }
   logger.debug("handleChange", { path, open, time, deleted, id });
   const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
@@ -149,17 +168,7 @@ async function handleChange({ path, open, time, deleted }: OpenFileEntry) {
       return;
     }
   }
-  // TODO: need another table with compute server mappings
-  //   const id = 0; // todo
-  //   if (id != compute_server_id) {
-  //     if (isOpenHere) {
-  //       // close it here
-  //       logger.debug("handleChange: closing", { path });
-  //       closeDoc(path);
-  //     }
-  //     // no further responsibility
-  //     return;
-  //   }
+
   if (!open) {
     if (isOpenHere) {
       logger.debug("handleChange: closing", { path });

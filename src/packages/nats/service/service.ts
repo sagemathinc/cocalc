@@ -21,6 +21,7 @@ import { sha1, trunc_middle } from "@cocalc/util/misc";
 import { getEnv } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
+import { EventEmitter } from "events";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -151,12 +152,13 @@ export interface Options extends ServiceDescription {
   handler: (mesg) => Promise<any>;
 }
 
-export class NatsService {
+export class NatsService extends EventEmitter {
   private options: Options;
   private subject: string;
   private api?;
 
   constructor(options: Options) {
+    super();
     this.options = options;
     this.subject = serviceSubject(options);
   }
@@ -193,6 +195,11 @@ export class NatsService {
   };
 
   close = () => {
+    if (!this.subject) {
+      return;
+    }
+    this.emit("close");
+    this.removeAllListeners();
     this.api?.stop();
     // @ts-ignore
     delete this.subject;

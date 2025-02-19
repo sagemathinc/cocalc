@@ -94,7 +94,12 @@ export async function createTerminalService(path: string) {
     },
   };
 
-  return await createTerminalServer({ path, project_id, impl });
+  const server = await createTerminalServer({ path, project_id, impl });
+  server.on("close", () => {
+    sessions[path]?.close();
+    delete sessions[path];
+  });
+  return server;
 }
 
 function closeTerminal(path: string) {
@@ -288,7 +293,7 @@ class Session {
       // tell browsers about out new size
       await this.browserApi.size({ rows, cols });
     } catch (err) {
-      logger.debug("terminal channel -- WARNING: unable to resize term", err);
+      logger.debug(`WARNING: unable to resize term: ${err}`);
     }
   };
 
