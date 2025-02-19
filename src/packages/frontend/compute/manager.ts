@@ -28,7 +28,7 @@ export default function computeServers(
   }
   const M = computeServerManager({ project_id });
   computeServerManagerCache[project_id] = M;
-  M.on("close", () => {
+  M.on("closed", () => {
     delete computeServerManagerCache[project_id];
   });
   return M;

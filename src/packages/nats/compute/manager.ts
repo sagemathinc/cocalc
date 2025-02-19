@@ -40,6 +40,8 @@ export class ComputeServerManager extends EventEmitter {
   constructor(options: Options) {
     super();
     this.options = options;
+    // It's reasonable to have many clients, e.g., one for each open file
+    this.setMaxListeners(100);
   }
 
   waitUntilReady = async () => {
@@ -102,10 +104,29 @@ export class ComputeServerManager extends EventEmitter {
     return this.dkv;
   };
 
-  getAll = async () => {
-    await this.waitUntilReady();
+  // Modern sync API:  used in backend.
+
+  set = (path, id) => {
+    const kv = this.getDkv();
+    if (!id) {
+      kv.delete(path);
+      return;
+    }
+    kv.set(path, { id });
+  };
+
+  delete = (path) => {
+    this.getDkv().delete(path);
+  };
+
+  get = (path) => this.getDkv().get(path)?.id;
+
+  getAll = () => {
     return this.getDkv().getAll();
   };
+
+  // Async API that doesn't assume manager has been initialized, with
+  // very long names.  Used in the frontend.
 
   // Call this if you want the compute server with given id to
   // connect and handle being the server for the given path.
@@ -117,27 +138,14 @@ export class ComputeServerManager extends EventEmitter {
     id: number;
   }) => {
     await this.waitUntilReady();
-    const kv = this.getDkv();
-    if (!id) {
-      kv.delete(path);
-      return;
-    }
-    kv.set(path, { id });
-  };
-
-  set = async (path, id) => {
-    await this.connectComputeServerToPath({ path, id });
+    this.set(path, id);
   };
 
   // Call this if you want no compute servers to provide the backend server
   // for given path.
   disconnectComputeServer = async ({ path }: { path: string }) => {
     await this.waitUntilReady();
-    this.getDkv().delete(path);
-  };
-
-  delete = async (path) => {
-    await this.disconnectComputeServer({ path });
+    this.delete(path);
   };
 
   // Returns the explicitly set server id for the given
@@ -145,10 +153,8 @@ export class ComputeServerManager extends EventEmitter {
   // if nothing is explicitly set for this path (i.e., usually means home base).
   getServerIdForPath = async (path: string): Promise<number | undefined> => {
     await this.waitUntilReady();
-    return this.getDkv().get(path)?.id;
+    return this.get(path);
   };
-
-  get = async (path) => this.getServerIdForPath(path);
 
   // Get the server ids (as a map) for every file and every directory contained in path.
   // NOTE/TODO: this just does a linear search through all paths with a server id; nothing clever.

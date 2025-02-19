@@ -16,7 +16,7 @@ Set env variables as in a project (see  api/index.ts ), then in nodejs:
 DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
 
 > x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
-[ 'openFiles', 'openDocs', 'formatter', 'terminate' ]
+[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
 
 > x.openFiles.getAll();
 
@@ -35,7 +35,7 @@ import {
 } from "@cocalc/project/nats/sync";
 import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
-import { /*compute_server_id,*/ project_id } from "@cocalc/project/data";
+import { compute_server_id, project_id } from "@cocalc/project/data";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { getClient } from "@cocalc/project/client";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -53,6 +53,10 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
 import { unlink } from "fs/promises";
 import { join } from "path";
+import {
+  computeServerManager,
+  ComputeServerManager,
+} from "@cocalc/nats/compute/manager";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/backend/nats";
@@ -64,11 +68,15 @@ const FILE_DELETION_CHECK_INTERVAL_MS = 3000;
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
 const openDocs: { [path: string]: SyncDoc | NatsService } = {};
+let computeServers: ComputeServerManager | null = null;
 
 export async function init() {
   logger.debug("init");
 
   openFiles = await createOpenFiles();
+
+  computeServers = computeServerManager({ project_id });
+  await computeServers.init();
 
   // initialize
   for (const entry of openFiles.getAll()) {
@@ -89,8 +97,8 @@ export async function init() {
 
   formatter = await createFormatterService({ openSyncDocs: openDocs });
 
-  // usefule for development
-  return { openFiles, openDocs, formatter, terminate };
+  // useful for development
+  return { openFiles, openDocs, formatter, terminate, computeServers };
 }
 
 export function terminate() {
@@ -103,16 +111,33 @@ export function terminate() {
 
   formatter?.close();
   formatter = null;
+
+  computeServers?.close();
+  computeServers = null;
 }
 
 function getCutoff() {
   return new Date(Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL);
 }
 
+function computeServerId(path: string): number {
+  return computeServers?.get(path) ?? 0;
+}
+
 async function handleChange({ path, open, time, deleted }: OpenFileEntry) {
-  logger.debug("handleChange", { path, open, time, deleted });
+  const id = computeServerId(path);
+  logger.debug("handleChange", { path, open, time, deleted, id });
   const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
+
+  if (id != compute_server_id) {
+    // only thing we should do is close it if it is open.
+    if (isOpenHere) {
+      await closeDoc(path);
+    }
+    return;
+  }
+
   if (deleted) {
     if (await exists(path)) {
       // it's back
@@ -196,6 +221,12 @@ async function checkForFileDeletion(path: string) {
   if (openFiles == null) {
     return;
   }
+  const id = computeServerId(path);
+  if (id != compute_server_id) {
+    // not our concern
+    return;
+  }
+
   if (path.endsWith(".term")) {
     // term files are exempt -- we don't save data in them and often
     // don't actually make the hidden ones for each frame in the
