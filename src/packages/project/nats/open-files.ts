@@ -71,7 +71,8 @@ import {
 } from "@cocalc/nats/compute/manager";
 
 // ensure nats connection stuff is initialized
-import "@cocalc/backend/nats";
+import "@cocalc/project/nats/env";
+import { chdir } from "node:process";
 
 const logger = getLogger("project:nats:open-files");
 
@@ -84,6 +85,10 @@ let computeServers: ComputeServerManager | null = null;
 
 export async function init() {
   logger.debug("init");
+
+  if (process.env.HOME) {
+    chdir(process.env.HOME);
+  }
 
   openFiles = await createOpenFiles();
 
