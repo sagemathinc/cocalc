@@ -800,16 +800,20 @@ export class SyncTable extends EventEmitter {
     };
   }
 
+  // awkward code due to typescript weirdness using both
+  // NatsChangefeed and Changefeed types (for unit testing).
   private init_changefeed_handlers(): void {
-    if (this.changefeed == null) return;
-    this.changefeed.on("update", this.changefeed_on_update);
-    this.changefeed.on("close", this.changefeed_on_close);
+    const c = this.changefeed as EventEmitter | null;
+    if (c == null) return;
+    c.on("update", this.changefeed_on_update);
+    c.on("close", this.changefeed_on_close);
   }
 
   private remove_changefeed_handlers(): void {
-    if (this.changefeed == null) return;
-    this.changefeed.removeListener("update", this.changefeed_on_update);
-    this.changefeed.removeListener("close", this.changefeed_on_close);
+    const c = this.changefeed as EventEmitter | null;
+    if (c == null) return;
+    c.removeListener("update", this.changefeed_on_update);
+    c.removeListener("close", this.changefeed_on_close);
   }
 
   private changefeed_on_update(change): void {

@@ -26,6 +26,18 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
 // now you can directly work with the syncdoc for a given file,
 // but from the perspective of the project, not the browser!
 
+COMPUTE SERVER:
+
+To simulate a compute server, do exactly as above, but also set the environment
+variable COMPUTE_SERVER_ID to the *global* (not project specific) id of the compute
+server:
+
+   COMPUTE_SERVER_ID=84 node
+
+In this case, you aso don't need to use the terminate command if the compute
+server isn't actually running.  To terminate a compute server open files service though:
+
+    (TODO)
 */
 
 import {
