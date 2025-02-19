@@ -38,6 +38,8 @@ export interface ServiceCall extends ServiceDescription {
   mesg: any;
   timeout?: number;
   env?: NatsEnv;
+  // if true, call returns the raw response message, with no decoding or error wrapping.
+  raw?: boolean;
 }
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
@@ -51,6 +53,9 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     resp = await nc.request(subject, jc.encode(opts.mesg), {
       timeout,
     });
+    if (opts.raw) {
+      return resp;
+    }
   } catch (err) {
     if (err.name == "NatsError") {
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";

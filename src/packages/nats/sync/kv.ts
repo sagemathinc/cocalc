@@ -64,7 +64,7 @@ export class KV<T = any> extends EventEmitter {
       },
       set(target, prop, value) {
         prop = String(prop);
-        if (prop == "_eventsCount" || prop == "_events") {
+        if (prop == "_eventsCount" || prop == "_events" || prop == "close") {
           target[prop] = value;
           return true;
         }

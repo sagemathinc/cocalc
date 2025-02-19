@@ -46,6 +46,7 @@ import {
   computeServerManager,
   type Options as ComputeServerManagerOptions,
 } from "@cocalc/nats/compute/manager";
+import time, { getTime, getSkew as getClockSkew } from "@cocalc/nats/time";
 
 export class NatsClient {
   client: WebappClient;
@@ -475,6 +476,18 @@ export class NatsClient {
     const M = computeServerManager(options);
     await M.init();
     return M;
+  };
+
+  time = () => {
+    return time();
+  };
+
+  getTime = async () => {
+    return await getTime();
+  };
+
+  getClockSkew = async () => {
+    return await getClockSkew();
   };
 }
 
