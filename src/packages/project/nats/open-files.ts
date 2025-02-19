@@ -100,7 +100,7 @@ export async function init() {
     }
     const entry = openFiles?.get(path);
     if (entry != null) {
-      await handleChange({ ...entry, path, id });
+      await handleChange({ ...entry, id });
     } else {
       await closeDoc(path);
     }
@@ -114,6 +114,8 @@ export async function init() {
   // start loop to watch for and close files that aren't touched frequently:
   closeIgnoredFilesLoop();
 
+  // periodically update timestamp on backend for files we have open
+  touchOpenFilesLoop();
   // watch if any file that is currently opened on this host gets deleted,
   // and if so, mark it as such, and set it to closed.
   watchForFileDeletionLoop();
@@ -156,16 +158,21 @@ async function handleChange({
   path,
   time,
   deleted,
+  backend,
   id,
 }: OpenFileEntry & { id?: number }) {
   if (id == null) {
     id = computeServerId(path);
   }
-  logger.debug("handleChange", { path, time, deleted, id });
+  logger.debug("handleChange", { path, time, deleted, backend, id });
   const syncDoc = openDocs[path];
   const isOpenHere = syncDoc != null;
 
   if (id != compute_server_id) {
+    if (backend?.id == compute_server_id) {
+      // we are definitely not the backend right now.
+      openFiles?.setNotBackend(path, compute_server_id);
+    }
     // only thing we should do is close it if it is open.
     if (isOpenHere) {
       await closeDoc(path);
@@ -179,7 +186,7 @@ async function handleChange({
       openFiles?.setNotDeleted(path);
     } else {
       if (isOpenHere) {
-        closeDoc(path);
+        await closeDoc(path);
       }
       return;
     }
@@ -189,7 +196,7 @@ async function handleChange({
     if (!isOpenHere) {
       logger.debug("handleChange: opening", { path });
       // users actively care about this file being opened HERE, but it isn't
-      openDoc(path);
+      await openDoc(path);
     }
     return;
   }
@@ -205,7 +212,7 @@ function supportAutoclose(path: string): boolean {
 }
 
 async function closeIgnoredFilesLoop() {
-  while (openFiles != null && openFiles.state == "connected") {
+  while (openFiles?.state == "connected") {
     await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
     if (openFiles?.state != "connected") {
       return;
@@ -225,6 +232,7 @@ async function closeIgnoredFilesLoop() {
       if (
         entry != null &&
         entry.time != null &&
+        openDocs[entry.path] != null &&
         entry.time <= cutoff &&
         supportAutoclose(entry.path)
       ) {
@@ -232,6 +240,15 @@ async function closeIgnoredFilesLoop() {
         closeDoc(entry.path);
       }
     }
+  }
+}
+
+async function touchOpenFilesLoop() {
+  while (openFiles?.state == "connected" && openDocs != null) {
+    for (const path in openDocs) {
+      openFiles.setBackend(path, compute_server_id);
+    }
+    await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
   }
 }
 
@@ -314,80 +331,89 @@ async function watchForFileDeletionLoop() {
 
 const closeDoc = reuseInFlight(async (path: string) => {
   logger.debug("close", { path });
-  const doc = openDocs[path];
-  if (doc == null) {
-    return;
-  }
-  delete openDocs[path];
   try {
-    await doc.close();
-  } catch (err) {
-    logger.debug(`WARNING -- issue closing doc -- ${err}`);
-    openFiles?.setError(path, err);
+    const doc = openDocs[path];
+    if (doc == null) {
+      return;
+    }
+    delete openDocs[path];
+    try {
+      await doc.close();
+    } catch (err) {
+      logger.debug(`WARNING -- issue closing doc -- ${err}`);
+      openFiles?.setError(path, err);
+    }
+  } finally {
+    if (openDocs[path] == null) {
+      openFiles?.setNotBackend(path, compute_server_id);
+    }
   }
 });
 
 const openDoc = reuseInFlight(async (path: string) => {
   // todo -- will be async and needs to handle SyncDB and all the config...
   logger.debug("openDoc", { path });
+  try {
+    const doc = openDocs[path];
+    if (doc != null) {
+      return;
+    }
 
-  const doc = openDocs[path];
-  if (doc != null) {
-    return;
-  }
+    if (path.endsWith(".term")) {
+      const service = await createTerminalService(path);
+      openDocs[path] = service;
+      return;
+    }
 
-  if (path.endsWith(".term")) {
-    const service = await createTerminalService(path);
-    openDocs[path] = service;
-    return;
-  }
-
-  const client = getClient();
-  const doctype = await getSyncDocType({
-    project_id,
-    path,
-    client,
-  });
-  logger.debug("openDoc got", { path, doctype });
-
-  let syncdoc;
-  if (doctype.type == "string") {
-    syncdoc = new SyncString({
-      ...doctype.opts,
+    const client = getClient();
+    const doctype = await getSyncDocType({
       project_id,
       path,
       client,
     });
-  } else {
-    syncdoc = new SyncDB({
-      ...doctype.opts,
-      project_id,
-      path,
-      client,
-    });
-  }
-  openDocs[path] = syncdoc;
+    logger.debug("openDoc got", { path, doctype });
 
-  syncdoc.on("error", (err) => {
-    closeDoc(path);
-    openFiles?.setError(path, err);
-    logger.debug(`syncdoc error -- ${err}`, path);
-  });
-
-  // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
-  const ext = filename_extension(path);
-  switch (ext) {
-    case "sage-jupyter2":
-      logger.debug("initializing Jupyter backend for ", path);
-      await get_blob_store(); // make sure jupyter blobstore is available
-      await initJupyterRedux(syncdoc, client);
-      const path1 = original_path(syncdoc.get_path());
-      syncdoc.on("closed", async () => {
-        logger.debug("removing Jupyter backend for ", path1);
-        await removeJupyterRedux(path1, project_id);
+    let syncdoc;
+    if (doctype.type == "string") {
+      syncdoc = new SyncString({
+        ...doctype.opts,
+        project_id,
+        path,
+        client,
       });
-      break;
-  }
+    } else {
+      syncdoc = new SyncDB({
+        ...doctype.opts,
+        project_id,
+        path,
+        client,
+      });
+    }
+    openDocs[path] = syncdoc;
 
-  return;
+    syncdoc.on("error", (err) => {
+      closeDoc(path);
+      openFiles?.setError(path, err);
+      logger.debug(`syncdoc error -- ${err}`, path);
+    });
+
+    // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
+    const ext = filename_extension(path);
+    switch (ext) {
+      case "sage-jupyter2":
+        logger.debug("initializing Jupyter backend for ", path);
+        await get_blob_store(); // make sure jupyter blobstore is available
+        await initJupyterRedux(syncdoc, client);
+        const path1 = original_path(syncdoc.get_path());
+        syncdoc.on("closed", async () => {
+          logger.debug("removing Jupyter backend for ", path1);
+          await removeJupyterRedux(path1, project_id);
+        });
+        break;
+    }
+  } finally {
+    if (openDocs[path] != null) {
+      openFiles?.setBackend(path, compute_server_id);
+    }
+  }
 });

@@ -46,6 +46,13 @@ interface Deleted {
   time: number;
 }
 
+interface Backend {
+  // who has it opened -- the compute_server_id (0 for project)
+  id: number;
+  // when they last reported having it opened
+  time: number;
+}
+
 // IMPORTANT: if you add/change any fields below, be sure to update
 // the merge conflict function!
 export interface KVEntry {
@@ -60,14 +67,22 @@ export interface KVEntry {
   // We store the deleted state *and* when this was set, so that in case
   // of merge conflict we can do something sensible.
   deleted?: Deleted;
+
+  // if file is actively opened on a compute server, then it sets
+  // this entry.  Right when it closes the file, it clears this.
+  // If it gets killed/broken and doesn't have a chance to clear it, then
+  // backend.time can be used to decide this isn't valid.
+  backend?: Backend;
 }
 
 function resolveMergeConflict(local: KVEntry, remote: KVEntry): KVEntry {
   const time = mergeTime(remote?.time, local?.time);
   const deleted = mergeDeleted(remote?.deleted, local?.deleted);
+  const backend = mergeBackend(remote?.backend, local?.backend);
   return {
     time,
     deleted,
+    backend,
   };
 }
 
@@ -96,6 +111,20 @@ function mergeDeleted(a: Deleted | undefined, b: Deleted | undefined) {
   }
   // now both a and b are not null, so some merge is needed: we
   // use last write wins.
+  return a.time >= b.time ? a : b;
+}
+
+function mergeBackend(a: Backend | undefined, b: Backend | undefined) {
+  if (a == null) {
+    return b;
+  }
+  if (b == null) {
+    return a;
+  }
+  // now both a and b are not null, so some merge is needed: we
+  // use last write wins.
+  // NOTE: This should likely not happen or only happen for a moment and
+  // would be worrisome, but quickly sort itself out.
   return a.time >= b.time ? a : b;
 }
 
@@ -243,6 +272,33 @@ export class OpenFiles extends EventEmitter {
       ...dkv.get(path),
       deleted: { deleted: false, time: getTime() },
     });
+  };
+
+  // set that id is the backend with the file open.
+  // This should be called by that backend periodically
+  // when it has the file opened.
+  setBackend = (path: string, id: number) => {
+    const dkv = this.getDkv();
+    this.set(path, {
+      ...dkv.get(path),
+      backend: { id, time: getTime() },
+    });
+  };
+
+  // get current backend that has file opened.
+  getBackend = (path: string): Backend | undefined => {
+    return this.getDkv().get(path)?.backend;
+  };
+
+  // ONLY if backend for path is currently set to id, then clear
+  // the backend field.
+  setNotBackend = (path: string, id: number) => {
+    const dkv = this.getDkv();
+    const cur = { ...dkv.get(path) };
+    if (cur?.backend?.id == id) {
+      delete cur.backend;
+      this.set(path, cur);
+    }
   };
 
   getAll = (): Entry[] => {
