@@ -13,6 +13,7 @@ import { parseReq } from "./parse";
 import { readFile as readProjectFile } from "@cocalc/nats/files/read";
 import { path_split } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import hasAccess from "./check-for-access-to-project";
 import mime from "mime-types";
 
 const logger = getLogger("proxy:handle-request");
@@ -82,11 +83,22 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     const url = stripBasePath(req.url);
+    const parsed = parseReq(url, remember_me, api_key);
     // TODO: parseReq is called again in getTarget so need to refactor...
-    const { type, project_id } = parseReq(url, remember_me, api_key);
+    const { type, project_id } = parsed;
     if (type == "files") {
-      // TODO: auth!
-      dbg("handling the request via NATS!");
+      dbg("handling the request via nats");
+      if (
+        !(await hasAccess({
+          project_id,
+          remember_me,
+          api_key,
+          type: "read",
+          isPersonal,
+        }))
+      ) {
+        throw Error(`user does not have read access to project`);
+      }
       const i = url.indexOf("files/");
       const compute_server_id = req.query.id ?? 0;
       let j = url.lastIndexOf("?");
@@ -118,6 +130,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       url,
       isPersonal,
       projectControl,
+      parsed,
     });
 
     // It's http here because we've already got past the ssl layer.  This is all internal.

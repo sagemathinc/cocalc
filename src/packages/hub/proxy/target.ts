@@ -43,6 +43,7 @@ interface Options {
   url: string;
   isPersonal: boolean;
   projectControl: ProjectControlFunction;
+  parsed?: ReturnType<typeof parseReq>;
 }
 
 export async function getTarget({
@@ -51,16 +52,14 @@ export async function getTarget({
   url,
   isPersonal,
   projectControl,
+  parsed,
 }: Options): Promise<{
   host: string;
   port: number;
   internal_url: string | undefined;
 }> {
-  const { key, type, project_id, port_desc, internal_url } = parseReq(
-    url,
-    remember_me,
-    api_key,
-  );
+  const { key, type, project_id, port_desc, internal_url } =
+    parsed ?? parseReq(url, remember_me, api_key);
 
   if (cache.has(key)) {
     return cache.get(key) as any;

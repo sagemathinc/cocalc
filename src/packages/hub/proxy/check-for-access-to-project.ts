@@ -24,9 +24,9 @@ interface Options {
 }
 
 // 1 minute cache: grant "yes" for a while
-const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 1 });
+const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 1.5 });
 // 5 second cache: recheck "no" much more frequently
-const noCache = new LRU({ max: 20000, ttl: 1000 * 5 });
+const noCache = new LRU({ max: 20000, ttl: 1000 * 15 });
 
 export default async function hasAccess(opts: Options): Promise<boolean> {
   if (opts.isPersonal) {
