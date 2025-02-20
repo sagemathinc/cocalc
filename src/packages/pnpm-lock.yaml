@@ -1075,6 +1075,9 @@ importers:
       '@nats-io/kv':
         specifier: 3.0.0-30
         version: 3.0.0-30
+      '@nats-io/nats-core':
+        specifier: 3.0.0-51
+        version: 3.0.0-51
       '@nats-io/services':
         specifier: 3.0.0-25
         version: 3.0.0-25
@@ -3965,6 +3968,9 @@ packages:
 
   '@nats-io/nats-core@3.0.0-50':
     resolution: {integrity: sha512-Kur1/yhzNrpcpu+OhsQ89k9Ge1woEWJd5FV3tpp0BtpRWMlIth3StBiADguynbKSQCkBAOUQ+C0kRnFW8zOIeg==}
+
+  '@nats-io/nats-core@3.0.0-51':
+    resolution: {integrity: sha512-BMNVBGPN1izxZ3zD17Z1XTz8OezIPzHK26a7ZCQFXt50eqXGrNrpnDNn8br5KrL2GCl5q3jnMh1jhUQHzIdZkA==}
 
   '@nats-io/nkeys@2.0.2':
     resolution: {integrity: sha512-0JTyVl9P+UJyjUBDWP9589TuUKXJQ8tDkVRgi02X/MMzW997+4FykirvZEkIe6ZAhiLIBN+NpN8ULMMt6mDrbA==}
@@ -14987,6 +14993,11 @@ snapshots:
       '@nats-io/nuid': 2.0.3
 
   '@nats-io/nats-core@3.0.0-50':
+    dependencies:
+      '@nats-io/nkeys': 2.0.2
+      '@nats-io/nuid': 2.0.3
+
+  '@nats-io/nats-core@3.0.0-51':
     dependencies:
       '@nats-io/nkeys': 2.0.2
       '@nats-io/nuid': 2.0.3
