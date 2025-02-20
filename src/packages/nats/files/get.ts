@@ -29,6 +29,11 @@ DEVELOPMENT:
 require('@cocalc/backend/nats'); a = require('@cocalc/nats/files/get'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,createReadStream:require('fs').createReadStream})
 
 for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,path:'/tmp/a.py'})) { console.log({chunk}); }
+
+
+for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,path:'/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/.git/objects/pack/pack-771f7fe4ee855601463be070cf9fb9afc91f84ac.pack'})) { console.log({chunk}); }
+
+
 */
 
 import { getEnv } from "@cocalc/nats/client";
@@ -73,7 +78,9 @@ async function handleMessage(mesg, createReadStream) {
   const { jc } = await getEnv();
   const { path } = jc.decode(mesg.data);
   let seq = 0;
-  for await (const chunk of createReadStream(path)) {
+  for await (const chunk of createReadStream(path, {
+    highWaterMark: 16384 * 16 * 2,
+  })) {
     const h = headers();
     seq += 1;
     h.append("seq", `${seq}`);

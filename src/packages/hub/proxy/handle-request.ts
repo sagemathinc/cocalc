@@ -9,6 +9,8 @@ import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
+import { parseReq } from "./parse";
+import { readFile } from "@cocalc/nats/files/get";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -76,6 +78,30 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     const url = stripBasePath(req.url);
+    // TODO: parseReq is called again in getTarget so need to refactor...
+    const { type, project_id } = parseReq(url, remember_me, api_key);
+    if (type == "raw") {
+      dbg("handling the request via NATS!");
+      // TODO: do better, obviously
+      const i = url.indexOf("raw/");
+      const compute_server_id = 0;
+      const path = url.slice(i + 4);
+      // worry decodeURI
+      dbg("NATs: get", { project_id, path, compute_server_id });
+      const fileName = path; // todo
+      res.setHeader("Content-disposition", "attachment; filename=" + fileName);
+      res.setHeader("Content-type", "text/plain"); // todo
+      for await (const chunk of await readFile({
+        project_id,
+        compute_server_id,
+        path,
+      })) {
+        res.write(chunk);
+      }
+      res.end();
+      return;
+    }
+
     const { host, port, internal_url } = await getTarget({
       remember_me,
       api_key,

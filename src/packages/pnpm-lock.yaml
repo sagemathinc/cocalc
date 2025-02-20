@@ -755,6 +755,9 @@ importers:
       '@cocalc/hub':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
       '@cocalc/next':
         specifier: workspace:*
         version: link:../next
