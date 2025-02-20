@@ -38,13 +38,22 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 
 import { getEnv } from "@cocalc/nats/client";
 import { projectSubject } from "@cocalc/nats/names";
-import { Empty, headers } from "@nats-io/nats-core";
+import { Empty, headers, type Subscription } from "@nats-io/nats-core";
+
+let sub: Subscription | null = null;
+export async function close() {
+  if (sub == null) {
+    return;
+  }
+  await sub.drain();
+  sub = null;
+}
 
 function getSubject({ project_id, compute_server_id }) {
   return projectSubject({
     project_id,
     compute_server_id,
-    service: "files-get",
+    service: "files:read",
   });
 }
 
@@ -53,13 +62,23 @@ export async function createServer({
   project_id,
   compute_server_id,
 }) {
+  if (sub != null) {
+    return;
+  }
   const { nc } = await getEnv();
   const subject = getSubject({
     project_id,
     compute_server_id,
   });
-  console.log(subject);
-  const sub = nc.subscribe(subject);
+  // console.log(subject);
+  sub = nc.subscribe(subject);
+  listen(createReadStream);
+}
+
+async function listen(createReadStream) {
+  if (sub == null) {
+    return;
+  }
   for await (const mesg of sub) {
     try {
       await handleMessage(mesg, createReadStream);
@@ -69,6 +88,7 @@ export async function createServer({
     } catch (err) {
       const h = headers();
       h.append("error", `${err}`);
+      // console.log("sending ERROR", err);
       mesg.respond(Empty, { headers: h });
     }
   }
@@ -79,16 +99,27 @@ async function handleMessage(mesg, createReadStream) {
   const { path } = jc.decode(mesg.data);
   let seq = 0;
   for await (const chunk of createReadStream(path, {
-    highWaterMark: 16384 * 16 * 2,
+    highWaterMark: 16384 * 16 * 3,
   })) {
     const h = headers();
     seq += 1;
     h.append("seq", `${seq}`);
+    // console.log("sending ", { seq, bytes: chunk.length });
     mesg.respond(chunk, { headers: h });
   }
 }
 
-export async function* readFile({ project_id, compute_server_id, path }) {
+export async function* readFile({
+  project_id,
+  compute_server_id,
+  path,
+  maxWait = 1000 * 60 * 10, // 10 minutes
+}: {
+  project_id: string;
+  compute_server_id: number;
+  path: string;
+  maxWait?: number;
+}) {
   const { nc, jc } = await getEnv();
   const subject = getSubject({
     project_id,
@@ -96,7 +127,10 @@ export async function* readFile({ project_id, compute_server_id, path }) {
   });
   const v: any = [];
   let seq = 0;
-  for await (const resp of await nc.requestMany(subject, jc.encode({ path }))) {
+  let bytes = 0;
+  for await (const resp of await nc.requestMany(subject, jc.encode({ path }), {
+    maxWait,
+  })) {
     for (const [key, value] of resp.headers) {
       if (key == "error") {
         throw Error(value);
@@ -104,6 +138,8 @@ export async function* readFile({ project_id, compute_server_id, path }) {
         return;
       } else if (key == "seq") {
         const next = parseInt(value);
+        bytes = resp.data.length;
+        // console.log("received seq", { seq: next, bytes });
         if (next != seq + 1) {
           throw Error("lost data");
         }
@@ -112,5 +148,9 @@ export async function* readFile({ project_id, compute_server_id, path }) {
     }
     yield resp.data;
   }
+  if (bytes != 0) {
+    throw Error("truncated");
+  }
+  // console.log("done!");
   return v;
 }

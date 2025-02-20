@@ -45,6 +45,7 @@ import { terminate as terminateOpenFiles } from "@cocalc/project/nats/open-files
 import { close as closeListings } from "@cocalc/project/nats/listings";
 import { Svcm } from "@nats-io/services";
 import { compute_server_id, project_id } from "@cocalc/project/data";
+import { close as closeFilesRead } from "@cocalc/project/nats/files/read";
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
@@ -80,6 +81,10 @@ async function listen(api, subject) {
         continue;
       } else if (service == "listings") {
         closeListings();
+        mesg.respond(jc.encode({ status: "terminated", service }));
+        continue;
+      } else if (service == "files:read") {
+        await closeFilesRead();
         mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {

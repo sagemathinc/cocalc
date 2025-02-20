@@ -6,7 +6,7 @@ How to do development (so in a dev project doing cc-in-cc dev):
 
 0. From the browser, send a terminate-handler message, so the handler running in the project stops:
 
-    await cc.client.nats_client.projectWebsocketApi({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094', mesg:{cmd:"terminate"}})
+    await cc.client.nats_client.projectWebsocketApi({project_id:cc.current().project_id, mesg:{cmd:"terminate"}})
 
 1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
     - COCALC_NATS_JWT -- this has the valid JWT issued to grant the project rights to use nats
