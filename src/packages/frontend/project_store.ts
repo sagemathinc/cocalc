@@ -556,10 +556,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  get_raw_link = (path) => {
+  get_raw_link = (path, compute_server_id?: number) => {
     let url = document.URL;
     url = url.slice(0, url.indexOf("/projects/"));
-    return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
+    url = `${url}/${this.project_id}/files/${misc.encode_path(path)}`;
+    const computeServerId = compute_server_id ?? this.get("compute_server_id");
+    if (computeServerId) {
+      url += `&id=${computeServerId}`;
+    }
+    return url;
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension

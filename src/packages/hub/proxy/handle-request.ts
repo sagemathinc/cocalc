@@ -11,6 +11,9 @@ import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
 import { readFile as readProjectFile } from "@cocalc/nats/files/read";
+import { path_split } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
+import mime from "mime-types";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -46,7 +49,8 @@ export default function init({ projectControl, isPersonal }: Options) {
       logger.silly(req.url, ...args);
     };
     dbg("got request");
-    dbg("headers = ", req.headers);
+    // dangerous/verbose to log...?
+    // dbg("headers = ", req.headers);
 
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");
@@ -80,23 +84,29 @@ export default function init({ projectControl, isPersonal }: Options) {
     const url = stripBasePath(req.url);
     // TODO: parseReq is called again in getTarget so need to refactor...
     const { type, project_id } = parseReq(url, remember_me, api_key);
-    if (type == "raw" && !url.includes("primus")) {
+    if (type == "files") {
+      // TODO: auth!
       dbg("handling the request via NATS!");
-      // TODO: do better, obviously
-      const i = url.indexOf("raw/");
-      const compute_server_id = 0;
-      const path = url.slice(i + 4);
-      // worry decodeURI
-      dbg("NATs: get", { project_id, path, compute_server_id });
-      const fileName = path; // todo
+      const i = url.indexOf("files/");
+      const compute_server_id = req.query.id ?? 0;
+      let j = url.lastIndexOf("?");
+      if (j == -1) {
+        j = url.length;
+      }
+      const path = decodeURIComponent(url.slice(i + "files/".length, j));
+      dbg("NATs: get", { project_id, path, compute_server_id, url });
+      const fileName = path_split(path).tail;
       res.setHeader("Content-disposition", "attachment; filename=" + fileName);
-      res.setHeader("Content-type", "text/plain"); // todo
+      res.setHeader("Content-type", mime.lookup(fileName));
       for await (const chunk of await readProjectFile({
         project_id,
         compute_server_id,
         path,
       })) {
-        res.write(chunk);
+        if (!res.write(chunk)) {
+          // backpressure -- wait for it to resolve
+          await once(res, "drain");
+        }
       }
       res.end();
       return;

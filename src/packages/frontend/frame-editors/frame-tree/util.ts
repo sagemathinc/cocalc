@@ -22,10 +22,19 @@ export function parse_path(path: string): {
   return { directory: x.head, base: y.name, filename: x.tail };
 }
 
-export function raw_url(project_id: string, path: string): string {
+export function raw_url(
+  project_id: string,
+  path: string,
+  // [ ] todo: make this required and explicitly called everywhere
+  compute_server_id?: number,
+): string {
   // we have to encode the path, since we query this raw server. see
   // https://github.com/sagemathinc/cocalc/issues/5542
-  // but actually, this is a problem for types of files, not just PDF
+  // but actually, this is a problem for all types of files, not just PDF
   const path_enc = encode_path(path);
-  return join(appBasePath, project_id, "raw", path_enc);
+  let url = join(appBasePath, project_id, "files", path_enc);
+  if (compute_server_id) {
+    url += `?id=${compute_server_id}`;
+  }
+  return url;
 }

@@ -106,13 +106,21 @@ export class ProjectClient {
   public read_file(opts: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
+    compute_server_id?: number;
   }): string {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = HOME_ROOT + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
+    let url = join(
+      base_path,
+      `${opts.project_id}/files/${encode_path(opts.path)}`,
+    );
+    if (opts.compute_server_id) {
+      url += `?id=${opts.compute_server_id}`;
+    }
+    return url;
   }
 
   public async copy_path_between_projects(opts: {
