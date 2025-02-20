@@ -272,16 +272,3 @@ import { API } from "@cocalc/frontend/project/websocket/api";
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }
-
-// Returns the raw URL to read the file from the project.
-export function raw_url_of_file(
-  project_id: string,
-  path: string,
-  compute_server_id?: number,
-): string {
-  return webapp_client.project_client.read_file({
-    project_id,
-    path,
-    compute_server_id,
-  });
-}

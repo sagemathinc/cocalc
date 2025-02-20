@@ -47,7 +47,7 @@ export default function Download({}) {
     setArchiveMode(!!isdir);
     if (!isdir) {
       const store = actions?.get_store();
-      setUrl(store?.get_raw_link(file) ?? "");
+      setUrl(store?.fileURL(file) ?? "");
     }
   }, [checked_files, current_path]);
 

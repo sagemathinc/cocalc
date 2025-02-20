@@ -55,6 +55,7 @@ import {
 } from "./project/page/flyouts/utils";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -556,16 +557,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  get_raw_link = (path, compute_server_id?: number) => {
-    let url = document.URL;
-    url = url.slice(0, url.indexOf("/projects/"));
-    url = `${url}/${this.project_id}/files/${misc.encode_path(path)}`;
-    const computeServerId = compute_server_id ?? this.get("compute_server_id");
-    if (computeServerId) {
-      url += `&id=${computeServerId}`;
-    }
-    return url;
-  };
+  fileURL = (path, compute_server_id?: number) => {
+    return fileURL({
+      project_id: this.project_id,
+      path,
+      compute_server_id: compute_server_id ?? this.get("compute_server_id"),
+    });  };
 
   // returns false, if this project isn't capable of opening a file with the given extension
   async can_open_file_ext(
