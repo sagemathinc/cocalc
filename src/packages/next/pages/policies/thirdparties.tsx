@@ -40,7 +40,7 @@ export default function TermsOfService({ customize }) {
               </p>
               <h2>Essential Services</h2>
               <p>
-                These services support CoCalc's infrastructure, you are likely
+                These services support CoCalc's infrastructure. You are likely
                 using them implicitly whenever you are using CoCalc.
               </p>
               <ul>
