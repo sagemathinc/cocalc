@@ -35,21 +35,12 @@ import {
 } from "@cocalc/nats/files/write";
 
 async function createWriteStream(path: string) {
-  console.log("createWriteStream", { path });
+  // console.log("createWriteStream", { path });
   if (path[0] != "/" && process.env.HOME) {
     path = join(process.env.HOME, path);
   }
   await ensureContainingDirectoryExists(path);
   const stream = fs_createWriteStream(path);
-  stream.on("ready", (data) => {
-    console.log("ready ");
-  });
-  stream.on("close", () => {
-    console.log("done", stream.bytesWritten);
-  });
-  setTimeout(() => {
-    console.log("bytes", stream.bytesWritten);
-  }, 1000);
 
   // TODO: path should be a temporary path to indicate that it is a partial
   // upload, then get moved to path when done or deleted on error.

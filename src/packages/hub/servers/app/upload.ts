@@ -21,7 +21,6 @@ import formidable from "formidable";
 import { PassThrough } from "node:stream";
 import { writeFile as writeFileToProject } from "@cocalc/nats/files/write";
 import { join } from "path";
-import { delay } from "awaiting";
 
 const logger = getLogger("hub:servers:app:upload");
 
@@ -87,7 +86,7 @@ async function handleUploadToProject({
   }
   let errors: string[] = [];
 
-  const state = { done: false };
+  const done = { state: false, cb: () => {} };
   let filename = "noname.txt";
   let stream: any | null = null;
   let chunkStream: any | null = null;
@@ -96,7 +95,6 @@ async function handleUploadToProject({
     hashAlgorithm: "sha1",
     // file = {"size":195,"newFilename":"649205cf239d49f350c645f00.py","originalFilename":"a (2).py","mimetype":"application/octet-stream","hash":"318c0246ae31424f9225b566e7e09bef6c8acc40"}
     fileWriteStreamHandler: (file) => {
-      console.log("fileWriteStreamHandler");
       filename = file?.["originalFilename"] ?? "noname.txt";
       const { chunkStream: chunkStream0, totalStream } = getWriteStream({
         project_id,
@@ -104,20 +102,19 @@ async function handleUploadToProject({
         path,
         filename,
       });
-      console.log("fileWriteStreamHandler: got back chunkstream");
       chunkStream = chunkStream0;
       stream = totalStream;
       (async () => {
         for await (const data of chunkStream) {
           stream.write(data);
         }
-        state.done = true;
+        done.state = true;
+        done.cb();
       })();
       return chunkStream;
     },
   });
 
-  console.log('starting parsing form"');
   const [fields] = await form.parse(req);
   // console.log("form", { fields, files });
   // fields looks like this: {"dzuuid":["ce5fa828-5155-4fa0-b30a-869bd4c956a5"],"dzchunkindex":["1"],"dztotalfilesize":["10000000"],"dzchunksize":["8000000"],"dztotalchunkcount":["2"],"dzchunkbyteoffset":["8000000"]}
@@ -129,19 +126,19 @@ async function handleUploadToProject({
     // @ts-ignore
     (async () => {
       try {
-        console.log("NATS: started writing ", filename);
+        // console.log("NATS: started writing ", filename);
         await writeFileToProject({
           stream,
           project_id,
           compute_server_id,
           path: `${join(path, filename)}.partial-${Math.random()}`,
         });
-        console.log("NATS: finished writing ", filename);
+        // console.log("NATS: finished writing ", filename);
       } catch (err) {
-        console.log("NATS: error ", err);
+        // console.log("NATS: error ", err);
         errors.push(`${err}`);
       } finally {
-        console.log("NATS: freeing write stream");
+        // console.log("NATS: freeing write stream");
         freeWriteStream({
           project_id,
           compute_server_id,
@@ -152,11 +149,14 @@ async function handleUploadToProject({
     })();
   }
   if (index == count - 1) {
-    console.log("finish");
-    while (!state.done) {
-      await delay(100);
+    // console.log("finish");
+    if (!done.state) {
+      done.cb = () => {
+        stream.end();
+      };
+    } else {
+      stream.end();
     }
-    stream.end();
   }
   if (errors.length > 0) {
     res.status(500).send(`upload failed -- ${errors.join(", ")}`);
