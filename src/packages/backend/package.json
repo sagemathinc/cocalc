@@ -10,7 +10,10 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -19,7 +22,12 @@
     "test": "pnpm exec jest --forceExit --detectOpenHandles",
     "prepublishOnly": "pnpm test"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
@@ -40,6 +48,7 @@
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
+    "tmp-promise": "^3.0.3",
     "underscore": "^1.12.1"
   },
   "repository": {

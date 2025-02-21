@@ -63,7 +63,7 @@ async function syncLoop() {
 let dkv: any = null;
 const initDkv = reuseInFlight(async () => {
   const { account_id, project_id } = getClient();
-  console.log({ account_id, project_id, client: getClient() });
+  // console.log({ account_id, project_id, client: getClient() });
   dkv = await createDkv({
     account_id,
     project_id,

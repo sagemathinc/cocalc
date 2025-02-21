@@ -56,13 +56,15 @@ function getWriteSubject({ project_id, compute_server_id }) {
   });
 }
 
-let sub: Subscription | null = null;
-export async function close() {
-  if (sub == null) {
+let subs: { [name: string]: Subscription } = {};
+export async function close({ project_id, compute_server_id }) {
+  const key = getWriteSubject({ project_id, compute_server_id });
+  if (subs[key] == null) {
     return;
   }
+  const sub = subs[key];
+  delete subs[key];
   await sub.drain();
-  sub = null;
 }
 
 export async function createServer({
@@ -70,19 +72,23 @@ export async function createServer({
   compute_server_id,
   createWriteStream,
 }) {
+  const subject = getWriteSubject({ project_id, compute_server_id });
+  let sub = subs[subject];
   if (sub != null) {
     return;
   }
   const { nc } = await getEnv();
-  const subject = getWriteSubject({ project_id, compute_server_id });
   sub = nc.subscribe(subject);
-  listen({ createWriteStream, project_id, compute_server_id });
+  subs[subject] = sub;
+  listen({ sub, createWriteStream, project_id, compute_server_id });
 }
 
-async function listen({ createWriteStream, project_id, compute_server_id }) {
-  if (sub == null) {
-    return;
-  }
+async function listen({
+  sub,
+  createWriteStream,
+  project_id,
+  compute_server_id,
+}) {
   // NOTE: we just handle as many messages as we get in parallel, so this
   // could be a large number of simultaneous downloads. These are all by
   // authenticated users of the project, and the load is on the project,
@@ -99,8 +105,8 @@ async function handleMessage({
   compute_server_id,
 }) {
   let error = "";
+  const { jc } = await getEnv();
   try {
-    const { jc } = await getEnv();
     const { path, name, maxWait } = jc.decode(mesg.data);
     const writeStream = createWriteStream(path);
     writeStream.on("error", (err) => {
@@ -108,6 +114,8 @@ async function handleMessage({
       mesg.respond(jc.encode({ error, status: "error" }));
       console.warn(`error writing ${path}: ${error}`);
     });
+    let chunks = 0;
+    let bytes = 0;
     for await (const chunk of await readFile({
       project_id,
       compute_server_id,
@@ -119,9 +127,11 @@ async function handleMessage({
         return;
       }
       writeStream.write(chunk);
+      chunks += 1;
+      bytes += chunk.length;
     }
     writeStream.end();
-    mesg.respond(jc.encode({ status: "success" }));
+    mesg.respond(jc.encode({ status: "success", bytes, chunks }));
   } catch (err) {
     if (!error) {
       mesg.respond(jc.encode({ error: `${err}`, status: "error" }));
@@ -141,7 +151,7 @@ export async function writeFile({
   path: string;
   stream: Readable;
   maxWait?: number;
-}): Promise<void> {
+}): Promise<{ bytes: number; chunks: number }> {
   const name = randomId();
   try {
     function createReadStream() {
@@ -161,10 +171,11 @@ export async function writeFile({
       jc.encode({ name, path, maxWait }),
       { timeout: maxWait },
     );
-    const { error } = jc.decode(resp.data);
+    const { error, bytes, chunks } = jc.decode(resp.data);
     if (error) {
       throw Error(error);
     }
+    return { bytes, chunks };
   } finally {
     await closeReadService({ project_id, compute_server_id, name });
   }
