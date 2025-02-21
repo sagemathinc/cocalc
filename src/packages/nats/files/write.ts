@@ -142,6 +142,7 @@ async function handleMessage({
   try {
     const { path, name, maxWait } = jc.decode(mesg.data);
     const writeStream = await createWriteStream(path);
+    console.log("created writeStream");
     writeStream.on("error", (err) => {
       error = `${err}`;
       mesg.respond(jc.encode({ error, status: "error" }));
@@ -157,12 +158,16 @@ async function handleMessage({
       maxWait,
     })) {
       if (error) {
+        console.log("error", error);
+        writeStream.end();
         return;
       }
       writeStream.write(chunk);
       chunks += 1;
       bytes += chunk.length;
+      console.log("wrote ", bytes);
     }
+    console.log("ended write stream");
     writeStream.end();
     mesg.respond(jc.encode({ status: "success", bytes, chunks }));
   } catch (err) {

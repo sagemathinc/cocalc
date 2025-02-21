@@ -106,18 +106,30 @@ async function handleMessage(mesg, createReadStream) {
   }
 }
 
+const MAX_NATS_CHUNK_SIZE = 16384 * 16 * 3;
+
+function getSeqHeader(seq) {
+  const h = headers();
+  h.append("seq", `${seq}`);
+  return { headers: h };
+}
+
 async function sendData(mesg, createReadStream) {
   const { jc } = await getEnv();
   const { path } = jc.decode(mesg.data);
   let seq = 0;
-  for await (const chunk of createReadStream(path, {
+  for await (let chunk of createReadStream(path, {
     highWaterMark: 16384 * 16 * 3,
   })) {
-    const h = headers();
-    seq += 1;
-    h.append("seq", `${seq}`);
     // console.log("sending ", { seq, bytes: chunk.length });
-    mesg.respond(chunk, { headers: h });
+    // We must break the chunk into smaller messages or it will
+    // get bounced by nats... TODO: can we get the max
+    // message size from nats?
+    while (chunk.length > 0) {
+      seq += 1;
+      mesg.respond(chunk.slice(0, MAX_NATS_CHUNK_SIZE), getSeqHeader(seq));
+      chunk = chunk.slice(MAX_NATS_CHUNK_SIZE);
+    }
   }
 }
 
