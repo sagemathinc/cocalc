@@ -40,20 +40,22 @@ import { getEnv } from "@cocalc/nats/client";
 import { projectSubject } from "@cocalc/nats/names";
 import { Empty, headers, type Subscription } from "@nats-io/nats-core";
 
-let sub: Subscription | null = null;
-export async function close() {
-  if (sub == null) {
+let subs: { [name: string]: Subscription } = {};
+export async function close({ project_id, compute_server_id, name = "" }) {
+  const key = getSubject({ project_id, compute_server_id, name });
+  if (subs[key] == null) {
     return;
   }
+  const sub = subs[key];
+  delete subs[key];
   await sub.drain();
-  sub = null;
 }
 
-function getSubject({ project_id, compute_server_id }) {
+function getSubject({ project_id, compute_server_id, name = "" }) {
   return projectSubject({
     project_id,
     compute_server_id,
-    service: "files:read",
+    service: `files:read${name ?? ""}`,
   });
 }
 
@@ -61,40 +63,48 @@ export async function createServer({
   createReadStream,
   project_id,
   compute_server_id,
+  name = "",
 }) {
-  if (sub != null) {
-    return;
-  }
-  const { nc } = await getEnv();
   const subject = getSubject({
     project_id,
     compute_server_id,
+    name,
   });
-  // console.log(subject);
-  sub = nc.subscribe(subject);
-  listen(createReadStream);
-}
-
-async function listen(createReadStream) {
-  if (sub == null) {
+  if (subs[subject] != null) {
     return;
   }
+  const { nc } = await getEnv();
+  // console.log(subject);
+  const sub = nc.subscribe(subject);
+  subs[subject] = sub;
+  listen(sub, createReadStream);
+}
+
+async function listen(sub, createReadStream) {
+  // NOTE: we just handle as many messages as we get in parallel, so this
+  // could be a large number of simultaneous downloads. These are all by
+  // authenticated users of the project, and the load is on the project,
+  // so I think that makes sense.
   for await (const mesg of sub) {
-    try {
-      await handleMessage(mesg, createReadStream);
-      const h = headers();
-      h.append("done", "");
-      mesg.respond(Empty, { headers: h });
-    } catch (err) {
-      const h = headers();
-      h.append("error", `${err}`);
-      // console.log("sending ERROR", err);
-      mesg.respond(Empty, { headers: h });
-    }
+    handleMessage(mesg, createReadStream);
   }
 }
 
 async function handleMessage(mesg, createReadStream) {
+  try {
+    await sendData(mesg, createReadStream);
+    const h = headers();
+    h.append("done", "");
+    mesg.respond(Empty, { headers: h });
+  } catch (err) {
+    const h = headers();
+    h.append("error", `${err}`);
+    // console.log("sending ERROR", err);
+    mesg.respond(Empty, { headers: h });
+  }
+}
+
+async function sendData(mesg, createReadStream) {
   const { jc } = await getEnv();
   const { path } = jc.decode(mesg.data);
   let seq = 0;
@@ -111,19 +121,22 @@ async function handleMessage(mesg, createReadStream) {
 
 export async function* readFile({
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   path,
+  name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
 }: {
   project_id: string;
-  compute_server_id: number;
+  compute_server_id?: number;
   path: string;
+  name?: string;
   maxWait?: number;
 }) {
   const { nc, jc } = await getEnv();
   const subject = getSubject({
     project_id,
     compute_server_id,
+    name,
   });
   const v: any = [];
   let seq = 0;

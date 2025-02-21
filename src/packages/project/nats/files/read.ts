@@ -29,8 +29,10 @@ import "@cocalc/project/nats/env"; // ensure nats env available
 import { createReadStream as fs_createReadStream } from "fs";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { join } from "path";
-import { createServer, close } from "@cocalc/nats/files/read";
-export { close };
+import {
+  createServer,
+  close as closeReadServer,
+} from "@cocalc/nats/files/read";
 
 function createReadStream(path: string) {
   if (path[0] != "/" && process.env.HOME) {
@@ -42,4 +44,8 @@ function createReadStream(path: string) {
 // the project should call this on startup:
 export async function init() {
   await createServer({ project_id, compute_server_id, createReadStream });
+}
+
+export async function close() {
+  await closeReadServer({ project_id, compute_server_id });
 }
