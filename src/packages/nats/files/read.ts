@@ -26,7 +26,7 @@ DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
 
-require('@cocalc/backend/nats'); a = require('@cocalc/nats/files/get'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,createReadStream:require('fs').createReadStream})
+require('@cocalc/backend/nats'); a = require('@cocalc/nats/files/read'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,createReadStream:require('fs').createReadStream})
 
 for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,path:'/tmp/a.py'})) { console.log({chunk}); }
 

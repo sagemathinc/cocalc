@@ -22,6 +22,19 @@ Here's how it works from the side of whoever is sending the file:
 - Serve {path} exactly once using the server.  When finish sending {path},
   close it and clean up. We're done.
 
+
+
+DEVELOPMENT:
+
+~/cocalc/src/packages/backend$ node
+
+require('@cocalc/backend/nats'); a = require('@cocalc/nats/files/write');
+
+project_id = '00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'; compute_server_id = 0; await a.createServer({project_id,compute_server_id,createWriteStream:require('fs').createWriteStream});
+
+stream=require('fs').createReadStream('env.ts');
+await a.writeFile({stream, project_id, compute_server_id, path:'/tmp/a.ts'})
+
 */
 
 import { getEnv } from "@cocalc/nats/client";
@@ -92,7 +105,7 @@ async function handleMessage({
     const writeStream = createWriteStream(path);
     writeStream.on("error", (err) => {
       error = `${err}`;
-      mesg.respond({ error, status: "error" });
+      mesg.respond(jc.encode({ error, status: "error" }));
       console.warn(`error writing ${path}: ${error}`);
     });
     for await (const chunk of await readFile({
@@ -108,10 +121,10 @@ async function handleMessage({
       writeStream.write(chunk);
     }
     writeStream.end();
-    mesg.respond({ status: "success" });
+    mesg.respond(jc.encode({ status: "success" }));
   } catch (err) {
     if (!error) {
-      mesg.respond({ error: `${err}`, status: "error" });
+      mesg.respond(jc.encode({ error: `${err}`, status: "error" }));
     }
   }
 }
