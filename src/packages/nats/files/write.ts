@@ -97,6 +97,13 @@ export async function createServer({
   project_id,
   compute_server_id,
   createWriteStream,
+}: {
+  project_id: string;
+  compute_server_id: number;
+  // createWriteStream returns a writeable stream
+  // for writing the specified path to disk.  It
+  // can be an async function.
+  createWriteStream: (path: string) => any;
 }) {
   const subject = getWriteSubject({ project_id, compute_server_id });
   let sub = subs[subject];
@@ -134,7 +141,7 @@ async function handleMessage({
   const { jc } = await getEnv();
   try {
     const { path, name, maxWait } = jc.decode(mesg.data);
-    const writeStream = createWriteStream(path);
+    const writeStream = await createWriteStream(path);
     writeStream.on("error", (err) => {
       error = `${err}`;
       mesg.respond(jc.encode({ error, status: "error" }));
