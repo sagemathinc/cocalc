@@ -4,7 +4,8 @@ Test async streaming writing of files to compute servers using NATS.
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "write.test.ts"
+  pnpm exec jest --watch --forceExit --detectOpenHandles "write.test.ts"
+
 */
 
 import "@cocalc/backend/nats";
@@ -12,6 +13,7 @@ import { close, createServer, writeFile } from "@cocalc/nats/files/write";
 import { createWriteStream, createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";
 import { writeFile as fsWriteFile, readFile } from "fs/promises";
+import { sha1 } from "@cocalc/backend/sha1";
 
 describe("do a basic test that the file writing service works", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
@@ -64,7 +66,7 @@ describe("do a basic test that the file writing service works", () => {
   });
 });
 
-describe("do a more challenging test that involves a larger file thathas to be broken into many chunks", () => {
+describe("do a more challenging test that involves a larger file that has to be broken into many chunks", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
   const compute_server_id = 1;
 
@@ -109,7 +111,9 @@ describe("do a more challenging test that involves a larger file thathas to be b
   it("confirm that the dest file is correct", async () => {
     const d = (await readFile(dest)).toString();
     expect(d.length).toEqual(CONTENT.length);
-    expect(d).toEqual(CONTENT);
+    // not directly comparing, since huge and if something goes wrong the output
+    // saying the test failed is huge.
+    expect(sha1(d)).toEqual(sha1(CONTENT));
   });
 
   it("closes the write server", async () => {

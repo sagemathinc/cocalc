@@ -154,7 +154,7 @@ export async function* readFile({
         bytes = resp.data.length;
         // console.log("received seq", { seq: next, bytes });
         if (next != seq + 1) {
-          throw Error("lost data");
+          throw Error(`lost data: seq=${seq}, next=${next}`);
         }
         seq = next;
       }
