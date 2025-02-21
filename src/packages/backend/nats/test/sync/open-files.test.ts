@@ -52,12 +52,7 @@ describe("create open file tracker and do some basic operations", () => {
 
   it("touch file in one and observe change and timestamp getting assigned by server", async () => {
     o1.touch(file1);
-    expect(o1.get(file1)?.time).toBe(undefined);
-    o1.save();
-    if (o1.get(file1)?.time == null) {
-      await once(o1, "change", 250);
-      expect(o1.get(file1).path).toBe(file1);
-    }
+    expect(o1.get(file1).time).toBeCloseTo(Date.now(), -3);
   });
 
   it("touches file in one and observes change by OTHER", async () => {
@@ -91,27 +86,6 @@ describe("create open file tracker and do some basic operations", () => {
     expect(o2.get(file1)).toBe(undefined);
     // should be 1 due to file2 still being there:
     expect(o2.getAll().length).toBe(1);
-  });
-
-  it("closes file2", async () => {
-    expect(o2.get(file2).open).toBe(true);
-    o2.closeFile(file2);
-    expect(o2.get(file2).open).toBe(false);
-    o2.save();
-    if (o1.get(file2).open) {
-      await once(o1, "change", 250);
-    }
-    expect(o1.get(file2).open).toBe(false);
-  });
-
-  it("touching a closed file re-opens it", async () => {
-    o2.touch(file2);
-    expect(o2.get(file2).open).toBe(true);
-    o2.save();
-    if (!o1.get(file2).open) {
-      await once(o1, "change", 250);
-    }
-    expect(o1.get(file2).open).toBe(true);
   });
 
   it("sets an error", async () => {

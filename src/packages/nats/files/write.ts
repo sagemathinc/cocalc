@@ -2,7 +2,31 @@
 Streaming write over NATS to a project or compute server.
 
 This is a key component to support user uploads, while being memory efficient
-by streaming the write.
+by streaming the write.  Basically it uses NATS to support efficiently doing
+streaming writes of files to any compute server or project that is somehow
+connected to NATS.
+
+INSTRUCTIONS:
+
+Import writeFile:
+
+    import { writeFile } from "@cocalc/nats/files/write";
+
+Now you can write a given path to a project (or compute_server) as
+simply as this:
+
+    const stream = createReadStream('a file')
+    await writeFile({stream, project_id, compute_server_id, path, maxWait})
+
+- Here stream can be any readable stream, not necessarily a stream made using
+  a file.  E.g., you could use PassThrough and explicitly write to it by
+  write calls.
+
+- maxWait is a time in ms after which if the file isn't fully written, everything
+  is cleaned up and there is an error.
+
+
+HOW THIS WORKS:
 
 Here's how this works from the side of the compute server:
 
@@ -25,6 +49,8 @@ Here's how it works from the side of whoever is sending the file:
 
 
 DEVELOPMENT:
+
+See src/packages/backend/nats/test/files/write.test.ts for unit tests.
 
 ~/cocalc/src/packages/backend$ node
 

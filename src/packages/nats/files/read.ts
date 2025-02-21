@@ -24,6 +24,8 @@ over a websocket for compute servers, so would just copy that code.
 
 DEVELOPMENT:
 
+See src/packages/backend/nats/test/files/read.test.ts for unit tests.
+
 ~/cocalc/src/packages/backend$ node
 
 require('@cocalc/backend/nats'); a = require('@cocalc/nats/files/read'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,createReadStream:require('fs').createReadStream})

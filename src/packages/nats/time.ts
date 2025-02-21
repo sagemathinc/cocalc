@@ -21,6 +21,11 @@ getTime();  // -- ms since the epoch
 // once this works you can definitely call getTime henceforth.
 await getSkew();
 
+DEVELOPMENT:
+
+See src/packages/backend/nats/test/time.test.ts for unit tests.
+
+
 */
 
 import { dkv as createDkv } from "@cocalc/nats/sync/dkv";
