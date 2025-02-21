@@ -21,12 +21,9 @@ import { getLogger } from "@cocalc/hub/logger";
 import getAccount from "@cocalc/server/auth/get-account";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import formidable from "formidable";
-import { readFile, unlink } from "fs/promises";
+import { PassThrough } from "node:stream";
 
-const logger = getLogger("hub:servers:app:blob-upload");
-function dbg(...args): void {
-  logger.debug("upload ", ...args);
-}
+const logger = getLogger("hub:servers:app:upload");
 
 export default function init(router: Router) {
   router.post("/upload", async (req, res) => {
@@ -35,7 +32,7 @@ export default function init(router: Router) {
       res.status(500).send("user must be signed in to upload files");
       return;
     }
-    const { project_id, compute_server_id, dest, ttl, blob } = req.query;
+    const { project_id, compute_server_id, path, ttl, blob } = req.query;
     if (!blob || project_id) {
       if (
         typeof project_id != "string" ||
@@ -46,46 +43,43 @@ export default function init(router: Router) {
       }
     }
 
-    dbg({ account_id, project_id, compute_server_id, dest, ttl, blob });
+    logger.debug({
+      account_id,
+      project_id,
+      compute_server_id,
+      path,
+      ttl,
+      blob,
+    });
 
     try {
       const form = formidable({
         keepExtensions: true,
         hashAlgorithm: "sha1",
+        // file = {"size":195,"newFilename":"649205cf239d49f350c645f00.py","originalFilename":"a (2).py","mimetype":"application/octet-stream","hash":"318c0246ae31424f9225b566e7e09bef6c8acc40"}
+        fileWriteStreamHandler: (file) => {
+          logger.debug("fileWriteStreamHandler", file);
+          const stream = new PassThrough();
+          if (file == null) {
+            return stream;
+          }
+
+          // @ts-ignore
+          const { originalFilename: filename, hash } = file;
+          (async () => {
+            for await (const chunk of stream) {
+              logger.debug("stream:", { filename, hash, chunk });
+            }
+          })();
+
+          return stream;
+        },
       });
 
-      dbg("parsing form data...");
-      // https://github.com/node-formidable/formidable?tab=readme-ov-file#parserequest-callback
       const [_, files] = await form.parse(req);
-      //dbg(`finished parsing form data. ${JSON.stringify({ fields, files })}`);
-
-      /* Just for the sake of understanding this, this is how this looks like in the real world (formidable@3):
-      > files.file[0]
-      {
-        size: 80789,
-        filepath: '/home/hsy/p/cocalc/src/data/projects/c8787b71-a85f-437b-9d1b-29833c3a199e/asdf/asdf/8e3e4367333e45275a8d1aa03.png',
-        newFilename: '8e3e4367333e45275a8d1aa03.png',
-        mimetype: 'application/octet-stream',
-        mtime: '2024-04-23T09:25:53.197Z',
-        originalFilename: 'Screenshot from 2024-04-23 09-20-40.png'
-      }
-      */
-      if (files.file?.[0] != null) {
-        const { filepath } = files.file[0];
-        try {
-          dbg("got", files);
-          dbg("got ", await readFile(filepath));
-        } finally {
-          try {
-            await unlink(filepath);
-          } catch (err) {
-            dbg("WARNING -- failed to delete uploaded file", err);
-          }
-        }
-      }
       res.send({ status: "ok", files });
     } catch (err) {
-      dbg("upload failed ", err);
+      logger.debug("upload failed ", err);
       res.status(500).send(`upload failed -- ${err}`);
     }
   });
