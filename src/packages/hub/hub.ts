@@ -511,6 +511,9 @@ async function main(): Promise<void> {
       program.updateDatabaseSchema =
         true;
   }
+  if (process.env.COCALC_DISABLE_NEXT) {
+    program.nextServer = false;
+  }
 
   //console.log("got opts", opts);
 
