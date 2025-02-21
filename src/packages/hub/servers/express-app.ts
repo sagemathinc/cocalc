@@ -22,6 +22,7 @@ import initProxy from "../proxy";
 import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobUpload from "./app/blob-upload";
+import initUpload from "./app/upload";
 import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
@@ -126,6 +127,7 @@ export default async function init(opts: Options): Promise<{
 
   initBlobs(router);
   initBlobUpload(router);
+  initUpload(router);
   initSetCookies(router);
   initNatsServer(router);
   initCustomize(router, opts.isPersonal);

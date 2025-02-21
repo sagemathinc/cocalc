@@ -25,7 +25,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
-import { defaults, encode_path, is_array, merge } from "@cocalc/util/misc";
+import { defaults, is_array, merge } from "@cocalc/util/misc";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -103,19 +103,27 @@ function Header({ close_preview }: { close_preview?: Function }) {
   );
 }
 
-function postUrl(project_id: string, path: string): string {
+function postUrl(
+  project_id: string,
+  path: string,
+  compute_server_id?: number,
+): string {
   if (!project_id) {
     return join(appBasePath, "blobs");
   }
-  const dest_dir = encode_path(path);
-  const compute_server_id = redux
-    .getProjectStore(project_id)
-    .get("compute_server_id");
+  if (compute_server_id == null) {
+    compute_server_id =
+      redux.getProjectStore(project_id).get("compute_server_id") ?? 0;
+  }
   return join(
     appBasePath,
-    project_id,
-    `raw/.smc/upload?dest_dir=${dest_dir}&compute_server_id=${compute_server_id}`,
+    `upload?project_id=${project_id}&compute_server_id=${compute_server_id}&path=${encodeURIComponent(path)}`,
   );
+  //   return join(
+  //     appBasePath,
+  //     project_id,
+  //     `raw/.smc/upload?dest_dir=${dest_dir}&compute_server_id=${compute_server_id}`,
+  //   );
 }
 
 interface FileUploadProps {
