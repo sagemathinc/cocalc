@@ -47,6 +47,7 @@ import {
   type Options as ComputeServerManagerOptions,
 } from "@cocalc/nats/compute/manager";
 import getTime, { getSkew } from "@cocalc/nats/time";
+import { llm } from "@cocalc/nats/llm/client";
 
 export class NatsClient {
   client: WebappClient;
@@ -387,34 +388,10 @@ export class NatsClient {
     return new PubSub({ project_id, path, name, env: await this.getEnv() });
   };
 
-  // Evaluate the llm.  This streams the result if stream is given an option,
+  // Evaluate an llm.  This streams the result if stream is given an option,
   // AND it also always returns the result.
-  llm = async (opts: ChatOptions) => {
-    const { stream, ...options } = opts;
-    const { subject, streamName } = await this.hub.llm.evaluate(options);
-    // making an ephemeral consumer
-    const nc = await this.getConnection();
-    const js = jetstream.jetstream(nc);
-    const jsm = await jetstream.jetstreamManager(nc);
-    const { name } = await jsm.consumers.add(streamName, {
-      filter_subject: subject,
-    });
-    const consumer = await js.consumers.get(streamName, name);
-    const messages = await consumer.fetch();
-    const decoder = new TextDecoder("utf-8");
-    let accumulate = "";
-    for await (const mesg of messages) {
-      if (mesg.data.length == 0) {
-        // done.
-        stream?.(undefined); // indicates done
-        messages.stop();
-        break;
-      }
-      const text = decoder.decode(mesg.data);
-      accumulate += text;
-      stream?.(text);
-    }
-    return accumulate;
+  llm = async (opts: ChatOptions): Promise<string> => {
+    return await llm(opts);
   };
 
   stream = async <T = any,>(

@@ -23,6 +23,7 @@ export interface ChatOptionsApi {
   model?: LanguageModel; // default is defined by server setting default_llm
   tag?: string;
   maxTokens?: number;
+  timeout?: number;
 }
 
 export interface ChatOptions extends ChatOptionsApi {

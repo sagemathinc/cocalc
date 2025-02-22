@@ -4,6 +4,7 @@
   "description": "CoCalc NATS integration code.  Usable by both nodejs and browser.",
   "exports": {
     "./sync/*": "./dist/sync/*.js",
+    "./llm/*": "./dist/llm/*.js",
     "./hub-api": "./dist/hub-api/index.js",
     "./hub-api/*": "./dist/hub-api/*.js",
     "./compute/*": "./dist/compute/*.js",
