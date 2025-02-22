@@ -99,6 +99,7 @@ const DROPSTYLE = {
   borderRadius: "5px",
   padding: 0,
   margin: "10px 0",
+  overflow: "auto",
 } as const;
 
 function Header({ close_preview }: { close_preview?: Function }) {
@@ -362,18 +363,12 @@ export function FileUploadWrapper({
     let style;
     if (!show_upload || files.length === 0) {
       style = { display: "none" };
+    } else {
+      style = {};
     }
-    const box_style = {
-      border: "2px solid #ccc",
-      boxShadow: "4px 4px 2px #bbb",
-      borderRadius: "5px",
-      padding: 0,
-      margin: "10px",
-      minHeight: "40px",
-    } as const;
 
     return (
-      <div style={style}>
+      <div style={style} className={className}>
         <div style={{ position: "relative" }}>
           <div className="close-button" style={CLOSE_BUTTON_STYLE}>
             <span
@@ -395,7 +390,7 @@ export function FileUploadWrapper({
         <div
           ref={preview_ref}
           className="filepicker dropzone"
-          style={box_style}
+          style={DROPSTYLE}
         />
       </div>
     );

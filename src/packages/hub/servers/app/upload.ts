@@ -124,6 +124,8 @@ async function handleUploadToProject({
   // console.log("form", { fields, files });
   // fields looks like this: {"dzuuid":["ce5fa828-5155-4fa0-b30a-869bd4c956a5"],"dzchunkindex":["1"],"dztotalfilesize":["10000000"],"dzchunksize":["8000000"],"dztotalchunkcount":["2"],"dzchunkbyteoffset":["8000000"]}
 
+  // console.log({ filename, fields, path, files });
+
   const index = parseInt(fields.dzchunkindex?.[0] ?? "0");
   const count = parseInt(fields.dztotalchunkcount?.[0] ?? "1");
   const key = JSON.stringify({ path, filename, compute_server_id, project_id });
@@ -142,12 +144,12 @@ async function handleUploadToProject({
           stream,
           project_id,
           compute_server_id,
-          path: join(path, filename),
+          path: join(path, fields.fullPath?.[0] ?? filename),
           maxWait: MAX_UPLOAD_TIME_MS,
         });
-        console.log("NATS: finished writing ", filename);
+        // console.log("NATS: finished writing ", filename);
       } catch (err) {
-        console.log("NATS: error ", err);
+       // console.log("NATS: error ", err);
         errors[key].push(`${err}`);
       } finally {
         // console.log("NATS: freeing write stream");
