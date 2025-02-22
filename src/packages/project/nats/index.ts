@@ -13,6 +13,7 @@ import { init as initOpenFiles } from "./open-files";
 import { init as initWebsocketApi } from "./browser-websocket-api";
 import { init as initListings } from "./listings";
 import { init as initRead } from "./files/read";
+import { init as initWrite } from "./files/write";
 
 const logger = getLogger("project:nats:index");
 
@@ -23,4 +24,5 @@ export default async function init() {
   initWebsocketApi();
   await initListings();
   await initRead();
+  await initWrite();
 }
