@@ -147,6 +147,7 @@ async function handleMessage({
       error = `${err}`;
       mesg.respond(jc.encode({ error, status: "error" }));
       console.warn(`error writing ${path}: ${error}`);
+      writeStream.emit("remove")
     });
     let chunks = 0;
     let bytes = 0;
@@ -167,8 +168,9 @@ async function handleMessage({
       bytes += chunk.length;
       // console.log("wrote ", bytes);
     }
-    // console.log("ended write stream");
+    console.log("ending write stream");
     writeStream.end();
+    writeStream.emit("rename")
     mesg.respond(jc.encode({ status: "success", bytes, chunks }));
   } catch (err) {
     if (!error) {

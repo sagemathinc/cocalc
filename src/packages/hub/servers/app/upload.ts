@@ -34,7 +34,9 @@ export default function init(router: Router) {
     const { project_id, compute_server_id, path = "", ttl, blob } = req.query;
     try {
       if (blob) {
-        await handleBlobUpload({ ttl, req, res });
+        //await handleBlobUpload({ ttl, req, res });
+        console.log(ttl);
+        throw Error("not implemented");
       } else {
         await handleUploadToProject({
           account_id,
@@ -52,9 +54,9 @@ export default function init(router: Router) {
   });
 }
 
-async function handleBlobUpload({ ttl, req, res }) {
-  throw Error("blob handling not implemented");
-}
+// async function handleBlobUpload({ ttl, req, res }) {
+//   throw Error("blob handling not implemented");
+// }
 
 async function handleUploadToProject({
   account_id,
@@ -131,7 +133,7 @@ async function handleUploadToProject({
           stream,
           project_id,
           compute_server_id,
-          path: `${join(path, filename)}.partial-${Math.random()}`,
+          path: join(path, filename),
         });
         // console.log("NATS: finished writing ", filename);
       } catch (err) {

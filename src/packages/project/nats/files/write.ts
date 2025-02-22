@@ -27,12 +27,15 @@ You can also skip step 1 if you instead set COMPUTE_SERVER_ID to something nonze
 import "@cocalc/project/nats/env"; // ensure nats env available
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { createWriteStream as fs_createWriteStream } from "fs";
+import { rename } from "fs/promises";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { join } from "path";
 import {
   createServer,
   close as closeWriteServer,
 } from "@cocalc/nats/files/write";
+import { randomId } from "@cocalc/nats/names";
+import { rimraf } from "rimraf";
 
 async function createWriteStream(path: string) {
   // console.log("createWriteStream", { path });
@@ -40,7 +43,16 @@ async function createWriteStream(path: string) {
     path = join(process.env.HOME, path);
   }
   await ensureContainingDirectoryExists(path);
-  const stream = fs_createWriteStream(path);
+  const partial = path + `.partialupload-${randomId()}`;
+  const stream = fs_createWriteStream(partial);
+  stream.on("remove", async () => {
+    console.log("stream on error");
+    await rimraf(partial);
+  });
+  stream.on("rename", async () => {
+    console.log("stream on end");
+    await rename(partial, path);
+  });
 
   // TODO: path should be a temporary path to indicate that it is a partial
   // upload, then get moved to path when done or deleted on error.
