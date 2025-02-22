@@ -139,15 +139,16 @@ async function handleMessage({
 }) {
   let error = "";
   const { jc } = await getEnv();
+  let writeStream: null | Awaited<ReturnType<typeof createWriteStream>> = null;
   try {
     const { path, name, maxWait } = jc.decode(mesg.data);
-    const writeStream = await createWriteStream(path);
+    writeStream = await createWriteStream(path);
     // console.log("created writeStream");
     writeStream.on("error", (err) => {
       error = `${err}`;
       mesg.respond(jc.encode({ error, status: "error" }));
       console.warn(`error writing ${path}: ${error}`);
-      writeStream.emit("remove")
+      writeStream.emit("remove");
     });
     let chunks = 0;
     let bytes = 0;
@@ -168,13 +169,13 @@ async function handleMessage({
       bytes += chunk.length;
       // console.log("wrote ", bytes);
     }
-    console.log("ending write stream");
     writeStream.end();
-    writeStream.emit("rename")
+    writeStream.emit("rename");
     mesg.respond(jc.encode({ status: "success", bytes, chunks }));
   } catch (err) {
     if (!error) {
       mesg.respond(jc.encode({ error: `${err}`, status: "error" }));
+      writeStream?.emit("remove");
     }
   }
 }

@@ -22,6 +22,9 @@ import { PassThrough } from "node:stream";
 import { writeFile as writeFileToProject } from "@cocalc/nats/files/write";
 import { join } from "path";
 
+// ridiculously long -- effectively no limit.
+const MAX_UPLOAD_TIME_MS = 1000 * 60 * 60 * 24 * 7;
+
 const logger = getLogger("hub:servers:app:upload");
 
 export default function init(router: Router) {
@@ -58,6 +61,8 @@ export default function init(router: Router) {
 //   throw Error("blob handling not implemented");
 // }
 
+const errors: { [key: string]: string[] } = {};
+
 async function handleUploadToProject({
   account_id,
   project_id,
@@ -86,8 +91,6 @@ async function handleUploadToProject({
   if (typeof path != "string") {
     throw Error("path must be given");
   }
-  let errors: string[] = [];
-
   const done = { state: false, cb: () => {} };
   let filename = "noname.txt";
   let stream: any | null = null;
@@ -123,8 +126,14 @@ async function handleUploadToProject({
 
   const index = parseInt(fields.dzchunkindex?.[0] ?? "0");
   const count = parseInt(fields.dztotalchunkcount?.[0] ?? "1");
+  const key = JSON.stringify({ path, filename, compute_server_id, project_id });
+  if (index > 0 && errors?.[key]?.length > 0) {
+    res.status(500).send(`upload failed -- ${errors[key].join(", ")}`);
+    return;
+  }
   if (index == 0) {
-    // start
+    // start brand new upload. this is the only time we clear the errors map.
+    errors[key] = [];
     // @ts-ignore
     (async () => {
       try {
@@ -134,11 +143,12 @@ async function handleUploadToProject({
           project_id,
           compute_server_id,
           path: join(path, filename),
+          maxWait: MAX_UPLOAD_TIME_MS,
         });
-        // console.log("NATS: finished writing ", filename);
+        console.log("NATS: finished writing ", filename);
       } catch (err) {
-        // console.log("NATS: error ", err);
-        errors.push(`${err}`);
+        console.log("NATS: error ", err);
+        errors[key].push(`${err}`);
       } finally {
         // console.log("NATS: freeing write stream");
         freeWriteStream({
@@ -160,8 +170,8 @@ async function handleUploadToProject({
       stream.end();
     }
   }
-  if (errors.length > 0) {
-    res.status(500).send(`upload failed -- ${errors.join(", ")}`);
+  if ((errors[key]?.length ?? 0) > 0) {
+    res.status(500).send(`upload failed -- ${errors[key].join(", ")}`);
   } else {
     res.send({ status: "ok" });
   }

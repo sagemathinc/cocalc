@@ -46,11 +46,9 @@ async function createWriteStream(path: string) {
   const partial = path + `.partialupload-${randomId()}`;
   const stream = fs_createWriteStream(partial);
   stream.on("remove", async () => {
-    console.log("stream on error");
     await rimraf(partial);
   });
   stream.on("rename", async () => {
-    console.log("stream on end");
     await rename(partial, path);
   });
 

@@ -27,9 +27,10 @@ import { BASE_URL } from "@cocalc/frontend/misc";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { defaults, is_array, merge } from "@cocalc/util/misc";
 
-// 3GB upload limit --  since that's the default filesystem quota
-// and it should be plenty?
-const MAX_FILE_SIZE_MB = 3000;
+// very large upload limit -- should be plenty?
+// there is no cost for ingress, and as cocalc is a data plaform
+// people like to upload large data sets.
+const MAX_FILE_SIZE_MB = 50 * 1000;
 
 const CHUNK_SIZE_MB = 8;
 
@@ -61,14 +62,35 @@ given TIMEOUT_S.
 See also the discussion here: https://github.com/sagemathinc/cocalc-docker/issues/92
 */
 
+// The corresponding server is in packages/hub/servers/app/upload.ts and significantly impacts
+// our options!  It uses formidable to capture each chunk and then rewrites it using NATS which
+// reads the data and writes it to disk.
 const UPLOAD_OPTIONS = {
   maxFilesize: MAX_FILE_SIZE_MB,
+  // use chunking data for ALL files -- this is good because it makes our server code simpler.
   forceChunking: true,
   chunking: true,
   chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
-  retryChunks: true, // might as well since it's a little more robust.
-  timeout: 1000 * TIMEOUT_S, // matches what cloudflare imposes on us; this
+
+  // We do NOT support chunk retries, since our server doesn't.  To support this, either our
+  // NATS protocol becomes much more complicated, or our server has to store at least one chunk
+  // in RAM before streaming it, which could potentially lead to a large amount of memory
+  // usage, especially with malicious users.  If users really need a robust way to upload
+  // a *lot* of data, they should use rsync.
+  retryChunks: false,
+
+  // matches what cloudflare imposes on us; this
   // is *per chunk*, so much larger uploads should still work.
+  // This is per chunk:
+  timeout: 1000 * TIMEOUT_S,
+
+  // this is the default, but also I wrote the server (see packages/hub/servers/app/upload.ts) and
+  // it doesn't support parallel chunks, which would use a lot more RAM on the server.  We might
+  // consider this later...
+  parallelChunkUploads: false,
+
+  thumbnailWidth: 240,
+  thumbnailheight: 240,
 };
 
 const DROPSTYLE = {
@@ -91,7 +113,6 @@ function Header({ close_preview }: { close_preview?: Function }) {
         Drag and drop files from your computer
         {close_preview && (
           <Button
-            size="small"
             style={{ marginLeft: "30px" }}
             onClick={() => close_preview()}
           >

@@ -114,6 +114,9 @@ export default function init({ projectControl, isPersonal }: Options) {
         project_id,
         compute_server_id,
         path,
+        // allow a long download time (1 hour), since files can be large and
+        // networks can be slow.
+        maxWait: 1000 * 60 * 60,
       })) {
         if (!res.write(chunk)) {
           // backpressure -- wait for it to resolve
