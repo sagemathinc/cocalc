@@ -11,6 +11,12 @@ Which of the above happens depends on query params.
 
 NOTE:  Code for downloading files from projects/compute servers
 is in the middle of packages/hub/proxy/handle-request.ts
+
+
+I'm sorry the code below is so insane.  It was extremely hard to write
+and involves tricky state in subtle ways all over the place, due to
+how the uploads are chunked and sent in bits by Dropzone, which is absolutely
+necessary due to how cloudflare works.
 */
 
 import { Router } from "express";
@@ -21,6 +27,7 @@ import formidable from "formidable";
 import { PassThrough } from "node:stream";
 import { writeFile as writeFileToProject } from "@cocalc/nats/files/write";
 import { join } from "path";
+import { callback } from "awaiting";
 
 // ridiculously long -- effectively no limit.
 const MAX_UPLOAD_TIME_MS = 1000 * 60 * 60 * 24 * 7;
@@ -62,6 +69,7 @@ export default function init(router: Router) {
 // }
 
 const errors: { [key: string]: string[] } = {};
+const finished: { [key: string]: { state: boolean; cb: () => void } } = {};
 
 async function handleUploadToProject({
   account_id,
@@ -136,6 +144,7 @@ async function handleUploadToProject({
   if (index == 0) {
     // start brand new upload. this is the only time we clear the errors map.
     errors[key] = [];
+    finished[key] = { state: false, cb: () => {} };
     // @ts-ignore
     (async () => {
       try {
@@ -149,7 +158,7 @@ async function handleUploadToProject({
         });
         // console.log("NATS: finished writing ", filename);
       } catch (err) {
-       // console.log("NATS: error ", err);
+        // console.log("NATS: error ", err);
         errors[key].push(`${err}`);
       } finally {
         // console.log("NATS: freeing write stream");
@@ -159,22 +168,37 @@ async function handleUploadToProject({
           path,
           filename,
         });
+        finished[key].state = true;
+        finished[key].cb();
       }
     })();
   }
   if (index == count - 1) {
     // console.log("finish");
     if (!done.state) {
-      done.cb = () => {
-        stream.end();
+      const f = (cb) => {
+        done.cb = cb;
       };
-    } else {
-      stream.end();
+      await callback(f);
     }
+    stream.end();
+    if (!finished[key].state) {
+      const f = (cb) => {
+        finished[key].cb = cb;
+      };
+      await callback(f);
+    }
+    delete finished[key];
   }
   if ((errors[key]?.length ?? 0) > 0) {
-    res.status(500).send(`upload failed -- ${errors[key].join(", ")}`);
+    // console.log("saying upload failed");
+    let e = errors[key].join(", ");
+    if (e.includes("Error: 503")) {
+      e += ", Upload service not running.";
+    }
+    res.status(500).send(`Upload failed: ${e}`);
   } else {
+    // console.log("saying upload worked");
     res.send({ status: "ok" });
   }
 }
