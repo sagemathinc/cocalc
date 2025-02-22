@@ -55,8 +55,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.backblaze.com/company/privacy.html">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.backblaze.com/company/dpa.html">
                         Data Processing Addendum
                       </A>
@@ -74,8 +74,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.cloudflare.com/privacypolicy/">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.cloudflare.com/cloudflare-customer-dpa/">
                         Data Processing Addendum
                       </A>
@@ -95,8 +95,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://cloud.google.com/terms/cloud-privacy-notice">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://cloud.google.com/terms/data-processing-addendum">
                         Data Processing Addendum
                       </A>
@@ -126,8 +126,7 @@ export default function TermsOfService({ customize }) {
                   Shared PII: name, email address, purchase data, account id.
                 </li>
                 <li>
-                  <A href="https://stripe.com/us/privacy">Privacy Policy</A>
-                  and
+                  <A href="https://stripe.com/us/privacy">Privacy Policy</A> and{" "}
                   <A href="https://stripe.com/legal/dpa">
                     Data Processing Agreement
                   </A>
@@ -147,8 +146,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://aws.amazon.com/privacy/">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf">
                         Data Processing Addendum
                       </A>
@@ -163,8 +162,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://cloud.google.com/terms/cloud-privacy-notice">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://cloud.google.com/terms/data-processing-addendum">
                         Data Processing Addendum
                       </A>
@@ -179,8 +178,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.twilio.com/legal/privacy">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.twilio.com/legal/data-protection-addendum">
                         Data Protection Addendum
                       </A>
@@ -195,8 +194,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.zendesk.com/company/agreements-and-terms/privacy-notice/">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.zendesk.com/company/data-processing-form/">
                         Data Processing Agreement
                       </A>
@@ -234,8 +233,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.hyperstack.cloud/privacy-policy">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.hyperstack.cloud/data-processing">
                         Data Processing Agreement
                       </A>
@@ -274,8 +273,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.anthropic.com/legal/privacy">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.anthropic.com/legal/commercial-terms">
                         Data Processing Agreement
                       </A>
@@ -293,8 +292,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://policies.google.com/privacy">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://business.safety.google/processorterms/">
                         Data Processing Addendum
                       </A>
@@ -310,8 +309,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://mistral.ai/terms#privacy-policy">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://mistral.ai/terms#data-processing-agreement">
                         Data Processing Agreement
                       </A>
@@ -329,8 +328,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://openai.com/policies/privacy-policy/">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://openai.com/policies/data-processing-addendum/">
                         Data Processing Addendum
                       </A>
@@ -355,8 +354,8 @@ export default function TermsOfService({ customize }) {
                     <li>
                       <A href="https://www.salesloft.com/legal/privacy-notice">
                         Privacy Policy
-                      </A>
-                      and
+                      </A>{" "}
+                      and{" "}
                       <A href="https://www.salesloft.com/legal/data-processing-addendum">
                         Data Processing Addendum
                       </A>
