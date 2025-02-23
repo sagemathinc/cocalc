@@ -13,7 +13,11 @@ export interface JupyterApi {
   kernel_info: () => Promise<KernelInfo>;
   more_output: (id: string) => Promise<any[]>;
   complete: (opts: { code: string; cursor_pos: number }) => Promise<any>;
-  introspect: (opts: { code: string; cursor_pos: number }) => Promise<any>;
+  introspect: (opts: {
+    code: string;
+    cursor_pos: number;
+    level: 0 | 1;
+  }) => Promise<any>;
   store: (opts: { key: string; value?: any }) => Promise<any>;
   comm: (opts: {
     msg_id: string;
@@ -23,7 +27,7 @@ export interface JupyterApi {
     buffers64?: string[];
     buffers?: Buffer[];
   }) => Promise<void>;
-  "ipywidgets-get-buffer": (opts: {
+  ipywidgetsGetBuffer: (opts: {
     model_id;
     buffer_path;
   }) => Promise<{ buffer64: string }>;

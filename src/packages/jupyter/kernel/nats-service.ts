@@ -94,7 +94,7 @@ export async function initNatsService({
       getExistingKernel().send_comm_message_to_kernel(opts);
     },
 
-    "ipywidgets-get-buffer": async ({ model_id, buffer_path }) => {
+    ipywidgetsGetBuffer: async ({ model_id, buffer_path }) => {
       const buffer = getExistingKernel().ipywidgetsGetBuffer(
         model_id,
         buffer_path,

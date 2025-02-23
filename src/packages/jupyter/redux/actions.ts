@@ -42,7 +42,6 @@ import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { debounce } from "lodash";
 import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
-import { type JupyterApiEndpoint } from "@cocalc/nats/service/jupyter";
 
 const { close, required, defaults } = misc;
 
@@ -192,28 +191,12 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  api = (opts: { timeout?: number } = {}) => {
+  protected api = (opts: { timeout?: number } = {}) => {
     return jupyterApiClient({
       project_id: this.project_id,
       path: this.path,
       timeout: opts.timeout,
     });
-  };
-
-  protected api_call = async (
-    endpoint: JupyterApiEndpoint,
-    query?: any,
-    timeout_ms?: number,
-  ) => {
-    if (this._state === "closed") {
-      throw Error("closed -- jupyter actions -- api_call");
-    }
-    const client = jupyterApiClient({
-      project_id: this.project_id,
-      path: this.path,
-      timeout: timeout_ms,
-    });
-    return await client[endpoint](query);
   };
 
   protected dbg = (f: string) => {
@@ -278,7 +261,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     reuseInFlight(async (): Promise<void> => {
       let data;
       const f = async () => {
-        data = await this.api_call("kernels", undefined, 5000);
+        const api = this.api({ timeout: 5000 });
+        data = await api.kernels();
         if (this._state === "closed") {
           return;
         }
@@ -918,7 +902,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
-      await this.api_call("save_ipynb_file", {});
+      await this.api().save_ipynb_file();
       if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
@@ -1656,7 +1640,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const start = new Date();
     let complete;
     try {
-      complete = await this.api_call("complete", {
+      complete = await this.api().complete({
         code,
         cursor_pos,
       });
@@ -1813,7 +1797,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     let introspect;
     try {
-      introspect = await this.api_call("introspect", {
+      introspect = await this.api().introspect({
         code,
         cursor_pos,
         level,
@@ -1939,9 +1923,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") {
         return;
       }
-      const data = await this.api_call("kernel_info", {});
+      const data = await this.api().kernel_info();
       this.setState({
-        backend_kernel_info: data,
+        backend_kernel_info: immutable.fromJS(data),
         // this is when the server for this doc started, not when kernel last started!
         start_time: data.start_time,
       });
@@ -2015,7 +1999,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   async fetch_more_output(id: string): Promise<void> {
     const time = this._client.server_time().valueOf();
     try {
-      const more_output = await this.api_call("more_output", { id: id }, 60000);
+      const more_output = await this.api({ timeout: 60000 }).more_output(id);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
         // make output area scrolled, since there is going to be a lot of output
         this.toggle_output(id, "scrolled");
@@ -2108,7 +2092,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     value: any,
   ): Promise<void> => {
     try {
-      await this.api_call("store", { key, value });
+      await this.api().store({ key, value });
     } catch (err) {
       this.set_error(err);
     }

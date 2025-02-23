@@ -473,14 +473,14 @@ export class JupyterActions extends JupyterActions0 {
       buffers64 = [];
     }
     const msg = { msg_id, target_name, comm_id, data, buffers64 };
-    await this.api_call("comm", msg);
+    await this.api().comm(msg);
     // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
   };
 
   ipywidgetsGetBuffer = reuseInFlight(
     async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
-      const { buffer64 } = await this.api_call("ipywidgets-get-buffer", {
+      const { buffer64 } = await this.api().ipywidgetsGetBuffer({
         model_id,
         buffer_path,
       });
@@ -637,7 +637,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     let error;
     try {
-      error = await this.api_call("store", { key });
+      error = await this.api().store({ key });
     } catch (err) {
       this.set_error(err);
       return;
