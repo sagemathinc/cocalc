@@ -100,6 +100,9 @@ class ClientDB {
     rows: object[] | object;
   }) => {
     let t = SCHEMA[table];
+    if (t == null) {
+      return;
+    }
     if (typeof t.virtual == "string") {
       t = SCHEMA[t.virtual];
     }
