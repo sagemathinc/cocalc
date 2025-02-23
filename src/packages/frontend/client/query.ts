@@ -8,6 +8,7 @@ import { validate_client_query } from "@cocalc/util/schema-validate";
 import { CB } from "@cocalc/util/types/database";
 import { NatsChangefeed } from "@cocalc/sync/table/changefeed-nats";
 import { uuid } from "@cocalc/util/misc";
+import { client_db } from "@cocalc/util/schema";
 
 declare const $: any; // jQuery
 
@@ -73,6 +74,12 @@ export class QueryClient {
           query: opts.query,
           options: opts.options,
         });
+
+        // deal with timestamp versus Date and JSON using our schema.
+        for (const table in query) {
+          client_db.processDates({ table, rows: query[table] });
+        }
+
         if (opts.cb == null) {
           return { query };
         } else {
