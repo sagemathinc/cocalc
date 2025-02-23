@@ -19,7 +19,7 @@ EVENTS:
 - ... TODO
 */
 
-const USE_NATS = true && !process.env.COCALC_TEST_MODE;
+const USE_NATS = true;
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
@@ -111,7 +111,7 @@ import {
   FileWatcher,
   Patch,
 } from "./types";
-import { patch_cmp } from "./util";
+import { isTestClient, patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 
@@ -282,10 +282,11 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
-    // NOTE: Do not use nats in test mode, since there we use a minimal "fake" client
-    // that does all communication internally without a network.
 
-    this.useNats = USE_NATS;
+    // NOTE: Do not use nats in test mode, since there we use a minimal
+    // "fake" client that does all communication internally and doesn't
+    // use nats.  We also use this for the messages composer.
+    this.useNats = USE_NATS && !isTestClient(opts.client);
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether

@@ -40,6 +40,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Changefeed } from "./changefeed";
 import { NatsChangefeed } from "./changefeed-nats";
 import { parse_query, to_key } from "./util";
+import { isTestClient } from "@cocalc/sync/editor/generic/util";
 
 import type { Client } from "@cocalc/sync/client/types";
 export type { Client };
@@ -734,7 +735,12 @@ export class SyncTable extends EventEmitter {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
-      if (USE_NATS && this.client.is_browser() && !this.project_id) {
+      if (
+        USE_NATS &&
+        !isTestClient(this.client) &&
+        this.client.is_browser() &&
+        !this.project_id
+      ) {
         this.changefeed = new NatsChangefeed({
           client: this.client,
           query: this.query,
