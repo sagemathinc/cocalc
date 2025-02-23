@@ -7,7 +7,7 @@ import type { KernelInfo, KernelSpec } from "@cocalc/util/jupyter/types";
 
 const service = "api";
 
-interface JupyterApi {
+export interface JupyterApi {
   signal: (signal: string) => Promise<void>;
   save_ipynb_file: () => Promise<void>;
   kernel_info: () => Promise<KernelInfo>;

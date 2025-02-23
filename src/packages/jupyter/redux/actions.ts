@@ -192,15 +192,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  /*
-  When the Syncdoc for Jupyter that is responsible for running computations
-  starts, it creates this service.
-  */
-  protected async api_call(
+  api = (opts: { timeout?: number } = {}) => {
+    return jupyterApiClient({
+      project_id: this.project_id,
+      path: this.path,
+      timeout: opts.timeout,
+    });
+  };
+
+  protected api_call = async (
     endpoint: JupyterApiEndpoint,
     query?: any,
     timeout_ms?: number,
-  ) {
+  ) => {
     if (this._state === "closed") {
       throw Error("closed -- jupyter actions -- api_call");
     }
@@ -210,7 +214,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       timeout: timeout_ms,
     });
     return await client[endpoint](query);
-  }
+  };
 
   protected dbg = (f: string) => {
     if (this.is_closed()) {
@@ -1836,9 +1840,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {
-    // TODO: more setStates, awaits, and UI to reflect this happening...
+    const api = this.api({ timeout: 5000 });
     try {
-      await this.api_call("signal", { signal }, 5000);
+      await api.signal(signal);
     } catch (err) {
       this.set_error(err);
     }
