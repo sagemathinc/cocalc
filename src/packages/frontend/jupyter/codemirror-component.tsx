@@ -75,7 +75,6 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       getValueRef,
       setShowAICellGen,
     } = props;
-
     const is_mounted = useIsMountedRef();
 
     // coordinates if static input was just clicked on
