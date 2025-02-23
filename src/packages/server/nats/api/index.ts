@@ -115,7 +115,6 @@ async function handleApiRequest(request, mesg) {
 
 import * as purchases from "./purchases";
 import * as db from "./db";
-import * as llm from "./llm";
 import * as system from "./system";
 import * as projects from "./projects";
 
@@ -123,7 +122,6 @@ export const hubApi: HubApi = {
   system,
   projects,
   db,
-  llm,
   purchases,
 };
 

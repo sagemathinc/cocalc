@@ -7,6 +7,7 @@ Client for the nats server in server.ts.
 import { getEnv } from "@cocalc/nats/client";
 import type { ChatOptionsApi } from "@cocalc/util/types/llm";
 import { isValidUUID } from "@cocalc/util/misc";
+import { llmSubject } from "./server";
 
 export async function llm(
   options: ChatOptionsApi & { stream?: (text: string) => void },
@@ -18,7 +19,7 @@ export async function llm(
   if (!isValidUUID(options.account_id)) {
     throw Error("account_id must be a valid uuid");
   }
-  const subject = `llm.account-${options.account_id}`;
+  const subject = llmSubject({ account_id: options.account_id });
 
   let all = "";
   let lastSeq = -1;

@@ -391,7 +391,7 @@ export class NatsClient {
   // Evaluate an llm.  This streams the result if stream is given an option,
   // AND it also always returns the result.
   llm = async (opts: ChatOptions): Promise<string> => {
-    return await llm(opts);
+    return await llm({ account_id: this.client.account_id, ...opts });
   };
 
   stream = async <T = any,>(
