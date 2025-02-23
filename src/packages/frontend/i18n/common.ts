@@ -640,7 +640,7 @@ export const labels = defineMessages({
   },
   message_plural: {
     id: "labels.message.plural",
-    defaultMessage: "{num, plural, one {message} other {messages}}",
+    defaultMessage: "{num, plural, one {Message} other {Messages}}",
   },
   reconnect: {
     id: "labels.reconnect",

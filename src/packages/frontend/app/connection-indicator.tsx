@@ -21,6 +21,7 @@ import {
   TOP_BAR_ELEMENT_CLASS,
 } from "./top-nav-consts";
 import { blur_active_element } from "./util";
+import type { ConnectionStatus } from "./store";
 
 interface Props {
   height: number; // px
@@ -40,9 +41,12 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
 
     const intl = useIntl();
-    const connection_status = useTypedRedux("page", "connection_status");
+    const hub_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
+    const nats = useTypedRedux("page", "nats");
+    const nats_status = nats?.get("state") ?? "disconnected";
+    const connection_status = worst(hub_status, nats_status);
 
     const connecting_style: CSS = {
       flex: "1",
@@ -118,3 +122,15 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     );
   },
 );
+
+function worst(a?: ConnectionStatus, b?: ConnectionStatus): ConnectionStatus {
+  if (a == null || b == null) {
+    return "disconnected";
+  }
+  for (const x of ["disconnected", "connecting", "connected"]) {
+    if (a == x || b == x) {
+      return x;
+    }
+  }
+  return a;
+}

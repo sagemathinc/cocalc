@@ -82,6 +82,7 @@ export class NatsClient {
       if ((this.nc as any).protocol?.isClosed?.()) {
         // cause a reconnect.
         delete this.nc;
+        this.setConnectionState("disconnected");
       } else {
         return this.nc;
       }
@@ -101,8 +102,45 @@ export class NatsClient {
       this.nc = await nats.connect(options);
     }
     console.log(`NATS: connected to ${server}`);
+    this.monitorConnectionStatus(this.nc);
     return this.nc;
   });
+
+  private setConnectionState = (state) => {
+    const page = redux?.getActions("page");
+    if (page == null) {
+      return;
+    }
+    page.setState({
+      nats: {
+        state,
+        data: this.natsDataTransfer(),
+      },
+    } as any);
+  };
+
+  private monitorConnectionStatus = async (nc) => {
+    this.setConnectionState("connected");
+    for await (const { type } of nc.status()) {
+      if (type.includes("ping") || type == "update" || type == "reconnect") {
+        // connection is working well
+        this.setConnectionState("connected");
+      } else if (type == "reconnecting") {
+        this.setConnectionState("connecting");
+      }
+    }
+  };
+
+  private natsDataTransfer = (): {
+    inBytes?: number;
+    inMsgs?: number;
+    outBytes?: number;
+    outMsgs?: number;
+  } => {
+    // @ts-ignore: undocumented API
+    const { inBytes, inMsgs, outBytes, outMsgs } = this.nc?.protocol ?? {};
+    return { inBytes, inMsgs, outBytes, outMsgs };
+  };
 
   callNatsService: CallNatsServiceFunction = async (options) => {
     return await callNatsService({ ...options, env: await this.getEnv() });
