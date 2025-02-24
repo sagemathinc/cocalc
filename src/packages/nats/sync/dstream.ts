@@ -34,11 +34,14 @@ import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
+import { streamInventory, THROTTLE_MS } from "./inventory";
+import { throttle } from "lodash";
 
 const MAX_PARALLEL = 250;
 
 export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
+  noInventory?: boolean;
 }
 
 export class DStream<T = any> extends EventEmitter {
@@ -50,9 +53,11 @@ export class DStream<T = any> extends EventEmitter {
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: { mesg: T; subject?: string } } = {};
   private saved: { [seq: number]: T } = {};
+  private opts;
 
   constructor(opts: DStreamOptions) {
     super();
+    this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
     this.stream = new Stream(opts);
@@ -161,6 +166,7 @@ export class DStream<T = any> extends EventEmitter {
     if (!this.noAutosave) {
       this.save();
     }
+    this.updateInventory();
   };
 
   push = (...args: T[]) => {
@@ -238,6 +244,36 @@ export class DStream<T = any> extends EventEmitter {
     }
     await this.stream.load(opts);
   };
+
+  private updateInventory = throttle(
+    async () => {
+      if (this.stream == null || this.opts.noInventory) {
+        return;
+      }
+      try {
+        const { account_id, project_id } = this.opts;
+        const inventory = await streamInventory({ account_id, project_id });
+        const name = this.opts.name;
+        if (!inventory.needsUpdate(name)) {
+          return;
+        }
+        const stats = this.stream.stats();
+        if (stats == null) {
+          return;
+        }
+        const { messages, bytes } = stats;
+        inventory.set({ name, messages, bytes });
+      } catch (err) {
+        console.log(
+          "WARNING: unable to update inventory for ",
+          this.opts.name,
+          err,
+        );
+      }
+    },
+    THROTTLE_MS,
+    { leading: false, trailing: true },
+  );
 }
 
 const cache = refCache<UserStreamOptions, DStream>({

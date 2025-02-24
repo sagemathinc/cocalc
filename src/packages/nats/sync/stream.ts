@@ -455,6 +455,19 @@ export class Stream<T = any> extends EventEmitter {
     this.raw.splice(0, index + 1);
   };
 
+  stats = (): { messages: number; bytes: number } | undefined => {
+    if (this.raw == null) {
+      return;
+    }
+    let messages = 0;
+    let bytes = 0;
+    for (const raw of this.raw) {
+      messages += 1;
+      bytes += raw.data.length;
+    }
+    return { messages, bytes };
+  };
+
   // ensure any limits are satisfied, i.e., delete old messages.
   private enforceLimits = throttle(
     reuseInFlight(async () => {

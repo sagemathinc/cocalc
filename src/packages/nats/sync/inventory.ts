@@ -223,22 +223,22 @@ export class InventoryOfStreams {
   ls = () => {
     const all = this.getAll();
     console.log(
-      "╭──────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
+      "╭─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
     console.log(
-      `│ ${padRight("Name", 27)} │ ${padRight("Created", 20)} │ ${padRight("Bytes", 15)} │ ${padRight("Messages", 15)} │ ${padRight("Last Update", 20)} │`,
+      `│ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Bytes", 15)} │ ${padRight("Messages", 15)} │ ${padRight("Last Update", 20)} │`,
     );
     console.log(
-      "├──────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
+      "├─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
     for (const name in all) {
       const { last, created, messages, bytes } = all[name];
       console.log(
-        `│ ${padRight(name, 27)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(messages, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
+        `│ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(messages, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
     }
     console.log(
-      "╰──────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
+      "╰─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
     );
   };
 }
