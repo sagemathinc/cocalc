@@ -48,6 +48,7 @@ import {
 } from "@cocalc/nats/compute/manager";
 import getTime, { getSkew } from "@cocalc/nats/time";
 import { llm } from "@cocalc/nats/llm/client";
+import { inventory } from "@cocalc/nats/sync/inventory";
 
 export class NatsClient {
   client: WebappClient;
@@ -503,6 +504,20 @@ export class NatsClient {
 
   getSkew = async (): Promise<number> => {
     return await getSkew();
+  };
+
+  inventory = async (location: {
+    account_id?: string;
+    project_id?: string;
+  }) => {
+    const inv = await inventory(location);
+    // @ts-ignore
+    if (console.log_original != null) {
+      const ls_orig = inv.ls;
+      // @ts-ignore
+      inv.ls = (opts) => ls_orig({ ...opts, log: console.log_original });
+    }
+    return inv;
   };
 }
 

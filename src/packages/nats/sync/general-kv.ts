@@ -495,17 +495,17 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
   };
 
-  stats = (): { keys: number; bytes: number } | undefined => {
+  stats = (): { count: number; bytes: number } | undefined => {
     if (this.sizes == null) {
       return;
     }
-    let keys = 0;
+    let count = 0;
     let bytes = 0;
     for (const key in this.sizes) {
-      keys += 1;
+      count += 1;
       bytes += this.sizes[key];
     }
-    return { keys, bytes };
+    return { count, bytes };
   };
 
   // ensure any limits are satisfied, always by deleting old keys

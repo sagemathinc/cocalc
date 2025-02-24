@@ -108,7 +108,7 @@ export interface StreamOptions {
   subjects: string | string[];
   subject?: string;
   filter?: string;
-  env: NatsEnv;
+  env?: NatsEnv;
   natsStreamOptions?;
   limits?: Partial<FilteredStreamLimitOptions>;
   // only load historic messages starting at the given seq number.
@@ -146,6 +146,9 @@ export class Stream<T = any> extends EventEmitter {
     start_seq,
   }: StreamOptions) {
     super();
+    if (env == null) {
+      throw Error("bug: env must be specified");
+    }
     this.env = env;
     // create a jetstream client so we can publish to the stream
     this.js = jetstream(env.nc);
@@ -457,17 +460,17 @@ export class Stream<T = any> extends EventEmitter {
     this.raw.splice(0, index + 1);
   };
 
-  stats = (): { messages: number; bytes: number } | undefined => {
+  stats = (): { count: number; bytes: number } | undefined => {
     if (this.raw == null) {
       return;
     }
-    let messages = 0;
+    let count = 0;
     let bytes = 0;
     for (const raw of this.raw) {
-      messages += 1;
+      count += 1;
       bytes += raw.data.length;
     }
-    return { messages, bytes };
+    return { count, bytes };
   };
 
   // ensure any limits are satisfied, i.e., delete old messages.
@@ -582,8 +585,8 @@ export class Stream<T = any> extends EventEmitter {
 // Use the filters to restrict, e.g., to message about a particular file.
 
 export interface UserStreamOptions {
-  env: NatsEnv;
   name: string;
+  env?: NatsEnv;
   account_id?: string;
   project_id?: string;
   limits?: Partial<FilteredStreamLimitOptions>;

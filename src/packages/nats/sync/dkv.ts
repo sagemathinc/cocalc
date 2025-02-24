@@ -23,7 +23,7 @@ import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
-import { kvInventory, THROTTLE_MS } from "./inventory";
+import { inventory, THROTTLE_MS } from "./inventory";
 import { throttle } from "lodash";
 
 export interface DKVOptions extends KVOptions {
@@ -285,17 +285,17 @@ export class DKV<T = any> extends EventEmitter {
         return;
       }
       try {
-        const inventory = await kvInventory(this.opts.location);
+        const inv = await inventory(this.opts.location);
         const name = this.opts.originalName;
-        if (!inventory.needsUpdate(name)) {
+        if (!inv.needsUpdate({ name, type: "kv" })) {
           return;
         }
         const stats = this.generalDKV.stats();
         if (stats == null) {
           return;
         }
-        const { keys, bytes } = stats;
-        inventory.set({ name, keys, bytes, desc: this.opts.desc });
+        const { count, bytes } = stats;
+        inv.set({ type: "kv", name, count, bytes, desc: this.opts.desc });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",

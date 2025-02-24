@@ -34,7 +34,7 @@ import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
-import { streamInventory, THROTTLE_MS } from "./inventory";
+import { inventory, THROTTLE_MS } from "./inventory";
 import { throttle } from "lodash";
 
 const MAX_PARALLEL = 250;
@@ -259,17 +259,17 @@ export class DStream<T = any> extends EventEmitter {
       }
       try {
         const { account_id, project_id, desc } = this.opts;
-        const inventory = await streamInventory({ account_id, project_id });
+        const inv = await inventory({ account_id, project_id });
         const name = this.opts.name;
-        if (!inventory.needsUpdate(name)) {
+        if (!inv.needsUpdate({ name, type: "stream" })) {
           return;
         }
         const stats = this.stream.stats();
         if (stats == null) {
           return;
         }
-        const { messages, bytes } = stats;
-        inventory.set({ name, messages, bytes, desc });
+        const { count, bytes } = stats;
+        inv.set({ type: "stream", name, count, bytes, desc });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",

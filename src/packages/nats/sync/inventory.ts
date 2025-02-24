@@ -5,9 +5,11 @@ Inventory of all streams and key:value stores in a specific project, account or 
 */
 
 import { dkv, type DKV } from "./dkv";
+import { dstream } from "./dstream";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
+import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
 
 export const THROTTLE_MS = 5000;
 
@@ -16,22 +18,24 @@ interface Location {
   project_id?: string;
 }
 
-interface KVInfo {
+type StoreType = "kv" | "stream";
+
+interface Item {
   // when it was created
   created: number;
   // last time this kv-store was updated
   last: number;
   // how much space is used by this kv-store
   bytes: number;
-  // number of keys
-  keys: number;
+  // number of keys or messages
+  count: number;
   // optional description, which can be anything
   desc?: JSONValue;
 }
 
-export class InventoryOfKVs {
+export class Inventory {
   public location: Location;
-  private dkv?: DKV<KVInfo>;
+  private dkv?: DKV<Item>;
 
   constructor(location: { account_id?: string; project_id?: string }) {
     this.location = location;
@@ -39,48 +43,92 @@ export class InventoryOfKVs {
 
   init = async () => {
     this.dkv = await dkv({
-      name: "kv-inventory",
+      name: "inventory",
       ...this.location,
     });
   };
 
   set = ({
+    type,
     name,
     bytes,
-    keys,
+    count,
     desc,
   }: {
+    type: StoreType;
     name: string;
     bytes: number;
-    keys: number;
+    count: number;
     desc?: JSONValue;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
     const last = getTime();
-    const cur = this.dkv.get(name);
+    const cur = this.dkv.get(this._key({ name, type }));
     const created = cur?.created ?? last;
     desc = desc ?? cur?.desc;
-    this.dkv.set(name, { desc, last, created, bytes, keys });
+    this.dkv.set(this._key({ name, type }), {
+      desc,
+      last,
+      created,
+      bytes,
+      count,
+    });
   };
 
-  delete = (name: string) => {
+  private _key = ({ name, type }) => `${name}-${type}`;
+
+  delete = ({ name, type }: { name: string; type: StoreType }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    this.dkv.delete(name);
+    this.dkv.delete(this._key({ name, type }));
   };
 
-  get = (name: string) => {
+  // Get but with NO LIMITS and no MERGE conflict algorithm. Use with care!
+  get = async (x: { name: string; type: StoreType } | string) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    return this.dkv.get(name);
+    let cur;
+    let name, type;
+    if (typeof x == "string") {
+      // just the name -- we infer the type
+      name = x;
+      type = "kv";
+      cur = this.dkv.get(this._key({ name, type }));
+      if (cur == null) {
+        type = "stream";
+        cur = this.dkv.get(this._key({ name, type }));
+      }
+    } else {
+      ({ name, type } = x);
+      cur = this.dkv.get(this._key({ name, type }));
+    }
+    if (cur == null) {
+      throw Error(`no ${type} named ${name}`);
+    }
+    if (type == "kv") {
+      return await dkv({ name, ...this.location, desc: cur.desc });
+    } else if (type == "stream") {
+      return await dstream({ name, ...this.location, desc: cur.desc });
+    } else {
+      throw Error(`unknown type '${type}'`);
+    }
   };
 
-  needsUpdate = (name: string): boolean => {
-    const cur = this.get(name);
+  needsUpdate = ({
+    name,
+    type,
+  }: {
+    name: string;
+    type: StoreType;
+  }): boolean => {
+    if (this.dkv == null) {
+      return false;
+    }
+    const cur = this.dkv.get(this._key({ name, type }));
     if (cur == null) {
       return true;
     }
@@ -101,28 +149,31 @@ export class InventoryOfKVs {
     this.dkv?.close();
   };
 
-  ls = () => {
+  ls = ({ log = console.log }: { log?: Function } = {}) => {
     const all = this.getAll();
-    console.log(
-      "╭──────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
+    log(
+      "╭────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
-    console.log(
-      `│ ${padRight("Name", 27)} │ ${padRight("Created", 20)} │ ${padRight("Bytes", 15)} │ ${padRight("Values", 15)} │ ${padRight("Last Update", 20)} │`,
+    log(
+      `│ ${padRight("Type", 5)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Messages/Keys", 15)} │ ${padRight("Last Update", 20)} │`,
     );
-    console.log(
-      "├──────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
+    log(
+      "├────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
-    for (const name in all) {
-      const { last, created, keys, bytes, desc } = all[name];
-      console.log(
-        `│ ${padRight(name, 27)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(keys, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
+    for (const name_type in all) {
+      const { last, created, count, bytes, desc } = all[name_type];
+      let i = name_type.lastIndexOf("-");
+      const name = i == -1 ? name_type : name_type.slice(0, i);
+      const type = i == -1 ? "-" : name_type.slice(i + 1);
+      log(
+        `│ ${padRight(type ?? "-", 5)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
       if (desc) {
-        console.log(`│${JSON.stringify(desc)}`);
+        log(`│        │   ${JSON.stringify(desc)}`);
       }
     }
-    console.log(
-      "╰──────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
+    log(
+      "╰────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
     );
   };
 }
@@ -141,138 +192,14 @@ function padRight(s: any, n) {
   return s;
 }
 
-export const cacheKv = refCache<
-  Location & { noCache?: boolean },
-  InventoryOfKVs
->({
+export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
   createObject: async (loc) => {
-    const k = new InventoryOfKVs(loc);
+    const k = new Inventory(loc);
     await k.init();
     return k;
   },
 });
 
-export async function kvInventory(options: Location): Promise<InventoryOfKVs> {
-  return await cacheKv(options);
-}
-
-interface StreamInfo {
-  // when it was created
-  created: number;
-  // last time this stream was updated
-  last: number;
-  // how much space is used by this stream
-  bytes: number;
-  // number of messages
-  messages: number;
-  desc?: JSONValue;
-}
-
-export class InventoryOfStreams {
-  public location: Location;
-  private dkv?: DKV<StreamInfo>;
-
-  constructor(location: Location) {
-    this.location = location;
-  }
-
-  init = async () => {
-    this.dkv = await dkv({ name: "stream-inventory", ...this.location });
-  };
-
-  set = ({
-    name,
-    bytes,
-    messages,
-    desc,
-  }: {
-    name: string;
-    bytes: number;
-    messages: number;
-    desc?: JSONValue;
-  }) => {
-    if (this.dkv == null) {
-      throw Error("not initialized");
-    }
-    const last = getTime();
-    const cur = this.dkv.get(name);
-    const created = cur?.created ?? last;
-    desc = desc ?? cur?.desc;
-    this.dkv.set(name, { desc, last, created, bytes, messages });
-  };
-
-  delete = (name: string) => {
-    if (this.dkv == null) {
-      throw Error("not initialized");
-    }
-    this.dkv.delete(name);
-  };
-
-  get = (name: string) => {
-    if (this.dkv == null) throw Error("not initialized");
-    return this.dkv.get(name);
-  };
-
-  needsUpdate = (name: string): boolean => {
-    const cur = this.get(name);
-    if (cur == null) {
-      return true;
-    }
-    if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
-      return true;
-    }
-    return false;
-  };
-
-  getAll = () => {
-    if (this.dkv == null) throw Error("not initialized");
-    return this.dkv.getAll();
-    console.log("getAll");
-  };
-
-  close = () => {
-    this.dkv?.close();
-  };
-
-  ls = () => {
-    const all = this.getAll();
-    console.log(
-      "╭─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
-    );
-    console.log(
-      `│ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Bytes", 15)} │ ${padRight("Messages", 15)} │ ${padRight("Last Update", 20)} │`,
-    );
-    console.log(
-      "├─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
-    );
-    for (const name in all) {
-      const { last, created, messages, bytes, desc } = all[name];
-      console.log(
-        `│ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(messages, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
-      );
-      if (desc) {
-        console.log(`│   ${JSON.stringify(desc)}`);
-      }
-    }
-    console.log(
-      "╰─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
-    );
-  };
-}
-
-export const cacheStream = refCache<
-  Location & { noCache?: boolean },
-  InventoryOfStreams
->({
-  createObject: async (loc) => {
-    const k = new InventoryOfStreams(loc);
-    await k.init();
-    return k;
-  },
-});
-
-export async function streamInventory(
-  options: Location,
-): Promise<InventoryOfStreams> {
-  return await cacheStream(options);
+export async function inventory(options: Location): Promise<Inventory> {
+  return await cache(options);
 }
