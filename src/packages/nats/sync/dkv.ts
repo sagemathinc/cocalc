@@ -23,10 +23,13 @@ import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
+import { kvInventory, THROTTLE_MS } from "./inventory";
+import { throttle } from "lodash";
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
   noAutosave?: boolean;
+  noInventory?: boolean;
 }
 
 export class DKV<T = any> extends EventEmitter {
@@ -38,8 +41,16 @@ export class DKV<T = any> extends EventEmitter {
 
   constructor(options: DKVOptions) {
     super();
-    const { name, account_id, project_id, merge, env, noAutosave, limits } =
-      options;
+    const {
+      name,
+      account_id,
+      project_id,
+      merge,
+      env,
+      noAutosave,
+      limits,
+      noInventory,
+    } = options;
     if (env == null) {
       throw Error("env must not be null");
     }
@@ -49,6 +60,9 @@ export class DKV<T = any> extends EventEmitter {
     this.sha1 = env.sha1 ?? sha1;
     this.prefix = this.sha1(this.name);
     this.opts = {
+      location: { account_id, project_id },
+      originalName: name,
+      noInventory,
       name: kvname,
       filter: `${this.prefix}.>`,
       env,
@@ -159,10 +173,15 @@ export class DKV<T = any> extends EventEmitter {
       throw Error("closed");
     }
     this.generalDKV.delete(`${this.prefix}.${this.sha1(key)}`);
+    this.updateInventory();
   };
 
   clear = () => {
-    this.generalDKV?.clear();
+    if (this.generalDKV == null) {
+      throw Error("closed");
+    }
+    this.generalDKV.clear();
+    this.updateInventory();
   };
 
   // server assigned time
@@ -232,6 +251,7 @@ export class DKV<T = any> extends EventEmitter {
       return;
     }
     this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
+    this.updateInventory();
   };
 
   hasUnsavedChanges = (): boolean => {
@@ -252,6 +272,35 @@ export class DKV<T = any> extends EventEmitter {
   save = async () => {
     return await this.generalDKV?.save();
   };
+
+  private updateInventory = throttle(
+    async () => {
+      if (this.generalDKV == null || this.opts.noInventory) {
+        return;
+      }
+      try {
+        const inventory = await kvInventory(this.opts.location);
+        const name = this.opts.originalName;
+        if (!inventory.needsUpdate(name)) {
+          return;
+        }
+        const stats = this.generalDKV.stats();
+        if (stats == null) {
+          return;
+        }
+        const { keys, bytes } = stats;
+        inventory.set({ name, keys, bytes });
+      } catch (err) {
+        console.log(
+          "WARNING: unable to update inventory for ",
+          this.opts?.originalName,
+          err,
+        );
+      }
+    },
+    THROTTLE_MS,
+    { leading: false, trailing: true },
+  );
 }
 
 export const cache = refCache<DKVOptions, DKV>({

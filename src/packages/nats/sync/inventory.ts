@@ -8,6 +8,8 @@ import { dkv, type DKV } from "./dkv";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 
+export const THROTTLE_MS = 5000;
+
 interface Location {
   account_id?: string;
   project_id?: string;
@@ -33,7 +35,7 @@ export class InventoryOfKVs {
   }
 
   init = async () => {
-    this.dkv = await dkv({ name: "kv-inventory" });
+    this.dkv = await dkv({ name: "kv-inventory", noInventory: true });
   };
 
   set = ({
@@ -65,6 +67,17 @@ export class InventoryOfKVs {
       throw Error("not initialized");
     }
     return this.dkv.get(name);
+  };
+
+  needsUpdate = (name: string): boolean => {
+    const cur = this.get(name);
+    if (cur == null) {
+      return true;
+    }
+    if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
+      return true;
+    }
+    return false;
   };
 
   getAll = () => {
@@ -180,6 +193,17 @@ export class InventoryOfStreams {
   get = (name: string) => {
     if (this.dkv == null) throw Error("not initialized");
     return this.dkv.get(name);
+  };
+
+  needsUpdate = (name: string): boolean => {
+    const cur = this.get(name);
+    if (cur == null) {
+      return true;
+    }
+    if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
+      return true;
+    }
+    return false;
   };
 
   getAll = () => {

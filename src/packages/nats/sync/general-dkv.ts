@@ -409,4 +409,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
     await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
     return status;
   });
+
+  stats = () => this.kv?.stats();
 }
