@@ -21,12 +21,14 @@ import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
+import type { JSONValue } from "@cocalc/util/types";
 
 export interface KVOptions extends Location {
   name: string;
   env?: NatsEnv;
   limits?: Partial<KVLimits>;
   noCache?: boolean;
+  desc?: JSONValue;
 }
 
 export class KV<T = any> extends EventEmitter {

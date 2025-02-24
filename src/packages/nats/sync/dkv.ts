@@ -50,6 +50,7 @@ export class DKV<T = any> extends EventEmitter {
       noAutosave,
       limits,
       noInventory,
+      desc,
     } = options;
     if (env == null) {
       throw Error("env must not be null");
@@ -66,6 +67,7 @@ export class DKV<T = any> extends EventEmitter {
     this.opts = {
       location: { account_id, project_id },
       originalName: name,
+      desc,
       noInventory,
       name: kvname,
       filter: `${this.prefix}.>`,
@@ -293,7 +295,7 @@ export class DKV<T = any> extends EventEmitter {
           return;
         }
         const { keys, bytes } = stats;
-        inventory.set({ name, keys, bytes });
+        inventory.set({ name, keys, bytes, desc: this.opts.desc });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",

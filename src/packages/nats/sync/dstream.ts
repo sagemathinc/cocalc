@@ -258,7 +258,7 @@ export class DStream<T = any> extends EventEmitter {
         return;
       }
       try {
-        const { account_id, project_id } = this.opts;
+        const { account_id, project_id, desc } = this.opts;
         const inventory = await streamInventory({ account_id, project_id });
         const name = this.opts.name;
         if (!inventory.needsUpdate(name)) {
@@ -269,7 +269,7 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { messages, bytes } = stats;
-        inventory.set({ name, messages, bytes });
+        inventory.set({ name, messages, bytes, desc });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",

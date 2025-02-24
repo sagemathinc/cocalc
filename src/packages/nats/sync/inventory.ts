@@ -7,6 +7,7 @@ Inventory of all streams and key:value stores in a specific project, account or 
 import { dkv, type DKV } from "./dkv";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
+import type { JSONValue } from "@cocalc/util/types";
 
 export const THROTTLE_MS = 5000;
 
@@ -24,6 +25,8 @@ interface KVInfo {
   bytes: number;
   // number of keys
   keys: number;
+  // optional description, which can be anything
+  desc?: JSONValue;
 }
 
 export class InventoryOfKVs {
@@ -37,7 +40,6 @@ export class InventoryOfKVs {
   init = async () => {
     this.dkv = await dkv({
       name: "kv-inventory",
-      noInventory: true,
       ...this.location,
     });
   };
@@ -46,17 +48,21 @@ export class InventoryOfKVs {
     name,
     bytes,
     keys,
+    desc,
   }: {
     name: string;
     bytes: number;
     keys: number;
+    desc?: JSONValue;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
     const last = getTime();
-    const created = this.dkv.get(name)?.created ?? last;
-    this.dkv.set(name, { last, created, bytes, keys });
+    const cur = this.dkv.get(name);
+    const created = cur?.created ?? last;
+    desc = desc ?? cur?.desc;
+    this.dkv.set(name, { desc, last, created, bytes, keys });
   };
 
   delete = (name: string) => {
@@ -107,10 +113,13 @@ export class InventoryOfKVs {
       "├──────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
     for (const name in all) {
-      const { last, created, keys, bytes } = all[name];
+      const { last, created, keys, bytes, desc } = all[name];
       console.log(
         `│ ${padRight(name, 27)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(keys, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
+      if (desc) {
+        console.log(`│${JSON.stringify(desc)}`);
+      }
     }
     console.log(
       "╰──────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
@@ -156,6 +165,7 @@ interface StreamInfo {
   bytes: number;
   // number of messages
   messages: number;
+  desc?: JSONValue;
 }
 
 export class InventoryOfStreams {
@@ -174,17 +184,21 @@ export class InventoryOfStreams {
     name,
     bytes,
     messages,
+    desc,
   }: {
     name: string;
     bytes: number;
     messages: number;
+    desc?: JSONValue;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
     const last = getTime();
-    const created = this.dkv.get(name)?.created ?? last;
-    this.dkv.set(name, { last, created, bytes, messages });
+    const cur = this.dkv.get(name);
+    const created = cur?.created ?? last;
+    desc = desc ?? cur?.desc;
+    this.dkv.set(name, { desc, last, created, bytes, messages });
   };
 
   delete = (name: string) => {
@@ -232,10 +246,13 @@ export class InventoryOfStreams {
       "├─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
     for (const name in all) {
-      const { last, created, messages, bytes } = all[name];
+      const { last, created, messages, bytes, desc } = all[name];
       console.log(
         `│ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(bytes, 15)} │ ${padRight(messages, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
+      if (desc) {
+        console.log(`│   ${JSON.stringify(desc)}`);
+      }
     }
     console.log(
       "╰─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",

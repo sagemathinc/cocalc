@@ -52,6 +52,7 @@ import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
+import type { JSONValue } from "@cocalc/util/types";
 
 class PublishRejectError extends Error {
   code: string;
@@ -112,6 +113,7 @@ export interface StreamOptions {
   limits?: Partial<FilteredStreamLimitOptions>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
+  desc?: JSONValue;
 }
 
 export class Stream<T = any> extends EventEmitter {
@@ -587,6 +589,7 @@ export interface UserStreamOptions {
   limits?: Partial<FilteredStreamLimitOptions>;
   start_seq?: number;
   noCache?: boolean;
+  desc?: JSONValue;
 }
 
 export function userStreamOptionsKey(options: UserStreamOptions) {
