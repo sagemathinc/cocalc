@@ -54,6 +54,10 @@ export class DKV<T = any> extends EventEmitter {
     if (env == null) {
       throw Error("env must not be null");
     }
+    if (noInventory || (process.env.COCALC_TEST_MODE && noInventory == null)) {
+      // @ts-ignore
+      this.updateInventory = () => {};
+    }
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name + localLocationName(options);

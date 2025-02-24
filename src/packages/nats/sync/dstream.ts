@@ -57,6 +57,13 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
+    if (
+      opts.noInventory ||
+      (process.env.COCALC_TEST_MODE && opts.noInventory == null)
+    ) {
+      // @ts-ignore
+      this.updateInventory = () => {};
+    }
     this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
