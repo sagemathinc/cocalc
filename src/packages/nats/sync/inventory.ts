@@ -35,7 +35,11 @@ export class InventoryOfKVs {
   }
 
   init = async () => {
-    this.dkv = await dkv({ name: "kv-inventory", noInventory: true });
+    this.dkv = await dkv({
+      name: "kv-inventory",
+      noInventory: true,
+      ...this.location,
+    });
   };
 
   set = ({
@@ -163,7 +167,7 @@ export class InventoryOfStreams {
   }
 
   init = async () => {
-    this.dkv = await dkv({ name: "stream-inventory" });
+    this.dkv = await dkv({ name: "stream-inventory", ...this.location });
   };
 
   set = ({

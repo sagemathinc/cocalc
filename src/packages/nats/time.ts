@@ -74,6 +74,7 @@ const initDkv = reuseInFlight(async () => {
     project_id,
     env: await getEnv(),
     name: "time",
+    noInventory: true,
     limits: {
       max_age: nanos(4 * TIMEOUT),
     },

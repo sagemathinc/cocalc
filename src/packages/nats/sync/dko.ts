@@ -68,6 +68,7 @@ export class DKO<T = any> extends EventEmitter {
     this.dkv = await createDKV<{ [key: string]: any }>({
       ...this.opts,
       name: dkoPrefix(this.opts.name),
+      noInventory: true,
     });
     this.dkv.on("change", ({ key: path, value }) => {
       if (path == null) {
