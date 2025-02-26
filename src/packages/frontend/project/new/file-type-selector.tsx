@@ -468,7 +468,7 @@ export function FileTypeSelector({
         <NewFileButton
           name="Quarto"
           on_click={create_file}
-          ext="rmd"
+          ext="qmd"
           size={btnSize}
           active={btnActive("qmd")}
         />
@@ -539,7 +539,7 @@ export function FileTypeSelector({
     const labelSlides = intl.formatMessage({
       id: "new.file-type-selector.slides.title",
       defaultMessage: "Slides",
-      description: "Short label on a buton to create a new slideshow file",
+      description: "Short label on a button to create a new slideshow file",
     });
 
     return (
@@ -574,7 +574,7 @@ export function FileTypeSelector({
                 id: "new.file-type-selector.whiteboard.title",
                 defaultMessage: "Computational Whiteboard",
                 description:
-                  "Short label on a buton to create a new whiteboard file",
+                  "Short label on a button to create a new whiteboard file",
               })}
               tip={intl.formatMessage({
                 id: "new.file-type-selector.whiteboard.tooltip",
