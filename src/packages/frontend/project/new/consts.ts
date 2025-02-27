@@ -1,6 +1,7 @@
 import { IconName } from "@cocalc/frontend/components";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
-export const NEW_FILETYPE_ICONS: { [ext: string]: IconName } = {
+export const NEW_FILETYPE_ICONS = {
   "/": "folder-open",
   ipynb: "jupyter",
   sagews: "sagemath-bold",
@@ -16,12 +17,13 @@ export const NEW_FILETYPE_ICONS: { [ext: string]: IconName } = {
   server: "server",
   course: "graduation-cap",
   time: "stopwatch",
+  qmd: file_associations.qmd.icon,
   rmd: "r",
   py: "python",
   jl: "julia",
   m: "octave",
   r: "r",
-} as const;
+} as const satisfies { [ext: string]: IconName };
 
 export function isNewFiletypeIconName(ext?: string) {
   return ext != null && ext in NEW_FILETYPE_ICONS;
