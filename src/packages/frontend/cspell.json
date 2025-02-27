@@ -31,7 +31,9 @@
     "timetravel",
     "undelete",
     "undeleting",
-    "tolerations"
+    "tolerations",
+    "rtypes",
+    "rclass"
   ],
   "ignoreWords": [
     "LLMs",

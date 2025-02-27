@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: January 27, 2025</h2>
+              <h2>Last Updated: February 20, 2025</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -453,9 +453,16 @@ export default function Privacy({ customize }) {
                         <strong>Pixel Tags/Web Beacons.</strong> A pixel tag
                         (also known as a web beacon) is a piece of code embedded
                         on the Services that collects information about users’
-                        engagement on that web page. We may include pixel tags
-                        in e-mails to understand whether messages have been
-                        opened, acted on, or forwarded.{" "}
+                        engagement on that web page. We do not use pixel tags
+                        directly, but some of our service providers, namely
+                        Salesloft and ZenDesk, may use similar technology to let
+                        us know that email messages have been opened, acted on,
+                        or forwarded. You can consult their privacy policies and
+                        other documents following the links on our Third Parties
+                        page at{" "}
+                        <A href="/policies/thirdparties">
+                          https://cocalc.com/policies/thirdparties
+                        </A>{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -504,11 +511,17 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     When you make purchases through the Services, we process
-                    your payments through a Third-Party application, Stripe. The
-                    Third-Party application may collect certain financial
-                    information from you to process a payment on behalf of
-                    Sagemath, including your name, email address, address and
-                    other billing information.{" "}
+                    your payments through our Payment Processor, Stripe. The
+                    Payment Processor collects information from and about you
+                    that is necessary to process your payment and to prevent
+                    abuse. This may include your name, email address, billing
+                    address, tax identifies, IP address, and account numbers. We
+                    do not get access to your full account numbers. You can
+                    consult Stripe's privacy policy and other documents
+                    following the links on our Third Parties page at{" "}
+                    <A href="/policies/thirdparties">
+                      https://cocalc.com/policies/thirdparties
+                    </A>{" "}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -826,8 +839,8 @@ export default function Privacy({ customize }) {
                 {" "}
                 <h1>
                   {" "}
-                  <span>7</span> Rights of Access, Rectification, Erasure, and
-                  Restriction{" "}
+                  <span>7</span> Rights of Access, Rectification, Erasure,
+                  Restriction, and to Object{" "}
                 </h1>{" "}
                 <p>
                   {" "}
@@ -839,17 +852,20 @@ export default function Privacy({ customize }) {
                   to send that information to another company (the “right of
                   data portability”); (iv) restrict our uses of your personal
                   information; (v) seek correction of inaccurate, untrue or
-                  incomplete personal information; and (vi) request erasure of
+                  incomplete personal information; (vi) request erasure of
                   personal information held about you by Sagemath, subject to
-                  certain exceptions prescribed by law. If you would like to
+                  certain exceptions prescribed by law; (vii) object to
+                  processing of your personal information. If you would like to
                   exercise any of these rights, please contact us as set forth
                   below.{" "}
                 </p>{" "}
                 <p>
                   {" "}
                   We will process such requests in accordance with applicable
-                  laws. To protect your privacy, Sagemath will take steps to
-                  verify your identity before fulfilling your request.{" "}
+                  laws and free of charge. However, if the request is excessive
+                  or repetitive, Sagemath may charge a reasonable fee. To
+                  protect your privacy, Sagemath will take steps to verify your
+                  identity before fulfilling your request.{" "}
                 </p>{" "}
               </div>{" "}
               <div id="data-retention">
@@ -878,7 +894,13 @@ export default function Privacy({ customize }) {
                 <p>
                   {" "}
                   We take steps to ensure that your information is treated
-                  securely and in accordance with this Privacy Policy.
+                  securely and in accordance with this Privacy Policy. We
+                  encrypt data storage and backups, use firewalls and access
+                  control. You can learn more details about measures taken and
+                  third party audits and certifications on our Trust page at{" "}
+                  <A href="/policies/trust">
+                    https://cocalc.com/policies/trust
+                  </A>{" "}
                   Unfortunately, the Internet cannot be guaranteed to be 100%
                   secure, and we cannot ensure or warrant the security of any
                   information you provide to us. To the fullest extent permitted
@@ -891,10 +913,11 @@ export default function Privacy({ customize }) {
                   you agree that we may communicate with you electronically
                   regarding security, privacy, and administrative issues
                   relating to your use of the Services. If we learn of a
-                  security system’s breach, we may attempt to notify you
-                  electronically by posting a notice on the Services or sending
-                  an e-mail to you. You may have a legal right to receive this
-                  notice in writing.{" "}
+                  personal data breach, in accordance with GDPR we will inform
+                  the Supervisory Authority within 72 hours. If there is a high
+                  risk to your security or if required by the Supervisory
+                  Authority, we will notify you electronically by posting a
+                  notice on the Services or sending an e-mail to you.
                 </p>{" "}
               </div>{" "}
               <div id="childrens-privacy">
@@ -1216,35 +1239,32 @@ export default function Privacy({ customize }) {
                       <td> 2018-10-29 </td>
                     </tr>
                     <tr>
-                      <td>Updated Sagemath Privacy Policy - Privacy Shield</td>
+                      <td>Update: Privacy Shield</td>
                       <td> 2020-02-04 </td>
                     </tr>
                     <tr>
                       <td>
-                        Updated Sagemath Privacy Policy - temporarily remove
-                        mention of Privacy Shield
+                        Update: temporarily remove mention of Privacy Shield
                       </td>
                       <td> 2020-02-06 </td>
                     </tr>
                     <tr>
-                      <td>
-                        Updated Sagemath Privacy Policy - restore mention of
-                        Privacy Shield
-                      </td>
+                      <td>Update: restore mention of Privacy Shield</td>
                       <td> 2020-02-20 </td>
                     </tr>
                     <tr>
-                      <td>
-                        Updated Sagemath Privacy Policy - revise JAMS link
-                      </td>
+                      <td>Update: revise JAMS link</td>
                       <td> 2022-09-15 </td>
                     </tr>
                     <tr>
                       <td>
-                        Updated Sagemath Privacy Policy - Data Privacy Framework
-                        instead of Privacy Shield
+                        Update: Data Privacy Framework instead of Privacy Shield
                       </td>
                       <td> 2023-08-23 </td>
+                    </tr>
+                    <tr>
+                      <td>Update: clarify alignment with GDPR</td>
+                      <td> 2025-02-20 </td>
                     </tr>
                   </tbody>
                 </table>

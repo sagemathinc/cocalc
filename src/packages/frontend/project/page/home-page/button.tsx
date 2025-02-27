@@ -5,8 +5,16 @@
 
 import { Button } from "antd";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import {
+  VBAR_KEY,
+  getValidVBAROption,
+} from "@cocalc/frontend/project/page/vbar";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -28,18 +36,12 @@ export default function HomePageButton({ project_id, active, width }) {
         transitionDuration: "0s",
       }}
       onClick={() => {
-        // People find the entire home page idea very confusing.
-        // Thus I've commented this out:
+        // Showing homepage in flyout only mode, otherwise the files as usual
+        const account_store = redux.getStore("account") as any;
+        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+        const pureFlyoutMode = getValidVBAROption(vbar) === "flyout";
+        actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
 
-        // actions?.set_active_tab("home");
-
-        // And replaced it by just showing the file explorer in the
-        // home directory, with no flyout panels open, which is a reasonable
-        // expectation for a "Home" button, since that's what the project shows
-        // by default on open.  This is just a very quick bandaide to reduce
-        // confusion until we come up with something better (e.g., a dropdown
-        // menu and shortcut toolbar).
-        actions?.set_active_tab("files");
         actions?.set_current_path("");
         actions?.setFlyoutExpanded("files", false, false);
         actions?.set_file_search("");

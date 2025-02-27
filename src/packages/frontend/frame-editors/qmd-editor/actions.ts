@@ -28,6 +28,19 @@ const custom_pdf_error_message: string = `
 No PDF file has been generated.
 `;
 
+const MINIMAL = `---
+title: "Title"
+---
+
+## Test
+
+Example plot
+
+\`\`\`{r}
+plot(rnorm(100))
+\`\`\`
+`;
+
 export class Actions extends MarkdownActions {
   private _last_qmd_hash: number | undefined = undefined;
   private is_building: boolean = false;
@@ -40,6 +53,10 @@ export class Actions extends MarkdownActions {
       this._syncstring.once("ready", this._init_qmd_converter.bind(this));
       this._check_produced_files();
       this.setState({ custom_pdf_error_message });
+      this._syncstring.on(
+        "change",
+        debounce(this.ensureNonempty.bind(this), 1500),
+      );
     }
   }
 
@@ -224,4 +241,11 @@ export class Actions extends MarkdownActions {
 
   // Never delete trailing whitespace for markdown files.
   delete_trailing_whitespace(): void {}
+
+  private ensureNonempty() {
+    if (this.store && !this.store.get("value")?.trim()) {
+      this.set_value(MINIMAL);
+      this.build();
+    }
+  }
 }
