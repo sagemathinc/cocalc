@@ -118,11 +118,14 @@ export async function createProject({
       )
       .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
     pool = x?.pool;
+    if (pool) {
+      console.log("using pool because of affinity", { pool, affinity });
+    }
   }
   if (!pool) {
     // assign one with *least* projects
     const x = db
-      .prepare("SELECT pool, COUNT(pool) AS cnt FROM projects ORDER by cnt ASC")
+      .prepare("SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC")
       .all() as any;
     const pools = await getPools();
     if (Object.keys(pools).length > x.length) {
@@ -244,4 +247,48 @@ export async function deleteProject({
   });
   const db = getDb();
   db.prepare("DELETE FROM projects WHERE project_id=?").run(project_id);
+}
+
+export async function mountProject({
+  project_id,
+  namespace = DEFAULT_NAMESPACE,
+}: {
+  namespace?: string;
+  project_id: string;
+}) {
+  const { pool } = dbProject({ namespace, project_id });
+  try {
+    await executeCode({
+      command: "sudo",
+      args: ["zfs", "mount", `${pool}/${namespace}/${project_id}`],
+    });
+  } catch (err) {
+    if (`${err}`.includes("already mounted")) {
+      // fine
+      return;
+    }
+    throw err;
+  }
+}
+
+export async function unmountProject({
+  project_id,
+  namespace = DEFAULT_NAMESPACE,
+}: {
+  namespace?: string;
+  project_id: string;
+}) {
+  const { pool } = dbProject({ namespace, project_id });
+  try {
+    await executeCode({
+      command: "sudo",
+      args: ["zfs", "unmount", `${pool}/${namespace}/${project_id}`],
+    });
+  } catch (err) {
+    if (`${err}`.includes("not currently mounted")) {
+      // fine
+    } else {
+      throw err;
+    }
+  }
 }
