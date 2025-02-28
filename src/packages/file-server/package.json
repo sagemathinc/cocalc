@@ -11,16 +11,25 @@
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "echo 'no tests yet'"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "nats", "cocalc"],
+  "keywords": [
+    "utilities",
+    "nats",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/nats": "workspace:*",
-    "@cocalc/util": "workspace:*"
+    "@cocalc/util": "workspace:*",
+    "@types/better-sqlite3": "^7.6.4",
+    "better-sqlite3": "^8.3.0"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"

@@ -24,22 +24,30 @@
     "test": "pnpm exec jest",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@cocalc/nats": "workspace:*",
     "@nteract/messaging": "^7.0.20",
-    "@types/better-sqlite3": "^7.6.4",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node-cleanup": "^2.1.2",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^8.3.0",
+    "better-sqlite3": "^11.8.1",
     "debug": "^4.4.0",
     "enchannel-zmq-backend": "^9.1.23",
     "execa": "^8.0.1",
