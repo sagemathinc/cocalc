@@ -1,8 +1,14 @@
 import { executeCode } from "@cocalc/backend/execute-code";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isValidUUID } from "@cocalc/util/misc";
+import {
+  namespaceMountpoint,
+  projectMountpoint,
+  projectDataset,
+} from "./names";
+export { createSnapshot } from "./snapshots";
 
-const context = {
+export const context = {
   namespace: process.env.NAMESPACE ?? "default",
 };
 
@@ -60,6 +66,8 @@ interface Project {
   // comma separated list of hosts (or range using CIDR notation) that we're
   // granting NFS client access to.
   nfs?: string;
+  // comma separated list of snapshots
+  snapshots?: string;
 }
 
 import Database from "better-sqlite3";
@@ -68,10 +76,23 @@ export function getDb(): Database.Database {
   if (db == null) {
     db = new Database("projects.db");
     db.prepare(
-      "CREATE TABLE IF NOT EXISTS projects (namespace TEXT, project_id TEXT, pool TEXT, archived TEXT, affinity TEXT, nfs TEXT, PRIMARY KEY (namespace, project_id))",
+      "CREATE TABLE IF NOT EXISTS projects (namespace TEXT, project_id TEXT, pool TEXT, archived TEXT, affinity TEXT, nfs TEXT, snapshots TEXT, last_edited TEXT, PRIMARY KEY (namespace, project_id))",
     ).run();
   }
   return db!;
+}
+
+export function touch({
+  namespace = context.namespace,
+  project_id,
+}: {
+  namespace?: string;
+  project_id: string;
+}) {
+  const db = getDb();
+  db.prepare(
+    "UPDATE projects SET last_edited=? WHERE project_id=? AND namespace=?",
+  ).run(new Date().toISOString(), project_id, namespace);
 }
 
 export function dbProject({
@@ -87,11 +108,24 @@ export function dbProject({
     .get(namespace, project_id) as Project;
 }
 
+export function all({
+  namespace = context.namespace,
+}: { namespace?: string } = {}) {
+  const db = getDb();
+  return db
+    .prepare("SELECT * FROM projects WHERE namespace=?")
+    .all(namespace) as Project[];
+}
+
 export async function getProject(opts) {
   const project = dbProject(opts);
-  if (project != null && !project.archived) {
+  if (!project?.archived) {
     return project;
   }
+  if (project?.archived) {
+    throw Error("TODO:  de-archive project here and return that");
+  }
+
   return await createProject(opts);
 }
 
@@ -174,7 +208,7 @@ export async function createProject({
           "zfs",
           "create",
           "-o",
-          `mountpoint=/projects/${namespace}`,
+          "mountpoint=none",
           "-o",
           "compression=lz4",
           "-o",
@@ -189,6 +223,16 @@ export async function createProject({
         throw err;
       }
     }
+    await executeCode({
+      verbose: true,
+      command: "sudo",
+      args: ["mkdir", "-p", namespaceMountpoint({ namespace })],
+    });
+    await executeCode({
+      verbose: true,
+      command: "sudo",
+      args: ["chmod", "a+rx", namespaceMountpoint({ namespace })],
+    });
   }
 
   // create filesystem on the selected pool
@@ -199,14 +243,14 @@ export async function createProject({
       "zfs",
       "create",
       "-o",
-      `mountpoint=/projects/${namespace}/${project_id}`,
+      `mountpoint=${projectMountpoint({ namespace, project_id })}`,
       "-o",
       "compression=lz4",
       "-o",
       "dedup=on",
       "-o",
       `refquota=${quota}`,
-      `${pool}/${namespace}/${project_id}`,
+      projectDataset({ pool, namespace, project_id }),
     ],
   });
 
@@ -236,7 +280,7 @@ export async function setQuota({
       "set",
       // refquota so snapshots don't count against the user
       `refquota=${quota}`,
-      `${pool}/${namespace}/${project_id}`,
+      projectDataset({ pool, namespace, project_id }),
     ],
   });
 }
@@ -269,7 +313,10 @@ export async function deleteProject({
     args: ["rmdir", `/projects/${namespace}/${project_id}`],
   });
   const db = getDb();
-  db.prepare("DELETE FROM projects WHERE project_id=?").run(project_id);
+  db.prepare("DELETE FROM projects WHERE project_id=? AND namespace=?").run(
+    project_id,
+    project.namespace,
+  );
 }
 
 export async function mountProject({
@@ -283,7 +330,7 @@ export async function mountProject({
   try {
     await executeCode({
       command: "sudo",
-      args: ["zfs", "mount", `${pool}/${namespace}/${project_id}`],
+      args: ["zfs", "mount", projectDataset({ pool, namespace, project_id })],
     });
   } catch (err) {
     if (`${err}`.includes("already mounted")) {
@@ -306,7 +353,7 @@ export async function unmountProject({
     await executeCode({
       verbose: true,
       command: "sudo",
-      args: ["zfs", "unmount", `${pool}/${namespace}/${project_id}`],
+      args: ["zfs", "unmount", projectDataset({ pool, namespace, project_id })],
     });
   } catch (err) {
     if (`${err}`.includes("not currently mounted")) {
@@ -351,7 +398,7 @@ export async function shareNFS({
     clients = nfs?.split(",") ?? [];
   }
   // actually ensure share is configured.
-  const name = `${pool}/${namespace}/${project_id}`;
+  const name = projectDataset({ pool, namespace, project_id });
   const sharenfs =
     clients.length > 0
       ? `${clients.map((client) => `rw=${client}`).join(",")},no_root_squash,crossmnt,no_subtree_check`
@@ -362,7 +409,7 @@ export async function shareNFS({
     args: ["zfs", "set", `sharenfs=${sharenfs}`, name],
   });
   if (client) {
-    return `${hostname}:/projects/${namespace}/${project_id}`;
+    return `${hostname}:${projectMountpoint({ namespace, project_id })}`;
   } else {
     // no exports configured
     return "";
