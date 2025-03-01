@@ -6,7 +6,12 @@ import {
   projectMountpoint,
   projectDataset,
 } from "./names";
-export { createSnapshot } from "./snapshots";
+export {
+  createSnapshot,
+  getModifiedFiles,
+  trimSnapshots,
+  deleteSnapshot,
+} from "./snapshots";
 
 export const context = {
   namespace: process.env.NAMESPACE ?? "default",
@@ -63,11 +68,15 @@ interface Project {
   // optional arbitrary affinity string - we attempt if possible to put
   // projects with the same affinity in the same pool, to improve chances of dedup.
   affinity?: string;
-  // comma separated list of hosts (or range using CIDR notation) that we're
+  // array of hosts (or range using CIDR notation) that we're
   // granting NFS client access to.
-  nfs?: string;
-  // comma separated list of snapshots
-  snapshots?: string;
+  nfs: string[];
+  // list of snapshots as ISO timestamps from oldest to newest
+  snapshots: string[];
+  // name of the most recent snapshot that was used for sending a stream
+  // (for incremental backups). this won't be deleted by the snapshot
+  // trimming process.
+  last_send_snapshot?: string;
 }
 
 import Database from "better-sqlite3";
@@ -76,7 +85,7 @@ export function getDb(): Database.Database {
   if (db == null) {
     db = new Database("projects.db");
     db.prepare(
-      "CREATE TABLE IF NOT EXISTS projects (namespace TEXT, project_id TEXT, pool TEXT, archived TEXT, affinity TEXT, nfs TEXT, snapshots TEXT, last_edited TEXT, PRIMARY KEY (namespace, project_id))",
+      "CREATE TABLE IF NOT EXISTS projects (namespace TEXT, project_id TEXT, pool TEXT, archived TEXT, affinity TEXT, nfs TEXT, snapshots TEXT, last_edited TEXT, last_send_snapshot TEXT, PRIMARY KEY (namespace, project_id))",
     ).run();
   }
   return db!;
@@ -103,9 +112,13 @@ export function dbProject({
   project_id: string;
 }): Project {
   const db = getDb();
-  return db
+  const x = db
     .prepare("SELECT * FROM projects WHERE namespace=? AND project_id=?")
     .get(namespace, project_id) as Project;
+  for (const key of ["nfs", "snapshots"]) {
+    x[key] = x[key] != null ? x[key].split(",") : [];
+  }
+  return x as Project;
 }
 
 export function all({
@@ -380,28 +393,23 @@ export async function shareNFS({
 }): Promise<string> {
   client = client?.trim();
   const { pool, nfs } = dbProject({ namespace, project_id });
-  let clients;
   let hostname;
   if (client) {
     hostname = await hostnameFor(client);
-    const v = nfs?.split(",") ?? [];
-    if (!v.includes(client)) {
-      v.push(client);
+    if (!nfs.includes(client)) {
+      nfs.push(client);
       // update database which tracks what the share should be.
       const db = getDb();
       db.prepare(
         "UPDATE projects SET nfs=? WHERE namespace=? AND project_id=?",
-      ).run(v.join(","), namespace, project_id);
+      ).run(nfs.join(","), namespace, project_id);
     }
-    clients = v;
-  } else {
-    clients = nfs?.split(",") ?? [];
   }
   // actually ensure share is configured.
   const name = projectDataset({ pool, namespace, project_id });
   const sharenfs =
-    clients.length > 0
-      ? `${clients.map((client) => `rw=${client}`).join(",")},no_root_squash,crossmnt,no_subtree_check`
+    nfs.length > 0
+      ? `${nfs.map((client) => `rw=${client}`).join(",")},no_root_squash,crossmnt,no_subtree_check`
       : "off";
   await executeCode({
     verbose: true,
@@ -426,18 +434,17 @@ export async function unshareNFS({
   project_id: string;
   namespace?: string;
 }) {
-  const { nfs } = dbProject({ namespace, project_id });
-  let v = nfs?.split(",") ?? [];
-  if (!v.includes(client)) {
+  let { nfs } = dbProject({ namespace, project_id });
+  if (!nfs.includes(client)) {
     // nothing to do
     return;
   }
-  v = v.filter((x) => x != client);
+  nfs = nfs.filter((x) => x != client);
   // update database which tracks what the share should be.
   const db = getDb();
   db.prepare(
     "UPDATE projects SET nfs=? WHERE namespace=? AND project_id=?",
-  ).run(v.join(","), namespace, project_id);
+  ).run(nfs.join(","), namespace, project_id);
   await shareNFS({ project_id, namespace });
 }
 

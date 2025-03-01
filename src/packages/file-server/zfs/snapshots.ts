@@ -1,10 +1,16 @@
 /*
-Manage creating and deleting rolling snapshots of a given project's filesystem.
+Manage creating and deleting rolling snapshots of a project's filesystem.
+
+We keep track of all state in the sqlite database, so only have to touch
+ZFS when we actually need to do something.  Keep this in mind though since
+if you try to mess with snapshots directly then the sqlite database won't
+know you did that.
 */
 
 import { executeCode } from "@cocalc/backend/execute-code";
 import { context, dbProject, getDb } from "./index";
-import { projectDataset } from "./names";
+import { projectDataset, projectMountpoint } from "./names";
+import { splitlines } from "@cocalc/util/misc";
 
 // We make/update snapshots periodically, with this being the minimum interval.
 //const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
@@ -12,14 +18,19 @@ const SNAPSHOT_INTERVAL_MS = 10 * 1000;
 
 // Lengths of time in minutes to keep these snapshots
 const SNAPSHOT_INTERVALS_MS = {
-  halfly: 30 * 1000 * 60,
+  halfhourly: 30 * 1000 * 60,
   daily: 60 * 24 * 1000 * 60,
   weekly: 60 * 24 * 7 * 1000 * 60,
   monthly: 60 * 24 * 7 * 4 * 1000 * 60,
 };
 
 // How many of each type of snapshot to retain
-const SNAPSHOT_COUNTS = { halfly: 24, daily: 14, weekly: 7, monthly: 4 };
+const SNAPSHOT_COUNTS = {
+  halfhourly: 24,
+  daily: 14,
+  weekly: 7,
+  monthly: 4,
+};
 
 export async function createSnapshot({
   project_id,
@@ -28,7 +39,7 @@ export async function createSnapshot({
   project_id: string;
   namespace?: string;
 }): Promise<string | undefined> {
-  const project = await dbProject({ project_id, namespace });
+  const project = dbProject({ project_id, namespace });
   if (project == null) {
     throw Error("no such project");
   }
@@ -36,7 +47,7 @@ export async function createSnapshot({
     // never snapshot an archived project
     return;
   }
-  const snapshots = project.snapshots?.split(",") ?? [];
+  const { snapshots } = project;
   if (snapshots.length > 0) {
     // check for sufficiently recent snapshot
     const last = new Date(snapshots[snapshots.length - 1]);
@@ -75,7 +86,7 @@ export async function createSnapshot({
 }
 
 async function getWritten({ project_id, namespace }) {
-  const { pool } = await dbProject({ project_id, namespace });
+  const { pool } = dbProject({ project_id, namespace });
   const { stdout } = await executeCode({
     verbose: true,
     command: "zfs",
@@ -89,20 +100,150 @@ async function getWritten({ project_id, namespace }) {
   return parseInt(stdout);
 }
 
-/*
-import { splitlines } from "@cocalc/util/misc";
+export async function deleteSnapshot({
+  project_id,
+  namespace = context.namespace,
+  snapshot,
+}) {
+  const { pool, last_send_snapshot, snapshots } = dbProject({
+    project_id,
+    namespace,
+  });
+  if (snapshot == last_send_snapshot) {
+    throw Error(
+      "can't delete snapshot since it is the last one used for a zfs send",
+    );
+  }
+  await executeCode({
+    verbose: true,
+    command: "sudo",
+    args: [
+      "zfs",
+      "destroy",
+      `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
+    ],
+  });
+  const db = getDb();
+  db.prepare(
+    "UPDATE projects SET snapshots=? WHERE project_id=? AND namespace=?",
+  ).run(
+    snapshots.filter((x) => x != snapshot).join(","),
+    project_id,
+    namespace,
+  );
+}
 
-async function getDiff({ project_id, namespace, snapshot }) {
-  const { pool } = await dbProject({ project_id, namespace });
+/*
+Remove snapshots according to our retention policy, and
+never delete last_stream if set.
+
+Returns names of deleted snapshots.
+*/
+export async function trimSnapshots({
+  project_id,
+  namespace = context.namespace,
+}): Promise<string[]> {
+  const { last_send_snapshot, snapshots } = dbProject({
+    project_id,
+    namespace,
+  });
+  if (snapshots.length == 0) {
+    // nothing to do
+    return [];
+  }
+
+  // sorted from BIGGEST to smallest
+  const times = snapshots.map((x) => new Date(x).valueOf());
+  times.reverse();
+  const save = new Set<number>();
+  if (last_send_snapshot) {
+    save.add(new Date(last_send_snapshot).valueOf());
+  }
+  for (const type in SNAPSHOT_COUNTS) {
+    const count = SNAPSHOT_COUNTS[type];
+    const length_ms = SNAPSHOT_INTERVALS_MS[type];
+
+    // Pick the first count newest snapshots at intervals of length
+    // length_ms milliseconds.
+    let n = 0,
+      i = 0,
+      last_tm = 0;
+    while (n < count && i < times.length) {
+      const tm = times[i];
+      if (!last_tm || tm <= last_tm - length_ms) {
+        save.add(tm);
+        last_tm = tm;
+        n += 1; // found one more
+      }
+      i += 1; // move to next snapshot
+    }
+  }
+  const toDelete = snapshots.filter((x) => !save.has(new Date(x).valueOf()));
+  for (const snapshot of toDelete) {
+    await deleteSnapshot({ project_id, namespace, snapshot });
+  }
+  return toDelete;
+}
+
+/*
+Get list of files modified since given snapshot (or last snapshot if not given).
+
+**There's probably no good reason to ever use this code!**
+
+The reason is because it's really slow, e.g., I added the
+cocalc src directory (5000) files and it takes about 6 seconds
+to run this.  In contrast. "time find .", which lists EVERYTHING
+takes less than 0.074s.  You could do that before and after, then
+compare them, and it'll be a fraction of a second.
+*/
+interface Mod {
+  time: number;
+  change: "-" | "+" | "M" | "R"; // remove/create/modify/rename
+  // see "man zfs diff":
+  type: "B" | "C" | "/" | ">" | "|" | "@" | "P" | "=" | "F";
+  path: string;
+}
+
+export async function getModifiedFiles({
+  project_id,
+  namespace = context.namespace,
+  snapshot,
+}: {
+  project_id: string;
+  namespace?: string;
+  snapshot?: string;
+}) {
+  const { pool, snapshots } = dbProject({ project_id, namespace });
+  if (snapshots.length == 0) {
+    return [];
+  }
+  if (snapshot == null) {
+    snapshot = snapshots[snapshots.length - 1];
+  }
   const { stdout } = await executeCode({
     verbose: true,
     command: "sudo",
     args: [
       "zfs",
       "diff",
+      "-FHt",
       `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
   });
-  return splitlines(stdout);
+  const mnt = projectMountpoint({ project_id, namespace }) + "/";
+  const files: Mod[] = [];
+  for (const line of splitlines(stdout)) {
+    const x = line.split(/\t/g);
+    let path = x[3];
+    if (path.startsWith(mnt)) {
+      path = path.slice(mnt.length);
+    }
+    files.push({
+      time: parseFloat(x[0]) * 1000,
+      change: x[1] as any,
+      type: x[2] as any,
+      path,
+    });
+  }
+  return files;
 }
-*/
