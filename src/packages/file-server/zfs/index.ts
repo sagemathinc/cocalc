@@ -26,6 +26,7 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
     return poolsCache;
   }
   const { stdout } = await executeCode({
+    verbose: true,
     command: "zpool",
     args: ["list", "-j", "--json-int", "-o", "size,allocated,free"],
   });
@@ -125,7 +126,9 @@ export async function createProject({
   if (!pool) {
     // assign one with *least* projects
     const x = db
-      .prepare("SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC")
+      .prepare(
+        "SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC",
+      )
       .all() as any;
     const pools = await getPools();
     if (Object.keys(pools).length > x.length) {
@@ -158,12 +161,17 @@ export async function createProject({
   if (cnt == 0) {
     try {
       await executeCode({
+        verbose: true,
         command: "sudo",
         args: [
           "zfs",
           "create",
           "-o",
           `mountpoint=/projects/${namespace}`,
+          "-o",
+          "compression=lz4",
+          "-o",
+          "dedup=on",
           `${pool}/${namespace}`,
         ],
       });
@@ -178,12 +186,17 @@ export async function createProject({
 
   // create filesystem on the selected pool
   await executeCode({
+    verbose: true,
     command: "sudo",
     args: [
       "zfs",
       "create",
       "-o",
       `mountpoint=/projects/${namespace}/${project_id}`,
+      "-o",
+      "compression=lz4",
+      "-o",
+      "dedup=on",
       "-o",
       `refquota=${quota}`,
       `${pool}/${namespace}/${project_id}`,
@@ -209,6 +222,7 @@ export async function setQuota({
 }) {
   const { pool } = dbProject({ namespace, project_id });
   await executeCode({
+    verbose: true,
     command: "sudo",
     args: [
       "zfs",
@@ -233,6 +247,7 @@ export async function deleteProject({
     return;
   }
   await executeCode({
+    verbose: true,
     command: "sudo",
     args: [
       "zfs",
@@ -242,6 +257,7 @@ export async function deleteProject({
     ],
   });
   await executeCode({
+    verbose: true,
     command: "sudo",
     args: ["rmdir", `/projects/${namespace}/${project_id}`],
   });
@@ -259,6 +275,7 @@ export async function mountProject({
   const { pool } = dbProject({ namespace, project_id });
   try {
     await executeCode({
+      verbose: true,
       command: "sudo",
       args: ["zfs", "mount", `${pool}/${namespace}/${project_id}`],
     });
@@ -281,6 +298,7 @@ export async function unmountProject({
   const { pool } = dbProject({ namespace, project_id });
   try {
     await executeCode({
+      verbose: true,
       command: "sudo",
       args: ["zfs", "unmount", `${pool}/${namespace}/${project_id}`],
     });
