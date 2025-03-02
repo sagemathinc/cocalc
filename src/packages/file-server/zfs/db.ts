@@ -28,6 +28,19 @@ export function getDb(): Database.Database {
   return db!;
 }
 
+export function touch({
+  namespace = context.namespace,
+  project_id,
+}: {
+  namespace?: string;
+  project_id: string;
+}) {
+  const db = getDb();
+  db.prepare(
+    "UPDATE projects SET last_edited=? WHERE project_id=? AND namespace=?",
+  ).run(new Date().toISOString(), project_id, namespace);
+}
+
 export function projectExists({
   namespace = context.namespace,
   project_id,

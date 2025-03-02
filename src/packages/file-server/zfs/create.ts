@@ -5,7 +5,8 @@ import {
   projectDataset,
   projectMountpoint,
 } from "./names";
-import { getPools, getProject } from "./index";
+import { getPools } from "./pools";
+import { getProject } from "./index";
 import { context, DEFAULT_QUOTA } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createSnapshot } from "./snapshots";

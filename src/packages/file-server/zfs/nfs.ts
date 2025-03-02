@@ -1,7 +1,6 @@
-import { dbProject, getDb } from "./db";
+import { dbProject, getDb, touch } from "./db";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { projectDataset, projectMountpoint } from "./names";
-import { touch } from "./index";
 import { context } from "./config";
 
 // Ensure that this project is mounted and setup so that export to the
