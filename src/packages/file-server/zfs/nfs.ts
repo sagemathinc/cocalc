@@ -1,7 +1,8 @@
 import { dbProject, getDb } from "./db";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { projectDataset, projectMountpoint } from "./names";
-import { context, touch } from "./index";
+import { touch } from "./index";
+import { context } from "./config";
 
 // Ensure that this project is mounted and setup so that export to the
 // given client is allowed. Returns the remote address that the client
@@ -42,8 +43,8 @@ export async function shareNFS({
     command: "sudo",
     args: ["zfs", "set", `sharenfs=${sharenfs}`, name],
   });
-  if(nfs.length > 0) {
-    touch({ namespace, project_id })
+  if (nfs.length > 0) {
+    touch({ namespace, project_id });
   }
   if (client) {
     return `${hostname}:${projectMountpoint({ namespace, project_id })}`;

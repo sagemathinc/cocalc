@@ -3,7 +3,7 @@ Database
 */
 
 import Database from "better-sqlite3";
-import { context } from "./index";
+import { context } from "./config";
 import type { Project } from "./types";
 
 let db: null | Database.Database;

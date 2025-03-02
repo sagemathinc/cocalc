@@ -8,11 +8,11 @@ know you did that.
 */
 
 import { executeCode } from "@cocalc/backend/execute-code";
-import { context } from "./index";
 import { dbProject, getDb, getRecentProjects } from "./db";
 import { projectDataset, projectMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
+import { context } from "./config";
 
 const logger = getLogger("file-server:zfs/snapshots");
 
