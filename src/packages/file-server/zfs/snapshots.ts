@@ -48,9 +48,6 @@ export async function createSnapshot({
 }): Promise<string | undefined> {
   logger.debug("createSnapshot: ", { project_id, namespace });
   const project = dbProject({ project_id, namespace });
-  if (project == null) {
-    throw Error("no such project");
-  }
   if (project.archived) {
     // never snapshot an archived project
     return;

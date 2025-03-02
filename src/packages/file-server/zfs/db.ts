@@ -28,6 +28,22 @@ export function getDb(): Database.Database {
   return db!;
 }
 
+export function projectExists({
+  namespace = context.namespace,
+  project_id,
+}: {
+  namespace?: string;
+  project_id: string;
+}): boolean {
+  const db = getDb();
+  const x = db
+    .prepare(
+      "SELECT COUNT(*) AS count FROM projects WHERE namespace=? AND project_id=?",
+    )
+    .get(namespace, project_id);
+  return (x as any).count > 0;
+}
+
 export function dbProject({
   namespace = context.namespace,
   project_id,
@@ -39,8 +55,11 @@ export function dbProject({
   const x = db
     .prepare("SELECT * FROM projects WHERE namespace=? AND project_id=?")
     .get(namespace, project_id) as Project;
+  if (x == null) {
+    throw Error(`no project ${project_id} in namespace ${namespace}`);
+  }
   for (const key of ["nfs", "snapshots"]) {
-    x[key] = x[key] != null ? x[key].split(",") : [];
+    x[key] = x[key]?.split(",") ?? [];
   }
   return x as Project;
 }

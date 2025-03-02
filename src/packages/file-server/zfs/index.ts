@@ -6,14 +6,15 @@ import {
   projectMountpoint,
   projectDataset,
 } from "./names";
+import { createSnapshot } from "./snapshots";
+export { createSnapshot };
 export {
-  createSnapshot,
   getModifiedFiles,
   deleteSnapshot,
   deleteExtraSnapshotsOfActiveProjects,
   deleteExtraSnapshots,
 } from "./snapshots";
-import { dbProject, getDb } from "./db";
+import { dbProject, getDb, projectExists } from "./db";
 export { dbAllProjects, getRecentProjects } from "./db";
 
 // we ONLY put projects on pools whose name has this prefix.
@@ -84,15 +85,20 @@ export function touch({
 }
 
 export async function getProject(opts) {
+  const exists = projectExists(opts);
+  if (!exists) {
+    // TODO: maybe a check for "transition from old format"...?
+    // Or maybe we just populate the sqlite db with info about all
+    // projects ever on initialization.
+    return await createProject(opts);
+  }
   const project = dbProject(opts);
-  if (!project?.archived) {
+  if (!project.archived) {
     return project;
   }
-  if (project?.archived) {
+  if (project.archived) {
     throw Error("TODO:  de-archive project here and return that");
   }
-
-  return await createProject(opts);
 }
 
 export async function createProject({
@@ -101,59 +107,70 @@ export async function createProject({
   affinity,
   quota = DEFAULT_QUOTA,
   nfs,
+  source_project_id,
 }: {
   namespace?: string;
   project_id: string;
   affinity?: string;
   quota?: string;
   nfs?: string;
+  source_project_id?: string;
 }) {
-  const project = dbProject({ namespace, project_id });
-  if (project != null) {
-    return project;
+  if (projectExists({ namespace, project_id })) {
+    return dbProject({ namespace, project_id });
   }
   if (!isValidUUID(project_id)) {
     throw Error(`project_id=${project_id} must be a valid uuid`);
   }
+  const source = source_project_id
+    ? dbProject({ namespace, project_id: source_project_id })
+    : undefined;
+
   const db = getDb();
   // select a pool:
   let pool: undefined | string = undefined;
-  if (affinity) {
-    // if affinity is set, have preference to use same pool as other projects with this affinity.
-    const x = db
-      .prepare(
-        "SELECT pool, COUNT(pool) AS cnt FROM projects WHERE namespace=? AND affinity=? ORDER by cnt DESC",
-      )
-      .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
-    pool = x?.pool;
-    if (pool) {
-      console.log("using pool because of affinity", { pool, affinity });
+
+  if (source != null) {
+    // use same pool as source project.  (we could use zfs send/recv but that's much slower)
+    pool = source.pool;
+  } else {
+    if (affinity) {
+      // if affinity is set, have preference to use same pool as other projects with this affinity.
+      const x = db
+        .prepare(
+          "SELECT pool, COUNT(pool) AS cnt FROM projects WHERE namespace=? AND affinity=? ORDER by cnt DESC",
+        )
+        .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
+      pool = x?.pool;
+      if (pool) {
+        console.log("using pool because of affinity", { pool, affinity });
+      }
     }
-  }
-  if (!pool) {
-    // assign one with *least* projects
-    const x = db
-      .prepare(
-        "SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC",
-      )
-      .all() as any;
-    const pools = await getPools();
-    if (Object.keys(pools).length > x.length) {
-      // rare case: there exists a pool that isn't used yet, so not
-      // represented in above query at all; use it
-      const v = new Set<string>();
-      for (const { pool } of x) {
-        v.add(pool);
-      }
-      for (const name in pools) {
-        if (!v.has(name)) {
-          pool = name;
-          break;
+    if (!pool) {
+      // assign one with *least* projects
+      const x = db
+        .prepare(
+          "SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC",
+        )
+        .all() as any;
+      const pools = await getPools();
+      if (Object.keys(pools).length > x.length) {
+        // rare case: there exists a pool that isn't used yet, so not
+        // represented in above query at all; use it
+        const v = new Set<string>();
+        for (const { pool } of x) {
+          v.add(pool);
         }
+        for (const name in pools) {
+          if (!v.has(name)) {
+            pool = name;
+            break;
+          }
+        }
+      } else {
+        // just use the least crowded
+        pool = x[0].pool;
       }
-    } else {
-      // just use the least crowded
-      pool = x[0].pool;
     }
   }
   if (!pool) {
@@ -165,7 +182,11 @@ export async function createProject({
       "SELECT COUNT(pool) AS cnt FROM projects WHERE pool=? AND namespace=?",
     )
     .get(pool, namespace) as { cnt: number };
+
   if (cnt == 0) {
+    // initialize the pool, since it has no projects on it.
+    // This sets up the parent filesystem for all projects
+    // and enable compression and dedup.
     try {
       await executeCode({
         verbose: true,
@@ -201,24 +222,62 @@ export async function createProject({
     });
   }
 
-  // create filesystem on the selected pool
-  await executeCode({
-    verbose: true,
-    command: "sudo",
-    args: [
-      "zfs",
-      "create",
-      "-o",
-      `mountpoint=${projectMountpoint({ namespace, project_id })}`,
-      "-o",
-      "compression=lz4",
-      "-o",
-      "dedup=on",
-      "-o",
-      `refquota=${quota}`,
-      projectDataset({ pool, namespace, project_id }),
-    ],
-  });
+  if (source_project_id == null || source == null) {
+    // create filesystem for project on the selected pool
+    await executeCode({
+      verbose: true,
+      command: "sudo",
+      args: [
+        "zfs",
+        "create",
+        "-o",
+        `mountpoint=${projectMountpoint({ namespace, project_id })}`,
+        "-o",
+        "compression=lz4",
+        "-o",
+        "dedup=on",
+        "-o",
+        `refquota=${quota}`,
+        projectDataset({ pool, namespace, project_id }),
+      ],
+    });
+  } else {
+    // clone source
+    // First ensure project isn't archived
+    // (we might alternatively de-archive to make the clone...?)
+    await getProject({ project_id: source_project_id, namespace });
+    // Get newest snapshot, or make one if there are none
+    let snapshot;
+    if (source.snapshots.length == 0) {
+      snapshot = await createSnapshot({
+        project_id: source_project_id,
+        namespace,
+      });
+    } else {
+      snapshot = source.snapshots[source.snapshots.length - 1];
+    }
+    if (!snapshot) {
+      throw Error("bug -- source should have a new snapshot");
+    }
+    await executeCode({
+      verbose: true,
+      command: "sudo",
+      args: [
+        "zfs",
+        "clone",
+        "-o",
+        `mountpoint=${projectMountpoint({ namespace, project_id })}`,
+        "-o",
+        "compression=lz4",
+        "-o",
+        "dedup=on",
+        "-o",
+        `refquota=${quota}`,
+        `${projectDataset({ pool, namespace, project_id: source_project_id })}@${snapshot}`,
+        projectDataset({ pool, namespace, project_id }),
+      ],
+    });
+  }
 
   // update database
   db.prepare(
@@ -258,20 +317,11 @@ export async function deleteProject({
   namespace?: string;
   project_id: string;
 }) {
-  const project = dbProject({ namespace, project_id });
-  if (project == null) {
-    // project is already deleted
-    return;
-  }
+  const { pool } = dbProject({ namespace, project_id });
   await executeCode({
     verbose: true,
     command: "sudo",
-    args: [
-      "zfs",
-      "destroy",
-      "-r",
-      `${project.pool}/${namespace}/${project_id}`,
-    ],
+    args: ["zfs", "destroy", "-r", `${pool}/${namespace}/${project_id}`],
   });
   await executeCode({
     verbose: true,
@@ -281,7 +331,7 @@ export async function deleteProject({
   const db = getDb();
   db.prepare("DELETE FROM projects WHERE project_id=? AND namespace=?").run(
     project_id,
-    project.namespace,
+    namespace,
   );
 }
 
