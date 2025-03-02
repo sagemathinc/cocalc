@@ -1,12 +1,8 @@
-import { dbProject, getDb, projectExists } from "./db";
-import { executeCode } from "@cocalc/backend/execute-code";
-import {
-  namespaceMountpoint,
-  projectDataset,
-  projectMountpoint,
-} from "./names";
-import { getPools } from "./pools";
-import { getProject } from "./index";
+import { create, get, getDb, projectExists } from "./db";
+import { exec } from "./util";
+import { projectDataset, projectMountpoint } from "./names";
+import { getPools, initializePool } from "./pools";
+import { restoreProject } from "./archive";
 import { context, DEFAULT_QUOTA } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createSnapshot } from "./snapshots";
@@ -16,24 +12,22 @@ export async function createProject({
   project_id,
   affinity,
   quota = DEFAULT_QUOTA,
-  nfs,
   source_project_id,
 }: {
   namespace?: string;
   project_id: string;
   affinity?: string;
   quota?: string;
-  nfs?: string;
   source_project_id?: string;
 }) {
   if (projectExists({ namespace, project_id })) {
-    return dbProject({ namespace, project_id });
+    return get({ namespace, project_id });
   }
   if (!isValidUUID(project_id)) {
     throw Error(`project_id=${project_id} must be a valid uuid`);
   }
   const source = source_project_id
-    ? dbProject({ namespace, project_id: source_project_id })
+    ? get({ namespace, project_id: source_project_id })
     : undefined;
 
   const db = getDb();
@@ -94,47 +88,13 @@ export async function createProject({
     .get(pool, namespace) as { cnt: number };
 
   if (cnt == 0) {
-    // initialize the pool, since it has no projects on it.
-    // This sets up the parent filesystem for all projects
-    // and enable compression and dedup.
-    try {
-      await executeCode({
-        verbose: true,
-        command: "sudo",
-        args: [
-          "zfs",
-          "create",
-          "-o",
-          "mountpoint=none",
-          "-o",
-          "compression=lz4",
-          "-o",
-          "dedup=on",
-          `${pool}/${namespace}`,
-        ],
-      });
-    } catch (err) {
-      if (`${err}`.includes("already exists")) {
-        // fine -- happens if we delete all projects then create one
-      } else {
-        throw err;
-      }
-    }
-    await executeCode({
-      verbose: true,
-      command: "sudo",
-      args: ["mkdir", "-p", namespaceMountpoint({ namespace })],
-    });
-    await executeCode({
-      verbose: true,
-      command: "sudo",
-      args: ["chmod", "a+rx", namespaceMountpoint({ namespace })],
-    });
+    // initialize pool for use in this namespace:
+    await initializePool({ pool, namespace });
   }
 
   if (source_project_id == null || source == null) {
     // create filesystem for project on the selected pool
-    await executeCode({
+    await exec({
       verbose: true,
       command: "sudo",
       args: [
@@ -155,7 +115,7 @@ export async function createProject({
     // clone source
     // First ensure project isn't archived
     // (we might alternatively de-archive to make the clone...?)
-    await getProject({ project_id: source_project_id, namespace });
+    await restoreProject({ project_id: source_project_id, namespace });
     // Get newest snapshot, or make one if there are none
     let snapshot;
     if (source.snapshots.length == 0) {
@@ -169,7 +129,7 @@ export async function createProject({
     if (!snapshot) {
       throw Error("bug -- source should have a new snapshot");
     }
-    await executeCode({
+    await exec({
       verbose: true,
       command: "sudo",
       args: [
@@ -190,11 +150,8 @@ export async function createProject({
   }
 
   // update database
-  db.prepare(
-    "INSERT INTO projects(namespace,project_id,pool,affinity,nfs,last_edited) VALUES(?,?,?,?,?,?)",
-  ).run(namespace, project_id, pool, affinity, nfs, new Date().toISOString());
-
-  return dbProject({ namespace, project_id });
+  create({ namespace, project_id, pool, affinity });
+  return get({ namespace, project_id });
 }
 
 export async function deleteProject({
@@ -204,13 +161,13 @@ export async function deleteProject({
   namespace?: string;
   project_id: string;
 }) {
-  const { pool } = dbProject({ namespace, project_id });
-  await executeCode({
+  const { pool } = get({ namespace, project_id });
+  await exec({
     verbose: true,
     command: "sudo",
     args: ["zfs", "destroy", "-r", `${pool}/${namespace}/${project_id}`],
   });
-  await executeCode({
+  await exec({
     verbose: true,
     command: "sudo",
     args: ["rmdir", `/projects/${namespace}/${project_id}`],

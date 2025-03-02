@@ -13,3 +13,12 @@ export const DEFAULT_QUOTA = "1G";
 // and how much space they have left.  This info is cached for this long
 // to avoid excessive calls:
 export const POOLS_CACHE_MS = 15000;
+
+// Directory on server where all projects are mounted
+export const PROJECTS = "/projects";
+
+// Directory on server where zfs send streams (and tar?) are stored
+export const ARCHIVES = "/archives";
+
+// two hour default for running any commands (e.g., zfs send/recv)
+export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;

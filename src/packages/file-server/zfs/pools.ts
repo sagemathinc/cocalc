@@ -1,6 +1,23 @@
+/*
+This code sets things up for each pool and namespace, e.g., defining datasets, creating directories,
+etc. as defined in config and names.
+
+WARNING: For efficientcy and sanity, it assumes that once something is setup, it stays setup.
+If there is a chaos monkey running around breaking things (e.g., screwing up
+file permissions, deleting datasets, etc.,) then this code won't help at all.
+
+OPERATIONS:
+
+- To add a new pool, just create it using zfs with a name sthat starts with POOL_PREFIX.
+  It should automatically start getting used within POOLS_CACHE_MS by newly created projects.
+
+*/
+
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { POOL_PREFIX, POOLS_CACHE_MS } from "./config";
-import { executeCode } from "@cocalc/backend/execute-code";
+import { exec } from "./util";
+import { archivesDataset, archivesMountpoint, projectsDataset, projectsPath } from "./names";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 interface Pool {
   name: string;
@@ -16,7 +33,7 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
   if (poolsCache != null) {
     return poolsCache;
   }
-  const { stdout } = await executeCode({
+  const { stdout } = await exec({
     verbose: true,
     command: "zpool",
     args: ["list", "-j", "--json-int", "-o", "size,allocated,free"],
@@ -39,3 +56,88 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
   }, POOLS_CACHE_MS);
   return v;
 });
+
+// fine to call this a lot -- it only does something when needed.
+export async function initializePool({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
+  if (!pool.startsWith(POOL_PREFIX)) {
+    throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
+  }
+  // This sets up the parent filesystem for all projects
+  // and enable compression and dedup.
+  if (!(await datasetExists(projectsDataset({ pool, namespace })))) {
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: [
+        "zfs",
+        "create",
+        "-o",
+        "mountpoint=none",
+        "-o",
+        "compression=lz4",
+        "-o",
+        "dedup=on",
+        projectsDataset({ pool, namespace }),
+      ],
+    });
+  }
+  // Initialize streams dataset, used for archiving projects.
+  if (!(await datasetExists(archivesDataset({ pool, namespace })))) {
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: [
+        "zfs",
+        "create",
+        "-o",
+        `mountpoint=${archivesMountpoint({ pool, namespace })}`,
+        "-o",
+        "compression=lz4",
+        "-o",
+        "dedup=on",
+        archivesDataset({ pool, namespace }),
+      ],
+    });
+  }
+
+  const projects = projectsPath({ namespace });
+  if (!(await exists(projects))) {
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["mkdir", "-p", projects],
+    });
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["chmod", "a+rx", projects],
+    });
+  }
+}
+
+// If a dataset exists, it is assumed to exist henceforth for the life of this process.
+// That's fine for *this* application here of initializing pools, since we never delete
+// anything here.
+const datasetExistsCache = new Set<string>();
+async function datasetExists(name: string): Promise<boolean> {
+  if (datasetExistsCache.has(name)) {
+    return true;
+  }
+  try {
+    await exec({
+      verbose: true,
+      command: "zfs",
+      args: ["list", name],
+    });
+    datasetExistsCache.add(name);
+    return true;
+  } catch {
+    return false;
+  }
+}

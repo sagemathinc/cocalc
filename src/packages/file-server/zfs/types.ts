@@ -1,13 +1,9 @@
-
 export interface Project {
   namespace: string;
   project_id: string;
   pool: string;
-  // if set, its location where project is archived
-  archived?: string;
-  // optional arbitrary affinity string - we attempt if possible to put
-  // projects with the same affinity in the same pool, to improve chances of dedup.
-  affinity?: string;
+  // true if project is currently archived
+  archived: boolean;
   // array of hosts (or range using CIDR notation) that we're
   // granting NFS client access to.
   nfs: string[];
@@ -18,6 +14,41 @@ export interface Project {
   // trimming process.
   last_send_snapshot?: string;
   // Last_edited = last time this project was "edited" -- various
-  // operations cause this to get updated. An ISO timestamp.
+  // operations cause this to get updated.
+  last_edited?: Date;
+  // optional arbitrary affinity string - we attempt if possible to put
+  // projects with the same affinity in the same pool, to improve chances of dedup.
+  affinity?: string;
+}
+
+// Used for set(...), main thing being each field can be ProjectFieldFunction,
+// which makes it very easy to *safely* mutate data (assuming only one process
+// is using sqlite).
+type ProjectFieldFunction = (project: Project) => any;
+export interface SetProject {
+  project_id: string;
+  namespace?: string;
+  pool?: string | ProjectFieldFunction;
+  archived?: boolean | ProjectFieldFunction;
+  nfs?: string[] | ProjectFieldFunction;
+  snapshots?: string[] | ProjectFieldFunction;
+  last_send_snapshot?: string | ProjectFieldFunction;
+  last_edited?: Date | ProjectFieldFunction;
+  affinity?: string | ProjectFieldFunction;
+}
+
+// what is *actually* stored in sqlite
+export interface RawProject {
+  namespace: string;
+  project_id: string;
+  pool: string;
+  // 0 or 1
+  archived?: number;
+  // nfs and snasphots are v.join(',')
+  nfs?: string;
+  snapshots?: string;
+  last_send_snapshot?: string;
+  // new Date().ISOString()
   last_edited?: string;
+  affinity?: string;
 }

@@ -7,8 +7,8 @@ if you try to mess with snapshots directly then the sqlite database won't
 know you did that.
 */
 
-import { executeCode } from "@cocalc/backend/execute-code";
-import { dbProject, getDb, getRecentProjects } from "./db";
+import { exec } from "./util";
+import { get, getRecent, set } from "./db";
 import { projectDataset, projectMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
@@ -38,27 +38,26 @@ const SNAPSHOT_COUNTS = {
 
 // If there any changes to the project since the last snapshot,
 // and there are no snapshots since SNAPSHOT_INTERVAL_MS ms ago,
-// make a new one.
+// make a new one.  Always returns the most recent snapshot name.
+// Error if project is archived.
 export async function createSnapshot({
   project_id,
   namespace = context.namespace,
 }: {
   project_id: string;
   namespace?: string;
-}): Promise<string | undefined> {
+}): Promise<string> {
   logger.debug("createSnapshot: ", { project_id, namespace });
-  const project = dbProject({ project_id, namespace });
-  if (project.archived) {
-    // never snapshot an archived project
-    return;
+  const { pool, archived, snapshots } = get({ project_id, namespace });
+  if (archived) {
+    throw Error("cannot snapshot an archived project");
   }
-  const { snapshots } = project;
   if (snapshots.length > 0) {
     // check for sufficiently recent snapshot
     const last = new Date(snapshots[snapshots.length - 1]);
     if (Date.now() - last.valueOf() < SNAPSHOT_INTERVAL_MS) {
       // snapshot sufficiently recent
-      return;
+      return snapshots[snapshots.length - 1];
     }
   }
 
@@ -68,31 +67,31 @@ export async function createSnapshot({
     if (written == 0) {
       // for sure definitely nothing written, so no possible
       // need to make a snapshot
-      return;
+      return snapshots[snapshots.length - 1];
     }
   }
 
-  const t = new Date().toISOString();
-  await executeCode({
+  const snapshot = new Date().toISOString();
+  await exec({
     verbose: true,
     command: "sudo",
     args: [
       "zfs",
       "snapshot",
-      `${projectDataset({ project_id, namespace, pool: project.pool })}@${t}`,
+      `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
   });
-  snapshots.push(t);
-  const db = getDb();
-  db.prepare(
-    "UPDATE projects SET snapshots=? WHERE project_id=? AND namespace=?",
-  ).run(snapshots.join(","), project_id, namespace);
-  return t;
+  set({
+    project_id,
+    namespace,
+    snapshots: ({ snapshots }) => [...snapshots, snapshot],
+  });
+  return snapshot;
 }
 
 async function getWritten({ project_id, namespace }) {
-  const { pool } = dbProject({ project_id, namespace });
-  const { stdout } = await executeCode({
+  const { pool } = get({ project_id, namespace });
+  const { stdout } = await exec({
     verbose: true,
     command: "zfs",
     args: [
@@ -111,7 +110,7 @@ export async function deleteSnapshot({
   snapshot,
 }) {
   logger.debug("deleteSnapshot: ", { project_id, namespace });
-  const { pool, last_send_snapshot, snapshots } = dbProject({
+  const { pool, last_send_snapshot } = get({
     project_id,
     namespace,
   });
@@ -120,7 +119,7 @@ export async function deleteSnapshot({
       "can't delete snapshot since it is the last one used for a zfs send",
     );
   }
-  await executeCode({
+  await exec({
     verbose: true,
     command: "sudo",
     args: [
@@ -129,14 +128,11 @@ export async function deleteSnapshot({
       `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
   });
-  const db = getDb();
-  db.prepare(
-    "UPDATE projects SET snapshots=? WHERE project_id=? AND namespace=?",
-  ).run(
-    snapshots.filter((x) => x != snapshot).join(","),
+  set({
     project_id,
     namespace,
-  );
+    snapshots: ({ snapshots }) => snapshots.filter((x) => x != snapshot),
+  });
 }
 
 /*
@@ -150,7 +146,7 @@ export async function deleteExtraSnapshots({
   namespace = context.namespace,
 }): Promise<string[]> {
   logger.debug("deleteExtraSnapshots: ", { project_id, namespace });
-  const { last_send_snapshot, snapshots } = dbProject({
+  const { last_send_snapshot, snapshots } = get({
     project_id,
     namespace,
   });
@@ -195,12 +191,15 @@ export async function deleteExtraSnapshots({
 // Go through ALL projects with last_edited >= cutoff stored
 // here and run trimActiveProjectSnapshots.
 export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
-  const v = getRecentProjects({ cutoff });
+  const v = getRecent({ cutoff });
   logger.debug(
     `deleteSnapshotsOfActiveProjects: considering ${v.length} projects`,
   );
   let i = 0;
-  for (const { project_id, namespace } of v) {
+  for (const { project_id, namespace, archived } of v) {
+    if (archived) {
+      continue;
+    }
     await deleteExtraSnapshots({ project_id, namespace });
     i += 1;
     if (i % 10 == 0) {
@@ -214,13 +213,16 @@ export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
 // cutoff = a Date (default = 1 week ago)
 export async function snapshotActiveProjects(cutoff?: Date) {
   logger.debug("snapshotActiveProjects: getting...");
-  const v = getRecentProjects({ cutoff });
+  const v = getRecent({ cutoff });
   logger.debug(
     `snapshotActiveProjects: considering ${v.length} projects`,
     cutoff,
   );
   let i = 0;
-  for (const { project_id, namespace } of v) {
+  for (const { project_id, namespace, archived } of v) {
+    if (archived) {
+      continue;
+    }
     await createSnapshot({ project_id, namespace });
     i += 1;
     if (i % 10 == 0) {
@@ -258,14 +260,14 @@ export async function getModifiedFiles({
   snapshot?: string;
 }) {
   logger.debug(`getModifiedFiles: `, { project_id, namespace });
-  const { pool, snapshots } = dbProject({ project_id, namespace });
+  const { pool, snapshots } = get({ project_id, namespace });
   if (snapshots.length == 0) {
     return [];
   }
   if (snapshot == null) {
     snapshot = snapshots[snapshots.length - 1];
   }
-  const { stdout } = await executeCode({
+  const { stdout } = await exec({
     verbose: true,
     command: "sudo",
     args: [

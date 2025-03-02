@@ -1,6 +1,6 @@
-import { executeCode } from "@cocalc/backend/execute-code";
+import { exec } from "./util";
 import { projectDataset } from "./names";
-import { dbProject } from "./db";
+import { get } from "./db";
 import { context } from "./config";
 
 export async function setQuota({
@@ -12,8 +12,8 @@ export async function setQuota({
   project_id: string;
   quota: string;
 }) {
-  const { pool } = dbProject({ namespace, project_id });
-  await executeCode({
+  const { pool } = get({ namespace, project_id });
+  await exec({
     verbose: true,
     command: "sudo",
     args: [
@@ -33,9 +33,9 @@ export async function mountProject({
   namespace?: string;
   project_id: string;
 }) {
-  const { pool } = dbProject({ namespace, project_id });
+  const { pool } = get({ namespace, project_id });
   try {
-    await executeCode({
+    await exec({
       command: "sudo",
       args: ["zfs", "mount", projectDataset({ pool, namespace, project_id })],
     });
@@ -55,9 +55,9 @@ export async function unmountProject({
   namespace?: string;
   project_id: string;
 }) {
-  const { pool } = dbProject({ namespace, project_id });
+  const { pool } = get({ namespace, project_id });
   try {
-    await executeCode({
+    await exec({
       verbose: true,
       command: "sudo",
       args: ["zfs", "unmount", projectDataset({ pool, namespace, project_id })],

@@ -1,5 +1,5 @@
-import { dbProject, getDb, touch } from "./db";
-import { executeCode } from "@cocalc/backend/execute-code";
+import { get, set, touch } from "./db";
+import { exec } from "./util";
 import { projectDataset, projectMountpoint } from "./names";
 import { context } from "./config";
 
@@ -18,17 +18,14 @@ export async function shareNFS({
   namespace?: string;
 }): Promise<string> {
   client = client?.trim();
-  const { pool, nfs } = dbProject({ namespace, project_id });
+  const { pool, nfs } = get({ namespace, project_id });
   let hostname;
   if (client) {
     hostname = await hostnameFor(client);
     if (!nfs.includes(client)) {
       nfs.push(client);
       // update database which tracks what the share should be.
-      const db = getDb();
-      db.prepare(
-        "UPDATE projects SET nfs=? WHERE namespace=? AND project_id=?",
-      ).run(nfs.join(","), namespace, project_id);
+      set({ namespace, project_id, nfs: ({ nfs }) => [...nfs, client] });
     }
   }
   // actually ensure share is configured.
@@ -37,7 +34,7 @@ export async function shareNFS({
     nfs.length > 0
       ? `${nfs.map((client) => `rw=${client}`).join(",")},no_root_squash,crossmnt,no_subtree_check`
       : "off";
-  await executeCode({
+  await exec({
     verbose: true,
     command: "sudo",
     args: ["zfs", "set", `sharenfs=${sharenfs}`, name],
@@ -63,17 +60,15 @@ export async function unshareNFS({
   project_id: string;
   namespace?: string;
 }) {
-  let { nfs } = dbProject({ namespace, project_id });
+  let { nfs } = get({ namespace, project_id });
   if (!nfs.includes(client)) {
     // nothing to do
     return;
   }
   nfs = nfs.filter((x) => x != client);
   // update database which tracks what the share should be.
-  const db = getDb();
-  db.prepare(
-    "UPDATE projects SET nfs=? WHERE namespace=? AND project_id=?",
-  ).run(nfs.join(","), namespace, project_id);
+  set({ namespace, project_id, nfs });
+  // update zfs/nfs
   await shareNFS({ project_id, namespace });
 }
 
@@ -81,7 +76,7 @@ let serverIps: null | string[] = null;
 async function hostnameFor(client: string) {
   if (serverIps == null) {
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    const { stdout } = await executeCode({
+    const { stdout } = await exec({
       verbose: false,
       command: "ifconfig",
     });
