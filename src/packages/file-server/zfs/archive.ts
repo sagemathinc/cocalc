@@ -4,10 +4,16 @@ Archiving and restore projects
 
 import { get, set } from "./db";
 import { createSnapshot } from "./snapshots";
-import { projectDataset, projectArchivePath, projectMountpoint } from "./names";
+import { projectDataset, projectArchivePath } from "./names";
 import { exec } from "./util";
 import { join } from "path";
 import { mountProject } from "./properties";
+
+function streamPath(project) {
+  const archive = projectArchivePath(project);
+  const stream = join(archive, `${project.project_id}.zfs`);
+  return stream;
+}
 
 export async function dearchiveProject(opts) {
   const project = get(opts);
@@ -17,10 +23,11 @@ export async function dearchiveProject(opts) {
   }
   const { project_id, namespace } = project;
   // now we de-archive it:
-  const archive = projectArchivePath(project);
+  const stream = streamPath(project);
   await exec({
     verbose: true,
-    command: `cat ${join(archive, "latest.zfs")} | zfs recv ${projectDataset(project)}`,
+    // have to use sudo sh -c because zfs recv only supports reading from stdin:
+    command: `sudo sh -c 'cat ${stream} | zfs recv ${projectDataset(project)}'`,
     what: {
       project_id,
       namespace,
@@ -28,6 +35,16 @@ export async function dearchiveProject(opts) {
     },
   });
   await mountProject(project);
+  // mounting worked so remove the archive
+  await exec({
+    command: "sudo",
+    args: ["rm", stream],
+    what: {
+      project_id,
+      namespace,
+      desc: "removing the stream during de-archive",
+    },
+  });
   set({ project_id, namespace, archived: false });
 }
 
@@ -42,6 +59,7 @@ export async function archiveProject(opts) {
   const snapshot = await createSnapshot(project);
   // where archive of this project goes in the filesystem:
   const archive = projectArchivePath(project);
+  const stream = streamPath(project);
   await exec({
     command: "sudo",
     args: ["mkdir", "-p", archive],
@@ -50,29 +68,41 @@ export async function archiveProject(opts) {
   // make full zfs send
   await exec({
     verbose: true,
-    command: `zfs send -R ${projectDataset(project)}@${snapshot} > ${join(archive, "latest.zfs")}`,
+    // have to use sudo sh -c because zfs send only supports writing to stdout:
+    command: `sudo sh -c 'zfs send -R ${projectDataset(project)}@${snapshot} > ${stream}'`,
     what: {
       project_id,
       namespace,
       desc: "zfs send of full project dataset to archive it",
     },
   });
+
+  // TODO: test that it works by reimporting it and running sha1 on tree (?).
+
+  /*
   await mountProject(project);
   // make tarball
   await exec({
     verbose: true,
-    command: `tar cf ${join(archive, "latest.tar")} ${join(projectMountpoint(project), ".zfs", "snapshot", snapshot)}`,
+    command: "sudo",
+    args: [
+      "tar",
+      "cf",
+      join(archive, "latest.tar"),
+      join(projectMountpoint(project), ".zfs", "snapshot", snapshot),
+    ],
     what: {
       project_id,
       namespace,
       desc: "make full tarball of project for archive (just in case zfs send were corrupt)",
     },
   });
+  */
   // destroy dataset
   await exec({
     verbose: true,
-    command: ["sudo"],
-    args: ["destroy", "-r", projectDataset(project)],
+    command: "sudo",
+    args: ["zfs", "destroy", "-r", projectDataset(project)],
     what: { project_id, namespace, desc: "destroying project dataset" },
   });
   // set as archived in database

@@ -13,7 +13,7 @@ export async function exec(opts) {
       fatalError({
         ...opts.what,
         err,
-        desc: `${opts.desc ? opts.desc : ""} "${opts.command} ${opts.args.join(" ")}"`,
+        desc: `${opts.desc ? opts.desc : ""} "${opts.command} ${opts.args?.join(" ") ?? ''}"`,
       });
     }
     throw err;

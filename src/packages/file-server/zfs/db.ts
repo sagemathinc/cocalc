@@ -98,6 +98,10 @@ export function fatalError({
   throw err;
 }
 
+export function clearError({ project_id, namespace }) {
+  set({ namespace, project_id, error: null });
+}
+
 export function touch(project: { namespace?: string; project_id: string }) {
   set({ ...project, last_edited: new Date() });
 }

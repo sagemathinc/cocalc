@@ -37,8 +37,8 @@ export interface SetProject {
   snapshots?: string[] | ProjectFieldFunction;
   last_send_snapshot?: string | ProjectFieldFunction;
   last_edited?: Date | ProjectFieldFunction;
-  affinity?: string | ProjectFieldFunction;
-  error?: string | ProjectFieldFunction;
+  affinity?:  null | string | ProjectFieldFunction;
+  error?: null | string | ProjectFieldFunction;
 }
 
 // what is *actually* stored in sqlite
