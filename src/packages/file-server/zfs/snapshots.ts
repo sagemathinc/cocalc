@@ -18,8 +18,14 @@ import {
   SNAPSHOT_INTERVALS_MS,
   SNAPSHOT_COUNTS,
 } from "./config";
+import { syncProperties } from "./properties";
 
 const logger = getLogger("file-server:zfs/snapshots");
+
+export async function maintainSnapshots(cutoff?: Date) {
+  await deleteExtraSnapshotsOfActiveProjects(cutoff);
+  await snapshotActiveProjects(cutoff);
+}
 
 // If there any changes to the project since the last snapshot,
 // and there are no snapshots since SNAPSHOT_INTERVAL_MS ms ago,
@@ -65,12 +71,14 @@ export async function createSnapshot({
       "snapshot",
       `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
+    what: { project_id, namespace, desc: "creating snapshot of project" },
   });
   set({
     project_id,
     namespace,
     snapshots: ({ snapshots }) => [...snapshots, snapshot],
   });
+  syncProperties({ project_id, namespace });
   return snapshot;
 }
 
@@ -85,6 +93,11 @@ async function getWritten({ project_id, namespace }) {
       "written",
       projectDataset({ project_id, namespace, pool }),
     ],
+    what: {
+      project_id,
+      namespace,
+      desc: "getting amount of newly written data in project since last snapshot",
+    },
   });
   return parseInt(stdout);
 }
@@ -112,12 +125,14 @@ export async function deleteSnapshot({
       "destroy",
       `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
+    what: { project_id, namespace, desc: "destroying a snapshot of a project" },
   });
   set({
     project_id,
     namespace,
     snapshots: ({ snapshots }) => snapshots.filter((x) => x != snapshot),
   });
+  syncProperties({ project_id, namespace });
 }
 
 /*
@@ -185,7 +200,11 @@ export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
     if (archived) {
       continue;
     }
-    await deleteExtraSnapshots({ project_id, namespace });
+    try {
+      await deleteExtraSnapshots({ project_id, namespace });
+    } catch (err) {
+      logger.debug(`deleteSnapshotsOfActiveProjects: error -- ${err}`);
+    }
     i += 1;
     if (i % 10 == 0) {
       logger.debug(`deleteSnapshotsOfActiveProjects: ${i}/${v.length}`);
@@ -208,7 +227,12 @@ export async function snapshotActiveProjects(cutoff?: Date) {
     if (archived) {
       continue;
     }
-    await createSnapshot({ project_id, namespace });
+    try {
+      await createSnapshot({ project_id, namespace });
+    } catch (err) {
+      // error is already logged in error field of database
+      logger.debug(`snapshotActiveProjects: error -- ${err}`);
+    }
     i += 1;
     if (i % 10 == 0) {
       logger.debug(`snapshotActiveProjects: ${i}/${v.length}`);
@@ -261,6 +285,11 @@ export async function getModifiedFiles({
       "-FHt",
       `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
     ],
+    what: {
+      project_id,
+      namespace,
+      desc: "getting files modified since last snapshot",
+    },
   });
   const mnt = projectMountpoint({ project_id, namespace }) + "/";
   const files: Mod[] = [];

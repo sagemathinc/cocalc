@@ -3,7 +3,7 @@ import { exec } from "./util";
 import { projectDataset, projectMountpoint } from "./names";
 import { getPools, initializePool } from "./pools";
 import { dearchiveProject } from "./archive";
-import { context, DEFAULT_QUOTA, UID, GID } from "./config";
+import { context, UID, GID } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createSnapshot } from "./snapshots";
 
@@ -11,13 +11,11 @@ export async function createProject({
   namespace = context.namespace,
   project_id,
   affinity,
-  quota = DEFAULT_QUOTA,
   source_project_id,
 }: {
   namespace?: string;
   project_id: string;
   affinity?: string;
-  quota?: string;
   source_project_id?: string;
 }) {
   if (projectExists({ namespace, project_id })) {
@@ -111,8 +109,6 @@ export async function createProject({
         "compression=lz4",
         "-o",
         "dedup=on",
-        "-o",
-        `refquota=${quota}`,
         dataset,
       ],
       what: {
@@ -162,7 +158,6 @@ export async function createProject({
         "compression=lz4",
         "-o",
         "dedup=on",
-        // TODO/worry: clone gets the quota of source (hence quota not specified here)
         source_snapshot,
         projectDataset({ pool, namespace, project_id }),
       ],

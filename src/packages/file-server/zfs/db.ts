@@ -23,6 +23,9 @@ export function getDb(): Database.Database {
           last_edited TEXT,
           last_send_snapshot TEXT,
           error TEXT,
+          used_by_dataset INTEGER,
+          used_by_snapshots INTEGER,
+          quota INTEGER,
         PRIMARY KEY (namespace, project_id)
       )`,
     ).run();
@@ -100,6 +103,11 @@ export function fatalError({
 
 export function clearError({ project_id, namespace }) {
   set({ namespace, project_id, error: null });
+}
+
+export function getErrors() {
+  const db = getDb();
+  return db.prepare("SELECT * FROM projects WHERE error!=''").all() as RawProject[];
 }
 
 export function touch(project: { namespace?: string; project_id: string }) {

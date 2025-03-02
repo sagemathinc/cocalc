@@ -22,6 +22,17 @@ export interface Project {
   // if this is set, then some sort of error that "should" never happen,
   // has happened, and manual intervention is needed.
   error?: string;
+
+  // Bytes used by the main project filesystem dataset, NOT counting snapshots (zfs "USED").
+  // Obviously these used_by fields are NOT always up to date.  They get updated on some
+  // standard operations, including making snapshots, so can be pretty useful for monitoring
+  // for issues, etc.
+  used_by_dataset?: number;
+  // Total amount of space used by snapshots (not the filesystem)
+  used_by_snapshots?: number;
+
+  // Quota for dataset usage (in bytes), so used_by_dataset <= dataset_quota. This is the refquota property in ZFS.
+  quota?: number;
 }
 
 // Used for set(...), main thing being each field can be ProjectFieldFunction,
@@ -37,8 +48,11 @@ export interface SetProject {
   snapshots?: string[] | ProjectFieldFunction;
   last_send_snapshot?: string | ProjectFieldFunction;
   last_edited?: Date | ProjectFieldFunction;
-  affinity?:  null | string | ProjectFieldFunction;
+  affinity?: null | string | ProjectFieldFunction;
   error?: null | string | ProjectFieldFunction;
+  used_by_dataset?: null | number;
+  used_by_snapshots?: null | number;
+  quota?: null | number;
 }
 
 // what is *actually* stored in sqlite
@@ -56,4 +70,7 @@ export interface RawProject {
   last_edited?: string;
   affinity?: string;
   error?: string;
+  used_by_dataset?: number;
+  used_by_snapshots?: number;
+  quota?: number;
 }

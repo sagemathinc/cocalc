@@ -21,3 +21,17 @@ archive contents:
  - a tarball of the last snapshot of project contents
  - dump of the NATS stream and kv for that project.
 
+
+### NOTE: Units
+
+By default both ZFS and `df -h` use GiB and write it G (e.g., "gibibyte").
+
+```sh
+root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs set refquota=2147483648 cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002 
+root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs get refquota cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002 
+NAME                                                             PROPERTY  VALUE     SOURCE
+cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002  refquota  2G        local
+root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# df -h .
+Filesystem                                                       Size  Used Avail Use% Mounted on
+cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002  2.0G  568M  1.5G  28% /cocalcfs/projects/default/00000000-0000-0000-0000-000000000002
+```

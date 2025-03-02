@@ -6,7 +6,8 @@ export const context = {
   namespace: process.env.NAMESPACE ?? "default",
 };
 
-export const DEFAULT_QUOTA = "1G";
+// Every project always has at least this much quota
+export const MIN_QUOTA = 1024 * 1024 * 1024; // 1G
 
 // We periodically do "zpool list" to find out what pools are available
 // and how much space they have left.  This info is cached for this long
@@ -25,8 +26,6 @@ export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;
 // **all** user files for projects have this owner and group.
 export const UID = 2001;
 export const GID = 2001;
-
-
 
 // We make/update snapshots periodically, with this being the minimum interval.
 //const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
