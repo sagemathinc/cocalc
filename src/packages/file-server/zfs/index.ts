@@ -10,11 +10,16 @@ export {
   createSnapshot,
   getModifiedFiles,
   deleteSnapshot,
-  trimActiveProjectSnapshots,
-  trimSnapshots,
+  deleteExtraSnapshotsOfActiveProjects,
+  deleteExtraSnapshots,
 } from "./snapshots";
 import { dbProject, getDb } from "./db";
-export { dbAllProjects } from "./db";
+export { dbAllProjects, getRecentProjects } from "./db";
+
+// we ONLY put projects on pools whose name has this prefix.
+// all other pools are ignored.
+// TODO: change to 'projects'?
+const POOL_PREFIX = "tank";
 
 export const context = {
   namespace: process.env.NAMESPACE ?? "default",
@@ -49,6 +54,9 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
   const { pools } = JSON.parse(stdout);
   const v: { [name: string]: Pool } = {};
   for (const name in pools) {
+    if (!name.startsWith(POOL_PREFIX)) {
+      continue;
+    }
     const pool = pools[name];
     for (const key in pool.properties) {
       pool.properties[key] = pool.properties[key].value;

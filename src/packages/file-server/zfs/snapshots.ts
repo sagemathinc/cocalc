@@ -9,7 +9,7 @@ know you did that.
 
 import { executeCode } from "@cocalc/backend/execute-code";
 import { context } from "./index";
-import { dbProject, getDb } from "./db";
+import { dbProject, getDb, getRecentProjects } from "./db";
 import { projectDataset, projectMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
@@ -36,6 +36,9 @@ const SNAPSHOT_COUNTS = {
   monthly: 4,
 };
 
+// If there any changes to the project since the last snapshot,
+// and there are no snapshots since SNAPSHOT_INTERVAL_MS ms ago,
+// make a new one.
 export async function createSnapshot({
   project_id,
   namespace = context.namespace,
@@ -145,11 +148,11 @@ never delete last_stream if set.
 
 Returns names of deleted snapshots.
 */
-export async function trimSnapshots({
+export async function deleteExtraSnapshots({
   project_id,
   namespace = context.namespace,
 }): Promise<string[]> {
-  logger.debug("trimSnapshots: ", { project_id, namespace });
+  logger.debug("deleteExtraSnapshots: ", { project_id, namespace });
   const { last_send_snapshot, snapshots } = dbProject({
     project_id,
     namespace,
@@ -194,27 +197,37 @@ export async function trimSnapshots({
 
 // Go through ALL projects with last_edited >= cutoff stored
 // here and run trimActiveProjectSnapshots.
-// cutoff = a Date (default = 1 week ago)
-export async function trimActiveProjectSnapshots(cutoff?: Date) {
-  logger.debug("trimActiveProjectSnapshots: getting...");
-  if (cutoff == null) {
-    cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
-  }
-  const db = getDb();
-  const v = db
-    .prepare("SELECT project_id, namespace FROM projects WHERE last_edited>=?")
-    .all(cutoff.toISOString()) as any;
-
+export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
+  const v = getRecentProjects({ cutoff });
   logger.debug(
-    `trimActiveProjectSnapshots: considering ${v.length} projects active after cutoff=`,
+    `deleteSnapshotsOfActiveProjects: considering ${v.length} projects`,
+  );
+  let i = 0;
+  for (const { project_id, namespace } of v) {
+    await deleteExtraSnapshots({ project_id, namespace });
+    i += 1;
+    if (i % 10 == 0) {
+      logger.debug(`deleteSnapshotsOfActiveProjects: ${i}/${v.length}`);
+    }
+  }
+}
+
+// Go through ALL projects with last_edited >= cutoff and snapshot them
+// if they are due a snapshot.
+// cutoff = a Date (default = 1 week ago)
+export async function snapshotActiveProjects(cutoff?: Date) {
+  logger.debug("snapshotActiveProjects: getting...");
+  const v = getRecentProjects({ cutoff });
+  logger.debug(
+    `snapshotActiveProjects: considering ${v.length} projects`,
     cutoff,
   );
   let i = 0;
   for (const { project_id, namespace } of v) {
-    await trimSnapshots({ project_id, namespace });
+    await createSnapshot({ project_id, namespace });
     i += 1;
     if (i % 10 == 0) {
-      logger.debug(`trimActiveProjectSnapshots: ${i}/${v.length}`);
+      logger.debug(`snapshotActiveProjects: ${i}/${v.length}`);
     }
   }
 }

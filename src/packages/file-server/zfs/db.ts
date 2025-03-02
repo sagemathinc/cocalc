@@ -53,3 +53,25 @@ export function dbAllProjects({
     .prepare("SELECT * FROM projects WHERE namespace=?")
     .all(namespace) as Project[];
 }
+
+export function getRecentProjects({
+  namespace,
+  cutoff,
+}: {
+  namespace?: string;
+  cutoff?: Date;
+} = {}): { project_id: string; last_edited: string; namespace: string }[] {
+  const db = getDb();
+  if (cutoff == null) {
+    cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
+  }
+  const query =
+    "SELECT project_id, last_edited, namespace FROM projects WHERE last_edited>=?";
+  if (namespace == null) {
+    return db.prepare(query).all(cutoff.toISOString()) as any;
+  } else {
+    return db
+      .prepare(`${query} AND namespace=?`)
+      .all(cutoff.toISOString(), namespace) as any;
+  }
+}
