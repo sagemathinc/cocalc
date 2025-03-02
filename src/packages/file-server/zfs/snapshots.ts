@@ -11,6 +11,9 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { context, dbProject, getDb } from "./index";
 import { projectDataset, projectMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("file-server:zfs/snapshots");
 
 // We make/update snapshots periodically, with this being the minimum interval.
 //const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
@@ -39,6 +42,7 @@ export async function createSnapshot({
   project_id: string;
   namespace?: string;
 }): Promise<string | undefined> {
+  logger.debug("createSnapshot: ", { project_id, namespace });
   const project = dbProject({ project_id, namespace });
   if (project == null) {
     throw Error("no such project");
@@ -105,6 +109,7 @@ export async function deleteSnapshot({
   namespace = context.namespace,
   snapshot,
 }) {
+  logger.debug("deleteSnapshot: ", { project_id, namespace });
   const { pool, last_send_snapshot, snapshots } = dbProject({
     project_id,
     namespace,
@@ -143,6 +148,7 @@ export async function trimSnapshots({
   project_id,
   namespace = context.namespace,
 }): Promise<string[]> {
+  logger.debug("trimSnapshots: ", { project_id, namespace });
   const { last_send_snapshot, snapshots } = dbProject({
     project_id,
     namespace,
@@ -185,6 +191,33 @@ export async function trimSnapshots({
   return toDelete;
 }
 
+// Go through ALL projects with last_edited >= cutoff stored
+// here and run trimActiveProjectSnapshots.
+// cutoff = a Date (default = 1 week ago)
+export async function trimActiveProjectSnapshots(cutoff?: Date) {
+  logger.debug("trimActiveProjectSnapshots: getting...");
+  if (cutoff == null) {
+    cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
+  }
+  const db = getDb();
+  const v = db
+    .prepare("SELECT project_id, namespace FROM projects WHERE last_edited>=?")
+    .all(cutoff.toISOString()) as any;
+
+  logger.debug(
+    `trimActiveProjectSnapshots: considering ${v.length} projects active after cutoff=`,
+    cutoff,
+  );
+  let i = 0;
+  for (const { project_id, namespace } of v) {
+    await trimSnapshots({ project_id, namespace });
+    i += 1;
+    if (i % 10 == 0) {
+      logger.debug(`trimActiveProjectSnapshots: ${i}/${v.length}`);
+    }
+  }
+}
+
 /*
 Get list of files modified since given snapshot (or last snapshot if not given).
 
@@ -213,6 +246,7 @@ export async function getModifiedFiles({
   namespace?: string;
   snapshot?: string;
 }) {
+  logger.debug(`getModifiedFiles: `, { project_id, namespace });
   const { pool, snapshots } = dbProject({ project_id, namespace });
   if (snapshots.length == 0) {
     return [];

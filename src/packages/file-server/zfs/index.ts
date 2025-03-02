@@ -9,8 +9,9 @@ import {
 export {
   createSnapshot,
   getModifiedFiles,
-  trimSnapshots,
   deleteSnapshot,
+  trimActiveProjectSnapshots,
+  trimSnapshots,
 } from "./snapshots";
 
 export const context = {
@@ -77,6 +78,9 @@ interface Project {
   // (for incremental backups). this won't be deleted by the snapshot
   // trimming process.
   last_send_snapshot?: string;
+  // Last_edited = last time this project was "edited" -- various
+  // operations cause this to get updated. An ISO timestamp.
+  last_edited?:string;
 }
 
 import Database from "better-sqlite3";
@@ -121,7 +125,7 @@ export function dbProject({
   return x as Project;
 }
 
-export function all({
+export function dbAllProjects({
   namespace = context.namespace,
 }: { namespace?: string } = {}) {
   const db = getDb();
