@@ -13,6 +13,8 @@ export {
   trimActiveProjectSnapshots,
   trimSnapshots,
 } from "./snapshots";
+import { dbProject, getDb } from "./db";
+export { dbAllProjects } from "./db";
 
 export const context = {
   namespace: process.env.NAMESPACE ?? "default",
@@ -60,41 +62,6 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
   return v;
 });
 
-interface Project {
-  namespace: string;
-  project_id: string;
-  pool: string;
-  // if set, its location where project is archived
-  archived?: string;
-  // optional arbitrary affinity string - we attempt if possible to put
-  // projects with the same affinity in the same pool, to improve chances of dedup.
-  affinity?: string;
-  // array of hosts (or range using CIDR notation) that we're
-  // granting NFS client access to.
-  nfs: string[];
-  // list of snapshots as ISO timestamps from oldest to newest
-  snapshots: string[];
-  // name of the most recent snapshot that was used for sending a stream
-  // (for incremental backups). this won't be deleted by the snapshot
-  // trimming process.
-  last_send_snapshot?: string;
-  // Last_edited = last time this project was "edited" -- various
-  // operations cause this to get updated. An ISO timestamp.
-  last_edited?:string;
-}
-
-import Database from "better-sqlite3";
-let db: null | Database.Database;
-export function getDb(): Database.Database {
-  if (db == null) {
-    db = new Database("projects.db");
-    db.prepare(
-      "CREATE TABLE IF NOT EXISTS projects (namespace TEXT, project_id TEXT, pool TEXT, archived TEXT, affinity TEXT, nfs TEXT, snapshots TEXT, last_edited TEXT, last_send_snapshot TEXT, PRIMARY KEY (namespace, project_id))",
-    ).run();
-  }
-  return db!;
-}
-
 export function touch({
   namespace = context.namespace,
   project_id,
@@ -106,32 +73,6 @@ export function touch({
   db.prepare(
     "UPDATE projects SET last_edited=? WHERE project_id=? AND namespace=?",
   ).run(new Date().toISOString(), project_id, namespace);
-}
-
-export function dbProject({
-  namespace = context.namespace,
-  project_id,
-}: {
-  namespace?: string;
-  project_id: string;
-}): Project {
-  const db = getDb();
-  const x = db
-    .prepare("SELECT * FROM projects WHERE namespace=? AND project_id=?")
-    .get(namespace, project_id) as Project;
-  for (const key of ["nfs", "snapshots"]) {
-    x[key] = x[key] != null ? x[key].split(",") : [];
-  }
-  return x as Project;
-}
-
-export function dbAllProjects({
-  namespace = context.namespace,
-}: { namespace?: string } = {}) {
-  const db = getDb();
-  return db
-    .prepare("SELECT * FROM projects WHERE namespace=?")
-    .all(namespace) as Project[];
 }
 
 export async function getProject(opts) {
