@@ -22,11 +22,30 @@ export function getDb(): Database.Database {
           snapshots TEXT,
           last_edited TEXT,
           last_send_snapshot TEXT,
+          error TEXT,
         PRIMARY KEY (namespace, project_id)
       )`,
     ).run();
   }
   return db!;
+}
+
+function convertToSqliteType({ value, getProject }) {
+  if (is_array(value)) {
+    return value.join(",");
+  } else if (is_date(value)) {
+    return value.toISOString();
+  } else if (typeof value == "boolean") {
+    return value ? 1 : 0;
+  } else if (typeof value == "function") {
+    const x = value(getProject());
+    if (typeof x == "function") {
+      throw Error("function must not return a function");
+    }
+    // returned value needs to be converted
+    return convertToSqliteType({ value: x, getProject });
+  }
+  return value;
 }
 
 export function set(obj: SetProject) {
@@ -38,34 +57,45 @@ export function set(obj: SetProject) {
   const fields: string[] = [];
   const values: any[] = [];
   let project: null | Project = null;
+  const getProject = () => {
+    if (project == null) {
+      project = get({ namespace, project_id });
+    }
+    return project;
+  };
   for (const field in obj) {
     if (field == "project_id" || field == "namespace") {
       continue;
     }
     fields.push(field);
-    let value = obj[field] as any;
-    if (is_array(value)) {
-      value = value.join(",");
-    } else if (is_date(value)) {
-      value = value.toISOString();
-    } else if (typeof value == "boolean") {
-      value = value ? 1 : 0;
-    } else if (typeof value == "function") {
-      if (project == null) {
-        project = get({ namespace, project_id });
-      }
-      value = value(project);
-    }
-    values.push(value);
+    values.push(convertToSqliteType({ value: obj[field], getProject }));
   }
   let query = `UPDATE projects SET
-  ${fields.map((field) => `${field}=?`).join(", ")}
-  WHERE project_id=? AND namespace=?
+    ${fields.map((field) => `${field}=?`).join(", ")}
+    WHERE project_id=? AND namespace=?
   `;
   values.push(project_id);
   values.push(namespace);
   const db = getDb();
   db.prepare(query).run(...values);
+}
+
+// Call this if something that should never happen, does in fact, happen.
+// It will set the error state of the project and throw the exception.
+// Admins will be regularly notified of all projects in an error state.
+export function fatalError({
+  namespace,
+  project_id,
+  err,
+  desc,
+}: {
+  namespace?: string;
+  project_id: string;
+  err: Error;
+  desc?: string;
+}) {
+  set({ namespace, project_id, error: `${err}${desc ? " - " + desc : ""}` });
+  throw err;
 }
 
 export function touch(project: { namespace?: string; project_id: string }) {

@@ -19,6 +19,9 @@ export interface Project {
   // optional arbitrary affinity string - we attempt if possible to put
   // projects with the same affinity in the same pool, to improve chances of dedup.
   affinity?: string;
+  // if this is set, then some sort of error that "should" never happen,
+  // has happened, and manual intervention is needed.
+  error?: string;
 }
 
 // Used for set(...), main thing being each field can be ProjectFieldFunction,
@@ -35,6 +38,7 @@ export interface SetProject {
   last_send_snapshot?: string | ProjectFieldFunction;
   last_edited?: Date | ProjectFieldFunction;
   affinity?: string | ProjectFieldFunction;
+  error?: string | ProjectFieldFunction;
 }
 
 // what is *actually* stored in sqlite
@@ -51,4 +55,5 @@ export interface RawProject {
   // new Date().ISOString()
   last_edited?: string;
   affinity?: string;
+  error?: string;
 }

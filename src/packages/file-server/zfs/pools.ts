@@ -14,9 +14,15 @@ OPERATIONS:
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { POOL_PREFIX, POOLS_CACHE_MS } from "./config";
+import { POOL_PREFIX, POOLS_CACHE_MS, PROJECTS } from "./config";
 import { exec } from "./util";
-import { archivesDataset, archivesMountpoint, projectsDataset, projectsPath } from "./names";
+import {
+  archivesDataset,
+  archivesMountpoint,
+  namespaceDataset,
+  projectsDataset,
+  projectsPath,
+} from "./names";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 interface Pool {
@@ -68,43 +74,21 @@ export async function initializePool({
   if (!pool.startsWith(POOL_PREFIX)) {
     throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
   }
+  // archives and projects for each namespace are in this dataset
+  await ensureDatasetExists({
+    name: namespaceDataset({ namespace, pool }),
+  });
+
+  // Initialize archives dataset, used for archiving projects.
+  await ensureDatasetExists({
+    name: archivesDataset({ pool, namespace }),
+    mountpoint: archivesMountpoint({ pool, namespace }),
+  });
   // This sets up the parent filesystem for all projects
   // and enable compression and dedup.
-  if (!(await datasetExists(projectsDataset({ pool, namespace })))) {
-    await exec({
-      verbose: true,
-      command: "sudo",
-      args: [
-        "zfs",
-        "create",
-        "-o",
-        "mountpoint=none",
-        "-o",
-        "compression=lz4",
-        "-o",
-        "dedup=on",
-        projectsDataset({ pool, namespace }),
-      ],
-    });
-  }
-  // Initialize streams dataset, used for archiving projects.
-  if (!(await datasetExists(archivesDataset({ pool, namespace })))) {
-    await exec({
-      verbose: true,
-      command: "sudo",
-      args: [
-        "zfs",
-        "create",
-        "-o",
-        `mountpoint=${archivesMountpoint({ pool, namespace })}`,
-        "-o",
-        "compression=lz4",
-        "-o",
-        "dedup=on",
-        archivesDataset({ pool, namespace }),
-      ],
-    });
-  }
+  await ensureDatasetExists({
+    name: projectsDataset({ namespace, pool }),
+  });
 
   const projects = projectsPath({ namespace });
   if (!(await exists(projects))) {
@@ -112,6 +96,11 @@ export async function initializePool({
       verbose: true,
       command: "sudo",
       args: ["mkdir", "-p", projects],
+    });
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["chmod", "a+rx", PROJECTS],
     });
     await exec({
       verbose: true,
@@ -140,4 +129,44 @@ async function datasetExists(name: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function ensureDatasetExists({
+  name,
+  mountpoint,
+}: {
+  name: string;
+  mountpoint?: string;
+}) {
+  if (await datasetExists(name)) {
+    return;
+  }
+  await exec({
+    verbose: true,
+    command: "sudo",
+    args: [
+      "zfs",
+      "create",
+      "-o",
+      `mountpoint=${mountpoint ? mountpoint : "none"}`,
+      "-o",
+      "compression=lz4",
+      "-o",
+      "dedup=on",
+      name,
+    ],
+  });
+  // make sure it is very hard to accidentally delete the entire dataset
+  // see https://github.com/openzfs/zfs/issues/4134#issuecomment-2565724994
+  const safety = `${name}@safety`;
+  await exec({
+    verbose: true,
+    command: "sudo",
+    args: ["zfs", "snapshot", safety],
+  });
+  await exec({
+    verbose: true,
+    command: "sudo",
+    args: ["zfs", "hold", "safety", safety],
+  });
 }

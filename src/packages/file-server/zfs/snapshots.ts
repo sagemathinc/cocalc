@@ -12,29 +12,14 @@ import { get, getRecent, set } from "./db";
 import { projectDataset, projectMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
-import { context } from "./config";
+import {
+  context,
+  SNAPSHOT_INTERVAL_MS,
+  SNAPSHOT_INTERVALS_MS,
+  SNAPSHOT_COUNTS,
+} from "./config";
 
 const logger = getLogger("file-server:zfs/snapshots");
-
-// We make/update snapshots periodically, with this being the minimum interval.
-//const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
-const SNAPSHOT_INTERVAL_MS = 10 * 1000;
-
-// Lengths of time in minutes to keep these snapshots
-const SNAPSHOT_INTERVALS_MS = {
-  halfhourly: 30 * 1000 * 60,
-  daily: 60 * 24 * 1000 * 60,
-  weekly: 60 * 24 * 7 * 1000 * 60,
-  monthly: 60 * 24 * 7 * 4 * 1000 * 60,
-};
-
-// How many of each type of snapshot to retain
-const SNAPSHOT_COUNTS = {
-  halfhourly: 24,
-  daily: 14,
-  weekly: 7,
-  monthly: 4,
-};
 
 // If there any changes to the project since the last snapshot,
 // and there are no snapshots since SNAPSHOT_INTERVAL_MS ms ago,

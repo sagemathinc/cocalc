@@ -2,8 +2,8 @@ import { create, get, getDb, projectExists } from "./db";
 import { exec } from "./util";
 import { projectDataset, projectMountpoint } from "./names";
 import { getPools, initializePool } from "./pools";
-import { restoreProject } from "./archive";
-import { context, DEFAULT_QUOTA } from "./config";
+import { dearchiveProject } from "./archive";
+import { context, DEFAULT_QUOTA, UID, GID } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createSnapshot } from "./snapshots";
 
@@ -72,6 +72,9 @@ export async function createProject({
           }
         }
       } else {
+        if (x.length == 0) {
+          throw Error("cannot create project -- there are no available pools");
+        }
         // just use the least crowded
         pool = x[0].pool;
       }
@@ -94,6 +97,8 @@ export async function createProject({
 
   if (source_project_id == null || source == null) {
     // create filesystem for project on the selected pool
+    const mountpoint = projectMountpoint({ namespace, project_id });
+    const dataset = projectDataset({ pool, namespace, project_id });
     await exec({
       verbose: true,
       command: "sudo",
@@ -101,21 +106,36 @@ export async function createProject({
         "zfs",
         "create",
         "-o",
-        `mountpoint=${projectMountpoint({ namespace, project_id })}`,
+        `mountpoint=${mountpoint}`,
         "-o",
         "compression=lz4",
         "-o",
         "dedup=on",
         "-o",
         `refquota=${quota}`,
-        projectDataset({ pool, namespace, project_id }),
+        dataset,
       ],
+      what: {
+        project_id,
+        namespace,
+        desc: `create filesystem ${dataset} for project on the selected pool mounted at ${mountpoint}`,
+      },
+    });
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["chown", "-R", `${UID}:${GID}`, mountpoint],
+      whate: {
+        project_id,
+        namespace,
+        desc: `setting permissions of filesystem for project at ${mountpoint}`,
+      },
     });
   } else {
     // clone source
     // First ensure project isn't archived
     // (we might alternatively de-archive to make the clone...?)
-    await restoreProject({ project_id: source_project_id, namespace });
+    await dearchiveProject({ project_id: source_project_id, namespace });
     // Get newest snapshot, or make one if there are none
     let snapshot;
     if (source.snapshots.length == 0) {
@@ -129,6 +149,7 @@ export async function createProject({
     if (!snapshot) {
       throw Error("bug -- source should have a new snapshot");
     }
+    const source_snapshot = `${projectDataset({ pool, namespace, project_id: source_project_id })}@${snapshot}`;
     await exec({
       verbose: true,
       command: "sudo",
@@ -141,11 +162,15 @@ export async function createProject({
         "compression=lz4",
         "-o",
         "dedup=on",
-        "-o",
-        `refquota=${quota}`,
-        `${projectDataset({ pool, namespace, project_id: source_project_id })}@${snapshot}`,
+        // TODO/worry: clone gets the quota of source (hence quota not specified here)
+        source_snapshot,
         projectDataset({ pool, namespace, project_id }),
       ],
+      what: {
+        project_id,
+        namespace,
+        desc: `clone filesystem for project from ${source_snapshot}`,
+      },
     });
   }
 
@@ -162,15 +187,26 @@ export async function deleteProject({
   project_id: string;
 }) {
   const { pool } = get({ namespace, project_id });
+  const dataset = projectDataset({ pool, namespace, project_id });
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["zfs", "destroy", "-r", `${pool}/${namespace}/${project_id}`],
+    args: ["zfs", "destroy", "-r", dataset],
+    what: {
+      project_id,
+      namespace,
+      desc: `destroy dataset ${dataset} containing the project`,
+    },
   });
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["rmdir", `/projects/${namespace}/${project_id}`],
+    args: ["rmdir", projectMountpoint({ namespace, project_id })],
+    what: {
+      project_id,
+      namespace,
+      desc: `delete directory '${projectMountpoint({ namespace, project_id })}' where project was stored`,
+    },
   });
   const db = getDb();
   db.prepare("DELETE FROM projects WHERE project_id=? AND namespace=?").run(
