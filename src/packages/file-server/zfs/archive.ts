@@ -7,7 +7,8 @@ import { createSnapshot } from "./snapshots";
 import { projectDataset, projectArchivePath } from "./names";
 import { exec } from "./util";
 import { join } from "path";
-import { mountProject } from "./properties";
+import { mountProject, zfsGetProperties } from "./properties";
+import { delay } from "awaiting";
 
 function streamPath(project) {
   const archive = projectArchivePath(project);
@@ -15,25 +16,83 @@ function streamPath(project) {
   return stream;
 }
 
-export async function dearchiveProject(opts) {
+export async function dearchiveProject(opts: {
+  project_id: string;
+  namespace?: string;
+  // called during dearchive with status updates:
+  progress?: (status: {
+    // a number between 0 and 100 indicating progress
+    progress: number;
+    // estimated number of seconds remaining
+    seconds_remaining?: number;
+    // how much of the total data we have de-archived
+    read?: number;
+    // total amount of data to de-archive
+    total?: number;
+  }) => void;
+}) {
+  opts.progress?.({ progress: 0 });
   const project = get(opts);
   if (!project.archived) {
     // nothing to do
+    opts.progress?.({ progress: 100, seconds_remaining: 0 });
     return project;
   }
-  const { project_id, namespace } = project;
+  const { project_id, namespace, used_by_dataset, used_by_snapshots } = project;
+  const total = (used_by_dataset ?? 0) + (used_by_snapshots ?? 0);
+  const dataset = projectDataset(project);
+  let done = false;
+  let progress = 0;
+  if (opts.progress && total > 0) {
+    (async () => {
+      const t0 = Date.now();
+      let lastProgress = 0;
+      while (!done) {
+        await delay(750);
+        const x = await zfsGetProperties(dataset);
+        if (done) {
+          return;
+        }
+        const read = x.used_by_dataset + x.used_by_snapshots;
+        progress = Math.min(100, Math.round((read * 100) / total));
+        if (progress == lastProgress) {
+          continue;
+        }
+        lastProgress = progress;
+        let seconds_remaining: number | undefined = undefined;
+        if (progress > 0) {
+          const rate = (Date.now() - t0) / progress;
+          seconds_remaining = Math.ceil((rate * (100 - progress)) / 1000);
+        }
+        opts.progress?.({ progress, seconds_remaining, total, read });
+        if (progress >= 100) {
+          break;
+        }
+      }
+    })();
+  }
+
   // now we de-archive it:
   const stream = streamPath(project);
   await exec({
     verbose: true,
     // have to use sudo sh -c because zfs recv only supports reading from stdin:
-    command: `sudo sh -c 'cat ${stream} | zfs recv ${projectDataset(project)}'`,
+    command: `sudo sh -c 'cat ${stream} | zfs recv ${dataset}'`,
     what: {
       project_id,
       namespace,
       desc: "de-archive a project via zfs recv",
     },
   });
+  done = true;
+  if (progress < 100) {
+    opts.progress?.({
+      progress: 100,
+      seconds_remaining: 0,
+      total,
+      read: total,
+    });
+  }
   await mountProject(project);
   // mounting worked so remove the archive
   await exec({

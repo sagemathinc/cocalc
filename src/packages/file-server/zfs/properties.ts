@@ -63,7 +63,20 @@ export async function syncProperties({
     // they can't have changed
     return;
   }
-  const dataset = projectDataset({ pool, namespace, project_id });
+  set({
+    namespace,
+    project_id,
+    ...(await zfsGetProperties(
+      projectDataset({ pool, namespace, project_id }),
+    )),
+  });
+}
+
+export async function zfsGetProperties(dataset: string): Promise<{
+  used_by_snapshots: number;
+  used_by_dataset: number;
+  quota: number | null;
+}> {
   const { stdout } = await exec({
     command: "zfs",
     args: [
@@ -77,16 +90,11 @@ export async function syncProperties({
   });
   const x = JSON.parse(stdout);
   const { properties } = x.datasets[dataset];
-  const y = {
+  return {
     used_by_snapshots: properties.usedbysnapshots.value,
     used_by_dataset: properties.usedbydataset.value,
     quota: properties.refquota.value ? properties.refquota.value : null,
   };
-  set({
-    namespace,
-    project_id,
-    ...y,
-  });
 }
 
 export async function mountProject({
