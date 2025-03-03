@@ -88,7 +88,7 @@ export class NatsClient {
         return this.nc;
       }
     }
-    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${appBasePath}/nats`;
+    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath,'nats')}`;
     console.log(`NATS: connecting to ${server}...`);
     const options = {
       ...CONNECT_OPTIONS,
