@@ -1,12 +1,16 @@
 import { join } from "path";
-import { PROJECTS, ARCHIVES } from "./config";
+import { PROJECTS, ARCHIVES, BUP } from "./config";
 
-export function projectsPath({ namespace }) {
-  return join(PROJECTS, namespace);
+export function namespaceDataset({ pool, namespace }) {
+  return `${pool}/${namespace}`;
 }
 
-export function projectMountpoint({ project_id, namespace }) {
-  return join(projectsPath({ namespace }), project_id);
+// Archives
+// There is one single dataset for each namespace/pool pair: All the different
+// archives across projects are stored in the *same* dataset, since there is no
+// point in separating them.
+export function archivesDataset({ pool, namespace }) {
+  return `${namespaceDataset({ pool, namespace })}/archives`;
 }
 
 export function archivesMountpoint({ pool, namespace }) {
@@ -17,19 +21,27 @@ export function projectArchivePath({ pool, namespace, project_id }) {
   return join(archivesMountpoint({ pool, namespace }), project_id);
 }
 
-export function projectArchiveMountpoint({ project_id, namespace }) {
+// Bup
+export function bupDataset({ pool, namespace }) {
+  return `${namespaceDataset({ pool, namespace })}/bup`;
+}
+
+export function bupMountpoint({ pool, namespace }) {
+  return join(BUP, namespace, pool);
+}
+
+export function bupProjectMountpoint({ pool, namespace, project_id }) {
+  return join(bupMountpoint({ pool, namespace }), project_id);
+}
+
+// Projects
+
+export function projectsPath({ namespace }) {
+  return join(PROJECTS, namespace);
+}
+
+export function projectMountpoint({ project_id, namespace }) {
   return join(projectsPath({ namespace }), project_id);
-}
-
-export function namespaceDataset({ pool, namespace }) {
-  return `${pool}/${namespace}`;
-}
-
-// There is one single dataset for each namespace/pool pair: All the different
-// archives across projects are stored in the *same* dataset, since there is no
-// point in separating them.
-export function archivesDataset({ pool, namespace }) {
-  return `${namespaceDataset({ pool, namespace })}/archives`;
 }
 
 export function projectsDataset({ pool, namespace }) {

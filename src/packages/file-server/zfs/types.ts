@@ -13,6 +13,8 @@ export interface Project {
   // (for incremental backups). this won't be deleted by the snapshot
   // trimming process.
   last_send_snapshot?: string;
+  // name of most recent bup backup
+  last_bup_backup?: string;
   // Last_edited = last time this project was "edited" -- various
   // operations cause this to get updated.
   last_edited?: Date;
@@ -47,6 +49,7 @@ export interface SetProject {
   nfs?: string[] | ProjectFieldFunction;
   snapshots?: string[] | ProjectFieldFunction;
   last_send_snapshot?: string | ProjectFieldFunction;
+  last_bup_backup?: string | ProjectFieldFunction;
   last_edited?: Date | ProjectFieldFunction;
   affinity?: null | string | ProjectFieldFunction;
   error?: null | string | ProjectFieldFunction;
@@ -66,6 +69,7 @@ export interface RawProject {
   nfs?: string;
   snapshots?: string;
   last_send_snapshot?: string;
+  last_bup_backup?: string;
   // new Date().ISOString()
   last_edited?: string;
   affinity?: string;

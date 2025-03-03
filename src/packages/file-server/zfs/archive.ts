@@ -9,6 +9,7 @@ import { exec } from "./util";
 import { join } from "path";
 import { mountProject, zfsGetProperties } from "./properties";
 import { delay } from "awaiting";
+import { createBackup } from "./backup";
 
 function streamPath(project) {
   const archive = projectArchivePath(project);
@@ -135,28 +136,9 @@ export async function archiveProject(opts) {
       desc: "zfs send of full project dataset to archive it",
     },
   });
+  // also make a bup backup
+  await createBackup({ project_id, namespace });
 
-  // TODO: test that it works by reimporting it and running sha1 on tree (?).
-
-  /*
-  await mountProject(project);
-  // make tarball
-  await exec({
-    verbose: true,
-    command: "sudo",
-    args: [
-      "tar",
-      "cf",
-      join(archive, "latest.tar"),
-      join(projectMountpoint(project), ".zfs", "snapshot", snapshot),
-    ],
-    what: {
-      project_id,
-      namespace,
-      desc: "make full tarball of project for archive (just in case zfs send were corrupt)",
-    },
-  });
-  */
   // destroy dataset
   await exec({
     verbose: true,

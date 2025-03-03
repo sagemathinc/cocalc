@@ -14,7 +14,7 @@ OPERATIONS:
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { POOL_PREFIX, POOLS_CACHE_MS, PROJECTS } from "./config";
+import { context, POOL_PREFIX, POOLS_CACHE_MS, PROJECTS } from "./config";
 import { exec } from "./util";
 import {
   archivesDataset,
@@ -22,8 +22,21 @@ import {
   namespaceDataset,
   projectsDataset,
   projectsPath,
+  bupDataset,
+  bupMountpoint,
 } from "./names";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { getNamespacesAndPools } from "./db";
+
+// Make sure all pools and namespaces are initialized for all existing projects.
+// This should be needed after booting up the server and importing the pools.
+export async function initializeAllPools() {
+  // TODO: maybe import all here?
+
+  for (const { namespace, pool } of getNamespacesAndPools()) {
+    await initializePool({ namespace, pool });
+  }
+}
 
 interface Pool {
   name: string;
@@ -63,13 +76,13 @@ export const getPools = reuseInFlight(async (): Promise<Pools> => {
   return v;
 });
 
-// fine to call this a lot -- it only does something when needed.
+// OK to call this again even if initialized already.
 export async function initializePool({
+  namespace = context.namespace,
   pool,
-  namespace,
 }: {
+  namespace?: string;
   pool: string;
-  namespace: string;
 }) {
   if (!pool.startsWith(POOL_PREFIX)) {
     throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
@@ -88,6 +101,13 @@ export async function initializePool({
   // and enable compression and dedup.
   await ensureDatasetExists({
     name: projectsDataset({ namespace, pool }),
+  });
+  // Initialize bup dataset, used for backups.
+  await ensureDatasetExists({
+    name: bupDataset({ pool, namespace }),
+    mountpoint: bupMountpoint({ pool, namespace }),
+    compression: "off",
+    dedup: "off",
   });
 
   const projects = projectsPath({ namespace });
@@ -131,14 +151,35 @@ async function datasetExists(name: string): Promise<boolean> {
   }
 }
 
+async function isMounted(dataset): Promise<boolean> {
+  const { stdout } = await exec({
+    command: "zfs",
+    args: ["get", "mounted", dataset, "-j"],
+  });
+  const x = JSON.parse(stdout);
+  return x.datasets[dataset].properties.mounted.value == "yes";
+}
+
 async function ensureDatasetExists({
   name,
   mountpoint,
+  compression = "lz4",
+  dedup = "on",
 }: {
   name: string;
   mountpoint?: string;
+  compression?: "lz4" | "off";
+  dedup?: "on" | "off";
 }) {
   if (await datasetExists(name)) {
+    if (mountpoint && !(await isMounted(name))) {
+      // ensure mounted
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["zfs", "mount", name],
+      });
+    }
     return;
   }
   await exec({
@@ -150,9 +191,9 @@ async function ensureDatasetExists({
       "-o",
       `mountpoint=${mountpoint ? mountpoint : "none"}`,
       "-o",
-      "compression=lz4",
+      `compression=${compression}`,
       "-o",
-      "dedup=on",
+      `dedup=${dedup}`,
       name,
     ],
   });

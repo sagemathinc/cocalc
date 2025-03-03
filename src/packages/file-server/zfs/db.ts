@@ -22,6 +22,7 @@ export function getDb(): Database.Database {
           snapshots TEXT,
           last_edited TEXT,
           last_send_snapshot TEXT,
+          last_bup_backup TEXT,
           error TEXT,
           used_by_dataset INTEGER,
           used_by_snapshots INTEGER,
@@ -105,9 +106,16 @@ export function clearError({ project_id, namespace }) {
   set({ namespace, project_id, error: null });
 }
 
+export function clearAllErrors() {
+  const db = getDb();
+  db.prepare("UPDATE projects SET error=null").run();
+}
+
 export function getErrors() {
   const db = getDb();
-  return db.prepare("SELECT * FROM projects WHERE error!=''").all() as RawProject[];
+  return db
+    .prepare("SELECT * FROM projects WHERE error!=''")
+    .all() as RawProject[];
 }
 
 export function touch(project: { namespace?: string; project_id: string }) {
@@ -188,6 +196,13 @@ export function getAll({
   return db
     .prepare("SELECT * FROM projects WHERE namespace=?")
     .all(namespace) as RawProject[];
+}
+
+export function getNamespacesAndPools(): { namespace: string; pool: string }[] {
+  const db = getDb();
+  return db
+    .prepare("SELECT DISTINCT namespace, pool FROM projects")
+    .all() as any;
 }
 
 export function getRecent({

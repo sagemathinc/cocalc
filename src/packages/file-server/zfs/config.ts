@@ -20,6 +20,9 @@ export const PROJECTS = "/cocalcfs/projects";
 // Directory on server where zfs send streams (and tar?) are stored
 export const ARCHIVES = "/cocalcfs/archives";
 
+// Directory for bup
+export const BUP = "/cocalcfs/bup";
+
 // two hour default for running any commands (e.g., zfs send/recv)
 export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;
 
@@ -28,8 +31,8 @@ export const UID = 2001;
 export const GID = 2001;
 
 // We make/update snapshots periodically, with this being the minimum interval.
-//const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
-export const SNAPSHOT_INTERVAL_MS = 10 * 1000;
+export const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
+//export const SNAPSHOT_INTERVAL_MS = 10 * 1000;
 
 // Lengths of time in minutes to keep these snapshots
 export const SNAPSHOT_INTERVALS_MS = {
@@ -46,3 +49,6 @@ export const SNAPSHOT_COUNTS = {
   weekly: 7,
   monthly: 4,
 };
+
+// Minimal interval for bup backups
+export const BUP_INTERVAL_MS = 24 * 1000 * 60 * 60;
