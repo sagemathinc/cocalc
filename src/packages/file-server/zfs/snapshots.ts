@@ -35,17 +35,19 @@ export async function createSnapshot({
   project_id,
   namespace = context.namespace,
   force,
+  ifChanged,
 }: {
   project_id: string;
   namespace?: string;
   force?: boolean;
+  ifChanged?: boolean;
 }): Promise<string> {
   logger.debug("createSnapshot: ", { project_id, namespace });
   const { pool, archived, snapshots } = get({ project_id, namespace });
   if (archived) {
     throw Error("cannot snapshot an archived project");
   }
-  if (!force && snapshots.length > 0) {
+  if (!force && !ifChanged && snapshots.length > 0) {
     // check for sufficiently recent snapshot
     const last = new Date(snapshots[snapshots.length - 1]);
     if (Date.now() - last.valueOf() < SNAPSHOT_INTERVAL_MS) {
@@ -102,6 +104,32 @@ async function getWritten({ project_id, namespace }) {
     },
   });
   return parseInt(stdout);
+}
+
+export async function getSnapshots({
+  project_id,
+  namespace = context.namespace,
+}) {
+  const project = get({
+    project_id,
+    namespace,
+  });
+  const { stdout } = await exec({
+    command: "zfs",
+    args: [
+      "list",
+      "-j",
+      "-o",
+      "name",
+      "-r",
+      "-t",
+      "snapshot",
+      projectDataset(project),
+    ],
+  });
+  return Object.keys(JSON.parse(stdout).datasets).map(
+    (name) => name.split("@")[1],
+  );
 }
 
 export async function deleteSnapshot({

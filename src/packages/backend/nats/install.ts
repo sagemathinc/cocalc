@@ -33,7 +33,7 @@ import getLogger from "@cocalc/backend/logger";
 
 const VERSIONS = {
   // https://github.com/nats-io/nats-server/releases
-  "nats-server": "v2.10.26-RC.2",
+  "nats-server": "v2.10.26",
   // https://github.com/nats-io/natscli/releases
   nats: "v0.1.6",
 };
