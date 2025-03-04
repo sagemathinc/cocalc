@@ -1,5 +1,5 @@
 import { join } from "path";
-import { nats } from "@cocalc/backend/data";
+import { nats, natsPorts, natsServer } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { connect, credsAuthenticator } from "nats";
@@ -42,6 +42,7 @@ export const getConnection = reuseInFlight(async () => {
         ...CONNECT_OPTIONS,
         authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
         inboxPrefix: inboxPrefix({}),
+        servers: `${natsServer}:${natsPorts.server}`
       });
       logger.debug(`connected to ${nc.getServer()}`);
     } catch (err) {

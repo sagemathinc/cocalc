@@ -1,13 +1,12 @@
 /*
 Configure nats-server, i.e., generate configuration files.
 
-
 node -e "require('@cocalc/backend/nats/conf').main()"
 
 */
 
 import { pathExists } from "fs-extra";
-import { data, nats } from "@cocalc/backend/data";
+import { data, nats, natsPorts, natsServer } from "@cocalc/backend/data";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { writeFile } from "fs/promises";
@@ -24,7 +23,7 @@ const logger = getLogger("backend:nats:install");
 const confPath = join(nats, "server.conf");
 
 // for now for local dev:
-export const natsServerUrl = "nats://localhost:4222";
+export const natsServerUrl = `nats://${natsServer}:${natsPorts.server}`;
 export const natsAccountName = "cocalc";
 
 export async function configureNatsServer() {
@@ -39,6 +38,8 @@ export async function configureNatsServer() {
   await writeFile(
     confPath,
     `
+listen: ${natsServer}:${natsPorts.server}
+
 jetstream: enabled
 
 jetstream {
@@ -46,7 +47,7 @@ jetstream {
 }
 
 websocket {
-    listen: "localhost:8443"
+    listen: "${natsServer}:${natsPorts.ws}"
     no_tls: true
     jwt_cookie: "${NATS_JWT_COOKIE_NAME}"
 }

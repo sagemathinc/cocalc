@@ -15,15 +15,13 @@ import getLogger from "@cocalc/backend/logger";
 import { type Router } from "express";
 import getAccount from "@cocalc/server/auth/get-account";
 import setNatsCookie from "@cocalc/server/auth/set-nats-cookie";
+import { natsWebsocketServer } from "@cocalc/backend/data";
 
 const logger = getLogger("hub:nats");
 
-// todo: move to database/server settings/etc.?
-const NATS_WS = "ws://localhost:8443";
-
 export async function proxyNatsWebsocket(req, socket, head) {
   logger.debug("nats proxy -- handling a connection");
-  const target = NATS_WS;
+  const target = natsWebsocketServer;
   const proxy = createProxyServer({
     ws: true,
     target,
