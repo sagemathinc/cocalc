@@ -11,8 +11,14 @@ let db: null | Database.Database;
 export function getDb(): Database.Database {
   if (db == null) {
     db = new Database(SQLITE3_DATABASE_FILE);
-    db.prepare(
-      `CREATE TABLE IF NOT EXISTS projects (
+    initDb(db);
+  }
+  return db!;
+}
+
+function initDb(db) {
+  db.prepare(
+    `CREATE TABLE IF NOT EXISTS projects (
           namespace TEXT,
           project_id TEXT,
           pool TEXT,
@@ -29,9 +35,13 @@ export function getDb(): Database.Database {
           quota INTEGER,
         PRIMARY KEY (namespace, project_id)
       )`,
-    ).run();
-  }
-  return db!;
+  ).run();
+}
+
+export function resetDb() {
+  const db = new Database(SQLITE3_DATABASE_FILE);
+  db.prepare("DROP TABLE IF EXISTS projects").run();
+  initDb(db);
 }
 
 function convertToSqliteType({ value, getProject }) {

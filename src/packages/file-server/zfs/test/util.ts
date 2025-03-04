@@ -1,16 +1,14 @@
 // application/typescript text
-import {
-  POOL_PREFIX,
-  SQLITE3_DATABASE_FILE,
-} from "@cocalc/file-server/zfs/config";
-import { mkdtemp, rm, unlink } from "fs/promises";
+import { POOL_PREFIX } from "@cocalc/file-server/zfs/config";
+import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { executeCode } from "@cocalc/backend/execute-code";
-import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { initDataDir } from "@cocalc/file-server/zfs/util";
+import { resetDb } from "@cocalc/file-server/zfs/db";
+import { getPools } from "@cocalc/file-server/zfs/pools";
 import { execSync } from "child_process";
-
+export {};
 
 // export "describe" from here that is a no-op if the zpool
 // command is not available:
@@ -25,14 +23,12 @@ function isZpoolAvailable() {
 const Describe = isZpoolAvailable() ? describe : describe.skip;
 export { Describe as describe };
 
-export async function initDb() {
+export async function init() {
   if (!POOL_PREFIX.includes("test")) {
     throw Error("POOL_PREFIX must contain 'test'");
   }
   await initDataDir();
-  if (await exists(SQLITE3_DATABASE_FILE)) {
-    await unlink(SQLITE3_DATABASE_FILE);
-  }
+  resetDb();
 }
 
 export async function createTestPools({
@@ -48,6 +44,15 @@ export async function createTestPools({
   // Create temp directory
   const tempDir = await mkdtemp(join(tmpdir(), "test-"));
   const pools: string[] = [];
+  // in case pools left from a failing test:
+  for (const pool of Object.keys(await getPools())) {
+    try {
+      await executeCode({
+        command: "sudo",
+        args: ["zpool", "destroy", pool],
+      });
+    } catch {}
+  }
   for (let n = 0; n < count; n++) {
     const image = join(tempDir, `${n}`, "0.img");
     await executeCode({
@@ -65,6 +70,8 @@ export async function createTestPools({
       args: ["zpool", "create", pool, image],
     });
   }
+  // ensure pool cache is cleared:
+  await getPools({ noCache: true });
   return { tempDir, pools };
 }
 

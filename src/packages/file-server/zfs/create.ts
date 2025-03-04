@@ -1,6 +1,11 @@
 import { create, get, getDb, projectExists } from "./db";
 import { exec } from "./util";
-import { projectDataset, projectMountpoint } from "./names";
+import {
+  projectArchivePath,
+  bupProjectMountpoint,
+  projectDataset,
+  projectMountpoint,
+} from "./names";
 import { getPools, initializePool } from "./pools";
 import { dearchiveProject } from "./archive";
 import { context, UID, GID } from "./config";
@@ -45,9 +50,9 @@ export async function createProject({
         )
         .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
       pool = x?.pool;
-      if (pool) {
-        console.log("using pool because of affinity", { pool, affinity });
-      }
+      //       if (pool) {
+      //         console.log("using pool because of affinity", { pool, affinity });
+      //       }
     }
     if (!pool) {
       // assign one with *least* projects
@@ -175,6 +180,9 @@ export async function createProject({
   return get({ namespace, project_id });
 }
 
+// delete -- This is very dangerous -- it deletes the project dataset,
+// the archive, and any backups and removes knowledge the project from the db.
+
 export async function deleteProject({
   project_id,
   namespace = context.namespace,
@@ -202,6 +210,26 @@ export async function deleteProject({
       project_id,
       namespace,
       desc: `delete directory '${projectMountpoint({ namespace, project_id })}' where project was stored`,
+    },
+  });
+  await exec({
+    verbose: true,
+    command: "sudo",
+    args: ["rm", "-rf", bupProjectMountpoint({ namespace, pool, project_id })],
+    what: {
+      project_id,
+      namespace,
+      desc: `delete directory '${bupProjectMountpoint({ namespace, pool, project_id })}' where backups were stored`,
+    },
+  });
+  await exec({
+    verbose: true,
+    command: "sudo",
+    args: ["rm", "-rf", projectArchivePath({ namespace, pool, project_id })],
+    what: {
+      project_id,
+      namespace,
+      desc: `delete directory '${projectArchivePath({ namespace, pool, project_id })}' where archives were stored`,
     },
   });
   const db = getDb();

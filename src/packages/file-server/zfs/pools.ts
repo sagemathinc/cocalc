@@ -48,87 +48,94 @@ interface Pool {
 
 type Pools = { [name: string]: Pool };
 let poolsCache: null | Pools = null;
-export const getPools = reuseInFlight(async (): Promise<Pools> => {
-  if (poolsCache != null) {
-    return poolsCache;
-  }
-  const { stdout } = await exec({
-    verbose: true,
-    command: "zpool",
-    args: ["list", "-j", "--json-int", "-o", "size,allocated,free"],
-  });
-  const { pools } = JSON.parse(stdout);
-  const v: { [name: string]: Pool } = {};
-  for (const name in pools) {
-    if (!name.startsWith(POOL_PREFIX)) {
-      continue;
+export const getPools = reuseInFlight(
+  async ({ noCache }: { noCache?: boolean } = {}): Promise<Pools> => {
+    if (poolsCache != null && !noCache) {
+      return poolsCache;
     }
-    const pool = pools[name];
-    for (const key in pool.properties) {
-      pool.properties[key] = pool.properties[key].value;
+    const { stdout } = await exec({
+      verbose: true,
+      command: "zpool",
+      args: ["list", "-j", "--json-int", "-o", "size,allocated,free"],
+    });
+    const { pools } = JSON.parse(stdout);
+    const v: { [name: string]: Pool } = {};
+    for (const name in pools) {
+      if (!name.startsWith(POOL_PREFIX)) {
+        continue;
+      }
+      const pool = pools[name];
+      for (const key in pool.properties) {
+        pool.properties[key] = pool.properties[key].value;
+      }
+      v[name] = { name, state: pool.state, ...pool.properties };
     }
-    v[name] = { name, state: pool.state, ...pool.properties };
-  }
-  poolsCache = v;
-  setTimeout(() => {
-    poolsCache = null;
-  }, POOLS_CACHE_MS);
-  return v;
-});
+    poolsCache = v;
+    if (!process.env.COCALC_TEST_MODE) {
+      // only clear cache in non-test mode
+      setTimeout(() => {
+        poolsCache = null;
+      }, POOLS_CACHE_MS);
+    }
+    return v;
+  },
+);
 
 // OK to call this again even if initialized already.
-export async function initializePool({
-  namespace = context.namespace,
-  pool,
-}: {
-  namespace?: string;
-  pool: string;
-}) {
-  if (!pool.startsWith(POOL_PREFIX)) {
-    throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
-  }
-  // archives and projects for each namespace are in this dataset
-  await ensureDatasetExists({
-    name: namespaceDataset({ namespace, pool }),
-  });
+export const initializePool = reuseInFlight(
+  async ({
+    namespace = context.namespace,
+    pool,
+  }: {
+    namespace?: string;
+    pool: string;
+  }) => {
+    if (!pool.startsWith(POOL_PREFIX)) {
+      throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
+    }
+    // archives and projects for each namespace are in this dataset
+    await ensureDatasetExists({
+      name: namespaceDataset({ namespace, pool }),
+    });
 
-  // Initialize archives dataset, used for archiving projects.
-  await ensureDatasetExists({
-    name: archivesDataset({ pool, namespace }),
-    mountpoint: archivesMountpoint({ pool, namespace }),
-  });
-  // This sets up the parent filesystem for all projects
-  // and enable compression and dedup.
-  await ensureDatasetExists({
-    name: projectsDataset({ namespace, pool }),
-  });
-  // Initialize bup dataset, used for backups.
-  await ensureDatasetExists({
-    name: bupDataset({ pool, namespace }),
-    mountpoint: bupMountpoint({ pool, namespace }),
-    compression: "off",
-    dedup: "off",
-  });
+    // Initialize archives dataset, used for archiving projects.
+    await ensureDatasetExists({
+      name: archivesDataset({ pool, namespace }),
+      mountpoint: archivesMountpoint({ pool, namespace }),
+    });
+    // This sets up the parent filesystem for all projects
+    // and enable compression and dedup.
+    await ensureDatasetExists({
+      name: projectsDataset({ namespace, pool }),
+    });
+    // Initialize bup dataset, used for backups.
+    await ensureDatasetExists({
+      name: bupDataset({ pool, namespace }),
+      mountpoint: bupMountpoint({ pool, namespace }),
+      compression: "off",
+      dedup: "off",
+    });
 
-  const projects = projectsPath({ namespace });
-  if (!(await exists(projects))) {
-    await exec({
-      verbose: true,
-      command: "sudo",
-      args: ["mkdir", "-p", projects],
-    });
-    await exec({
-      verbose: true,
-      command: "sudo",
-      args: ["chmod", "a+rx", PROJECTS],
-    });
-    await exec({
-      verbose: true,
-      command: "sudo",
-      args: ["chmod", "a+rx", projects],
-    });
-  }
-}
+    const projects = projectsPath({ namespace });
+    if (!(await exists(projects))) {
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["mkdir", "-p", projects],
+      });
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["chmod", "a+rx", PROJECTS],
+      });
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["chmod", "a+rx", projects],
+      });
+    }
+  },
+);
 
 // If a dataset exists, it is assumed to exist henceforth for the life of this process.
 // That's fine for *this* application here of initializing pools, since we never delete

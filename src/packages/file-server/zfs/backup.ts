@@ -22,7 +22,7 @@ export async function createBackup({
 }: {
   project_id: string;
   namespace?: string;
-}) {
+}): Promise<{ BUP_DIR: string }> {
   logger.debug("createBackup", { project_id, namespace });
   const project = get({ project_id, namespace });
   namespace = project.namespace;
@@ -108,6 +108,8 @@ export async function createBackup({
     ],
     what: { ...project, desc: "save new bup snapshot" },
   });
+
+  return { BUP_DIR };
 }
 
 // Go through ALL projects with last_edited >= cutoff and make a bup

@@ -4,4 +4,5 @@ module.exports = {
   testEnvironment: "node",
   setupFiles: ["./test/setup.js"],
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
+  maxConcurrency: 1,
 };
