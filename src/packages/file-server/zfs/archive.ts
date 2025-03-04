@@ -116,7 +116,7 @@ export async function archiveProject(opts) {
   }
   const { project_id, namespace } = project;
   // create or get most recent snapshot
-  const snapshot = await createSnapshot(project);
+  const snapshot = await createSnapshot({ ...project, force: true });
   // where archive of this project goes in the filesystem:
   const archive = projectArchivePath(project);
   const stream = streamPath(project);
