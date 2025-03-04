@@ -1,6 +1,8 @@
 import { join } from "path";
 
-export const PREFIX = process.env.COCALC_TEST_MODE ? "cocalcfs-test" : "cocalcfs";
+export const PREFIX = process.env.COCALC_TEST_MODE
+  ? "cocalcfs-test"
+  : "cocalcfs";
 
 export const DATA = `/${PREFIX}`;
 

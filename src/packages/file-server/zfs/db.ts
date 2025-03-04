@@ -8,6 +8,25 @@ import type { Project, RawProject, SetProject } from "./types";
 import { isValidUUID, is_array, is_date } from "@cocalc/util/misc";
 
 let db: null | Database.Database;
+
+const tableName = "projects";
+const schema = {
+  namespace: "TEXT",
+  project_id: "TEXT",
+  pool: "TEXT",
+  archived: "INTEGER",
+  affinity: "TEXT",
+  nfs: "TEXT",
+  snapshots: "TEXT",
+  last_edited: "TEXT",
+  last_send_snapshot: "TEXT",
+  last_bup_backup: "TEXT",
+  error: "TEXT",
+  used_by_dataset: "INTEGER",
+  used_by_snapshots: "INTEGER",
+  quota: "INTEGER",
+};
+
 export function getDb(): Database.Database {
   if (db == null) {
     db = new Database(SQLITE3_DATABASE_FILE);
@@ -17,25 +36,27 @@ export function getDb(): Database.Database {
 }
 
 function initDb(db) {
+  const columnDefinitions = Object.entries(schema)
+    .map(([name, type]) => `${name} ${type}`)
+    .join(", ");
+
+  // Create table if it doesn't exist
   db.prepare(
-    `CREATE TABLE IF NOT EXISTS projects (
-          namespace TEXT,
-          project_id TEXT,
-          pool TEXT,
-          archived INTEGER,
-          affinity TEXT,
-          nfs TEXT,
-          snapshots TEXT,
-          last_edited TEXT,
-          last_send_snapshot TEXT,
-          last_bup_backup TEXT,
-          error TEXT,
-          used_by_dataset INTEGER,
-          used_by_snapshots INTEGER,
-          quota INTEGER,
-        PRIMARY KEY (namespace, project_id)
-      )`,
+    `CREATE TABLE IF NOT EXISTS ${tableName} (
+      ${columnDefinitions},
+      PRIMARY KEY (namespace, project_id)
+    )`,
   ).run();
+
+  // Check for missing columns and add them
+  const existingColumnsStmt = db.prepare(`PRAGMA table_info(${tableName})`);
+  const existingColumns = existingColumnsStmt.all().map((row) => row.name);
+
+  for (const [name, type] of Object.entries(schema)) {
+    if (!existingColumns.includes(name)) {
+      db.prepare(`ALTER TABLE ${tableName} ADD COLUMN ${name} ${type}`).run();
+    }
+  }
 }
 
 export function resetDb() {

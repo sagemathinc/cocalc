@@ -137,7 +137,9 @@ export async function createProject({
     // clone source
     // First ensure project isn't archived
     // (we might alternatively de-archive to make the clone...?)
-    await dearchiveProject({ project_id: source_project_id, namespace });
+    if (get({ project_id: source_project_id, namespace }).archived) {
+      await dearchiveProject({ project_id: source_project_id, namespace });
+    }
     // Get newest snapshot, or make one if there are none
     let snapshot;
     if (source.snapshots.length == 0) {

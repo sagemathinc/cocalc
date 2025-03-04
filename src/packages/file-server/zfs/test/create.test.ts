@@ -61,7 +61,7 @@ describe("creates project, clone project, delete projects", () => {
 
   const FILE_CONTENT = "hello";
   const FILENAME = "cocalc.txt";
-  it("write a file the project", async () => {
+  it("write a file to the project", async () => {
     const path = join(
       projectMountpoint({ project_id, namespace: "default" }),
       FILENAME,
@@ -176,7 +176,7 @@ describe("create two projects with the same project_id at the same time, but in 
   });
 });
 
-describe("test the affinity propery when creating projects", () => {
+describe("test the affinity property when creating projects", () => {
   let x: any = null;
 
   beforeAll(async () => {

@@ -1,5 +1,25 @@
 # CoCalcFS -- the Cocalc project file system
 
+We manage the following types of filesystems, which are exported via NFS:
+
+The file server support an unlimited number of namespaces.
+
+There could be a large number of the followin, and they are tracked in a sqlite3 database:
+
+- **project:** each CoCalc project owns exactly one project filesystem, which is its home directory. This may be mounted by the Kubernetes pod \(the "home base"\), and ALSO by compute servers. It can be either exist in some zpool or be archived as a ZFS replication stream.
+
+- **user:** a user filesystem is owned by an _account_ \(i.e., a CoCalc user\), not by a project. It may optionally be mounted on any project that the user is a collaborator on. E.g., an instructor could make a user volume, then mount it read\-only on all of their student's projects. Or a user could mount a user volume read\-write on several of their projects. An account can own many user filesystems, each with a name that is a string (unicode, at most 128 characters).
+
+There's one of these in each pool:
+
+- **archives:** output of zfs replication streams.
+
+These are stored in their own separate pool and get mounted read-only via Kubernetes.
+
+- **data:** misc data that is mounted and shared by all projects
+
+- **images:** project images, i.e., sage installs, version of ubuntu, etc.
+
 ## ZFS
 
 ### Archive
@@ -17,18 +37,18 @@ back to it in order to save space and reduce longterm storage costs, at scale,
 if necessary.
 
 archive contents:
- - zfs stream with snapshots
- - a tarball of the last snapshot of project contents
- - dump of the NATS stream and kv for that project.
 
+- zfs stream with snapshots
+- a tarball of the last snapshot of project contents
+- dump of the NATS stream and kv for that project.
 
 ### NOTE: Units
 
 By default both ZFS and `df -h` use GiB and write it G (e.g., "gibibyte").
 
 ```sh
-root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs set refquota=2147483648 cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002 
-root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs get refquota cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002 
+root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs set refquota=2147483648 cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002
+root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# zfs get refquota cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002
 NAME                                                             PROPERTY  VALUE     SOURCE
 cocalcfs0/default/projects/00000000-0000-0000-0000-000000000002  refquota  2G        local
 root@prod-42:/cocalcfs/projects/default/00000000-0000-0000-0000-000000000002# df -h .
