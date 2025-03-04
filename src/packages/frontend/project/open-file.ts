@@ -420,12 +420,16 @@ async function convert_sagenb_worksheet(
 
 const log_open_time: { [path: string]: { id: string; start: Date } } = {};
 
-export function log_file_open(project_id: string, path: string): void {
+export function log_file_open(
+  project_id: string,
+  path: string,
+  deleted?: number,
+): void {
   // Only do this if the file isn't
   // deleted, since if it *is* deleted, then user sees a dialog
   // and we only log the open if they select to recreate the file.
   // See https://github.com/sagemathinc/cocalc/issues/4720
-  if (webapp_client.file_client.is_deleted(path, project_id)) {
+  if (!deleted && webapp_client.file_client.is_deleted(path, project_id)) {
     return;
   }
 
@@ -435,6 +439,7 @@ export function log_file_open(project_id: string, path: string): void {
     event: "open",
     action: "open",
     filename: path,
+    deleted,
   });
 
   // Save the log entry id, so it is possible to optionally

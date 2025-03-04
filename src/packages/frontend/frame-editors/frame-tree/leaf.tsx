@@ -7,20 +7,16 @@ import {
   CSS,
   React,
   Rendered,
-  useEffect,
   useRedux,
-  useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { Map, Set } from "immutable";
-
 import { AccountState } from "@cocalc/frontend/account/types";
 import { Actions } from "../code-editor/actions";
 import { EditorDescription, EditorState, NodeDesc } from "./types";
-
 import DeletedFile from "@cocalc/frontend/project/deleted-file";
-import { webapp_client } from "../../webapp-client";
 
 const ERROR_STYLE: CSS = {
   maxWidth: "100%",
@@ -110,37 +106,30 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
     const read_only: boolean | undefined = useRedux(name, "read_only");
     const cursors: Map<string, any> | undefined = useRedux(name, "cursors");
 
+    const recentlyDeletedPaths: Map<string, number> | undefined = useTypedRedux(
+      { project_id },
+      "recentlyDeletedPaths",
+    );
+
     const value: string | undefined = useRedux(name, "value");
     const misspelled_words: Set<string> | undefined = useRedux(
       name,
-      "misspelled_words"
+      "misspelled_words",
     );
     const complete: Map<string, any> | undefined = useRedux(name, "complete");
     const is_loaded: boolean | undefined = useRedux(name, "is_loaded");
     const error: string | undefined = useRedux(name, "error");
     const gutter_markers: Map<string, any> | undefined = useRedux(
       name,
-      "gutter_markers"
+      "gutter_markers",
     );
 
-    const [isDeleted, setIsDeleted] = useState<boolean>(false);
-
-    useEffect(() => {
-      const p = desc.get("path");
-      if (p == null) return;
-      if (webapp_client.file_client.is_deleted(p, project_id)) {
-        setIsDeleted(true);
-      }
-    }, [desc.get("path")]);
-
-    if (isDeleted) {
+    if (recentlyDeletedPaths?.get(path)) {
       return (
         <DeletedFile
           project_id={project_id}
           path={path}
-          onOpen={() => {
-            setIsDeleted(false);
-          }}
+          time={recentlyDeletedPaths.get(path)!}
         />
       );
     }
@@ -220,5 +209,5 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         {render_leaf()}
       </div>
     );
-  }
+  },
 );

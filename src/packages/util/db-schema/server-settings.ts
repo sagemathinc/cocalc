@@ -4,6 +4,8 @@
  */
 
 import { Table } from "./types";
+import type { KucalcValues } from "@cocalc/util/db-schema/site-defaults";
+import type { Strategy } from "@cocalc/util/types/sso";
 
 Table({
   name: "passport_settings",
@@ -76,3 +78,54 @@ Table({
     },
   },
 });
+
+export interface Customize {
+  siteName?: string;
+  siteDescription?: string;
+  organizationName?: string;
+  organizationEmail?: string;
+  organizationURL?: string;
+  termsOfServiceURL?: string;
+  helpEmail?: string;
+  contactEmail?: string;
+  isCommercial?: boolean;
+  kucalc?: KucalcValues;
+  sshGateway?: boolean;
+  sshGatewayDNS?: string;
+  logoSquareURL?: string;
+  logoRectangularURL?: string;
+  splashImage?: string;
+  indexInfo?: string;
+  indexTagline?: string;
+  imprint?: string;
+  policies?: string;
+  shareServer?: boolean;
+  landingPages?: boolean;
+  dns?: string;
+  siteURL?: string;
+  googleAnalytics?: string;
+  anonymousSignup?: boolean;
+  anonymousSignupLicensedShares?: boolean;
+  emailSignup?: boolean;
+  accountCreationInstructions?: string;
+  zendesk?: boolean; // true if zendesk support is configured.
+  stripePublishableKey?: string;
+  imprint_html?: string;
+  policies_html?: string;
+  reCaptchaKey?: string;
+  sandboxProjectsEnabled?: boolean;
+  sandboxProjectId?: string;
+  verifyEmailAddresses?: boolean;
+  strategies?: Strategy[];
+  openaiEnabled?: boolean;
+  googleVertexaiEnabled?: boolean;
+  mistralEnabled?: boolean;
+  anthropicEnabled?: boolean;
+  ollamaEnabled?: boolean;
+  neuralSearchEnabled?: boolean;
+  jupyterApiEnabled?: boolean;
+  computeServersEnabled?: boolean;
+  cloudFilesystemsEnabled?: boolean;
+  githubProjectId?: string;
+  support?: string;
+}

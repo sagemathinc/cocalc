@@ -20,7 +20,6 @@ export interface Options {
 
 export interface PrimusChannel extends EventEmitter {
   write: (data: object | string) => void;
-  forEach: (cb: (spark, id, connections) => void) => void;
   destroy: () => void;
   // createSpark is not on the real PrimusChannel, but it's part of our mock version for
   // unit testing in support.ts

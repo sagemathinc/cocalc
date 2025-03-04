@@ -25,13 +25,11 @@ are not "fatal data loss" for us, since this is just search.
 
 import jsonStable from "json-stable-stringify";
 import { debounce } from "lodash";
-import sha1 from "sha1";
-
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import { EmbeddingData } from "@cocalc/util/db-schema/llm";
-import { close, copy_with, len, uuidsha1 } from "@cocalc/util/misc";
+import { close, copy_with, len, sha1, uuidsha1 } from "@cocalc/util/misc";
 
 // How long until we update the index, if users stops using this file actively.
 const DEBOUNCE_MS = 7500;

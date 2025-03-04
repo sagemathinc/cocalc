@@ -4,7 +4,6 @@
  */
 import { Space, Tooltip } from "antd";
 import React from "react";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -168,6 +167,12 @@ export const LogEntry: React.FC<Props> = React.memo(
             }
           />{" "}
           <TookTime ms={event.time} />
+          {event.deleted && (
+            <>
+              {" "}
+              (file was deleted <TimeAgo date={event.deleted} />)
+            </>
+          )}
         </span>
       );
     }
@@ -205,10 +210,10 @@ export const LogEntry: React.FC<Props> = React.memo(
     ): JSX.Element {
       const envs = software_envs?.get("environments");
       const prev: string = envs
-        ? envs.get(event.previous)?.get("title") ?? event.previous
+        ? (envs.get(event.previous)?.get("title") ?? event.previous)
         : intl.formatMessage(labels.loading);
       const next: string = envs
-        ? envs.get(event.next)?.get("title") ?? event.next
+        ? (envs.get(event.next)?.get("title") ?? event.next)
         : intl.formatMessage(labels.loading);
 
       return (

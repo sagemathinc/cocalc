@@ -4,13 +4,12 @@
  */
 
 import { expire_time } from "@cocalc/util/misc";
-import { PostgreSQL } from "./types";
 import { get_server_settings } from "./server-settings";
 
 // this converts what's in the pii_expired setting to a new Date in the future
 export function pii_retention_to_future<T extends object>(
   pii_retention: number | false,
-  data?: T & { expire?: Date }
+  data?: T & { expire?: Date },
 ): Date | undefined {
   if (!pii_retention) return;
   const future: Date = expire_time(pii_retention);
@@ -25,9 +24,8 @@ export function pii_retention_to_future<T extends object>(
 // if data is set, it's expire field will be set. in any case, it returns the "Date"
 // in the future.
 export async function pii_expire<T extends object>(
-  db: PostgreSQL,
-  data?: T & { expire?: Date }
+  data?: T & { expire?: Date },
 ): Promise<Date | undefined> {
-  const settings = await get_server_settings(db);
+  const settings = await get_server_settings();
   return pii_retention_to_future<T>(settings.pii_retention, data);
 }

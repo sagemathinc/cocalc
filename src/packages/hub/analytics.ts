@@ -189,7 +189,7 @@ export async function initAnalytics(
   const dbg = create_log("analytics_js/cors");
 
   // we only get the DNS once at startup – i.e. hub restart required upon changing DNS!
-  const settings = await get_server_settings(database);
+  const settings = await get_server_settings();
   const DNS = settings.dns;
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;

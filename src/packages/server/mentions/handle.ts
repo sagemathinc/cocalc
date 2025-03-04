@@ -5,7 +5,6 @@ Handle all mentions that haven't yet been handled.
 import { delay } from "awaiting";
 
 import { getLogger } from "@cocalc/backend/logger";
-import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import { pii_expire } from "@cocalc/database/postgres/pii";
 import { expire_time } from "@cocalc/util/misc";
@@ -134,5 +133,5 @@ async function setError(
 
 // expire either after the PII setting or 1 year.
 async function getExpire(): Promise<Date> {
-  return (await pii_expire(db())) ?? expire_time(365 * 24 * 60 * 60);
+  return (await pii_expire()) ?? expire_time(365 * 24 * 60 * 60);
 }

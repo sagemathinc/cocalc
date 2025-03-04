@@ -13,6 +13,7 @@
     { "path": "../comm" },
     { "path": "../frontend" },
     { "path": "../jupyter" },
+    { "path": "../nats" },
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../sync-fs" },

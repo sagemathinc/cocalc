@@ -59,14 +59,15 @@ export async function evaluateOpenAILC(
   const isO1 = model != "o1-mini" && model != "o1";
   const streaming = stream != null && isO1;
 
-  log.debug("evaluateOpenAILC", {
-    input,
-    history,
-    system,
-    model,
-    stream: streaming,
-    maxTokens,
-  });
+  // This is also quite big -- only uncomment when developing and needing this.
+  //   log.debug("evaluateOpenAILC", {
+  //     input,
+  //     history,
+  //     system,
+  //     model,
+  //     stream: streaming,
+  //     maxTokens,
+  //   });
 
   const params =
     mode === "cocalc" ? await getParams(model) : { apiKey: opts.apiKey, model };
@@ -93,9 +94,8 @@ export async function evaluateOpenAILC(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -127,7 +127,8 @@ export async function evaluateOpenAILC(
     output = content2string(content);
   }
 
-  log.debug("finalResult", finalResult);
+  // ATTENTION : Do *NOT* log this unless you are doing low level debugging.  It could be pretty big...
+  // log.debug("finalResult", finalResult);
 
   // and an empty call when done
   opts.stream?.();
