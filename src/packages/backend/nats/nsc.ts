@@ -25,6 +25,9 @@ export default async function nsc(args: string[]) {
     command: join(bin, "nsc"),
     args,
     env: { XDG_DATA_HOME: data, XDG_CONFIG_HOME: data },
-    verbose: true,
+    // It is important to set this to false except maybe for temporary debugging!
+    // Reason is that this command is used to get JWT's, which are basically private keys,
+    // and it is very bad to log those.
+    verbose: false,
   });
 }
