@@ -4,7 +4,7 @@ import { projectDataset, projectMountpoint } from "./names";
 import { context } from "./config";
 
 // Ensure that this project is mounted and setup so that export to the
-// given client is allowed. 
+// given client is allowed.
 // Returns the remote that the client should use for NFS mounting, i.e.,
 // this return s, then type "mount s /mnt/{project_id}" to mount the filesystem.
 // If client is not given, just sets the share at NFS level
@@ -46,7 +46,6 @@ export async function shareNFS({
   if (client) {
     return `${hostname}:${projectMountpoint({ namespace, project_id })}`;
   } else {
-    // no exports configured
     return "";
   }
 }
@@ -69,7 +68,7 @@ export async function unshareNFS({
   nfs = nfs.filter((x) => x != client);
   // update database which tracks what the share should be.
   set({ namespace, project_id, nfs });
-  // update zfs/nfs
+  // update zfs/nfs to no longer share to this client
   await shareNFS({ project_id, namespace });
 }
 

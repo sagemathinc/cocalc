@@ -163,7 +163,7 @@ export function get({
     throw Error(`no project ${project_id} in namespace ${namespace}`);
   }
   for (const key of ["nfs", "snapshots"]) {
-    project[key] = project[key]?.split(",") ?? [];
+    project[key] = sqliteStringToArray(project[key]);
   }
   project["archived"] = !!project["archived"];
   if (project.last_edited) {
@@ -234,4 +234,11 @@ export function getRecent({
       .prepare(`${query} AND namespace=?`)
       .all(cutoff.toISOString(), namespace) as RawProject[];
   }
+}
+
+function sqliteStringToArray(s?: string): string[] {
+  if (!s) {
+    return [];
+  }
+  return s.split(",");
 }

@@ -5,7 +5,13 @@ pnpm exec jest --watch nfs.test.ts
 */
 
 import { executeCode } from "@cocalc/backend/execute-code";
-import { createTestPools, deleteTestPools, init, describe } from "./util";
+import {
+  createTestPools,
+  deleteTestPools,
+  restartNfsServer,
+  init,
+  describe,
+} from "./util";
 import {
   createProject,
   createSnapshot,
@@ -60,26 +66,33 @@ describe("create a project, put in a files, snapshot, another file, then share v
   });
 
   let host = "";
+  const client = "127.0.0.1";
 
   const mount = async () => {
-    executeCode({
+    await executeCode({
       command: "sudo",
       args: ["mkdir", "-p", nsfMnt],
     });
-    executeCode({
+    await executeCode({
       command: "sudo",
       args: ["mount", host, nsfMnt],
     });
   };
 
   it("shares the project via NFS, and mounts it", async () => {
-    host = await shareNFS({ project_id, client: "127.0.0.1" });
+    host = await shareNFS({ project_id, client });
     const project = get({ project_id });
-    expect(project.nfs).toEqual(["127.0.0.1"]);
+    expect(project.nfs).toEqual([client]);
     await mount();
   });
 
   it("confirms our files and snapshots are there as expected", async () => {
+    const { stdout } = await executeCode({
+      command: "sudo",
+      args: ["ls", nsfMnt],
+    });
+    expect(stdout).toContain(FILENAME);
+    expect(stdout).toContain(FILENAME2);
     expect((await readFile(join(nsfMnt, FILENAME))).toString()).toEqual(
       FILE_CONTENT,
     );
@@ -93,9 +106,13 @@ describe("create a project, put in a files, snapshot, another file, then share v
       command: "sudo",
       args: ["umount", nsfMnt],
     });
-
-    await unshareNFS({ project_id, client: "localhost" });
-
-    await expect(mount).rejects.toThrow();
+    await restartNfsServer();
+    await unshareNFS({ project_id, client });
+    try {
+      await mount();
+      throw Error("bug");
+    } catch (err) {
+      expect(`${err}`).toContain("not permitted");
+    }
   });
 });

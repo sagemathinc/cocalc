@@ -8,7 +8,7 @@ import { initDataDir } from "@cocalc/file-server/zfs/util";
 import { resetDb } from "@cocalc/file-server/zfs/db";
 import { getPools } from "@cocalc/file-server/zfs/pools";
 import { execSync } from "child_process";
-export {};
+import { map as asyncMap } from "awaiting";
 
 // export "describe" from here that is a no-op if the zpool
 // command is not available:
@@ -75,15 +75,27 @@ export async function createTestPools({
   return { tempDir, pools };
 }
 
+// Even after setting sharefnfs=off, it can be a while (a minute?) until NFS
+// fully frees up the share so we can destroy the pool.  This makes it instant,
+// which is very useful for unit testing.
+export async function restartNfsServer() {
+  await executeCode({
+    command: "sudo",
+    args: ["service", "nfs-kernel-server", "restart"],
+  });
+}
+
 export async function deleteTestPools({ tempDir, pools }) {
   if (!POOL_PREFIX.includes("test")) {
     throw Error("POOL_PREFIX must contain 'test'");
   }
-  for (const pool of pools) {
+
+  const f = async (pool) => {
     await executeCode({
       command: "sudo",
       args: ["zpool", "destroy", pool],
     });
-  }
+  };
+  await asyncMap(pools, pools.length, f);
   await rm(tempDir, { recursive: true });
 }
