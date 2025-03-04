@@ -6,17 +6,10 @@ pnpm exec jest --watch --forceExit --detectOpenHandles "create.test.ts"
 
 // application/typescript text
 import { executeCode } from "@cocalc/backend/execute-code";
-import {
-  createTestPools,
-  deleteTestPools,
-  initDb,
-  isZpoolAvailable,
-} from "./util";
+import { createTestPools, deleteTestPools, initDb, describe } from "./util";
 import { createProject } from "@cocalc/file-server/zfs";
 
-const Describe = isZpoolAvailable() ? describe : describe.skip;
-
-Describe("creates a testing pool and a project in it", () => {
+describe("creates a testing pool and a project in it", () => {
   let x: any = null;
 
   beforeAll(async () => {

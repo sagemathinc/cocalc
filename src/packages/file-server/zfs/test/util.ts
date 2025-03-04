@@ -11,8 +11,10 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { initDataDir } from "@cocalc/file-server/zfs/util";
 import { execSync } from "child_process";
 
-// Function to check if the zpool command exists
-export function isZpoolAvailable() {
+
+// export "describe" from here that is a no-op if the zpool
+// command is not available:
+function isZpoolAvailable() {
   try {
     execSync("which zpool", { stdio: "ignore" });
     return true;
@@ -20,6 +22,8 @@ export function isZpoolAvailable() {
     return false;
   }
 }
+const Describe = isZpoolAvailable() ? describe : describe.skip;
+export { Describe as describe };
 
 export async function initDb() {
   if (!POOL_PREFIX.includes("test")) {
