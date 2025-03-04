@@ -34,16 +34,18 @@ export async function maintainSnapshots(cutoff?: Date) {
 export async function createSnapshot({
   project_id,
   namespace = context.namespace,
+  force,
 }: {
   project_id: string;
   namespace?: string;
+  force?: boolean;
 }): Promise<string> {
   logger.debug("createSnapshot: ", { project_id, namespace });
   const { pool, archived, snapshots } = get({ project_id, namespace });
   if (archived) {
     throw Error("cannot snapshot an archived project");
   }
-  if (snapshots.length > 0) {
+  if (!force && snapshots.length > 0) {
     // check for sufficiently recent snapshot
     const last = new Date(snapshots[snapshots.length - 1]);
     if (Date.now() - last.valueOf() < SNAPSHOT_INTERVAL_MS) {
@@ -53,7 +55,7 @@ export async function createSnapshot({
   }
 
   // Check to see if nothing change on disk since last snapshot - if so, don't make a new one:
-  if (snapshots.length > 0) {
+  if (!force && snapshots.length > 0) {
     const written = await getWritten({ project_id, namespace });
     if (written == 0) {
       // for sure definitely nothing written, so no possible
