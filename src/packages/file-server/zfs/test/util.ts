@@ -9,6 +9,17 @@ import { join } from "path";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { initDataDir } from "@cocalc/file-server/zfs/util";
+import { execSync } from "child_process";
+
+// Function to check if the zpool command exists
+export function isZpoolAvailable() {
+  try {
+    execSync("which zpool", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function initDb() {
   if (!POOL_PREFIX.includes("test")) {
