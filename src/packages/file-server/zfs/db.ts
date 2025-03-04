@@ -3,14 +3,14 @@ Database
 */
 
 import Database from "better-sqlite3";
-import { context, POOL_PREFIX } from "./config";
+import { context, POOL_PREFIX, SQLITE3_DATABASE_FILE } from "./config";
 import type { Project, RawProject, SetProject } from "./types";
 import { isValidUUID, is_array, is_date } from "@cocalc/util/misc";
 
 let db: null | Database.Database;
 export function getDb(): Database.Database {
   if (db == null) {
-    db = new Database("projects.db");
+    db = new Database(SQLITE3_DATABASE_FILE);
     db.prepare(
       `CREATE TABLE IF NOT EXISTS projects (
           namespace TEXT,

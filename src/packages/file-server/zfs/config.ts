@@ -1,6 +1,14 @@
+import { join } from "path";
+
+export const PREFIX = process.env.COCALC_TEST_MODE ? "cocalcfs-test" : "cocalcfs";
+
+export const DATA = `/${PREFIX}`;
+
+export const SQLITE3_DATABASE_FILE = join(DATA, "database.sqlite3");
+
 // we ONLY put projects on pools whose name has this prefix.
 // all other pools are ignored.
-export const POOL_PREFIX = "cocalcfs";
+export const POOL_PREFIX = PREFIX;
 
 export const context = {
   namespace: process.env.NAMESPACE ?? "default",
@@ -15,13 +23,13 @@ export const MIN_QUOTA = 1024 * 1024 * 1024; // 1G
 export const POOLS_CACHE_MS = 15000;
 
 // Directory on server where all projects are mounted
-export const PROJECTS = "/cocalcfs/projects";
+export const PROJECTS = join(DATA, "projects");
 
 // Directory on server where zfs send streams (and tar?) are stored
-export const ARCHIVES = "/cocalcfs/archives";
+export const ARCHIVES = join(DATA, "archives");
 
 // Directory for bup
-export const BUP = "/cocalcfs/bup";
+export const BUP = join(DATA, "bup");
 
 // two hour default for running any commands (e.g., zfs send/recv)
 export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;

@@ -6,6 +6,7 @@ import { dearchiveProject } from "./archive";
 import { context, UID, GID } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createSnapshot } from "./snapshots";
+import type { Project } from "./types";
 
 export async function createProject({
   namespace = context.namespace,
@@ -17,7 +18,7 @@ export async function createProject({
   project_id: string;
   affinity?: string;
   source_project_id?: string;
-}) {
+}): Promise<Project> {
   if (projectExists({ namespace, project_id })) {
     return get({ namespace, project_id });
   }

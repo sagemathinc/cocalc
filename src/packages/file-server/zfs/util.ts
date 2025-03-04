@@ -1,5 +1,5 @@
 import { executeCode } from "@cocalc/backend/execute-code";
-import { DEFAULT_EXEC_TIMEOUT_MS } from "./config";
+import { DATA, DEFAULT_EXEC_TIMEOUT_MS } from "./config";
 import { fatalError } from "./db";
 
 export async function exec(opts) {
@@ -13,9 +13,14 @@ export async function exec(opts) {
       fatalError({
         ...opts.what,
         err,
-        desc: `${opts.desc ? opts.desc : ""} "${opts.command} ${opts.args?.join(" ") ?? ''}"`,
+        desc: `${opts.desc ? opts.desc : ""} "${opts.command} ${opts.args?.join(" ") ?? ""}"`,
       });
     }
     throw err;
   }
+}
+
+export async function initDataDir() {
+  await executeCode({ command: "sudo", args: ["mkdir", "-p", DATA] });
+  await executeCode({ command: "sudo", args: ["chmod", "a+rxw", DATA] });
 }
