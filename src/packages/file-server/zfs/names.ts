@@ -1,6 +1,7 @@
 import { join } from "path";
 import { FILESYSTEMS, ARCHIVES, BUP } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
+import { randomId } from "@cocalc/nats/names";
 
 export function namespaceDataset({
   pool,
@@ -134,6 +135,24 @@ export function filesystemDataset({
   // only one dataset, rather than three.  (We also don't need to worry about deleting parents
   // when there are no children...)
   return `${filesystemsDataset({ pool, namespace: namespace })}/${owner_type}-${owner_id}-${name}`;
+}
+
+export function tempDataset({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
+  return `${namespaceDataset({ pool, namespace })}/temp`;
+}
+
+export function filesystemDatasetTemp({
+  pool,
+  ...fs
+}: PrimaryKey & { pool: string }) {
+  const { namespace, owner_type, owner_id, name } = primaryKey(fs);
+  return `${tempDataset({ pool, namespace })}/${owner_type}-${owner_id}-${name}-${randomId()}`;
 }
 
 // NOTE: We use "join" for actual file paths and explicit

@@ -3,6 +3,8 @@ import { isValidUUID } from "@cocalc/util/misc";
 
 export const OWNER_TYPES = ["account", "project", "group"] as const;
 
+export const OWNER_ID_FIELDS = OWNER_TYPES.map((x) => x + "_id");
+
 export type OwnerType = (typeof OWNER_TYPES)[number];
 
 export interface FilesystemPrimaryKey {

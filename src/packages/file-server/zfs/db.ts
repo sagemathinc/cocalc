@@ -10,6 +10,7 @@ import {
   type Filesystem,
   type RawFilesystem,
   type SetFilesystem,
+  OWNER_ID_FIELDS,
 } from "./types";
 import { is_array, is_date } from "@cocalc/util/misc";
 
@@ -114,7 +115,7 @@ export function set(obj: SetFilesystem) {
     return filesystem;
   };
   for (const field in obj) {
-    if (pk[field] !== undefined) {
+    if (pk[field] !== undefined || OWNER_ID_FIELDS.includes(field)) {
       continue;
     }
     fields.push(field);

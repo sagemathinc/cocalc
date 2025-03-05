@@ -268,12 +268,18 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.4
         version: 7.6.11
+      '@types/lodash':
+        specifier: ^4.14.202
+        version: 4.17.9
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
       better-sqlite3:
         specifier: ^8.3.0
         version: 8.7.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
 
   frontend:
     dependencies:
@@ -9208,6 +9214,7 @@ packages:
 
   lodash.get@4.4.2:
     resolution: {integrity: sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==}
+    deprecated: This package is deprecated. Use the optional chaining (?.) operator instead.
 
   lodash.includes@4.3.0:
     resolution: {integrity: sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==}

@@ -17,7 +17,6 @@ import {
 import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
-import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 describe("create a project, put in some files/snapshot, archive the project, confirm gone, de-archive it, and confirm files are back as expected", () => {
   let x: any = null;
@@ -60,7 +59,7 @@ describe("create a project, put in some files/snapshot, archive the project, con
     expect(snapshot2).not.toEqual(snapshot1);
   });
 
-  it("archive the project and checks project is no longer in zfs at all", async () => {
+  it("archive the project and checks project is no longer in zfs", async () => {
     expect(get({ project_id }).archived).toBe(false);
     await archiveFilesystem({ project_id });
     const { stdout } = await executeCode({
@@ -68,7 +67,6 @@ describe("create a project, put in some files/snapshot, archive the project, con
       args: ["list", x.pools[0]],
     });
     expect(stdout).not.toContain(project_id);
-    expect(await exists(mnt)).toBe(false);
     expect(get({ project_id }).archived).toBe(true);
   });
 

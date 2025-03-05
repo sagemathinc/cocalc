@@ -7,14 +7,19 @@ import { createSnapshot } from "./snapshots";
 import {
   filesystemDataset,
   filesystemArchivePath,
-  filesystemMountpoint,
   filesystemArchiveFilename,
+  filesystemDatasetTemp,
+  filesystemMountpoint,
 } from "./names";
 import { exec } from "./util";
-import { mountFilesystem, zfsGetProperties } from "./properties";
+import {
+  mountFilesystem,
+  unmountFilesystem,
+  zfsGetProperties,
+} from "./properties";
 import { delay } from "awaiting";
-import { createBackup } from "./backup";
 import { primaryKey, type PrimaryKey } from "./types";
+import { isEqual } from "lodash";
 
 export async function dearchiveFilesystem(
   opts: PrimaryKey & {
@@ -31,6 +36,7 @@ export async function dearchiveFilesystem(
     }) => void;
   },
 ) {
+  const start = Date.now();
   opts.progress?.({ progress: 0 });
   const pk = primaryKey(opts);
   const filesystem = get(pk);
@@ -107,9 +113,11 @@ export async function dearchiveFilesystem(
     },
   });
   set({ ...pk, archived: false });
+  return { milliseconds: Date.now() - start };
 }
 
 export async function archiveFilesystem(fs: PrimaryKey) {
+  const start = Date.now();
   const pk = primaryKey(fs);
   const filesystem = get(pk);
   if (filesystem.archived) {
@@ -125,7 +133,19 @@ export async function archiveFilesystem(fs: PrimaryKey) {
     args: ["mkdir", "-p", archive],
     what: { ...pk, desc: "make archive target directory" },
   });
-  // make full zfs send
+
+  await mountFilesystem(filesystem);
+  const { stdout: find } = await exec({
+    verbose: true,
+    cwd: filesystemMountpoint(filesystem),
+    command: `sudo sh -c 'find . -xdev | sha1sum'`,
+    what: { ...pk, desc: "getting sha1sum of file listing" },
+  });
+  // mountpoint will be used for test below, and also no point in archiving
+  // if we can't even unmount filesystem
+  await unmountFilesystem(filesystem);
+
+  // make *full* zfs send
   await exec({
     verbose: true,
     // have to use sudo sh -c because zfs send only supports writing to stdout:
@@ -135,8 +155,50 @@ export async function archiveFilesystem(fs: PrimaryKey) {
       desc: "zfs send of full filesystem dataset to archive it",
     },
   });
-  // also make a bup backup
-  await createBackup(pk);
+
+  // verify that the entire send stream is valid
+  const temp = filesystemDatasetTemp(filesystem);
+  try {
+    await exec({
+      verbose: true,
+      // have to use sudo sh -c because zfs send only supports writing to stdout:
+      command: `sudo sh -c 'cat ${stream} | zfs recv ${temp}'`,
+      what: {
+        ...pk,
+        desc: "verify the archive zfs send is valid",
+      },
+    });
+    // do some test so we trust this:
+    const restoreProps = await zfsGetProperties(temp);
+    const fsProps = await zfsGetProperties(filesystemDataset(filesystem));
+    if (!isEqual(restoreProps, fsProps)) {
+      throw Error(
+        `properties of filesystem ${filesystem} and archive ${temp} do NOT match. Refusing to archive filesystem!`,
+      );
+    }
+    const { stdout: findtest } = await exec({
+      verbose: true,
+      cwd: filesystemMountpoint(filesystem), // same mountpoint due to being part of recv data
+      command: `sudo sh -c 'find . -xdev | sha1sum'`,
+      what: { ...pk, desc: "getting sha1sum of file listing" },
+    });
+    if (findtest != find) {
+      throw Error(
+        "files in archived filesystem do not match. Refusing to archive!",
+      );
+    }
+  } finally {
+    // destroy the temporary filesystem
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["zfs", "destroy", "-r", temp],
+      what: {
+        ...pk,
+        desc: "destroying temporary filesystem dataset used for testing archive stream",
+      },
+    });
+  }
 
   // destroy dataset
   await exec({
@@ -149,12 +211,5 @@ export async function archiveFilesystem(fs: PrimaryKey) {
   // set as archived in database
   set({ ...pk, archived: true });
 
-  // remove mountpoint -- should not have files in it
-  await exec({
-    command: "sudo",
-    args: ["rmdir", filesystemMountpoint(filesystem)],
-    what: { ...pk, desc: "remove mountpoint after archiving filesystem" },
-  });
-
-  return { snapshot };
+  return { snapshot, milliseconds: Date.now() - start };
 }

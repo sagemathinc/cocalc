@@ -24,6 +24,7 @@ import {
   filesystemsPath,
   bupDataset,
   bupMountpoint,
+  tempDataset,
 } from "./names";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getNamespacesAndPools } from "./db";
@@ -107,6 +108,10 @@ export const initializePool = reuseInFlight(
     // and enable compression and dedup.
     await ensureDatasetExists({
       name: filesystemsDataset({ namespace, pool }),
+    });
+    await ensureDatasetExists({
+      name: tempDataset({ namespace, pool }),
+      dedup: "off",
     });
     // Initialize bup dataset, used for backups.
     await ensureDatasetExists({
