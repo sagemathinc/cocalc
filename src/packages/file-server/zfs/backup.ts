@@ -2,7 +2,7 @@
 Make backups using bup.
 */
 
-import { bupFilesystemMountpoint, filesystemMountpoint } from "./names";
+import { bupFilesystemMountpoint, filesystemSnapshotMountpoint } from "./names";
 import { get, getRecent, set } from "./db";
 import { exec } from "./util";
 import getLogger from "@cocalc/backend/logger";
@@ -12,6 +12,7 @@ import { mountFilesystem } from "./properties";
 import { split } from "@cocalc/util/misc";
 import { BUP_INTERVAL_MS } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
+import { createSnapshot } from "./snapshots";
 
 const logger = getLogger("file-server:zfs/backup");
 
@@ -24,7 +25,8 @@ export async function createBackup(
   logger.debug("createBackup", pk);
   const filesystem = get(pk);
   await mountFilesystem(pk);
-  const mountpoint = filesystemMountpoint(filesystem);
+  const snapshot = await createSnapshot({ ...filesystem, ifChanged: true });
+  const mountpoint = filesystemSnapshotMountpoint({ ...filesystem, snapshot });
   const excludes: string[] = [];
   for (const path of EXCLUDES) {
     excludes.push("--exclude");

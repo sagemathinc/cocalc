@@ -51,7 +51,10 @@ export function filesystemArchivePath({
 
 export function filesystemArchiveFilename(opts) {
   const { owner_type, owner_id, name } = primaryKey(opts);
-  return join(filesystemArchivePath(opts), `${owner_type}-${owner_id}-${name}.zfs`);
+  return join(
+    filesystemArchivePath(opts),
+    `${owner_type}-${owner_id}-${name}.zfs`,
+  );
 }
 
 // Bup
@@ -97,6 +100,12 @@ export function filesystemsPath({ namespace }) {
 export function filesystemMountpoint(fs: PrimaryKey) {
   const pk = primaryKey(fs);
   return join(filesystemsPath(pk), pk.owner_type, pk.owner_id, pk.name);
+}
+
+export function filesystemSnapshotMountpoint(
+  opts: PrimaryKey & { snapshot: string },
+) {
+  return join(filesystemMountpoint(opts), ".zfs", "snapshot", opts.snapshot);
 }
 
 export function filesystemsDataset({
