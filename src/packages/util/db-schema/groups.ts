@@ -21,6 +21,8 @@ export interface Group {
   // the title
   title?: string;
   color?: string;
+  // account that will be charged for any resource owned by the group
+  billing_account_id?: string;
 }
 
 export const MAX_TITLE_LENGTH = 1024;
@@ -41,7 +43,13 @@ Table({
     member_account_ids: {
       type: "array",
       pg_type: "UUID[]",
-      desc: "Unique id's of owners of this group.  They can add/remove members or other owners.",
+      desc: "Unique id's of members of this group.",
+    },
+    billing_account_id: {
+      type: "uuid",
+      desc: "Account_id that will be **charged money** for any resource owned by the group.",
+      render: { type: "account" },
+      title: "Billing Account",
     },
     title: {
       type: "string",

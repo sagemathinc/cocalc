@@ -8,18 +8,13 @@ import {
   filesystemDataset,
   filesystemArchivePath,
   filesystemMountpoint,
+  filesystemArchiveFilename,
 } from "./names";
 import { exec } from "./util";
-import { join } from "path";
 import { mountFilesystem, zfsGetProperties } from "./properties";
 import { delay } from "awaiting";
 import { createBackup } from "./backup";
-import { primaryKey, type PrimaryKey, type Filesystem } from "./types";
-
-function streamPath(fs: Filesystem) {
-  const archive = filesystemArchivePath(fs);
-  return join(archive, "complete.zfs");
-}
+import { primaryKey, type PrimaryKey } from "./types";
 
 export async function dearchiveFilesystem(
   opts: PrimaryKey & {
@@ -82,7 +77,7 @@ export async function dearchiveFilesystem(
   }
 
   // now we de-archive it:
-  const stream = streamPath(filesystem);
+  const stream = filesystemArchiveFilename(filesystem);
   await exec({
     verbose: true,
     // have to use sudo sh -c because zfs recv only supports reading from stdin:
@@ -124,7 +119,7 @@ export async function archiveFilesystem(fs: PrimaryKey) {
   const snapshot = await createSnapshot({ ...filesystem, ifChanged: true });
   // where archive of this filesystem goes:
   const archive = filesystemArchivePath(filesystem);
-  const stream = streamPath(filesystem);
+  const stream = filesystemArchiveFilename(filesystem);
   await exec({
     command: "sudo",
     args: ["mkdir", "-p", archive],

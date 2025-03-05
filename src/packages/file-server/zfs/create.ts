@@ -166,19 +166,21 @@ export async function createFilesystem(
 export async function deleteFilesystem(fs: PrimaryKey) {
   const filesystem = get(fs);
   const dataset = filesystemDataset(filesystem);
+  if (!filesystem.archived) {
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["zfs", "destroy", "-r", dataset],
+      what: {
+        ...filesystem,
+        desc: `destroy dataset ${dataset} containing the filesystem`,
+      },
+    });
+  }
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["zfs", "destroy", "-r", dataset],
-    what: {
-      ...filesystem,
-      desc: `destroy dataset ${dataset} containing the filesystem`,
-    },
-  });
-  await exec({
-    verbose: true,
-    command: "sudo",
-    args: ["rmdir", filesystemMountpoint(filesystem)],
+    args: ["rm", "-rf", filesystemMountpoint(filesystem)],
     what: {
       ...filesystem,
       desc: `delete directory '${filesystemMountpoint(filesystem)}' where filesystem was stored`,

@@ -1,7 +1,9 @@
 import { context } from "./config";
 import { isValidUUID } from "@cocalc/util/misc";
 
-export type OwnerType = "project" | "account";
+export const OWNER_TYPES = ["account", "project", "group"] as const;
+
+export type OwnerType = (typeof OWNER_TYPES)[number];
 
 export interface FilesystemPrimaryKey {
   // The primary key (namespace, owner_type, owner_id, name):
@@ -13,7 +15,7 @@ export interface FilesystemPrimaryKey {
   //   - 'account': owned by a user (a person) and be used in various ways on all projects they collaborator on.
   // Other than the above distinction, the filesystems are treated identically by the server.
   owner_type: OwnerType;
-  // owner_id is either a project_id or an account_id.
+  // owner_id is either a project_id or an account_id or an group_id.
   owner_id: string;
   // The name of the filesystem.
   name: string;
@@ -29,24 +31,40 @@ export interface PrimaryKey {
   name?: string;
   account_id?: string;
   project_id?: string;
+  group_id?: string;
 }
+
+const zfsSegmentRegex = /^[a-zA-Z0-9 _\-.:]+$/;
 
 export function primaryKey({
   namespace = context.namespace,
   owner_type,
   owner_id,
-  name = "",
+  name,
   account_id,
   project_id,
+  group_id,
 }: PrimaryKey): FilesystemPrimaryKey {
-  if ((account_id ? 1 : 0) + (project_id ? 1 : 0) + (owner_type ? 1 : 0) != 1) {
+  if (
+    (account_id ? 1 : 0) +
+      (project_id ? 1 : 0) +
+      (group_id ? 1 : 0) +
+      (owner_type ? 1 : 0) !=
+    1
+  ) {
     throw Error(
-      `exactly one of account_id, project_id, or owner_type must be specified: ${JSON.stringify({ account_id, project_id, owner_type })}`,
+      `exactly one of account_id, project_id, group_id, or owner_type must be specified: ${JSON.stringify({ account_id, project_id, group_id, owner_type })}`,
     );
   }
-  if ((account_id ? 1 : 0) + (project_id ? 1 : 0) + (owner_id ? 1 : 0) != 1) {
+  if (
+    (account_id ? 1 : 0) +
+      (project_id ? 1 : 0) +
+      (group_id ? 1 : 0) +
+      (owner_id ? 1 : 0) !=
+    1
+  ) {
     throw Error(
-      `exactly one of account_id, project_id, or owner_type must be specified: ${JSON.stringify({ account_id, project_id, owner_id })}`,
+      `exactly one of account_id, project_id, group_id, or owner_type must be specified: ${JSON.stringify({ account_id, project_id, group_id, owner_id })}`,
     );
   }
   if (account_id) {
@@ -55,13 +73,31 @@ export function primaryKey({
   } else if (project_id) {
     owner_type = "project";
     owner_id = project_id;
+  } else if (group_id) {
+    owner_type = "group";
+    owner_id = group_id;
   }
-  if (owner_type != "account" && owner_type != "project") {
-    throw Error(`unknown owner type '${owner_type}'`);
+  if (!owner_type || !OWNER_TYPES.includes(owner_type)) {
+    throw Error(
+      `unknown owner type '${owner_type}' -- must be one of ${JSON.stringify(OWNER_TYPES)}`,
+    );
   }
-
-  if (!name && owner_type == "account") {
-    throw Error("name must be nonempty for account filesystems");
+  if (!name) {
+    if (owner_type == "project" && name == null) {
+      // the home directory of a project.
+      name = "home";
+    } else {
+      throw Error("name must be nonempty");
+    }
+  }
+  if (name.length >= 64) {
+    // this is only so mounting is reasonable on the filesystem... and could be lifted
+    throw Error("name must be at most 63 characters");
+  }
+  if (!zfsSegmentRegex.test(name)) {
+    throw Error(
+      'name must only contain alphanumeric characters, space, *, "-", "_", "." and ":"',
+    );
   }
 
   if (!isValidUUID(owner_id) || !owner_id) {

@@ -108,11 +108,6 @@ export const initializePool = reuseInFlight(
     await ensureDatasetExists({
       name: filesystemsDataset({ namespace, pool }),
     });
-    for (const owner_type of ["account", "project"]) {
-      await ensureDatasetExists({
-        name: filesystemsDataset({ namespace, pool }) + "/" + owner_type,
-      });
-    }
     // Initialize bup dataset, used for backups.
     await ensureDatasetExists({
       name: bupDataset({ pool, namespace }),

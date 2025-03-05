@@ -2,6 +2,8 @@
 DEVELOPMENT:
 
 pnpm exec jest --watch create.test.ts
+
+ pnpm exec jest create.test.ts -b
 */
 
 // application/typescript text

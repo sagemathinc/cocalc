@@ -45,7 +45,13 @@ export function filesystemArchivePath({
     archivesMountpoint({ pool, namespace: pk.namespace }),
     pk.owner_type,
     pk.owner_id,
+    pk.name,
   );
+}
+
+export function filesystemArchiveFilename(opts) {
+  const { owner_type, owner_id, name } = primaryKey(opts);
+  return join(filesystemArchivePath(opts), `${owner_type}-${owner_id}-${name}.zfs`);
 }
 
 // Bup
@@ -74,7 +80,12 @@ export function bupFilesystemMountpoint({
   ...fs
 }: PrimaryKey & { pool: string }) {
   const pk = primaryKey(fs);
-  return join(bupMountpoint({ ...pk, pool }), pk.owner_type, pk.owner_id);
+  return join(
+    bupMountpoint({ ...pk, pool }),
+    pk.owner_type,
+    pk.owner_id,
+    pk.name,
+  );
 }
 
 // Filesystems
@@ -85,7 +96,7 @@ export function filesystemsPath({ namespace }) {
 
 export function filesystemMountpoint(fs: PrimaryKey) {
   const pk = primaryKey(fs);
-  return join(filesystemsPath(pk), pk.owner_type, pk.owner_id);
+  return join(filesystemsPath(pk), pk.owner_type, pk.owner_id, pk.name);
 }
 
 export function filesystemsDataset({
@@ -105,8 +116,15 @@ export function filesystemDataset({
   pool,
   ...fs
 }: PrimaryKey & { pool: string }) {
-  const pk = primaryKey(fs);
-  return `${filesystemsDataset({ pool, namespace: pk.namespace })}/${pk.owner_type}/${pk.owner_id}`;
+  const { namespace, owner_type, owner_id, name } = primaryKey(fs);
+  // NOTE: we *could* use a heirarchy of datasets like this:
+  //    ${owner_type}/${owner_id}/${name}
+  // However, that greatly increases the raw number of datasets, and there's a huge performance
+  // penalty.  Since the owner_type is a fixed small list, owner_id is a uuid and the name is
+  // more general, there's no possible overlaps just concating them as below, and this way there's
+  // only one dataset, rather than three.  (We also don't need to worry about deleting parents
+  // when there are no children...)
+  return `${filesystemsDataset({ pool, namespace: namespace })}/${owner_type}-${owner_id}-${name}`;
 }
 
 // NOTE: We use "join" for actual file paths and explicit

@@ -110,9 +110,9 @@ describe("create a project, put in a files, snapshot, another file, then share v
     await unshareNFS({ project_id, client });
     try {
       await mount();
-      throw Error("bug");
+      throw Error("bug -- mount should fail");
     } catch (err) {
-      expect(`${err}`).toContain("not permitted");
+      expect(`${err}`).toMatch(/not permitted|denied/);
     }
   });
 });
