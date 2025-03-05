@@ -34,6 +34,7 @@ const schema = {
   last_send_snapshot: "TEXT",
   last_bup_backup: "TEXT",
   error: "TEXT",
+  last_error: "TEXT",
   used_by_dataset: "INTEGER",
   used_by_snapshots: "INTEGER",
   quota: "INTEGER",
@@ -144,6 +145,7 @@ export function fatalError(
   set({
     ...primaryKey(obj),
     error: `${obj.err}${obj.desc ? " - " + obj.desc : ""}`,
+    last_error: new Date(),
   });
   throw obj.err;
 }
@@ -190,6 +192,9 @@ export function get(fs: PrimaryKey): Filesystem {
   filesystem["archived"] = !!filesystem["archived"];
   if (filesystem.last_edited) {
     filesystem.last_edited = new Date(filesystem.last_edited);
+  }
+  if (filesystem.last_error) {
+    filesystem.last_error = new Date(filesystem.last_error);
   }
   return filesystem as Filesystem;
 }

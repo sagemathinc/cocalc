@@ -136,6 +136,8 @@ export interface Filesystem extends FilesystemPrimaryKey {
   // if this is set, then some sort of error that "should" never happen,
   // has happened, and manual intervention is needed.
   error?: string;
+  // when the last error actually happened
+  last_error?: Date;
 
   // Bytes used by the main project filesystem dataset, NOT counting snapshots (zfs "USED").
   // Obviously these used_by fields are NOT always up to date.  They get updated on some
@@ -163,6 +165,7 @@ export interface SetFilesystem extends PrimaryKey {
   last_edited?: Date | FilesystemFieldFunction;
   affinity?: null | string | FilesystemFieldFunction;
   error?: null | string | FilesystemFieldFunction;
+  last_error?: Date | FilesystemFieldFunction;
   used_by_dataset?: null | number;
   used_by_snapshots?: null | number;
   quota?: null | number;
@@ -185,6 +188,7 @@ export interface RawFilesystem {
   last_edited?: string;
   affinity?: string;
   error?: string;
+  last_error?: string;
   used_by_dataset?: number;
   used_by_snapshots?: number;
   quota?: number;

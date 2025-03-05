@@ -50,13 +50,27 @@ export function filesystemArchivePath({
   );
 }
 
-export function filesystemArchiveFilename(opts) {
+export function filesystemArchiveFilename(opts: PrimaryKey & { pool: string }) {
   const { owner_type, owner_id, name } = primaryKey(opts);
   return join(
     filesystemArchivePath(opts),
-    `${owner_type}-${owner_id}-${name}.zfs`,
+    `full-${owner_type}-${owner_id}-${name}.zfs`,
   );
 }
+
+export function filesystemStreamsPath(opts: PrimaryKey & { pool: string }) {
+  return join(filesystemArchivePath(opts), "streams");
+}
+
+export function filesystemStreamsFilename({
+  snapshot1,
+  snapshot2,
+  ...opts
+}: PrimaryKey & { snapshot1: string; snapshot2: string; pool: string }) {
+  return join(filesystemStreamsPath(opts), `${snapshot1}-${snapshot2}.zfs`);
+}
+
+
 
 // Bup
 export function bupDataset({

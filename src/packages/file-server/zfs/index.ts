@@ -25,3 +25,4 @@ export {
 } from "./properties";
 export { archiveFilesystem, dearchiveFilesystem } from "./archive";
 export { maintainBackups, createBackup } from "./backup";
+export { recv, send, recompact } from "./streams";

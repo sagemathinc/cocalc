@@ -19,6 +19,7 @@ import {
 } from "./config";
 import { syncProperties } from "./properties";
 import { primaryKey, type PrimaryKey } from "./types";
+import { isEqual } from "lodash";
 
 const logger = getLogger("file-server:zfs/snapshots");
 
@@ -98,6 +99,8 @@ async function getWritten(fs: PrimaryKey) {
   return parseInt(stdout);
 }
 
+// gets snapshots from disk via zfs *and* sets the list of snapshots
+// in the database to match (and also updates sizes)
 export async function getSnapshots(fs: PrimaryKey) {
   const filesystem = get(fs);
   const { stdout } = await exec({
@@ -113,9 +116,14 @@ export async function getSnapshots(fs: PrimaryKey) {
       filesystemDataset(filesystem),
     ],
   });
-  return Object.keys(JSON.parse(stdout).datasets).map(
+  const snapshots = Object.keys(JSON.parse(stdout).datasets).map(
     (name) => name.split("@")[1],
   );
+  if (!isEqual(snapshots, filesystem.snapshots)) {
+    set({ ...fs, snapshots });
+    syncProperties(fs);
+  }
+  return snapshots;
 }
 
 export async function deleteSnapshot({
@@ -133,7 +141,11 @@ export async function deleteSnapshot({
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["zfs", "destroy", `${filesystemDataset({ ...pk, pool })}@${snapshot}`],
+    args: [
+      "zfs",
+      "destroy",
+      `${filesystemDataset({ ...pk, pool })}@${snapshot}`,
+    ],
     what: { ...pk, desc: "destroying a snapshot of a project" },
   });
   set({

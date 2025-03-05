@@ -14,7 +14,7 @@ import { BUP_INTERVAL_MS } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
 import { createSnapshot } from "./snapshots";
 
-const logger = getLogger("file-server:zfs/backup");
+const logger = getLogger("file-server:zfs:backup");
 
 const EXCLUDES = [".conda", ".npm", "cache", ".julia", ".local/share/pnpm"];
 

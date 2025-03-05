@@ -149,7 +149,7 @@ export async function archiveFilesystem(fs: PrimaryKey) {
   await exec({
     verbose: true,
     // have to use sudo sh -c because zfs send only supports writing to stdout:
-    command: `sudo sh -c 'zfs send -R ${filesystemDataset(filesystem)}@${snapshot} > ${stream}'`,
+    command: `sudo sh -c 'zfs send -e -c -R ${filesystemDataset(filesystem)}@${snapshot} > ${stream}'`,
     what: {
       ...pk,
       desc: "zfs send of full filesystem dataset to archive it",
