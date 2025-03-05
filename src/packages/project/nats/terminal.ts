@@ -40,7 +40,11 @@ export async function createTerminalService(path: string) {
         throw Error("no terminal session");
       }
       await createTerminal({ ...options, path });
-      return sessions[path];
+      const session = sessions[path];
+      if (session == null) {
+        throw Error("failed to create terminal session");
+      }
+      return session;
     }
     return cur;
   };
