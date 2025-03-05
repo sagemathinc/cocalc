@@ -13,13 +13,13 @@ import {
   describe,
 } from "./util";
 import {
-  createProject,
+  createFilesystem,
   createSnapshot,
   get,
   shareNFS,
   unshareNFS,
 } from "@cocalc/file-server/zfs";
-import { projectMountpoint } from "@cocalc/file-server/zfs/names";
+import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
@@ -40,14 +40,14 @@ describe("create a project, put in a files, snapshot, another file, then share v
     }
   });
 
-  const mnt = projectMountpoint({ project_id, namespace: "default" });
+  const mnt = filesystemMountpoint({ project_id, namespace: "default" });
   const FILE_CONTENT = "hello";
   const FILENAME = "cocalc.txt";
   it("creates a project and write a file", async () => {
-    const project = await createProject({
+    const project = await createFilesystem({
       project_id,
     });
-    expect(project.project_id).toBe(project_id);
+    expect(project.owner_id).toBe(project_id);
     const path = join(mnt, FILENAME);
     await writeFile(path, FILE_CONTENT);
   });

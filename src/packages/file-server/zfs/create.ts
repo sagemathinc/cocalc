@@ -1,64 +1,53 @@
-import { create, get, getDb, projectExists } from "./db";
+import { create, get, getDb, deleteFromDb, filesystemExists } from "./db";
 import { exec } from "./util";
 import {
-  projectArchivePath,
-  bupProjectMountpoint,
-  projectDataset,
-  projectMountpoint,
+  filesystemArchivePath,
+  bupFilesystemMountpoint,
+  filesystemDataset,
+  filesystemMountpoint,
 } from "./names";
 import { getPools, initializePool } from "./pools";
-import { dearchiveProject } from "./archive";
-import { context, UID, GID } from "./config";
-import { isValidUUID } from "@cocalc/util/misc";
+import { dearchiveFilesystem } from "./archive";
+import { UID, GID } from "./config";
 import { createSnapshot } from "./snapshots";
-import type { Project } from "./types";
+import { type Filesystem, primaryKey, type PrimaryKey } from "./types";
 
-export async function createProject({
-  namespace = context.namespace,
-  project_id,
-  affinity,
-  source_project_id,
-}: {
-  namespace?: string;
-  project_id: string;
-  affinity?: string;
-  source_project_id?: string;
-}): Promise<Project> {
-  if (projectExists({ namespace, project_id })) {
-    return get({ namespace, project_id });
+export async function createFilesystem(
+  opts: PrimaryKey & {
+    affinity?: string;
+    clone?: PrimaryKey;
+  },
+): Promise<Filesystem> {
+  if (filesystemExists(opts)) {
+    return get(opts);
   }
-  if (!isValidUUID(project_id)) {
-    throw Error(`project_id=${project_id} must be a valid uuid`);
-  }
-  const source = source_project_id
-    ? get({ namespace, project_id: source_project_id })
-    : undefined;
+  const pk = primaryKey(opts);
+  const { namespace } = pk;
+  const { affinity, clone } = opts;
+  const source = clone ? get(clone) : undefined;
 
   const db = getDb();
   // select a pool:
   let pool: undefined | string = undefined;
 
   if (source != null) {
-    // use same pool as source project.  (we could use zfs send/recv but that's much slower)
+    // use same pool as source filesystem.  (we could use zfs send/recv but that's much slower and not a clone)
     pool = source.pool;
   } else {
     if (affinity) {
-      // if affinity is set, have preference to use same pool as other projects with this affinity.
+      // if affinity is set, have preference to use same pool as other filesystems with this affinity.
       const x = db
         .prepare(
-          "SELECT pool, COUNT(pool) AS cnt FROM projects WHERE namespace=? AND affinity=? ORDER by cnt DESC",
+          "SELECT pool, COUNT(pool) AS cnt FROM filesystems WHERE namespace=? AND affinity=? ORDER by cnt DESC",
         )
         .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
       pool = x?.pool;
-      //       if (pool) {
-      //         console.log("using pool because of affinity", { pool, affinity });
-      //       }
     }
     if (!pool) {
-      // assign one with *least* projects
+      // assign one with *least* filesystems
       const x = db
         .prepare(
-          "SELECT pool, COUNT(pool) AS cnt FROM projects GROUP BY pool ORDER by cnt ASC",
+          "SELECT pool, COUNT(pool) AS cnt FROM filesystems GROUP BY pool ORDER by cnt ASC",
         )
         .all() as any;
       const pools = await getPools();
@@ -77,7 +66,7 @@ export async function createProject({
         }
       } else {
         if (x.length == 0) {
-          throw Error("cannot create project -- there are no available pools");
+          throw Error("cannot create filesystem -- no available pools");
         }
         // just use the least crowded
         pool = x[0].pool;
@@ -90,7 +79,7 @@ export async function createProject({
 
   const { cnt } = db
     .prepare(
-      "SELECT COUNT(pool) AS cnt FROM projects WHERE pool=? AND namespace=?",
+      "SELECT COUNT(pool) AS cnt FROM filesystems WHERE pool=? AND namespace=?",
     )
     .get(pool, namespace) as { cnt: number };
 
@@ -99,10 +88,10 @@ export async function createProject({
     await initializePool({ pool, namespace });
   }
 
-  if (source_project_id == null || source == null) {
-    // create filesystem for project on the selected pool
-    const mountpoint = projectMountpoint({ namespace, project_id });
-    const dataset = projectDataset({ pool, namespace, project_id });
+  if (source == null) {
+    // create filesystem on the selected pool
+    const mountpoint = filesystemMountpoint(pk);
+    const dataset = filesystemDataset({ ...pk, pool });
     await exec({
       verbose: true,
       command: "sudo",
@@ -118,9 +107,8 @@ export async function createProject({
         dataset,
       ],
       what: {
-        project_id,
-        namespace,
-        desc: `create filesystem ${dataset} for project on the selected pool mounted at ${mountpoint}`,
+        ...pk,
+        desc: `create filesystem ${dataset} for filesystem on the selected pool mounted at ${mountpoint}`,
       },
     });
     await exec({
@@ -128,32 +116,23 @@ export async function createProject({
       command: "sudo",
       args: ["chown", "-R", `${UID}:${GID}`, mountpoint],
       whate: {
-        project_id,
-        namespace,
-        desc: `setting permissions of filesystem for project at ${mountpoint}`,
+        ...pk,
+        desc: `setting permissions of filesystem mounted at ${mountpoint}`,
       },
     });
   } else {
     // clone source
-    // First ensure project isn't archived
+    // First ensure filesystem isn't archived
     // (we might alternatively de-archive to make the clone...?)
-    if (get({ project_id: source_project_id, namespace }).archived) {
-      await dearchiveProject({ project_id: source_project_id, namespace });
+    if (source.archived) {
+      await dearchiveFilesystem(source);
     }
     // Get newest snapshot, or make one if there are none
-    let snapshot;
-    if (source.snapshots.length == 0) {
-      snapshot = await createSnapshot({
-        project_id: source_project_id,
-        namespace,
-      });
-    } else {
-      snapshot = source.snapshots[source.snapshots.length - 1];
-    }
+    const snapshot = await createSnapshot({ ...source, ifChanged: true });
     if (!snapshot) {
-      throw Error("bug -- source should have a new snapshot");
+      throw Error("bug -- source should have snapshot");
     }
-    const source_snapshot = `${projectDataset({ pool, namespace, project_id: source_project_id })}@${snapshot}`;
+    const source_snapshot = `${filesystemDataset(source)}@${snapshot}`;
     await exec({
       verbose: true,
       command: "sudo",
@@ -161,82 +140,67 @@ export async function createProject({
         "zfs",
         "clone",
         "-o",
-        `mountpoint=${projectMountpoint({ namespace, project_id })}`,
+        `mountpoint=${filesystemMountpoint(pk)}`,
         "-o",
         "compression=lz4",
         "-o",
         "dedup=on",
         source_snapshot,
-        projectDataset({ pool, namespace, project_id }),
+        filesystemDataset({ ...pk, pool }),
       ],
       what: {
-        project_id,
-        namespace,
-        desc: `clone filesystem for project from ${source_snapshot}`,
+        ...pk,
+        desc: `clone filesystem from ${source_snapshot}`,
       },
     });
   }
 
   // update database
-  create({ namespace, project_id, pool, affinity });
-  return get({ namespace, project_id });
+  create({ ...pk, pool, affinity });
+  return get(pk);
 }
 
-// delete -- This is very dangerous -- it deletes the project dataset,
-// the archive, and any backups and removes knowledge the project from the db.
+// delete -- This is very dangerous -- it deletes the filesystem,
+// the archive, and any backups and removes knowledge the filesystem from the db.
 
-export async function deleteProject({
-  project_id,
-  namespace = context.namespace,
-}: {
-  namespace?: string;
-  project_id: string;
-}) {
-  const { pool } = get({ namespace, project_id });
-  const dataset = projectDataset({ pool, namespace, project_id });
+export async function deleteFilesystem(fs: PrimaryKey) {
+  const filesystem = get(fs);
+  const dataset = filesystemDataset(filesystem);
   await exec({
     verbose: true,
     command: "sudo",
     args: ["zfs", "destroy", "-r", dataset],
     what: {
-      project_id,
-      namespace,
-      desc: `destroy dataset ${dataset} containing the project`,
+      ...filesystem,
+      desc: `destroy dataset ${dataset} containing the filesystem`,
     },
   });
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["rmdir", projectMountpoint({ namespace, project_id })],
+    args: ["rmdir", filesystemMountpoint(filesystem)],
     what: {
-      project_id,
-      namespace,
-      desc: `delete directory '${projectMountpoint({ namespace, project_id })}' where project was stored`,
+      ...filesystem,
+      desc: `delete directory '${filesystemMountpoint(filesystem)}' where filesystem was stored`,
     },
   });
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["rm", "-rf", bupProjectMountpoint({ namespace, pool, project_id })],
+    args: ["rm", "-rf", bupFilesystemMountpoint(filesystem)],
     what: {
-      project_id,
-      namespace,
-      desc: `delete directory '${bupProjectMountpoint({ namespace, pool, project_id })}' where backups were stored`,
+      ...filesystem,
+      desc: `delete directory '${bupFilesystemMountpoint(filesystem)}' where backups were stored`,
     },
   });
   await exec({
     verbose: true,
     command: "sudo",
-    args: ["rm", "-rf", projectArchivePath({ namespace, pool, project_id })],
+    args: ["rm", "-rf", filesystemArchivePath(filesystem)],
     what: {
-      project_id,
-      namespace,
-      desc: `delete directory '${projectArchivePath({ namespace, pool, project_id })}' where archives were stored`,
+      ...filesystem,
+      desc: `delete directory '${filesystemArchivePath(filesystem)}' where archives were stored`,
     },
   });
-  const db = getDb();
-  db.prepare("DELETE FROM projects WHERE project_id=? AND namespace=?").run(
-    project_id,
-    namespace,
-  );
+  deleteFromDb(filesystem);
 }

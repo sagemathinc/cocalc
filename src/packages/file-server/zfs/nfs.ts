@@ -1,36 +1,32 @@
 import { get, set, touch } from "./db";
 import { exec } from "./util";
-import { projectDataset, projectMountpoint } from "./names";
-import { context } from "./config";
+import { filesystemDataset, filesystemMountpoint } from "./names";
+import { primaryKey, type PrimaryKey } from "./types";
 
-// Ensure that this project is mounted and setup so that export to the
+// Ensure that this filesystem is mounted and setup so that export to the
 // given client is allowed.
 // Returns the remote that the client should use for NFS mounting, i.e.,
-// this return s, then type "mount s /mnt/{project_id}" to mount the filesystem.
+// this return s, then type "mount s /mnt/..." to mount the filesystem.
 // If client is not given, just sets the share at NFS level
 // to what's specified in the database.
 export async function shareNFS({
   client,
-  project_id,
-  namespace = context.namespace,
-}: {
-  client?: string;
-  project_id: string;
-  namespace?: string;
-}): Promise<string> {
+  ...fs
+}: PrimaryKey & { client?: string }): Promise<string> {
   client = client?.trim();
-  const { pool, nfs } = get({ namespace, project_id });
+  const pk = primaryKey(fs);
+  const { pool, nfs } = get(pk);
   let hostname;
   if (client) {
     hostname = await hostnameFor(client);
     if (!nfs.includes(client)) {
       nfs.push(client);
       // update database which tracks what the share should be.
-      set({ namespace, project_id, nfs: ({ nfs }) => [...nfs, client] });
+      set({ ...pk, nfs: ({ nfs }) => [...nfs, client] });
     }
   }
   // actually ensure share is configured.
-  const name = projectDataset({ pool, namespace, project_id });
+  const name = filesystemDataset({ pool, ...pk });
   const sharenfs =
     nfs.length > 0
       ? `${nfs.map((client) => `rw=${client}`).join(",")},no_root_squash,crossmnt,no_subtree_check`
@@ -41,10 +37,10 @@ export async function shareNFS({
     args: ["zfs", "set", `sharenfs=${sharenfs}`, name],
   });
   if (nfs.length > 0) {
-    touch({ namespace, project_id });
+    touch(pk);
   }
   if (client) {
-    return `${hostname}:${projectMountpoint({ namespace, project_id })}`;
+    return `${hostname}:${filesystemMountpoint(pk)}`;
   } else {
     return "";
   }
@@ -53,23 +49,19 @@ export async function shareNFS({
 // remove given client from nfs sharing
 export async function unshareNFS({
   client,
-  project_id,
-  namespace = context.namespace,
-}: {
-  client: string;
-  project_id: string;
-  namespace?: string;
-}) {
-  let { nfs } = get({ namespace, project_id });
+  ...fs
+}: PrimaryKey & { client: string }) {
+  const pk = primaryKey(fs);
+  let { nfs } = get(pk);
   if (!nfs.includes(client)) {
     // nothing to do
     return;
   }
   nfs = nfs.filter((x) => x != client);
   // update database which tracks what the share should be.
-  set({ namespace, project_id, nfs });
+  set({ ...pk, nfs });
   // update zfs/nfs to no longer share to this client
-  await shareNFS({ project_id, namespace });
+  await shareNFS(pk);
 }
 
 let serverIps: null | string[] = null;

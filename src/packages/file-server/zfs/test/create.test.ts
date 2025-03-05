@@ -8,12 +8,12 @@ pnpm exec jest --watch create.test.ts
 import { executeCode } from "@cocalc/backend/execute-code";
 import { createTestPools, deleteTestPools, init, describe } from "./util";
 import {
-  createProject,
+  createFilesystem,
   createBackup,
-  deleteProject, 
+  deleteFilesystem,
   getPools,
 } from "@cocalc/file-server/zfs";
-import { projectMountpoint } from "@cocalc/file-server/zfs/names";
+import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -45,10 +45,10 @@ describe("creates project, clone project, delete projects", () => {
 
   const project_id = "00000000-0000-0000-0000-000000000001";
   it("creates a project", async () => {
-    const project = await createProject({
+    const project = await createFilesystem({
       project_id,
     });
-    expect(project.project_id).toBe(project_id);
+    expect(project.owner_id).toBe(project_id);
   });
 
   it("verify project is in output of zfs list", async () => {
@@ -63,7 +63,7 @@ describe("creates project, clone project, delete projects", () => {
   const FILENAME = "cocalc.txt";
   it("write a file to the project", async () => {
     const path = join(
-      projectMountpoint({ project_id, namespace: "default" }),
+      filesystemMountpoint({ project_id, namespace: "default" }),
       FILENAME,
     );
     await writeFile(path, FILE_CONTENT);
@@ -71,11 +71,11 @@ describe("creates project, clone project, delete projects", () => {
 
   const project_id2 = "00000000-0000-0000-0000-000000000002";
   it("clones our project to make a second project", async () => {
-    const project2 = await createProject({
+    const project2 = await createFilesystem({
       project_id: project_id2,
-      source_project_id: project_id,
+      clone: { project_id },
     });
-    expect(project2.project_id).toBe(project_id2);
+    expect(project2.owner_id).toBe(project_id2);
   });
 
   it("verify clone is in output of zfs list", async () => {
@@ -88,7 +88,7 @@ describe("creates project, clone project, delete projects", () => {
 
   it("read file from the clone", async () => {
     const path = join(
-      projectMountpoint({ project_id: project_id2, namespace: "default" }),
+      filesystemMountpoint({ project_id: project_id2, namespace: "default" }),
       FILENAME,
     );
     const content = (await readFile(path)).toString();
@@ -104,7 +104,7 @@ describe("creates project, clone project, delete projects", () => {
 
   it("attempt to delete first project and get error", async () => {
     try {
-      await deleteProject({ project_id });
+      await deleteFilesystem({ project_id });
       throw Error("must throw");
     } catch (err) {
       expect(`${err}`).toContain("filesystem has dependent clones");
@@ -112,8 +112,8 @@ describe("creates project, clone project, delete projects", () => {
   });
 
   it("delete second project, then first project, works", async () => {
-    await deleteProject({ project_id: project_id2 });
-    await deleteProject({ project_id });
+    await deleteFilesystem({ project_id: project_id2 });
+    await deleteFilesystem({ project_id });
     const { stdout } = await executeCode({
       command: "zfs",
       args: ["list", "-r", x.pools[0]],
@@ -147,17 +147,17 @@ describe("create two projects with the same project_id at the same time, but in 
 
   const project_id = "00000000-0000-0000-0000-000000000001";
   it("creates two projects", async () => {
-    const project = await createProject({
+    const project = await createFilesystem({
       project_id,
       namespace: "default",
     });
-    expect(project.project_id).toBe(project_id);
+    expect(project.owner_id).toBe(project_id);
 
-    const project2 = await createProject({
+    const project2 = await createFilesystem({
       project_id,
       namespace: "test",
     });
-    expect(project2.project_id).toBe(project_id);
+    expect(project2.owner_id).toBe(project_id);
     // they are on different pools
     expect(project.pool).not.toEqual(project2.pool);
   });
@@ -194,17 +194,17 @@ describe("test the affinity property when creating projects", () => {
   const project_id2 = "00000000-0000-0000-0000-000000000002";
   const affinity = "math100";
   it("creates two projects with same afinity", async () => {
-    const project = await createProject({
+    const project = await createFilesystem({
       project_id,
       affinity,
     });
-    expect(project.project_id).toBe(project_id);
+    expect(project.owner_id).toBe(project_id);
 
-    const project2 = await createProject({
+    const project2 = await createFilesystem({
       project_id: project_id2,
       affinity,
     });
-    expect(project2.project_id).toBe(project_id2);
+    expect(project2.owner_id).toBe(project_id2);
     // they are on SAME pools, because of affinity
     expect(project.pool).toEqual(project2.pool);
   });
@@ -229,7 +229,7 @@ describe("do a stress/race condition test creating a larger number of projects o
 
   it(`creates ${nprojects} projects in parallel on ${count} pools`, async () => {
     const f = async (project_id) => {
-      await createProject({ project_id });
+      await createFilesystem({ project_id });
     };
     const v: string[] = [];
     for (let n = 0; n < nprojects; n++) {
@@ -237,7 +237,7 @@ describe("do a stress/race condition test creating a larger number of projects o
     }
     // doing these in parallel and having it work is an important stress test,
     // since we will get a bid speedup doing this in production, and there we
-    // will really need it. 
+    // will really need it.
     await asyncMap(v, nprojects, f);
   });
 });

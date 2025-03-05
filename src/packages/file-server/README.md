@@ -4,11 +4,13 @@ We manage the following types of filesystems, which are exported via NFS:
 
 The file server support an unlimited number of namespaces.
 
-There could be a large number of the followin, and they are tracked in a sqlite3 database:
+There will be a large number of the following filesystems, and they are tracked in a sqlite3 database:
 
-- **project:** each CoCalc project owns exactly one project filesystem, which is its home directory. This may be mounted by the Kubernetes pod \(the "home base"\), and ALSO by compute servers. It can be either exist in some zpool or be archived as a ZFS replication stream.
+- **project:** each CoCalc project owns usually exactly one project filesystem, which is its home directory and is named ''. This gets mounted by the Kubernetes pod \(the "home base"\), and ALSO by compute servers. It can either exist in some zpool or be archived as a ZFS replication stream. Projects can also create an unlimited number of other filesystems.
 
-- **user:** a user filesystem is owned by an _account_ \(i.e., a CoCalc user\), not by a project. It may optionally be mounted on any project that the user is a collaborator on. E.g., an instructor could make a user volume, then mount it read\-only on all of their student's projects. Or a user could mount a user volume read\-write on several of their projects. An account can own many user filesystems, each with a name that is a string (unicode, at most 128 characters).
+- **user:** a user filesystem is owned by an _account_ \(i.e., a CoCalc user\), not by a project. It may optionally be mounted on any project that the user is a collaborator on. E.g., an instructor could make a user volume, then mount it read\-only on all of their student's projects. Or a user could mount a user volume read\-write on several of their projects. An account can own many user filesystems, each with a name.
+
+The name is a unicode string.
 
 There's one of these in each pool:
 

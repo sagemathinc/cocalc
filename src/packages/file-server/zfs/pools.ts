@@ -9,26 +9,26 @@ file permissions, deleting datasets, etc.,) then this code won't help at all.
 OPERATIONS:
 
 - To add a new pool, just create it using zfs with a name sthat starts with POOL_PREFIX.
-  It should automatically start getting used within POOLS_CACHE_MS by newly created projects.
+  It should automatically start getting used within POOLS_CACHE_MS by newly created filesystems.
 
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { context, POOL_PREFIX, POOLS_CACHE_MS, PROJECTS } from "./config";
+import { context, POOL_PREFIX, POOLS_CACHE_MS, FILESYSTEMS } from "./config";
 import { exec } from "./util";
 import {
   archivesDataset,
   archivesMountpoint,
   namespaceDataset,
-  projectsDataset,
-  projectsPath,
+  filesystemsDataset,
+  filesystemsPath,
   bupDataset,
   bupMountpoint,
 } from "./names";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getNamespacesAndPools } from "./db";
 
-// Make sure all pools and namespaces are initialized for all existing projects.
+// Make sure all pools and namespaces are initialized for all existing filesystems.
 // This should be needed after booting up the server and importing the pools.
 export async function initializeAllPools() {
   // TODO: maybe import all here?
@@ -93,21 +93,26 @@ export const initializePool = reuseInFlight(
     if (!pool.startsWith(POOL_PREFIX)) {
       throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
     }
-    // archives and projects for each namespace are in this dataset
+    // archives and filesystems for each namespace are in this dataset
     await ensureDatasetExists({
       name: namespaceDataset({ namespace, pool }),
     });
 
-    // Initialize archives dataset, used for archiving projects.
+    // Initialize archives dataset, used for archiving filesystems.
     await ensureDatasetExists({
       name: archivesDataset({ pool, namespace }),
       mountpoint: archivesMountpoint({ pool, namespace }),
     });
-    // This sets up the parent filesystem for all projects
+    // This sets up the parent filesystem for all filesystems
     // and enable compression and dedup.
     await ensureDatasetExists({
-      name: projectsDataset({ namespace, pool }),
+      name: filesystemsDataset({ namespace, pool }),
     });
+    for (const owner_type of ["account", "project"]) {
+      await ensureDatasetExists({
+        name: filesystemsDataset({ namespace, pool }) + "/" + owner_type,
+      });
+    }
     // Initialize bup dataset, used for backups.
     await ensureDatasetExists({
       name: bupDataset({ pool, namespace }),
@@ -116,22 +121,22 @@ export const initializePool = reuseInFlight(
       dedup: "off",
     });
 
-    const projects = projectsPath({ namespace });
-    if (!(await exists(projects))) {
+    const filesystems = filesystemsPath({ namespace });
+    if (!(await exists(filesystems))) {
       await exec({
         verbose: true,
         command: "sudo",
-        args: ["mkdir", "-p", projects],
+        args: ["mkdir", "-p", filesystems],
       });
       await exec({
         verbose: true,
         command: "sudo",
-        args: ["chmod", "a+rx", PROJECTS],
+        args: ["chmod", "a+rx", FILESYSTEMS],
       });
       await exec({
         verbose: true,
         command: "sudo",
-        args: ["chmod", "a+rx", projects],
+        args: ["chmod", "a+rx", filesystems],
       });
     }
   },

@@ -4,15 +4,26 @@ Database
 
 import Database from "better-sqlite3";
 import { context, POOL_PREFIX, SQLITE3_DATABASE_FILE } from "./config";
-import type { Project, RawProject, SetProject } from "./types";
-import { isValidUUID, is_array, is_date } from "@cocalc/util/misc";
+import {
+  primaryKey,
+  type PrimaryKey,
+  type Filesystem,
+  type RawFilesystem,
+  type SetFilesystem,
+} from "./types";
+import { is_array, is_date } from "@cocalc/util/misc";
 
 let db: null | Database.Database;
 
-const tableName = "projects";
+const tableName = "filesystems";
 const schema = {
+  // this uniquely defines the filesystem (it's the compound primary key)
+  owner_type: "TEXT",
+  owner_id: "TEXT",
   namespace: "TEXT",
-  project_id: "TEXT",
+  name: "TEXT",
+
+  // data about the filesystem
   pool: "TEXT",
   archived: "INTEGER",
   affinity: "TEXT",
@@ -26,6 +37,13 @@ const schema = {
   used_by_snapshots: "INTEGER",
   quota: "INTEGER",
 };
+
+const WHERE_PRIMARY_KEY =
+  "WHERE namespace=? AND owner_type=? AND owner_id=? AND name=?";
+function primaryKeyArgs(fs: PrimaryKey) {
+  const { namespace, owner_type, owner_id, name } = primaryKey(fs);
+  return [namespace, owner_type, owner_id, name];
+}
 
 export function getDb(): Database.Database {
   if (db == null) {
@@ -44,7 +62,7 @@ function initDb(db) {
   db.prepare(
     `CREATE TABLE IF NOT EXISTS ${tableName} (
       ${columnDefinitions},
-      PRIMARY KEY (namespace, project_id)
+      PRIMARY KEY (namespace, owner_type, owner_id, name)
     )`,
   ).run();
 
@@ -59,13 +77,14 @@ function initDb(db) {
   }
 }
 
+// This is extremely dangerous and mainly used for unit testing:
 export function resetDb() {
   const db = new Database(SQLITE3_DATABASE_FILE);
-  db.prepare("DROP TABLE IF EXISTS projects").run();
+  db.prepare("DROP TABLE IF EXISTS filesystems").run();
   initDb(db);
 }
 
-function convertToSqliteType({ value, getProject }) {
+function convertToSqliteType({ value, getFilesystem }) {
   if (is_array(value)) {
     return value.join(",");
   } else if (is_date(value)) {
@@ -73,166 +92,147 @@ function convertToSqliteType({ value, getProject }) {
   } else if (typeof value == "boolean") {
     return value ? 1 : 0;
   } else if (typeof value == "function") {
-    const x = value(getProject());
+    const x = value(getFilesystem());
     if (typeof x == "function") {
       throw Error("function must not return a function");
     }
     // returned value needs to be converted
-    return convertToSqliteType({ value: x, getProject });
+    return convertToSqliteType({ value: x, getFilesystem });
   }
   return value;
 }
 
-export function set(obj: SetProject) {
-  const namespace = obj.namespace ?? context.namespace;
-  const project_id = obj.project_id;
-  if (!isValidUUID(project_id)) {
-    throw Error(`"${project_id}" must be a valid uuid`);
-  }
+export function set(obj: SetFilesystem) {
+  const pk = primaryKey(obj);
   const fields: string[] = [];
   const values: any[] = [];
-  let project: null | Project = null;
-  const getProject = () => {
-    if (project == null) {
-      project = get({ namespace, project_id });
+  let filesystem: null | Filesystem = null;
+  const getFilesystem = () => {
+    if (filesystem == null) {
+      filesystem = get(pk);
     }
-    return project;
+    return filesystem;
   };
   for (const field in obj) {
-    if (field == "project_id" || field == "namespace") {
+    if (pk[field] !== undefined) {
       continue;
     }
     fields.push(field);
-    values.push(convertToSqliteType({ value: obj[field], getProject }));
+    values.push(convertToSqliteType({ value: obj[field], getFilesystem }));
   }
-  let query = `UPDATE projects SET
+  let query = `UPDATE filesystems SET
     ${fields.map((field) => `${field}=?`).join(", ")}
-    WHERE project_id=? AND namespace=?
+    ${WHERE_PRIMARY_KEY}
   `;
-  values.push(project_id);
-  values.push(namespace);
+  for (const x of primaryKeyArgs(pk)) {
+    values.push(x);
+  }
   const db = getDb();
   db.prepare(query).run(...values);
 }
 
 // Call this if something that should never happen, does in fact, happen.
-// It will set the error state of the project and throw the exception.
-// Admins will be regularly notified of all projects in an error state.
-export function fatalError({
-  namespace,
-  project_id,
-  err,
-  desc,
-}: {
-  namespace?: string;
-  project_id: string;
-  err: Error;
-  desc?: string;
-}) {
-  set({ namespace, project_id, error: `${err}${desc ? " - " + desc : ""}` });
-  throw err;
+// It will set the error state of the filesystem and throw the exception.
+// Admins will be regularly notified of all filesystems in an error state.
+export function fatalError(
+  obj: PrimaryKey & {
+    err: Error;
+    desc?: string;
+  },
+) {
+  set({
+    ...primaryKey(obj),
+    error: `${obj.err}${obj.desc ? " - " + obj.desc : ""}`,
+  });
+  throw obj.err;
 }
 
-export function clearError({ project_id, namespace }) {
-  set({ namespace, project_id, error: null });
+export function clearError(fs: PrimaryKey) {
+  set({ ...fs, error: null });
 }
 
 export function clearAllErrors() {
   const db = getDb();
-  db.prepare("UPDATE projects SET error=null").run();
+  db.prepare("UPDATE filesystems SET error=null").run();
 }
 
 export function getErrors() {
   const db = getDb();
   return db
-    .prepare("SELECT * FROM projects WHERE error!=''")
-    .all() as RawProject[];
+    .prepare("SELECT * FROM filesystems WHERE error!=''")
+    .all() as RawFilesystem[];
 }
 
-export function touch(project: { namespace?: string; project_id: string }) {
-  set({ ...project, last_edited: new Date() });
+export function touch(fs: PrimaryKey) {
+  set({ ...fs, last_edited: new Date() });
 }
 
-export function projectExists({
-  namespace = context.namespace,
-  project_id,
-}: {
-  namespace?: string;
-  project_id: string;
-}): boolean {
+export function filesystemExists(fs: PrimaryKey): boolean {
   const db = getDb();
   const x = db
-    .prepare(
-      "SELECT COUNT(*) AS count FROM projects WHERE namespace=? AND project_id=?",
-    )
-    .get(namespace, project_id);
+    .prepare("SELECT COUNT(*) AS count FROM filesystems " + WHERE_PRIMARY_KEY)
+    .get(...primaryKeyArgs(fs));
   return (x as any).count > 0;
 }
 
-export function get({
-  namespace = context.namespace,
-  project_id,
-}: {
-  namespace?: string;
-  project_id: string;
-}): Project {
+export function get(fs: PrimaryKey): Filesystem {
   const db = getDb();
-  const project = db
-    .prepare("SELECT * FROM projects WHERE namespace=? AND project_id=?")
-    .get(namespace, project_id) as any;
-  if (project == null) {
-    throw Error(`no project ${project_id} in namespace ${namespace}`);
+  const filesystem = db
+    .prepare("SELECT * FROM filesystems " + WHERE_PRIMARY_KEY)
+    .get(...primaryKeyArgs(fs)) as any;
+  if (filesystem == null) {
+    throw Error(`no filesystem ${JSON.stringify(fs)}`);
   }
   for (const key of ["nfs", "snapshots"]) {
-    project[key] = sqliteStringToArray(project[key]);
+    filesystem[key] = sqliteStringToArray(filesystem[key]);
   }
-  project["archived"] = !!project["archived"];
-  if (project.last_edited) {
-    project.last_edited = new Date(project.last_edited);
+  filesystem["archived"] = !!filesystem["archived"];
+  if (filesystem.last_edited) {
+    filesystem.last_edited = new Date(filesystem.last_edited);
   }
-  return project as Project;
+  return filesystem as Filesystem;
 }
 
-export function create({
-  namespace = context.namespace,
-  project_id,
-  pool,
-  affinity,
-}: {
-  namespace?: string;
-  project_id: string;
-  pool: string;
-  affinity?: string;
-}) {
-  if (!isValidUUID(project_id)) {
-    throw Error(`project_id must be a valid uuid - ${project_id}`);
-  }
-  if (!pool.startsWith(POOL_PREFIX)) {
-    throw Error(`pool must start with ${POOL_PREFIX} - ${pool}`);
-  }
-  if (!namespace) {
-    throw Error("namespace must be specified");
+export function create(
+  obj: PrimaryKey & {
+    pool: string;
+    affinity?: string;
+  },
+) {
+  if (!obj.pool.startsWith(POOL_PREFIX)) {
+    throw Error(`pool must start with ${POOL_PREFIX} - ${obj.pool}`);
   }
   getDb()
     .prepare(
-      "INSERT INTO projects(namespace, project_id, pool, affinity, last_edited) VALUES(?,?,?,?,?)",
+      "INSERT INTO filesystems(namespace, owner_type, owner_id, name, pool, affinity, last_edited) VALUES(?,?,?,?,?,?,?)",
     )
-    .run(namespace, project_id, pool, affinity, new Date().toISOString());
+    .run(
+      ...primaryKeyArgs(obj),
+      obj.pool,
+      obj.affinity,
+      new Date().toISOString(),
+    );
+}
+
+export function deleteFromDb(fs: PrimaryKey) {
+  getDb()
+    .prepare("DELETE FROM filesystems " + WHERE_PRIMARY_KEY)
+    .run(...primaryKeyArgs(fs));
 }
 
 export function getAll({
   namespace = context.namespace,
-}: { namespace?: string } = {}): RawProject[] {
+}: { namespace?: string } = {}): RawFilesystem[] {
   const db = getDb();
   return db
-    .prepare("SELECT * FROM projects WHERE namespace=?")
-    .all(namespace) as RawProject[];
+    .prepare("SELECT * FROM filesystems WHERE namespace=?")
+    .all(namespace) as RawFilesystem[];
 }
 
 export function getNamespacesAndPools(): { namespace: string; pool: string }[] {
   const db = getDb();
   return db
-    .prepare("SELECT DISTINCT namespace, pool FROM projects")
+    .prepare("SELECT DISTINCT namespace, pool FROM filesystems")
     .all() as any;
 }
 
@@ -242,18 +242,18 @@ export function getRecent({
 }: {
   namespace?: string;
   cutoff?: Date;
-} = {}): RawProject[] {
+} = {}): RawFilesystem[] {
   const db = getDb();
   if (cutoff == null) {
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
   }
-  const query = "SELECT * FROM projects WHERE last_edited>=?";
+  const query = "SELECT * FROM filesystems WHERE last_edited>=?";
   if (namespace == null) {
-    return db.prepare(query).all(cutoff.toISOString()) as RawProject[];
+    return db.prepare(query).all(cutoff.toISOString()) as RawFilesystem[];
   } else {
     return db
       .prepare(`${query} AND namespace=?`)
-      .all(cutoff.toISOString(), namespace) as RawProject[];
+      .all(cutoff.toISOString(), namespace) as RawFilesystem[];
   }
 }
 

@@ -8,7 +8,7 @@ export const DATA = `/${PREFIX}`;
 
 export const SQLITE3_DATABASE_FILE = join(DATA, "database.sqlite3");
 
-// we ONLY put projects on pools whose name has this prefix.
+// we ONLY put filesystems on pools whose name have this prefix.
 // all other pools are ignored.
 export const POOL_PREFIX = PREFIX;
 
@@ -16,16 +16,16 @@ export const context = {
   namespace: process.env.NAMESPACE ?? "default",
 };
 
-// Every project always has at least this much quota
-export const MIN_QUOTA = 1024 * 1024 * 1024; // 1G
+// Every filesystem has at least this much quota (?)
+export const MIN_QUOTA = 1024 * 1024 * 1; // 1MB
 
 // We periodically do "zpool list" to find out what pools are available
 // and how much space they have left.  This info is cached for this long
 // to avoid excessive calls:
 export const POOLS_CACHE_MS = 15000;
 
-// Directory on server where all projects are mounted
-export const PROJECTS = join(DATA, "projects");
+// Directory on server where filesystems get mounted (so NFS can serve them)
+export const FILESYSTEMS = join(DATA, "filesystems");
 
 // Directory on server where zfs send streams (and tar?) are stored
 export const ARCHIVES = join(DATA, "archives");
@@ -36,7 +36,7 @@ export const BUP = join(DATA, "bup");
 // two hour default for running any commands (e.g., zfs send/recv)
 export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;
 
-// **all** user files for projects have this owner and group.
+// **all** user files for filesystems have this owner and group.
 export const UID = 2001;
 export const GID = 2001;
 

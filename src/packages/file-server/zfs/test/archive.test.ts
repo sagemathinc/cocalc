@@ -7,14 +7,14 @@ pnpm exec jest --watch archive.test.ts
 import { executeCode } from "@cocalc/backend/execute-code";
 import { createTestPools, deleteTestPools, init, describe } from "./util";
 import {
-  archiveProject,
-  dearchiveProject,
-  createProject,
+  archiveFilesystem,
+  dearchiveFilesystem,
+  createFilesystem,
   createSnapshot,
   getSnapshots,
   get,
 } from "@cocalc/file-server/zfs";
-import { projectMountpoint } from "@cocalc/file-server/zfs/names";
+import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -34,14 +34,15 @@ describe("create a project, put in some files/snapshot, archive the project, con
   });
 
   const project_id = "00000000-0000-0000-0000-000000000001";
-  const mnt = projectMountpoint({ project_id, namespace: "default" });
+  const mnt = filesystemMountpoint({ project_id, namespace: "default" });
   const FILE_CONTENT = "hello";
   const FILENAME = "cocalc.txt";
   it("creates a project and write a file", async () => {
-    const project = await createProject({
+    const filesystem = await createFilesystem({
       project_id,
     });
-    expect(project.project_id).toBe(project_id);
+    expect(filesystem.owner_type).toBe("project");
+    expect(filesystem.owner_id).toBe(project_id);
     const path = join(mnt, FILENAME);
     await writeFile(path, FILE_CONTENT);
   });
@@ -61,7 +62,7 @@ describe("create a project, put in some files/snapshot, archive the project, con
 
   it("archive the project and checks project is no longer in zfs at all", async () => {
     expect(get({ project_id }).archived).toBe(false);
-    await archiveProject({ project_id });
+    await archiveFilesystem({ project_id });
     const { stdout } = await executeCode({
       command: "zfs",
       args: ["list", x.pools[0]],
@@ -73,13 +74,13 @@ describe("create a project, put in some files/snapshot, archive the project, con
 
   it("archiving an already archived project is an error", async () => {
     await expect(
-      async () => await archiveProject({ project_id }),
+      async () => await archiveFilesystem({ project_id }),
     ).rejects.toThrow();
   });
 
   it("dearchive project and verify zfs filesystem is back, along with files and snapshots", async () => {
     let called = false;
-    await dearchiveProject({
+    await dearchiveFilesystem({
       project_id,
       progress: () => {
         called = true;
@@ -99,7 +100,7 @@ describe("create a project, put in some files/snapshot, archive the project, con
 
   it("dearchiving an already de-archived project is an error", async () => {
     await expect(
-      async () => await dearchiveProject({ project_id }),
+      async () => await dearchiveFilesystem({ project_id }),
     ).rejects.toThrow();
   });
 });

@@ -2,7 +2,7 @@ export { getPools, initializePool, initializeAllPools } from "./pools";
 export {
   getModifiedFiles,
   deleteSnapshot,
-  deleteExtraSnapshotsOfActiveProjects,
+  deleteExtraSnapshotsOfActiveFilesystems,
   deleteExtraSnapshots,
 } from "./snapshots";
 export {
@@ -15,13 +15,13 @@ export {
   clearAllErrors,
 } from "./db";
 export { shareNFS, unshareNFS } from "./nfs";
-export { createProject, deleteProject } from "./create";
+export { createFilesystem, deleteFilesystem } from "./create";
 export { createSnapshot, getSnapshots, maintainSnapshots } from "./snapshots";
 export {
-  mountProject,
-  unmountProject,
+  mountFilesystem,
+  unmountFilesystem,
   setQuota,
   syncProperties,
 } from "./properties";
-export { archiveProject, dearchiveProject } from "./archive";
+export { archiveFilesystem, dearchiveFilesystem } from "./archive";
 export { maintainBackups, createBackup } from "./backup";

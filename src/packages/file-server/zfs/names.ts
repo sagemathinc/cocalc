@@ -1,58 +1,112 @@
 import { join } from "path";
-import { PROJECTS, ARCHIVES, BUP } from "./config";
+import { FILESYSTEMS, ARCHIVES, BUP } from "./config";
+import { primaryKey, type PrimaryKey } from "./types";
 
-export function namespaceDataset({ pool, namespace }) {
+export function namespaceDataset({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
   return `${pool}/${namespace}`;
 }
 
 // Archives
 // There is one single dataset for each namespace/pool pair: All the different
-// archives across projects are stored in the *same* dataset, since there is no
+// archives across filesystems are stored in the *same* dataset, since there is no
 // point in separating them.
-export function archivesDataset({ pool, namespace }) {
+export function archivesDataset({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
   return `${namespaceDataset({ pool, namespace })}/archives`;
 }
 
-export function archivesMountpoint({ pool, namespace }) {
+export function archivesMountpoint({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
   return join(ARCHIVES, namespace, pool);
 }
 
-export function projectArchivePath({ pool, namespace, project_id }) {
-  return join(archivesMountpoint({ pool, namespace }), project_id);
+export function filesystemArchivePath({
+  pool,
+  ...fs
+}: PrimaryKey & { pool: string }) {
+  const pk = primaryKey(fs);
+  return join(
+    archivesMountpoint({ pool, namespace: pk.namespace }),
+    pk.owner_type,
+    pk.owner_id,
+  );
 }
 
 // Bup
-export function bupDataset({ pool, namespace }) {
+export function bupDataset({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
   return `${namespaceDataset({ pool, namespace })}/bup`;
 }
 
-export function bupMountpoint({ pool, namespace }) {
+export function bupMountpoint({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
   return join(BUP, namespace, pool);
 }
 
-export function bupProjectMountpoint({ pool, namespace, project_id }) {
-  return join(bupMountpoint({ pool, namespace }), project_id);
+export function bupFilesystemMountpoint({
+  pool,
+  ...fs
+}: PrimaryKey & { pool: string }) {
+  const pk = primaryKey(fs);
+  return join(bupMountpoint({ ...pk, pool }), pk.owner_type, pk.owner_id);
 }
 
-// Projects
+// Filesystems
 
-export function projectsPath({ namespace }) {
-  return join(PROJECTS, namespace);
+export function filesystemsPath({ namespace }) {
+  return join(FILESYSTEMS, namespace);
 }
 
-export function projectMountpoint({ project_id, namespace }) {
-  return join(projectsPath({ namespace }), project_id);
+export function filesystemMountpoint(fs: PrimaryKey) {
+  const pk = primaryKey(fs);
+  return join(filesystemsPath(pk), pk.owner_type, pk.owner_id);
 }
 
-export function projectsDataset({ pool, namespace }) {
-  return `${namespaceDataset({ pool, namespace })}/projects`;
+export function filesystemsDataset({
+  pool,
+  namespace,
+}: {
+  pool: string;
+  namespace: string;
+}) {
+  return `${namespaceDataset({ pool, namespace })}/filesystems`;
 }
 
 // There is one single dataset for each project_id/namespace/pool tripple since it
 // is critical to separate each project to properly support snapshots, clones,
 // backups, etc.
-export function projectDataset({ pool, project_id, namespace }) {
-  return `${projectsDataset({ pool, namespace })}/${project_id}`;
+export function filesystemDataset({
+  pool,
+  ...fs
+}: PrimaryKey & { pool: string }) {
+  const pk = primaryKey(fs);
+  return `${filesystemsDataset({ pool, namespace: pk.namespace })}/${pk.owner_type}/${pk.owner_id}`;
 }
 
 // NOTE: We use "join" for actual file paths and explicit

@@ -1,5 +1,5 @@
 /*
-Manage creating and deleting rolling snapshots of a project's filesystem.
+Manage creating and deleting rolling snapshots of a filesystem.
 
 We keep track of all state in the sqlite database, so only have to touch
 ZFS when we actually need to do something.  Keep this in mind though since
@@ -9,43 +9,41 @@ know you did that.
 
 import { exec } from "./util";
 import { get, getRecent, set } from "./db";
-import { projectDataset, projectMountpoint } from "./names";
+import { filesystemDataset, filesystemMountpoint } from "./names";
 import { splitlines } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
 import {
-  context,
   SNAPSHOT_INTERVAL_MS,
   SNAPSHOT_INTERVALS_MS,
   SNAPSHOT_COUNTS,
 } from "./config";
 import { syncProperties } from "./properties";
+import { primaryKey, type PrimaryKey } from "./types";
 
 const logger = getLogger("file-server:zfs/snapshots");
 
 export async function maintainSnapshots(cutoff?: Date) {
-  await deleteExtraSnapshotsOfActiveProjects(cutoff);
-  await snapshotActiveProjects(cutoff);
+  await deleteExtraSnapshotsOfActiveFilesystems(cutoff);
+  await snapshotActiveFilesystems(cutoff);
 }
 
-// If there any changes to the project since the last snapshot,
+// If there any changes to the filesystem since the last snapshot,
 // and there are no snapshots since SNAPSHOT_INTERVAL_MS ms ago,
 // make a new one.  Always returns the most recent snapshot name.
-// Error if project is archived.
+// Error if filesystem is archived.
 export async function createSnapshot({
-  project_id,
-  namespace = context.namespace,
   force,
   ifChanged,
-}: {
-  project_id: string;
-  namespace?: string;
+  ...fs
+}: PrimaryKey & {
   force?: boolean;
   ifChanged?: boolean;
 }): Promise<string> {
-  logger.debug("createSnapshot: ", { project_id, namespace });
-  const { pool, archived, snapshots } = get({ project_id, namespace });
+  logger.debug("createSnapshot: ", fs);
+  const pk = primaryKey(fs);
+  const { pool, archived, snapshots } = get(pk);
   if (archived) {
-    throw Error("cannot snapshot an archived project");
+    throw Error("cannot snapshot an archived filesystem");
   }
   if (!force && !ifChanged && snapshots.length > 0) {
     // check for sufficiently recent snapshot
@@ -58,7 +56,7 @@ export async function createSnapshot({
 
   // Check to see if nothing change on disk since last snapshot - if so, don't make a new one:
   if (!force && snapshots.length > 0) {
-    const written = await getWritten({ project_id, namespace });
+    const written = await getWritten(pk);
     if (written == 0) {
       // for sure definitely nothing written, so no possible
       // need to make a snapshot
@@ -73,47 +71,35 @@ export async function createSnapshot({
     args: [
       "zfs",
       "snapshot",
-      `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
+      `${filesystemDataset({ ...pk, pool })}@${snapshot}`,
     ],
-    what: { project_id, namespace, desc: "creating snapshot of project" },
+    what: { ...pk, desc: "creating snapshot of project" },
   });
   set({
-    project_id,
-    namespace,
+    ...pk,
     snapshots: ({ snapshots }) => [...snapshots, snapshot],
   });
-  syncProperties({ project_id, namespace });
+  syncProperties(pk);
   return snapshot;
 }
 
-async function getWritten({ project_id, namespace }) {
-  const { pool } = get({ project_id, namespace });
+async function getWritten(fs: PrimaryKey) {
+  const pk = primaryKey(fs);
+  const { pool } = get(pk);
   const { stdout } = await exec({
     verbose: true,
     command: "zfs",
-    args: [
-      "list",
-      "-Hpo",
-      "written",
-      projectDataset({ project_id, namespace, pool }),
-    ],
+    args: ["list", "-Hpo", "written", filesystemDataset({ ...pk, pool })],
     what: {
-      project_id,
-      namespace,
+      ...pk,
       desc: "getting amount of newly written data in project since last snapshot",
     },
   });
   return parseInt(stdout);
 }
 
-export async function getSnapshots({
-  project_id,
-  namespace = context.namespace,
-}) {
-  const project = get({
-    project_id,
-    namespace,
-  });
+export async function getSnapshots(fs: PrimaryKey) {
+  const filesystem = get(fs);
   const { stdout } = await exec({
     command: "zfs",
     args: [
@@ -124,7 +110,7 @@ export async function getSnapshots({
       "-r",
       "-t",
       "snapshot",
-      projectDataset(project),
+      filesystemDataset(filesystem),
     ],
   });
   return Object.keys(JSON.parse(stdout).datasets).map(
@@ -133,15 +119,12 @@ export async function getSnapshots({
 }
 
 export async function deleteSnapshot({
-  project_id,
-  namespace = context.namespace,
   snapshot,
-}) {
-  logger.debug("deleteSnapshot: ", { project_id, namespace });
-  const { pool, last_send_snapshot } = get({
-    project_id,
-    namespace,
-  });
+  ...fs
+}: PrimaryKey & { snapshot: string }) {
+  const pk = primaryKey(fs);
+  logger.debug("deleteSnapshot: ", pk, snapshot);
+  const { pool, last_send_snapshot } = get(pk);
   if (snapshot == last_send_snapshot) {
     throw Error(
       "can't delete snapshot since it is the last one used for a zfs send",
@@ -150,19 +133,14 @@ export async function deleteSnapshot({
   await exec({
     verbose: true,
     command: "sudo",
-    args: [
-      "zfs",
-      "destroy",
-      `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
-    ],
-    what: { project_id, namespace, desc: "destroying a snapshot of a project" },
+    args: ["zfs", "destroy", `${filesystemDataset({ ...pk, pool })}@${snapshot}`],
+    what: { ...pk, desc: "destroying a snapshot of a project" },
   });
   set({
-    project_id,
-    namespace,
+    ...pk,
     snapshots: ({ snapshots }) => snapshots.filter((x) => x != snapshot),
   });
-  syncProperties({ project_id, namespace });
+  syncProperties(pk);
 }
 
 /*
@@ -171,15 +149,10 @@ never delete last_stream if set.
 
 Returns names of deleted snapshots.
 */
-export async function deleteExtraSnapshots({
-  project_id,
-  namespace = context.namespace,
-}): Promise<string[]> {
-  logger.debug("deleteExtraSnapshots: ", { project_id, namespace });
-  const { last_send_snapshot, snapshots } = get({
-    project_id,
-    namespace,
-  });
+export async function deleteExtraSnapshots(fs: PrimaryKey): Promise<string[]> {
+  const pk = primaryKey(fs);
+  logger.debug("deleteExtraSnapshots: ", pk);
+  const { last_send_snapshot, snapshots } = get(pk);
   if (snapshots.length == 0) {
     // nothing to do
     return [];
@@ -213,31 +186,31 @@ export async function deleteExtraSnapshots({
   }
   const toDelete = snapshots.filter((x) => !save.has(new Date(x).valueOf()));
   for (const snapshot of toDelete) {
-    await deleteSnapshot({ project_id, namespace, snapshot });
+    await deleteSnapshot({ ...pk, snapshot });
   }
   return toDelete;
 }
 
 // Go through ALL projects with last_edited >= cutoff stored
-// here and run trimActiveProjectSnapshots.
-export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
+// here and run trimActiveFilesystemSnapshots.
+export async function deleteExtraSnapshotsOfActiveFilesystems(cutoff?: Date) {
   const v = getRecent({ cutoff });
   logger.debug(
-    `deleteSnapshotsOfActiveProjects: considering ${v.length} projects`,
+    `deleteSnapshotsOfActiveFilesystems: considering ${v.length} filesystems`,
   );
   let i = 0;
-  for (const { project_id, namespace, archived } of v) {
-    if (archived) {
+  for (const fs of v) {
+    if (fs.archived) {
       continue;
     }
     try {
-      await deleteExtraSnapshots({ project_id, namespace });
+      await deleteExtraSnapshots(fs);
     } catch (err) {
-      logger.debug(`deleteSnapshotsOfActiveProjects: error -- ${err}`);
+      logger.debug(`deleteSnapshotsOfActiveFilesystems: error -- ${err}`);
     }
     i += 1;
     if (i % 10 == 0) {
-      logger.debug(`deleteSnapshotsOfActiveProjects: ${i}/${v.length}`);
+      logger.debug(`deleteSnapshotsOfActiveFilesystems: ${i}/${v.length}`);
     }
   }
 }
@@ -245,27 +218,27 @@ export async function deleteExtraSnapshotsOfActiveProjects(cutoff?: Date) {
 // Go through ALL projects with last_edited >= cutoff and snapshot them
 // if they are due a snapshot.
 // cutoff = a Date (default = 1 week ago)
-export async function snapshotActiveProjects(cutoff?: Date) {
-  logger.debug("snapshotActiveProjects: getting...");
+export async function snapshotActiveFilesystems(cutoff?: Date) {
+  logger.debug("snapshotActiveFilesystems: getting...");
   const v = getRecent({ cutoff });
   logger.debug(
-    `snapshotActiveProjects: considering ${v.length} projects`,
+    `snapshotActiveFilesystems: considering ${v.length} projects`,
     cutoff,
   );
   let i = 0;
-  for (const { project_id, namespace, archived } of v) {
-    if (archived) {
+  for (const fs of v) {
+    if (fs.archived) {
       continue;
     }
     try {
-      await createSnapshot({ project_id, namespace });
+      await createSnapshot(fs);
     } catch (err) {
       // error is already logged in error field of database
-      logger.debug(`snapshotActiveProjects: error -- ${err}`);
+      logger.debug(`snapshotActiveFilesystems: error -- ${err}`);
     }
     i += 1;
     if (i % 10 == 0) {
-      logger.debug(`snapshotActiveProjects: ${i}/${v.length}`);
+      logger.debug(`snapshotActiveFilesystems: ${i}/${v.length}`);
     }
   }
 }
@@ -290,16 +263,12 @@ interface Mod {
 }
 
 export async function getModifiedFiles({
-  project_id,
-  namespace = context.namespace,
   snapshot,
-}: {
-  project_id: string;
-  namespace?: string;
-  snapshot?: string;
-}) {
-  logger.debug(`getModifiedFiles: `, { project_id, namespace });
-  const { pool, snapshots } = get({ project_id, namespace });
+  ...fs
+}: PrimaryKey & { snapshot: string }) {
+  const pk = primaryKey(fs);
+  logger.debug(`getModifiedFiles: `, pk);
+  const { pool, snapshots } = get(pk);
   if (snapshots.length == 0) {
     return [];
   }
@@ -313,15 +282,11 @@ export async function getModifiedFiles({
       "zfs",
       "diff",
       "-FHt",
-      `${projectDataset({ project_id, namespace, pool })}@${snapshot}`,
+      `${filesystemDataset({ ...pk, pool })}@${snapshot}`,
     ],
-    what: {
-      project_id,
-      namespace,
-      desc: "getting files modified since last snapshot",
-    },
+    what: { ...pk, desc: "getting files modified since last snapshot" },
   });
-  const mnt = projectMountpoint({ project_id, namespace }) + "/";
+  const mnt = filesystemMountpoint(pk) + "/";
   const files: Mod[] = [];
   for (const line of splitlines(stdout)) {
     const x = line.split(/\t/g);
