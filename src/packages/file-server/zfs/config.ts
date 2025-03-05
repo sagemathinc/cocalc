@@ -62,3 +62,8 @@ export const SNAPSHOT_COUNTS = {
 
 // Minimal interval for bup backups
 export const BUP_INTERVAL_MS = 24 * 1000 * 60 * 60;
+
+// minimal interval for zfs streams
+export const STREAM_INTERVAL_MS = 24 * 1000 * 60 * 60;
+// when more than this many streams, we recompact down
+export const MAX_STREAMS = 30;

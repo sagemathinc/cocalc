@@ -3,7 +3,7 @@ Send/Receive incremental replication streams of a filesystem.
 */
 
 import { type PrimaryKey } from "./types";
-import { get, set } from "./db";
+import { get, getRecent, set } from "./db";
 import getLogger from "@cocalc/backend/logger";
 import {
   filesystemStreamsPath,
@@ -14,6 +14,7 @@ import { exec } from "./util";
 import { split } from "@cocalc/util/misc";
 import { join } from "path";
 import { getSnapshots } from "./snapshots";
+import { STREAM_INTERVAL_MS, MAX_STREAMS } from "./config";
 
 const logger = getLogger("file-server:zfs:send");
 
@@ -218,5 +219,35 @@ export async function recompact({
       args: ["rm", "-f", `${stream}.temp`],
     });
     throw err;
+  }
+}
+
+// Go through ALL filesystems with last_edited >= cutoff and send a stream if due,
+// and also ensure number of streams isn't too large.
+export async function maintainStreams(cutoff?: Date) {
+  logger.debug("backupActiveFilesystems: getting...");
+  const v = getRecent({ cutoff });
+  logger.debug(`maintainStreams: considering ${v.length} filesystems`, cutoff);
+  let i = 0;
+  for (const { archived, last_edited, last_send_snapshot, ...pk } of v) {
+    if (archived || !last_edited) {
+      continue;
+    }
+    const age =
+      new Date(last_edited).valueOf() - new Date(last_send_snapshot ?? 0).valueOf();
+    if (age < STREAM_INTERVAL_MS) {
+      // there's a new enough stream already
+      continue;
+    }
+    try {
+      await send(pk);
+      await recompact({ ...pk, maxStreams: MAX_STREAMS });
+    } catch (err) {
+      logger.debug(`maintainStreams: error -- ${err}`);
+    }
+    i += 1;
+    if (i % 10 == 0) {
+      logger.debug(`maintainStreams: ${i}/${v.length}`);
+    }
   }
 }
