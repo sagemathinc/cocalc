@@ -100,28 +100,25 @@ async function getWritten(fs: PrimaryKey) {
   return parseInt(stdout);
 }
 
-// gets snapshots from disk via zfs *and* sets the list of snapshots
-// in the database to match (and also updates sizes)
-export async function getSnapshots(fs: PrimaryKey) {
-  const filesystem = get(fs);
+export async function zfsGetSnapshots(dataset: string) {
   const { stdout } = await exec({
     command: "zfs",
-    args: [
-      "list",
-      "-j",
-      "-o",
-      "name",
-      "-r",
-      "-t",
-      "snapshot",
-      filesystemDataset(filesystem),
-    ],
+    args: ["list", "-j", "-o", "name", "-r", "-t", "snapshot", dataset],
   });
   const snapshots = Object.keys(JSON.parse(stdout).datasets).map(
     (name) => name.split("@")[1],
   );
+  return snapshots;
+}
+
+// gets snapshots from disk via zfs *and* sets the list of snapshots
+// in the database to match (and also updates sizes)
+export async function getSnapshots(fs: PrimaryKey) {
+  const pk = primaryKey(fs);
+  const filesystem = get(fs);
+  const snapshots = await zfsGetSnapshots(filesystemDataset(filesystem));
   if (!isEqual(snapshots, filesystem.snapshots)) {
-    set({ ...fs, snapshots });
+    set({ ...pk, snapshots });
     syncProperties(fs);
   }
   return snapshots;

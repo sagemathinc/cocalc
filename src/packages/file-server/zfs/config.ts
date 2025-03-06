@@ -28,6 +28,10 @@ export const context = {
   BUP,
 };
 
+// WARNING: this "setContext" is global. It's very useful for **UNIT TESTING**, but
+// for any other use, you want to set this at most once and never again!!!  The reason
+// is because with nodejs you could have async code running all over the place, and 
+// changing the context out from under it would lead to nonsense and corruption.
 export function setContext({
   namespace,
   prefix,

@@ -3,7 +3,7 @@ Archiving and restore filesystems
 */
 
 import { get, set } from "./db";
-import { createSnapshot } from "./snapshots";
+import { createSnapshot, zfsGetSnapshots } from "./snapshots";
 import {
   filesystemDataset,
   filesystemArchivePath,
@@ -135,10 +135,9 @@ export async function archiveFilesystem(fs: PrimaryKey) {
   });
 
   await mountFilesystem(filesystem);
-  const { stdout: find } = await exec({
+  const find = await hashFileTree({
     verbose: true,
-    cwd: filesystemMountpoint(filesystem),
-    command: `sudo sh -c 'find . -xdev | sha1sum'`,
+    path: filesystemMountpoint(filesystem),
     what: { ...pk, desc: "getting sha1sum of file listing" },
   });
   // mountpoint will be used for test below, and also no point in archiving
@@ -168,23 +167,26 @@ export async function archiveFilesystem(fs: PrimaryKey) {
         desc: "verify the archive zfs send is valid",
       },
     });
-    // do some test so we trust this:
-    const restoreProps = await zfsGetProperties(temp);
-    const fsProps = await zfsGetProperties(filesystemDataset(filesystem));
-    if (!isEqual(restoreProps, fsProps)) {
-      throw Error(
-        `properties of filesystem ${filesystem} and archive ${temp} do NOT match. Refusing to archive filesystem!`,
-      );
-    }
-    const { stdout: findtest } = await exec({
+    // inspect the list of all files, and verify that it is identical (has same sha1sum).
+    // I think this should be not necessary because the above read didn't fail, and there
+    // are supposed to be checksums.  But I also think there are some ways to corrupt a 
+    // stream so it reads in as empty (say), so this will definitely catch that.
+    const findtest = await hashFileTree({
       verbose: true,
-      cwd: filesystemMountpoint(filesystem), // same mountpoint due to being part of recv data
-      command: `sudo sh -c 'find . -xdev | sha1sum'`,
+      path: filesystemMountpoint(filesystem), // same mountpoint due to being part of recv data
       what: { ...pk, desc: "getting sha1sum of file listing" },
     });
     if (findtest != find) {
       throw Error(
         "files in archived filesystem do not match. Refusing to archive!",
+      );
+    }
+    // Inspect list of snapshots, and verify they are identical as well. This is another
+    // good consistency check that the stream works.
+    const snapshots = await zfsGetSnapshots(temp);
+    if (!isEqual(snapshots, filesystem.snapshots)) {
+      throw Error(
+        "snapshots in archived filesystem do not match. Refusing to archive!",
       );
     }
   } finally {
@@ -212,4 +214,23 @@ export async function archiveFilesystem(fs: PrimaryKey) {
   set({ ...pk, archived: true });
 
   return { snapshot, milliseconds: Date.now() - start };
+}
+
+// Returns a hash of the file tree.  This uses the find command to get path names, but
+// doesn't actually read the *contents* of any files, so it's reasonbly fast.
+async function hashFileTree({
+  path,
+  what,
+  verbose,
+}: {
+  path: string;
+  what?;
+  verbose?;
+}): Promise<String> {
+  const { stdout } = await exec({
+    verbose,
+    command: `sudo sh -c 'cd "${path}" && find . -xdev -printf "%p %s %TY-%Tm-%Td %TH:%TM\n" | sha1sum'`,
+    what,
+  });
+  return stdout;
 }

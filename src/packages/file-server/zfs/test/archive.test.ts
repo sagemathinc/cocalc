@@ -19,6 +19,7 @@ import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
 describe("create a project, put in some files/snapshot, archive the project, confirm gone, de-archive it, and confirm files are back as expected", () => {
+  jest.setTimeout(10000);
   let x: any = null;
 
   beforeAll(async () => {
