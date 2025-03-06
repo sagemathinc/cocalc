@@ -14,7 +14,7 @@ import {
 } from "./types";
 import { is_array, is_date } from "@cocalc/util/misc";
 
-let db: null | Database.Database;
+let db: { [file: string]: Database.Database } = {};
 
 const tableName = "filesystems";
 const schema = {
@@ -48,11 +48,12 @@ function primaryKeyArgs(fs: PrimaryKey) {
 }
 
 export function getDb(databaseFile?): Database.Database {
-  if (db == null) {
-    db = new Database(databaseFile ?? context.SQLITE3_DATABASE_FILE);
-    initDb(db);
+  const file = databaseFile ?? context.SQLITE3_DATABASE_FILE;
+  if (db[file] == null) {
+    db[file] = new Database(file);
+    initDb(db[file]);
   }
-  return db!;
+  return db[file]!;
 }
 
 function initDb(db) {

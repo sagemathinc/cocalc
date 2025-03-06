@@ -4,14 +4,10 @@ DEVELOPMENT:
 pnpm exec jest --watch create-types.test.ts
 */
 
-// application/typescript text
-//import { executeCode } from "@cocalc/backend/execute-code";
 import { createTestPools, deleteTestPools, init, describe } from "./util";
 import {
   createFilesystem,
-  //  deleteFilesystem,
 } from "@cocalc/file-server/zfs";
-//import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import type { Filesystem } from "../types";
 
 describe("create some account and organization filesystems", () => {

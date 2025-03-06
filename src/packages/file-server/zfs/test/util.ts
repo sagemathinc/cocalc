@@ -1,5 +1,5 @@
 // application/typescript text
-import { context } from "@cocalc/file-server/zfs/config";
+import { context, setContext } from "@cocalc/file-server/zfs/config";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -34,12 +34,15 @@ export async function init() {
 export async function createTestPools({
   size = "10G",
   count = 1,
+  prefix,
 }: {
   size?: string;
   count?: number;
-}): Promise<{ tempDir: string; pools: string[] }> {
+  prefix?: string;
+}): Promise<{ tempDir: string; pools: string[]; prefix?: string }> {
+  setContext({ prefix });
   if (!context.PREFIX.includes("test")) {
-    throw Error("context.PREFIX must contain 'test'");
+    throw Error(`context.PREFIX=${context.PREFIX} must contain 'test'`);
   }
   // Create temp directory
   const tempDir = await mkdtemp(join(tmpdir(), "test-"));
@@ -72,7 +75,7 @@ export async function createTestPools({
   }
   // ensure pool cache is cleared:
   await getPools({ noCache: true });
-  return { tempDir, pools };
+  return { tempDir, pools, prefix };
 }
 
 // Even after setting sharefnfs=off, it can be a while (a minute?) until NFS
@@ -85,16 +88,31 @@ export async function restartNfsServer() {
   });
 }
 
-export async function deleteTestPools({ tempDir, pools }) {
+export async function deleteTestPools(x?: {
+  tempDir: string;
+  pools: string[];
+  prefix?: string;
+}) {
+  if (!x) {
+    return;
+  }
+  const { tempDir, pools, prefix } = x;
+  setContext({ prefix });
   if (!context.PREFIX.includes("test")) {
     throw Error("context.PREFIX must contain 'test'");
   }
 
   const f = async (pool) => {
-    await executeCode({
-      command: "sudo",
-      args: ["zpool", "destroy", pool],
-    });
+    try {
+      await executeCode({
+        command: "sudo",
+        args: ["zpool", "destroy", pool],
+      });
+    } catch (err) {
+//       if (!`$err}`.includes("no such pool")) {
+//         console.log(err);
+//       }
+    }
   };
   await asyncMap(pools, pools.length, f);
   await rm(tempDir, { recursive: true });

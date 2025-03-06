@@ -1,11 +1,20 @@
 /*
-Use zfs replication over ssh to replicate one file-server to another one,
-primarily for backup purpose.
+Use zfs replication over ssh to pull recent filesystems from 
+one file-server to another one.
+
+This will be used for:
+
+- backup
+- moving a filesystem from one region/cluster to another
 */
 
 import { type Filesystem, type RawFilesystem } from "./types";
 import { exec } from "./util";
-import { databaseFilename, filesystemDataset } from "./names";
+import {
+  databaseFilename,
+  filesystemDataset,
+  filesystemMountpoint,
+} from "./names";
 import { filesystemExists, getRecent, get } from "./db";
 import getLogger from "@cocalc/backend/logger";
 import { getSnapshots } from "./snapshots";
@@ -18,7 +27,7 @@ const logger = getLogger("file-server:zfs:sync");
 interface Remote {
   // remote = user@hostname that you can ssh to
   remote: string;
-  // filesystem prefix of the remote server, so ${prefix}/database.sqlite3 has the
+  // filesystem prefix of the remote server, so {prefix}/database.sqlite3 has the
   // database that defines the state of the remote server.
   prefix: string;
 }
@@ -37,7 +46,13 @@ export async function pullAll({
   deleteLocal?: boolean;
   // just say how much will happen, but don't do anything.
   dryRun?: boolean;
-}) {
+}): Promise<{
+  toUpdate: { remoteFs: Filesystem; localFs?: Filesystem }[];
+  toDelete: RawFilesystem[];
+}> {
+  if (prefix.startsWith("/")) {
+    throw Error("prefix should not start with /");
+  }
   if (cutoff == null) {
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
   }
@@ -45,7 +60,7 @@ export async function pullAll({
   const remoteDatabase = `${context.DATA}/remote.sqlite3`;
   await exec({
     command: "scp",
-    args: [`${remote}:${databaseFilename(prefix)}`, remoteDatabase],
+    args: [`${remote}:/${databaseFilename(prefix)}`, remoteDatabase],
   });
 
   logger.debug("sync: compare state");
@@ -98,9 +113,11 @@ export async function pullAll({
       await deleteFilesystem(fs);
     }
   }
+
+  return { toUpdate, toDelete };
 }
 
-async function pull({
+export async function pull({
   remoteFs,
   localFs,
   remote,
@@ -134,12 +151,13 @@ async function pull({
   if (!newest_snapshot) {
     throw Error("remoteFs must have at least one snapshot");
   }
+  const mountpoint = filesystemMountpoint(localFs);
   try {
     if (!snapshot) {
       // full replication with nothing local
       await exec({
         verbose: true,
-        command: `sudo sh -c 'ssh ${remote} "zfs send -e -c -R ${filesystemDataset(remoteFs)}@${newest_snapshot}" | sudo zfs recv ${filesystemDataset(localFs)}"'`,
+        command: `ssh ${remote} "zfs send -e -c -R ${filesystemDataset(remoteFs)}@${newest_snapshot}" | sudo zfs recv -o mountpoint=${mountpoint} -F ${filesystemDataset(localFs)}`,
         what: {
           ...localFs,
           desc: "pull: doing a full receive from remote",
@@ -153,7 +171,7 @@ async function pull({
           : " -F ";
       await exec({
         verbose: true,
-        command: `sudo sh -c 'ssh ${remote} "zfs send -e -c -I @${snapshot} ${filesystemDataset(remoteFs)}@${newest_snapshot}" | sudo zfs recv ${filesystemDataset(localFs)}" ${force}'`,
+        command: `ssh ${remote} "zfs send -e -c -I @${snapshot} ${filesystemDataset(remoteFs)}@${newest_snapshot}" | sudo zfs recv  -o mountpoint=${mountpoint} -F ${filesystemDataset(localFs)} ${force}`,
         what: {
           ...localFs,
           desc: "pull: doing an incremental replication from remote",

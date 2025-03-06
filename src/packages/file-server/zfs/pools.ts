@@ -48,11 +48,12 @@ interface Pool {
 }
 
 type Pools = { [name: string]: Pool };
-let poolsCache: null | Pools = null;
+let poolsCache: { [prefix: string]: Pools } = {};
+
 export const getPools = reuseInFlight(
   async ({ noCache }: { noCache?: boolean } = {}): Promise<Pools> => {
-    if (poolsCache != null && !noCache) {
-      return poolsCache;
+    if (!noCache && poolsCache[context.PREFIX]) {
+      return poolsCache[context.PREFIX];
     }
     const { stdout } = await exec({
       verbose: true,
@@ -71,11 +72,11 @@ export const getPools = reuseInFlight(
       }
       v[name] = { name, state: pool.state, ...pool.properties };
     }
-    poolsCache = v;
+    poolsCache[context.PREFIX] = v;
     if (!process.env.COCALC_TEST_MODE) {
       // only clear cache in non-test mode
       setTimeout(() => {
-        poolsCache = null;
+        delete poolsCache[context.PREFIX];
       }, POOLS_CACHE_MS);
     }
     return v;
@@ -92,7 +93,9 @@ export const initializePool = reuseInFlight(
     pool: string;
   }) => {
     if (!pool.startsWith(context.PREFIX)) {
-      throw Error(`pools must start with the prefix '${context.PREFIX}'`);
+      throw Error(
+        `pool (="${pool}") must start with the prefix '${context.PREFIX}'`,
+      );
     }
     // archives and filesystems for each namespace are in this dataset
     await ensureDatasetExists({

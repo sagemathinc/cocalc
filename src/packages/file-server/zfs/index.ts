@@ -26,3 +26,4 @@ export {
 export { archiveFilesystem, dearchiveFilesystem } from "./archive";
 export { maintainBackups, createBackup } from "./backup";
 export { recv, send, recompact, maintainStreams } from "./streams";
+export { pullAll, pull } from "./pull";
