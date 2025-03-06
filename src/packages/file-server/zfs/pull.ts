@@ -28,8 +28,13 @@ import { context } from "./config";
 import { archiveFilesystem, dearchiveFilesystem } from "./archive";
 import { deleteSnapshot } from "./snapshots";
 import { isEqual } from "lodash";
+import { join } from "path";
+import { readdir, unlink } from "fs/promises";
 
 const logger = getLogger("file-server:zfs:pull");
+
+// number of remote backups of db sqlite file to keep.
+const NUM_DB_TO_KEEP = 10;
 
 // This is used for unit testing. It's what fields should match
 // after doing a sync, except snapshots where local is a superset,
@@ -96,7 +101,20 @@ export async function pull({
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
   }
   logger.debug("pull: get the remote sqlite database");
-  const remoteDatabase = `${context.DATA}/remote.sqlite3`;
+  await exec({ command: "mkdir", args: ["-p", context.PULL] });
+  const remoteDatabase = join(
+    context.PULL,
+    `${remote}:${prefix}---${new Date().toISOString()}.sqlite3`,
+  );
+  // delete all but the most recent remote database files for this remote/prefix (?).
+  const oldDbFiles = (await readdir(context.PULL))
+    .sort()
+    .filter((x) => x.startsWith(`${remote}:${prefix}---`))
+    .slice(0, -NUM_DB_TO_KEEP);
+  for (const path of oldDbFiles) {
+    await unlink(join(context.PULL, path));
+  }
+
   await exec({
     command: "scp",
     args: [`${remote}:/${databaseFilename(prefix)}`, remoteDatabase],

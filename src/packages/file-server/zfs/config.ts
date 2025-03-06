@@ -15,6 +15,10 @@ const FILESYSTEMS = join(DATA, "filesystems");
 // Directory on server where zfs send streams (and tar?) are stored
 const ARCHIVES = join(DATA, "archives");
 
+// Directory to store data used in pulling as part of sync.
+// E.g., this keeps around copies of the sqlite state database of each remote.
+const PULL = join(DATA, "pull");
+
 // Directory for bup
 const BUP = join(DATA, "bup");
 
@@ -25,12 +29,13 @@ export const context = {
   SQLITE3_DATABASE_FILE,
   FILESYSTEMS,
   ARCHIVES,
+  PULL,
   BUP,
 };
 
 // WARNING: this "setContext" is global. It's very useful for **UNIT TESTING**, but
 // for any other use, you want to set this at most once and never again!!!  The reason
-// is because with nodejs you could have async code running all over the place, and 
+// is because with nodejs you could have async code running all over the place, and
 // changing the context out from under it would lead to nonsense and corruption.
 export function setContext({
   namespace,
@@ -45,6 +50,7 @@ export function setContext({
   context.SQLITE3_DATABASE_FILE = databaseFilename(context.DATA);
   context.FILESYSTEMS = join(context.DATA, "filesystems");
   context.ARCHIVES = join(context.DATA, "archives");
+  context.PULL = join(context.DATA, "pull");
   context.BUP = join(context.DATA, "bup");
 }
 
