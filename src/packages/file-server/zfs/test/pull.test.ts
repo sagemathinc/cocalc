@@ -17,7 +17,7 @@ import {
 import { context, setContext } from "@cocalc/file-server/zfs/config";
 import { filesystemMountpoint } from "@cocalc/file-server/zfs/names";
 import { readFile, writeFile } from "fs/promises";
-import { filesystemExists } from "@cocalc/file-server/zfs/db";
+import { filesystemExists, get } from "@cocalc/file-server/zfs/db";
 
 describe("create two separate file servers, then do a pull to sync one to the other", () => {
   let one: any = null,
@@ -90,11 +90,36 @@ describe("create two separate file servers, then do a pull to sync one to the ot
     expect(
       (await readFile(join(filesystemMountpoint(fs), "a.txt"))).toString(),
     ).toEqual("hello");
+
+    // nothing if we sync again:
+    const { toUpdate: toUpdate2, toDelete: toDelete2 } = await pullAll({
+      remote: "root@localhost",
+      prefix: prefix1,
+    });
+    expect(toDelete2.length).toBe(0);
+    expect(toUpdate2.length).toBe(0);
   });
 
-  //   it("creates another file in our filesystem, creates another snapshot, syncs again, and sees that the sync worked", async ()=>{
+  it("creates another file in our filesystem, creates another snapshot, syncs again, and sees that the sync worked", async () => {
+    setContext({ prefix: prefix1 });
+    const fs = {
+      project_id: "00000000-0000-0000-0000-000000000001",
+    };
+    await writeFile(join(filesystemMountpoint(fs), "b.txt"), "cocalc");
+    await createSnapshot({ ...fs, force: true });
+    const { snapshots } = get(fs);
+    expect(snapshots.length).toBe(2);
 
-  //   })
+    setContext({ prefix: prefix2 });
+    await pullAll({
+      remote: "root@localhost",
+      prefix: prefix1,
+    });
+
+    expect(
+      (await readFile(join(filesystemMountpoint(fs), "b.txt"))).toString(),
+    ).toEqual("cocalc");
+  });
 
   //it("archives the project, does sync, and see the other one got archived")
   //it('dearchives, does sync, then sees the other gets dearchived')

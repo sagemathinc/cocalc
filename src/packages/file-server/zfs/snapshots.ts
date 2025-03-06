@@ -38,6 +38,7 @@ export async function createSnapshot({
   ...fs
 }: PrimaryKey & {
   force?: boolean;
+  // note -- ifChanged is VERY fast, but it's not instantaneous...
   ifChanged?: boolean;
 }): Promise<string> {
   logger.debug("createSnapshot: ", fs);
