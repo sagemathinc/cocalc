@@ -1,5 +1,5 @@
 // application/typescript text
-import { POOL_PREFIX } from "@cocalc/file-server/zfs/config";
+import { context } from "@cocalc/file-server/zfs/config";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -24,8 +24,8 @@ const Describe = isZpoolAvailable() ? describe : describe.skip;
 export { Describe as describe };
 
 export async function init() {
-  if (!POOL_PREFIX.includes("test")) {
-    throw Error("POOL_PREFIX must contain 'test'");
+  if (!context.PREFIX.includes("test")) {
+    throw Error("context.PREFIX must contain 'test'");
   }
   await initDataDir();
   resetDb();
@@ -38,8 +38,8 @@ export async function createTestPools({
   size?: string;
   count?: number;
 }): Promise<{ tempDir: string; pools: string[] }> {
-  if (!POOL_PREFIX.includes("test")) {
-    throw Error("POOL_PREFIX must contain 'test'");
+  if (!context.PREFIX.includes("test")) {
+    throw Error("context.PREFIX must contain 'test'");
   }
   // Create temp directory
   const tempDir = await mkdtemp(join(tmpdir(), "test-"));
@@ -63,7 +63,7 @@ export async function createTestPools({
       command: "truncate",
       args: ["-s", size, image],
     });
-    const pool = `${POOL_PREFIX}-${n}`;
+    const pool = `${context.PREFIX}-${n}`;
     pools.push(pool);
     await executeCode({
       command: "sudo",
@@ -86,8 +86,8 @@ export async function restartNfsServer() {
 }
 
 export async function deleteTestPools({ tempDir, pools }) {
-  if (!POOL_PREFIX.includes("test")) {
-    throw Error("POOL_PREFIX must contain 'test'");
+  if (!context.PREFIX.includes("test")) {
+    throw Error("context.PREFIX must contain 'test'");
   }
 
   const f = async (pool) => {

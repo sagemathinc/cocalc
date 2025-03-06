@@ -8,13 +8,13 @@ file permissions, deleting datasets, etc.,) then this code won't help at all.
 
 OPERATIONS:
 
-- To add a new pool, just create it using zfs with a name sthat starts with POOL_PREFIX.
+- To add a new pool, just create it using zfs with a name sthat starts with context.PREFIX.
   It should automatically start getting used within POOLS_CACHE_MS by newly created filesystems.
 
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { context, POOL_PREFIX, POOLS_CACHE_MS, FILESYSTEMS } from "./config";
+import { context, POOLS_CACHE_MS } from "./config";
 import { exec } from "./util";
 import {
   archivesDataset,
@@ -62,7 +62,7 @@ export const getPools = reuseInFlight(
     const { pools } = JSON.parse(stdout);
     const v: { [name: string]: Pool } = {};
     for (const name in pools) {
-      if (!name.startsWith(POOL_PREFIX)) {
+      if (!name.startsWith(context.PREFIX)) {
         continue;
       }
       const pool = pools[name];
@@ -91,8 +91,8 @@ export const initializePool = reuseInFlight(
     namespace?: string;
     pool: string;
   }) => {
-    if (!pool.startsWith(POOL_PREFIX)) {
-      throw Error(`pools must start with the prefix '${POOL_PREFIX}'`);
+    if (!pool.startsWith(context.PREFIX)) {
+      throw Error(`pools must start with the prefix '${context.PREFIX}'`);
     }
     // archives and filesystems for each namespace are in this dataset
     await ensureDatasetExists({
@@ -131,7 +131,7 @@ export const initializePool = reuseInFlight(
       await exec({
         verbose: true,
         command: "sudo",
-        args: ["chmod", "a+rx", FILESYSTEMS],
+        args: ["chmod", "a+rx", context.FILESYSTEMS],
       });
       await exec({
         verbose: true,

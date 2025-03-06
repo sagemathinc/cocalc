@@ -1,5 +1,5 @@
 import { join } from "path";
-import { FILESYSTEMS, ARCHIVES, BUP } from "./config";
+import { context } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
 import { randomId } from "@cocalc/nats/names";
 
@@ -38,7 +38,7 @@ export function archivesMountpoint({
   pool: string;
   namespace: string;
 }) {
-  return join(ARCHIVES, namespace, pool);
+  return join(context.ARCHIVES, namespace, pool);
 }
 
 export function filesystemArchivePath({
@@ -92,7 +92,7 @@ export function bupMountpoint({
   pool: string;
   namespace: string;
 }) {
-  return join(BUP, namespace, pool);
+  return join(context.BUP, namespace, pool);
 }
 
 export function bupFilesystemMountpoint({
@@ -111,7 +111,7 @@ export function bupFilesystemMountpoint({
 // Filesystems
 
 export function filesystemsPath({ namespace }) {
-  return join(FILESYSTEMS, namespace);
+  return join(context.FILESYSTEMS, namespace);
 }
 
 export function filesystemMountpoint(fs: PrimaryKey) {

@@ -10,7 +10,7 @@ import { filesystemExists, getRecent, get } from "./db";
 import getLogger from "@cocalc/backend/logger";
 import { getSnapshots } from "./snapshots";
 import { createFilesystem, deleteFilesystem } from "./create";
-import { DATA } from "./config";
+import { context } from "./config";
 import { archiveFilesystem, dearchiveFilesystem } from "./archive";
 
 const logger = getLogger("file-server:zfs:sync");
@@ -42,7 +42,7 @@ export async function pullAll({
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
   }
   logger.debug("sync: get the remote sqlite datbase");
-  const remoteDatabase = `${DATA}/remote.sqlite3`;
+  const remoteDatabase = `${context.DATA}/remote.sqlite3`;
   await exec({
     command: "scp",
     args: [`${remote}:${databaseFilename(prefix)}`, remoteDatabase],

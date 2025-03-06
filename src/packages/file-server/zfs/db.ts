@@ -3,7 +3,7 @@ Database
 */
 
 import Database from "better-sqlite3";
-import { context, POOL_PREFIX, SQLITE3_DATABASE_FILE } from "./config";
+import { context } from "./config";
 import {
   primaryKey,
   type PrimaryKey,
@@ -49,7 +49,7 @@ function primaryKeyArgs(fs: PrimaryKey) {
 
 export function getDb(databaseFile?): Database.Database {
   if (db == null) {
-    db = new Database(databaseFile ?? SQLITE3_DATABASE_FILE);
+    db = new Database(databaseFile ?? context.SQLITE3_DATABASE_FILE);
     initDb(db);
   }
   return db!;
@@ -81,7 +81,7 @@ function initDb(db) {
 
 // This is extremely dangerous and mainly used for unit testing:
 export function resetDb() {
-  const db = new Database(SQLITE3_DATABASE_FILE);
+  const db = new Database(context.SQLITE3_DATABASE_FILE);
   db.prepare("DROP TABLE IF EXISTS filesystems").run();
   initDb(db);
 }
@@ -208,8 +208,8 @@ export function create(
     affinity?: string;
   },
 ) {
-  if (!obj.pool.startsWith(POOL_PREFIX)) {
-    throw Error(`pool must start with ${POOL_PREFIX} - ${obj.pool}`);
+  if (!obj.pool.startsWith(context.PREFIX)) {
+    throw Error(`pool must start with ${context.PREFIX} - ${obj.pool}`);
   }
   getDb()
     .prepare(

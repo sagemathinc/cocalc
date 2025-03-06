@@ -1,21 +1,48 @@
 import { join } from "path";
 import { databaseFilename } from "./names";
 
-export const PREFIX = process.env.COCALC_TEST_MODE
-  ? "cocalcfs-test"
-  : "cocalcfs";
-
-export const DATA = `/${PREFIX}`;
-
-export const SQLITE3_DATABASE_FILE = databaseFilename(DATA);
-
 // we ONLY put filesystems on pools whose name have this prefix.
-// all other pools are ignored.
-export const POOL_PREFIX = PREFIX;
+// all other pools are ignored.  We also mount everything in /{PREFIX} on the filesystem.
+const PREFIX = process.env.COCALC_TEST_MODE ? "cocalcfs-test" : "cocalcfs";
+
+const DATA = `/${PREFIX}`;
+
+const SQLITE3_DATABASE_FILE = databaseFilename(DATA);
+
+// Directory on server where filesystems get mounted (so NFS can serve them)
+const FILESYSTEMS = join(DATA, "filesystems");
+
+// Directory on server where zfs send streams (and tar?) are stored
+const ARCHIVES = join(DATA, "archives");
+
+// Directory for bup
+const BUP = join(DATA, "bup");
 
 export const context = {
   namespace: process.env.NAMESPACE ?? "default",
+  PREFIX,
+  DATA,
+  SQLITE3_DATABASE_FILE,
+  FILESYSTEMS,
+  ARCHIVES,
+  BUP,
 };
+
+export function setContext({
+  namespace,
+  prefix,
+}: {
+  namespace?: string;
+  prefix?: string;
+}) {
+  context.namespace = namespace ?? process.env.NAMESPACE ?? "default";
+  context.PREFIX = prefix ?? PREFIX;
+  context.DATA = `/${context.PREFIX}`;
+  context.SQLITE3_DATABASE_FILE = databaseFilename(context.DATA);
+  context.FILESYSTEMS = join(context.DATA, "filesystems");
+  context.ARCHIVES = join(context.DATA, "archives");
+  context.BUP = join(context.DATA, "bup");
+}
 
 // Every filesystem has at least this much quota (?)
 export const MIN_QUOTA = 1024 * 1024 * 1; // 1MB
@@ -24,15 +51,6 @@ export const MIN_QUOTA = 1024 * 1024 * 1; // 1MB
 // and how much space they have left.  This info is cached for this long
 // to avoid excessive calls:
 export const POOLS_CACHE_MS = 15000;
-
-// Directory on server where filesystems get mounted (so NFS can serve them)
-export const FILESYSTEMS = join(DATA, "filesystems");
-
-// Directory on server where zfs send streams (and tar?) are stored
-export const ARCHIVES = join(DATA, "archives");
-
-// Directory for bup
-export const BUP = join(DATA, "bup");
 
 // two hour default for running any commands (e.g., zfs send/recv)
 export const DEFAULT_EXEC_TIMEOUT_MS = 2 * 1000 * 60 * 60;
