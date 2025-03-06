@@ -3,6 +3,10 @@ import { FILESYSTEMS, ARCHIVES, BUP } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
 import { randomId } from "@cocalc/nats/names";
 
+export function databaseFilename(data: string) {
+  return join(data, "database.sqlite3");
+}
+
 export function namespaceDataset({
   pool,
   namespace,
@@ -69,8 +73,6 @@ export function filesystemStreamsFilename({
 }: PrimaryKey & { snapshot1: string; snapshot2: string; pool: string }) {
   return join(filesystemStreamsPath(opts), `${snapshot1}-${snapshot2}.zfs`);
 }
-
-
 
 // Bup
 export function bupDataset({

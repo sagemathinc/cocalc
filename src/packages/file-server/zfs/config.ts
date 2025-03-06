@@ -1,4 +1,5 @@
 import { join } from "path";
+import { databaseFilename } from "./names";
 
 export const PREFIX = process.env.COCALC_TEST_MODE
   ? "cocalcfs-test"
@@ -6,7 +7,7 @@ export const PREFIX = process.env.COCALC_TEST_MODE
 
 export const DATA = `/${PREFIX}`;
 
-export const SQLITE3_DATABASE_FILE = join(DATA, "database.sqlite3");
+export const SQLITE3_DATABASE_FILE = databaseFilename(DATA);
 
 // we ONLY put filesystems on pools whose name have this prefix.
 // all other pools are ignored.

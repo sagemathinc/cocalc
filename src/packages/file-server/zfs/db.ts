@@ -47,9 +47,9 @@ function primaryKeyArgs(fs: PrimaryKey) {
   return [namespace, owner_type, owner_id, name];
 }
 
-export function getDb(): Database.Database {
+export function getDb(databaseFile?): Database.Database {
   if (db == null) {
-    db = new Database(SQLITE3_DATABASE_FILE);
+    db = new Database(databaseFile ?? SQLITE3_DATABASE_FILE);
     initDb(db);
   }
   return db!;
@@ -170,16 +170,19 @@ export function touch(fs: PrimaryKey) {
   set({ ...fs, last_edited: new Date() });
 }
 
-export function filesystemExists(fs: PrimaryKey): boolean {
-  const db = getDb();
+export function filesystemExists(
+  fs: PrimaryKey,
+  databaseFile?: string,
+): boolean {
+  const db = getDb(databaseFile);
   const x = db
     .prepare("SELECT COUNT(*) AS count FROM filesystems " + WHERE_PRIMARY_KEY)
     .get(...primaryKeyArgs(fs));
   return (x as any).count > 0;
 }
 
-export function get(fs: PrimaryKey): Filesystem {
-  const db = getDb();
+export function get(fs: PrimaryKey, databaseFile?: string): Filesystem {
+  const db = getDb(databaseFile);
   const filesystem = db
     .prepare("SELECT * FROM filesystems " + WHERE_PRIMARY_KEY)
     .get(...primaryKeyArgs(fs)) as any;
@@ -245,11 +248,13 @@ export function getNamespacesAndPools(): { namespace: string; pool: string }[] {
 export function getRecent({
   namespace,
   cutoff,
+  databaseFile,
 }: {
   namespace?: string;
   cutoff?: Date;
+  databaseFile?: string;
 } = {}): RawFilesystem[] {
-  const db = getDb();
+  const db = getDb(databaseFile);
   if (cutoff == null) {
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
   }
