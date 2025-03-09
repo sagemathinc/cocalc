@@ -219,7 +219,7 @@ export class Listings extends EventEmitter {
     path: string,
     trigger_start_project?: boolean,
   ): Promise<DirectoryListingEntry[]> => {
-    console.trace("getListingDirectly", { path });
+    // console.trace("getListingDirectly", { path });
     if (trigger_start_project) {
       if (
         !(await redux.getActions("projects").start_project(this.project_id))
