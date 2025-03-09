@@ -42,7 +42,7 @@ export async function createTerminalService(path: string) {
       await createTerminal({ ...options, path });
       const session = sessions[path];
       if (session == null) {
-        throw Error("failed to create terminal session");
+        throw Error(`BUG: failed to create terminal session - ${path} (this should not happen)`);
       }
       return session;
     }
@@ -137,19 +137,31 @@ export const createTerminal = reuseInFlight(
       }
     }
     note += "Creating new session.";
-    sessions[path] = new Session({ path, options });
-    await sessions[path].init();
-    return note;
+    let session = new Session({ path, options });
+    await session.init();
+    if (session.state == "closed") {
+      // closed during init -- unlikely but possible; try one more time
+      session = new Session({ path, options });
+      await session.init();
+      if (session.state == "closed") {
+        throw Error(`unable to create terminal session for ${path}`);
+      }
+    } else {
+      sessions[path] = session;
+      return note;
+    }
   },
   {
     createKey: (args) => {
-      return args[0]?.params?.path ?? "";
+      return args[0]?.path ?? "";
     },
   },
 );
 
+type State = "running" | "off" | "closed";
+
 class Session {
-  public state: "running" | "off" | "closed" = "off";
+  public state: State = "off";
   public options;
   private path: string;
   private pty?;
@@ -241,6 +253,9 @@ class Session {
       args.push("--init-file");
       args.push(path_split(initFilename).tail);
     }
+    if (this.state == "closed") {
+      return;
+    }
     const cwd = getCWD(head, this.options.cwd);
     logger.debug("creating pty");
     this.pty = spawn(command, args, {
@@ -252,6 +267,9 @@ class Session {
     this.state = "running";
     logger.debug("creating stream");
     await this.createStream();
+    if ((this.state as State) == "closed") {
+      return;
+    }
     logger.debug("connect stream to pty");
     this.pty.onData((data: string) => {
       this.handleBackendMessages(data);

@@ -147,15 +147,22 @@ export class NatsTerminalConnection extends EventEmitter {
 
   private start = reuseInFlight(async () => {
     this.setState("init");
-    try {
-      await this.api.nats.waitFor({ maxWait: 15000 });
-      await this.api.create(this.options);
-    } catch (err) {
-      this.setState("disconnected");
-      this.emit(
-        "data",
-        `\r\n\r\nUnable to start terminal - ${err}\r\n\r\n[Process not started - press any key]\r\n\r\n`,
-      );
+    let maxWait = 5000;
+    while (true) {
+      try {
+        if (this.state == "closed") {
+          return;
+        }
+        await this.api.nats.waitFor({ maxWait });
+        if (this.state as State == "closed") {
+          return;
+        }
+        await this.api.create(this.options);
+        return;
+      } catch (err) {
+        console.log(err);
+        maxWait = Math.min(15000, 1.3 * maxWait);
+      }
     }
   });
 
@@ -170,8 +177,7 @@ export class NatsTerminalConnection extends EventEmitter {
   init = async () => {
     this.setState("init");
     await this.start();
-    if (this.state == ("disconnected" as State)) {
-      // start failed
+    if (this.state == "closed") {
       return;
     }
     if (this.stream != null) {
