@@ -205,7 +205,11 @@ async function handleChange({
 function supportAutoclose(path: string): boolean {
   // this feels way too "hard coded"; alternatively, maybe we make the kernel or whatever
   // actually update the interest?  or something else...
-  if (path.endsWith(".ipynb.sage-jupyter2") || path.endsWith(".sagews")) {
+  if (
+    path.endsWith(".sage-jupyter2") ||
+    path.endsWith(".sagews") ||
+    path.endsWith(".term")
+  ) {
     return false;
   }
   return true;
@@ -351,7 +355,6 @@ const closeDoc = reuseInFlight(async (path: string) => {
 });
 
 const openDoc = reuseInFlight(async (path: string) => {
-  // todo -- will be async and needs to handle SyncDB and all the config...
   logger.debug("openDoc", { path });
   try {
     const doc = openDocs[path];
