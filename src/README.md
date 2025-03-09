@@ -62,6 +62,9 @@ Launch the install and build **for doing development.**
 
 If you export the PORT environment variable, that determines what port everything listens on.  This determines subtle things about configuration, so do this once and for all in a consistent way.
 
+CoCalc also runs a NATS server listening on two ports on localhost, one for TCP and one for WebSocket connections.  To avoid conflicts, you can customize their ports by setting the environment variables `COCALC_NATS_PORT` (default 4222), and `COCALC_NATS_WS_PORT` (default 8443).
+
+
 **Note**: If you installed `pnpm` locally (instead of globally), simply run `npm run` in place of `pnpm` to execute
 these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts).
 
