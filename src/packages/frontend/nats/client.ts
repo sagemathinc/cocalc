@@ -49,8 +49,9 @@ import {
 import getTime, { getSkew } from "@cocalc/nats/time";
 import { llm } from "@cocalc/nats/llm/client";
 import { inventory } from "@cocalc/nats/sync/inventory";
+import { EventEmitter } from "events";
 
-export class NatsClient {
+export class NatsClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
@@ -62,6 +63,8 @@ export class NatsClient {
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
 
   constructor(client: WebappClient) {
+    super();
+    this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
     this.initBrowserApi();
@@ -88,7 +91,7 @@ export class NatsClient {
         return this.nc;
       }
     }
-    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath,'nats')}`;
+    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
     console.log(`NATS: connecting to ${server}...`);
     const options = {
       ...CONNECT_OPTIONS,
@@ -107,7 +110,10 @@ export class NatsClient {
     return this.nc;
   });
 
-  private setConnectionState = (state) => {
+  private setConnectionState = (
+    state: "connected" | "connecting" | "disconnected",
+  ) => {
+    this.emit(state);
     const page = redux?.getActions("page");
     if (page == null) {
       return;

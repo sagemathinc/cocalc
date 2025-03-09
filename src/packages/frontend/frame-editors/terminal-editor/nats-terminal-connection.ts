@@ -25,6 +25,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private api: TerminalServiceApi;
   private service?;
   private options?;
+  private writeQueue: string = "";
 
   constructor({
     project_id,
@@ -54,7 +55,14 @@ export class NatsTerminalConnection extends EventEmitter {
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
+    webapp_client.nats_client.on("connected", this.clearWriteQueue);
   }
+
+  clearWriteQueue = () => {
+    if (this.writeQueue) {
+      this.write("");
+    }
+  };
 
   setState = (state: State) => {
     this.state = state;
@@ -71,40 +79,50 @@ export class NatsTerminalConnection extends EventEmitter {
       await this.init();
       return;
     }
-    try {
-      if (typeof data != "string") {
-        if (data.cmd == "size") {
-          const { rows, cols } = data;
-          if (
-            rows <= 0 ||
-            cols <= 0 ||
-            rows == Infinity ||
-            cols == Infinity ||
-            isNaN(rows) ||
-            isNaN(cols)
-          ) {
-            // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
-            return;
-          }
+    if (typeof data != "string") {
+      if (data.cmd == "size") {
+        const { rows, cols } = data;
+        if (
+          rows <= 0 ||
+          cols <= 0 ||
+          rows == Infinity ||
+          cols == Infinity ||
+          isNaN(rows) ||
+          isNaN(cols)
+        ) {
+          // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
+          return;
+        }
+        try {
           await this.api.size({
             rows,
             cols,
             browser_id: webapp_client.browser_id,
           });
-        } else if (data.cmd == "cwd") {
-          await this.api.cwd();
-        } else if (data.cmd == "kill") {
-          await this.api.kill();
-        } else {
-          console.warn(`terminal todo: implement cmd ${JSON.stringify(data)}`);
-          return;
+        } catch {
+          // harmless to ignore
         }
+      } else if (data.cmd == "cwd") {
+        try {
+          await this.api.cwd();
+        } catch {}
+      } else if (data.cmd == "kill") {
+        try {
+          await this.api.kill();
+        } catch {}
       } else {
-        await this.api.write(data);
+        console.warn(`terminal todo: implement cmd ${JSON.stringify(data)}`);
+        return;
       }
-    } catch {
-      // any of the above *will* fail, e.g., when the network is down.
-      // TODO: should we retry?
+    } else {
+      try {
+        await this.api.write(this.writeQueue + data);
+        this.writeQueue = "";
+      } catch {
+        if (data) {
+          this.writeQueue += data;
+        }
+      }
     }
   };
 
@@ -135,6 +153,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   close = () => {
+    webapp_client.nats_client.removeListener("connected", this.clearWriteQueue);
     this.stream?.close();
     delete this.stream;
     this.service?.close();
@@ -162,7 +181,6 @@ export class NatsTerminalConnection extends EventEmitter {
         await this.api.create(this.options);
         return;
       } catch (err) {
-        console.log(err);
         maxWait = Math.min(15000, 1.3 * maxWait);
       }
     }
@@ -204,12 +222,16 @@ export class NatsTerminalConnection extends EventEmitter {
     this.handleStreamData(initData);
     this.setReady();
     this.stream.on("change", this.handleStreamData);
+    if (this.writeQueue) {
+      // causes anything in queue to be sent and queue to be cleared:
+      this.write("");
+    }
   };
 
   private setReady = async () => {
     // wait until after render loop of terminal before allowing writing,
     // or we get corruption.
-    await delay(1); // todo is there a better way to know how long to wait?
+    await delay(1);
     this.setState("running");
     this.emit("ready");
   };
