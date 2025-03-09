@@ -27,7 +27,7 @@ describe("create an llm server, client, and stub evaluator, and run an evaluatio
   });
 
   it("calls the llm", async () => {
-    const v: string[] = [];
+    const v: (string | null)[] = [];
     const input = "cocalc";
     const all = await llm({
       account_id: "00000000-0000-4000-8000-000000000000",
@@ -61,7 +61,7 @@ describe("test an evaluate that throws an error half way through", () => {
   });
 
   it("calls the llm", async () => {
-    const v: string[] = [];
+    const v: (string | null)[] = [];
     const input = "cocalc";
     await expect(
       async () =>

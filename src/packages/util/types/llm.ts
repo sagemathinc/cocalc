@@ -32,7 +32,7 @@ export interface ChatOptions extends ChatOptionsApi {
   //   until the output is done and then it is called with undefined.
   // - Maybe the total_tokens, which is stored in the database for analytics,
   //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
-  stream?: (output?: string | null) => void;
+  stream?: (output: string | null) => void;
 }
 
 // This could be Ollama or CustomOpenAI
