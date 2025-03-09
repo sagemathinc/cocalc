@@ -71,38 +71,40 @@ export class NatsTerminalConnection extends EventEmitter {
       await this.init();
       return;
     }
-    if (typeof data != "string") {
-      if (data.cmd == "size") {
-        const { rows, cols } = data;
-        if (
-          rows <= 0 ||
-          cols <= 0 ||
-          rows == Infinity ||
-          cols == Infinity ||
-          isNaN(rows) ||
-          isNaN(cols)
-        ) {
-          // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
+    try {
+      if (typeof data != "string") {
+        if (data.cmd == "size") {
+          const { rows, cols } = data;
+          if (
+            rows <= 0 ||
+            cols <= 0 ||
+            rows == Infinity ||
+            cols == Infinity ||
+            isNaN(rows) ||
+            isNaN(cols)
+          ) {
+            // invalid measurement -- ignore; https://github.com/sagemathinc/cocalc/issues/4158 and https://github.com/sagemathinc/cocalc/issues/4266
+            return;
+          }
+          await this.api.size({
+            rows,
+            cols,
+            browser_id: webapp_client.browser_id,
+          });
+        } else if (data.cmd == "cwd") {
+          await this.api.cwd();
+        } else if (data.cmd == "kill") {
+          await this.api.kill();
+        } else {
+          console.warn(`terminal todo: implement cmd ${JSON.stringify(data)}`);
           return;
         }
-        await this.api.size({
-          rows,
-          cols,
-          browser_id: webapp_client.browser_id,
-        });
-      } else if (data.cmd == "cwd") {
-        await this.api.cwd();
-      } else if (data.cmd == "kill") {
-        await this.api.kill();
       } else {
-        throw Error(`todo -- implement cmd ${JSON.stringify(data)}`);
+        await this.api.write(data);
       }
-      return;
-    }
-    try {
-      this.api.write(data);
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // any of the above *will* fail, e.g., when the network is down.
+      // TODO: should we retry?
     }
   };
 
@@ -154,7 +156,7 @@ export class NatsTerminalConnection extends EventEmitter {
           return;
         }
         await this.api.nats.waitFor({ maxWait });
-        if (this.state as State == "closed") {
+        if ((this.state as State) == "closed") {
           return;
         }
         await this.api.create(this.options);

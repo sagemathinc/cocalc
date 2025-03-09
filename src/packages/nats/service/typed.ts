@@ -40,10 +40,16 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
           };
         }
         return async (...args) => {
-          return await callNatsService({
-            ...options,
-            mesg: { name: prop, args },
-          });
+          try {
+            return await callNatsService({
+              ...options,
+              mesg: { name: prop, args },
+            });
+          } catch (err) {
+            throw Error(
+              `Error calling remote function '${prop}': ${err.message}`,
+            );
+          }
         };
       },
     },
