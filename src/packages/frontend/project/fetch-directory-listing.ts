@@ -5,8 +5,8 @@ import { get_directory_listing } from "./directory-listing";
 import { fromJS, Map } from "immutable";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-const log = (...args) => console.log("fetchDirectoryListing", ...args);
-//const log = (..._args) => {};
+//const log = (...args) => console.log("fetchDirectoryListing", ...args);
+const log = (..._args) => {};
 
 interface FetchDirectoryListingOpts {
   path?: string;

@@ -18,9 +18,9 @@
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r test",
     "prettier-all": "cd packages/",
-    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && cd ${COCALC_ROOT:=$INIT_CWD}/data/nats && ./bin/nats-server -c server.conf ",
-    "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && cd ${COCALC_ROOT:=$INIT_CWD}/data/nats && ./bin/nats-server -DV -c server.conf",
-    "nats-cli": "echo; echo '# Use CoCalc config of NATS (nats and nsc) via this subshell:'; echo; NATS_URL=nats://${COCALC_NATS_SERVER:=localhost}:${COCALC_NATS_PORT:=4222} XDG_DATA_HOME=${COCALC_ROOT:=$INIT_CWD}/data XDG_CONFIG_HOME=${COCALC_ROOT:=$INIT_CWD}/data PATH=${COCALC_ROOT:=$INIT_CWD}/data/nats/bin:$PATH bash"
+    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
+    "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
+    "nats-cli": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main()\""
   },
   "repository": {
     "type": "git",
