@@ -340,7 +340,7 @@ class ChatStream extends EventEmitter {
     super();
   }
 
-  process = (text?: string) => {
+  process = (text: string|null) => {
     // emits undefined text when done (or err below)
     this.emit("token", text);
   };
