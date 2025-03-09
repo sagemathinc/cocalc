@@ -87,7 +87,7 @@ ${config}
   // Ensure that ONLY we can read/write the nats config directory,
   // which contains highly sensitive information.  This could matter
   // on cocalc-docker style systems.
-  await executeCode({ command: "chmod", args: ["og-rwx", nats] });
+  await executeCode({ command: "chmod", args: ["og-rwx", "-R", nats] });
 }
 
 export async function configureNsc() {
