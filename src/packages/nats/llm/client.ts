@@ -1,16 +1,14 @@
 /*
 Client for the nats server in server.ts.
-
-
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import type { ChatOptionsApi } from "@cocalc/util/types/llm";
+import type { ChatOptions } from "@cocalc/util/types/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 import { llmSubject } from "./server";
 
 export async function llm(
-  options: ChatOptionsApi & { stream?: (text: string) => void },
+  options: ChatOptions,
 ): Promise<string> {
   if (!options.system?.trim()) {
     // I noticed in testing that for some models they just fail, so let's be clear immediately.
@@ -29,6 +27,8 @@ export async function llm(
     maxWait: opts.timeout ?? 1000 * 60 * 10,
   })) {
     if (resp.data.length == 0) {
+      // client code also expects null token to know when stream is done.
+      stream?.(null);
       break;
     }
     const { error, text, seq } = jc.decode(resp.data);
