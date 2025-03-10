@@ -10,12 +10,9 @@ High level summary:
 * The ChatOutput interface is what they return in any case.
 */
 
-const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
-
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import OpenAI from "openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -42,7 +39,12 @@ import {
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import type { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
+import type {
+  ChatOptions,
+  ChatOutput,
+  History,
+  Stream,
+} from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
@@ -56,6 +58,8 @@ import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
+
+const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 
 const log = getLogger("llm");
 
@@ -114,14 +118,14 @@ function wrapStream(stream?: ChatOptions["stream"]) {
         stream(str);
       }
       if (closed) {
-        stream();
+        stream(null);
       }
     },
     THROTTLE_STREAM_MS,
     { leading: true, trailing: true },
   );
 
-  const wrapped = (output?: string | undefined): void => {
+  const wrapped = (output: string | null): void => {
     buffer.push(output == null ? end : output);
     throttled();
   };
@@ -270,7 +274,7 @@ interface EvalVertexAIProps {
   input: string;
   // maxTokens?: number;
   model: LanguageModel; // only "gemini-pro";
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number; // only gemini-pro
 }
 
@@ -337,7 +341,7 @@ export async function evaluateOpenAI({
   client: OpenAI;
   model: any;
   maxTokens?: number;
-  stream?: (output?: string) => void;
+  stream?: Stream;
 }): Promise<ChatOutput> {
   if (!isOpenAIModel(model)) {
     throw new Error(`Model "${model}" not an OpenAI model.`);

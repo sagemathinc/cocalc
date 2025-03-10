@@ -4,11 +4,10 @@ import {
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatMistralAI, ChatMistralAIInput } from "@langchain/mistralai";
-
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
@@ -19,7 +18,7 @@ interface MistralOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be ollama-[model]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
 }
@@ -78,9 +77,8 @@ export async function evaluateMistral(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -96,8 +94,7 @@ export async function evaluateMistral(
     opts.stream?.(content);
   }
 
-  // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // we use that GPT3 tokenizer to get an approximate number of tokens
   const prompt_tokens = numTokens(input) + historyTokens;

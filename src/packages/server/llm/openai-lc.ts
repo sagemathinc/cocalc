@@ -6,11 +6,10 @@ import {
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { concat } from "@langchain/core/utils/stream";
 import { ChatOpenAI } from "@langchain/openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isOpenAIModel } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { normalizeOpenAIModel } from ".";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
@@ -22,7 +21,7 @@ interface OpenAIOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be ollama-[model]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
 }
@@ -130,8 +129,7 @@ export async function evaluateOpenAILC(
   // ATTENTION : Do *NOT* log this unless you are doing low level debugging.  It could be pretty big...
   // log.debug("finalResult", finalResult);
 
-  // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // due to "include_usage:true", this should tell us everythingo
   // https://js.langchain.com/v0.2/docs/integrations/chat/openai#streaming-tokens
