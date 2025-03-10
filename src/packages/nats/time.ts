@@ -25,6 +25,20 @@ DEVELOPMENT:
 
 See src/packages/backend/nats/test/time.test.ts for unit tests.
 
+Also do this, noting the directory and import of @cocalc/backend/nats.
+
+~/cocalc/src/packages/backend$ node
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
+> a = require('@cocalc/nats/time'); require('@cocalc/backend/nats')
+{
+  getEnv: [Getter],
+  getConnection: [Function: debounced],
+  init: [Function: init],
+  getCreds: [AsyncFunction: getCreds]
+}
+> await a.default()
+1741643178722.5
 
 */
 
@@ -34,6 +48,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { randomId } from "@cocalc/nats/names";
 import { callback, delay } from "awaiting";
 import { nanos } from "@cocalc/nats/util";
+import { once } from "@cocalc/util/async-utils";
 
 // max time to try when syncing
 const TIMEOUT = 3 * 1000;
@@ -52,12 +67,19 @@ export function close() {
 }
 
 async function syncLoop() {
-  while (state != "closed") {
+  const client = getClient();
+  while (state != "closed" && client.state != "closed") {
+    if (client.state != "connected") {
+      await once(client, "connected");
+    }
     try {
       await getSkew();
       if (state == "closed") return;
       await delay(INTERVAL_GOOD);
     } catch (err) {
+      if (client.state != "connected") {
+        continue;
+      }
       console.log("WARNING: failed to sync clock ", err);
       if (state == "closed") return;
       await delay(INTERVAL_BAD);
