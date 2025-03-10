@@ -50,6 +50,12 @@ import getTime, { getSkew } from "@cocalc/nats/time";
 import { llm } from "@cocalc/nats/llm/client";
 import { inventory } from "@cocalc/nats/sync/inventory";
 import { EventEmitter } from "events";
+import {
+  getClient as getClientWithState,
+  setNatsClient,
+  type ClientWithState,
+  getEnv,
+} from "@cocalc/nats/client";
 
 export class NatsClient extends EventEmitter {
   client: WebappClient;
@@ -61,6 +67,7 @@ export class NatsClient extends EventEmitter {
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
+  private clientWithState: ClientWithState;
 
   constructor(client: WebappClient) {
     super();
@@ -68,7 +75,28 @@ export class NatsClient extends EventEmitter {
     this.client = client;
     this.hub = initHubApi(this.callHub);
     this.initBrowserApi();
+    this.initNatsClient();
+    this.on("state", (state) => {
+      this.emit(state);
+      this.setConnectionState(state);
+    });
   }
+
+  private initNatsClient = () => {
+    setNatsClient({
+      account_id: this.client.account_id,
+      getNatsEnv: this.getNatsEnv,
+    });
+    this.clientWithState = getClientWithState();
+    this.clientWithState.on("state", (state) => {
+      if (state != "closed") {
+        console.log("NATS connection: ", { state });
+        this.emit(state);
+      }
+    });
+  };
+
+  getEnv = async () => await getEnv();
 
   private initBrowserApi = async () => {
     // have to delay so that this.client is fully created.
@@ -80,7 +108,7 @@ export class NatsClient extends EventEmitter {
     }
   };
 
-  getConnection = reuseInFlight(async () => {
+  private getConnection = async () => {
     if (this.nc != null) {
       // undocumented API
       if ((this.nc as any).protocol?.isClosed?.()) {
@@ -106,35 +134,27 @@ export class NatsClient extends EventEmitter {
       this.nc = await nats.connect(options);
     }
     console.log(`NATS: connected to ${server}`);
-    this.monitorConnectionStatus(this.nc);
+    this.setConnectionState("connected");
+    this.monitorConnectionState(this.nc);
     return this.nc;
-  });
+  };
 
-  private setConnectionState = (
-    state: "connected" | "connecting" | "disconnected",
-  ) => {
-    this.emit(state);
+  private setConnectionState = (state?) => {
     const page = redux?.getActions("page");
     if (page == null) {
       return;
     }
     page.setState({
       nats: {
-        state,
+        state: state ?? this.clientWithState.state,
         data: this.natsDataTransfer(),
       },
     } as any);
   };
 
-  private monitorConnectionStatus = async (nc) => {
-    this.setConnectionState("connected");
-    for await (const { type } of nc.status()) {
-      if (type.includes("ping") || type == "update" || type == "reconnect") {
-        // connection is working well
-        this.setConnectionState("connected");
-      } else if (type == "reconnecting") {
-        this.setConnectionState("connecting");
-      }
+  private monitorConnectionState = async (nc) => {
+    for await (const _ of nc.status()) {
+      this.setConnectionState();
     }
   };
 
@@ -159,7 +179,7 @@ export class NatsClient extends EventEmitter {
 
   // deprecated!
   projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
-    const nc = await this.getConnection();
+    const { nc } = await this.getEnv();
     const subject = projectSubject({ project_id, service: "browser-api" });
     const resp = await nc.request(subject, this.jc.encode(mesg), {
       timeout,
@@ -178,7 +198,7 @@ export class NatsClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const nc = await this.getConnection();
+    const { nc } = await this.getEnv();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {
       const resp = await nc.request(
@@ -237,7 +257,7 @@ export class NatsClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const nc = await this.getConnection();
+    const { nc } = await this.getEnv();
     const subject = projectSubject({ project_id, compute_server_id, service });
     const mesg = this.jc.encode({
       name,
@@ -271,7 +291,7 @@ export class NatsClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const nc = await this.getConnection();
+    const { nc } = await this.getEnv();
     const subject = browserSubject({
       account_id: this.client.account_id,
       sessionId,
@@ -306,17 +326,18 @@ export class NatsClient extends EventEmitter {
   };
 
   request = async (subject: string, data: string) => {
-    const c = await this.getConnection();
-    const resp = await c.request(subject, this.sc.encode(data));
+    const { nc } = await this.getEnv();
+    const resp = await nc.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
   };
 
   consumer = async (stream: string) => {
-    const js = jetstream.jetstream(await this.getConnection());
+    const { nc } = await this.getEnv();
+    const js = jetstream.jetstream(nc);
     return await js.consumers.get(stream);
   };
 
-  getEnv = async () => {
+  private getNatsEnv = async () => {
     return {
       sha1,
       jc: this.jc,
@@ -485,7 +506,7 @@ export class NatsClient extends EventEmitter {
   };
 
   microservices = async () => {
-    const nc = await this.getConnection();
+    const { nc } = await this.getEnv();
     // @ts-ignore
     const svcm = new Svcm(nc);
     return svcm.client();

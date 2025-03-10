@@ -12,6 +12,7 @@ DEVELOPMENT:
 import type { NatsEnv, NatsEnvFunction } from "@cocalc/nats/types";
 import { init } from "./time";
 import { EventEmitter } from "events";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 interface Client {
   getNatsEnv: NatsEnvFunction;
@@ -22,7 +23,7 @@ interface Client {
 
 type State = "closed" | "connected" | "connecting" | "disconnected";
 
-export class ClientWithStatus extends EventEmitter {
+export class ClientWithState extends EventEmitter {
   getNatsEnv: NatsEnvFunction;
   account_id?: string;
   project_id?: string;
@@ -32,7 +33,7 @@ export class ClientWithStatus extends EventEmitter {
 
   constructor(client: Client) {
     super();
-    this.getNatsEnv = async () => {
+    this.getNatsEnv = reuseInFlight(async () => {
       if (this.state == "closed") {
         throw Error("client already closed");
       }
@@ -42,7 +43,7 @@ export class ClientWithStatus extends EventEmitter {
       this.env = await client.getNatsEnv();
       this.monitorConnectionState(this.env.nc);
       return this.env;
-    };
+    });
     this.account_id = client.account_id;
     this.project_id = client.project_id;
     this.compute_server_id = client.compute_server_id;
@@ -81,9 +82,9 @@ export class ClientWithStatus extends EventEmitter {
   };
 }
 
-let globalClient: null | ClientWithStatus = null;
+let globalClient: null | ClientWithState = null;
 export function setNatsClient(client: Client) {
-  globalClient = new ClientWithStatus(client);
+  globalClient = new ClientWithState(client);
   setTimeout(init, 1);
 }
 
@@ -94,7 +95,7 @@ export async function getEnv(): Promise<NatsEnv> {
   return await globalClient.getNatsEnv();
 }
 
-export function getClient(): ClientWithStatus {
+export function getClient(): ClientWithState {
   if (globalClient == null) {
     throw Error("must set the global NATS client");
   }

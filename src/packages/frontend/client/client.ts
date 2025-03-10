@@ -38,7 +38,6 @@ import type {
   CreateNatsServiceFunction,
 } from "@cocalc/nats/service";
 import type { NatsEnvFunction } from "@cocalc/nats/types";
-import { setNatsClient } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 
 // This DEBUG variable comes from webpack:
@@ -384,4 +383,3 @@ class Client extends EventEmitter implements WebappClient {
 }
 
 export const webapp_client = new Client();
-setNatsClient(webapp_client);

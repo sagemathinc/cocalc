@@ -69,15 +69,13 @@ export function close() {
 async function syncLoop() {
   const client = getClient();
   while (state != "closed" && client.state != "closed") {
-    if (client.state != "connected") {
-      await once(client, "connected");
-    }
     try {
       await getSkew();
       if (state == "closed") return;
       await delay(INTERVAL_GOOD);
     } catch (err) {
       if (client.state != "connected") {
+        await once(client, "connected");
         continue;
       }
       console.log("WARNING: failed to sync clock ", err);
