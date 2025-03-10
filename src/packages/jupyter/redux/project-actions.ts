@@ -30,10 +30,9 @@ import {
   decodeUUIDtoNum,
   isEncodedNumUUID,
 } from "@cocalc/util/compute/manager";
-import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
-import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
+import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
@@ -164,6 +163,9 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     this._initialize_manager_already_done = true;
 
+    dbg("initialize Jupyter NATS api handler");
+    await this.initNatsApi();
+
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
@@ -196,14 +198,26 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.syncdb.ipywidgets_state.on(
       "change",
-      this.handle_ipywidgets_state_change.bind(this),
+      this.handle_ipywidgets_state_change,
     );
 
     this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
 
     // initialize the websocket api
-    this.initWebsocketApi();
+    if (false) {
+      this.initWebsocketApi();
+    }
   }
+
+  private initNatsApi = async () => {
+    const service = await initNatsService({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    this.syncdb.on("closed", () => {
+      service.close();
+    });
+  };
 
   private async _first_load() {
     const dbg = this.dbg("_first_load");
@@ -1356,7 +1370,7 @@ export class JupyterActions extends JupyterActions0 {
   // object changes, e.g., in response to a user moving a slider in the browser.
   // It crafts a comm message that is sent to the running Jupyter kernel telling
   // it about this change by calling send_comm_message_to_kernel.
-  private handle_ipywidgets_state_change(keys): void {
+  private handle_ipywidgets_state_change = (keys): void => {
     if (this.is_closed()) {
       return;
     }
@@ -1418,10 +1432,12 @@ export class JupyterActions extends JupyterActions0 {
         );
         */
       } else {
-        throw Error(`invalid synctable state -- unknown type '${type}'`);
+        const m = `Jupyter: unknown type '${type}'`;
+        console.warn(m);
+        dbg(m);
       }
     }
-  }
+  };
 
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
@@ -1600,10 +1616,9 @@ export class JupyterActions extends JupyterActions0 {
         // either locally or via a remote compute server, depending on
         // whether this.remoteApiHandler is set (via the
         // register-to-handle-api event above).
-        const response = await this.handleApiRequest(data);
         spark.write({
           event: "message",
-          data: { event: "api-response", response, id: data.id },
+          data: { event: "error", error: "USE THE NEW NATS API!", id: data.id },
         });
         return;
       }
@@ -1690,61 +1705,17 @@ export class JupyterActions extends JupyterActions0 {
     // output could be very BIG:
     // dbg(data);
     if (data.event == "api-request") {
-      const response = await this.handleApiRequest(data.request);
       try {
         await this.syncdb.sendMessageToProject({
           event: "api-response",
           id: data.id,
-          response,
+          response: { error: "USE THE NEW NATS API!" },
         });
       } catch (err) {
         // this happens when the websocket is disconnected
         dbg(`WARNING -- issue responding to message ${err}`);
       }
       return;
-    }
-  };
-
-  private handleApiRequest = async (data) => {
-    if (this.remoteApiHandler != null) {
-      return await this.handleApiRequestViaRemoteApiHandler(data);
-    }
-    const dbg = this.dbg("handleApiRequest");
-    const { path, endpoint, query } = data;
-    dbg("handling request in project", path);
-    try {
-      return await handleApiRequest(path, endpoint, query);
-    } catch (err) {
-      dbg("error -- ", err.message);
-      return { event: "error", message: err.message };
-    }
-  };
-
-  private handleApiRequestViaRemoteApiHandler = async (data) => {
-    const dbg = this.dbg("handleApiRequestViaRemoteApiHandler");
-    dbg(data?.path);
-    try {
-      if (!this.is_project) {
-        throw Error("BUG -- remote api requests only make sense in a project");
-      }
-      if (this.remoteApiHandler == null) {
-        throw Error("BUG -- remote api handler not registered");
-      }
-      // Send a message to the remote asking it to handle this api request,
-      // which calls the function handleMessageFromProject from above in that remote process.
-      const { id, spark, responseCallbacks } = this.remoteApiHandler;
-      spark.write({
-        event: "message",
-        data: { event: "api-request", request: data, id },
-      });
-      const waitForResponse = (cb) => {
-        responseCallbacks[id] = cb;
-      };
-      this.remoteApiHandler.id += 1; // increment sequential protocol message tracker id
-      return (await callback(waitForResponse)).response;
-    } catch (err) {
-      dbg("error -- ", err.message);
-      return { event: "error", message: err.message };
     }
   };
 

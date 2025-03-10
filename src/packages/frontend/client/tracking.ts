@@ -5,29 +5,29 @@
 
 import { WebappClient } from "./client";
 import * as message from "@cocalc/util/message";
+import { redux } from "@cocalc/frontend/app-framework";
 
 export class TrackingClient {
   private client: WebappClient;
   private log_error_cache: { [error: string]: number } = {};
+  private userTrackingEnabled?: string;
 
   constructor(client: WebappClient) {
     this.client = client;
   }
 
-  // Send metrics to the hub this client is connected to.
-  // There is no confirmation or response that this succeeded,
-  // which is fine, since dropping some metrics is fine.
-  public send_metrics(metrics: object): void {
-    this.client.hub_client.send(message.metrics({ metrics }));
-  }
+  user_tracking = async (event: string, value: object): Promise<void> => {
+    if (this.userTrackingEnabled == null) {
+      this.userTrackingEnabled = redux
+        .getStore("customize")
+        ?.get("user_tracking");
+    }
+    if (this.userTrackingEnabled == "yes") {
+      await this.client.nats_client.hub.system.userTracking({ event, value });
+    }
+  };
 
-  public async user_tracking(evt: string, value: object): Promise<void> {
-    await this.client.async_call({
-      message: message.user_tracking({ evt, value }),
-    });
-  }
-
-  public log_error(error: any): void {
+  log_error = (error: any): void => {
     if (typeof error != "string") {
       error = JSON.stringify(error);
     }
@@ -39,9 +39,9 @@ export class TrackingClient {
     this.client.call({
       message: message.log_client_error({ error }),
     });
-  }
+  };
 
-  public async webapp_error(opts: object): Promise<void> {
+  webapp_error = async (opts: object): Promise<void> => {
     await this.client.async_call({ message: message.webapp_error(opts) });
-  }
+  };
 }

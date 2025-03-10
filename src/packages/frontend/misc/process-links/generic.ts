@@ -13,9 +13,9 @@ Define a jQuery plugin that processes links.
 
 import { join } from "path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 type jQueryAPI = Function;
 
@@ -199,7 +199,7 @@ function processMediaTag(
       // j-i should be 36, unless we ever start to have different (vanity) project_ids
       const path = src.slice(j + "/files/".length);
       projectId = src.slice(i + "/projects/".length, j);
-      newSrc = join(appBasePath, projectId, "raw", path);
+      newSrc = fileURL({ project_id: projectId, path });
       y.attr(attr, newSrc);
       return;
     }
@@ -209,7 +209,7 @@ function processMediaTag(
     }
     // we do not have an absolute url, hence we assume it is a
     // relative URL to a file in a project
-    newSrc = join(appBasePath, opts.projectId, "raw", opts.filePath, src);
+    newSrc = `${fileURL({ project_id: opts.projectId, path: opts.filePath })}/${src}`;
   }
   if (newSrc != null) {
     y.attr(attr, newSrc);

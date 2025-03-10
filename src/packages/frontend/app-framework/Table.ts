@@ -48,7 +48,7 @@ export abstract class Table {
     }
 
     this._table.on("error", (error) => {
-      console.warn(`Synctable error (table='${name}'): ${error}`);
+      console.warn(`Synctable error (table='${name}'):`, error);
     });
 
     if (this._change != null) {

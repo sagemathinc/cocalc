@@ -92,7 +92,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   }, [props.is_current]);
 
   useEffect(() => {
-    measure_size();
+    measureSize();
   }, [props.resize, resize]);
 
   function delete_terminal(): void {
@@ -119,7 +119,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     if (terminalRef.current == null) return; // should be impossible.
     terminalRef.current.is_visible = true;
     set_font_size();
-    measure_size();
+    measureSize();
     if (props.is_current) {
       terminalRef.current.focus();
     }
@@ -141,15 +141,15 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     }
     if (terminalRef.current.getOption("fontSize") !== props.font_size) {
       terminalRef.current.set_font_size(props.font_size);
-      measure_size();
+      measureSize();
     }
   }, 200);
 
   useEffect(set_font_size, [props.font_size]);
 
-  function measure_size(): void {
+  function measureSize(): void {
     if (isMountedRef.current) {
-      terminalRef.current?.measure_size();
+      terminalRef.current?.measureSize();
     }
   }
 

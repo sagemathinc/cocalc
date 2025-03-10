@@ -30,6 +30,7 @@ register({
         sign_up_usage_intent: null,
         balance_alert: null,
         auto_balance: null,
+        deleted: null,
       },
     ],
   },

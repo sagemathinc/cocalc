@@ -17,7 +17,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
-
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
@@ -149,7 +148,7 @@ async function executeCodeNoAggregate(
   opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
   opts.ulimit_timeout ??= true;
   opts.err_on_exit ??= true;
-  opts.verbose ??= true;
+  opts.verbose ??= false;
 
   if (opts.verbose) {
     log.debug(`input: ${opts.command} ${opts.args?.join(" ")}`);

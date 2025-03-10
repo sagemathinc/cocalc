@@ -375,12 +375,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return get_kernel_selection(kernels);
   };
 
-  get_raw_link = (path: any) => {
-    return this.redux
-      .getProjectStore(this.get("project_id"))
-      .get_raw_link(path);
-  };
-
   // NOTE: defaults for these happen to be true if not given (due to bad
   // choice of name by some extension author).
   public is_cell_editable(id: string): boolean {

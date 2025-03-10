@@ -251,3 +251,10 @@ export interface Options extends Omit<Config, "syntax"> {
   parser: Syntax; // TODO refactor this to tool
   tabWidth?: number;
 }
+
+export interface FormatResult {
+  status: "ok" | "error";
+  patch?: any;
+  phase?: string;
+  error?: any;
+}

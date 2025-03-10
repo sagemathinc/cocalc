@@ -3,6 +3,26 @@ import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { splitFirst } from "@cocalc/util/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { APP_ROUTES } from "@cocalc/util/routing/app";
+import { join } from "path";
+import { encode_path } from "@cocalc/util/misc";
+
+// URL to use http to download a file from a project or compute server
+// that you collaborate on.
+export function fileURL({
+  project_id,
+  compute_server_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+  compute_server_id?: number;
+}): string {
+  let url = join(appBasePath, project_id, "files", encode_path(path));
+  if (compute_server_id) {
+    url += `?id=${compute_server_id}`;
+  }
+  return url;
+}
 
 function getOrigin(): string {
   // This is a situation where our choice of definition of "/" for the

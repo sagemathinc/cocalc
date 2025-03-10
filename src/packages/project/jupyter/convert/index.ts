@@ -14,7 +14,7 @@ import { parseSource, parseTo } from "./util";
 import { join } from "path";
 import { getLogger } from "@cocalc/project/logger";
 import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
-import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 
 const log = getLogger("jupyter-nbconvert");
 

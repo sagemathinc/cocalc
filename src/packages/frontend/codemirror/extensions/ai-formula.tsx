@@ -242,7 +242,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
         setFullReply("");
       }
     } catch (err) {
-      setError(err.message || err.toString());
+      setError(`${err}`);
     } finally {
       setGenerating(false);
     }

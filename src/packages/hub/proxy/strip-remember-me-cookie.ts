@@ -9,6 +9,7 @@ auth credentials for all users of a project!
 
 import {
   REMEMBER_ME_COOKIE_NAME,
+  NATS_JWT_COOKIE_NAME,
   API_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
 
@@ -16,13 +17,20 @@ export default function stripRememberMeCookie(cookie): {
   cookie: string;
   remember_me: string | undefined; // the value of the cookie we just stripped out.
   api_key: string | undefined;
+  nats_jwt: string | undefined;
 } {
   if (cookie == null) {
-    return { cookie, remember_me: undefined, api_key: undefined };
+    return {
+      cookie,
+      remember_me: undefined,
+      api_key: undefined,
+      nats_jwt: undefined,
+    };
   } else {
     const v: string[] = [];
     let remember_me: string | undefined = undefined;
     let api_key: string | undefined = undefined;
+    let nats_jwt: string | undefined = undefined;
     for (const c of cookie.split(";")) {
       const z = c.split("=");
       if (z[0].trim() == REMEMBER_ME_COOKIE_NAME) {
@@ -32,10 +40,12 @@ export default function stripRememberMeCookie(cookie): {
         remember_me = z[1].trim();
       } else if (z[0].trim() == API_COOKIE_NAME) {
         api_key = z[1].trim();
+      } else if (z[0].trim() == NATS_JWT_COOKIE_NAME) {
+        nats_jwt = z[1].trim();
       } else {
         v.push(c);
       }
     }
-    return { cookie: v.join(";"), remember_me, api_key };
+    return { cookie: v.join(";"), remember_me, api_key, nats_jwt };
   }
 }

@@ -15,7 +15,7 @@ import {
   unpackUserDefinedLLMModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
-import { History } from "@cocalc/util/types/llm";
+import type { History, Stream } from "@cocalc/util/types/llm";
 import { evaluateAnthropic } from "./anthropic";
 import { evaluateCustomOpenAI } from "./custom-openai";
 import { evaluateGoogleGenAILC } from "./google-lc";
@@ -30,7 +30,7 @@ interface UserDefinedOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be user-[type-[model]]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
 }
 

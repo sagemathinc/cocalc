@@ -10,6 +10,7 @@
   "references": [
     { "path": "../backend" },
     { "path": "../database" },
+    { "path": "../nats" },
     { "path": "../util" }
   ]
 }

@@ -171,34 +171,31 @@ export class LLMClient {
       history = truncateHistory(history, maxTokens - n, model);
     }
     // console.log("chatgpt", { input, system, history, project_id, path });
-    const mesg = message.chatgpt({
-      text: input,
+    const options = {
+      input,
       system,
       project_id,
       path,
       history,
       model,
       tag: `app:${tag}`,
-      stream: chatStream != null,
-    });
+    };
 
     if (chatStream == null) {
-      return (await this.client.async_call({ message: mesg })).text;
+      // not streaming
+      return await this.client.nats_client.llm(options);
     }
 
-    chatStream.once("start", () => {
+    chatStream.once("start", async () => {
       // streaming version
-      this.client.call({
-        message: mesg,
-        error_event: true,
-        cb: (err, resp) => {
-          if (err) {
-            chatStream.error(err);
-          } else {
-            chatStream.process(resp.text);
-          }
-        },
-      });
+      try {
+        await this.client.nats_client.llm({
+          ...options,
+          stream: chatStream.process,
+        });
+      } catch (err) {
+        chatStream.error(err);
+      }
     });
 
     return "see stream for output";
@@ -343,14 +340,14 @@ class ChatStream extends EventEmitter {
     super();
   }
 
-  process(text?: string) {
+  process = (text: string|null) => {
     // emits undefined text when done (or err below)
     this.emit("token", text);
-  }
+  };
 
-  error(err) {
+  error = (err) => {
     this.emit("error", err);
-  }
+  };
 }
 
 export type { ChatStream };
