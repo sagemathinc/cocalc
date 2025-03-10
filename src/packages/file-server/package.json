@@ -29,10 +29,10 @@
     "@cocalc/file-server": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/better-sqlite3": "^7.6.4",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/lodash": "^4.14.202",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^8.3.0",
+    "better-sqlite3": "^11.8.1",
     "lodash": "^4.17.21"
   },
   "repository": {

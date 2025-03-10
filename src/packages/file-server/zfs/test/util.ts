@@ -7,21 +7,13 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { initDataDir } from "@cocalc/file-server/zfs/util";
 import { resetDb } from "@cocalc/file-server/zfs/db";
 import { getPools } from "@cocalc/file-server/zfs/pools";
-import { execSync } from "child_process";
 import { map as asyncMap } from "awaiting";
 
-// export "describe" from here that is a no-op if the zpool
-// command is not available:
-function isZpoolAvailable() {
-  try {
-    execSync("which zpool", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
-const Describe = isZpoolAvailable() ? describe : describe.skip;
-export { Describe as describe };
+// export "describe" from here that is a no-op unless TEST_ZFS is set
+
+const Describe = process.env.TEST_ZFS ? describe : describe.skip;
+const describe0 = describe;
+export { Describe as describe, describe0 };
 
 export async function init() {
   if (!context.PREFIX.includes("test")) {
@@ -109,9 +101,9 @@ export async function deleteTestPools(x?: {
         args: ["zpool", "destroy", pool],
       });
     } catch (err) {
-//       if (!`$err}`.includes("no such pool")) {
-//         console.log(err);
-//       }
+      //       if (!`$err}`.includes("no such pool")) {
+      //         console.log(err);
+      //       }
     }
   };
   await asyncMap(pools, pools.length, f);

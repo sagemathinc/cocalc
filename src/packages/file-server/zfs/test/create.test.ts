@@ -8,7 +8,7 @@ pnpm exec jest --watch create.test.ts
 
 // application/typescript text
 import { executeCode } from "@cocalc/backend/execute-code";
-import { createTestPools, deleteTestPools, init, describe } from "./util";
+import { createTestPools, deleteTestPools, init, describe, describe0 } from "./util";
 import {
   createFilesystem,
   createBackup,
@@ -21,6 +21,17 @@ import { join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { uuid } from "@cocalc/util/misc";
 import { map as asyncMap } from "awaiting";
+
+describe0("test for zfs", () => {
+  it("checks for TEST_ZFS", () => {
+    if (!process.env.TEST_ZFS) {
+      // make sure people aren't silently overconfident...
+      console.log(
+        "WARNing: TEST_ZFS not set, so **SKIPPING ALL ZFS FILE SERVER TESTS!**",
+      );
+    }
+  });
+});
 
 describe("creates project, clone project, delete projects", () => {
   let x: any = null;
