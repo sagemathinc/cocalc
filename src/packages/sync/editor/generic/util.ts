@@ -127,3 +127,9 @@ export function three_way_merge(opts: {
   // @ts-ignore
   return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0];
 }
+
+export function isTestClient(client: any) {
+  return !!client?.isTestClient?.();
+}
+
+

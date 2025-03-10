@@ -1814,6 +1814,7 @@ export class Actions<
     // this gets a CM editor, which will eventually
     // exist because there's a cm frame.
     let cm = this._get_cm(frameId);
+    const start = Date.now();
     // This is ugly -- react will render the frame with the
     // editor in it, and after that happens the CodeMirror
     // editor that was created gets registered, and finally
@@ -1821,12 +1822,12 @@ export class Actions<
     // we find it (but for way less than a second).  This sort
     // of crappy code is OK here, since it's just for moving the
     // buffer to a line.
-    for (let i = 0; cm == null && i < 10; i++) {
+    while (Date.now() - start <= 15000 && cm == null) {
       cm = this._get_cm(frameId);
       if (cm == null) {
-        await delay(25);
+        await delay(50);
+        if (this.isClosed()) return;
       }
-      if (this.isClosed()) return;
     }
     if (cm == null) {
       // still failed -- give up.
@@ -1834,6 +1835,13 @@ export class Actions<
     }
 
     const doc = cm.getDoc();
+    // there is a moment between when the editor exists and the actual document
+    // is loaded into it.
+    while (line >= doc.lineCount() && Date.now() - start <= 15000) {
+      if (this.isClosed()) return;
+      await delay(50);
+    }
+
     if (line > doc.lineCount()) {
       line = doc.lineCount();
     }
@@ -1845,8 +1853,6 @@ export class Actions<
     }
     if (cursor) {
       doc.setCursor(pos);
-      // TODO: this is VERY CRAPPY CODE -- wait after,
-      // so cm gets state/value fully set.
       await delay(100);
       if (this.isClosed()) {
         return;

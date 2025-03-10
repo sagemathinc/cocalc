@@ -20,7 +20,7 @@ import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import {
   JupyterStore,
@@ -39,8 +39,9 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
-import { once } from "@cocalc/util/async-utils";
 import latexEnvs from "@cocalc/util/latex-envs";
+import { debounce } from "lodash";
+import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
 
 const { close, required, defaults } = misc;
 
@@ -190,68 +191,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  private apiCallHandler: {
-    id: number; // this is a sequential id used for request/response pairing
-    // when get response from computer server, one of these callbacks gets called:
-    responseCallbacks: { [id: number]: (err: any, response?: any) => void };
-  } | null = null;
-
-  private initApiCallHandler = () => {
-    this.apiCallHandler = { id: 0, responseCallbacks: {} };
-    const { responseCallbacks } = this.apiCallHandler;
-    this.syncdb.on("message", (data) => {
-      const cb = responseCallbacks[data.id];
-      if (cb != null) {
-        delete responseCallbacks[data.id];
-        if (data.response?.event == "error") {
-          cb(data.response.message ?? "error");
-        } else {
-          cb(undefined, data.response);
-        }
-      }
+  protected api = (opts: { timeout?: number } = {}) => {
+    return jupyterApiClient({
+      project_id: this.project_id,
+      path: this.path,
+      timeout: opts.timeout,
     });
   };
-
-  protected async api_call(
-    endpoint: string,
-    query?: any,
-    timeout_ms?: number,
-  ): Promise<any> {
-    if (this._state === "closed" || this.syncdb == null) {
-      throw Error("closed -- jupyter actions -- api_call");
-    }
-    if (this.syncdb.get_state() == "init") {
-      await once(this.syncdb, "ready");
-    }
-    if (this.apiCallHandler == null) {
-      this.initApiCallHandler();
-    }
-    if (this.apiCallHandler == null) {
-      throw Error("bug");
-    }
-
-    this.apiCallHandler.id += 1;
-    const { id, responseCallbacks } = this.apiCallHandler;
-    await this.syncdb.sendMessageToProject({
-      event: "api-request",
-      id,
-      path: this.path,
-      endpoint,
-      query,
-    });
-    const waitForResponse = (cb) => {
-      if (timeout_ms) {
-        setTimeout(() => {
-          if (responseCallbacks[id] == null) return;
-          cb("timeout");
-          delete responseCallbacks[id];
-        }, timeout_ms);
-      }
-      responseCallbacks[id] = cb;
-    };
-    const resp = await callback(waitForResponse);
-    return resp;
-  }
 
   protected dbg = (f: string) => {
     if (this.is_closed()) {
@@ -311,43 +257,51 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // real version is in derived class that project runs.
   }
 
-  fetch_jupyter_kernels = async (): Promise<void> => {
-    let data;
-    const f = async () => {
-      data = await this.api_call("kernels", undefined, 5000);
+  fetch_jupyter_kernels = debounce(
+    reuseInFlight(async (): Promise<void> => {
+      let data;
+      const f = async () => {
+        const api = this.api({ timeout: 5000 });
+        data = await api.kernels();
+        if (this._state === "closed") {
+          return;
+        }
+      };
+      try {
+        await retry_until_success({
+          max_time: 1000 * 15, // up to 15 seconds
+          start_delay: 3000,
+          max_delay: 10000,
+          f,
+          desc: "jupyter:fetch_jupyter_kernels",
+        });
+      } catch (err) {
+        this.set_error(err);
+        return;
+      }
       if (this._state === "closed") {
         return;
       }
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 15, // up to 15 seconds
-        start_delay: 500,
-        max_delay: 5000,
-        f,
-        desc: "jupyter:fetch_jupyter_kernels",
-      });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
-    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-    const kernels = immutable
-      .fromJS(data ?? [])
-      .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
-    const key: string = await this.store.jupyter_kernel_key();
-    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-    this.setState({ kernels });
-    // We must also update the kernel info (e.g., display name), now that we
-    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
-    this.setState({ kernel_info });
-    await this.update_select_kernel_data(); // e.g. "kernel_selection" is drived from "kernels"
-    this.check_select_kernel();
-  };
+      // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+      const kernels = immutable
+        .fromJS(data ?? [])
+        .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
+      const key: string = await this.store.jupyter_kernel_key();
+      jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+      this.setState({ kernels });
+      // We must also update the kernel info (e.g., display name), now that we
+      // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+      const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+      this.setState({ kernel_info });
+      // e.g. "kernel_selection" is derived from "kernels"
+      await this.update_select_kernel_data();
+      this.check_select_kernel();
+    }),
+    // this debounce basically "caches the result" for this long
+    // after attempts to get the kernels:
+    3000,
+    { leading: true, trailing: false },
+  );
 
   set_jupyter_kernels = async () => {
     if (this.store == null) return;
@@ -948,7 +902,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
-      await this.api_call("save_ipynb_file", {});
+      await this.api().save_ipynb_file();
       if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
@@ -1686,7 +1640,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const start = new Date();
     let complete;
     try {
-      complete = await this.api_call("complete", {
+      complete = await this.api().complete({
         code,
         cursor_pos,
       });
@@ -1843,7 +1797,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     let introspect;
     try {
-      introspect = await this.api_call("introspect", {
+      introspect = await this.api().introspect({
         code,
         cursor_pos,
         level,
@@ -1870,9 +1824,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {
-    // TODO: more setStates, awaits, and UI to reflect this happening...
+    const api = this.api({ timeout: 5000 });
     try {
-      await this.api_call("signal", { signal }, 5000);
+      await api.signal(signal);
     } catch (err) {
       this.set_error(err);
     }
@@ -1969,9 +1923,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") {
         return;
       }
-      const data = await this.api_call("kernel_info", {});
+      const data = await this.api().kernel_info();
       this.setState({
-        backend_kernel_info: data,
+        backend_kernel_info: immutable.fromJS(data),
         // this is when the server for this doc started, not when kernel last started!
         start_time: data.start_time,
       });
@@ -2045,7 +1999,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   async fetch_more_output(id: string): Promise<void> {
     const time = this._client.server_time().valueOf();
     try {
-      const more_output = await this.api_call("more_output", { id: id }, 60000);
+      const more_output = await this.api({ timeout: 60000 }).more_output(id);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
         // make output area scrolled, since there is going to be a lot of output
         this.toggle_output(id, "scrolled");
@@ -2138,7 +2092,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     value: any,
   ): Promise<void> => {
     try {
-      await this.api_call("store", { key, value });
+      await this.api().store({ key, value });
     } catch (err) {
       this.set_error(err);
     }

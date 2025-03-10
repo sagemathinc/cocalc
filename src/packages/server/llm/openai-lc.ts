@@ -6,11 +6,10 @@ import {
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { concat } from "@langchain/core/utils/stream";
 import { ChatOpenAI } from "@langchain/openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isOpenAIModel } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { normalizeOpenAIModel } from ".";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
@@ -22,7 +21,7 @@ interface OpenAIOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be ollama-[model]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
 }
@@ -59,14 +58,15 @@ export async function evaluateOpenAILC(
   const isO1 = model != "o1-mini" && model != "o1";
   const streaming = stream != null && isO1;
 
-  log.debug("evaluateOpenAILC", {
-    input,
-    history,
-    system,
-    model,
-    stream: streaming,
-    maxTokens,
-  });
+  // This is also quite big -- only uncomment when developing and needing this.
+  //   log.debug("evaluateOpenAILC", {
+  //     input,
+  //     history,
+  //     system,
+  //     model,
+  //     stream: streaming,
+  //     maxTokens,
+  //   });
 
   const params =
     mode === "cocalc" ? await getParams(model) : { apiKey: opts.apiKey, model };
@@ -93,9 +93,8 @@ export async function evaluateOpenAILC(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -127,10 +126,10 @@ export async function evaluateOpenAILC(
     output = content2string(content);
   }
 
-  log.debug("finalResult", finalResult);
+  // ATTENTION : Do *NOT* log this unless you are doing low level debugging.  It could be pretty big...
+  // log.debug("finalResult", finalResult);
 
-  // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // due to "include_usage:true", this should tell us everythingo
   // https://js.langchain.com/v0.2/docs/integrations/chat/openai#streaming-tokens

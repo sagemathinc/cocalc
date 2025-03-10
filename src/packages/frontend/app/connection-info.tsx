@@ -25,6 +25,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
   const status = useTypedRedux("page", "connection_status");
   const hub = useTypedRedux("account", "hub");
   const page_actions = useActions("page");
+  const nats = useTypedRedux("page", "nats");
 
   function close() {
     page_actions.show_connection(false);
@@ -71,10 +72,25 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         ) : undefined}
         <Row>
           <Col sm={3}>
+            <h4>NATS.io client</h4>
+          </Col>
+          {nats != null && (
+            <Col sm={8}>
+              <pre>
+                {JSON.stringify(nats.toJS(), undefined, 2)
+                  .replace(/{|}|,|\"/g, "")
+                  .trim()
+                  .replace("  data:", "data:")}
+              </pre>
+            </Col>
+          )}
+        </Row>
+        <Row>
+          <Col sm={3}>
             <h4>
               <FormattedMessage
                 id="connection-info.hub_server"
-                defaultMessage="Hub server"
+                defaultMessage="Hub"
                 description={"Ping how long a server takes to respond"}
               />
             </h4>
@@ -91,7 +107,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         </Row>
         <Row>
           <Col sm={3}>
-            <h4>{intl.formatMessage(labels.message_plural, { num: 10 })}</h4>
+            <h4>Hub {intl.formatMessage(labels.message_plural, { num: 10 })}</h4>
           </Col>
           <Col sm={6}>
             <MessageInfo />

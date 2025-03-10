@@ -1,7 +1,6 @@
 import { Badge, Button, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { NavTab } from "@cocalc/frontend/app/nav-tab";
 import { NAV_CLASS } from "@cocalc/frontend/app/top-nav-consts";
@@ -9,7 +8,6 @@ import { labels } from "@cocalc/frontend/i18n";
 import BalanceModal from "@cocalc/frontend/purchases/balance-modal";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency, round2down } from "@cocalc/util/misc";
-import { getBalance as getBalanceUsingApi } from "./api";
 
 export default function BalanceButton({
   style,
@@ -36,10 +34,6 @@ export default function BalanceButton({
     }
   }, [dbBalance]);
 
-  const getBalance = async () => {
-    setBalance(await getBalanceUsingApi());
-  };
-
   const handleRefresh = async () => {
     if (!webapp_client.account_id) {
       // not signed in.
@@ -48,7 +42,7 @@ export default function BalanceButton({
     try {
       onRefresh?.();
       setLoading(true);
-      await getBalance();
+      await webapp_client.purchases_client.getBalance();
     } catch (err) {
       console.warn("Issue updating balance", err);
     } finally {

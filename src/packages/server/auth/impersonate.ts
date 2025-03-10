@@ -1,15 +1,12 @@
 /* Sign in using an impersonation auth_token. */
 
-import Cookies from "cookies";
-
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { isLocale } from "@cocalc/util/i18n/const";
 import { join } from "path";
+import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 export async function signInUsingImpersonateToken({ req, res }) {
   try {
@@ -33,14 +30,8 @@ async function doIt({ req, res }) {
     throw Error(`unknown or expired token: '${auth_token}'`);
   }
   const { account_id } = rows[0];
-
-  const { value, ttl_s } = await createRememberMeCookie(account_id, 12 * 3600);
-  const cookies = new Cookies(req, res);
-  const { samesite_remember_me } = await getServerSettings();
-  cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
-    maxAge: ttl_s * 1000,
-    sameSite: samesite_remember_me,
-  });
+  // maxAge = 12 hours
+  await setSignInCookies({ req, res, account_id, maxAge: 12 * 3600 * 1000 });
 
   const { dns } = await getServerSettings();
   let target = `https://${dns}${join(base_path, "app")}`;

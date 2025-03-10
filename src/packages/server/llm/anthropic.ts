@@ -12,7 +12,7 @@ import {
   AnthropicModel,
   isAnthropicModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
@@ -37,8 +37,8 @@ interface AnthropicOpts {
   input: string; // new input that user types
   system?: string; // extra setup that we add for relevance and context
   history?: History;
-  model: string; // this must be ollama-[model]
-  stream?: (output?: string) => void;
+  model: string;
+  stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
 }
@@ -123,8 +123,7 @@ export async function evaluateAnthropic(
     opts.stream?.(content);
   }
 
-  // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // we use that GPT3 tokenizer to get an approximate number of tokens
   const prompt_tokens = numTokens(input) + historyTokens;
