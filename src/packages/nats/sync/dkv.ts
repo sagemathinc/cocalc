@@ -4,15 +4,50 @@ Always Consistent Centralized Key Value Store
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/backend$ n
-Welcome to Node.js v18.17.1.
-Type ".help" for more information.
-> t = await require("@cocalc/backend/nats/sync").dkv({name:'test'})
+From node.js
+
+    ~/cocalc/src/packages/backend$ n
+    Welcome to Node.js v18.17.1.
+    Type ".help" for more information.
+    > t = await require("@cocalc/backend/nats/sync").dkv({name:'test'})
+
+From the browser:
+
+If you want a persistent distributed key:value store in the browser,
+which shares state to all browser clients for a given **account_id**,
+do this in the dev console:
+
+    > a = await cc.client.nats_client.dkv({name:'test', account_id:cc.client.account_id})
+
+Then do the same thing in another dev console in another browser window:
+
+    > a = await cc.client.nats_client.dkv({name:'test', account_id:cc.client.account_id})
+
+Now do this in one:
+
+    > a.x = 10
+
+and
+
+    > a.x
+    10
+
+in the other.  Yes, it's that easy to have a persistent distributed eventually consistent
+synchronized key-value store!
+
+For library code, replace cc.client by webapp_client, which you get via:
+
+    import { webapp_client } from "@cocalc/frontend/webapp-client"
+
+If instead you need to share state with a project (or compute server), use
+
+> b = await cc.client.nats_client.dkv({name:'test', project_id:'...'})
 
 
 UNIT TESTS: See backend/nats/test/
 
 They aren't right here, because this module doesn't have info to connect to NATS.
+
 */
 
 import { EventEmitter } from "events";
