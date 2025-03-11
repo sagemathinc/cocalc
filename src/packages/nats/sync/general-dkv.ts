@@ -93,8 +93,8 @@ export class GeneralDKV<T = any> extends EventEmitter {
   private kv?: GeneralKV<T>;
   private jc?;
   private merge?: MergeFunction;
-  private local: { [key: string]: any } = {};
-  private saved: { [key: string]: any } = {};
+  private local: { [key: string]: T | typeof TOMBSTONE } = {};
+  private saved: { [key: string]: T | typeof TOMBSTONE } = {};
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
   private client?: ClientWithState;
@@ -245,7 +245,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
         delete x[key];
       }
     }
-    return x;
+    return x as { [key: string]: T };
   };
 
   has = (key: string): boolean => {
@@ -402,7 +402,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
       }
       try {
         status.unsaved += 1;
-        await this.kv.set(key, obj[key]);
+        await this.kv.set(key, obj[key] as T);
         status.unsaved -= 1;
         status.set += 1;
         if (!this.changed.has(key)) {
