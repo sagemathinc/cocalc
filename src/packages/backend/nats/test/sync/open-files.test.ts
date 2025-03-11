@@ -29,20 +29,20 @@ describe("create open file tracker and do some basic operations", () => {
   it("creates two open files tracker (tracking same project) and clear them", async () => {
     o1 = await create();
     o2 = await create();
-    // ensure caching disable so our sync tests are real
+    // ensure caching disabled so our sync tests are real
     expect(o1.getDkv() === o2.getDkv()).toBe(false);
     o1.clear();
     await o1.save();
     expect(o1.hasUnsavedChanges()).toBe(false);
     o2.clear();
-    while (o2.hasUnsavedChanges()) {
-      try {
-        // expected due to merge conflict and autosave being disabled.
-        await o2.save();
-      } catch {
-        await delay(10);
-      }
+    try {
+      await o2.save();
+    } catch {
+      // expected due to merge conflict and autosave being disabled.
+      await delay(50);
+      await o2.save();
     }
+    expect(o2.hasUnsavedChanges()).toBe(false);
   });
 
   it("confirm they are cleared", async () => {

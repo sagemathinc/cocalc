@@ -110,7 +110,6 @@ export async function getSkew(): Promise<number> {
   }
   const start = Date.now();
   const id = randomId();
-  dkv.set(id, "");
   const f = (cb) => {
     const handle = ({ key }) => {
       const end = Date.now();
@@ -125,6 +124,7 @@ export async function getSkew(): Promise<number> {
       }
     };
     dkv.on("change", handle);
+    dkv.set(id, "");
     let timer = setTimeout(() => {
       dkv.removeListener("change", handle);
       dkv.delete(id);

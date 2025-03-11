@@ -106,6 +106,8 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
+import { getEnv } from "@cocalc/nats/client";
+import { len } from "@cocalc/util/misc";
 
 class RejectError extends Error {
   code: string;
@@ -140,15 +142,56 @@ export interface KVLimits {
   max_msg_size: number;
 }
 
+// for dev only:
+const maxMessageSize = 50;
+
+const CHUNK = "chunk";
+
+function chunkedKey({
+  key,
+  chunk,
+  last,
+}: {
+  key: string;
+  chunk?: number;
+  last?: number;
+}) {
+  if (!last || last == 1) {
+    return key;
+  }
+  return `${key}.${chunk}/${last}.${CHUNK}`;
+}
+
+function isChunkedKey(key: string) {
+  return key.endsWith("." + CHUNK);
+}
+
+function parseChunkedKey(key: string): {
+  key: string;
+  chunk: number;
+  last: number;
+} {
+  if (!isChunkedKey(key)) {
+    return { key, chunk: 1, last: 1 };
+  }
+  const v = key.split(".");
+  const [chunk, last] = v[v.length - 2].split("/");
+  return {
+    key: v.slice(0, v.length - 2).join("."),
+    chunk: parseInt(chunk),
+    last: parseInt(last),
+  };
+}
+
 export class GeneralKV<T = any> extends EventEmitter {
   public readonly name: string;
   private options?;
   private filter?: string[];
-  private env: NatsEnv;
+  private env?: NatsEnv;
   private kv?;
   private watch?;
   private all?: { [key: string]: T };
-  private revisions?: { [key: string]: number };
+  private revisions?: { [key: string]: number[] };
   private times?: { [key: string]: Date };
   private sizes?: { [key: string]: number };
   private limits: KVLimits;
@@ -165,7 +208,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     // filter: optionally restrict to subset of named kv store matching these subjects.
     // NOTE: any key name that you *set or delete* should match one of these
     filter?: string | string[];
-    env: NatsEnv;
+    env?: NatsEnv;
     options?;
     limits?: Partial<KVLimits>;
   }) {
@@ -188,6 +231,9 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (this.all != null) {
       return;
     }
+    if (this.env == null) {
+      this.env = await getEnv();
+    }
     const kvm = new Kvm(this.env.nc);
     this.kv = await kvm.create(this.name, {
       compression: true,
@@ -197,15 +243,45 @@ export class GeneralKV<T = any> extends EventEmitter {
       kv: this.kv,
       key: this.filter,
     });
-    this.revisions = revisions;
+    this.revisions = {};
     this.revision = Math.max(0, ...Object.values(await revisions));
-    this.times = times;
+    this.times = {};
     this.sizes = {};
+    const chunks: {
+      [key: string]: { [chunk: number]: { buffer: Buffer; key: string } };
+    } = {};
+    const all0: { [key: string]: T } = {};
     for (const key in all) {
-      this.sizes[key] = all[key].length;
-      all[key] = this.env.jc.decode(all[key]);
+      if (isChunkedKey(key)) {
+        const { key: key0, chunk, last } = parseChunkedKey(key);
+        if (chunks[key0] == null) {
+          chunks[key0] = {};
+        }
+        chunks[key0][chunk] = { buffer: all[key], key };
+        if (len(chunks[key0]) == last) {
+          let size = chunks[key0][1].buffer.length;
+          let r: number[] = [revisions[chunks[key0][1].key]];
+          const v: Buffer[] = [chunks[key0][1].buffer];
+          for (let i = 2; i <= last; i++) {
+            const chunk = chunks[key0][i];
+            v.push(chunk.buffer);
+            size += chunk.buffer.length;
+            r.push(revisions[chunk.key]);
+          }
+          const value = Buffer.concat(v);
+          all0[key0] = this.env.jc.decode(value);
+          this.sizes[key0] = size;
+          this.revisions[key0] = r;
+          this.times[key0] = times[chunks[key0][last - 1].key];
+          delete chunks[key0];
+        }
+      } else {
+        this.sizes[key] = all[key].length;
+        all0[key] = this.env.jc.decode(all[key]);
+        this.times[key] = times[key];
+      }
     }
-    this.all = all;
+    this.all = all0;
     this.emit("connected");
     this.startWatch();
     this.monitorWatch();
@@ -221,6 +297,11 @@ export class GeneralKV<T = any> extends EventEmitter {
       key: this.filter,
       resumeFromRevision,
     });
+
+    const chunks: {
+      [key: string]: { [chunk: number]: { buffer: Buffer; revision: number } };
+    } = {};
+
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
       this.revision = revision;
@@ -228,23 +309,56 @@ export class GeneralKV<T = any> extends EventEmitter {
         this.revisions == null ||
         this.all == null ||
         this.times == null ||
-        this.sizes == null
+        this.sizes == null ||
+        this.env == null
       ) {
         return;
       }
-      this.revisions[key] = revision;
-      const prev = this.all[key];
-      if (value.length == 0) {
-        // delete
-        delete this.all[key];
-        delete this.times[key];
-        delete this.sizes[key];
+
+      if (isChunkedKey(key)) {
+        // TODO: deal with delete here!!!
+        const { key: key0, chunk, last } = parseChunkedKey(key);
+        if (chunks[key0] == null) {
+          chunks[key0] = {};
+        }
+        chunks[key0][chunk] = { buffer: value, revision };
+        if (len(chunks[key0]) == last) {
+          let size = chunks[key0][1].buffer.length;
+          let r: number[] = [chunks[key0][1].revision];
+          const v: Buffer[] = [chunks[key0][1].buffer];
+          for (let i = 2; i <= last; i++) {
+            const chunk = chunks[key0][i];
+            v.push(chunk.buffer);
+            size += chunk.buffer.length;
+            r.push(chunk.revision);
+          }
+          const value = Buffer.concat(v);
+          // note: no need to handle delete here, since deletes will never need to be chunked.
+          this.all[key0] = this.env.jc.decode(value);
+          this.sizes[key0] = size;
+          this.times[key0] = sm.time; // do we need an array of times?
+          console.log("set ", { key0, r });
+          this.revisions[key0] = r;
+          delete chunks[key0];
+          const prev = this.all[key0];
+          this.emit("change", { key: key0, value: this.all[key0], prev });
+        }
       } else {
-        this.all[key] = this.env.jc.decode(value);
-        this.times[key] = sm.time;
-        this.sizes[key] = value.length;
+        console.log("set ", { key, revision });
+        this.revisions[key] = [revision];
+        const prev = this.all[key];
+        if (value.length == 0) {
+          // delete
+          delete this.all[key];
+          delete this.times[key];
+          delete this.sizes[key];
+        } else {
+          this.all[key] = this.env.jc.decode(value);
+          this.times[key] = sm.time;
+          this.sizes[key] = value.length;
+        }
+        this.emit("change", { key, value: this.all[key], prev });
       }
-      this.emit("change", { key, value: this.all[key], prev });
       this.enforceLimits();
     }
   };
@@ -363,7 +477,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     return false;
   };
 
-  delete = async (key: string, revision?: number) => {
+  delete = async (key: string, revision_array?) => {
     this.assertValidKey(key);
     if (
       this.all == null ||
@@ -373,17 +487,45 @@ export class GeneralKV<T = any> extends EventEmitter {
     ) {
       throw Error("not ready");
     }
-    if (this.all[key] !== undefined) {
-      const cur = this.all[key];
-      try {
-        const newRevision = await this.kv.delete(key, {
-          previousSeq: revision ?? this.revisions[key],
+    if (this.all[key] === undefined) {
+      return;
+    }
+    const cur = this.all[key];
+    const revision = revision_array ?? this.revisions[key];
+    try {
+      if (revision != null && revision.length > 1) {
+        // deleting chunked value
+        const last = revision.length;
+        const newRevisions: number[] = [];
+        for (let i = 0; i < last; i++) {
+          const key0 = chunkedKey({ key, chunk: i + 1, last });
+          try {
+            const rev = await this.kv.delete(key0, {
+              previousSeq: revision[i],
+            });
+            newRevisions.push(rev);
+          } catch (err) {
+            console.log("failed to delete ", {
+              key,
+              key0,
+              revision_array,
+              revision,
+              i,
+              err,
+            });
+            throw err;
+          }
+        }
+        this.revisions[key] = newRevisions;
+      } else {
+        const rev = await this.kv.delete(key, {
+          previousSeq: revision[0],
         });
-        this.revisions[key] = newRevision;
-      } catch (err) {
-        this.all[key] = cur;
-        throw err;
+        this.revisions[key] = [rev];
       }
+    } catch (err) {
+      this.all[key] = cur;
+      throw err;
     }
   };
 
@@ -455,7 +597,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         `set: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
       );
     }
-    if (this.all == null || this.revisions == null) {
+    if (this.all == null || this.revisions == null || this.env == null) {
       throw Error("not ready");
     }
     if (isEqual(this.all[key], value)) {
@@ -466,6 +608,32 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
     const revision = this.revisions[key];
     const val = this.env.jc.encode(value);
+
+    if (val.length > maxMessageSize) {
+      // have to chunk
+      let val0 = val;
+      const chunks: Buffer[] = [];
+      while (val0.length > 0) {
+        chunks.push(val0.slice(0, maxMessageSize));
+        val0 = val0.slice(maxMessageSize);
+      }
+      const last = chunks.length;
+      // save the chunks:
+      for (let i = 0; i < last; i++) {
+        const ckey = chunkedKey({ key, chunk: i + 1, last });
+        await this.kv.put(ckey, chunks[i], { previousSeq: revision?.[i] });
+      }
+      if (revision != null && last != revision.length) {
+        // delete all keys from before (to avoid wasting space only)
+        for (let i = 0; i < revision.length; i++) {
+          const ckey = chunkedKey({ key, chunk: i + 1, last: revision.length });
+          await this.kv.delete(ckey);
+        }
+      }
+      // done
+      return;
+    }
+
     if (
       this.limits.max_msg_size > -1 &&
       val.length > this.limits.max_msg_size
@@ -491,6 +659,13 @@ export class GeneralKV<T = any> extends EventEmitter {
         throw err2;
       } else {
         throw err;
+      }
+    }
+    if (revision != null && revision.length > 1) {
+      // from chunked to not chunked:
+      for (let i = 0; i < revision.length; i++) {
+        const ckey = chunkedKey({ key, chunk: i + 1, last: revision.length });
+        await this.kv.delete(ckey);
       }
     }
   };
