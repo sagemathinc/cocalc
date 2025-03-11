@@ -77,6 +77,7 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
+import { getClient, type ClientWithState } from "@cocalc/nats/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -96,6 +97,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
   private saved: { [key: string]: any } = {};
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
+  private client?: ClientWithState;
 
   constructor({
     name,
@@ -131,6 +133,10 @@ export class GeneralDKV<T = any> extends EventEmitter {
     //this.limits = limits;
     this.jc = env.jc;
     this.kv = new GeneralKV({ name, env, filter, options, limits });
+    if (!noAutosave) {
+      this.client = getClient();
+      this.client.on("connected", this.save);
+    }
   }
 
   init = reuseInFlight(async () => {
@@ -142,9 +148,17 @@ export class GeneralDKV<T = any> extends EventEmitter {
     this.emit("connected");
   });
 
-  close = () => {
+  close = async () => {
     if (this.kv == null) {
       return;
+    }
+    if (!this.noAutosave) {
+      try {
+        await this.save();
+      } catch {
+        // [ ] TODO: try localStorage or a file?!
+      }
+      this.client?.removeListener("connected", this.save);
     }
     this.kv.close();
     this.emit("closed");

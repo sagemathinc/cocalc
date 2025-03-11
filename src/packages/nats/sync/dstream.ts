@@ -15,6 +15,8 @@ Type ".help" for more information.
 > s = await require("@cocalc/backend/nats/sync").dstream({project_id:cc.current().project_id,name:'foo'});0
 
 
+See the guide for dkv, since it's very similar, especially for use in a browser.
+
 */
 
 import { EventEmitter } from "events";
@@ -36,6 +38,7 @@ import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
 import { inventory, THROTTLE_MS } from "./inventory";
 import { throttle } from "lodash";
+import { getClient, type ClientWithState } from "@cocalc/nats/client";
 
 const MAX_PARALLEL = 250;
 
@@ -54,6 +57,7 @@ export class DStream<T = any> extends EventEmitter {
   private local: { [id: string]: { mesg: T; subject?: string } } = {};
   private saved: { [seq: number]: T } = {};
   private opts;
+  private client?: ClientWithState;
 
   constructor(opts: DStreamOptions) {
     super();
@@ -70,6 +74,10 @@ export class DStream<T = any> extends EventEmitter {
     this.stream = new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
+    if (!this.noAutosave) {
+      this.client = getClient();
+      this.client.on("connected", this.save);
+    }
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -96,7 +104,12 @@ export class DStream<T = any> extends EventEmitter {
       return;
     }
     if (!this.noAutosave) {
-      await this.save();
+      this.client?.removeListener("connected", this.save);
+      try {
+        await this.save();
+      } catch {
+        // [ ] TODO: try localStorage or a file?!
+      }
     }
     this.stream.close();
     this.emit("closed");
@@ -202,11 +215,11 @@ export class DStream<T = any> extends EventEmitter {
       try {
         await this.attemptToSave();
         //console.log("successfully saved");
-      } catch {
+      } catch (_err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-        //(err) {
-        // console.log("problem saving", err);
+        // [ ] TODO: I do not like silently not dealing with this error!
+        //console.log("problem saving", err);
       }
       if (!this.hasUnsavedChanges()) {
         return;

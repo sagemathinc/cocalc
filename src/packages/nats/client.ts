@@ -33,6 +33,8 @@ export class ClientWithState extends EventEmitter {
 
   constructor(client: Client) {
     super();
+    // many things listen for these events -- way more than 10 things.
+    this.setMaxListeners(500);
     this.getNatsEnv = reuseInFlight(async () => {
       if (this.state == "closed") {
         throw Error("client already closed");

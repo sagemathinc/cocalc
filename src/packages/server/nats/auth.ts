@@ -18,6 +18,8 @@ DOCS:
 
 USAGE:
 
+$ node
+
 a = require('@cocalc/server/nats/auth'); await a.configureNatsUser({account_id:'6aae57c6-08f1-4bb5-848b-3ceb53e61ede'})
 await a.configureNatsUser({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'})
 */
@@ -142,8 +144,17 @@ export async function configureNatsUser(cocalcUser: CoCalcUser) {
     goalPub.add(`*.account-${userId}.>`);
 
     // the account-specific kv stores
-    goalPub.add(`$JS.API.*.*.KV_account-${userId}`);
-    goalPub.add(`$JS.API.*.*.KV_account-${userId}.>`);
+    goalPub.add(`$JS.*.*.*.KV_account-${userId}`);
+    goalPub.add(`$JS.*.*.*.KV_account-${userId}.>`);
+
+    // the account-specific stream:
+    goalPub.add(`$JS.*.*.*.account-${userId}`);
+    goalPub.add(`$JS.*.*.*.account-${userId}.>`);
+    goalPub.add(`$JS.*.*.*.*.account-${userId}`);
+    goalPub.add(`$JS.*.*.*.*.account-${userId}.>`);
+    goalSub.add(`account.${userId}.>`);
+    goalPub.add(`account.${userId}.>`);
+
     // this FC is needed for "flow control" - without this, you get random hangs forever at scale!
     goalPub.add(`$JS.FC.KV_account-${userId}.>`);
 
