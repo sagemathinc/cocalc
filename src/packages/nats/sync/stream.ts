@@ -53,6 +53,10 @@ import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
+import { headers as createHeaders } from "@nats-io/nats-core";
+
+// make this VERY small for development purposes.
+const MAX_MESSAGE_SIZE = 900000;
 
 class PublishRejectError extends Error {
   code: string;
@@ -130,8 +134,9 @@ export class Stream<T = any> extends EventEmitter {
   private jsm;
   private stream?;
   private watch?;
-  // don't do "this.raw=" or "this.messages=" anywhere in this class!
-  public readonly raw: JsMsg[] = [];
+
+  // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
+  public readonly raw: JsMsg[][] = [];
   public readonly messages: T[] = [];
 
   constructor({
@@ -235,12 +240,12 @@ export class Stream<T = any> extends EventEmitter {
 
   // get server assigned global sequence number of n-th message in stream
   seq = (n: number): number | undefined => {
-    return this.raw[n]?.seq;
+    return last(this.raw[n])?.seq;
   };
 
   // get server assigned time of n-th message in stream
   time = (n: number): Date | undefined => {
-    const r = this.raw[n];
+    const r = last(this.raw[n]);
     if (r == null) {
       return;
     }
@@ -274,18 +279,43 @@ export class Stream<T = any> extends EventEmitter {
     }
     this.enforceLimits();
     let resp;
-    try {
-      resp = await this.js.publish(subject ?? this.subject, data, options);
-    } catch (err) {
-      if (err.code == "MAX_PAYLOAD_EXCEEDED") {
-        // nats rejects due to payload size
-        const err2 = new PublishRejectError(`${err}`);
-        err2.code = "REJECT";
-        err2.mesg = mesg;
-        err2.subject = subject;
-        throw err2;
-      } else {
-        throw err;
+    const chunks: Buffer[] = [];
+    const headers: ReturnType<typeof createHeaders>[] = [];
+    if (data.length > MAX_MESSAGE_SIZE) {
+      // we chunk the message into blocks of size MAX_MESSAGE_SIZE,
+      // to fit NATS message size limits.  We include a header
+      // so we can re-assemble the chunks later.
+      const last = Math.ceil(data.length / MAX_MESSAGE_SIZE) - 1;
+      let data0 = data;
+      while (data0.length > 0) {
+        chunks.push(data0.slice(0, MAX_MESSAGE_SIZE));
+        data0 = data0.slice(MAX_MESSAGE_SIZE);
+        const h = createHeaders();
+        h.append("chunk", `${chunks.length - 1}/${last}`);
+        headers.push(h);
+      }
+    } else {
+      // trivial chunk and no header needed.
+      chunks.push(data);
+    }
+
+    for (let i = 0; i < chunks.length; i++) {
+      try {
+        resp = await this.js.publish(subject ?? this.subject, chunks[i], {
+          ...options,
+          headers: headers[i],
+        });
+      } catch (err) {
+        if (err.code == "MAX_PAYLOAD_EXCEEDED") {
+          // nats rejects due to payload size
+          const err2 = new PublishRejectError(`${err}`);
+          err2.code = "REJECT";
+          err2.mesg = mesg;
+          err2.subject = subject;
+          throw err2;
+        } else {
+          throw err;
+        }
       }
     }
     this.enforceLimits();
@@ -339,10 +369,33 @@ export class Stream<T = any> extends EventEmitter {
       }
       const fetch = await consumer.fetch({ max_messages: 1000 });
       this.watch = fetch;
+      let chunks: JsMsg[] = [];
       for await (const mesg of fetch) {
-        // count += 1;
+        let isChunked = false;
+        // chunked?
+        for (const [key, value] of mesg.headers ?? []) {
+          if (key == "chunk") {
+            isChunked = true;
+            const v = value[0].split("/");
+            if (v[0] == "0") {
+              // first chunk
+              chunks = [mesg];
+            } else {
+              chunks.push(mesg);
+            }
+            if (v[0] == v[1]) {
+              // have all the chunks
+              this.handle(chunks, true);
+              this.enforceLimits();
+            }
+          }
+        }
+        if (!isChunked) {
+          // not chunked
+          this.handle([mesg], true);
+          this.enforceLimits();
+        } // count += 1;
         const pending = mesg.info.pending;
-        this.handle(mesg, true);
         if (pending <= 0) {
           return consumer;
         }
@@ -367,9 +420,33 @@ export class Stream<T = any> extends EventEmitter {
     this.emit("connected");
     const consume = await consumer.consume();
     this.watch = consume;
+    let chunks: JsMsg[] = [];
     for await (const mesg of consume) {
-      this.handle(mesg, false);
-      this.enforceLimits();
+      let isChunked = false;
+      // chunked?
+      for (const [key, value] of mesg.headers ?? []) {
+        if (key == "chunk") {
+          isChunked = true;
+          console.log({ key, value });
+          const v = value[0].split("/");
+          if (v[0] == "0") {
+            // first chunk
+            chunks = [mesg];
+          } else {
+            chunks.push(mesg);
+          }
+          if (v[0] == v[1]) {
+            // have all the chunks
+            this.handle(chunks, false);
+            this.enforceLimits();
+          }
+        }
+      }
+      if (!isChunked) {
+        // not chunked
+        this.handle([mesg], false);
+        this.enforceLimits();
+      }
     }
   };
 
@@ -388,7 +465,7 @@ export class Stream<T = any> extends EventEmitter {
           // starting AFTER the last event we retrieved
           this.watch.stop(); // stop current watch
           // make new one:
-          const start_seq = this.raw[this.raw.length - 1]?.seq + 1;
+          const start_seq = last(this.raw[this.raw.length - 1])?.seq + 1;
           const consumer = await this.fetchInitialData({ start_seq });
           if (this.stream == null) {
             // closed
@@ -403,16 +480,25 @@ export class Stream<T = any> extends EventEmitter {
     }
   };
 
-  private decode = (raw: JsMsg) => {
+  private decode = (raw: JsMsg[]) => {
+    if (raw.length == 0) {
+      throw Error("must be at least one chunk");
+    }
+    const data =
+      raw.length == 1
+        ? raw[0].data
+        : Buffer.concat(raw.map((mesg) => mesg.data));
+
     try {
-      return this.env.jc.decode(raw.data);
-    } catch {
-      // better than crashing
-      return raw.data;
+      return this.env.jc.decode(data);
+    } catch (_err) {
+      // console.log("WARNING: issue decoding nats stream data", { data, _err });
+      // better than crashing:
+      return data;
     }
   };
 
-  private handle = (raw: JsMsg, noEmit = false) => {
+  private handle = (raw: JsMsg[], noEmit: boolean) => {
     const mesg = this.decode(raw);
     this.messages.push(mesg);
     this.raw.push(raw);
@@ -450,7 +536,7 @@ export class Stream<T = any> extends EventEmitter {
         filter: this.filter,
       });
     } else {
-      const { seq } = this.raw[index + 1];
+      const { seq } = last(this.raw[index + 1]);
       await this.jsm.streams.purge(this.jsname, {
         filter: this.filter,
         seq,
@@ -468,7 +554,9 @@ export class Stream<T = any> extends EventEmitter {
     let bytes = 0;
     for (const raw of this.raw) {
       count += 1;
-      bytes += raw.data.length;
+      for (const r of raw) {
+        bytes += r.data.length;
+      }
     }
     return { count, bytes };
   };
@@ -506,10 +594,10 @@ export class Stream<T = any> extends EventEmitter {
           // to avoid potential clock skew, we define *now* as the time of the most
           // recent message.  For us, this should be fine, since we only impose limits
           // when writing new messages, and none of these limits are guaranteed.
-          const now = recent.info.timestampNanos;
+          const now = last(recent).info.timestampNanos;
           const cutoff = now - max_age;
           for (let i = this.raw.length - 1; i >= 0; i--) {
-            if (this.raw[i].info.timestampNanos < cutoff) {
+            if (last(this.raw[i]).info.timestampNanos < cutoff) {
               // it just went over the limit.  Everything before
               // and including the i-th message must be deleted.
               setIndex(i, "max_age");
@@ -523,7 +611,9 @@ export class Stream<T = any> extends EventEmitter {
       if (max_bytes >= 0) {
         let t = 0;
         for (let i = this.raw.length - 1; i >= 0; i--) {
-          t += this.raw[i].data.length;
+          for (const r of this.raw[i]) {
+            t += r.data.length;
+          }
           if (t > max_bytes) {
             // it just went over the limit.  Everything before
             // and including the i-th message must be deleted.
@@ -560,21 +650,45 @@ export class Stream<T = any> extends EventEmitter {
     let i = 0;
     // grab the messages.  This should be very efficient since it
     // internally grabs them in batches.
-    const raw: any[] = [];
-    const messages: any[] = [];
-    const cur = this.raw[0]?.seq;
-    for await (const x of fetch) {
-      if (cur != null && x.seq >= cur) {
+    const raw: JsMsg[][] = [];
+    const messages: T[] = [];
+    const cur = last(this.raw[0])?.seq;
+    let chunks: JsMsg[] = [];
+    for await (const mesg of fetch) {
+      if (cur != null && mesg.seq >= cur) {
         break;
       }
-      raw.push(x);
-      messages.push(this.decode(x));
+
+      let isChunked = false;
+      // chunked?
+      for (const [key, value] of mesg.headers ?? []) {
+        if (key == "chunk") {
+          isChunked = true;
+          const v = value[0].split("/");
+          if (v[0] == "0") {
+            // first chunk
+            chunks = [mesg];
+          } else {
+            chunks.push(mesg);
+          }
+          if (v[0] == v[1]) {
+            // have all the chunks
+            raw.push(chunks);
+            messages.push(this.decode(chunks));
+          }
+        }
+      }
+      if (!isChunked) {
+        // not chunked
+        raw.push([mesg]);
+        messages.push(this.decode([mesg]));
+      }
       i += 1;
       if (i >= info.num_pending) {
         break;
       }
     }
-    // mutate the arrows this.raw and this.messages by splicing in
+    // mutate the array this.raw and this.messages by splicing in
     // raw and messages at the beginning:
     this.raw.unshift(...raw);
     this.messages.unshift(...messages);
@@ -630,4 +744,11 @@ export async function stream<T>(
   options: UserStreamOptions,
 ): Promise<Stream<T>> {
   return await cache(options);
+}
+
+export function last(v: any[] | undefined) {
+  if (v === undefined) {
+    return v;
+  }
+  return v[v.length - 1];
 }

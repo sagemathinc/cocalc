@@ -25,6 +25,7 @@ import {
   type StreamOptions,
   type UserStreamOptions,
   userStreamOptionsKey,
+  last,
 } from "./stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -51,7 +52,7 @@ export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
   private stream?: Stream;
   private messages: T[];
-  private raw: JsMsg[];
+  private raw: JsMsg[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: { mesg: T; subject?: string } } = {};
@@ -91,8 +92,8 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (mesg, raw) => {
-      delete this.saved[raw.seq];
+    this.stream.on("change", (mesg: T, raw: JsMsg[]) => {
+      delete this.saved[last(raw).seq];
       this.emit("change", mesg);
     });
     await this.stream.init();
@@ -156,7 +157,7 @@ export class DStream<T = any> extends EventEmitter {
   // sequence number of n-th message
   seq = (n: number): number | undefined => {
     if (n < this.raw.length) {
-      return this.raw[n]?.seq;
+      return last(this.raw[n])?.seq;
     }
     const v = Object.keys(this.saved);
     if (n < v.length + this.raw.length) {
@@ -165,7 +166,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   time = (n: number): Date | undefined => {
-    const r = this.raw[n];
+    const r = last(this.raw[n]);
     if (r == null) {
       return;
     }
@@ -236,7 +237,7 @@ export class DStream<T = any> extends EventEmitter {
       try {
         // @ts-ignore
         const { seq } = await this.stream.publish(mesg, subject, { msgID: id });
-        if ((this.raw[this.raw.length - 1]?.seq ?? -1) < seq) {
+        if ((last(this.raw[this.raw.length - 1])?.seq ?? -1) < seq) {
           // it still isn't in this.raw
           this.saved[seq] = mesg;
         }
