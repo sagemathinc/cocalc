@@ -55,9 +55,6 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 
-// make this VERY small for development purposes.
-const MAX_MESSAGE_SIZE = 900000;
-
 class PublishRejectError extends Error {
   code: string;
   mesg: any;
@@ -281,15 +278,17 @@ export class Stream<T = any> extends EventEmitter {
     let resp;
     const chunks: Buffer[] = [];
     const headers: ReturnType<typeof createHeaders>[] = [];
-    if (data.length > MAX_MESSAGE_SIZE) {
-      // we chunk the message into blocks of size MAX_MESSAGE_SIZE,
+    // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
+    const maxMessageSize = this.env.nc.info.max_payload - 1000;
+    if (data.length > maxMessageSize) {
+      // we chunk the message into blocks of size maxMessageSize,
       // to fit NATS message size limits.  We include a header
       // so we can re-assemble the chunks later.
-      const last = Math.ceil(data.length / MAX_MESSAGE_SIZE) - 1;
+      const last = Math.ceil(data.length / maxMessageSize) - 1;
       let data0 = data;
       while (data0.length > 0) {
-        chunks.push(data0.slice(0, MAX_MESSAGE_SIZE));
-        data0 = data0.slice(MAX_MESSAGE_SIZE);
+        chunks.push(data0.slice(0, maxMessageSize));
+        data0 = data0.slice(maxMessageSize);
         const h = createHeaders();
         h.append("chunk", `${chunks.length - 1}/${last}`);
         headers.push(h);
@@ -427,7 +426,6 @@ export class Stream<T = any> extends EventEmitter {
       for (const [key, value] of mesg.headers ?? []) {
         if (key == "chunk") {
           isChunked = true;
-          console.log({ key, value });
           const v = value[0].split("/");
           if (v[0] == "0") {
             // first chunk

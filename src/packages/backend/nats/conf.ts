@@ -26,6 +26,11 @@ const confPath = join(nats, "server.conf");
 export const natsServerUrl = `nats://${natsServer}:${natsPorts.server}`;
 export const natsAccountName = "cocalc";
 
+// I tested and if you make this bigger, then smaller, it does NOT break
+// large jetstream messages created when it was bigger.  So it should be
+// safe to adjust.
+const max_payload = "1MB";
+
 export async function configureNatsServer() {
   logger.debug("configureNatsServer", { confPath, natsPorts });
   if (await pathExists(confPath)) {
@@ -40,6 +45,8 @@ export async function configureNatsServer() {
     confPath,
     `
 listen: ${natsServer}:${natsPorts.server}
+
+max_payload:${max_payload}
 
 jetstream: enabled
 
