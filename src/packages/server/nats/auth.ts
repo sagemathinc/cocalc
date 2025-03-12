@@ -47,7 +47,7 @@ export async function nsc(
 // TODO: consider making the names shorter strings using https://www.npmjs.com/package/short-uuid
 
 // A CoCalc User is (so far): a project or account or a hub (not covered here).
-type CoCalcUser =
+export type CoCalcUser =
   | {
       account_id: string;
       project_id?: string;

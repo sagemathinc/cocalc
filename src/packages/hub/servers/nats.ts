@@ -16,6 +16,8 @@ import { type Router } from "express";
 import getAccount from "@cocalc/server/auth/get-account";
 import setNatsCookie from "@cocalc/server/auth/set-nats-cookie";
 import { natsWebsocketServer } from "@cocalc/backend/data";
+import { getApiKey } from "@cocalc/server/auth/api";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 
 const logger = getLogger("hub:nats");
 
@@ -35,6 +37,21 @@ export async function proxyNatsWebsocket(req, socket, head) {
 
 export function initNatsServer(router: Router) {
   router.get("/nats", async (req, res) => {
+    if (req.header("Authorization")) {
+      // api-key access
+      try {
+        const api_key = await getApiKey(req);
+        const user = await getAccountWithApiKey(api_key);
+        if (user == null) {
+          res.json({ error: "not signed in via api key" });
+        }
+        await setNatsCookie({ req, res, ...user });
+        res.json(user);
+      } catch (err) {
+        res.json({ error: `${err}` });
+      }
+    }
+    // cookie access?
     const account_id = await getAccount(req);
     if (account_id) {
       try {
