@@ -493,6 +493,7 @@ export class Stream<T = any> extends EventEmitter {
     const data =
       raw.length == 1
         ? raw[0].data
+	// @ts-ignore -- for nextjs prod
         : Buffer.concat(raw.map((mesg) => mesg.data));
 
     try {
