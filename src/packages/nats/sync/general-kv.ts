@@ -50,6 +50,22 @@ before you.
   get the current time from NATS, and use that.  I don't know a "good" way to get the current
   time except maybe publishing a message to myself...?
 
+
+CHUNKING:
+
+
+Similar to streams, unlike NATS itself, hwere we allow storing arbitrarily large
+values, in particular, values that could be much larger than the configured message
+size.  When doing a set if the value exceeds the limit, we store the part of
+the value that fits, and store a *header* that describes where the rest of the
+values are stored.   For a given key, the extra chunks are stored with keys:
+
+          ${key}.${i}.chunk
+
+When receiving changes, these extra chunks are temporarily kept separately,
+then used to compute the value for key.  All other paramaters, e.g., sequence
+numbers, last time, etc., use the main key.
+
 TODO:
 
 - [ ] maybe expose some functionality related to versions/history?
@@ -106,6 +122,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
+import { headers as createHeaders } from "@nats-io/nats-core";
 
 class RejectError extends Error {
   code: string;
@@ -149,6 +166,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private watch?;
   private all?: { [key: string]: T };
   private revisions?: { [key: string]: number };
+  private chunkCounts: { [key: string]: number } = {};
   private times?: { [key: string]: Date };
   private sizes?: { [key: string]: number };
   private limits: KVLimits;
@@ -193,22 +211,92 @@ export class GeneralKV<T = any> extends EventEmitter {
       compression: true,
       ...this.options,
     });
-    const { all, revisions, times } = await getAllFromKv({
+    const { all, revisions, times, headers } = await getAllFromKv({
       kv: this.kv,
       key: this.filter,
     });
     this.revisions = revisions;
-    this.revision = Math.max(0, ...Object.values(await revisions));
     this.times = times;
+    this.chunkCounts = {};
     this.sizes = {};
+    const usedKeys = new Set<string>();
+    const all0: { [key: string]: T } = {};
+    const chunkData: {
+      [key: string]: { chunkCount?: number; chunks: Buffer[] };
+    } = {};
     for (const key in all) {
-      this.sizes[key] = all[key].length;
-      all[key] = this.env.jc.decode(all[key]);
+      let value: Buffer | null = null;
+      const chunkCount = getChunkCount(headers[key]);
+      let chunkKey: string = "";
+      let key0 = "";
+      if (chunkCount) {
+        if (chunkData[key] == null) {
+          chunkData[key] = { chunkCount, chunks: [all[key]] };
+        } else {
+          chunkData[key].chunkCount = chunkCount;
+          chunkData[key].chunks[0] = all[key];
+        }
+        chunkKey = key;
+      } else if (isChunkedKey(key)) {
+        delete this.times[key];
+        delete this.revisions[key];
+        const { key: ckey, index } = parseChunkedKey(key);
+        chunkKey = ckey;
+        if (chunkData[chunkKey] == null) {
+          chunkData[chunkKey] = { chunks: [] };
+        }
+        chunkData[chunkKey].chunks[index] = all[key];
+      } else {
+        key0 = key;
+        value = all[key];
+        usedKeys.add(key0);
+      }
+
+      if (chunkKey && chunkData[chunkKey].chunkCount != null) {
+        let i = 0;
+        for (const chunk of chunkData[chunkKey].chunks) {
+          if (chunk !== undefined) {
+            i += 1;
+          }
+        }
+        const { chunkCount } = chunkData[chunkKey];
+        if (i >= chunkCount!) {
+          value = Buffer.concat(chunkData[chunkKey].chunks);
+          key0 = chunkKey;
+          this.chunkCounts[key0] = chunkCount!;
+          delete chunkData[chunkKey];
+          usedKeys.add(chunkKey);
+          for (let chunk = 1; chunk < chunkCount!; chunk++) {
+            usedKeys.add(chunkedKey({ key: chunkKey, chunk }));
+          }
+        }
+      }
+
+      if (value == null) {
+        continue;
+      }
+      this.sizes[key0] = value.length;
+      try {
+        all0[key0] = this.env.jc.decode(value);
+      } catch (err) {
+        // invalid json -- corruption.  I hit this ONLY when doing development
+        // and explicitly putting bad data in.  This isn't normal.  But it's
+        // help to make this a warning, in order to not make all data not accessible.
+        console.warn(`WARNING: unable to read ${key0} -- ${err}`);
+      }
     }
-    this.all = all;
+    this.all = all0;
+    this.revision = Math.max(0, ...Object.values(this.revisions));
     this.emit("connected");
     this.startWatch();
     this.monitorWatch();
+
+    // Also anything left at this point is garbage that needs to be freed:
+    for (const key in all) {
+      if (!usedKeys.has(key)) {
+        await this.kv.delete(key);
+      }
+    }
   });
 
   private startWatch = async ({
@@ -221,6 +309,13 @@ export class GeneralKV<T = any> extends EventEmitter {
       key: this.filter,
       resumeFromRevision,
     });
+    const chunkData: {
+      [key: string]: {
+        chunkCount?: number;
+        chunks: Buffer[];
+        revision?: number;
+      };
+    } = {};
     for await (const x of this.watch) {
       const { revision, key, value, sm } = x;
       this.revision = revision;
@@ -232,19 +327,73 @@ export class GeneralKV<T = any> extends EventEmitter {
       ) {
         return;
       }
-      this.revisions[key] = revision;
-      const prev = this.all[key];
-      if (value.length == 0) {
-        // delete
-        delete this.all[key];
-        delete this.times[key];
-        delete this.sizes[key];
+
+      let value0: Buffer | null = null;
+      const chunkCount = getChunkCount(sm.headers);
+      let chunkKey: string = "";
+      let key0 = "";
+      let revision0 = 0;
+      if (chunkCount) {
+        if (chunkData[key] == null) {
+          chunkData[key] = { chunkCount, chunks: [value], revision };
+        } else {
+          chunkData[key].chunkCount = chunkCount;
+          chunkData[key].chunks[0] = value;
+          chunkData[key].revision = revision;
+        }
+        chunkKey = key;
+      } else if (isChunkedKey(key)) {
+        const { key: ckey, index } = parseChunkedKey(key);
+        chunkKey = ckey;
+        if (chunkData[chunkKey] == null) {
+          chunkData[chunkKey] = { chunks: [] };
+        }
+        chunkData[chunkKey].chunks[index] = value;
       } else {
-        this.all[key] = this.env.jc.decode(value);
-        this.times[key] = sm.time;
-        this.sizes[key] = value.length;
+        key0 = key;
+        value0 = value;
+        revision0 = revision;
+        delete this.chunkCounts[key0];
       }
-      this.emit("change", { key, value: this.all[key], prev });
+
+      if (chunkKey && chunkData[chunkKey].chunkCount != null) {
+        let i = 0;
+        for (const chunk of chunkData[chunkKey].chunks) {
+          if (chunk !== undefined) {
+            i += 1;
+          }
+        }
+        const { chunkCount } = chunkData[chunkKey];
+        if (i >= chunkCount!) {
+          value0 = Buffer.concat(chunkData[chunkKey].chunks);
+          key0 = chunkKey;
+          const r = chunkData[chunkKey].revision;
+          if (r == null) {
+            throw Error("bug");
+          }
+          revision0 = r;
+          this.chunkCounts[chunkKey] = chunkCount!;
+          delete chunkData[chunkKey];
+        }
+      }
+
+      if (value0 == null) {
+        continue;
+      }
+      this.revisions[key0] = revision0;
+      const prev = this.all[key0];
+      if (value0.length == 0) {
+        // delete
+        delete this.all[key0];
+        delete this.times[key0];
+        delete this.sizes[key0];
+        delete this.chunkCounts[key0];
+      } else {
+        this.all[key0] = this.env.jc.decode(value0);
+        this.times[key0] = sm.time;
+        this.sizes[key0] = value0.length;
+      }
+      this.emit("change", { key: key0, value: this.all[key0], prev });
       this.enforceLimits();
     }
   };
@@ -384,6 +533,13 @@ export class GeneralKV<T = any> extends EventEmitter {
         this.all[key] = cur;
         throw err;
       }
+      if (this.chunkCounts[key]) {
+        // garbage collect the extra chunks
+        for (let chunk = 1; chunk < this.chunkCounts[key]; chunk++) {
+          await this.kv.delete(chunkedKey({ key, chunk }));
+        }
+        delete this.chunkCounts[key];
+      }
     }
   };
 
@@ -465,7 +621,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       return await this.delete(key);
     }
     const revision = this.revisions[key];
-    const val = this.env.jc.encode(value);
+    let val = this.env.jc.encode(value);
     if (
       this.limits.max_msg_size > -1 &&
       val.length > this.limits.max_msg_size
@@ -478,19 +634,60 @@ export class GeneralKV<T = any> extends EventEmitter {
       err.key = key;
       throw err;
     }
-    try {
-      await this.kv.put(key, val, {
-        previousSeq: revision,
-      });
-    } catch (err) {
-      if (err.code == "MAX_PAYLOAD_EXCEEDED") {
-        // nats rejects due to payload size
-        const err2 = new RejectError(`${err}`);
-        err2.code = "REJECT";
-        err2.key = key;
-        throw err2;
-      } else {
-        throw err;
+
+    const maxMessageSize = this.env.nc.info.max_payload - 10000;
+
+    if (val.length > maxMessageSize) {
+      // chunking
+      let val0 = val;
+      const chunks: Buffer[] = [];
+      while (val0.length > 0) {
+        chunks.push(val0.slice(0, maxMessageSize));
+        val0 = val0.slice(maxMessageSize);
+      }
+      val = chunks[0];
+      let headers = createHeaders();
+      headers.append("chunks", `${chunks.length}`);
+      await jetstreamPut(this.kv, key, val, { previousSeq: revision, headers });
+      // now save the other chunks somewhere.
+      for (let i = 1; i < chunks.length; i++) {
+        await jetstreamPut(this.kv, chunkedKey({ key, chunk: i }), chunks[i]);
+      }
+      if (chunks.length < (this.chunkCounts[key] ?? 0)) {
+        // value previously had even more chunks, so we get rid of the extra chunks.
+        for (
+          let chunk = chunks.length;
+          chunk < this.chunkCounts[key];
+          chunk++
+        ) {
+          await this.kv.delete(chunkedKey({ key, chunk }));
+        }
+      }
+
+      this.chunkCounts[key] = chunks.length;
+    } else {
+      // not chunking
+      try {
+        await this.kv.put(key, val, {
+          previousSeq: revision,
+        });
+      } catch (err) {
+        if (err.code == "MAX_PAYLOAD_EXCEEDED") {
+          // nats rejects due to payload size
+          const err2 = new RejectError(`${err}`);
+          err2.code = "REJECT";
+          err2.key = key;
+          throw err2;
+        } else {
+          throw err;
+        }
+      }
+      if (this.chunkCounts[key]) {
+        // it was chunked, so get rid of chunks
+        for (let chunk = 1; chunk < this.chunkCounts[key]; chunk++) {
+          await this.kv.delete(chunkedKey({ key, chunk }));
+        }
+        delete this.chunkCounts[key];
       }
     }
   };
@@ -613,4 +810,79 @@ export class GeneralKV<T = any> extends EventEmitter {
     ENFORCE_LIMITS_THROTTLE_MS,
     { leading: true, trailing: true },
   );
+}
+
+// Support for value chunking below
+
+const CHUNK = "chunk";
+
+function chunkedKey({ key, chunk }: { key: string; chunk?: number }) {
+  return `${key}.${chunk}.${CHUNK}`;
+}
+
+function isChunkedKey(key: string) {
+  return key.endsWith("." + CHUNK);
+}
+
+function getChunkCount(headers) {
+  if (headers == null) {
+    return 0;
+  }
+  for (const [key, value] of headers) {
+    if (key == "chunks") {
+      return parseInt(value[0]);
+    }
+  }
+  return 0;
+}
+
+function parseChunkedKey(key: string): {
+  key: string;
+  index: number;
+} {
+  if (!isChunkedKey(key)) {
+    return { key, index: 0 };
+  }
+  const v = key.split(".");
+  return {
+    key: v.slice(0, v.length - 2).join("."),
+    index: parseInt(v[v.length - 2]),
+  };
+}
+
+// The put function built into jetstream doesn't support
+// setting headers, but we set headers for doing chunking.
+// So we have to rewrite their put.  TODO: upstream this?
+// https://github.com/nats-io/nats.js/issues/217
+async function jetstreamPut(
+  kv,
+  k: string,
+  data,
+  opts: any = {},
+): Promise<number> {
+  const ek = kv.encodeKey(k);
+  kv.validateKey(ek);
+
+  const o = {} as any;
+  if (opts.previousSeq !== undefined) {
+    const h = createHeaders();
+    o.headers = h;
+    // PubHeaders.ExpectedLastSubjectSequenceHdr is 'Nats-Expected-Last-Subject-Sequence', but
+    // PubHeaders is defined only internally to jetstream, so I copy/pasted this here.
+    h.set("Nats-Expected-Last-Subject-Sequence", `${opts.previousSeq}`);
+  }
+  if (opts.headers !== undefined) {
+    for (const [key, value] of opts.headers) {
+      if (o.headers == null) {
+        o.headers = createHeaders();
+      }
+      o.headers.set(key, value[0]);
+    }
+  }
+  try {
+    const pa = await kv.js.publish(kv.subjectForKey(ek, true), data, o);
+    return pa.seq;
+  } catch (err) {
+    return Promise.reject(err);
+  }
 }

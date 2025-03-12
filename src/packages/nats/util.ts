@@ -1,4 +1,5 @@
 import jsonStableStringify from "json-stable-stringify";
+import type { MsgHdrs } from "@nats-io/nats-core";
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 // export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
@@ -20,12 +21,14 @@ export async function getAllFromKv({
   all: { [key: string]: any };
   revisions: { [key: string]: number };
   times: { [key: string]: Date };
+  headers: { [key: string]: MsgHdrs };
 }> {
   // const t = Date.now();
   // console.log("start getAllFromKv", key);
   const all: any = {};
   const revisions: { [key: string]: number } = {};
   const times: { [key: string]: Date } = {};
+  const headers: { [key: string]: MsgHdrs } = {};
   const watch = await kv.watch({ key, ignoreDeletes: false });
   if (watch._data._info.num_pending > 0) {
     for await (const { key: key0, value, revision, sm } of watch) {
@@ -36,6 +39,7 @@ export async function getAllFromKv({
         all[key0] = value;
         revisions[key0] = revision;
         times[key0] = sm.time;
+        headers[key0] = sm.headers;
       }
       if (sm.di.pending <= 0) {
         // **NOTE!  This will hang and never get hit if you don't have the $JC.FC.... auth enabled!!!!**
@@ -44,7 +48,7 @@ export async function getAllFromKv({
     }
   }
   // console.log("finished getAllFromKv", key, (Date.now() - t) / 1000, "seconds");
-  return { all, revisions, times };
+  return { all, revisions, times, headers };
 }
 
 export function handleErrorMessage(mesg) {

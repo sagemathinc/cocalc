@@ -410,6 +410,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
           this.saved[key] = this.local[key];
         }
       } catch (err) {
+        console.log("attemptToSave failed", err);
         if (err.code == "REJECT" && err.key) {
           const value = this.local[err.key];
           delete this.local[err.key]; // can never save this.
