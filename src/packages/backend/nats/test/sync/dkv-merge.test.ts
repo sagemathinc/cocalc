@@ -15,12 +15,18 @@ async function getKvs(opts?) {
   const name = `test-${Math.random()}`;
   // We disable autosave so that we have more precise control of how conflicts
   // get resolved, etc. for testing purposes.
-  const kv1 = await createDkv(
-    { name, noAutosave: true, ...opts, noCache: true },
-  );
-  const kv2 = await createDkv(
-    { name, noAutosave: true, ...opts, noCache: true },
-  );
+  const kv1 = await createDkv({
+    name,
+    noAutosave: true,
+    ...opts,
+    noCache: true,
+  });
+  const kv2 = await createDkv({
+    name,
+    noAutosave: true,
+    ...opts,
+    noCache: true,
+  });
   return { kv1, kv2 };
 }
 
@@ -156,7 +162,9 @@ describe("test a 3-way merge of that merges objects", () => {
     });
     kv1.set("x", { a: 5 });
     await kv1.save();
-    await once(kv2, "change");
+    if (kv2["x"] == null) {
+      await once(kv2, "change");
+    }
     expect(kv2["x"]).toEqual({ a: 5 });
 
     kv1.set("x", { a: 5, b: 15, c: 12 });
