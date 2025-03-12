@@ -280,17 +280,20 @@ export class Stream<T = any> extends EventEmitter {
     const headers: ReturnType<typeof createHeaders>[] = [];
     // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
     const maxMessageSize = this.env.nc.info.max_payload - 1000;
+    // const maxMessageSize = 1000;  DEV ONLY!!!
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
       // to fit NATS message size limits.  We include a header
       // so we can re-assemble the chunks later.
-      const last = Math.ceil(data.length / maxMessageSize) - 1;
       let data0 = data;
       while (data0.length > 0) {
         chunks.push(data0.slice(0, maxMessageSize));
         data0 = data0.slice(maxMessageSize);
+      }
+      const last = chunks.length;
+      for (let i = 1; i <= last; i++) {
         const h = createHeaders();
-        h.append("chunk", `${chunks.length - 1}/${last}`);
+        h.append("chunk", `${i}/${last}`);
         headers.push(h);
       }
     } else {
@@ -302,6 +305,11 @@ export class Stream<T = any> extends EventEmitter {
       try {
         resp = await this.js.publish(subject ?? this.subject, chunks[i], {
           ...options,
+          // if options contains a msgID, we must make it different for each chunk;
+          // otherwise, all but the first chunk is discarded!
+          ...(options?.msgID == null
+            ? undefined
+            : { msgID: `${options.msgID}-${i}` }),
           headers: headers[i],
         });
       } catch (err) {
@@ -376,7 +384,7 @@ export class Stream<T = any> extends EventEmitter {
           if (key == "chunk") {
             isChunked = true;
             const v = value[0].split("/");
-            if (v[0] == "0") {
+            if (v[0] == "1") {
               // first chunk
               chunks = [mesg];
             } else {
@@ -427,7 +435,7 @@ export class Stream<T = any> extends EventEmitter {
         if (key == "chunk") {
           isChunked = true;
           const v = value[0].split("/");
-          if (v[0] == "0") {
+          if (v[0] == "1") {
             // first chunk
             chunks = [mesg];
           } else {

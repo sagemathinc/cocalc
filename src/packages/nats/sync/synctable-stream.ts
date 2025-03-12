@@ -87,7 +87,7 @@ export class SyncTableStream extends EventEmitter {
       project_id: this.project_id,
       env: this.env,
       limits: this.limits,
-      desc: { path: this.path, },
+      desc: { path: this.path },
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);
