@@ -104,3 +104,10 @@ export function toKey(x): string | undefined {
     return `${x}`;
   }
 }
+
+// Returns the max payload size for messages for the NATS server
+// that we are connected to.  This is used for chunking by the kv
+// and stream to support arbitrarily large values.
+export function getMaxPayload(nc): number {
+  return nc.info.max_payload;
+}

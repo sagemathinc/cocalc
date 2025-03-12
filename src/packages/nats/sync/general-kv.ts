@@ -116,6 +116,7 @@ import {
   matchesPattern,
   millis,
   type Nanos,
+  getMaxPayload,
 } from "@cocalc/nats/util";
 import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -638,7 +639,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       throw err;
     }
 
-    const maxMessageSize = this.env.nc.info.max_payload - 10000;
+    const maxMessageSize = getMaxPayload(this.env.nc) - 10000;
 
     if (val.length > maxMessageSize) {
       // chunking

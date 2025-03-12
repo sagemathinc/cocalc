@@ -7,13 +7,9 @@ pnpm exec jest --watch --forceExit --detectOpenHandles "dstream.test.ts"
 
 */
 
+import { createDstream as create } from "./util";
 import { dstream as createDstream } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-
-async function create() {
-  const name = `test-${Math.random()}`;
-  return await createDstream({ name, noAutosave: true });
-}
 
 describe("create a dstream and do some basic operations", () => {
   let s;

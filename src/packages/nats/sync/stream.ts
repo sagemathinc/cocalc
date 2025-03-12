@@ -43,7 +43,7 @@ import { type NatsEnv } from "@cocalc/nats/types";
 import { jetstreamManager, jetstream } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
-import { nanos, type Nanos, millis } from "@cocalc/nats/util";
+import { nanos, type Nanos, millis, getMaxPayload } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
@@ -279,7 +279,7 @@ export class Stream<T = any> extends EventEmitter {
     const chunks: Buffer[] = [];
     const headers: ReturnType<typeof createHeaders>[] = [];
     // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
-    const maxMessageSize = this.env.nc.info.max_payload - 1000;
+    const maxMessageSize = getMaxPayload(this.env.nc) - 1000;
     // const maxMessageSize = 1000;  DEV ONLY!!!
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
@@ -493,8 +493,8 @@ export class Stream<T = any> extends EventEmitter {
     const data =
       raw.length == 1
         ? raw[0].data
-	// @ts-ignore -- for nextjs prod
-        : Buffer.concat(raw.map((mesg) => mesg.data));
+        : // @ts-ignore -- for nextjs prod
+          Buffer.concat(raw.map((mesg) => mesg.data));
 
     try {
       return this.env.jc.decode(data);
