@@ -261,7 +261,8 @@ export class GeneralKV<T = any> extends EventEmitter {
         }
         const { chunkCount } = chunkData[chunkKey];
         if (i >= chunkCount!) {
-          value = Buffer.concat(chunkData[chunkKey].chunks);
+          // "as any" because nextjs prod complains about this...
+          value = Buffer.concat(chunkData[chunkKey].chunks) as any;
           key0 = chunkKey;
           this.chunkCounts[key0] = chunkCount!;
           delete chunkData[chunkKey];
