@@ -110,7 +110,8 @@ get_client = (opts) ->
                 cb()
             else
                 try
-                    account_id = await getAccountWithApiKey(opts.api_key)
+                    x = await getAccountWithApiKey(opts.api_key)
+                    account_id = x.account_id ? x.project_id
                     if not account_id?
                         cb("No account found. Is your API key wrong?")
                         return

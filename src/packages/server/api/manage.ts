@@ -264,7 +264,7 @@ async function doManageApiKeys({
 }
 
 /*
-Get the account (account_id or project_id!) that has the given api key,
+Get the account ({account_id} or {project_id}!) that has the given api key,
 or returns undefined if there is no such account, or if the account
 that owns the api key is banned.
 
@@ -275,7 +275,11 @@ Record that access happened by updating last_active.
 */
 export async function getAccountWithApiKey(
   secret: string,
-): Promise<string | undefined> {
+): Promise<
+  | { account_id: string; project_id?: undefined }
+  | { account_id?: undefined; project_id: string }
+  | undefined
+> {
   log.debug("getAccountWithApiKey");
   const pool = getPool("medium");
 
@@ -293,7 +297,7 @@ export async function getAccountWithApiKey(
       }
       // it's a valid account api key
       log.debug("getAccountWithApiKey: valid api key for ", account_id);
-      return account_id;
+      return { account_id };
     }
   }
 
@@ -326,8 +330,12 @@ export async function getAccountWithApiKey(
 
     // Yes, caller definitely has a valid key.
     await pool.query("UPDATE api_keys SET last_active=NOW() WHERE id=$1", [id]);
-    return rows[0].project_id ?? rows[0].account_id;
+    if (rows[0].project_id) {
+      return { project_id: rows[0].project_id };
+    }
+    if (rows[0].account_id) {
+      return { account_id: rows[0].account_id };
+    }
   }
   return undefined;
 }
-

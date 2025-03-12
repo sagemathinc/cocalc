@@ -187,10 +187,15 @@ async function checkForRememberMeAccess({
 async function checkForApiKeyAccess({ project_id, api_key, type, dbg }) {
   // we don't have a notion of "read" access, for type.
   dbg("checkForApiKeyAccess", { project_id, type });
-  const account_id = await getAccountWithApiKey(api_key);
-  if (!account_id) {
+  const user = await getAccountWithApiKey(api_key);
+  if (user == null) {
     dbg("api key is not valid (probably expired)");
     return { access: false, error: "invalid or expired api key" };
   }
-  return { access: await isCollaborator({ account_id, project_id }) };
+  if (user.project_id) {
+    return { access: user.project_id == project_id };
+  }
+  return {
+    access: await isCollaborator({ account_id: user.account_id!, project_id }),
+  };
 }

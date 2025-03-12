@@ -17,8 +17,8 @@ export function getApiKey(req: Request): string {
   throw Error(`Unknown authorization type '${type}'`);
 }
 
-export async function getAccountIdFromApiKey(
-  req: Request
-): Promise<string | undefined> {
+export async function getAccountFromApiKey(
+  req: Request,
+) {
   return await getAccountWithApiKey(getApiKey(req));
 }
