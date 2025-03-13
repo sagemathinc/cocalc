@@ -1,39 +1,56 @@
 /*
 Implementation of Auth Callout for NATS
 
-The docs: https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout
+
+AUTH CALLOUT
+
+This should work. It means a cocalc server (which relies on the database) *must*
+be available to handle every user connection... but that's ok. It also makes
+banning users a bit more complicated.
+
+Relevant docs:
+
+- https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout
+
+- https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-26.md
+
+- https://natsbyexample.com/examples/auth/callout/cli
+
+- https://www.youtube.com/watch?v=VvGxrT-jv64
 
 
 WHY NOT DECENTRALIZED AUTH?
 
-We *fully* implemented decentralized auth first using JWT's, but it DOES NOT SCALE! The problem
-is that we need potentially dozens of pub/sub rules for each user, so that's too much information
-to put in a client JWT cookie, so we *must* use signing keys.  Thus the permissions information
-for every user goes into one massive account key blob, and a tiny signed JWT goes to each browser.
-This is so very nice because permissions can be dynamically updated at any time, and everybody's
-permissions are known to NATS without cocalc's database having to be consulted at all... SADLY,
-it doesn't scale, since every time we make a change the account key has to be updated, and only
-a few hundred (or thousand) users are enough to make it too big.   Decentralized auth could work
-if each cocalc user had a different account, but... that doesn't work either, since import/export
-doesn't really work for jetstream... and setting up all the import/export would be a nightmare,
-and probaby much more complicated.
+We *fully* implemented decentralized auth first using JWT's, but it DOES NOT
+SCALE! The problem is that we need potentially dozens of pub/sub rules for each
+user, so that's too much information to put in a client JWT cookie, so we
+*must* use signing keys. Thus the permissions information for every user goes
+into one massive account key blob, and a tiny signed JWT goes to each browser.
+This is so very nice because permissions can be dynamically updated at any time,
+and everybody's permissions are known to NATS without cocalc's database having
+to be consulted at all... SADLY, it doesn't scale, since every time we make a
+change the account key has to be updated, and only a few hundred (or thousand)
+users are enough to make it too big. Decentralized auth could work if each
+cocalc user had a different account, but... that doesn't work either, since
+import/export doesn't really work for jetstream... and setting up all the
+import/export would be a nightmare, and probaby much more complicated.
 
-AUTH CALLOUT
-
-This should work.  It means a cocalc server (which relies on the database) *must* be available to
-handle every user connection... but that's ok.  It also makes banning users a bit more complicated.
 */
 
 import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
 import {
-  // ISSUER_NKEY,
+  ISSUER_NKEY,
   ISSUER_XSEED,
   ISSUER_NSEED,
 } from "@cocalc/backend/nats/conf";
 import { fromPublic, fromSeed } from "@nats-io/nkeys";
-import { decode as decodeJwt, encodeAuthorizationResponse } from "@nats-io/jwt";
+import {
+  decode as decodeJwt,
+  encodeAuthorizationResponse,
+  encodeUser,
+} from "@nats-io/jwt";
 
 export async function init() {
   // coerce to NatsConnection is to workaround a bug in the
@@ -86,26 +103,30 @@ async function listen(api, xkp) {
       const server = fromPublic(serverId.name);
       const encoder = new TextEncoder();
       const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
-      const data = {};
+      const userName = requestClaim.nats.connect_opts.user;
+      const jwt = await encodeUser(userName, user, issuer, {
+        issuer_account: ISSUER_NKEY,
+      });
+      const data = { jwt };
       const opts = {};
-      let jwt = await encodeAuthorizationResponse(
+      const authResponse = await encodeAuthorizationResponse(
         user,
         server,
         issuer,
         data,
         opts,
       );
-      global.x.jwt_before = jwt;
+      global.x.authResponse = authResponse;
       const xkey = mesg.headers.get("Nats-Server-Xkey");
-      let rdata;
+      let signedResponse;
       if (xkey) {
-        rdata = xkp.seal(encoder.encode(jwt), xkey);
+        signedResponse = xkp.seal(encoder.encode(authResponse), xkey);
       } else {
-        rdata = encoder.encode(jwt);
+        signedResponse = encoder.encode(authResponse);
       }
-      global.x.rdata = rdata;
+      global.x.signedResponse = signedResponse;
 
-      mesg.respond(rdata);
+      mesg.respond(signedResponse);
     }
   } catch (err) {
     console.warn("Problem with auth callout", err);
