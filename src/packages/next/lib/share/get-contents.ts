@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import pathToFiles from "./path-to-files";
 import { promises as fs } from "fs";
-import { join } from "path";
 import { sortBy } from "lodash";
+import { join } from "path";
+
+import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
 
@@ -22,7 +23,7 @@ const LISTED_LIMITS = {
   html: 3 * MB,
   // no special viewer
   generic: 2 * MB,
-};
+} as const;
 
 const UNLISTED_LIMITS = {
   ...LISTED_LIMITS,

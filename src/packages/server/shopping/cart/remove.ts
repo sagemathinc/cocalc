@@ -15,7 +15,7 @@ import getPool from "@cocalc/database/pool";
 // You can't remove an item more than once from a cart.
 export default async function removeFromCart(
   account_id: string,
-  id: number
+  id: number,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -23,8 +23,7 @@ export default async function removeFromCart(
   const pool = getPool();
   const { rowCount } = await pool.query(
     "UPDATE shopping_cart_items SET removed=NOW() WHERE account_id=$1 AND id=$2 AND removed IS NULL AND purchased IS NULL",
-    [account_id, id]
+    [account_id, id],
   );
   return rowCount ?? 0;
 }
-
