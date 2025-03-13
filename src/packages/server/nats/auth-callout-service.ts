@@ -27,8 +27,13 @@ handle every user connection... but that's ok.  It also makes banning users a bi
 import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
-import { ISSUER_XSEED } from "@cocalc/backend/nats/conf";
-import { fromSeed } from "@nats-io/nkeys";
+import {
+  // ISSUER_NKEY,
+  ISSUER_XSEED,
+  ISSUER_NSEED,
+} from "@cocalc/backend/nats/conf";
+import { fromPublic, fromSeed } from "@nats-io/nkeys";
+import { decode as decodeJwt, encodeAuthorizationResponse } from "@nats-io/jwt";
 
 export async function init() {
   // coerce to NatsConnection is to workaround a bug in the
@@ -62,11 +67,45 @@ async function listen(api, xkp) {
   try {
     for await (const mesg of api) {
       console.log("listen -- get ", mesg);
-      global.x = { mesg };
       const token = getToken(mesg, xkp);
-      console.log("decrypted token", { token });
-      global.x.token = token;
-      mesg.respond();
+      const requestClaim = decodeJwt(token) as any;
+      global.x = {
+        mesg,
+        xkp,
+        token,
+        decodeJwt,
+        fromSeed,
+        encoder: new TextEncoder(),
+        xseed: ISSUER_XSEED,
+        requestClaim,
+      };
+      const userNkey = requestClaim.nats.user_nkey;
+      const serverId = requestClaim.nats.server_id;
+
+      const user = fromPublic(userNkey);
+      const server = fromPublic(serverId.name);
+      const encoder = new TextEncoder();
+      const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
+      const data = {};
+      const opts = {};
+      let jwt = await encodeAuthorizationResponse(
+        user,
+        server,
+        issuer,
+        data,
+        opts,
+      );
+      global.x.jwt_before = jwt;
+      const xkey = mesg.headers.get("Nats-Server-Xkey");
+      let rdata;
+      if (xkey) {
+        rdata = xkp.seal(encoder.encode(jwt), xkey);
+      } else {
+        rdata = encoder.encode(jwt);
+      }
+      global.x.rdata = rdata;
+
+      mesg.respond(rdata);
     }
   } catch (err) {
     console.warn("Problem with auth callout", err);
@@ -74,16 +113,17 @@ async function listen(api, xkp) {
   }
 }
 
-function getToken(mesg, xkp) {
+function getToken(mesg, xkp): string {
   const xkey = mesg.headers.get("Nats-Server-Xkey");
+  let data;
   if (xkey) {
     // encrypted
     // we have ISSUER_XSEED above.  So have enough info to decrypt.
-    // token, err = curveKeyPair.Open(req.Data(), xkey)
-    const d = xkp.open(mesg.data, xkey);
-    return d;
+    data = xkp.open(mesg.data, xkey);
   } else {
     // not encrypted
-    return mesg.data;
+    data = mesg.data;
   }
+  const decoder = new TextDecoder("utf-8");
+  return decoder.decode(data);
 }
