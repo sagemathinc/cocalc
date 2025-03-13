@@ -107,8 +107,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3
       nats:
-        specifier: ^2.29.1
-        version: 2.29.1
+        specifier: ^2.29.2
+        version: 2.29.2
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -184,8 +184,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@nats-io/services':
-        specifier: 3.0.0-25
-        version: 3.0.0-25
+        specifier: 3.0.0-28
+        version: 3.0.0-28
       '@types/lodash':
         specifier: ^4.14.202
         version: 4.17.9
@@ -217,8 +217,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3
       nats:
-        specifier: ^2.29.1
-        version: 2.29.1
+        specifier: ^2.29.2
+        version: 2.29.2
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
@@ -350,14 +350,14 @@ importers:
         specifier: ^1.23.3
         version: 1.23.3(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nats-io/jetstream':
-        specifier: 3.0.0-36
-        version: 3.0.0-36
+        specifier: 3.0.0-40
+        version: 3.0.0-40
       '@nats-io/kv':
-        specifier: 3.0.0-30
-        version: 3.0.0-30
+        specifier: 3.0.0-34
+        version: 3.0.0-34
       '@nats-io/services':
-        specifier: 3.0.0-25
-        version: 3.0.0-25
+        specifier: 3.0.0-28
+        version: 3.0.0-28
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -569,8 +569,8 @@ importers:
         specifier: ^11.4.1
         version: 11.4.1
       nats.ws:
-        specifier: ^1.30.0
-        version: 1.30.1
+        specifier: ^1.30.2
+        version: 1.30.2
       node-forge:
         specifier: ^1.0.0
         version: 1.3.1
@@ -894,8 +894,8 @@ importers:
         specifier: 2.1.2
         version: 2.1.2
       nats:
-        specifier: ^2.29.1
-        version: 2.29.1
+        specifier: ^2.29.2
+        version: 2.29.2
       next:
         specifier: 14.2.22
         version: 14.2.22(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.85.1)
@@ -1106,17 +1106,17 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@nats-io/jetstream':
-        specifier: 3.0.0-36
-        version: 3.0.0-36
+        specifier: 3.0.0-40
+        version: 3.0.0-40
       '@nats-io/kv':
-        specifier: 3.0.0-30
-        version: 3.0.0-30
+        specifier: 3.0.0-34
+        version: 3.0.0-34
       '@nats-io/nats-core':
-        specifier: 3.0.0-51
-        version: 3.0.0-51
+        specifier: 3.0.0-54
+        version: 3.0.0-54
       '@nats-io/services':
-        specifier: 3.0.0-25
-        version: 3.0.0-25
+        specifier: 3.0.0-28
+        version: 3.0.0-28
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1336,14 +1336,14 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@nats-io/jetstream':
-        specifier: 3.0.0-36
-        version: 3.0.0-36
+        specifier: 3.0.0-40
+        version: 3.0.0-40
       '@nats-io/kv':
-        specifier: 3.0.0-30
-        version: 3.0.0-30
+        specifier: 3.0.0-34
+        version: 3.0.0-34
       '@nats-io/services':
-        specifier: 3.0.0-25
-        version: 3.0.0-25
+        specifier: 3.0.0-28
+        version: 3.0.0-28
       '@nteract/messaging':
         specifier: ^7.0.20
         version: 7.0.20
@@ -1408,8 +1408,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3
       nats:
-        specifier: ^2.29.1
-        version: 2.29.1
+        specifier: ^2.29.2
+        version: 2.29.2
       node-pty:
         specifier: ^1.0.0
         version: 1.0.0
@@ -1529,11 +1529,11 @@ importers:
         specifier: ^0.3.17
         version: 0.3.17(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@nats-io/jetstream':
-        specifier: 3.0.0-36
-        version: 3.0.0-36
+        specifier: 3.0.0-40
+        version: 3.0.0-40
       '@nats-io/services':
-        specifier: 3.0.0-25
-        version: 3.0.0-25
+        specifier: 3.0.0-28
+        version: 3.0.0-28
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -1664,8 +1664,8 @@ importers:
         specifier: ^3.3.8
         version: 3.3.8
       nats:
-        specifier: ^2.29.1
-        version: 2.29.1
+        specifier: ^2.29.2
+        version: 2.29.2
       node-zendesk:
         specifier: ^5.0.13
         version: 5.0.13(encoding@0.1.13)
@@ -2371,8 +2371,8 @@ packages:
     resolution: {integrity: sha512-5Dqpl5fyV9pIAD62yK9P7fcA768uVPUyrQmqpqstHWgMma4feF1x/oFysBCVZLY5wJ2GkMUCdsNDnGZrPoR6rA==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/generator@7.26.9':
-    resolution: {integrity: sha512-kEWdzjOAUMW4hAyrzJ0ZaTOu9OmpyDIQicIh0zg0EEcEkYXZb2TjtBhnHi2ViX7PKwZqF4xwqfAm299/QMP3lg==}
+  '@babel/generator@7.26.10':
+    resolution: {integrity: sha512-rRHT8siFIXQrAYOYqZQVsAr8vJ+cBNqcVAY6m5V8/4QqzaPl+zDBe6cLEPRDuNOUf3ww8RfJVlOyQMoSI+5Ang==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-annotate-as-pure@7.24.7':
@@ -2501,8 +2501,8 @@ packages:
     resolution: {integrity: sha512-Sv6pASx7Esm38KQpF/U/OXLwPPrdGHNKoeblRxgZRLXnAtnkEe4ptJPDtAZM7fBLadbc1Q07kQpSiGQ0Jg6tRA==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helpers@7.26.9':
-    resolution: {integrity: sha512-Mz/4+y8udxBKdmzt/UjPACs4G3j5SshJJEFFKxlCGPydG4JAHXxjWjAwjd09tf6oINvl1VfMJo+nB7H2YKQ0dA==}
+  '@babel/helpers@7.26.10':
+    resolution: {integrity: sha512-UPYc3SauzZ3JGgj87GgZ89JVdC5dj0AoetR5Bw6wj4niittNyFh6+eOGonYvJ1ao6B8lEa3Q3klS7ADZ53bc5g==}
     engines: {node: '>=6.9.0'}
 
   '@babel/highlight@7.24.7':
@@ -2532,8 +2532,8 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  '@babel/parser@7.26.9':
-    resolution: {integrity: sha512-81NWa1njQblgZbQHxWHpxxCzNsa3ZwvFqpUg7P+NNUU6f3UU2jBEg4OlF/J6rl8+PQGh1q6/zWScd001YwcA5A==}
+  '@babel/parser@7.26.10':
+    resolution: {integrity: sha512-6aQR2zGE/QFi8JpDLjUZEPYOs7+mhKXm86VaKFiLP35JQwQb6bwUE+XbvkH0EptsYhbNBSUGaUBLKqxH1xSgsA==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -2664,8 +2664,8 @@ packages:
     resolution: {integrity: sha512-jatJPT1Zjqvh/1FyJs6qAHL+Dzb7sTb+xr7Q+gM1b+1oBsMsQQ4FkVKb6dFlJvLlVssqkRzV05Jzervt9yhnzg==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/traverse@7.26.9':
-    resolution: {integrity: sha512-ZYW7L+pL8ahU5fXmNbPF+iZFHCv5scFak7MZ9bwaRPLUhHh7QQEMjZUg0HevihoqCM5iSYHN61EyCoZvqC+bxg==}
+  '@babel/traverse@7.26.10':
+    resolution: {integrity: sha512-k8NuDrxr0WrPH5Aupqb2LCVURP/S0vBEn5mK6iH+GIYob66U5EtoZvcdudR2jQ4cmTwhEwW1DLB+Yyas9zjF6A==}
     engines: {node: '>=6.9.0'}
 
   '@babel/types@7.25.6':
@@ -2680,8 +2680,8 @@ packages:
     resolution: {integrity: sha512-OwS2CM5KocvQ/k7dFJa8i5bNGJP0hXWfVCfDkqRFP1IreH1JDC7wG6eCYCi0+McbfT8OR/kNqsI0UU0xP9H6PQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/types@7.26.9':
-    resolution: {integrity: sha512-Y3IR1cRnOxOCDvMmNiym7XpXQ93iGDDPHx+Zj+NM+rg0fBaShfQLkg+hKPaZCEvg5N/LeCo4+Rj/i3FuJsIQaw==}
+  '@babel/types@7.26.10':
+    resolution: {integrity: sha512-emqcG3vHrpxUKTrxcblR36dcrcoRDvKmnL/dCL6ZsHaShW80qxCAcNhzQZrpeM765VzEos+xOi4s+r4IXzTwdQ==}
     engines: {node: '>=6.9.0'}
 
   '@bcoe/v8-coverage@0.2.3':
@@ -3886,20 +3886,14 @@ packages:
   '@module-federation/webpack-bundler-runtime@0.8.4':
     resolution: {integrity: sha512-HggROJhvHPUX7uqBD/XlajGygMNM1DG0+4OAkk8MBQe4a18QzrRNzZt6XQbRTSG4OaEoyRWhQHvYD3Yps405tQ==}
 
-  '@nats-io/jetstream@3.0.0-36':
-    resolution: {integrity: sha512-95+ftM+lXcUEwCl3ctzpJZCXiBUwRuSUUWmd4X8jJlNVZc/LUHH+3cxX+nC42sLHD+9zvIaMKPsyI0Ltbp+BSg==}
+  '@nats-io/jetstream@3.0.0-40':
+    resolution: {integrity: sha512-bIeElf6yVc+Xw7zQNqd71uskwma8AELky9QnU/n9ny3LIXEfy4Zgp4ExjUc7b+OUyMASudTEZw6FlPFEENhivw==}
 
-  '@nats-io/kv@3.0.0-30':
-    resolution: {integrity: sha512-rg3y1/v4gTP6PATpAOK32cXgPfez8PZqC9r39vqT7vVIGUNKERFcX8JdqC+50B97ovqvlTSvItR9IsRNdYAIZg==}
+  '@nats-io/kv@3.0.0-34':
+    resolution: {integrity: sha512-wJLgvlTy+GdJtpSREUfjiqUzlpALzm3mec3Bq4zeT4j+8mkJEqz1nGeWkOiBS0eG0kuaxOEsw4HvXlGLThb3Vw==}
 
-  '@nats-io/nats-core@3.0.0-49':
-    resolution: {integrity: sha512-Xe7LjCdhtL4pXk2czwUE8Y1elTy/zo3ZzpoIwOO+/uJPughEsSxCpqygPrDqWcOG2uWVB9G1wxjg8r0Y9StovQ==}
-
-  '@nats-io/nats-core@3.0.0-50':
-    resolution: {integrity: sha512-Kur1/yhzNrpcpu+OhsQ89k9Ge1woEWJd5FV3tpp0BtpRWMlIth3StBiADguynbKSQCkBAOUQ+C0kRnFW8zOIeg==}
-
-  '@nats-io/nats-core@3.0.0-51':
-    resolution: {integrity: sha512-BMNVBGPN1izxZ3zD17Z1XTz8OezIPzHK26a7ZCQFXt50eqXGrNrpnDNn8br5KrL2GCl5q3jnMh1jhUQHzIdZkA==}
+  '@nats-io/nats-core@3.0.0-54':
+    resolution: {integrity: sha512-/8pClTehNNfu+qIvJLyOTzTYFj58j9bqwmdxiCV+uhOYcGhWgx7l9tdRcNV0Ta+UIzIuDyWndgN7bMuIYHiaFQ==}
 
   '@nats-io/nkeys@2.0.2':
     resolution: {integrity: sha512-0JTyVl9P+UJyjUBDWP9589TuUKXJQ8tDkVRgi02X/MMzW997+4FykirvZEkIe6ZAhiLIBN+NpN8ULMMt6mDrbA==}
@@ -3909,8 +3903,8 @@ packages:
     resolution: {integrity: sha512-TpA3HEBna/qMVudy+3HZr5M3mo/L1JPofpVT4t0HkFGkz2Cn9wrlrQC8tvR8Md5Oa9//GtGG26eN0qEWF5Vqew==}
     engines: {node: '>= 18.x'}
 
-  '@nats-io/services@3.0.0-25':
-    resolution: {integrity: sha512-/wS4kYCT6QzikDUJV/vjlnoXmhrXCyLsjBP0J3PNaxFZeUbpPo2uqqHQTwGRia26vfNvlGHMODSHSNgxw8SkPg==}
+  '@nats-io/services@3.0.0-28':
+    resolution: {integrity: sha512-KOofndkxygQY1n1t5DoILKlCevIkhsfy3lXTT4GBfTnfPsj76HpBqGVFrWNDj8e97PyzSDDVCsC2H0rp2mcBoA==}
 
   '@nestjs/axios@3.0.3':
     resolution: {integrity: sha512-h6TCn3yJwD6OKqqqfmtRS5Zo4E46Ip2n+gK1sqwzNBC+qxQ9xpCu+ODVRFur6V3alHSCSBxb3nNtt73VEdluyA==}
@@ -5815,8 +5809,8 @@ packages:
   caniuse-lite@1.0.30001680:
     resolution: {integrity: sha512-rPQy70G6AGUMnbwS1z6Xg+RkHYPAi18ihs47GH0jcxIG7wArmPgY3XbS2sRdBbxJljp3thdT8BIqv9ccCypiPA==}
 
-  caniuse-lite@1.0.30001703:
-    resolution: {integrity: sha512-kRlAGTRWgPsOj7oARC9m1okJEXdL/8fekFVcxA8Hl7GH4r/sN4OJn/i6Flde373T50KS7Y37oFbMwlE8+F42kQ==}
+  caniuse-lite@1.0.30001704:
+    resolution: {integrity: sha512-+L2IgBbV6gXB4ETf0keSvLr7JUrRVbIaB/lrQ1+z8mRcQiisG5k+lG6O4n6Y5q6f5EuNfaYXKgymucphlEXQew==}
 
   canvas-fit@1.5.0:
     resolution: {integrity: sha512-onIcjRpz69/Hx5bB5HGbYKUF2uC6QT6Gp+pfpGm3A7mPfcluSLV5v4Zu+oflDUwLdUw0rLIBhUbi0v8hM4FJQQ==}
@@ -6975,8 +6969,8 @@ packages:
     engines: {node: '>=0.10.0'}
     hasBin: true
 
-  electron-to-chromium@1.5.114:
-    resolution: {integrity: sha512-DFptFef3iktoKlFQK/afbo274/XNWD00Am0xa7M8FZUepHlHT8PEuiNBoRfFHbH1okqN58AlhbJ4QTkcnXorjA==}
+  electron-to-chromium@1.5.116:
+    resolution: {integrity: sha512-mufxTCJzLBQVvSdZzX1s5YAuXsN1M4tTyYxOOL1TcSKtIzQ9rjIrm7yFK80rN5dwGTePgdoABDSHpuVtRQh0Zw==}
 
   electron-to-chromium@1.5.32:
     resolution: {integrity: sha512-M+7ph0VGBQqqpTT2YrabjNKSQ2fEl9PVx6AK3N558gDH9NO8O6XN9SXXFWRo9u9PbEg/bWq+tjXQr+eXmxubCw==}
@@ -9601,11 +9595,11 @@ packages:
   native-promise-only@0.8.1:
     resolution: {integrity: sha512-zkVhZUA3y8mbz652WrL5x0fB0ehrBkulWT3TomAQ9iDtyXZvzKeEA6GPxAItBYeNYl5yngKRX612qHOhvMkDeg==}
 
-  nats.ws@1.30.1:
-    resolution: {integrity: sha512-OVufQJrYuzt9Gugb4R/kCEM9R03dH2kMZ0Lt59LRL3a0+8bJjxodAxUOh952DiuPTquwGg8JIF8h3BKkTF5mJA==}
+  nats.ws@1.30.2:
+    resolution: {integrity: sha512-hIdw6XC8Mr8I5/0MvaHRhq+Elg2XBFi2TNV7ZI4MtUKHfGGnEgAdqUacqnseIztM2jatspgy12vhDtsqb8wdJA==}
 
-  nats@2.29.1:
-    resolution: {integrity: sha512-OHVsxrQCITTdMKG3So0jhtnBd5jS2u1xpS91UCws7VklsaCbctwg5vT/8lYpVldPW0x3aHGF8uuAoMfCoJy7Sg==}
+  nats@2.29.2:
+    resolution: {integrity: sha512-HfzEZa/67fAmRXchLv/sFGeZFF27TRf6kuNbuze2+Md+0M4xADoiUf7YColV9CMjlf2nIkFPnlXcpOTdtlhbPg==}
     engines: {node: '>= 14.0.0'}
 
   natural-compare@1.4.0:
@@ -10234,8 +10228,8 @@ packages:
     peerDependencies:
       pg: '>=8.0'
 
-  pg-pool@3.7.1:
-    resolution: {integrity: sha512-xIOsFoh7Vdhojas6q3596mXFsR8nwBQBXX5JiV7p9buEVAGqYL4yFzclON5P9vFrpu1u7Zwl2oriyDa89n0wbw==}
+  pg-pool@3.8.0:
+    resolution: {integrity: sha512-VBw3jiVm6ZOdLBTIcXLNdSotb6Iy3uOCwDGFAksZCXmi10nyRvnP2v3jl4d+IsLYRyXf6o9hIm/ZtUzlByNUdw==}
     peerDependencies:
       pg: '>=8.0'
 
@@ -10245,8 +10239,8 @@ packages:
   pg-protocol@1.7.0:
     resolution: {integrity: sha512-hTK/mE36i8fDDhgDFjy6xNOG+LCorxLG3WO17tku+ij6sVHXh1jQUJ8hYAnRhNla4QVD2H8er/FOjc/+EgC6yQ==}
 
-  pg-protocol@1.7.1:
-    resolution: {integrity: sha512-gjTHWGYWsEgy9MsY0Gp6ZJxV24IjDqdpTW7Eh0x+WfJLFsm/TJx1MzL6T0D88mBvkpxotCQ6TwW6N+Kko7lhgQ==}
+  pg-protocol@1.8.0:
+    resolution: {integrity: sha512-jvuYlEkL03NRvOoyoRktBK7+qU5kOvlAwvmrH8sr3wbLrOdVWsRxQfz8mMy9sZFsqJ1hEWNfdWKI4SAmoL+j7g==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
@@ -13222,14 +13216,14 @@ snapshots:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@babel/code-frame': 7.26.2
-      '@babel/generator': 7.26.9
+      '@babel/generator': 7.26.10
       '@babel/helper-compilation-targets': 7.26.5
       '@babel/helper-module-transforms': 7.26.0(@babel/core@7.26.9)
-      '@babel/helpers': 7.26.9
-      '@babel/parser': 7.26.9
+      '@babel/helpers': 7.26.10
+      '@babel/parser': 7.26.10
       '@babel/template': 7.26.9
-      '@babel/traverse': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/traverse': 7.26.10
+      '@babel/types': 7.26.10
       convert-source-map: 2.0.0
       debug: 4.4.0(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
@@ -13253,10 +13247,10 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 3.0.2
 
-  '@babel/generator@7.26.9':
+  '@babel/generator@7.26.10':
     dependencies:
-      '@babel/parser': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/parser': 7.26.10
+      '@babel/types': 7.26.10
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 3.1.0
@@ -13334,8 +13328,8 @@ snapshots:
 
   '@babel/helper-module-imports@7.25.9':
     dependencies:
-      '@babel/traverse': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/traverse': 7.26.10
+      '@babel/types': 7.26.10
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -13375,7 +13369,7 @@ snapshots:
       '@babel/core': 7.26.9
       '@babel/helper-module-imports': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
-      '@babel/traverse': 7.26.9
+      '@babel/traverse': 7.26.10
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -13452,10 +13446,10 @@ snapshots:
       '@babel/template': 7.25.9
       '@babel/types': 7.25.8
 
-  '@babel/helpers@7.26.9':
+  '@babel/helpers@7.26.10':
     dependencies:
       '@babel/template': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/types': 7.26.10
     optional: true
 
   '@babel/highlight@7.24.7':
@@ -13491,9 +13485,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.25.9
 
-  '@babel/parser@7.26.9':
+  '@babel/parser@7.26.10':
     dependencies:
-      '@babel/types': 7.26.9
+      '@babel/types': 7.26.10
     optional: true
 
   '@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.25.8)':
@@ -13710,8 +13704,8 @@ snapshots:
   '@babel/template@7.26.9':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@babel/parser': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/parser': 7.26.10
+      '@babel/types': 7.26.10
     optional: true
 
   '@babel/traverse@7.25.6':
@@ -13750,13 +13744,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/traverse@7.26.9':
+  '@babel/traverse@7.26.10':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@babel/generator': 7.26.9
-      '@babel/parser': 7.26.9
+      '@babel/generator': 7.26.10
+      '@babel/parser': 7.26.10
       '@babel/template': 7.26.9
-      '@babel/types': 7.26.9
+      '@babel/types': 7.26.10
       debug: 4.4.0(supports-color@8.1.1)
       globals: 11.12.0
     transitivePeerDependencies:
@@ -13780,7 +13774,7 @@ snapshots:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
 
-  '@babel/types@7.26.9':
+  '@babel/types@7.26.10':
     dependencies:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
@@ -15016,26 +15010,16 @@ snapshots:
       '@module-federation/sdk': 0.8.4
     optional: true
 
-  '@nats-io/jetstream@3.0.0-36':
+  '@nats-io/jetstream@3.0.0-40':
     dependencies:
-      '@nats-io/nats-core': 3.0.0-49
+      '@nats-io/nats-core': 3.0.0-54
 
-  '@nats-io/kv@3.0.0-30':
+  '@nats-io/kv@3.0.0-34':
     dependencies:
-      '@nats-io/jetstream': 3.0.0-36
-      '@nats-io/nats-core': 3.0.0-49
+      '@nats-io/jetstream': 3.0.0-40
+      '@nats-io/nats-core': 3.0.0-54
 
-  '@nats-io/nats-core@3.0.0-49':
-    dependencies:
-      '@nats-io/nkeys': 2.0.2
-      '@nats-io/nuid': 2.0.3
-
-  '@nats-io/nats-core@3.0.0-50':
-    dependencies:
-      '@nats-io/nkeys': 2.0.2
-      '@nats-io/nuid': 2.0.3
-
-  '@nats-io/nats-core@3.0.0-51':
+  '@nats-io/nats-core@3.0.0-54':
     dependencies:
       '@nats-io/nkeys': 2.0.2
       '@nats-io/nuid': 2.0.3
@@ -15046,9 +15030,9 @@ snapshots:
 
   '@nats-io/nuid@2.0.3': {}
 
-  '@nats-io/services@3.0.0-25':
+  '@nats-io/services@3.0.0-28':
     dependencies:
-      '@nats-io/nats-core': 3.0.0-50
+      '@nats-io/nats-core': 3.0.0-54
 
   '@nestjs/axios@3.0.3(@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1))(axios@1.7.4)(rxjs@7.8.1)':
     dependencies:
@@ -15609,7 +15593,7 @@ snapshots:
       '@module-federation/runtime-tools': 0.8.4
       '@rspack/binding': 1.2.6
       '@rspack/lite-tapable': 1.0.1
-      caniuse-lite: 1.0.30001703
+      caniuse-lite: 1.0.30001704
     optionalDependencies:
       '@swc/helpers': 0.5.15
     optional: true
@@ -17192,8 +17176,8 @@ snapshots:
 
   browserslist@4.24.4:
     dependencies:
-      caniuse-lite: 1.0.30001703
-      electron-to-chromium: 1.5.114
+      caniuse-lite: 1.0.30001704
+      electron-to-chromium: 1.5.116
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
 
@@ -17302,7 +17286,7 @@ snapshots:
 
   caniuse-lite@1.0.30001680: {}
 
-  caniuse-lite@1.0.30001703: {}
+  caniuse-lite@1.0.30001704: {}
 
   canvas-fit@1.5.0:
     dependencies:
@@ -18629,7 +18613,7 @@ snapshots:
     dependencies:
       jake: 10.9.2
 
-  electron-to-chromium@1.5.114: {}
+  electron-to-chromium@1.5.116: {}
 
   electron-to-chromium@1.5.32: {}
 
@@ -21932,11 +21916,11 @@ snapshots:
 
   native-promise-only@0.8.1: {}
 
-  nats.ws@1.30.1:
+  nats.ws@1.30.2:
     optionalDependencies:
       nkeys.js: 1.1.0
 
-  nats@2.29.1:
+  nats@2.29.2:
     dependencies:
       nkeys.js: 1.1.0
 
@@ -22705,7 +22689,7 @@ snapshots:
     dependencies:
       pg: 8.13.0
 
-  pg-pool@3.7.1(pg@8.13.3):
+  pg-pool@3.8.0(pg@8.13.3):
     dependencies:
       pg: 8.13.3
     optional: true
@@ -22714,7 +22698,7 @@ snapshots:
 
   pg-protocol@1.7.0: {}
 
-  pg-protocol@1.7.1:
+  pg-protocol@1.8.0:
     optional: true
 
   pg-types@2.2.0:
@@ -22748,8 +22732,8 @@ snapshots:
   pg@8.13.3:
     dependencies:
       pg-connection-string: 2.7.0
-      pg-pool: 3.7.1(pg@8.13.3)
-      pg-protocol: 1.7.1
+      pg-pool: 3.8.0(pg@8.13.3)
+      pg-protocol: 1.8.0
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
