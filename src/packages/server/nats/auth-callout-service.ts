@@ -27,6 +27,8 @@ handle every user connection... but that's ok.  It also makes banning users a bi
 import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
+import { ISSUER_XSEED } from "@cocalc/backend/nats/conf";
+import { fromSeed } from "@nats-io/nkeys";
 
 export async function init() {
   // coerce to NatsConnection is to workaround a bug in the
@@ -41,7 +43,10 @@ export async function init() {
   });
   const g = service.addGroup("$SYS").addGroup("REQ").addGroup("USER");
   const api = g.addEndpoint("AUTH");
-  listen(api);
+  const encoder = new TextEncoder();
+
+  const xkp = fromSeed(encoder.encode(ISSUER_XSEED));
+  listen(api, xkp);
 
   return {
     service,
@@ -52,16 +57,33 @@ export async function init() {
   };
 }
 
-async function listen(api) {
+async function listen(api, xkp) {
   console.log("listening...");
   try {
     for await (const mesg of api) {
       console.log("listen -- get ", mesg);
       global.x = { mesg };
+      const token = getToken(mesg, xkp);
+      console.log("decrypted token", { token });
+      global.x.token = token;
       mesg.respond();
     }
   } catch (err) {
     console.warn("Problem with auth callout", err);
     // TODO: restart
+  }
+}
+
+function getToken(mesg, xkp) {
+  const xkey = mesg.headers.get("Nats-Server-Xkey");
+  if (xkey) {
+    // encrypted
+    // we have ISSUER_XSEED above.  So have enough info to decrypt.
+    // token, err = curveKeyPair.Open(req.Data(), xkey)
+    const d = xkp.open(mesg.data, xkey);
+    return d;
+  } else {
+    // not encrypted
+    return mesg.data;
   }
 }

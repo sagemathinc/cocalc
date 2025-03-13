@@ -61,6 +61,7 @@
     "@langchain/openai": "^0.3.17",
     "@nats-io/jetstream": "3.0.0-40",
     "@nats-io/nats-core": "3.0.0-54",
+    "@nats-io/nkeys": "^2.0.2",
     "@nats-io/services": "3.0.0-28",
     "@node-saml/passport-saml": "^4.0.4",
     "@passport-js/passport-twitter": "^1.0.8",

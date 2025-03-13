@@ -1534,6 +1534,9 @@ importers:
       '@nats-io/nats-core':
         specifier: 3.0.0-54
         version: 3.0.0-54
+      '@nats-io/nkeys':
+        specifier: ^2.0.2
+        version: 2.0.2
       '@nats-io/services':
         specifier: 3.0.0-28
         version: 3.0.0-28
