@@ -41,7 +41,6 @@ import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
 import {
-  ISSUER_NKEY,
   ISSUER_XSEED,
   ISSUER_NSEED,
 } from "@cocalc/backend/nats/conf";
@@ -104,11 +103,10 @@ async function listen(api, xkp) {
       const encoder = new TextEncoder();
       const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
       const userName = requestClaim.nats.connect_opts.user;
-      const jwt = await encodeUser(userName, user, issuer, {
-        issuer_account: ISSUER_NKEY,
-      });
+      const opts = { aud: "cocalc" };
+      const jwt = await encodeUser(userName, user, issuer, {}, opts);
+      global.x.jwt = jwt;
       const data = { jwt };
-      const opts = {};
       const authResponse = await encodeAuthorizationResponse(
         user,
         server,
