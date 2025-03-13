@@ -44,6 +44,14 @@ export async function nsc(
   return await nsc0(noAccount ? args : [...args, "-a", natsAccountName]);
 }
 
+// Important to call this once on startup to ensure
+// our local cache of auth data is up to date.
+export async function pullFromServer() {
+  await nsc(["pull", "-A", "--overwrite-newer"], {
+    noAccount: true,
+  });
+}
+
 // TODO: consider making the names shorter strings using https://www.npmjs.com/package/short-uuid
 
 // A CoCalc User is (so far): a project or account or a hub (not covered here).
@@ -343,9 +351,6 @@ export const pushToServer = throttle(
 );
 
 export async function createNatsUser(cocalcUser: CoCalcUser) {
-  await nsc(["pull", "-A"], {
-    noAccount: true,
-  });
   const { stderr } = await nsc(["edit", "account", "--sk", "generate"], {
     noAccount: true,
   });
@@ -357,6 +362,23 @@ export async function createNatsUser(cocalcUser: CoCalcUser) {
   await nsc(["edit", "signing-key", "--sk", key, "--role", name, "--bearer"]);
   await nsc(["add", "user", name, "--private-key", name]);
   await configureNatsUser(cocalcUser);
+  pushToServer();
+}
+
+// Deleting user and signing key.
+export async function deleteNatsUser(cocalcUser: CoCalcUser) {
+  const name = getNatsUserName(cocalcUser);
+  const currentSigningKey = await getScopedSigningKey(name);
+
+  // delete the user (so JWT is no longer valid):
+  await nsc(["delete", "user", name]);
+
+  // delete the signing key: "nsc edit account --rm-sk"
+  if (currentSigningKey != null) {
+    await nsc(["edit", "account", "--rm-sk", currentSigningKey["Key"][0]], {
+      noAccount: true,
+    });
+  }
   pushToServer();
 }
 
