@@ -7,6 +7,10 @@ DEVELOPMENT:
 
 pnpm exec jest --watch --forceExit --detectOpenHandles "chunk.test.ts"
 
+WARNING:
+
+If this suddenly breaks, see the comment in packages/nats/sync/general-kv.ts
+about potentially having to fork NATS.
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup

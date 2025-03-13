@@ -856,8 +856,16 @@ function parseChunkedKey(key: string): {
 
 // The put function built into jetstream doesn't support
 // setting headers, but we set headers for doing chunking.
-// So we have to rewrite their put.  TODO: upstream this?
+// So we have to rewrite their put.   I attempted to upstream this:
 // https://github.com/nats-io/nats.js/issues/217
+// This was explicitly soundly rejected by the NATS developers.
+// It's thus important that we unit test this, which is done in
+// packages/backend/nats/test/sync/chunk.test.ts
+// right now. I think it is highly unlikely NATS will break using
+// headers in some future version, based on how KV is implemented
+// on top of lower level primitives.  However, if they do, we will
+// fork whatever part of NATS that does, and maintain it.  The code
+// is easy to work with and understand.
 async function jetstreamPut(
   kv,
   k: string,

@@ -2,7 +2,7 @@ import { join } from "path";
 import { nats, natsPorts, natsServer } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
-import { connect, credsAuthenticator } from "nats";
+import { connect, type NatsConnection /*, credsAuthenticator*/ } from "nats";
 import { getEnv } from "./env";
 export { getEnv };
 import { delay } from "awaiting";
@@ -31,18 +31,21 @@ export async function getCreds(): Promise<string | undefined> {
 }
 
 let wait = 2000;
-let nc: Awaited<ReturnType<typeof connect>> | null = null;
+let nc: NatsConnection | null = null;
 export const getConnection = reuseInFlight(async () => {
   logger.debug("connecting to nats");
 
   while (nc == null) {
     try {
-      const creds = await getCreds();
+      //const creds = await getCreds();
       nc = await connect({
         ...CONNECT_OPTIONS,
-        authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
+        // TODO: this is temporary while developing auth callout!
+        user: "cocalc",
+        pass: "cocalc",
+        //authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
         inboxPrefix: inboxPrefix({}),
-        servers: `${natsServer}:${natsPorts.server}`
+        servers: `${natsServer}:${natsPorts.server}`,
       });
       logger.debug(`connected to ${nc.getServer()}`);
     } catch (err) {

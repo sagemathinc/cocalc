@@ -13,9 +13,9 @@ import { writeFile } from "fs/promises";
 import { NATS_JWT_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import nsc from "./nsc";
 import { executeCode } from "@cocalc/backend/execute-code";
-import { startServer } from "./server";
-import { kill } from "node:process";
-import { delay } from "awaiting";
+// import { startServer } from "./server";
+// import { kill } from "node:process";
+// import { delay } from "awaiting";
 
 const logger = getLogger("backend:nats:install");
 
@@ -31,6 +31,16 @@ export const natsAccountName = "cocalc";
 // safe to adjust.
 const max_payload = "1MB";
 
+// Use hardcoded issuer Nkey and Xkey for initial DEVELOPMENT ONLY of auth callout!
+export const ISSUER_NKEY =
+  "ABJHLOVMPA4CI6R5KLNGOB4GSLNIY7IOUPAJC4YFNDLQVIOBYQGUWVLA";
+export const ISSUER_NSEED =
+  "SAANDLKMXL6CUS3CP52WIXBEDN6YJ545GDKC65U5JZPPV6WH6ESWUA6YAI";
+export const ISSUER_XKEY =
+  "XAB3NANV3M6N7AHSQP2U5FRWKKUT7EG2ZXXABV4XVXYQRJGM4S2CZGHT";
+export const ISSUER_XSEED =
+  "SXAAXMRAEP6JWWHNB6IKFL554IE6LZVT6EY5MBRICPILTLOPHAG73I3YX4";
+
 export async function configureNatsServer() {
   logger.debug("configureNatsServer", { confPath, natsPorts });
   if (await pathExists(confPath)) {
@@ -39,7 +49,7 @@ export async function configureNatsServer() {
     );
   }
 
-  const { config, operatorExists } = await configureNsc();
+  // const { config, operatorExists } = await configureNsc();
 
   await writeFile(
     confPath,
@@ -55,42 +65,58 @@ jetstream {
 }
 
 websocket {
-    listen: "${natsServer}:${natsPorts.ws}"
-    no_tls: true
-    jwt_cookie: "${NATS_JWT_COOKIE_NAME}"
+  listen: "${natsServer}:${natsPorts.ws}"
+  no_tls: true
+  token_cookie: "${NATS_JWT_COOKIE_NAME}"
 }
 
-resolver {
-    type: full
-    dir: 'data/nats/jwt'
-    allow_delete: true
-    interval: "1m"
-    timeout: "3s"
+accounts {
+  cocalc {
+    users: [
+      { user: cocalc, password: cocalc }
+    ],
+    jetstream: {
+      max_mem: -1
+      max_file: -1
+      max_streams: -1
+      max_consumers: -1
+    }
+  }
+  APP {}
+  SYS {}
 }
 
-${config}
+authorization {
+  auth_callout {
+    issuer: ${ISSUER_NKEY}
+    users: [ cocalc ]
+    account: cocalc
+    xkey: ${ISSUER_XKEY}
+  }
+}
+
 `,
   );
 
-  if (!operatorExists) {
-    // First time to ever configure, so need to start and push configuration.
-    // Don't do this every time since it takes a few seconds.
-    const pid = startServer();
-    let d = 1000;
-    while (true) {
-      try {
-        // push initial operator/account/user configuration so its possible
-        // to configure other accounts
-        await nsc(["push", "-u", natsServerUrl]);
-        break;
-      } catch (err) {
-        console.log(err);
-        await delay(d);
-        d = Math.min(15000, d * 1.3);
-      }
-    }
-    kill(pid);
-  }
+//   if (!operatorExists) {
+//     // First time to ever configure, so need to start and push configuration.
+//     // Don't do this every time since it takes a few seconds.
+//     const pid = startServer();
+//     let d = 1000;
+//     while (true) {
+//       try {
+//         // push initial operator/account/user configuration so its possible
+//         // to configure other accounts
+//         await nsc(["push", "-u", natsServerUrl]);
+//         break;
+//       } catch (err) {
+//         console.log(err);
+//         await delay(d);
+//         d = Math.min(15000, d * 1.3);
+//       }
+//     }
+//     kill(pid);
+//   }
   // Ensure that ONLY we can read/write the nats config directory,
   // which contains highly sensitive information.  This could matter
   // on cocalc-docker style systems.

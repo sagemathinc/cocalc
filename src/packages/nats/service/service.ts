@@ -79,6 +79,15 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
 
 export type CallNatsServiceFunction = typeof callNatsService;
 
+
+export interface Options extends ServiceDescription {
+  env?: NatsEnv;
+  description?: string;
+  version?: string;
+  handler: (mesg) => Promise<any>;
+}
+
+
 export async function createNatsService(options: Options) {
   const s = new NatsService(options);
   await s.init();
@@ -148,13 +157,6 @@ export function serviceDescription({
   path,
 }: ServiceDescription): string {
   return [description, path ? `\nPath: ${path}` : ""].join("");
-}
-
-export interface Options extends ServiceDescription {
-  env?: NatsEnv;
-  description?: string;
-  version?: string;
-  handler: (mesg) => Promise<any>;
 }
 
 export class NatsService extends EventEmitter {
