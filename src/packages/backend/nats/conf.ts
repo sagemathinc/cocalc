@@ -10,7 +10,7 @@ import { data, nats, natsPorts, natsServer } from "@cocalc/backend/data";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { writeFile } from "fs/promises";
-import { NATS_JWT_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import nsc from "./nsc";
 import { executeCode } from "@cocalc/backend/execute-code";
 // import { startServer } from "./server";
@@ -68,7 +68,7 @@ jetstream {
 websocket {
   listen: "${natsServer}:${natsPorts.ws}"
   no_tls: true
-  token_cookie: "${NATS_JWT_COOKIE_NAME}"
+  token_cookie: "${REMEMBER_ME_COOKIE_NAME}"
 }
 
 accounts {
@@ -99,25 +99,6 @@ authorization {
 `,
   );
 
-//   if (!operatorExists) {
-//     // First time to ever configure, so need to start and push configuration.
-//     // Don't do this every time since it takes a few seconds.
-//     const pid = startServer();
-//     let d = 1000;
-//     while (true) {
-//       try {
-//         // push initial operator/account/user configuration so its possible
-//         // to configure other accounts
-//         await nsc(["push", "-u", natsServerUrl]);
-//         break;
-//       } catch (err) {
-//         console.log(err);
-//         await delay(d);
-//         d = Math.min(15000, d * 1.3);
-//       }
-//     }
-//     kill(pid);
-//   }
   // Ensure that ONLY we can read/write the nats config directory,
   // which contains highly sensitive information.  This could matter
   // on cocalc-docker style systems.

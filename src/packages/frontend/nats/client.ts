@@ -61,7 +61,7 @@ export class NatsClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
-  private nc?: Awaited<ReturnType<typeof nats.connect>>;
+  private nc: { [user: string]: Awaited<ReturnType<typeof nats.connect>> } = {};
   public nats = nats;
   public jetstream = jetstream;
   public hub: HubApi;
@@ -108,36 +108,40 @@ export class NatsClient extends EventEmitter {
     }
   };
 
-  private getConnection = async () => {
-    if (this.nc != null) {
-      // undocumented API
-      if ((this.nc as any).protocol?.isClosed?.()) {
-        // cause a reconnect.
-        delete this.nc;
-        this.setConnectionState("disconnected");
-      } else {
-        return this.nc;
+  private getConnection = reuseInFlight(
+    async ({ project_id }: { project_id?: string } = {}) => {
+      const user = project_id
+        ? `project-${project_id}`
+        : `account-${this.client.account_id}`;
+      const nc = this.nc[user];
+      if (nc != null) {
+        // undocumented API
+        if ((nc as any).protocol?.isClosed?.()) {
+          // cause a reconnect.
+          delete this.nc[user];
+          this.setConnectionState("disconnected");
+        } else {
+          return nc;
+        }
       }
-    }
-    const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
-    console.log(`NATS: connecting to ${server}...`);
-    const options = {
-      ...CONNECT_OPTIONS,
-      servers: [server],
-      inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
-    };
-    try {
-      this.nc = await nats.connect(options);
-    } catch (err) {
-      console.log("NATS: set the JWT cookie and try again");
-      await fetch(join(appBasePath, "nats"));
-      this.nc = await nats.connect(options);
-    }
-    console.log(`NATS: connected to ${server}`);
-    this.setConnectionState("connected");
-    this.monitorConnectionState(this.nc);
-    return this.nc;
-  };
+      const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
+      console.log(`NATS: connecting to ${server} to use ${user}...`);
+      const options = {
+        user,
+        name: `account-${this.client.account_id}`,
+        ...CONNECT_OPTIONS,
+        servers: [server],
+        inboxPrefix: inboxPrefix(
+          project_id ? { project_id } : { account_id: this.client.account_id },
+        ),
+      };
+      this.nc[user] = await nats.connect(options);
+      console.log(`NATS: connected to ${server}`);
+      this.setConnectionState("connected");
+      this.monitorConnectionState(this.nc[user]);
+      return this.nc[user];
+    },
+  );
 
   private setConnectionState = (state?) => {
     const page = redux?.getActions("page");
@@ -545,6 +549,11 @@ export class NatsClient extends EventEmitter {
       inv.ls = (opts) => ls_orig({ ...opts, log: console.log_original });
     }
     return inv;
+  };
+
+  info = async (nc) => {
+    // info about a nats connection
+    return this.jc.decode((await nc.request("$SYS.REQ.USER.INFO")).data);
   };
 }
 
