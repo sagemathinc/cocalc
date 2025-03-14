@@ -57,11 +57,19 @@ import {
   getEnv,
 } from "@cocalc/nats/client";
 
+// TODO -- size and timeout on auth callout.  Implications?
+const MAX_PROJECTS_PER_CONNECTION = 50;
+
+type NatsConnection = Awaited<ReturnType<typeof nats.connect>> & {
+  account_id: string;
+  project_ids?: Set<string>;
+};
+
 export class NatsClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
-  private nc: { [user: string]: Awaited<ReturnType<typeof nats.connect>> } = {};
+  private nc: { [user: string]: NatsConnection } = {};
   public nats = nats;
   public jetstream = jetstream;
   public hub: HubApi;
@@ -108,12 +116,28 @@ export class NatsClient extends EventEmitter {
     }
   };
 
+  // returns a connection that has permission to access the given projects.
+  // All connections can access the global and account info.
   private getConnection = reuseInFlight(
-    async ({ project_id }: { project_id?: string } = {}) => {
-      const user = project_id
-        ? `project-${project_id}`
-        : `account-${this.client.account_id}`;
-      const nc = this.nc[user];
+    async ({ project_ids }: { project_ids?: string[] } = {}) => {
+      const { account_id } = this.client;
+      if (!account_id) {
+        throw Error("you must be signed in before connecting to NATS");
+      }
+      if (
+        project_ids != null &&
+        project_ids.length > MAX_PROJECTS_PER_CONNECTION
+      ) {
+        throw Error(
+          `a connection can be authorized for at most ${MAX_PROJECTS_PER_CONNECTION} projects at once`,
+        );
+      }
+      const user = JSON.stringify({
+        account_id,
+        project_ids,
+      });
+      console.log("getConnection", user);
+      let nc = this.nc[user];
       if (nc != null) {
         // undocumented API
         if ((nc as any).protocol?.isClosed?.()) {
@@ -128,14 +152,15 @@ export class NatsClient extends EventEmitter {
       console.log(`NATS: connecting to ${server} to use ${user}...`);
       const options = {
         user,
-        name: `account-${this.client.account_id}`,
+        name: `account-${account_id}`,
         ...CONNECT_OPTIONS,
         servers: [server],
-        inboxPrefix: inboxPrefix(
-          project_id ? { project_id } : { account_id: this.client.account_id },
-        ),
+        inboxPrefix: inboxPrefix({ account_id }),
       };
-      this.nc[user] = await nats.connect(options);
+      nc = (await nats.connect(options)) as NatsConnection;
+      this.nc[user] = nc;
+      nc.account_id = account_id;
+      nc.project_ids = new Set(project_ids);
       console.log(`NATS: connected to ${server}`);
       this.setConnectionState("connected");
       this.monitorConnectionState(this.nc[user]);

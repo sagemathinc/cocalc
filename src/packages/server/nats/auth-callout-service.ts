@@ -193,20 +193,40 @@ async function getPermissions({
   auth_token?: string;
   user?: string;
 }) {
-  console.log("getPermissions", { auth_token, user });
-  // user = account-{account_id} or project-{project_id}
-  if (user?.startsWith("project-")) {
-    const project_id = user.slice("project-".length);
+  if (!user) {
+    throw Error("user must be specified");
+  }
+  const { account_id, project_id, project_ids } = JSON.parse(user) ?? {};
+  console.log("getPermissions", {
+    auth_token,
+    user,
+    account_id,
+    project_id,
+    project_ids,
+  });
+  if (project_id) {
     if (!isValidUUID(project_id)) {
-      throw Error("invalid project_id");
+      throw Error(`invalid project_id ${project_id}`);
     }
     return projectPermissions(project_id);
-  } else if (user?.startsWith("account-")) {
-    const account_id = user.slice("account-".length);
+  } else if (account_id) {
     if (!isValidUUID(account_id)) {
-      throw Error("invalid account_id");
+      throw Error(`invalid account_id ${account_id}`);
     }
-    return accountPermissions(account_id);
+    const { pub, sub } = accountPermissions(account_id);
+    if (project_ids) {
+      for (const project_id of project_ids) {
+        if (!isValidUUID(project_id)) {
+          throw Error(`invalid project_id ${project_id}`);
+        }
+        const x = projectPermissions(project_id);
+        pub.allow.push(...x.pub.allow);
+        sub.allow.push(...x.sub.allow);
+        pub.deny.push(...x.pub.deny);
+        sub.deny.push(...x.sub.deny);
+      }
+    }
+    return { pub, sub };
   } else {
     throw Error(
       "invalid user format: must be 'account-{account_id}' or 'project-{project_id}'",
