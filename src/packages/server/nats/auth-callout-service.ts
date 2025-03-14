@@ -40,10 +40,7 @@ import/export would be a nightmare, and probaby much more complicated.
 import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
-import {
-  ISSUER_XSEED,
-  ISSUER_NSEED,
-} from "@cocalc/backend/nats/conf";
+import { ISSUER_XSEED, ISSUER_NSEED } from "@cocalc/backend/nats/conf";
 import { fromPublic, fromSeed } from "@nats-io/nkeys";
 import {
   decode as decodeJwt,
@@ -78,22 +75,26 @@ export async function init() {
   };
 }
 
+// sessions automatically expire after 12 hours.
+const SESSION_EXPIRE_MS = 1000 * 60 * 12;
+
 async function listen(api, xkp) {
   console.log("listening...");
   try {
     for await (const mesg of api) {
       console.log("listen -- get ", mesg);
-      const token = getToken(mesg, xkp);
-      const requestClaim = decodeJwt(token) as any;
+      const requestJwt = getRequestJwt(mesg, xkp);
+      const requestClaim = decodeJwt(requestJwt) as any;
       global.x = {
         mesg,
         xkp,
-        token,
+        requestJwt,
         decodeJwt,
         fromSeed,
         encoder: new TextEncoder(),
         xseed: ISSUER_XSEED,
         requestClaim,
+        allowTest,
       };
       const userNkey = requestClaim.nats.user_nkey;
       const serverId = requestClaim.nats.server_id;
@@ -104,7 +105,25 @@ async function listen(api, xkp) {
       const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
       const userName = requestClaim.nats.connect_opts.user;
       const opts = { aud: "cocalc" };
-      const jwt = await encodeUser(userName, user, issuer, {}, opts);
+      const start = new Date();
+      const end = new Date(start.valueOf() + SESSION_EXPIRE_MS);
+      const jwt = await encodeUser(
+        userName,
+        user,
+        issuer,
+        {
+          pub: { allow: [">"], deny: [] },
+          sub: { allow: [">"], deny: [] },
+          times: [
+            {
+              start: formatTime(start),
+              end: formatTime(end),
+            },
+          ],
+          locale: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        opts,
+      );
       global.x.jwt = jwt;
       const data = { jwt };
       const authResponse = await encodeAuthorizationResponse(
@@ -132,7 +151,16 @@ async function listen(api, xkp) {
   }
 }
 
-function getToken(mesg, xkp): string {
+function formatTime(d) {
+  return d.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function getRequestJwt(mesg, xkp): string {
   const xkey = mesg.headers.get("Nats-Server-Xkey");
   let data;
   if (xkey) {
@@ -145,4 +173,13 @@ function getToken(mesg, xkp): string {
   }
   const decoder = new TextDecoder("utf-8");
   return decoder.decode(data);
+}
+
+import { intToUuid } from "./stress";
+function allowTest(n) {
+  const v: string[] = [];
+  for (let i = 0; i < n; i++) {
+    v.push(`project-${intToUuid(i)}.>`);
+  }
+  return v;
 }
