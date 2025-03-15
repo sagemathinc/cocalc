@@ -302,6 +302,14 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
   });
 
+  private restartWatch = () => {
+    // we make a new watch, starting AFTER the last revision we retrieved
+    this.watch?.stop(); // stop current watch
+    // make new watch:
+    const resumeFromRevision = this.revision ? this.revision + 1 : undefined;
+    this.startWatch({ resumeFromRevision });
+  };
+
   private startWatch = async ({
     resumeFromRevision,
   }: { resumeFromRevision?: number } = {}) => {
@@ -404,8 +412,10 @@ export class GeneralKV<T = any> extends EventEmitter {
 
   // For both the kv and streams as best I can tell we MUST periodically poll the
   // server to see if the watch is still working.  If not we create a new one
-  // starting at the last revision we got.
+  // starting at the last revision we got.  The watch will of course stop working
+  // randomly sometimes because browsers disconnect and reconnect.
   private monitorWatch = async () => {
+    this.env.nc.on?.("reconnect", this.restartWatch);
     while (this.revisions != null) {
       await delay(WATCH_MONITOR_INTERVAL);
       if (this.revisions == null) {
@@ -435,14 +445,7 @@ export class GeneralKV<T = any> extends EventEmitter {
           err.code == 10014 ||
           err.message == "consumer not found"
         ) {
-          // if it is a consumer not found error, we make a new watch,
-          // starting AFTER the last revision we retrieved
-          this.watch.stop(); // stop current watch
-          // make new watch:
-          const resumeFromRevision = this.revision
-            ? this.revision + 1
-            : undefined;
-          this.startWatch({ resumeFromRevision });
+          this.restartWatch();
         }
       }
     }
@@ -461,6 +464,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     delete this.sizes;
     this.emit("closed");
     this.removeAllListeners();
+    this.env.nc.removeListener?.("reconnect", this.restartWatch);
   };
 
   get = (key: string): T => {

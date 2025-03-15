@@ -1,16 +1,15 @@
 import * as nats from "nats.ws";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { connect, type CoCalcNatsConnection } from "./connection";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { join } from "path";
 import * as jetstream from "@nats-io/jetstream";
 import {
   createSyncTable,
   type NatsSyncTable,
   NatsSyncTableFunction,
 } from "@cocalc/nats/sync/synctable";
-import { inboxPrefix, randomId } from "@cocalc/nats/names";
+import { randomId } from "@cocalc/nats/names";
 import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
@@ -35,7 +34,6 @@ import { dstream, type DStream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
-import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { callNatsService, createNatsService } from "@cocalc/nats/service";
 import type {
   CallNatsServiceFunction,
@@ -57,19 +55,11 @@ import {
   getEnv,
 } from "@cocalc/nats/client";
 
-// TODO -- size and timeout on auth callout.  Implications?
-const MAX_PROJECTS_PER_CONNECTION = 50;
-
-type NatsConnection = Awaited<ReturnType<typeof nats.connect>> & {
-  account_id: string;
-  project_ids?: Set<string>;
-};
-
 export class NatsClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
-  private nc: { [user: string]: NatsConnection } = {};
+  private nc?: CoCalcNatsConnection;
   public nats = nats;
   public jetstream = jetstream;
   public hub: HubApi;
@@ -116,57 +106,28 @@ export class NatsClient extends EventEmitter {
     }
   };
 
-  // returns a connection that has permission to access the given projects.
-  // All connections can access the global and account info.
-  private getConnection = reuseInFlight(
-    async ({ project_ids }: { project_ids?: string[] } = {}) => {
-      const { account_id } = this.client;
-      if (!account_id) {
-        throw Error("you must be signed in before connecting to NATS");
+  private getConnection = reuseInFlight(async () => {
+    if (this.nc != null) {
+      if (this.nc.protocol?.isClosed?.()) {
+        // cause a reconnect.
+        delete this.nc;
+        this.setConnectionState("disconnected");
+      } else {
+        return this.nc;
       }
-      if (
-        project_ids != null &&
-        project_ids.length > MAX_PROJECTS_PER_CONNECTION
-      ) {
-        throw Error(
-          `a connection can be authorized for at most ${MAX_PROJECTS_PER_CONNECTION} projects at once`,
-        );
-      }
-      const user = JSON.stringify({
-        account_id,
-        project_ids,
-      });
-      console.log("getConnection", user);
-      let nc = this.nc[user];
-      if (nc != null) {
-        // undocumented API
-        if ((nc as any).protocol?.isClosed?.()) {
-          // cause a reconnect.
-          delete this.nc[user];
-          this.setConnectionState("disconnected");
-        } else {
-          return nc;
-        }
-      }
-      const server = `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
-      console.log(`NATS: connecting to ${server} to use ${user}...`);
-      const options = {
-        user,
-        name: `account-${account_id}`,
-        ...CONNECT_OPTIONS,
-        servers: [server],
-        inboxPrefix: inboxPrefix({ account_id }),
-      };
-      nc = (await nats.connect(options)) as NatsConnection;
-      this.nc[user] = nc;
-      nc.account_id = account_id;
-      nc.project_ids = new Set(project_ids);
-      console.log(`NATS: connected to ${server}`);
-      this.setConnectionState("connected");
-      this.monitorConnectionState(this.nc[user]);
-      return this.nc[user];
-    },
-  );
+    }
+    this.nc = await connect();
+    this.setConnectionState("connected");
+    //this.monitorConnectionState(this.nc);
+    return this.nc;
+  });
+
+  addPermissions = async (project_ids) => {
+    if (this.nc == null) {
+      throw Error("must have a connection");
+    }
+    await this.nc.addPermissions(project_ids);
+  };
 
   private setConnectionState = (state?) => {
     const page = redux?.getActions("page");
@@ -181,11 +142,11 @@ export class NatsClient extends EventEmitter {
     } as any);
   };
 
-  private monitorConnectionState = async (nc) => {
-    for await (const _ of nc.status()) {
-      this.setConnectionState();
-    }
-  };
+  //   private monitorConnectionState = async (nc) => {
+  //     for await (const _ of nc.status()) {
+  //       this.setConnectionState();
+  //     }
+  //   };
 
   private natsDataTransfer = (): {
     inBytes?: number;
@@ -206,7 +167,7 @@ export class NatsClient extends EventEmitter {
     return createNatsService({ ...options, env: await this.getEnv() });
   };
 
-  // deprecated!
+  // TODO: plan to deprecated...
   projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
     const { nc } = await this.getEnv();
     const subject = projectSubject({ project_id, service: "browser-api" });
@@ -298,7 +259,7 @@ export class NatsClient extends EventEmitter {
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
-        await this.hub.projects.addProjectPermission({ project_id });
+        await nc.addPermissions([project_id]);
         resp = await nc.request(subject, mesg, { timeout });
       } else {
         throw err;

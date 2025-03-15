@@ -34,6 +34,8 @@ export default async function getConnection() {
           authenticator: jwtAuthenticator(COCALC_NATS_JWT),
           inboxPrefix,
           servers,
+          user: JSON.stringify({ project_id }),
+          name: `project-${project_id}`,
         });
         logger.debug(`connected to ${nc.getServer()}`);
       } catch (err) {

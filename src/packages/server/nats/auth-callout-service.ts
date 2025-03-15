@@ -159,12 +159,11 @@ async function handleRequest(mesg, xkp) {
 }
 
 function formatTime(d) {
-  return d.toLocaleTimeString("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  let hours = String(d.getHours()).padStart(2, "0");
+  let minutes = String(d.getMinutes()).padStart(2, "0");
+  let seconds = String(d.getSeconds()).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 function getRequestJwt(mesg, xkp): string {
@@ -226,12 +225,19 @@ async function getPermissions({
         sub.deny.push(...x.sub.deny);
       }
     }
-    return { pub, sub };
+    return {
+      pub: { allow: uniq(pub.allow), deny: uniq(pub.deny) },
+      sub: { allow: uniq(sub.allow), deny: uniq(sub.deny) },
+    };
   } else {
     throw Error(
       "invalid user format: must be 'account-{account_id}' or 'project-{project_id}'",
     );
   }
+}
+
+function uniq(v: string[]): string[] {
+  return Array.from(new Set(v));
 }
 
 function commonPermissions(cocalcUser) {

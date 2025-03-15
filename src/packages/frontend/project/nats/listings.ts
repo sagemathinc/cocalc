@@ -57,12 +57,10 @@ export class Listings extends EventEmitter {
         // console.log("creating listings client failed", err);
         if (err.code == "PERMISSIONS_VIOLATION") {
           try {
-//             console.log(
-//               `request update of our credentials to include ${this.project_id}, then try again`,
-//             );
-            await webapp_client.nats_client.hub.projects.addProjectPermission({
-              project_id: this.project_id,
-            });
+            //             console.log(
+            //               `request update of our credentials to include ${this.project_id}, then try again`,
+            //             );
+            await webapp_client.nats_client.addPermissions([this.project_id]);
             continue;
           } catch (err) {
             // console.log("updating permissions failed", err);

@@ -214,6 +214,7 @@ export class Stream<T = any> extends EventEmitter {
       // closed *during* initial load
       return;
     }
+    this.env.nc.on?.("reconnect", this.restartConsumer);
     this.watchForNewData(consumer);
   });
 
@@ -467,23 +468,26 @@ export class Stream<T = any> extends EventEmitter {
           err.code == 10014 ||
           err.message == "consumer not found"
         ) {
-          // if it is a consumer not found error, we make a new consumer,
-          // starting AFTER the last event we retrieved
-          this.watch.stop(); // stop current watch
-          // make new one:
-          const start_seq = last(this.raw[this.raw.length - 1])?.seq + 1;
-          const consumer = await this.fetchInitialData({ start_seq });
-          if (this.stream == null) {
-            // closed
-            return;
-          }
-          this.watchForNewData(consumer);
-
+          // if it is a consumer not found error, we make a new consumer:
+          this.restartConsumer();
           return; // because watchForNewData creates a new consumer monitor loop
         }
       }
       await delay(CONSUMER_MONITOR_INTERVAL);
     }
+  };
+
+  private restartConsumer = async () => {
+    // make a new consumer, starting AFTER the last event we retrieved
+    this.watch?.stop(); // stop current watch (if any)
+    // make new one:
+    const start_seq = last(this.raw[this.raw.length - 1])?.seq + 1;
+    const consumer = await this.fetchInitialData({ start_seq });
+    if (this.stream == null) {
+      // closed
+      return;
+    }
+    this.watchForNewData(consumer);
   };
 
   private decode = (raw: JsMsg[]) => {
@@ -525,6 +529,7 @@ export class Stream<T = any> extends EventEmitter {
     delete this.js;
     this.emit("closed");
     this.removeAllListeners();
+    this.env.nc.removeListener?.("reconnect", this.restartConsumer);
   };
 
   // delete all messages up to and including the

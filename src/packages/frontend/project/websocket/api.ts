@@ -95,9 +95,7 @@ export class API {
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
-        await webapp_client.nats_client.hub.projects.addProjectPermission({
-          project_id: this.project_id,
-        });
+        await webapp_client.nats_client.addPermissions([this.project_id]);
         return await this._call(mesg, timeout);
       } else {
         throw err;

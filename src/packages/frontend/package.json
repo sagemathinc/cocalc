@@ -60,6 +60,7 @@
     "@microlink/react-json-view": "^1.23.3",
     "@nats-io/jetstream": "3.0.0-40",
     "@nats-io/kv": "3.0.0-34",
+    "@nats-io/nats-core": "3.0.0-54",
     "@nats-io/services": "3.0.0-28",
     "@orama/orama": "3.0.0-rc-3",
     "@react-hook/mouse-position": "^4.1.3",
