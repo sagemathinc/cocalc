@@ -3,7 +3,6 @@ import {
   REMEMBER_ME_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import setNatsCookie from "@cocalc/server/auth/set-nats-cookie";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import Cookies from "cookies";
 
@@ -22,11 +21,7 @@ export default async function setSignInCookies({
   maxAge?: number;
 }) {
   const opts = { req, res, account_id, maxAge };
-  await Promise.all([
-    setRememberMeCookie(opts),
-    setNatsCookie(opts),
-    setAccountIdCookie(opts),
-  ]);
+  await Promise.all([setRememberMeCookie(opts), setAccountIdCookie(opts)]);
 }
 
 async function setRememberMeCookie({ req, res, account_id, maxAge }) {

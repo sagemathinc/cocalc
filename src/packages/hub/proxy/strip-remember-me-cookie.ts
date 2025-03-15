@@ -9,7 +9,6 @@ auth credentials for all users of a project!
 
 import {
   REMEMBER_ME_COOKIE_NAME,
-  NATS_JWT_COOKIE_NAME,
   API_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
 
@@ -40,8 +39,6 @@ export default function stripRememberMeCookie(cookie): {
         remember_me = z[1].trim();
       } else if (z[0].trim() == API_COOKIE_NAME) {
         api_key = z[1].trim();
-      } else if (z[0].trim() == NATS_JWT_COOKIE_NAME) {
-        nats_jwt = z[1].trim();
       } else {
         v.push(c);
       }

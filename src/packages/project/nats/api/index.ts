@@ -17,6 +17,7 @@ export DATA=$HOME/.smc
 
 2. Then do this:
 
+    . project-env.sh
     echo 'require("@cocalc/project/nats/api/index").init()' | DEBUG=cocalc:* DEBUG_CONSOLE=yes node
 
 or just run node and paste

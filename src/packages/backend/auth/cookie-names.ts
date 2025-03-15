@@ -35,11 +35,6 @@ export const API_COOKIE_NAME = basePathCookieName({
 
 log.debug("API_COOKIE_NAME", API_COOKIE_NAME);
 
-export const NATS_JWT_COOKIE_NAME = basePathCookieName({
-  basePath,
-  name: "nats_jwt_cookie",
-});
-
 export const ACCOUNT_ID_COOKIE_NAME = basePathCookieName({
   basePath,
   name: "account_id",

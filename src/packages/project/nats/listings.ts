@@ -18,10 +18,7 @@ DEVELOPMENT:
     {status: 'terminated', service: 'listings'}
 
 
-2. Setup project environment variables as usual.
-
-
-     define COCALC_PROJECT_ID, COCALC_NATS_JWT, etc., as usual.
+2. Setup project environment variables as usual (see README.md)
 
 3. Start your own server
 

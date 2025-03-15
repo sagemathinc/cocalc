@@ -8,9 +8,7 @@ How to do development (so in a dev project doing cc-in-cc dev):
 
     await cc.client.nats_client.projectWebsocketApi({project_id:cc.current().project_id, mesg:{cmd:"terminate"}})
 
-1. Open a terminal in the project itself, which sets up the required environment variables, e.g.,
-    - COCALC_NATS_JWT -- this has the valid JWT issued to grant the project rights to use nats
-    - COCALC_PROJECT_ID
+1. Open a terminal in the project itself, which sets up the required environment variables.  See api/index.ts for details!!
 
 2. cd to your dev packages/project source code, e.g., ../cocalc/src/packages/project
 

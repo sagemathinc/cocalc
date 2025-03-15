@@ -19,7 +19,17 @@ Relevant docs:
 - https://www.youtube.com/watch?v=VvGxrT-jv64
 
 
+
+DEVELOPMENT
+
+
+> await require('@cocalc/server/nats/auth').init()
+
+
 WHY NOT DECENTRALIZED AUTH?
+
+I wish I knew the following earlier, as it would have saved me at least a
+week of work...
 
 We *fully* implemented decentralized auth first using JWT's, but it DOES NOT
 SCALE! The problem is that we need potentially dozens of pub/sub rules for each

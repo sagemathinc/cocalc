@@ -52,12 +52,17 @@ import { connect as natsConnect } from "nats.ws";
 import { inboxPrefix } from "@cocalc/nats/names";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { EventEmitter } from "events";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 function natsWebsocketUrl() {
   return `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
 }
 
-export async function connect() {
+let cachedConnection: CoCalcNatsConnection | null = null;
+export const connect = reuseInFlight(async () => {
+  if (cachedConnection != null) {
+    return cachedConnection;
+  }
   const { account_id } = webapp_client;
   if (!account_id) {
     throw Error("you must be signed in before connecting to NATS");
@@ -73,13 +78,14 @@ export async function connect() {
     inboxPrefix: inboxPrefix({ account_id }),
   };
   const nc = await natsConnect(options);
-  return new CoCalcNatsConnection(nc, user);
-}
+  cachedConnection = new CoCalcNatsConnection(nc, user);
+  return cachedConnection;
+});
 
-export class CoCalcNatsConnection
-  extends EventEmitter
-  implements NatsConnection
-{
+// There should be at most one single global instance of CoCalcNatsConnection!  It
+// is responsible for managing any connection to nats.  It is assumed that nothing else
+// does and that there is only one of these.
+class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   private conn: NatsConnection;
 
   info?: ServerInfo;
@@ -279,6 +285,8 @@ export class CoCalcNatsConnection
     return info ? parseSemVer(info.version) : undefined;
   }
 }
+
+export { type CoCalcNatsConnection };
 
 export type SemVer = { major: number; minor: number; micro: number };
 export function parseSemVer(s = ""): SemVer {

@@ -14,6 +14,7 @@
     "./mentions/*": "./dist/mentions/*.js",
     "./nats": "./dist/nats/index.js",
     "./nats/api": "./dist/nats/api/index.js",
+    "./nats/auth": "./dist/nats/auth/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",
