@@ -50,6 +50,7 @@ import {
 import { isValidUUID } from "@cocalc/util/misc";
 import { inboxPrefix } from "@cocalc/nats/names";
 import getLogger from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
 
 const logger = getLogger("server:nats:auth-callout");
 
@@ -207,6 +208,9 @@ async function getPermissions({
     if (!isValidUUID(project_id)) {
       throw Error(`invalid project_id ${project_id}`);
     }
+    if ((await getProjectSecretToken(project_id)) != auth_token) {
+      throw Error("project auth token doesn't match");
+    }
     return projectPermissions(project_id);
   } else if (account_id) {
     if (!isValidUUID(account_id)) {
@@ -362,4 +366,13 @@ function getCoCalcUserId({ account_id, project_id }: CoCalcUser): string {
     return project_id;
   }
   throw Error("account_id or project_id must be specified");
+}
+
+async function getProjectSecretToken(project_id): Promise<string | undefined> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "select status#>'{secret_token}' as secret_token from projects where project_id=$1",
+    [project_id],
+  );
+  return rows[0]?.secret_token;
 }
