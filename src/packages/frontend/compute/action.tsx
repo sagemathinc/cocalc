@@ -41,19 +41,11 @@ export default function getActions({
   for (const action of s.actions) {
     if (
       !editable &&
-      action != "stop" &&
-      action != "deprovision" &&
-      action != "start" &&
-      action != "suspend" &&
-      action != "resume" &&
-      action != "reboot"
+      !["stop", "start", "suspend", "resume", "reboot", "deprovision"].includes(
+        action,
+      )
     ) {
-      // non-owner can only do start/stop/suspend/resume -- NOT delete or deprovision.
-      continue;
-    }
-    if (!editable && action == "deprovision" && !configuration.ephemeral) {
-      // also do not allow NON ephemeral deprovision by collaborator.
-      // For ephemeral, collab is encouraged to delete server.
+      // non-owner can only do start/stop/suspend/resume/deprovision -- NOT delete.
       continue;
     }
     const a = ACTION_INFO[action];
