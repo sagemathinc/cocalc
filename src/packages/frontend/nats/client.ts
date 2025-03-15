@@ -54,6 +54,7 @@ import {
   type ClientWithState,
   getEnv,
 } from "@cocalc/nats/client";
+import type { ConnectionInfo } from "./types";
 
 export class NatsClient extends EventEmitter {
   client: WebappClient;
@@ -122,11 +123,14 @@ export class NatsClient extends EventEmitter {
     return this.nc;
   });
 
-  addPermissions = async (project_ids) => {
+  // reconnect to nats with access to additional projects.
+  // If you request projects that you're not actually a collaborator
+  // on, then it will silently NOT give you permission to use them.
+  addProjectPermissions = async (project_ids: string[]) => {
     if (this.nc == null) {
       throw Error("must have a connection");
     }
-    await this.nc.addPermissions(project_ids);
+    await this.nc.addProjectPermissions(project_ids);
   };
 
   private setConnectionState = (state?) => {
@@ -259,7 +263,7 @@ export class NatsClient extends EventEmitter {
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
-        await nc.addPermissions([project_id]);
+        await nc.addProjectPermissions([project_id]);
         resp = await nc.request(subject, mesg, { timeout });
       } else {
         throw err;
@@ -537,9 +541,9 @@ export class NatsClient extends EventEmitter {
     return inv;
   };
 
-  info = async (nc) => {
+  info = async (nc): Promise<ConnectionInfo> => {
     // info about a nats connection
-    return this.jc.decode((await nc.request("$SYS.REQ.USER.INFO")).data);
+    return this.jc.decode((await nc.request("$SYS.REQ.USER.INFO")).data) as ConnectionInfo;
   };
 }
 

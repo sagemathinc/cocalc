@@ -106,8 +106,8 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     };
   }
 
-  removePermissions(project_ids: string[]) {
-    console.log("removePermissions", project_ids);
+  removeProjectPermissions(project_ids: string[]) {
+    console.log("removeProjectPermissions", project_ids);
     if (project_ids.length == 0 || this.user.project_ids.length == 0) {
       return;
     }
@@ -132,14 +132,31 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       return;
     }
     const openProjects = new Set(v);
-    this.removePermissions(
+    this.removeProjectPermissions(
       this.user.project_ids.filter(
         (project_id) => !openProjects.has(project_id),
       ),
     );
   }
 
-  async addPermissions(project_ids: string[]) {
+  // gets *actual* projects that this connection has permission to access
+  async getProjectPermissions(): Promise<string[]> {
+    const info = await this.getConnectionInfo();
+    const project_ids: string[] = [];
+    for (const x of info.data.permissions.publish.allow) {
+      if (x.startsWith("project.")) {
+        const v = x.split(".");
+        project_ids.push(v[1]);
+      }
+    }
+    return project_ids;
+  }
+
+  async getConnectionInfo() {
+    return await webapp_client.nats_client.info(this.conn);
+  }
+
+  async addProjectPermissions(project_ids: string[]) {
     if (project_ids.length == 0) {
       return;
     }
@@ -153,11 +170,11 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     }
     if (x.size > this.user.project_ids.length) {
       project_ids = Array.from(x);
-      await this.setPermissions(project_ids);
+      await this.setProjectPermissions(project_ids);
     }
   }
 
-  async setPermissions(project_ids: string[]) {
+  async setProjectPermissions(project_ids: string[]) {
     if (project_ids.length > MAX_PROJECTS_PER_CONNECTION) {
       throw Error(
         `there is a limit of at most ${MAX_PROJECTS_PER_CONNECTION} project permissions at once`,
