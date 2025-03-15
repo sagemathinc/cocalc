@@ -53,6 +53,7 @@ import { inboxPrefix } from "@cocalc/nats/names";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { asyncDebounce } from "@cocalc/util/async-utils";
 
 function natsWebsocketUrl() {
   return `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
@@ -92,6 +93,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   protocol;
   options;
   user: { account_id: string; project_ids: string[] };
+  requested: string[] = [];
 
   constructor(conn, user) {
     super();
@@ -106,8 +108,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     };
   }
 
-  removeProjectPermissions(project_ids: string[]) {
-    console.log("removeProjectPermissions", project_ids);
+  removeProjectPermissions = (project_ids: string[]) => {
     if (project_ids.length == 0 || this.user.project_ids.length == 0) {
       return;
     }
@@ -120,10 +121,9 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       // we don't actually change the connection -- just make it so the next time
       // it is changed, these project_ids aren't included.
     }
-  }
+  };
 
-  removeClosedProjectPermissions() {
-    console.log("removeClosedProjectPermissions");
+  private removeClosedProjectPermissions = () => {
     if (this.user.project_ids.length == 0) {
       return;
     }
@@ -137,10 +137,10 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
         (project_id) => !openProjects.has(project_id),
       ),
     );
-  }
+  };
 
   // gets *actual* projects that this connection has permission to access
-  async getProjectPermissions(): Promise<string[]> {
+  getProjectPermissions = async (): Promise<string[]> => {
     const info = await this.getConnectionInfo();
     const project_ids: string[] = [];
     for (const x of info.data.permissions.publish.allow) {
@@ -150,13 +150,13 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       }
     }
     return project_ids;
-  }
+  };
 
-  async getConnectionInfo() {
+  getConnectionInfo = async () => {
     return await webapp_client.nats_client.info(this.conn);
-  }
+  };
 
-  async addProjectPermissions(project_ids: string[]) {
+  addProjectPermissions = async (project_ids: string[]) => {
     if (project_ids.length == 0) {
       return;
     }
@@ -172,50 +172,69 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       project_ids = Array.from(x);
       await this.setProjectPermissions(project_ids);
     }
-  }
+  };
 
-  async setProjectPermissions(project_ids: string[]) {
-    if (project_ids.length > MAX_PROJECTS_PER_CONNECTION) {
-      throw Error(
-        `there is a limit of at most ${MAX_PROJECTS_PER_CONNECTION} project permissions at once`,
+  private setProjectPermissions = async (project_ids: string[]) => {
+    this.requested.push(...project_ids);
+    await this.updateProjectPermissions();
+  };
+
+  // this is debounce since adding permissions tends to come in bursts:
+  private updateProjectPermissions = asyncDebounce(
+    async () => {
+      if (this.requested.length == 0) {
+        return;
+      }
+      let project_ids = Array.from(new Set(this.requested));
+      this.requested = [];
+
+      if (project_ids.length > MAX_PROJECTS_PER_CONNECTION) {
+        console.warn(
+          `WARNING: there is a limit of at most ${MAX_PROJECTS_PER_CONNECTION} project permissions at once`,
+        );
+        // take most recently requested:
+        project_ids = project_ids.slice(-MAX_PROJECTS_PER_CONNECTION);
+      }
+
+      const { account_id } = webapp_client;
+      if (!account_id) {
+        throw Error("you must be signed in before connecting to NATS");
+      }
+      const user = {
+        account_id,
+        project_ids,
+      };
+      const server = natsWebsocketUrl();
+      console.log(
+        `NATS: connecting to ${server} to use ${project_ids.join(",")}...`,
       );
-    }
-    const { account_id } = webapp_client;
-    if (!account_id) {
-      throw Error("you must be signed in before connecting to NATS");
-    }
-    const user = {
-      account_id,
-      project_ids,
-    };
-    const server = natsWebsocketUrl();
-    console.log(
-      `NATS: connecting to ${server} to use ${project_ids.join(",")}...`,
-    );
-    const options = {
-      user: JSON.stringify(user),
-      name: `account-${account_id}`,
-      ...CONNECT_OPTIONS,
-      servers: [server],
-      inboxPrefix: inboxPrefix({ account_id }),
-    };
-    const cur = this.conn;
-    const conn = (await natsConnect(options)) as any;
-    this.conn = conn;
-    this.protocol = conn.protocol;
-    this.info = conn.info;
-    this.options = options;
-    this.user = user;
-    // tell clients they should reconnect, since the connection they
-    // had used is going to drain soon.
-    this.emit("reconnect");
-    setTimeout(async () => {
-      // we wait a minute, then drain the previous connection.
-      try {
-        await cur.drain();
-      } catch {}
-    }, 60000);
-  }
+      const options = {
+        user: JSON.stringify(user),
+        name: `account-${account_id}`,
+        ...CONNECT_OPTIONS,
+        servers: [server],
+        inboxPrefix: inboxPrefix({ account_id }),
+      };
+      const cur = this.conn;
+      const conn = (await natsConnect(options)) as any;
+      this.conn = conn;
+      this.protocol = conn.protocol;
+      this.info = conn.info;
+      this.options = options;
+      this.user = user;
+      // tell clients they should reconnect, since the connection they
+      // had used is going to drain soon.
+      this.emit("reconnect");
+      setTimeout(async () => {
+        // we wait a minute, then drain the previous connection.
+        try {
+          await cur.drain();
+        } catch {}
+      }, 60000);
+    },
+    750,
+    { leading: true, trailing: true },
+  );
 
   async closed(): Promise<void | Error> {
     return await this.conn.closed();

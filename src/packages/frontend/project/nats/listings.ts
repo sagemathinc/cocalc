@@ -60,7 +60,9 @@ export class Listings extends EventEmitter {
             //             console.log(
             //               `request update of our credentials to include ${this.project_id}, then try again`,
             //             );
-            await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+            await webapp_client.nats_client.addProjectPermissions([
+              this.project_id,
+            ]);
             continue;
           } catch (err) {
             // console.log("updating permissions failed", err);

@@ -223,15 +223,30 @@ export class NatsClient extends EventEmitter {
     if (!isValidUUID(project_id)) {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
+    let lastAddedPermission = 0;
     const callProjectApi = async ({ name, args }) => {
-      return await this.callProject({
+      const opts = {
         project_id,
         compute_server_id,
         timeout,
         service: "api",
         name,
         args,
-      });
+      };
+      try {
+        return await this.callProject(opts);
+      } catch (err) {
+        if (
+          err.code == "PERMISSIONS_VIOLATION" &&
+          Date.now() - lastAddedPermission >= 30000
+        ) {
+          lastAddedPermission = Date.now();
+          await this.addProjectPermissions([project_id]);
+          return await this.callProject(opts);
+        } else {
+          throw err;
+        }
+      }
     };
     return initProjectApi(callProjectApi);
   };
@@ -543,7 +558,9 @@ export class NatsClient extends EventEmitter {
 
   info = async (nc): Promise<ConnectionInfo> => {
     // info about a nats connection
-    return this.jc.decode((await nc.request("$SYS.REQ.USER.INFO")).data) as ConnectionInfo;
+    return this.jc.decode(
+      (await nc.request("$SYS.REQ.USER.INFO")).data,
+    ) as ConnectionInfo;
   };
 }
 
