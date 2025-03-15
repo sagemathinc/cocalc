@@ -18,6 +18,7 @@ export function getUserPermissions({
     if (!isValidUUID(project_id)) {
       throw Error(`invalid project_id ${project_id}`);
     }
+    // project_ids are ignored in this case
     return projectPermissions(project_id);
   } else if (account_id) {
     if (!isValidUUID(account_id)) {
@@ -36,6 +37,7 @@ export function getUserPermissions({
         sub.deny.push(...x.sub.deny);
       }
     }
+    // uniq because there is a little overlap
     return {
       pub: { allow: uniq(pub.allow), deny: uniq(pub.deny) },
       sub: { allow: uniq(sub.allow), deny: uniq(sub.deny) },

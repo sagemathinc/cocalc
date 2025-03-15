@@ -58,8 +58,8 @@ import {
   encodeUser,
 } from "@nats-io/jwt";
 import getLogger from "@cocalc/backend/logger";
-import getPool from "@cocalc/database/pool";
 import { getUserPermissions } from "./permissions";
+import { validate } from "./validate";
 
 const logger = getLogger("server:nats:auth-callout");
 
@@ -111,6 +111,7 @@ async function handleRequest(mesg, xkp) {
   try {
     const requestJwt = getRequestJwt(mesg, xkp);
     const requestClaim = decodeJwt(requestJwt) as any;
+    global.x = { requestClaim };
     logger.debug("handleRequest", requestClaim.nats.connect_opts.user);
     const userNkey = requestClaim.nats.user_nkey;
     const serverId = requestClaim.nats.server_id;
@@ -205,31 +206,23 @@ async function getPermissions({
   if (!user) {
     throw Error("user must be specified");
   }
-  const { account_id, project_id, project_ids } = JSON.parse(user) ?? {};
+  const {
+    account_id,
+    project_id,
+    project_ids: requested_project_ids,
+  } = JSON.parse(user) ?? {};
   console.log("getPermissions", {
     auth_token,
     user,
     account_id,
     project_id,
-    project_ids,
+    requested_project_ids,
   });
-  if (project_id) {
-    if ((await getProjectSecretToken(project_id)) != auth_token) {
-      throw Error("project auth token doesn't match");
-    }
-    return getUserPermissions({ project_id });
-  } else if (account_id) {
-    return getUserPermissions({ account_id, project_ids });
-  } else {
-    throw Error("account_id or project_id must be specified");
-  }
-}
-
-async function getProjectSecretToken(project_id): Promise<string | undefined> {
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "select status#>'{secret_token}' as secret_token from projects where project_id=$1",
-    [project_id],
-  );
-  return rows[0]?.secret_token;
+  const { project_ids } = await validate({
+    account_id,
+    project_id,
+    auth_token,
+    requested_project_ids,
+  });
+  return getUserPermissions({ account_id, project_id, project_ids });
 }

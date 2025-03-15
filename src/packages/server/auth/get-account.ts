@@ -22,11 +22,7 @@ const logger = getLogger("server:get-account");
 // has to be a key for that project).
 export default async function getAccountId(
   req,
-  {
-    noCache,
-  }: {
-    noCache?: boolean;
-  } = {},
+  opts,
 ): Promise<string | undefined> {
   if (req == null) {
     return;
@@ -58,7 +54,21 @@ export default async function getAccountId(
     }
     return;
   }
-  const pool = getPool(noCache ? "short" : undefined);
+  return await getAccountIdFromRememberMe(hash, opts);
+}
+
+export async function getAccountIdFromRememberMe(
+  hash: string,
+  {
+    noCache,
+  }: {
+    noCache?: boolean;
+  } = {},
+) {
+  if (!hash) {
+    throw Error("hash must be given");
+  }
+  const pool = getPool(noCache ? "" : "medium");
   // important to use CHAR(127) instead of TEXT for 100x performance gain.
   const result = await pool.query(
     "SELECT account_id, expire FROM remember_me WHERE hash = $1::CHAR(127)",

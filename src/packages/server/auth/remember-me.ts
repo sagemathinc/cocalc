@@ -48,7 +48,7 @@ export async function createRememberMeCookie(
 // delete the remember me database entry for the given hash
 export async function deleteRememberMe(hash: string): Promise<void> {
   const pool = getPool();
-  await pool.query("DELETE FROM remember_me WHERE hash=$1::TEXT", [
+  await pool.query("DELETE FROM remember_me WHERE hash=$1::CHAR(127)", [
     hash.slice(0, 127),
   ]);
 }
