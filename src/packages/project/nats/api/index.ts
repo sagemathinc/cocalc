@@ -1,4 +1,7 @@
 /*
+
+DEVELOPMENT:
+
 How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project:
@@ -9,25 +12,38 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 1. Create a file project-env.sh, which defines these environment variables (your values will be different):
 
-export COCALC_PROJECT_ID="00847397-d6a8-4cb0-96a8-6ef64ac3e6cf"
-export COCALC_USERNAME="00847397d6a84cb096a86ef64ac3e6cf"
-export HOME="/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/src/data/projects/00847397-d6a8-4cb0-96a8-6ef64ac3e6cf"
-export DATA=$HOME/.smc
+    export COCALC_PROJECT_ID="00847397-d6a8-4cb0-96a8-6ef64ac3e6cf"
+    export COCALC_USERNAME=`echo $COCALC_PROJECT_ID | tr -d '-'`
+    export HOME="/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/src/data/projects/$COCALC_PROJECT_ID"
+    export DATA=$HOME/.smc
 
+    # optional for more flexibility
+    export API_KEY=sk-OUwxAN8d0n7Ecd48000055
+    export COMPUTE_SERVER_ID=0
+
+    # optional for more logging
+    export DEBUG=cocalc:*
+    export DEBUG_CONSOLE=yes
+
+If API_KEY is a project-wide API key, then you can change COCALC_PROJECT_ID however you want
+and don't have to worry about whether the project is running or the project secret key changing
+when the project is restarted.
 
 2. Then do this:
 
-    . project-env.sh
-    echo 'require("@cocalc/project/nats/api/index").init()' | DEBUG=cocalc:* DEBUG_CONSOLE=yes node
+    $ . project-env.sh
+    $ node
+    ...
+    > require("@cocalc/project/nats/api/index").init()
 
-or just run node and paste
+You can then easily be able to grab some state, e.g., by writing this in any cocalc code,
+rebuilding and restarting:
 
-    require("@cocalc/project/nats/api/index").init()
+    global.x = {...}
 
-if you want to easily be able to grab some state, e.g., global.x = {...} in some code.
-The project has to be running so that the secret token in $HOME/.smc/secret_token is valid.
+Remember, if you don't set API_KEY, then the project MUST be running so that the secret token in $HOME/.smc/secret_token is valid.
 
-5. Use the browser to see the project is on nats and works:
+3. Use the browser to see the project is on nats and works:
 
     a = cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'});
     await a.system.ping();

@@ -2,6 +2,7 @@ import getPool from "@cocalc/database/pool";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import { subsetCollaboratorMulti } from "@cocalc/server/projects/is-collaborator";
 import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
+import { getRememberMeHashFromCookieValue } from "@cocalc/server/auth/remember-me";
 
 // if throw error or not return true, then validation fails.
 // success = NOT throwing error and returning true.
@@ -65,7 +66,8 @@ async function assertValidUser({ auth_token, project_id, account_id }) {
   }
   if (account_id) {
     // maybe auth_token is a valid remember me browser cookie?
-    if (account_id == (await getAccountIdFromRememberMe(auth_token))) {
+    const hash = getRememberMeHashFromCookieValue(auth_token);
+    if (hash && account_id == (await getAccountIdFromRememberMe(hash))) {
       return;
     }
   }

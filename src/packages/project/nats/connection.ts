@@ -27,7 +27,9 @@ export default async function getConnection() {
           servers,
           user: JSON.stringify({ project_id }),
           name: `project-${project_id}`,
-          token: await secretToken(),
+          token: process.env.API_KEY
+            ? process.env.API_KEY
+            : await secretToken(),
         });
         logger.debug(`connected to ${nc.getServer()}`);
       } catch (err) {

@@ -111,7 +111,6 @@ async function handleRequest(mesg, xkp) {
   try {
     const requestJwt = getRequestJwt(mesg, xkp);
     const requestClaim = decodeJwt(requestJwt) as any;
-    global.x = { requestClaim };
     logger.debug("handleRequest", requestClaim.nats.connect_opts.user);
     const userNkey = requestClaim.nats.user_nkey;
     const serverId = requestClaim.nats.server_id;
@@ -211,13 +210,6 @@ async function getPermissions({
     project_id,
     project_ids: requested_project_ids,
   } = JSON.parse(user) ?? {};
-  console.log("getPermissions", {
-    auth_token,
-    user,
-    account_id,
-    project_id,
-    requested_project_ids,
-  });
   const { project_ids } = await validate({
     account_id,
     project_id,
