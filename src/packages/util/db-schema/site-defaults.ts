@@ -119,7 +119,8 @@ export type SiteSettingsKeys =
   | "compute_servers_hyperstack_enabled"
   | "cloud_filesystems_enabled"
   | "insecure_test_mode"
-  | "samesite_remember_me";
+  | "samesite_remember_me"
+  | "user_tracking";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -364,7 +365,7 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,
@@ -971,5 +972,11 @@ export const site_settings_conf: SiteSettings = {
     valid: ["strict", "lax", "none"],
     to_val: (x) => `${x}`,
     tags: ["Security"],
+  },
+  user_tracking: {
+    name: "User Tracking",
+    desc: "If enabled, then information about what users do in the frontend browser gets temporarily recorded in the user_tracking table of the database.",
+    default: "no",
+    valid: only_booleans,
   },
 } as const;

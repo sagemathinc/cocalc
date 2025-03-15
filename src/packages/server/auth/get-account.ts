@@ -4,7 +4,7 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import { getAccountIdFromApiKey } from "@cocalc/server/auth/api";
+import { getAccountFromApiKey } from "@cocalc/server/auth/api";
 import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import getLogger from "@cocalc/backend/logger";
 import isBanned from "@cocalc/server/accounts/is-banned";
@@ -44,7 +44,12 @@ export default async function getAccountId(
     if (req.header("Authorization")) {
       try {
         logger.debug("check for api key");
-        return await getAccountIdFromApiKey(req);
+        const account = await getAccountFromApiKey(req);
+        // TODO: I do not like mixing these up, since there is a ~0% chance of a collision between
+        // account_id and project_id, which could lead to a security vulnerability.  This is not
+        // exploitable, of course, and there's a much bigger chance that a monkey guesses a password.
+        // For now, leaving this as-is for compat.
+        return account?.account_id ?? account?.project_id;
       } catch (_err) {
         logger.debug("no valid api key");
         // non-fatal, at least for now...

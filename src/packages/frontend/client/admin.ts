@@ -4,19 +4,19 @@
  */
 
 import * as message from "@cocalc/util/message";
-import { AsyncCall } from "./client";
+import type { WebappClient } from "./client";
 import api from "./api";
 
 export class AdminClient {
-  private async_call: AsyncCall;
+  private client: WebappClient;
 
-  constructor(async_call: AsyncCall) {
-    this.async_call = async_call;
+  constructor(client: WebappClient) {
+    this.client = client;
   }
 
   public async admin_reset_password(email_address: string): Promise<string> {
     return (
-      await this.async_call({
+      await this.client.async_call({
         message: message.admin_reset_password({
           email_address,
         }),
@@ -36,12 +36,9 @@ export class AdminClient {
     }
   }
 
-  public async get_user_auth_token(account_id: string): Promise<string> {
-    return (
-      await this.async_call({
-        message: message.user_auth({ account_id, password: "" }),
-        allow_post: false,
-      })
-    ).auth_token;
+  public async get_user_auth_token(user_account_id: string): Promise<string> {
+    return await this.client.nats_client.hub.system.generateUserAuthToken({
+      user_account_id,
+    });
   }
 }

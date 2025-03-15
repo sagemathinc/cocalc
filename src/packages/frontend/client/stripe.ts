@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// COMPLETEY DEPRECATED -- DELETE THIS ?
+
 /*
 stripe payments api via backend hub
 */

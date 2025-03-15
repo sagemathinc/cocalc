@@ -3548,4 +3548,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history: true,
     });
   };
+
+  // time = 0 to undelete
+  setRecentlyDeleted = (path: string, time: number) => {
+    const store = this.get_store();
+    if (store == null) return;
+    let recentlyDeletedPaths = store.get("recentlyDeletedPaths") ?? Map();
+    if (time == (recentlyDeletedPaths.get(path) ?? 0)) {
+      // already done
+      return;
+    }
+    recentlyDeletedPaths = recentlyDeletedPaths.set(path, time);
+    this.setState({ recentlyDeletedPaths });
+  };
+
+  setNotDeleted = (path: string) => {
+    const store = this.get_store();
+    if (store == null) return;
+    this.setRecentlyDeleted(path, 0);
+    (async () => {
+      try {
+        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        o.setNotDeleted(path);
+      } catch (err) {
+        console.log("WARNING: issue undeleting file", err);
+      }
+    })();
+  };
 }

@@ -22,6 +22,7 @@ import initProxy from "../proxy";
 import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobUpload from "./app/blob-upload";
+import initUpload from "./app/upload";
 import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
@@ -31,6 +32,7 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
+import { initNatsServer } from "./nats";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -125,7 +127,9 @@ export default async function init(opts: Options): Promise<{
 
   initBlobs(router);
   initBlobUpload(router);
+  initUpload(router);
   initSetCookies(router);
+  initNatsServer(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);

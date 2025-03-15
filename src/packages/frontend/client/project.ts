@@ -69,19 +69,35 @@ export class ProjectClient {
     return await this.client.async_call({ message });
   }
 
-  public async write_text_file(opts: {
+  private natsApi = (project_id: string) => {
+    return this.client.nats_client.projectApi({ project_id });
+  };
+
+  public async write_text_file({
+    project_id,
+    path,
+    content,
+  }: {
     project_id: string;
     path: string;
     content: string;
   }): Promise<void> {
-    return await this.call(message.write_text_file_to_project(opts));
+    await this.natsApi(project_id).system.writeTextFileToProject({
+      path,
+      content,
+    });
   }
 
-  public async read_text_file(opts: {
+  public async read_text_file({
+    project_id,
+    path,
+  }: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): Promise<string> {
-    return (await this.call(message.read_text_file_from_project(opts))).content;
+    return await this.natsApi(project_id).system.readTextFileFromProject({
+      path,
+    });
   }
 
   // Like "read_text_file" above, except the callback
@@ -90,13 +106,21 @@ export class ProjectClient {
   public read_file(opts: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
+    compute_server_id?: number;
   }): string {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = HOME_ROOT + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
+    let url = join(
+      base_path,
+      `${opts.project_id}/files/${encode_path(opts.path)}`,
+    );
+    if (opts.compute_server_id) {
+      url += `?id=${opts.compute_server_id}`;
+    }
+    return url;
   }
 
   public async copy_path_between_projects(opts: {
@@ -319,13 +343,6 @@ export class ProjectClient {
     return { files: listing };
   }
 
-  public async public_get_text_file(opts: {
-    project_id: string;
-    path: string;
-  }): Promise<string> {
-    return (await this.call(message.public_get_text_file(opts))).data;
-  }
-
   public async find_directories(opts: {
     project_id: string;
     query?: string; // see the -iwholename option to the UNIX find command.
@@ -457,7 +474,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.call(message.touch_project({ project_id }));
+      await this.client.nats_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
@@ -502,19 +519,17 @@ export class ProjectClient {
     description: string;
     image?: string;
     start?: boolean;
-    license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
-    noPool?: boolean; // never use pool
+    // "license_id1,license_id2,..." -- if given, create project with these licenses applied
+    license?: string;
+    // never use pool
+    noPool?: boolean;
   }): Promise<string> {
-    const { project_id } = await this.client.async_call({
-      allow_post: false, // since gets called for anonymous and cookie not yet set.
-      message: message.create_project(opts),
-    });
-
+    const project_id =
+      await this.client.nats_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
     });
-
     return project_id;
   }
 
@@ -613,20 +628,7 @@ export class ProjectClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    if (this.client.account_id == null) {
-      throw Error("must be logged in");
-    }
-    if (!is_valid_uuid_string(opts.project_id)) {
-      throw Error("project_id must be a valid uuid");
-    }
-    if (opts.project_id == null && !opts.password) {
-      throw Error("must provide password for non-project api key");
-    }
-    // because message always uses id, so we have to use something else!
-    const opts2: any = { ...opts };
-    delete opts2.id;
-    opts2.key_id = opts.id;
-    return (await this.call(message.api_keys(opts2))).response;
+    return await this.client.nats_client.hub.system.manageApiKeys(opts);
   }
 
   computeServers = (project_id) => {

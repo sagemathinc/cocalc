@@ -17,6 +17,10 @@ ways of orchestrating a SyncTable.
 // info about every get/set
 let DEBUG: boolean = false;
 
+// enable experimental nats database backed changefeed.
+// for this to work you must explicitly run the server in @cocalc/database/nats/changefeeds
+const USE_NATS = true && !process.env.COCALC_TEST_MODE;
+
 export function set_debug(x: boolean): void {
   DEBUG = x;
 }
@@ -32,6 +36,12 @@ import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { Changefeed } from "./changefeed";
+import { NatsChangefeed } from "./changefeed-nats";
+import { parse_query, to_key } from "./util";
+import { isTestClient } from "@cocalc/sync/editor/generic/util";
+
 import type { Client } from "@cocalc/sync/client/types";
 export type { Client };
 
@@ -54,15 +64,10 @@ function is_fatal(err: string): boolean {
   return err.indexOf("FATAL") != -1;
 }
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-
-import { Changefeed } from "./changefeed";
-import { parse_query, to_key } from "./util";
-
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
-  private changefeed?: Changefeed;
+  private changefeed?: Changefeed | NatsChangefeed;
   private query: Query;
   private client_query: any;
   private primary_keys: string[];
@@ -130,7 +135,8 @@ export class SyncTable extends EventEmitter {
   // entirely by the project (e.g., sync-doc support).
   private no_db_set: boolean = false;
 
-  // Set only for some tables.
+  // Set only for some tables that are hosted directly on a project (not database),
+  // e.g., the project_status and listings.
   private project_id?: string;
 
   private last_has_uncommitted_changes?: boolean = undefined;
@@ -725,11 +731,24 @@ export class SyncTable extends EventEmitter {
     delete this.changefeed;
   }
 
-  private async create_changefeed_connection(): Promise<any[]> {
+  private create_changefeed_connection = async (): Promise<any[]> => {
     let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
-      this.changefeed = new Changefeed(this.changefeed_options());
+      if (
+        USE_NATS &&
+        !isTestClient(this.client) &&
+        this.client.is_browser() &&
+        !this.project_id
+      ) {
+        this.changefeed = new NatsChangefeed({
+          client: this.client,
+          query: this.query,
+          options: this.options,
+        });
+      } else {
+        this.changefeed = new Changefeed(this.changefeed_options());
+      }
       await this.wait_until_ready_to_query_db();
       try {
         return await this.changefeed.connect();
@@ -750,7 +769,7 @@ export class SyncTable extends EventEmitter {
         }
       }
     }
-  }
+  };
 
   private async wait_until_ready_to_query_db(): Promise<void> {
     const dbg = this.dbg("wait_until_ready_to_query_db");
@@ -787,16 +806,20 @@ export class SyncTable extends EventEmitter {
     };
   }
 
+  // awkward code due to typescript weirdness using both
+  // NatsChangefeed and Changefeed types (for unit testing).
   private init_changefeed_handlers(): void {
-    if (this.changefeed == null) return;
-    this.changefeed.on("update", this.changefeed_on_update);
-    this.changefeed.on("close", this.changefeed_on_close);
+    const c = this.changefeed as EventEmitter | null;
+    if (c == null) return;
+    c.on("update", this.changefeed_on_update);
+    c.on("close", this.changefeed_on_close);
   }
 
   private remove_changefeed_handlers(): void {
-    if (this.changefeed == null) return;
-    this.changefeed.removeListener("update", this.changefeed_on_update);
-    this.changefeed.removeListener("close", this.changefeed_on_close);
+    const c = this.changefeed as EventEmitter | null;
+    if (c == null) return;
+    c.removeListener("update", this.changefeed_on_update);
+    c.removeListener("close", this.changefeed_on_close);
   }
 
   private changefeed_on_update(change): void {
@@ -1037,7 +1060,6 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 120, // give it some time (especially if it is long)
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
@@ -1551,6 +1573,7 @@ export class SyncTable extends EventEmitter {
       change.old_val,
       change.action,
       this.coerce_types,
+      change.key,
     );
     if (key != null) {
       changed_keys.push(key);
@@ -1582,6 +1605,7 @@ export class SyncTable extends EventEmitter {
     old_val: any,
     action: string,
     coerce: boolean,
+    key?: string,
   ): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
@@ -1589,14 +1613,18 @@ export class SyncTable extends EventEmitter {
     }
 
     if (action === "delete") {
-      old_val = fromJS(old_val);
-      if (old_val == null) {
-        throw Error("old_val must not be null for delete action");
+      if (!key) {
+        old_val = fromJS(old_val);
+        if (old_val == null) {
+          throw Error(
+            "old_val must not be null or key must be specified for delete action",
+          );
+        }
+        if (coerce && this.coerce_types) {
+          old_val = this.do_coerce_types(old_val);
+        }
+        key = this.obj_to_key(old_val);
       }
-      if (coerce && this.coerce_types) {
-        old_val = this.do_coerce_types(old_val);
-      }
-      const key = this.obj_to_key(old_val);
       if (key == null || !this.value.has(key)) {
         return; // already gone
       }
@@ -1611,7 +1639,7 @@ export class SyncTable extends EventEmitter {
     if (coerce && this.coerce_types) {
       new_val = this.do_coerce_types(new_val);
     }
-    const key = this.obj_to_key(new_val);
+    key = this.obj_to_key(new_val);
     if (key == null) {
       // This means the primary key is null or missing, which
       // shouldn't happen.  Maybe it could in some edge case.

@@ -1,11 +1,11 @@
 import { delay } from "awaiting";
 import type OpenAI from "openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { OpenAIMessages, OpenAIModel } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput } from "@cocalc/util/types/llm";
-import { Stream } from "openai/streaming";
+import type { ChatOutput, Stream as StreamFunction } from "@cocalc/util/types/llm";
 import { totalNumTokens } from "./chatgpt-numtokens";
+import type { Stream } from "openai/streaming";
+
 
 const log = getLogger("llm:call-llm");
 
@@ -15,7 +15,7 @@ interface CallChatGPTOpts {
   messages: OpenAIMessages;
   maxAttempts: number;
   maxTokens?: number;
-  stream?: (text?: string) => void;
+  stream?: StreamFunction;
 }
 
 class GatherOutput {
@@ -23,9 +23,9 @@ class GatherOutput {
   private total_tokens: number;
   private prompt_tokens: number;
   private completion_tokens: number;
-  private stream: (text?: string) => void;
+  private stream: StreamFunction;
 
-  constructor(messages: OpenAIMessages, stream: (text?: string) => void) {
+  constructor(messages: OpenAIMessages, stream: StreamFunction) {
     this.prompt_tokens = this.total_tokens = totalNumTokens(messages);
     this.completion_tokens = 0;
     this.stream = stream;
@@ -44,7 +44,7 @@ class GatherOutput {
       }
     }
 
-    this.stream(); // empty call signals we're done
+    this.stream(null); //  signals we're done
 
     return {
       output: this.output,

@@ -315,7 +315,7 @@ class SyncFS {
       }
 
       case "listing":
-        return await getListing(data.path, data.hidden, this.mount);
+        return await getListing(data.path, data.hidden, { HOME: this.mount });
 
       case "exec":
         if (data.opts.command == "cc-new-file") {

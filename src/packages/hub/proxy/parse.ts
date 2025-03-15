@@ -1,9 +1,9 @@
-type ProxyType = "port" | "raw" | "server";
+type ProxyType = "port" | "raw" | "server" | "files";
 
 export function parseReq(
   url: string, // with base_path removed (url does start with /)
   remember_me?: string, // only impacts the key that is returned
-  api_key?: string // only impacts key
+  api_key?: string, // only impacts key
 ): {
   key: string; // used for caching
   type: ProxyType;
@@ -16,15 +16,15 @@ export function parseReq(
   }
   const v = url.split("/").slice(1);
   const project_id = v[0];
-  if (v[1] != "port" && v[1] != "raw" && v[1] != "server") {
+  if (v[1] != "port" && v[1] != "raw" && v[1] != "server" && v[1] != "files") {
     throw Error(
-      `invalid type -- "${v[1]}" must be "port", "raw" or "server" in url="${url}"`
+      `invalid type -- "${v[1]}" must be "port", "raw", "files" or "server" in url="${url}"`,
     );
   }
   const type: ProxyType = v[1];
   let internal_url: string | undefined = undefined;
   let port_desc: string;
-  if (type == "raw") {
+  if (type == "raw" || type == "files") {
     port_desc = "";
   } else if (type === "port") {
     port_desc = v[2];

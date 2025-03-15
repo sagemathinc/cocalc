@@ -1,12 +1,12 @@
 # How to Build and Run CoCalc
 
-Updated: **Jan 2023**
+**Updated: Feb 2025**
 
-CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( at least 16.8.x\) and a recent version of [pnpm](https://pnpm.io/).
+CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( at least 18.17.1\) and a recent version of [pnpm](https://pnpm.io/).  Also, you will need a LOT of RAM, a minimum of 16 GB.   **It's very painful to do development with less than 32 GB of RAM.**
 
 **Node.js and NPM Version Requirements:**
 
-- You must be using Node version 16.8.x or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
+- You must be using Node version 18.17.1 or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
 
 ```sh
 . /cocalc/nvm/nvm.sh
@@ -56,22 +56,28 @@ To install required dependencies, run
 hand, you prefer that development packages be installed globally, you can jump directly to the above `pip install` 
 command outside the context of a virtual environment.
 
-## Initial Build
+## Build and Start
 
-Launch the install and build **for doing development:** 
+Launch the install and build **for doing development.**
+
+If you export the PORT environment variable, that determines what port everything listens on.  This determines subtle things about configuration, so do this once and for all in a consistent way.
+
+CoCalc also runs a NATS server listening on two ports on localhost, one for TCP and one for WebSocket connections.  To avoid conflicts, you can customize their ports by setting the environment variables `COCALC_NATS_PORT` (default 4222), and `COCALC_NATS_WS_PORT` (default 8443).
+
 
 **Note**: If you installed `pnpm` locally (instead of globally), simply run `npm run` in place of `pnpm` to execute
 these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts).
 
 ```sh
-~/cocalc/src$ pnpm make-dev
+~/cocalc/src$ pnpm build-dev
 ```
 
-This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm make` finishes successfully, you can start using CoCalc by starting the database and the backend hub in two separate terminals.
+This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm build-dev` finishes successfully, you can start using CoCalc by starting the database, nats server and the backend hub in three terminals.  \(Note that 'pnpm nats\-server' will download, install and configure NATS automatically.\)  You can start the database, nats\-server and hub in any order.
 
 ```sh
-~/cocalc/src$ pnpm database # in one terminal
-~/cocalc/src$ pnpm hub      # in another terminal
+~/cocalc/src$ pnpm database    # in one terminal
+~/cocalc/src$ pnpm nats-server # in one terminal
+~/cocalc/src$ pnpm hub         # in another terminal
 ```
 
 The hub will send minimal logging to stdout, and the rest to `data/logs/log`.
@@ -95,7 +101,7 @@ The main \(only?\) difference is that static and next webpack builds are created
 If necessary, you can delete all the `node_modules` and `dist` directories in all packages and start over as follows:
 
 ```sh
-~/cocalc/src$ pnpm clean && pnpm make-dev
+~/cocalc/src$ pnpm clean && pnpm build-dev
 ```
 
 ## Doing Development
@@ -218,3 +224,4 @@ Regarding VS Code, the relevant settings can be found by searching for "autosave
 There's some `@cocalc/` packages at [NPMJS.com](http://NPMJS.com). However, _**we're no longer using**_
 _**them in any way**_, and don't plan to publish anything new unless there
 is a compelling use case.
+

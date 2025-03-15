@@ -7,7 +7,7 @@
 // the "/customize" endpoint does not send a suitable "software" field.
 // check frontend/customize.tsx for more details.
 
-import { without } from "lodash";
+//import { without } from "lodash";
 import * as schema from "./db-schema";
 
 // WARNING! Do not remove this from the public api.  **It is used by kucalc
@@ -325,7 +325,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
 
 export const FALLBACK_SOFTWARE_ENV = {
   default: DEFAULT_COMPUTE_IMAGE,
-  groups: without(GROUPS, "Ubuntu 18.04", "Ubuntu 16.04"),
+  groups: GROUPS, // without(GROUPS, "Ubuntu 18.04", "Ubuntu 16.04"),
   environments: COMPUTE_IMAGES,
 } as const;
 

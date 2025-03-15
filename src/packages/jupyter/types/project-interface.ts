@@ -12,6 +12,8 @@ so that Typescript can meaningfully type check everything.
 */
 
 import type { Channels } from "@nteract/messaging";
+import type { KernelInfo } from "@cocalc/util/jupyter/types";
+export type { KernelInfo };
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -77,38 +79,6 @@ export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   close(): void;
   throw_error(err): void;
   go(): Promise<object[]>;
-}
-
-interface CodeMirrorMode {
-  name: string;
-  version: number;
-}
-
-interface HelpLink {
-  text: string;
-  url: string;
-}
-
-interface LanguageInfo {
-  name: string;
-  version: string;
-  mimetype: string;
-  codemirror_mode: CodeMirrorMode;
-  pygments_lexer: string;
-  nbconvert_exporter: string;
-  file_extension: string;
-}
-
-export interface KernelInfo {
-  nodejs_version: string;
-  start_time: number;
-  implementation_version: string;
-  banner: string;
-  protocol_version: string;
-  implementation: string;
-  status: string;
-  language_info: LanguageInfo;
-  help_links: HelpLink[];
 }
 
 interface JupyterKernelInterfaceSpawnOpts {

@@ -279,7 +279,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
 
       // UGLY/TODO: This approach to TimeTravel as a frame is not sufficiently
       // generic and is a **temporary** hack.  It'll be rewritten
-      // soon in a more generic way that also will support multifile
+      // someday in a more generic way that also will support multifile
       // latex editing. See https://github.com/sagemathinc/cocalc/issues/904
       // Note that this does NOT reference count the actions properly
       // right now... We need to switch to something like we do with

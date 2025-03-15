@@ -15,7 +15,6 @@ and configuration.
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import {
   React,

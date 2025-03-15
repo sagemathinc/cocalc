@@ -15,6 +15,8 @@ import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
 import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
+import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
+export { type User };
 
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
@@ -133,7 +135,7 @@ export async function formatter(
   const resp = await api.formatter(path, config);
 
   if (resp.status === "error") {
-    const loc = resp.error.loc;
+    const loc = resp.error?.loc;
     if (loc && loc.start) {
       throw Error(
         `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
@@ -252,16 +254,6 @@ export function get_editor_settings(): Map<string, any> {
   return Map(); // not loaded
 }
 
-export interface User {
-  account_id: string;
-  created?: number; // since commit 63e8e9954dc51632cf
-  email_address?: string;
-  first_name?: string;
-  last_active?: number; // since commit 63e8e9954dc51632cf
-  last_name?: string;
-  banned?: boolean;
-}
-
 export async function user_search(opts: {
   query: string;
   limit?: number;
@@ -279,9 +271,4 @@ import { API } from "@cocalc/frontend/project/websocket/api";
 
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
-}
-
-// Returns the raw URL to read the file from the project.
-export function raw_url_of_file(project_id: string, path: string): string {
-  return webapp_client.project_client.read_file({ project_id, path });
 }

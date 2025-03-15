@@ -1,6 +1,8 @@
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 
+export type Action = "get" | "delete" | "create" | "edit";
+
 export interface ApiKey {
   id: number;
   account_id: string;

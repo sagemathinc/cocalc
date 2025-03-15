@@ -10,7 +10,6 @@ web browser frontend.
 import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
-
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -337,6 +336,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cells != null) {
       this.setState({ cells });
     }
+    // TODO: obviously this goes away since we won't use cursors with NATS at all for coordinating this!
     const computeServerId = this.cursor_manager.computeServerId(cursors);
     if (computeServerId != this.lastComputeServerId) {
       this.lastComputeServerId = computeServerId;
@@ -473,14 +473,14 @@ export class JupyterActions extends JupyterActions0 {
       buffers64 = [];
     }
     const msg = { msg_id, target_name, comm_id, data, buffers64 };
-    await this.api_call("comm", msg);
+    await this.api().comm(msg);
     // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
   };
 
   ipywidgetsGetBuffer = reuseInFlight(
     async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
-      const { buffer64 } = await this.api_call("ipywidgets-get-buffer", {
+      const { buffer64 } = await this.api().ipywidgetsGetBuffer({
         model_id,
         buffer_path,
       });
@@ -637,7 +637,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     let error;
     try {
-      error = await this.api_call("store", { key });
+      error = await this.api().store({ key });
     } catch (err) {
       this.set_error(err);
       return;

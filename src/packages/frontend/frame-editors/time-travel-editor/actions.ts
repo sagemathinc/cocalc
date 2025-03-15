@@ -109,6 +109,14 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return { type: "time_travel" };
   }
 
+  close(): void {
+    if (this.syncdoc != null) {
+      this.syncdoc.close();
+      delete this.syncdoc;
+    }
+    super.close();
+  }
+
   set_error = (error) => {
     this.setState({ error });
   };

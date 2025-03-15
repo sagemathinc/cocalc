@@ -17,14 +17,10 @@ message              = require('@cocalc/util/message')
 access               = require('./access')
 clients              = require('./clients').getClients()
 auth                 = require('./auth')
-auth_token           = require('./auth-token')
 local_hub_connection = require('./local_hub_connection')
-sign_in              = require('@cocalc/server/hub/sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-manageApiKeys        = require("@cocalc/server/api/manage").default
-{legacyManageApiKey} = require("@cocalc/server/api/manage")
 purchase_license     = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
@@ -32,11 +28,9 @@ db_schema            = require('@cocalc/util/db-schema')
 { REMEMBER_ME_COOKIE_NAME } = require("@cocalc/backend/auth/cookie-names");
 generateHash     = require("@cocalc/server/auth/hash").default;
 passwordHash     = require("@cocalc/backend/auth/password-hash").default;
-llm              = require('@cocalc/server/llm/index');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project   = require("@cocalc/server/projects/create").default;
-user_search      = require("@cocalc/server/accounts/search").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 setEmailAddress  = require("@cocalc/server/accounts/set-email-address").default;
@@ -95,27 +89,6 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45
 
-# How frequently we tell the browser clients to report metrics back to us.
-# Set to 0 to completely disable metrics collection from clients.
-CLIENT_METRICS_INTERVAL_S = if DEBUG2 then 15 else 60*2
-
-# recording metrics and statistics
-metrics_recorder = require('./metrics-recorder')
-
-# setting up client metrics
-mesg_from_client_total         = metrics_recorder.new_counter('mesg_from_client_total',
-                                     'counts Client::handle_json_message_from_client invocations', ['event'])
-push_to_client_stats_h         = metrics_recorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
-                                     buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-                                     labels: ['event']
-                                 )
-
-# All known metrics from connected clients.  (Map from id to metrics.)
-# id is deleted from this when client disconnects.
-client_metrics = metrics_recorder.client_metrics
-
-if not misc.is_object(client_metrics)
-    throw Error("metrics_recorder must have a client_metrics attribute map")
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -181,9 +154,6 @@ class exports.Client extends EventEmitter
         # cookie used for login is still valid.  If the cookie is gone
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
-
-        if CLIENT_METRICS_INTERVAL_S
-            @push_to_client(message.start_metrics(interval_s:CLIENT_METRICS_INTERVAL_S))
 
     touch: (opts={}) =>
         if not @account_id  # not logged in
@@ -255,9 +225,7 @@ class exports.Client extends EventEmitter
             @database.cancel_user_queries(client_id:@id)
 
         delete @_project_cache
-        delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
-        @query_cancel_all_changefeeds()
         @closed = true
         @emit('close')
         @compute_session_uuids = []
@@ -360,7 +328,6 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
-                push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
@@ -420,12 +387,6 @@ class exports.Client extends EventEmitter
 
         # Record that this connection is authenticated as user with given uuid.
         @account_id = signed_in_mesg.account_id
-
-        sign_in.record_sign_in
-            ip_address      : @ip_address
-            successful      : true
-            account_id      : signed_in_mesg.account_id
-            database        : @database
 
         # Get user's group from database.
         @get_groups()
@@ -597,24 +558,11 @@ class exports.Client extends EventEmitter
                 # handler *should* handle any possible error, but just in case something
                 # not expected goes wrong... we do this
                 @error_to_client(id:mesg.id, error:"${err}")
-            mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
             if mesg.event == 'get_all_activity'
                 dbg("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
-
-    mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id, now:new Date()))
-
-    mesg_sign_in: (mesg) =>
-        sign_in.sign_in
-            client   : @
-            mesg     : mesg
-            logger   : @logger
-            database : @database
-            host     : @_opts.host
-            port     : @_opts.port
 
     mesg_sign_out: (mesg) =>
         if not @account_id?
@@ -807,121 +755,6 @@ class exports.Client extends EventEmitter
                 cb(undefined, project)
         )
 
-    mesg_create_project: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
-            return
-        @touch()
-
-        dbg = @dbg('mesg_create_project')
-
-        project_id = undefined
-        project    = undefined
-
-        async.series([
-            (cb) =>
-                dbg("create project entry in database")
-                try
-                    opts =
-                        account_id  : @account_id
-                        title       : mesg.title
-                        description : mesg.description
-                        image       : mesg.image
-                        license     : mesg.license
-                        noPool      : mesg.noPool
-                    project_id = await create_project(opts)
-                    cb(undefined)
-                catch err
-                    cb(err)
-            (cb) =>
-                cb() # we don't need to wait for project to start running before responding to user that project was created.
-                dbg("open project...")
-                # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
-                # also, in single dev mode, this ensures that project path is created, so can copy
-                # files to the project, etc.
-                # Also, if mesg.start is set, the project gets started below.
-                try
-                    project = await @projectControl(project_id)
-                    await project.state(force:true, update:true)
-                    if mesg.start
-                        await project.start()
-                        await delay(5000) # just in case
-                        await project.start()
-                    else
-                        dbg("not auto-starting the new project")
-                catch err
-                    dbg("failed to start project running -- #{err}")
-        ], (err) =>
-            if err
-                dbg("error; project #{project_id} -- #{err}")
-                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(err)}")
-            else
-                dbg("SUCCESS: project #{project_id}")
-                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                # As an optimization, we start the process of opening the project, since the user is likely
-                # to open the project soon anyways.
-                dbg("start process of opening project")
-                @get_project {project_id:project_id}, 'write', (err, project) =>
-        )
-
-    mesg_write_text_file_to_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.write_file
-                path : mesg.path
-                data : mesg.content
-                cb   : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.file_written_to_project(id:mesg.id))
-
-    mesg_read_text_files_from_projects: (mesg) =>
-        if not misc.is_array(mesg.project_id)
-            @error_to_client(id:mesg.id, error:"project_id must be an array")
-            return
-        if not misc.is_array(mesg.path) or mesg.path.length != mesg.project_id.length
-            @error_to_client(id:mesg.id, error:"if project_id is an array, then path must be an array of the same length")
-            return
-        v = []
-        f = (mesg, cb) =>
-            @get_project mesg, 'read', (err, project) =>
-                if err
-                    cb(err)
-                    return
-                project.read_file
-                    path : mesg.path
-                    cb   : (err, content) =>
-                        if err
-                            v.push({path:mesg.path, project_id:mesg.project_id, error:err})
-                        else
-                            v.push({path:mesg.path, project_id:mesg.project_id, content:content.blob.toString()})
-                        cb()
-        paths = []
-        for i in [0...mesg.project_id.length]
-            paths.push({id:mesg.id, path:mesg.path[i], project_id:mesg.project_id[i]})
-        async.mapLimit paths, 20, f, (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:v))
-
-    mesg_read_text_file_from_project: (mesg) =>
-        if misc.is_array(mesg.project_id)
-            @mesg_read_text_files_from_projects(mesg)
-            return
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            project.read_file
-                path : mesg.path
-                cb   : (err, content) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        t = content.blob.toString()
-                        @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
     mesg_project_exec: (mesg) =>
         if mesg.command == "ipython-notebook"
@@ -988,42 +821,6 @@ class exports.Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
-
-    mesg_user_search: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to search for users."))
-            return
-
-        if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
-            # hard cap at 50... (for non-admin)
-            mesg.limit = 50
-        locals = {results: undefined}
-        async.series([
-            (cb) =>
-                if mesg.admin
-                    @assert_user_is_in_group('admin', cb)
-                else
-                    cb()
-            (cb) =>
-                @touch()
-                opts =
-                    query  : mesg.query
-                    limit  : mesg.limit
-                    admin  : mesg.admin
-                    active : mesg.active
-                    only_email: mesg.only_email
-                try
-                    locals.results = await user_search(opts)
-                    cb(undefined)
-                catch err
-                    cb(err)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
-        )
-
 
     # this is an async function
     allow_urls_in_emails: (project_id) =>
@@ -1573,105 +1370,6 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
-    ###
-    Data Query
-    ###
-    mesg_query: (mesg) =>
-        dbg = @dbg("user_query")
-        query = mesg.query
-        if not query?
-            @error_to_client(id:mesg.id, error:"malformed query")
-            return
-        # CRITICAL: don't enable this except for serious debugging, since it can result in HUGE output
-        #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
-        first = true
-        if mesg.changes
-            @_query_changefeeds ?= {}
-            @_query_changefeeds[mesg.id] = true
-        mesg_id = mesg.id
-        @database.user_query
-            client_id  : @id
-            account_id : @account_id
-            query      : query
-            options    : mesg.options
-            changes    : if mesg.changes then mesg_id
-            cb         : (err, result) =>
-                if @closed  # connection closed, so nothing further to do with this
-                    return
-                if result?.action == 'close'
-                    err = 'close'
-                if err
-                    dbg("user_query(query='#{misc.to_json(query)}') error:", err)
-                    if @_query_changefeeds?[mesg_id]
-                        delete @_query_changefeeds[mesg_id]
-                    @error_to_client(id:mesg_id, error:"#{err}")   # Ensure err like Error('foo') can be JSON'd
-                    if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
-                        dbg("changefeed got messed up, so cancel it:")
-                        @database.user_query_cancel_changefeed(id : mesg_id)
-                else
-                    if mesg.changes and not first
-                        resp = result
-                        resp.id = mesg_id
-                        resp.multi_response = true
-                    else
-                        first = false
-                        resp = mesg
-                        resp.query = result
-                    @push_to_client(resp)
-
-    query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds?
-            cb?(); return
-        cnt = misc.len(@_query_changefeeds)
-        if cnt == 0
-            cb?(); return
-        dbg = @dbg("query_cancel_all_changefeeds")
-        v = @_query_changefeeds
-        dbg("cancel #{cnt} changefeeds")
-        delete @_query_changefeeds
-        f = (id, cb) =>
-            dbg("cancel id=#{id}")
-            @database.user_query_cancel_changefeed
-                id : id
-                cb : (err) =>
-                    if err
-                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
-                    else
-                        dbg("FEED: canceled changefeed -- #{id}")
-                    cb()
-        async.map(misc.keys(v), f, (err) => cb?(err))
-
-    mesg_query_cancel: (mesg) =>
-        if not @_query_changefeeds?[mesg.id]?
-            # no such changefeed
-            @success_to_client(id:mesg.id)
-        else
-            # actualy cancel it.
-            if @_query_changefeeds?
-                delete @_query_changefeeds[mesg.id]
-            @database.user_query_cancel_changefeed
-                id : mesg.id
-                cb : (err, resp) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        mesg.resp = resp
-                        @push_to_client(mesg)
-
-
-    ###
-    Support Tickets → Zendesk
-    ###
-    mesg_create_support_ticket: (mesg) =>
-        dbg = @dbg("mesg_create_support_ticket")
-        dbg('deprecated')
-        @error_to_client(id:mesg.id, error:'deprecated')
-
-    mesg_get_support_tickets: (mesg) =>
-        # retrieves the support tickets the user with the current account_id
-        dbg = @dbg("mesg_get_support_tickets")
-        dbg('deprecated')
-        @error_to_client(id:mesg.id, error:'deprecated')
 
     ###
     Stripe-integration billing code
@@ -1741,86 +1439,6 @@ class exports.Client extends EventEmitter
 
     #  END stripe-related functionality
 
-    mesg_api_key: (mesg) =>
-        try
-            api_key = await legacyManageApiKey
-                account_id : @account_id
-                password   : mesg.password
-                action     : mesg.action
-            if api_key
-                @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
-            else
-                @success_to_client(id:mesg.id)
-        catch err
-            @error_to_client(id:mesg.id, error:err)
-
-    mesg_api_keys: (mesg) =>
-        try
-            response = await manageApiKeys
-                account_id : @account_id
-                password   : mesg.password
-                action     : mesg.action
-                project_id : mesg.project_id
-                id         : mesg.key_id
-                expire     : mesg.expire
-                name       : mesg.name
-            @push_to_client(message.api_keys_response(id:mesg.id, response:response))
-        catch err
-            @error_to_client(id:mesg.id, error:err)
-
-    mesg_user_auth: (mesg) =>
-        auth_token.get_user_auth_token
-            database        : @database
-            account_id      : @account_id  # strictly not necessary yet... but good if user has to be signed in,
-                                           # since more secure and we can rate limit attempts from a given user.
-            user_account_id : mesg.account_id
-            password        : mesg.password
-            cb              : (err, auth_token) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.user_auth_token(id:mesg.id, auth_token:auth_token))
-
-    mesg_revoke_auth_token: (mesg) =>
-        auth_token.revoke_user_auth_token
-            database        : @database
-            auth_token      : mesg.auth_token
-            cb              : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    # Receive and store in memory the latest metrics status from the client.
-    mesg_metrics: (mesg) =>
-        dbg = @dbg('mesg_metrics')
-        dbg()
-        if not mesg?.metrics
-            return
-        metrics = mesg.metrics
-        #dbg('GOT: ', misc.to_json(metrics))
-        if not misc.is_array(metrics)
-            # client is messing with us...?
-            return
-        for metric in metrics
-            if not misc.is_array(metric?.values)
-                # what?
-                return
-            if metric.values.length == 0
-                return
-            for v in metric.values
-                if not misc.is_object(v?.labels)
-                    # what?
-                    return
-            switch metric.type
-                when 'gauge'
-                    metric.aggregator = 'average'
-                else
-                    metric.aggregator = 'sum'
-
-        client_metrics[@id] = metrics
-        #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
-
     _check_project_access: (project_id, cb) =>
         if not @account_id?
             cb('you must be signed in to access project')
@@ -1870,37 +1488,6 @@ class exports.Client extends EventEmitter
                 local_hub_connection.disconnect_from_project(mesg.project_id)
                 @push_to_client(message.success(id:mesg.id))
 
-    mesg_touch_project: (mesg) =>
-        dbg = @dbg('mesg_touch_project')
-        async.series([
-            (cb) =>
-                dbg("checking conditions")
-                @_check_project_access(mesg.project_id, cb)
-            (cb) =>
-                # IMPORTANT: do this ensure_connection_to_project *first*, since
-                # it is critical always ensure this, and the @touch below gives
-                # an error if done more than once per 45s, whereas we may want
-                # to check much more frequently that we have a TCP connection
-                # to the project.
-                f = @database.ensure_connection_to_project
-                if f?
-                    dbg("also create socket connection (so project can query db, etc.)")
-                    # We do NOT block on this -- it can take a while.
-                    f(mesg.project_id)
-                cb()
-            (cb) =>
-                @touch
-                    project_id : mesg.project_id
-                    action     : 'touch'
-                    cb         : cb
-        ], (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"unable to touch project #{mesg.project_id} -- #{err}")
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
-
     mesg_get_syncdoc_history: (mesg) =>
         dbg = @dbg('mesg_syncdoc_history')
         try
@@ -1914,17 +1501,6 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
-
-    mesg_user_tracking: (mesg) =>
-        dbg = @dbg("mesg_user_tracking")
-        try
-            if not @account_id
-                throw Error("you must be signed in to record a tracking event")
-            await record_user_tracking(@database, @account_id, mesg.evt, mesg.value)
-            @push_to_client(message.success(id:mesg.id))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"unable to record user_tracking event #{mesg.evt} -- #{err}")
 
     mesg_admin_reset_password: (mesg) =>
         dbg = @dbg("mesg_reset_password")
@@ -1947,27 +1523,6 @@ class exports.Client extends EventEmitter
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
 
-    mesg_chatgpt: (mesg) =>
-        dbg = @dbg("mesg_chatgpt")
-        dbg(mesg.text)
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        if mesg.stream
-            try
-                stream = (text) =>
-                    @push_to_client(message.chatgpt_response(id:mesg.id, text:text, multi_response:text?))
-                await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
-            catch err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"#{err}")
-        else
-            try
-                output = await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
-                @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
-            catch err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"#{err}")
 
     # These are deprecated. Not the best approach.
     mesg_openai_embeddings_search: (mesg) =>

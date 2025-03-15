@@ -25,7 +25,11 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { db } from "@cocalc/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
+import {
+  type CopyOptions,
+  ProjectState,
+  ProjectStatus,
+} from "@cocalc/util/db-schema/projects";
 import { Quota, quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
@@ -36,6 +40,7 @@ import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quota
 import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 import { query } from "@cocalc/database/postgres/query";
 
+export type { CopyOptions };
 export type { ProjectState, ProjectStatus };
 
 const logger = getLogger("project-control");
@@ -282,19 +287,4 @@ export abstract class BaseProject extends EventEmitter {
 
     logger.debug("updated run_quota=", run_quota);
   }
-}
-
-export interface CopyOptions {
-  path: string;
-  target_project_id?: string;
-  target_path?: string; // path into project; if not given, defaults to source path above.
-  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
-  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
-  backup?: boolean; // make backup files
-  timeout?: number; // in **seconds**, not milliseconds
-  bwlimit?: number;
-  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
-  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
-  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
-  exclude?: string[]; // options passed to rsync via --exclude
 }

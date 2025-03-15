@@ -14,6 +14,7 @@ import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { natsPorts, natsServer } from "@cocalc/backend/data";
 
 const logger = getLogger("project-control:util");
 
@@ -275,6 +276,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      COCALC_NATS_PORT: `${natsPorts.server}`,
+      COCALC_NATS_SERVER: `${natsServer}`
     },
   };
 }

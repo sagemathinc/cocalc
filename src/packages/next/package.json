@@ -91,7 +91,6 @@
     "react-google-recaptcha-v3": "^1.9.7",
     "react-intl": "^7.1.0",
     "serve-index": "^1.9.1",
-    "sha1": "^1.1.1",
     "sharp": "^0.32.6",
     "timeago-react": "^3.0.4",
     "tslib": "^2.3.1",

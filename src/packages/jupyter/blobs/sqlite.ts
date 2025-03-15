@@ -39,7 +39,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
       winston.debug(`jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} opened fine`);
     } catch (err) {
       winston.debug(
-        `jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} open error - ${err}`
+        `jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} open error - ${err}`,
       );
       // File may be corrupt/broken/etc. -- in this case, remove and try again.
       // This database is only an image *cache*, so this is fine.
@@ -53,7 +53,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
         err = error;
         winston.debug(
           `Error trying to delete ${JUPYTER_BLOBS_DB_FILE}... ignoring: `,
-          err
+          err,
         );
       }
       this.init();
@@ -81,21 +81,21 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   private init_table() {
     this.db
       .prepare(
-        "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
+        "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)",
       )
       .run();
   }
 
   private init_statements() {
     this.stmt_insert = this.db.prepare(
-      "INSERT INTO blobs VALUES(?, ?, ?, ?, ?)"
+      "INSERT INTO blobs VALUES(?, ?, ?, ?, ?)",
     );
     this.stmt_update = this.db.prepare("UPDATE blobs SET time=? WHERE sha1=?");
     this.stmt_get = this.db.prepare("SELECT * FROM blobs WHERE sha1=?");
     this.stmt_data = this.db.prepare("SELECT data FROM blobs where sha1=?");
     this.stmt_keys = this.db.prepare("SELECT sha1 FROM blobs");
     this.stmt_ipynb = this.db.prepare(
-      "SELECT ipynb, type, data FROM blobs where sha1=?"
+      "SELECT ipynb, type, data FROM blobs where sha1=?",
     );
   }
 
@@ -128,7 +128,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
         if (cnt?.cnt == null) return;
         const n = Math.floor(cnt.cnt / 2);
         winston.debug(
-          `jupyter BlobStore: large file of ${size_mb}MiB detected – deleting ${n} old rows.`
+          `jupyter BlobStore: large file of ${size_mb}MiB detected – deleting ${n} old rows.`,
         );
         if (n == 0) return;
         const when = this.db
