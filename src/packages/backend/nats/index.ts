@@ -1,5 +1,11 @@
 import { join } from "path";
-import { nats, natsPorts, natsServer } from "@cocalc/backend/data";
+import {
+  nats,
+  natsPorts,
+  natsServer,
+  natsUser,
+  natsPassword,
+} from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { connect, type NatsConnection /*, credsAuthenticator*/ } from "nats";
@@ -40,10 +46,8 @@ export const getConnection = reuseInFlight(async () => {
       //const creds = await getCreds();
       nc = await connect({
         ...CONNECT_OPTIONS,
-        // TODO: this is temporary while developing auth callout!
-        user: "cocalc",
-        pass: "cocalc",
-        //authenticator: credsAuthenticator(new TextEncoder().encode(creds)),
+        user: natsUser,
+        pass: natsPassword,
         inboxPrefix: inboxPrefix({}),
         servers: `${natsServer}:${natsPorts.server}`,
       });

@@ -92,9 +92,6 @@ const compute_servers_google_enabled = (conf: SiteSettings) =>
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
 
-const neural_search_enabled = (conf: SiteSettings) =>
-  openai_enabled(conf) && to_bool(conf.neural_search_enabled);
-
 const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
 
@@ -187,6 +184,9 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
+  | "nats_heading"
+  | "nats_servers"
+  | "nats_password"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -210,9 +210,6 @@ export type SiteSettingsExtrasKeys =
   | "custom_openai_configuration"
   | "mistral_api_key"
   | "anthropic_api_key"
-  | "qdrant_section"
-  | "qdrant_api_key"
-  | "qdrant_cluster_url"
   | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
@@ -274,6 +271,27 @@ const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  nats_heading: {
+    name: "NATS Configuration",
+    desc: "Configuration of [NATS server](https://nats.io/), which CoCalc uses extensively for communication.",
+    default: "",
+    type: "header",
+    tags: ["Nats"],
+  },
+  nats_servers: {
+    name: "Nats Servers",
+    desc: "Addresses of NATS servers (comma separated list).",
+    default: "",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_password: {
+    name: "Nats Password",
+    desc: "Password required for access to the NATS server.",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
   openai_section: {
     name: "Language Model Configuration",
     desc: "",
@@ -336,27 +354,6 @@ export const EXTRAS: SettingsExtras = {
     valid: custom_llm_valid,
     to_display: custom_llm_display,
     tags: ["AI LLM"],
-  },
-  qdrant_section: {
-    name: "DEPRECATED - Qdrant Configuration",
-    desc: "",
-    default: "",
-    show: neural_search_enabled,
-    type: "header",
-  },
-  qdrant_cluster_url: {
-    name: "DEPRECATED - Qdrant Cluster URL (needed for OpenAI Neural Search)",
-    desc: "Your [Qdrant](https://qdrant.tech/) server from https://cloud.qdrant.io/ or you can also run Qdrant locally.  This is needed to support functionality that uses Neural Search.",
-    default: "",
-    show: neural_search_enabled,
-  },
-  qdrant_api_key: {
-    name: "DEPRECATED - Qdrant API key (needed for OpenAI Neural Search)",
-    desc: "Your [Qdrant](https://qdrant.tech/) API key, which is needed to connect to your Qdrant server.  See https://qdrant.tech/documentation/cloud/cloud-quick-start/#authentication",
-    default: "",
-    password: true,
-    show: neural_search_enabled,
-    tags: ["OpenAI"],
   },
   salesloft_section: {
     name: "Salesloft Configuration",

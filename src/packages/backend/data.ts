@@ -184,11 +184,20 @@ export const blobstore: "disk" | "sqlite" =
 export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
 
 export const natsPorts = {
-  server : parseInt(process.env.COCALC_NATS_PORT ?? '4222'),
-  ws : parseInt(process.env.COCALC_NATS_WS_PORT ?? '8443')
-} 
-export const natsServer = process.env.COCALC_NATS_SERVER ?? 'localhost';
+  server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
+  ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
+};
+export const natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
 export const natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+
+// TODO: ????
+export let natsUser = process.env.COCALC_NATS_USER ?? "cocalc";
+export let natsPassword = process.env.COCALC_NATS_PASSWORD ?? "cocalc";
+
+export function setNatsCredentials({ user, password }) {
+  natsUser = user;
+  natsPassword = password;
+}
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
