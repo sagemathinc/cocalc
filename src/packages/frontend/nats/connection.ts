@@ -29,9 +29,6 @@ all the annoying constraints.  We will likely do something
 involving always including recent projects.
 */
 
-// TODO -- size and timeout on auth callout.  Implications?
-const MAX_PROJECTS_PER_CONNECTION = 50;
-import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { join } from "path";
@@ -54,9 +51,23 @@ import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { asyncDebounce } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
+import {
+  getPermissionsCache,
+  type NatsProjectPermissionsCache,
+} from "./permissions-cache";
+import { isEqual } from "lodash";
+
+const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 1000 * 60;
 
 function natsWebsocketUrl() {
   return `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
+}
+
+function connectingMessage({ server, project_ids }) {
+  console.log(
+    `Connecting to ${server} to use ${JSON.stringify(project_ids)}...`,
+  );
 }
 
 let cachedConnection: CoCalcNatsConnection | null = null;
@@ -68,9 +79,11 @@ export const connect = reuseInFlight(async () => {
   if (!account_id) {
     throw Error("you must be signed in before connecting to NATS");
   }
-  const user = { account_id, project_ids: [] };
+  const cache = getPermissionsCache();
+  const project_ids = cache.get();
+  const user = { account_id, project_ids };
   const server = natsWebsocketUrl();
-  console.log(`NATS: connecting to ${server}...`);
+  connectingMessage({ server, project_ids });
   const options = {
     user: JSON.stringify(user),
     name: `account-${account_id}`,
@@ -79,7 +92,7 @@ export const connect = reuseInFlight(async () => {
     inboxPrefix: inboxPrefix({ account_id }),
   };
   const nc = await natsConnect(options);
-  cachedConnection = new CoCalcNatsConnection(nc, user);
+  cachedConnection = new CoCalcNatsConnection(nc, user, cache);
   return cachedConnection;
 });
 
@@ -93,9 +106,9 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   protocol;
   options;
   user: { account_id: string; project_ids: string[] };
-  requested: string[] = [];
+  permissionsCache: NatsProjectPermissionsCache;
 
-  constructor(conn, user) {
+  constructor(conn, user, permissionsCache) {
     super();
     this.setMaxListeners(500);
     this.conn = conn;
@@ -106,38 +119,8 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       project_ids: uniq(user.project_ids),
       account_id: user.account_id,
     };
+    this.permissionsCache = permissionsCache;
   }
-
-  removeProjectPermissions = (project_ids: string[]) => {
-    if (project_ids.length == 0 || this.user.project_ids.length == 0) {
-      return;
-    }
-    const x = new Set(this.user.project_ids);
-    for (const y of project_ids) {
-      x.delete(y);
-    }
-    if (x.size < this.user.project_ids.length) {
-      this.user.project_ids = Array.from(x);
-      // we don't actually change the connection -- just make it so the next time
-      // it is changed, these project_ids aren't included.
-    }
-  };
-
-  private removeClosedProjectPermissions = () => {
-    if (this.user.project_ids.length == 0) {
-      return;
-    }
-    const v = redux.getStore("projects")?.get("open_projects")?.toJS?.();
-    if (v == null) {
-      return;
-    }
-    const openProjects = new Set(v);
-    this.removeProjectPermissions(
-      this.user.project_ids.filter(
-        (project_id) => !openProjects.has(project_id),
-      ),
-    );
-  };
 
   // gets *actual* projects that this connection has permission to access
   getProjectPermissions = async (): Promise<string[]> => {
@@ -157,45 +140,18 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   };
 
   addProjectPermissions = async (project_ids: string[]) => {
-    if (project_ids.length == 0) {
-      return;
-    }
-    // always first remove any for closed projects, since we never need to talk to them
-    this.removeClosedProjectPermissions();
-
-    // adding anything?
-    const x = new Set(this.user.project_ids);
-    for (const y of project_ids) {
-      x.add(y);
-    }
-    if (x.size > this.user.project_ids.length) {
-      project_ids = Array.from(x);
-      await this.setProjectPermissions(project_ids);
-    }
-  };
-
-  private setProjectPermissions = async (project_ids: string[]) => {
-    this.requested.push(...project_ids);
+    this.permissionsCache.add(project_ids);
     await this.updateProjectPermissions();
   };
 
   // this is debounce since adding permissions tends to come in bursts:
   private updateProjectPermissions = asyncDebounce(
     async () => {
-      if (this.requested.length == 0) {
+      let project_ids = this.permissionsCache.get();
+      if (isEqual(this.user.project_ids, project_ids)) {
+        // nothing to do
         return;
       }
-      let project_ids = Array.from(new Set(this.requested));
-      this.requested = [];
-
-      if (project_ids.length > MAX_PROJECTS_PER_CONNECTION) {
-        console.warn(
-          `WARNING: there is a limit of at most ${MAX_PROJECTS_PER_CONNECTION} project permissions at once`,
-        );
-        // take most recently requested:
-        project_ids = project_ids.slice(-MAX_PROJECTS_PER_CONNECTION);
-      }
-
       const { account_id } = webapp_client;
       if (!account_id) {
         throw Error("you must be signed in before connecting to NATS");
@@ -205,9 +161,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
         project_ids,
       };
       const server = natsWebsocketUrl();
-      console.log(
-        `NATS: connecting to ${server} to use ${project_ids.join(",")}...`,
-      );
+      connectingMessage({ server, project_ids });
       const options = {
         user: JSON.stringify(user),
         name: `account-${account_id}`,
@@ -225,14 +179,12 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       // tell clients they should reconnect, since the connection they
       // had used is going to drain soon.
       this.emit("reconnect");
-      setTimeout(async () => {
-        // we wait a minute, then drain the previous connection.
-        try {
-          await cur.drain();
-        } catch {}
-      }, 60000);
+      // we wait a while, then drain the previous connection.
+      // Since connection usually change rarely, it's fine to wait a while,
+      // to minimize disruption.  Make this short as a sort of "bug stress test".
+      delayThenDrain(cur, DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS);
     },
-    750,
+    1000,
     { leading: true, trailing: true },
   );
 
@@ -320,6 +272,13 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     const info = this.info;
     return info ? parseSemVer(info.version) : undefined;
   }
+}
+
+async function delayThenDrain(conn, time) {
+  await delay(time);
+  try {
+    await conn.drain();
+  } catch {}
 }
 
 export { type CoCalcNatsConnection };
