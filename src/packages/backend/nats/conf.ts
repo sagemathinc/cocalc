@@ -87,7 +87,12 @@ accounts {
   SYS {}
 }
 
+
+max_control_line 64KB
+
 authorization {
+  # slightly longer timeout: probably not necessary, but db queries involved (usually takes 50ms - 250ms)
+  timeout: 3
   auth_callout {
     issuer: ${ISSUER_NKEY}
     users: [ cocalc ]

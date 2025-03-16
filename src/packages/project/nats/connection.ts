@@ -25,8 +25,8 @@ export default async function getConnection() {
           ...CONNECT_OPTIONS,
           inboxPrefix,
           servers,
-          user: JSON.stringify({ project_id }),
-          name: `project-${project_id}`,
+          name: JSON.stringify({ project_id }),
+          user: `project-${project_id}`,
           token: process.env.API_KEY
             ? process.env.API_KEY
             : await secretToken(),

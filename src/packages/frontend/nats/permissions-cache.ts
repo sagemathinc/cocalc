@@ -1,9 +1,14 @@
 import { isValidUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
-// TODO -- size and timeout on auth callout.  Implications?
-const MAX_PROJECT_PERMISSIONS = 50;
-const NORMAL_PROJECT_PERMISSIONS = 10;
+// This limit is because there is a limit on
+// the length authentication protocol message, which is what we use to send the list of projects.
+// This limit is the max_control_line (see https://docs.nats.io/running-a-nats-service/configuration)
+// By default it is 4KB, which supports about 50 projects.  We increase it in the server
+// to 32KB and allow up to 250 projects, which is way more than enough (oldest projects are
+// automatically removed as needed).
+const MAX_PROJECT_PERMISSIONS = 250;
+const NORMAL_PROJECT_PERMISSIONS = 25;
 const CUTOFF = 1000 * 60 * 60 * 24 * 7; // 1 week ago
 
 // for dev/testing

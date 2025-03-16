@@ -92,8 +92,8 @@ export const connect = reuseInFlight(async () => {
   const server = natsWebsocketUrl();
   connectingMessage({ server, project_ids });
   const options = {
-    user: JSON.stringify(user),
-    name: `account-${account_id}`,
+    name: JSON.stringify(user),
+    user: `account-${account_id}`,
     ...CONNECT_OPTIONS,
     servers: [server],
     inboxPrefix: inboxPrefix({ account_id }),
@@ -183,8 +183,10 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       const server = natsWebsocketUrl();
       connectingMessage({ server, project_ids });
       const options = {
-        user: JSON.stringify(user),
-        name: `account-${account_id}`,
+        // name: used to convey who we claim to be:
+        name: JSON.stringify(user),
+        // user: displayed in logs
+        user: `account-${account_id}`,
         ...CONNECT_OPTIONS,
         servers: [server],
         inboxPrefix: inboxPrefix({ account_id }),

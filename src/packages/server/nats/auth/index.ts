@@ -158,7 +158,7 @@ async function handleRequest(mesg, xkp) {
   try {
     const requestJwt = getRequestJwt(mesg, xkp);
     const requestClaim = decodeJwt(requestJwt) as any;
-    logger.debug("handleRequest", requestClaim.nats.connect_opts.user);
+    logger.debug("handleRequest", requestClaim.nats.connect_opts.name);
     const userNkey = requestClaim.nats.user_nkey;
     const serverId = requestClaim.nats.server_id;
     const { pub, sub } = await getPermissions(requestClaim.nats.connect_opts);
@@ -245,23 +245,23 @@ function getRequestJwt(mesg, xkp): string {
 
 async function getPermissions({
   auth_token,
-  user,
+  name,
 }: {
   // auth token:
   //   - remember me
   //   - api key
   //   - project secret
   auth_token?: string;
-  user?: string;
+  name?: string;
 }) {
-  if (!user) {
-    throw Error("user must be specified");
+  if (!name) {
+    throw Error("name must be specified");
   }
   const {
     account_id,
     project_id,
     project_ids: requested_project_ids,
-  } = JSON.parse(user) ?? {};
+  } = JSON.parse(name) ?? {};
   const { project_ids } = await validate({
     account_id,
     project_id,
