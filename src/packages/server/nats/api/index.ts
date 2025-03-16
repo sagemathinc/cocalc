@@ -3,9 +3,12 @@ This is meant to be similar to the nexts pages http api/v2, but using NATS inste
 
 To do development:
 
-1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
+1. Turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
    await cc.client.nats_client.hub.system.terminate({service:'api'})
+
+NOTE: there's no way to turn the auth back on in the hub, so you'll have to restart
+your dev hub after doing the above.
 
 2. Run this script standalone:
 
@@ -42,6 +45,7 @@ import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 import { Svcm } from "@nats-io/services";
+import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 
 const logger = getLogger("server:nats:api");
 
@@ -78,6 +82,10 @@ export async function initAPI() {
       logger.debug(`Terminate service '${service}'`);
       if (service == "db") {
         terminateDatabase();
+        mesg.respond(jc.encode({ status: "terminated", service }));
+        continue;
+      } else if (service == "auth") {
+        terminateAuth();
         mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {

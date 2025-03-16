@@ -1,14 +1,28 @@
 /*
 Implementation of Auth Callout for NATS
 
+DEPLOYMENT:
+
+Run as many of these as you want -- the load gets randomly spread across all of them.
+They just need access to the database.
+
+There is some nontrivial compute associated with handling each auth, due to:
+
+ - 1000 rounds of sha512 for the remember_me cookie takes time
+ - encoding/encrypting/decoding/decrypting JWT stuff with NATS takes maybe 50ms of CPU.
+
+The main "weird" thing about this is that when a connection is being authenticated,
+we have to decide on its *exact* permissions once-and-for all at that point in time.
+This means browser clients have to reconnect if they want to communicate with a project
+they didn't explicit authenticate to.
 
 AUTH CALLOUT
 
-This should work. It means a cocalc server (which relies on the database) *must*
-be available to handle every user connection... but that's ok. It also makes
-banning users a bit more complicated.
+At least one of these cocalc servers (which relies on the database) *must*
+be available to handle every user connection, unlike with decentralized PKI auth.
+It also makes banning users a bit more complicated.
 
-Relevant docs:
+DOCS:
 
 - https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout
 
@@ -19,11 +33,20 @@ Relevant docs:
 - https://www.youtube.com/watch?v=VvGxrT-jv64
 
 
-
 DEVELOPMENT
 
+1. From the browser, turn off the nats auth that is being served by your development hub
+by sending this message from a browser as an admin:
 
-> await require('@cocalc/server/nats/auth').init()
+   await cc.client.nats_client.hub.system.terminate({service:'auth'})
+
+2. Run this code in nodejs:
+
+   x = await require('@cocalc/server/nats/auth').init()
+
+
+NOTE: there's no way to turn the auth back on in the hub, so you'll have to restart
+your dev hub after doing the above.
 
 
 WHY NOT DECENTRALIZED AUTH?
@@ -36,15 +59,26 @@ SCALE! The problem is that we need potentially dozens of pub/sub rules for each
 user, so that's too much information to put in a client JWT cookie, so we
 *must* use signing keys. Thus the permissions information for every user goes
 into one massive account key blob, and a tiny signed JWT goes to each browser.
-This is so very nice because permissions can be dynamically updated at any time,
+This is very nice because permissions can be dynamically updated at any time,
 and everybody's permissions are known to NATS without cocalc's database having
-to be consulted at all... SADLY, it doesn't scale, since every time we make a
-change the account key has to be updated, and only a few hundred (or thousand)
-users are enough to make it too big. Decentralized auth could work if each
-cocalc user had a different account, but... that doesn't work either, since
-import/export doesn't really work for jetstream... and setting up all the
+to be consulted at all (that said, with multiple nats servers, I am worries the
+permissions update would take too long).   SADLY, this doesn't scale!
+Every time we make a change, the account key has to be updated, and only
+a few hundred (or thousand)
+users are enough to make the key too big to fit in a message.
+Also, each  update would take at least a second.  Now imagine 150 students in
+a class all signing in at once, and it taking over 150 seconds just to
+process auth, and you can see this is a nonstarter.
+Decentralized auth could work if each cocalc user had a different
+account, but... that doesn't work either, since import/export doesn't
+really work for jetstream... and setting up all the
 import/export would be a nightmare, and probaby much more complicated.
 
+NOTE: There is one approach to decentralized auth that doesn't obviously fail,
+but it would require a separate websocket connection for each project and maybe
+some mangling of auth cookies in the proxy server.  That said, it still relies
+on using command line nsc with pull/push, which feels very slow and brittle.
+Using a separate connection for each project is also just really bad practice.
 */
 
 import { Svcm } from "@nats-io/services";
@@ -60,9 +94,11 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import { getUserPermissions } from "./permissions";
 import { validate } from "./validate";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("server:nats:auth-callout");
 
+let api: any | null = null;
 export async function init() {
   logger.debug("init");
   // coerce to NatsConnection is to workaround a bug in the
@@ -74,9 +110,11 @@ export async function init() {
     name: "auth",
     version: "0.0.1",
     description: "CoCalc auth callout service",
+    // all auth callout handlers randomly take turns authenticating users
+    queue: "q",
   });
   const g = service.addGroup("$SYS").addGroup("REQ").addGroup("USER");
-  const api = g.addEndpoint("AUTH");
+  api = g.addEndpoint("AUTH");
   const encoder = new TextEncoder();
 
   const xkp = fromSeed(encoder.encode(ISSUER_XSEED));
@@ -91,18 +129,27 @@ export async function init() {
   };
 }
 
-// sessions automatically expire after 12 hours.
-const SESSION_EXPIRE_MS = 1000 * 60 * 12;
+export function terminate() {
+  api?.stop();
+}
+
+//const SESSION_EXPIRE_MS = 1000 * 60 * 60 * 12;
 
 async function listen(api, xkp) {
-  console.log("listening...");
+  logger.debug("listening...");
   try {
     for await (const mesg of api) {
+      // do NOT await this
       handleRequest(mesg, xkp);
     }
   } catch (err) {
-    console.warn("Problem with auth callout", err);
-    // TODO: restart
+    logger.debug("WARNING: Problem with auth callout", err);
+    // restart? I don't know why this would ever fail assuming
+    // our code isn't buggy, hence alert if this ever happens:
+    adminAlert({
+      subject: "NATS auth-callout service crashed",
+      body: `A nats auth callout service crashed with the following error:\n\n${err}\n\nWilliam thinks this is impossible and will never happen, so investigate.  This problem could cause all connections to cocalc to fail, and would be fixable by restarting the hubs.`,
+    });
   }
 }
 
@@ -121,9 +168,14 @@ async function handleRequest(mesg, xkp) {
     const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
     const userName = requestClaim.nats.connect_opts.user;
     const opts = { aud: "cocalc" };
+    // times doesn't work reliably; instead we will implement
+    // dropping the user at the proxy server level.  This is ONLY
+    // needed for browser clients, who can only connect via proxy.
+    // (Technically they could run a browser in their project, and
+    // connect not through a proxy...?)
     // start slightly in past in case clocks aren't identical.
-    const start = new Date(Date.now() - 2 * 1000 * 60);
-    const end = new Date(start.valueOf() + SESSION_EXPIRE_MS);
+    //     const start = new Date(Date.now() - 2 * 1000 * 60);
+    //     const end = new Date(start.valueOf() + SESSION_EXPIRE_MS);
     const jwt = await encodeUser(
       userName,
       user,
@@ -131,12 +183,12 @@ async function handleRequest(mesg, xkp) {
       {
         pub,
         sub,
-        times: [
-          {
-            start: formatTime(start),
-            end: formatTime(end),
-          },
-        ],
+        //         times: [
+        //           {
+        //             start: formatTime(start),
+        //             end: formatTime(end),
+        //           },
+        //         ],
         locale: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       opts,
@@ -168,13 +220,13 @@ async function handleRequest(mesg, xkp) {
   }
 }
 
-function formatTime(d) {
-  let hours = String(d.getHours()).padStart(2, "0");
-  let minutes = String(d.getMinutes()).padStart(2, "0");
-  let seconds = String(d.getSeconds()).padStart(2, "0");
+// function formatTime(d) {
+//   let hours = String(d.getHours()).padStart(2, "0");
+//   let minutes = String(d.getMinutes()).padStart(2, "0");
+//   let seconds = String(d.getSeconds()).padStart(2, "0");
 
-  return `${hours}:${minutes}:${seconds}`;
-}
+//   return `${hours}:${minutes}:${seconds}`;
+// }
 
 function getRequestJwt(mesg, xkp): string {
   const xkey = mesg.headers.get("Nats-Server-Xkey");
