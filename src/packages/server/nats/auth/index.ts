@@ -168,14 +168,6 @@ async function handleRequest(mesg, xkp) {
     const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
     const userName = requestClaim.nats.connect_opts.user;
     const opts = { aud: "cocalc" };
-    // times doesn't work reliably; instead we will implement
-    // dropping the user at the proxy server level.  This is ONLY
-    // needed for browser clients, who can only connect via proxy.
-    // (Technically they could run a browser in their project, and
-    // connect not through a proxy...?)
-    // start slightly in past in case clocks aren't identical.
-    //     const start = new Date(Date.now() - 2 * 1000 * 60);
-    //     const end = new Date(start.valueOf() + SESSION_EXPIRE_MS);
     const jwt = await encodeUser(
       userName,
       user,
@@ -183,12 +175,6 @@ async function handleRequest(mesg, xkp) {
       {
         pub,
         sub,
-        //         times: [
-        //           {
-        //             start: formatTime(start),
-        //             end: formatTime(end),
-        //           },
-        //         ],
         locale: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       opts,
@@ -219,14 +205,6 @@ async function handleRequest(mesg, xkp) {
     );
   }
 }
-
-// function formatTime(d) {
-//   let hours = String(d.getHours()).padStart(2, "0");
-//   let minutes = String(d.getMinutes()).padStart(2, "0");
-//   let seconds = String(d.getSeconds()).padStart(2, "0");
-
-//   return `${hours}:${minutes}:${seconds}`;
-// }
 
 function getRequestJwt(mesg, xkp): string {
   const xkey = mesg.headers.get("Nats-Server-Xkey");

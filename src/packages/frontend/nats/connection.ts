@@ -238,6 +238,16 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return this.conn.subscribe(subject, opts);
   }
 
+  // not in the public api, but used by jetstream.
+  _resub(s: Subscription, subject: string, max?: number) {
+    return (this.conn as any)._resub(s, subject, max);
+  }
+
+  // not in the public api
+  _check(subject: string, sub: boolean, pub: boolean) {
+    return (this.conn as any)._check(subject, sub, pub);
+  }
+
   async request(
     subject: string,
     payload?: Payload,

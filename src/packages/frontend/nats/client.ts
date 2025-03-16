@@ -55,6 +55,9 @@ import {
   getEnv,
 } from "@cocalc/nats/client";
 import type { ConnectionInfo } from "./types";
+import { fromJS } from "immutable";
+
+const NATS_STATS_INTERVAL = 2500;
 
 export class NatsClient extends EventEmitter {
   client: WebappClient;
@@ -109,17 +112,12 @@ export class NatsClient extends EventEmitter {
 
   private getConnection = reuseInFlight(async () => {
     if (this.nc != null) {
-      if (this.nc.protocol?.isClosed?.()) {
-        // cause a reconnect.
-        delete this.nc;
-        this.setConnectionState("disconnected");
-      } else {
-        return this.nc;
-      }
+      return this.nc;
     }
     this.nc = await connect();
     this.setConnectionState("connected");
     this.monitorConnectionState(this.nc);
+    this.reportConnectionStats(this.nc);
     return this.nc;
   });
 
@@ -152,6 +150,20 @@ export class NatsClient extends EventEmitter {
     }
   };
 
+  private reportConnectionStats = async (nc) => {
+    while (true) {
+      const store = redux?.getStore("page");
+      const actions = redux?.getActions("page");
+      if (store != null && actions != null) {
+        const cur = store.get("nats") ?? fromJS({}) as any;
+        const nats = cur.set("data", fromJS(nc.stats()));
+        if (!cur.equals(nats)) {
+          actions.setState({ nats });
+        }
+      }
+      await delay(NATS_STATS_INTERVAL);
+    }
+  };
 
   callNatsService: CallNatsServiceFunction = async (options) => {
     return await callNatsService({ ...options, env: await this.getEnv() });
