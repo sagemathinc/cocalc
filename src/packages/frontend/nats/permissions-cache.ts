@@ -6,6 +6,11 @@ const MAX_PROJECT_PERMISSIONS = 50;
 const NORMAL_PROJECT_PERMISSIONS = 10;
 const CUTOFF = 1000 * 60 * 60 * 24 * 7; // 1 week ago
 
+// for dev/testing
+// const MAX_PROJECT_PERMISSIONS = 3;
+// const NORMAL_PROJECT_PERMISSIONS = 0;
+// const CUTOFF = 1000 * 60; // 1 minute ago
+
 type NatsProjectCache = { [project_id: string]: number };
 
 const localStorageKey = `${appBasePath}-nats-projects`;
@@ -60,11 +65,15 @@ export class NatsProjectPermissionsCache {
     if (n > MAX_PROJECT_PERMISSIONS) {
       const v = Object.values(this.cache);
       v.sort();
-      const c = v[-MAX_PROJECT_PERMISSIONS];
+      const c = v.slice(-MAX_PROJECT_PERMISSIONS)[0];
       if (c != null) {
         for (const project_id in this.cache) {
           if (this.cache[project_id] <= c) {
             delete this.cache[project_id];
+            n -= 1;
+            if (n <= MAX_PROJECT_PERMISSIONS) {
+              return;
+            }
           }
         }
       }

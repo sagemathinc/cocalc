@@ -58,7 +58,7 @@ import {
 } from "./permissions-cache";
 import { isEqual } from "lodash";
 
-const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 1000 * 60;
+const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 3 * 1000 * 60;
 
 function natsWebsocketUrl() {
   return `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
