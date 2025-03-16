@@ -41,8 +41,8 @@ import type {
   Msg,
   SubscriptionOptions,
   RequestManyOptions,
-  Status,
   Stats,
+  Status,
   Subscription,
 } from "@nats-io/nats-core";
 import { connect as natsConnect } from "nats.ws";
@@ -58,7 +58,14 @@ import {
 } from "./permissions-cache";
 import { isEqual } from "lodash";
 
-const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 3 * 1000 * 60;
+// When we create a new connection to change permissions (i.e., open a project
+// we have not opened in a while), we wait this long before draining the
+// old connection.  Draining immediately should work fine and be more efficient;
+// however, it might cause more "disruption".  On the other hand, this might
+// mask a subtle bug hence set this to 0 for some debugging purposes.
+const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 30 * 1000;
+// for debugging/testing
+// const DELAY_UNTIL_DRAIN_PREVIOUS_CONNECTION_MS = 0;
 
 function natsWebsocketUrl() {
   return `${location.protocol == "https:" ? "wss" : "ws"}://${location.host}${join(appBasePath, "nats")}`;
@@ -100,13 +107,15 @@ export const connect = reuseInFlight(async () => {
 // is responsible for managing any connection to nats.  It is assumed that nothing else
 // does and that there is only one of these.
 class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
-  private conn: NatsConnection;
+  conn: NatsConnection;
+  prev: NatsConnection[] = [];
 
   info?: ServerInfo;
   protocol;
   options;
   user: { account_id: string; project_ids: string[] };
   permissionsCache: NatsProjectPermissionsCache;
+  currStatus?;
 
   constructor(conn, user, permissionsCache) {
     super();
@@ -120,6 +129,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       account_id: user.account_id,
     };
     this.permissionsCache = permissionsCache;
+    this.updateCache();
   }
 
   // gets *actual* projects that this connection has permission to access
@@ -133,6 +143,16 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       }
     }
     return project_ids;
+  };
+
+  // one time on first connection we set the cache to match
+  // the actual projects, so we don't keep requesting ones we
+  // don't have access to, e.g., on sign out, then sign in as
+  // different user (or being removed as collaborator).
+  private updateCache = async () => {
+    try {
+      this.permissionsCache.set(await this.getProjectPermissions());
+    } catch {}
   };
 
   getConnectionInfo = async () => {
@@ -171,7 +191,11 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       };
       const cur = this.conn;
       const conn = (await natsConnect(options)) as any;
+
       this.conn = conn;
+      this.prev.push(cur);
+      this.currStatus?.stop();
+
       this.protocol = conn.protocol;
       this.info = conn.info;
       this.options = options;
@@ -248,12 +272,38 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return this.conn.getServer();
   }
 
+  // The kv and stream clients use this, which alerts when connection is closing.
+  // They also get the 'reconnect' event and drop this connection and get a new one,
+  // thus also getting a new status.
   status(): AsyncIterable<Status> {
     return this.conn.status();
   }
 
+  // The main client here (./client.ts) uses this to know the status of the primary
+  // connection, mainly for presentation in the UI. Thus this has to always have
+  // the latest connection status.
+  async *statusOfCurrentConnection() {
+    while (true) {
+      this.currStatus = this.conn.status();
+      for await (const x of this.currStatus) {
+        yield x;
+      }
+    }
+  }
+
+  // sum total of all data across *all* connections we've made here.
   stats(): Stats {
-    return this.conn.stats();
+    // @ts-ignore: undocumented API
+    let { inBytes, inMsgs, outBytes, outMsgs } = this.conn.stats();
+    for (const conn of this.prev) {
+      // @ts-ignore
+      const x = conn.stats();
+      inBytes += x.inBytes;
+      outBytes += x.outBytes;
+      inMsgs += x.inMsgs;
+      outMsgs += x.outMsgs;
+    }
+    return { inBytes, inMsgs, outBytes, outMsgs };
   }
 
   async rtt(): Promise<number> {
@@ -278,7 +328,9 @@ async function delayThenDrain(conn, time) {
   await delay(time);
   try {
     await conn.drain();
-  } catch {}
+  } catch (err) {
+    console.log("delayThenDrain err", err);
+  }
 }
 
 export { type CoCalcNatsConnection };

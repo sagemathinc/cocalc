@@ -46,6 +46,16 @@ export class NatsProjectPermissionsCache {
     return Object.keys(this.cache).sort();
   };
 
+  set = (project_ids: string[]) => {
+    this.cache = {};
+    const now = Date.now();
+    for (const project_id of project_ids) {
+      this.cache[project_id] = now;
+    }
+    this.enforceLimits();
+    this.saveCache();
+  };
+
   private enforceLimits = () => {
     const k = Object.keys(this.cache);
     if (k.length <= NORMAL_PROJECT_PERMISSIONS) {

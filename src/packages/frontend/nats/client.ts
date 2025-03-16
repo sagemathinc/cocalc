@@ -119,7 +119,7 @@ export class NatsClient extends EventEmitter {
     }
     this.nc = await connect();
     this.setConnectionState("connected");
-    //this.monitorConnectionState(this.nc);
+    this.monitorConnectionState(this.nc);
     return this.nc;
   });
 
@@ -141,27 +141,17 @@ export class NatsClient extends EventEmitter {
     page.setState({
       nats: {
         state: state ?? this.clientWithState.state,
-        data: this.natsDataTransfer(),
+        data: this.nc?.stats(),
       },
     } as any);
   };
 
-  //   private monitorConnectionState = async (nc) => {
-  //     for await (const _ of nc.status()) {
-  //       this.setConnectionState();
-  //     }
-  //   };
-
-  private natsDataTransfer = (): {
-    inBytes?: number;
-    inMsgs?: number;
-    outBytes?: number;
-    outMsgs?: number;
-  } => {
-    // @ts-ignore: undocumented API
-    const { inBytes, inMsgs, outBytes, outMsgs } = this.nc?.protocol ?? {};
-    return { inBytes, inMsgs, outBytes, outMsgs };
+  private monitorConnectionState = async (nc) => {
+    for await (const _ of nc.statusOfCurrentConnection()) {
+      this.setConnectionState();
+    }
   };
+
 
   callNatsService: CallNatsServiceFunction = async (options) => {
     return await callNatsService({ ...options, env: await this.getEnv() });
