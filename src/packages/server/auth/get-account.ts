@@ -22,7 +22,7 @@ const logger = getLogger("server:get-account");
 // has to be a key for that project).
 export default async function getAccountId(
   req,
-  opts,
+  opts?,
 ): Promise<string | undefined> {
   if (req == null) {
     return;
