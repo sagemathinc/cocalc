@@ -121,6 +121,10 @@ export class NatsClient extends EventEmitter {
     return this.nc;
   });
 
+  reconnect = async () => {
+    await this.nc?.reconnect();
+  };
+
   // reconnect to nats with access to additional projects.
   // If you request projects that you're not actually a collaborator
   // on, then it will silently NOT give you permission to use them.
@@ -155,7 +159,7 @@ export class NatsClient extends EventEmitter {
       const store = redux?.getStore("page");
       const actions = redux?.getActions("page");
       if (store != null && actions != null) {
-        const cur = store.get("nats") ?? fromJS({}) as any;
+        const cur = store.get("nats") ?? (fromJS({}) as any);
         const nats = cur.set("data", fromJS(nc.stats()));
         if (!cur.equals(nats)) {
           actions.setState({ nats });

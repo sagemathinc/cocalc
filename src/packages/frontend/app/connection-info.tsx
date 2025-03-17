@@ -38,10 +38,17 @@ export const ConnectionInfo: React.FC = React.memo(() => {
       onCancel={close}
       onOk={close}
       title={
-        <>
+        <div
+          style={{ display: "flex", alignItems: "center", marginRight: "30px" }}
+        >
           <Icon name="wifi" style={{ marginRight: "1em" }} />{" "}
           {intl.formatMessage(labels.connection)}
-        </>
+          <div style={{ flex: 1 }} />
+          <Button onClick={webapp_client.hub_client.fix_connection}>
+            <Icon name="repeat" spin={status === "connecting"} />{" "}
+            {intl.formatMessage(labels.reconnect)}
+          </Button>
+        </div>
       }
     >
       <div>
@@ -98,16 +105,12 @@ export const ConnectionInfo: React.FC = React.memo(() => {
           <Col sm={6}>
             <pre>{hub != null ? hub : "Not signed in"}</pre>
           </Col>
-          <Col sm={2}>
-            <Button onClick={webapp_client.hub_client.fix_connection}>
-              <Icon name="repeat" spin={status === "connecting"} />{" "}
-              {intl.formatMessage(labels.reconnect)}
-            </Button>
-          </Col>
         </Row>
         <Row>
           <Col sm={3}>
-            <h4>Hub {intl.formatMessage(labels.message_plural, { num: 10 })}</h4>
+            <h4>
+              Hub {intl.formatMessage(labels.message_plural, { num: 10 })}
+            </h4>
           </Col>
           <Col sm={6}>
             <MessageInfo />

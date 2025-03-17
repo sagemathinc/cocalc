@@ -224,7 +224,6 @@ export class HubClient {
           return;
         }
         break;
-
     }
 
     // the call f(null, mesg) below can mutate mesg (!), so we better save the id here.
@@ -514,6 +513,7 @@ export class HubClient {
     this.delete_websocket_cookie();
     this.conn?.end();
     this.conn?.open();
+    this.client.nats_client.reconnect();
   }
 
   public latency(): number | void {
