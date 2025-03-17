@@ -188,8 +188,21 @@ export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
   ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
 };
-export const natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
-export const natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
+export let natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+
+export function setNatsPort(port) {
+  natsPorts.server = parseInt(port);
+}
+export function setNatsWebsocketPort(port) {
+  natsPorts.ws = parseInt(port);
+  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+export function setNatsServer(server) {
+  natsServer = server;
+  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+
 export let natsPassword = "";
 try {
   const natsPasswordPath = join(secrets, "nats_password");

@@ -186,6 +186,9 @@ export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "nats_heading"
   | "nats_password"
+  | "nats_server"
+  | "nats_port"
+  | "nats_ws_port"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -280,9 +283,30 @@ export const EXTRAS: SettingsExtras = {
   // Nats config is loaded in packages/server/nats/credentials.ts
   nats_password: {
     name: "Nats Password",
-    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file $SECRETS/nats_password (or $COCALC_ROOT/data/secrets/nats_password) is used, if it exists.",
+    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists.",
     default: "",
     password: true,
+    tags: ["Nats"],
+  },
+  nats_server: {
+    name: "Nats Server",
+    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability)",
+    default: "localhost",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_port: {
+    name: "Nats TCP Port",
+    desc: "Port that NATS is serving on.  Defaults to 4222 or `$COCALC_NATS_PORT` if not specified here.",
+    default: "4222",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_ws_port: {
+    name: "Nats Websocket Port",
+    desc: "Port that NATS websocket server is serving on.  Defaults to 8443 or `$COCALC_NATS_WS_PORT` if not specified here.  This gets proxied to browser clients.",
+    default: "8443",
+    password: false,
     tags: ["Nats"],
   },
   openai_section: {
