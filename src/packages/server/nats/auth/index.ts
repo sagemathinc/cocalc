@@ -170,7 +170,7 @@ async function handleRequest(mesg, xkp) {
     const encoder = new TextEncoder();
     const issuer = fromSeed(encoder.encode(natsAuthCalloutNSeed));
     const userName = requestClaim.nats.connect_opts.user;
-    const opts = { aud: "AUTH" };
+    const opts = { aud: "COCALC" };
     const jwt = await encodeUser(
       userName,
       user,
