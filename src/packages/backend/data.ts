@@ -26,7 +26,7 @@ const DEFINITION = `CoCalc Environment Variables:
 
 import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
-import { readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 
 function determineRootFromPath(): string {
@@ -178,6 +178,12 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+// if the directory secrets doesn't exist, create it (sync, during this load):
+if (!existsSync(secrets)) {
+  // Mode '0o700' allows read/write/execute only for the owner
+  mkdirSync(secrets, { recursive: true, mode: 0o700 });
+}
+
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 export const blobstore: "disk" | "sqlite" =
   (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
