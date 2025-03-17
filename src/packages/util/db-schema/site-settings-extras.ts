@@ -185,7 +185,6 @@ function custom_llm_display(value: string): string {
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "nats_heading"
-  | "nats_servers"
   | "nats_password"
   | "stripe_heading"
   | "stripe_publishable_key"
@@ -278,16 +277,10 @@ export const EXTRAS: SettingsExtras = {
     type: "header",
     tags: ["Nats"],
   },
-  nats_servers: {
-    name: "Nats Servers",
-    desc: "Addresses of NATS servers (comma separated list).",
-    default: "",
-    password: false,
-    tags: ["Nats"],
-  },
+  // Nats config is loaded in packages/server/nats/credentials.ts
   nats_password: {
     name: "Nats Password",
-    desc: "Password required for access to the NATS server.",
+    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file $SECRETS/nats_password (or $COCALC_ROOT/data/secrets/nats_password) is used, if it exists.",
     default: "",
     password: true,
     tags: ["Nats"],

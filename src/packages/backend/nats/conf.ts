@@ -3,10 +3,25 @@ Configure nats-server, i.e., generate configuration files.
 
 node -e "require('@cocalc/backend/nats/conf').main()"
 
+
+
+NOTES:
+
+- I tried very hard to use NKEYS and/or JWT, but it's
+just not compatible with auth callout, and auth callout
+is required for scalability, given my use case. That's
+why there is an explicit password.
 */
 
 import { pathExists } from "fs-extra";
-import { data, nats, natsPorts, natsServer } from "@cocalc/backend/data";
+import {
+  data,
+  nats,
+  natsPorts,
+  natsServer,
+  natsPassword,
+  natsUser,
+} from "@cocalc/backend/data";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { writeFile } from "fs/promises";
@@ -72,9 +87,9 @@ websocket {
 }
 
 accounts {
-  cocalc {
+  AUTH {
     users: [
-      { user: cocalc, password: cocalc }
+       { user:"${natsUser}", password:"${natsPassword}" }
     ],
     jetstream: {
       max_mem: -1
@@ -83,21 +98,21 @@ accounts {
       max_consumers: -1
     }
   }
-  APP {}
   SYS {}
 }
-
+system_account: SYS
 
 max_control_line 64KB
 
 authorization {
-  # slightly longer timeout: probably not necessary, but db queries involved (usually takes 50ms - 250ms)
+  # slightly longer timeout (than 2s default): probably not necessary, but db
+  # queries involved (usually takes 50ms - 250ms)
   timeout: 3
   auth_callout {
     issuer: ${ISSUER_NKEY}
-    users: [ cocalc ]
-    account: cocalc
     xkey: ${ISSUER_XKEY}
+    users: [ ${natsUser} ]
+    account: AUTH
   }
 }
 

@@ -181,23 +181,26 @@ export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 export const blobstore: "disk" | "sqlite" =
   (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
-export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
 
+// NATS
+export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
 export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
   ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
 };
 export const natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
 export const natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-
-// TODO: ????
-export let natsUser = process.env.COCALC_NATS_USER ?? "cocalc";
-export let natsPassword = process.env.COCALC_NATS_PASSWORD ?? "cocalc";
-
-export function setNatsCredentials({ user, password }) {
-  natsUser = user;
+export let natsPassword = "";
+try {
+  const natsPasswordPath = join(secrets, "nats_password");
+  natsPassword = readFileSync(natsPasswordPath).toString().trim();
+} catch {}
+export function setNatsPassword(password: string) {
   natsPassword = password;
 }
+export const natsUser = "cocalc";
+
+// API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";

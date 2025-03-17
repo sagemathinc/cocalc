@@ -167,7 +167,7 @@ async function handleRequest(mesg, xkp) {
     const encoder = new TextEncoder();
     const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
     const userName = requestClaim.nats.connect_opts.user;
-    const opts = { aud: "cocalc" };
+    const opts = { aud: "AUTH" };
     const jwt = await encodeUser(
       userName,
       user,

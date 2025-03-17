@@ -3,12 +3,11 @@ import {
   nats,
   natsPorts,
   natsServer,
-  natsUser,
   natsPassword,
 } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
-import { connect, type NatsConnection /*, credsAuthenticator*/ } from "nats";
+import { connect, type NatsConnection } from "nats";
 import { getEnv } from "./env";
 export { getEnv };
 import { delay } from "awaiting";
@@ -40,13 +39,12 @@ let wait = 2000;
 let nc: NatsConnection | null = null;
 export const getConnection = reuseInFlight(async () => {
   logger.debug("connecting to nats");
-
   while (nc == null) {
     try {
       //const creds = await getCreds();
       nc = await connect({
         ...CONNECT_OPTIONS,
-        user: natsUser,
+        user: "cocalc",
         pass: natsPassword,
         inboxPrefix: inboxPrefix({}),
         servers: `${natsServer}:${natsPorts.server}`,
