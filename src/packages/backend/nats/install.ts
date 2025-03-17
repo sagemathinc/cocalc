@@ -5,7 +5,6 @@ for this architecture:
 
  - nats
  - nats-server
- - nsc
 
 We assume curl and python3 are installed.
 
@@ -18,11 +17,14 @@ an install as follows:
 ~/cocalc/src/packages/backend/nats$ DEBUG=cocalc:* DEBUG_CONSOLE=yes node
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> await require('@cocalc/backend/nats/install').install()
+
+Install latest tested version of nats-server and nats cli:
+
+    > await require('@cocalc/backend/nats/install').install()
 
 Installing just the server:
 
-> await require('@cocalc/backend/nats/install').installNatsServer()
+    > await require('@cocalc/backend/nats/install').installNatsServer()
 */
 
 import { nats } from "@cocalc/backend/data";
@@ -33,7 +35,7 @@ import getLogger from "@cocalc/backend/logger";
 
 const VERSIONS = {
   // https://github.com/nats-io/nats-server/releases
-  "nats-server": "v2.11.0-RC.3",
+  "nats-server": "v2.11.0-RC.4",
   // https://github.com/nats-io/natscli/releases
   nats: "v0.1.6",
 };
@@ -50,7 +52,6 @@ export async function install(noUpgrade = false) {
 
   await Promise.all([
     installNatsServer(noUpgrade),
-    installNsc(noUpgrade),
     installNatsCli(noUpgrade),
   ]);
 }
@@ -96,39 +97,6 @@ export async function installNatsServer(noUpgrade) {
     path: bin,
     verbose: true,
   });
-}
-
-export async function installNsc(noUpgrade) {
-  const nsc = join(bin, "nsc");
-  if (noUpgrade && (await pathExists(nsc))) {
-    return;
-  }
-
-  if (!(await pathExists(nsc))) {
-    await executeCode({
-      command: `curl -LO https://raw.githubusercontent.com/nats-io/nsc/main/install.py`,
-      path: bin,
-      verbose: true,
-    });
-    const { stdout } = await executeCode({
-      path: bin,
-      env: { PYTHONDONTWRITEBYTECODE: 1 },
-      command:
-        "python3 -c 'import os, sys; sys.path.insert(0,\".\"); import install; print(install.release_url(sys.platform, os.uname()[4], sys.argv[1] if len(sys.argv) > 1 else None))'",
-    });
-    await executeCode({
-      command: `curl -sL ${stdout.trim()} -o nsc.zip && unzip nsc.zip -d . && rm nsc.zip install.py`,
-      path: bin,
-      verbose: true,
-    });
-  } else {
-    await executeCode({
-      command: nsc,
-      args: ["update"],
-      path: bin,
-      verbose: true,
-    });
-  }
 }
 
 export async function installNatsCli(noUpgrade) {
