@@ -34,6 +34,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@nats-io/nkeys": "^2.0.2",
     "@types/debug": "^4.1.12",
     "@types/watchpack": "^2.4.4",
     "awaiting": "^3.0.0",

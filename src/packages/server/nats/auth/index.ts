@@ -84,7 +84,10 @@ Using a separate connection for each project is also just really bad practice.
 import { Svcm } from "@nats-io/services";
 import { getConnection } from "@cocalc/backend/nats";
 import type { NatsConnection } from "@nats-io/nats-core";
-import { ISSUER_XSEED, ISSUER_NSEED } from "@cocalc/backend/nats/conf";
+import {
+  natsAuthCalloutNSeed,
+  natsAuthCalloutXSeed,
+} from "@cocalc/backend/data";
 import { fromPublic, fromSeed } from "@nats-io/nkeys";
 import {
   decode as decodeJwt,
@@ -117,7 +120,7 @@ export async function init() {
   api = g.addEndpoint("AUTH");
   const encoder = new TextEncoder();
 
-  const xkp = fromSeed(encoder.encode(ISSUER_XSEED));
+  const xkp = fromSeed(encoder.encode(natsAuthCalloutXSeed));
   listen(api, xkp);
 
   return {
@@ -165,7 +168,7 @@ async function handleRequest(mesg, xkp) {
     const user = fromPublic(userNkey);
     const server = fromPublic(serverId.name);
     const encoder = new TextEncoder();
-    const issuer = fromSeed(encoder.encode(ISSUER_NSEED));
+    const issuer = fromSeed(encoder.encode(natsAuthCalloutNSeed));
     const userName = requestClaim.nats.connect_opts.user;
     const opts = { aud: "AUTH" };
     const jwt = await encodeUser(
@@ -211,7 +214,7 @@ function getRequestJwt(mesg, xkp): string {
   let data;
   if (xkey) {
     // encrypted
-    // we have ISSUER_XSEED above.  So have enough info to decrypt.
+    // we have natsAuthCalloutXSeedPath above.  So have enough info to decrypt.
     data = xkp.open(mesg.data, xkey);
   } else {
     // not encrypted

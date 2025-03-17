@@ -20,7 +20,15 @@ import {
   natsPorts,
   natsServer,
   natsPassword,
+  natsPasswordPath,
+  setNatsPassword,
   natsUser,
+  natsAuthCalloutNSeed,
+  setNatsAuthCalloutNSeed,
+  natsAuthCalloutNSeedPath,
+  natsAuthCalloutXSeed,
+  setNatsAuthCalloutXSeed,
+  natsAuthCalloutXSeedPath,
 } from "@cocalc/backend/data";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
@@ -28,9 +36,7 @@ import { writeFile } from "fs/promises";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import nsc from "./nsc";
 import { executeCode } from "@cocalc/backend/execute-code";
-// import { startServer } from "./server";
-// import { kill } from "node:process";
-// import { delay } from "awaiting";
+import { createPrivateKey, publicKey } from "./nkeys";
 
 const logger = getLogger("backend:nats:install");
 
@@ -46,17 +52,6 @@ export const natsAccountName = "cocalc";
 // safe to adjust.
 const max_payload = "1MB";
 
-// Use hardcoded issuer Nkey and Xkey for initial DEVELOPMENT ONLY of auth callout!
-export const ISSUER_NKEY =
-  "ABJHLOVMPA4CI6R5KLNGOB4GSLNIY7IOUPAJC4YFNDLQVIOBYQGUWVLA";
-export const ISSUER_NSEED =
-  "SAANDLKMXL6CUS3CP52WIXBEDN6YJ545GDKC65U5JZPPV6WH6ESWUA6YAI";
-
-export const ISSUER_XKEY =
-  "XAB3NANV3M6N7AHSQP2U5FRWKKUT7EG2ZXXABV4XVXYQRJGM4S2CZGHT";
-export const ISSUER_XSEED =
-  "SXAAXMRAEP6JWWHNB6IKFL554IE6LZVT6EY5MBRICPILTLOPHAG73I3YX4";
-
 export async function configureNatsServer() {
   logger.debug("configureNatsServer", { confPath, natsPorts });
   if (await pathExists(confPath)) {
@@ -65,7 +60,30 @@ export async function configureNatsServer() {
     );
   }
 
-  // const { config, operatorExists } = await configureNsc();
+  let ISSUER_NKEY, ISSUER_XKEY, PASSWORD;
+  if (!natsPassword) {
+    PASSWORD = createPrivateKey("user");
+    setNatsPassword(PASSWORD);
+    await writeFile(natsPasswordPath, PASSWORD);
+  } else {
+    PASSWORD = natsPassword;
+  }
+  if (!natsAuthCalloutNSeed) {
+    const nseed = createPrivateKey("account");
+    setNatsAuthCalloutNSeed(nseed);
+    await writeFile(natsAuthCalloutNSeedPath, nseed);
+    ISSUER_NKEY = publicKey(nseed);
+  } else {
+    ISSUER_NKEY = publicKey(natsAuthCalloutNSeed);
+  }
+  if (!natsAuthCalloutXSeed) {
+    const xseed = createPrivateKey("curve");
+    setNatsAuthCalloutXSeed(xseed);
+    await writeFile(natsAuthCalloutXSeedPath, xseed);
+    ISSUER_XKEY = publicKey(xseed);
+  } else {
+    ISSUER_XKEY = publicKey(natsAuthCalloutXSeed);
+  }
 
   await writeFile(
     confPath,
@@ -89,7 +107,7 @@ websocket {
 accounts {
   AUTH {
     users: [
-       { user:"${natsUser}", password:"${natsPassword}" }
+       { user:"${natsUser}", password:"${PASSWORD}" }
     ],
     jetstream: {
       max_mem: -1

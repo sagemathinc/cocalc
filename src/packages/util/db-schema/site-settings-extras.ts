@@ -185,10 +185,12 @@ function custom_llm_display(value: string): string {
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "nats_heading"
-  | "nats_password"
   | "nats_server"
   | "nats_port"
   | "nats_ws_port"
+  | "nats_password"
+  | "nats_auth_nseed"
+  | "nats_auth_xseed"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -281,13 +283,6 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Nats"],
   },
   // Nats config is loaded in packages/server/nats/credentials.ts
-  nats_password: {
-    name: "Nats Password",
-    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists.",
-    default: "",
-    password: true,
-    tags: ["Nats"],
-  },
   nats_server: {
     name: "Nats Server",
     desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability)",
@@ -309,6 +304,28 @@ export const EXTRAS: SettingsExtras = {
     password: false,
     tags: ["Nats"],
   },
+  nats_password: {
+    name: "Nats Password",
+    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists. IMPORTANT: the nseed and xseed secrets must also exist in order for the authentication microservice to communicate with nats-server and authenticate users.",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+  nats_auth_nseed: {
+    name: "Nats Authentication Callout - Signing Private Key",
+    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+  nats_auth_xseed: {
+    name: "Nats Authentication Callout - Encryption Private Key",
+    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_xseed` (or `$COCALC_ROOT/data/secrets/nats_auth_xseed`) is used, if it exists.  This is a *curve* private nkey used by the auth callout service to encrypt responses to the server: `nk -gen curve`",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+
   openai_section: {
     name: "Language Model Configuration",
     desc: "",
