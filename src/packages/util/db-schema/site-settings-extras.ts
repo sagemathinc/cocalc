@@ -191,6 +191,7 @@ export type SiteSettingsExtrasKeys =
   | "nats_password"
   | "nats_auth_nseed"
   | "nats_auth_xseed"
+  | "nats_project_server"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -285,7 +286,7 @@ export const EXTRAS: SettingsExtras = {
   // Nats config is loaded in packages/server/nats/credentials.ts
   nats_server: {
     name: "Nats Server",
-    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability)",
+    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability.)",
     default: "localhost",
     password: false,
     tags: ["Nats"],
@@ -301,6 +302,13 @@ export const EXTRAS: SettingsExtras = {
     name: "Nats Websocket Port",
     desc: "Port that NATS websocket server is serving on.  Defaults to 8443 or `$COCALC_NATS_WS_PORT` if not specified here.  This gets proxied to browser clients.",
     default: "8443",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_project_server: {
+    name: "Nats Project Server",
+    desc: "Name of the NATS server that projects should connect to.  This should be either `hostname:port` for TCP or one of `ws://hostname:port` or `wss://hostname:port` for a WebSocket.  Do not include the basepath for the websocket address.  If not given, the tcp NATS server and port specified above is used.",
+    default: "",
     password: false,
     tags: ["Nats"],
   },

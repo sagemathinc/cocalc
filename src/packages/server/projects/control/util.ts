@@ -11,11 +11,11 @@ import getLogger from "@cocalc/backend/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
-import port from "@cocalc/backend/port";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { natsPorts, natsServer } from "@cocalc/backend/data";
 
 const logger = getLogger("project-control:util");
 
@@ -249,8 +249,16 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
 }
 
 async function natsWebsocketServer() {
-  const { internal_dns } = await getServerSettings();
-  return `ws://${internal_dns}${internal_dns.includes(":") ? "" : ":" + port.toString()}${join(base_path, "nats")}`;
+  const { nats_project_server } = await getServerSettings();
+  if (nats_project_server) {
+    if (nats_project_server.startsWith("ws")) {
+      if (base_path.length <= 1) {
+        return nats_project_server;
+      }
+      return `${nats_project_server}${base_path}/nats`;
+    }
+  }
+  return `${natsServer}:${natsPorts.server}`;
 }
 
 export async function getEnvironment(
