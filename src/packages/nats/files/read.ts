@@ -158,13 +158,13 @@ export async function* readFile({
   for await (const resp of await nc.requestMany(subject, jc.encode({ path }), {
     maxWait,
   })) {
-    for (const [key, value] of resp.headers) {
+    for (const [key, value] of resp.headers ?? []) {
       if (key == "error") {
-        throw Error(value);
+        throw Error(value[0] ?? "bug");
       } else if (key == "done") {
         return;
       } else if (key == "seq") {
-        const next = parseInt(value);
+        const next = parseInt(value[0]);
         bytes = resp.data.length;
         // console.log("received seq", { seq: next, bytes });
         if (next != seq + 1) {

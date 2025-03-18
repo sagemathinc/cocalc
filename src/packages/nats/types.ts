@@ -1,5 +1,9 @@
+import type { NatsConnection } from "@nats-io/nats-core";
+import type { EventEmitter } from "events";
+
 export interface NatsEnv {
-  nc; // nats connection
+  // nats connection, but frontend extends it to be an EventEmitter
+  nc: NatsConnection & Partial<EventEmitter>;
   jc; // jsoncodec
   // compute sha1 hash efficiently (set differently on backend)
   sha1?: (string) => string;

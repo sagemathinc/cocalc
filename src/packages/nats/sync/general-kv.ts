@@ -643,7 +643,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private setOne = async (
     key: string,
     value: T,
-    headers?: { [name: string]: string | null },
+    options?: { headers?: { [name: string]: string | null } },
   ) => {
     if (!this.isValidKey(key)) {
       throw Error(
@@ -656,9 +656,13 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (isEqual(this.all[key], value)) {
       // values equal.  What about headers?
 
-      if (headers == null || Object.keys(headers).length == 0) {
+      if (
+        options?.headers == null ||
+        Object.keys(options.headers).length == 0
+      ) {
         return;
       }
+      const { headers } = options;
       // maybe trying to change headers
       let changeHeaders = false;
       if (this.allHeaders[key] == null) {
@@ -678,7 +682,6 @@ export class GeneralKV<T = any> extends EventEmitter {
           changeHeaders = true;
         }
       }
-      console.log({ headers, changeHeaders });
       if (!changeHeaders) {
         // not changing any header
         return;
@@ -715,7 +718,8 @@ export class GeneralKV<T = any> extends EventEmitter {
       val = chunks[0];
       let allHeaders = createHeaders();
       allHeaders.append(CHUNKS_HEADER, `${chunks.length}`);
-      if (headers) {
+      if (options?.headers) {
+        const { headers } = options;
         for (const k in headers) {
           const v = headers[k];
           if (v == null) {
@@ -748,7 +752,8 @@ export class GeneralKV<T = any> extends EventEmitter {
       // not chunking
       try {
         let allHeaders;
-        if (headers) {
+        if (options?.headers) {
+          const { headers } = options;
           allHeaders = createHeaders();
           for (const k in headers) {
             const v = headers[k];
@@ -764,7 +769,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         } else {
           await this.kv.put(key, val, {
             previousSeq: revision,
-            headers,
+            headers: options?.headers,
           });
         }
       } catch (err) {

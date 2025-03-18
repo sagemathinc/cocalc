@@ -13,6 +13,7 @@ import type { NatsEnv, NatsEnvFunction } from "@cocalc/nats/types";
 import { init } from "./time";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { NatsConnection } from "@nats-io/nats-core";
 
 interface Client {
   getNatsEnv: NatsEnvFunction;
@@ -102,4 +103,9 @@ export function getClient(): ClientWithState {
     throw Error("must set the global NATS client");
   }
   return globalClient;
+}
+
+export async function getConnection(): Promise<NatsConnection> {
+  const { nc } = await getEnv();
+  return nc;
 }
