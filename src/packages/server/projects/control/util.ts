@@ -11,10 +11,11 @@ import getLogger from "@cocalc/backend/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
-import { natsPorts, natsServer } from "@cocalc/backend/data";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("project-control:util");
 
@@ -247,6 +248,11 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   return env2 as { [key: string]: string };
 }
 
+async function natsWebsocketServer() {
+  const { internal_dns } = await getServerSettings();
+  return `ws://${internal_dns}${internal_dns.includes(":") ? "" : ":" + port.toString()}${join(base_path, "nats")}`;
+}
+
 export async function getEnvironment(
   project_id: string,
 ): Promise<{ [key: string]: any }> {
@@ -276,8 +282,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-      COCALC_NATS_PORT: `${natsPorts.server}`,
-      COCALC_NATS_SERVER: `${natsServer}`
+      // url of the NATS websocket server the project will connect to:
+      NATS_SERVER: await natsWebsocketServer(),
     },
   };
 }

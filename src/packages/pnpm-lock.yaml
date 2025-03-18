@@ -1416,6 +1416,9 @@ importers:
       nats:
         specifier: ^2.29.2
         version: 2.29.2
+      nats.ws:
+        specifier: ^1.30.2
+        version: 1.30.2
       node-pty:
         specifier: ^1.0.0
         version: 1.0.0

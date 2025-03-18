@@ -89,6 +89,7 @@ export type SiteSettingsKeys =
   | "kucalc"
   | "i18n"
   | "dns"
+  | "internal_dns"
   | "datastore"
   | "ssh_gateway"
   | "ssh_gateway_dns"
@@ -365,11 +366,17 @@ const organization_email_desc = `How to contact your organization (fallback: '${
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
-    name: "Domain name",
+    name: "External Domain Name",
     desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,
+  },
+  internal_dns: {
+    name: "Internal Domain Name",
+    desc: "Internal DNS for your server, e.g. `localhost`.  **Do NOT include the basePath or the http:// prefix.**  This optionally can end in `:number` for a port, e.g., `localhost:5000`.  This is used for components of CoCalc (e.g., projects) to connect to each other internally.  Using 'localhost' is ONLY correct on a minimal single node installation.",
+    default: "localhost",
+    to_val: to_trimmed_str,
   },
   theming: {
     name: "Show Theming",

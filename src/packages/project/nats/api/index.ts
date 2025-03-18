@@ -10,7 +10,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
     {status: 'terminated', service: 'api'}
 
-1. Create a file project-env.sh, which defines these environment variables (your values will be different):
+1. Create a file project-env.sh as explained in projects/nats/README.md, which defines these environment variables (your values will be different):
 
     export COCALC_PROJECT_ID="00847397-d6a8-4cb0-96a8-6ef64ac3e6cf"
     export COCALC_USERNAME=`echo $COCALC_PROJECT_ID | tr -d '-'`

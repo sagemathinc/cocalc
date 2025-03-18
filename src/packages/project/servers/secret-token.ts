@@ -4,7 +4,7 @@
  */
 
 /*
-Generate the "secret_token" file if it does not already exist.
+Generate the "secret_token" if it does not already exist.
 */
 
 import { callback } from "awaiting";
