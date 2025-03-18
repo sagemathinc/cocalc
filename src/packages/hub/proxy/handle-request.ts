@@ -108,7 +108,12 @@ export default function init({ projectControl, isPersonal }: Options) {
       const path = decodeURIComponent(url.slice(i + "files/".length, j));
       dbg("NATs: get", { project_id, path, compute_server_id, url });
       const fileName = path_split(path).tail;
-      res.setHeader("Content-disposition", "attachment; filename=" + fileName);
+      if (req.query.download != null) {
+        res.setHeader(
+          "Content-disposition",
+          "attachment; filename=" + fileName,
+        );
+      }
       res.setHeader("Content-type", mime.lookup(fileName));
       for await (const chunk of await readProjectFile({
         project_id,
