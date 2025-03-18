@@ -190,6 +190,9 @@ export const blobstore: "disk" | "sqlite" =
 
 // NATS
 export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
+if (!existsSync(nats)) {
+  mkdirSync(nats, { recursive: true, mode: 0o700 });
+}
 export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
   ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),

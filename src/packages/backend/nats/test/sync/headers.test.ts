@@ -3,7 +3,7 @@ Test using user-defined headers with kv and stream.
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "headers.test.ts"
+pnpm exec jest --forceExit --detectOpenHandles "headers.test.ts"
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup
@@ -28,7 +28,7 @@ describe("test headers with a stream", () => {
     expect(s.headers(s.length - 1)).toEqual({ my: "header" });
   });
 
-  it("writes a large value that requires chunking and a header", async () => {
+  it("writes a large value to a stream that requires chunking and a header", async () => {
     s.publish("y".repeat(getMaxPayload(await getConnection()) * 2), {
       headers: { large: "chunks", multiple: "keys" },
     });
@@ -87,7 +87,7 @@ describe("test headers with low level general kv", () => {
     );
   });
 
-  it("writes a large value that requires chunking and a header", async () => {
+  it("writes a large value to a kv that requires chunking and a header", async () => {
     const key = `${s.prefix}.big`;
     gkv.set(key, "x".repeat(getMaxPayload(await getConnection()) * 2), {
       headers: { the: "header" },

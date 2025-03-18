@@ -32,7 +32,7 @@ export interface KVOptions extends Location {
 }
 
 export class KV<T = any> extends EventEmitter {
-  generalKV?: GeneralKV<{ key: string; value: T }>;
+  generalKV?: GeneralKV<T>;
   name: string;
   private prefix: string;
   private sha1;
@@ -128,7 +128,7 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
+    return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`);
   };
 
   getAll = (): { [key: string]: T } => {
@@ -138,8 +138,12 @@ export class KV<T = any> extends EventEmitter {
     const obj = this.generalKV.getAll();
     const x: any = {};
     for (const k in obj) {
-      const { key, value } = obj[k];
-      x[key] = value;
+      const h = this.generalKV.headers(k);
+      if (h?.key == null) {
+        throw Error(`missing header for key ${k}`);
+      }
+      const key = atob(h.key);
+      x[key] = obj[k];
     }
     return x;
   };
@@ -148,9 +152,8 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.set(`${this.prefix}.${this.sha1(key)}`, {
-      key,
-      value,
+    await this.generalKV.set(`${this.prefix}.${this.sha1(key)}`, value, {
+      headers: { key: btoa(key) },
     });
   };
 }

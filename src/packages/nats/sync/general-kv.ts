@@ -370,7 +370,11 @@ export class GeneralKV<T = any> extends EventEmitter {
         key0 = key;
         value0 = value;
         revision0 = revision;
-        this.allHeaders[key] = sm.headers;
+        if (value.length != 0) {
+          // NOTE: we *only* set the header to remote when not deleting the key. Deleting
+          // it would delete the header, which contains the actual non-hashed key.
+          this.allHeaders[key] = sm.headers;
+        }
         delete this.chunkCounts[key0];
       }
 
@@ -407,7 +411,6 @@ export class GeneralKV<T = any> extends EventEmitter {
         delete this.times[key0];
         delete this.sizes[key0];
         delete this.chunkCounts[key0];
-        delete this.allHeaders[key0];
       } else {
         this.all[key0] = this.env.jc.decode(value0);
         this.times[key0] = sm.time;
@@ -625,8 +628,12 @@ export class GeneralKV<T = any> extends EventEmitter {
     await awaitMap(Object.keys(this.all), MAX_PARALLEL, this.delete);
   };
 
-  set = async (key: string, value: T, headers?: { [name: string]: string }) => {
-    await this.setOne(key, value, headers);
+  set = async (
+    key: string,
+    value: T,
+    options?: { headers?: { [name: string]: string | null } },
+  ) => {
+    await this.setOne(key, value, options);
   };
 
   setMany = async (

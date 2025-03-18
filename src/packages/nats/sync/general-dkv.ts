@@ -89,11 +89,16 @@ export type MergeFunction = (opts: {
   remote: any;
 }) => any;
 
+interface Options {
+  headers?: { [name: string]: string | null };
+}
+
 export class GeneralDKV<T = any> extends EventEmitter {
   private kv?: GeneralKV<T>;
   private jc?;
   private merge?: MergeFunction;
   private local: { [key: string]: T | typeof TOMBSTONE } = {};
+  private options: { [key: string]: Options } = {};
   private saved: { [key: string]: T | typeof TOMBSTONE } = {};
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
@@ -167,6 +172,8 @@ export class GeneralDKV<T = any> extends EventEmitter {
     // @ts-ignore
     delete this.local;
     // @ts-ignore
+    delete this.options;
+    // @ts-ignore
     delete this.changed;
     delete this.merge;
   };
@@ -179,6 +186,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
         // we have a local change, but it's the same change as remote, so just
         // forget about our local change.
         delete this.local[key];
+        delete this.options[key];
         delete this.saved[key];
       } else {
         // console.log("merge conflict", { key, remote, local, prev });
@@ -202,6 +210,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
         if (isEqual(value, remote)) {
           // no change, so forget our local value
           delete this.local[key];
+          delete this.options[key];
           delete this.saved[key];
         } else {
           // resolve with the new value, or if it is undefined, a TOMBSTONE,
@@ -315,19 +324,28 @@ export class GeneralDKV<T = any> extends EventEmitter {
     return this.jc.decode(this.jc.encode(obj));
   };
 
-  set = (...args) => {
-    if (args.length == 2) {
-      this.assertValidKey(args[0]);
-      const obj = this.toValue(args[1]);
-      this.local[args[0]] = obj;
-      this.changed.add(args[0]);
-    } else {
-      const obj = args[0];
-      for (const key in obj) {
-        this.assertValidKey(key);
-        this.local[key] = this.toValue(obj[key]);
-        this.changed.add(key);
-      }
+  headers = (key: string): { [key: string]: string } | undefined => {
+    return this.kv?.headers(key);
+  };
+
+  set = (key: string, value: T, options?: Options) => {
+    this.assertValidKey(key);
+    const obj = this.toValue(value);
+    this.local[key] = obj;
+    if (options != null) {
+      this.options[key] = options;
+    }
+    this.changed.add(key);
+    if (!this.noAutosave) {
+      this.save();
+    }
+  };
+
+  setMany = (obj) => {
+    for (const key in obj) {
+      this.assertValidKey(key);
+      this.local[key] = this.toValue(obj[key]);
+      this.changed.add(key);
     }
     if (!this.noAutosave) {
       this.save();
@@ -402,12 +420,13 @@ export class GeneralDKV<T = any> extends EventEmitter {
       }
       try {
         status.unsaved += 1;
-        await this.kv.set(key, obj[key] as T);
+        await this.kv.set(key, obj[key] as T, this.options[key]);
         status.unsaved -= 1;
         status.set += 1;
         if (!this.changed.has(key)) {
           // successfully saved this
           this.saved[key] = this.local[key];
+          delete this.options[key];
         }
       } catch (err) {
         console.log("attemptToSave failed", err);
@@ -415,6 +434,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
           const value = this.local[err.key];
           delete this.local[err.key]; // can never save this.
           delete this.saved[err.key]; // can never save this.
+          delete this.options[err.key];
           status.unsaved -= 1;
           this.emit("reject", { key: err.key, value });
         }

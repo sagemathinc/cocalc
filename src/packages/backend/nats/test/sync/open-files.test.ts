@@ -8,7 +8,7 @@ to open so they can fulfill their backend responsibilities:
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "open-files.test.ts"
+pnpm exec jest --forceExit --detectOpenHandles "open-files.test.ts"
 
 */
 

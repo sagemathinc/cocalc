@@ -73,6 +73,7 @@ export class DKV<T = any> extends EventEmitter {
   private prefix: string;
   private sha1;
   private opts;
+  private keys: { [encodedKey: string]: string } = {};
 
   constructor(options: DKVOptions) {
     super();
@@ -143,7 +144,7 @@ export class DKV<T = any> extends EventEmitter {
       return;
     }
     // the merge conflict algorithm must be adapted since we encode
-    // keys and values specially in this class.
+    // the key in the header.
     const merge = (opts) => {
       // here is what the input might look like:
       //   opts = {
@@ -152,46 +153,35 @@ export class DKV<T = any> extends EventEmitter {
       //   local: { key: 'x', value: 5 },
       //   prev:  { key: 'x', value: 3 }
       //   }
-      const key = opts.local?.key;
+      const key = this.getKey(opts.key);
       if (key == null) {
         console.warn("BUG in merge conflict resolution", opts);
         throw Error("local key must be defined");
       }
-      const local = opts.local.value;
-      const remote = opts.remote?.value;
-      const prev = opts.prev?.value;
-
-      let value;
+      const { local, remote, prev } = opts;
       try {
-        value = this.opts.merge?.({ key, local, remote, prev }) ?? local;
+        return this.opts.merge?.({ key, local, remote, prev }) ?? local;
       } catch (err) {
         console.warn("exception in merge conflict resolution", err);
-        value = local;
+        return local;
       }
-      //       console.log(
-      //         "conflict resolution: ",
-      //         { key, local, remote, prev },
-      //         "-->",
-      //         { value },
-      //       );
-      return { key, value };
     };
     this.generalDKV = new GeneralDKV({ ...this.opts, merge });
-    this.generalDKV.on("change", ({ value, prev }) => {
+    this.generalDKV.on("change", ({ key, value, prev }) => {
       if (value != null && value !== TOMBSTONE) {
         this.emit("change", {
-          key: value.key,
-          value: value.value,
-          prev: prev?.value,
+          key: this.getKey(key),
+          value,
+          prev,
         });
       } else if (prev != null) {
         // value is null so it's a delete
-        this.emit("change", { key: prev.key, prev: prev.value });
+        this.emit("change", { key: this.getKey(key), prev });
       }
     });
-    this.generalDKV.on("reject", ({ value }) => {
+    this.generalDKV.on("reject", ({ key, value }) => {
       if (value != null) {
-        this.emit("reject", { key: value.key, value: value.value });
+        this.emit("reject", { key: this.getKey(key), value });
       }
     });
     await this.generalDKV.init();
@@ -256,7 +246,7 @@ export class DKV<T = any> extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`)?.value;
+    return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`);
   };
 
   getAll = (): { [key: string]: T } => {
@@ -266,10 +256,21 @@ export class DKV<T = any> extends EventEmitter {
     const obj = this.generalDKV.getAll();
     const x: any = {};
     for (const k in obj) {
-      const { key, value } = obj[k];
-      x[key] = value;
+      const key = this.getKey(k);
+      x[key] = obj[k];
     }
     return x;
+  };
+
+  private getKey = (k) => {
+    if (this.keys[k] != null) {
+      return this.keys[k];
+    }
+    const h = this.generalDKV?.headers(k);
+    if (h?.key == null) {
+      throw Error(`missing header for key '${k}'`);
+    }
+    return atob(h.key);
   };
 
   get length(): number {
@@ -291,7 +292,11 @@ export class DKV<T = any> extends EventEmitter {
       this.delete(key);
       return;
     }
-    this.generalDKV.set(`${this.prefix}.${this.sha1(key)}`, { key, value });
+    const encodedKey = `${this.prefix}.${this.sha1(key)}`;
+    this.keys[encodedKey] = key;
+    this.generalDKV.set(encodedKey, value, {
+      headers: { key: btoa(key) },
+    });
     this.updateInventory();
   };
 
@@ -302,12 +307,12 @@ export class DKV<T = any> extends EventEmitter {
     return this.generalDKV.hasUnsavedChanges();
   };
 
-  unsavedChanges = (): T[] => {
+  unsavedChanges = (): string[] => {
     const generalDKV = this.generalDKV;
     if (generalDKV == null) {
       return [];
     }
-    return generalDKV.unsavedChanges().map((key) => generalDKV.get(key)?.key);
+    return generalDKV.unsavedChanges().map((key) => this.getKey(key));
   };
 
   save = async () => {

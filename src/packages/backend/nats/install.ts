@@ -114,3 +114,9 @@ export async function installNatsCli(noUpgrade) {
     verbose: true,
   });
 }
+
+
+export async function main() {
+  await install();
+  process.exit(0);
+}

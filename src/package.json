@@ -18,8 +18,8 @@
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r test",
     "prettier-all": "cd packages/",
-    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
-    "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
+    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
+    "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
     "nats-cli": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main()\""
   },
   "repository": {
