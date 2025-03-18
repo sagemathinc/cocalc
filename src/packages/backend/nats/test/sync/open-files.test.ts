@@ -35,12 +35,13 @@ describe("create open file tracker and do some basic operations", () => {
     await o1.save();
     expect(o1.hasUnsavedChanges()).toBe(false);
     o2.clear();
+    await delay(50);
     while (o2.hasUnsavedChanges()) {
       try {
         // expected due to merge conflict and autosave being disabled.
         await o2.save();
       } catch {
-        await delay(10);
+        await delay(50);
       }
     }
   });
@@ -51,6 +52,8 @@ describe("create open file tracker and do some basic operations", () => {
   });
 
   it("touch file in one and observe change and timestamp getting assigned by server", async () => {
+    // NOTE: if this breaks its due to the above clearing not being done;
+    // maybe increase the "await delay(50)" above.
     o1.touch(file1);
     expect(o1.get(file1).time).toBeCloseTo(Date.now(), -3);
   });
