@@ -196,7 +196,8 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         ext = info.ext;
       }
       const targetPath = misc.change_filename_extension(path, ext);
-      const url = actions.store.fileURL(targetPath);
+      const store = redux.getProjectStore(actions.project_id);
+      const url = store.fileURL(targetPath);
       return { targetPath, url, info };
     }
 
