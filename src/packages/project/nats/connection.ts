@@ -38,7 +38,7 @@ function getServers() {
 
 let nc: Awaited<ReturnType<typeof connectViaTCP>> | null = null;
 
-export const getConnection = reuseInFlight(async () => {
+const getConnection = reuseInFlight(async () => {
   if (nc != null) {
     return nc;
   }
