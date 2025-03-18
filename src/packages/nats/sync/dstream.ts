@@ -55,7 +55,7 @@ export class DStream<T = any> extends EventEmitter {
   private raw: JsMsg[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
-  private local: { [id: string]: { mesg: T; subject?: string } } = {};
+  private local: { [id: string]: T } = {};
   private saved: { [seq: number]: T } = {};
   private opts;
   private client?: ClientWithState;
@@ -138,8 +138,7 @@ export class DStream<T = any> extends EventEmitter {
       if (n < v.length + this.messages.length) {
         return this.saved[n - this.messages.length];
       }
-      return Object.values(this.local)[n - this.messages.length - v.length]
-        ?.mesg;
+      return Object.values(this.local)[n - this.messages.length - v.length];
     }
   };
 
@@ -150,7 +149,7 @@ export class DStream<T = any> extends EventEmitter {
     return [
       ...this.messages,
       ...Object.values(this.saved),
-      ...Object.values(this.local).map((x) => x.mesg),
+      ...Object.values(this.local),
     ];
   };
 
@@ -181,9 +180,9 @@ export class DStream<T = any> extends EventEmitter {
     );
   }
 
-  publish = (mesg: T, subject?: string): void => {
+  publish = (mesg: T): void => {
     const id = randomId();
-    this.local[id] = { mesg, subject };
+    this.local[id] = mesg;
     if (!this.noAutosave) {
       this.save();
     }
@@ -207,7 +206,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   unsavedChanges = (): T[] => {
-    return Object.values(this.local).map(({ mesg }) => mesg);
+    return Object.values(this.local);
   };
 
   save = reuseInFlight(async () => {
@@ -233,10 +232,10 @@ export class DStream<T = any> extends EventEmitter {
       if (this.stream == null) {
         throw Error("closed");
       }
-      const { mesg, subject } = this.local[id];
+      const mesg = this.local[id];
       try {
         // @ts-ignore
-        const { seq } = await this.stream.publish(mesg, subject, { msgID: id });
+        const { seq } = await this.stream.publish(mesg, { msgID: id });
         if ((last(this.raw[this.raw.length - 1])?.seq ?? -1) < seq) {
           // it still isn't in this.raw
           this.saved[seq] = mesg;

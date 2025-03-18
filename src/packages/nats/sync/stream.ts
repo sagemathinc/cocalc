@@ -40,7 +40,11 @@ TODO:
 
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
-import { jetstreamManager, jetstream } from "@nats-io/jetstream";
+import {
+  jetstreamManager,
+  jetstream,
+  type JetStreamPublishOptions,
+} from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
 import { nanos, type Nanos, millis, getMaxPayload } from "@cocalc/nats/util";
@@ -54,6 +58,7 @@ import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
+import { CHUNKS_HEADER } from "./general-kv";
 
 class PublishRejectError extends Error {
   code: string;
@@ -236,6 +241,25 @@ export class Stream<T = any> extends EventEmitter {
     return [...this.messages];
   };
 
+  headers = (n: number): { [key: string]: string } | undefined => {
+    if (this.raw[n] == null) {
+      return;
+    }
+    const x: { [key: string]: string } = {};
+    let hasHeaders = false;
+    for (const raw of this.raw[n]) {
+      const { headers } = raw;
+      if (headers == null) {
+        continue;
+      }
+      for (const [key, value] of headers) {
+        x[key] = value[0];
+        hasHeaders = true;
+      }
+    }
+    return hasHeaders ? x : undefined;
+  };
+
   // get server assigned global sequence number of n-th message in stream
   seq = (n: number): number | undefined => {
     return last(this.raw[n])?.seq;
@@ -258,7 +282,12 @@ export class Stream<T = any> extends EventEmitter {
     await awaitMap(args, MAX_PARALLEL, this.publish);
   };
 
-  publish = async (mesg: T, subject?: string, options?) => {
+  publish = async (
+    mesg: T,
+    options?: Partial<
+      JetStreamPublishOptions & { headers: { [key: string]: string } }
+    >,
+  ) => {
     if (this.js == null) {
       throw Error("closed");
     }
@@ -272,7 +301,7 @@ export class Stream<T = any> extends EventEmitter {
       );
       err.code = "REJECT";
       err.mesg = mesg;
-      err.subject = subject;
+      err.subject = this.subject;
       throw err;
     }
     this.enforceLimits();
@@ -281,7 +310,8 @@ export class Stream<T = any> extends EventEmitter {
     const headers: ReturnType<typeof createHeaders>[] = [];
     // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
     const maxMessageSize = getMaxPayload(this.env.nc) - 1000;
-    // const maxMessageSize = 1000;  DEV ONLY!!!
+    //const maxMessageSize = 20; // DEV ONLY!!!
+
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
       // to fit NATS message size limits.  We include a header
@@ -294,17 +324,30 @@ export class Stream<T = any> extends EventEmitter {
       const last = chunks.length;
       for (let i = 1; i <= last; i++) {
         const h = createHeaders();
-        h.append("chunk", `${i}/${last}`);
+        if (i == 1 && options?.headers != null) {
+          // also include custom user headers
+          for (const k in options.headers) {
+            h.append(k, options.headers[k]);
+          }
+        }
+        h.append(CHUNKS_HEADER, `${i}/${last}`);
         headers.push(h);
       }
     } else {
       // trivial chunk and no header needed.
       chunks.push(data);
+      if (options?.headers != null) {
+        const h = createHeaders();
+        for (const k in options.headers) {
+          h.append(k, options.headers[k]);
+        }
+        headers.push(h);
+      }
     }
 
     for (let i = 0; i < chunks.length; i++) {
       try {
-        resp = await this.js.publish(subject ?? this.subject, chunks[i], {
+        resp = await this.js.publish(this.subject, chunks[i], {
           ...options,
           // if options contains a msgID, we must make it different for each chunk;
           // otherwise, all but the first chunk is discarded!
@@ -319,7 +362,7 @@ export class Stream<T = any> extends EventEmitter {
           const err2 = new PublishRejectError(`${err}`);
           err2.code = "REJECT";
           err2.mesg = mesg;
-          err2.subject = subject;
+          err2.subject = this.subject;
           throw err2;
         } else {
           throw err;
@@ -381,20 +424,22 @@ export class Stream<T = any> extends EventEmitter {
       for await (const mesg of fetch) {
         let isChunked = false;
         // chunked?
-        for (const [key, value] of mesg.headers ?? []) {
-          if (key == "chunk") {
-            isChunked = true;
-            const v = value[0].split("/");
-            if (v[0] == "1") {
-              // first chunk
-              chunks = [mesg];
-            } else {
-              chunks.push(mesg);
-            }
-            if (v[0] == v[1]) {
-              // have all the chunks
-              this.handle(chunks, true);
-              this.enforceLimits();
+        if (mesg.headers != null) {
+          for (const [key, value] of mesg.headers) {
+            if (key == CHUNKS_HEADER) {
+              isChunked = true;
+              const v = value[0].split("/");
+              if (v[0] == "1") {
+                // first chunk
+                chunks = [mesg];
+              } else {
+                chunks.push(mesg);
+              }
+              if (v[0] == v[1]) {
+                // have all the chunks
+                this.handle(chunks, true);
+                this.enforceLimits();
+              }
             }
           }
         }
@@ -433,7 +478,7 @@ export class Stream<T = any> extends EventEmitter {
       let isChunked = false;
       // chunked?
       for (const [key, value] of mesg.headers ?? []) {
-        if (key == "chunk") {
+        if (key == CHUNKS_HEADER) {
           isChunked = true;
           const v = value[0].split("/");
           if (v[0] == "1") {
@@ -674,7 +719,7 @@ export class Stream<T = any> extends EventEmitter {
       let isChunked = false;
       // chunked?
       for (const [key, value] of mesg.headers ?? []) {
-        if (key == "chunk") {
+        if (key == CHUNKS_HEADER) {
           isChunked = true;
           const v = value[0].split("/");
           if (v[0] == "0") {

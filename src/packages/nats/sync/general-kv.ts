@@ -910,8 +910,11 @@ export class GeneralKV<T = any> extends EventEmitter {
 
 // Support for value chunking below
 
+// **WARNING: Do not change these constants ever, or it will silently break
+// all chunked kv and stream data that has ever been stored!!!**
+
 const CHUNK = "chunk";
-const CHUNKS_HEADER = "CoCalc-Chunks";
+export const CHUNKS_HEADER = "CoCalc-Chunks";
 
 function chunkedKey({ key, chunk }: { key: string; chunk?: number }) {
   return `${key}.${chunk}.${CHUNK}`;
