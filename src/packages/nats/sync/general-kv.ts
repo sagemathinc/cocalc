@@ -124,6 +124,7 @@ import { map as awaitMap } from "awaiting";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { headers as createHeaders } from "@nats-io/nats-core";
+import type { MsgHdrs } from "@nats-io/nats-core";
 
 class RejectError extends Error {
   code: string;
@@ -170,6 +171,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private chunkCounts: { [key: string]: number } = {};
   private times?: { [key: string]: Date };
   private sizes?: { [key: string]: number };
+  private allHeaders: { [key: string]: MsgHdrs } = {};
   private limits: KVLimits;
   private revision: number = 0;
 
@@ -218,6 +220,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     });
     this.revisions = revisions;
     this.times = times;
+    this.allHeaders = {};
     this.chunkCounts = {};
     this.sizes = {};
     const usedKeys = new Set<string>();
@@ -238,6 +241,7 @@ export class GeneralKV<T = any> extends EventEmitter {
           chunkData[key].chunks[0] = all[key];
         }
         chunkKey = key;
+        this.allHeaders[key] = headers[key];
       } else if (isChunkedKey(key)) {
         delete this.times[key];
         delete this.revisions[key];
@@ -251,6 +255,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         key0 = key;
         value = all[key];
         usedKeys.add(key0);
+        this.allHeaders[key] = headers[key];
       }
 
       if (chunkKey && chunkData[chunkKey].chunkCount != null) {
@@ -353,6 +358,7 @@ export class GeneralKV<T = any> extends EventEmitter {
           chunkData[key].revision = revision;
         }
         chunkKey = key;
+        this.allHeaders[key] = sm.headers;
       } else if (isChunkedKey(key)) {
         const { key: ckey, index } = parseChunkedKey(key);
         chunkKey = ckey;
@@ -364,6 +370,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         key0 = key;
         value0 = value;
         revision0 = revision;
+        this.allHeaders[key] = sm.headers;
         delete this.chunkCounts[key0];
       }
 
@@ -400,6 +407,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         delete this.times[key0];
         delete this.sizes[key0];
         delete this.chunkCounts[key0];
+        delete this.allHeaders[key0];
       } else {
         this.all[key0] = this.env.jc.decode(value0);
         this.times[key0] = sm.time;
@@ -462,9 +470,25 @@ export class GeneralKV<T = any> extends EventEmitter {
     delete this.times;
     delete this.revisions;
     delete this.sizes;
+    // @ts-ignore
+    delete this.allHeaders;
     this.emit("closed");
     this.removeAllListeners();
     this.env.nc.removeListener?.("reconnect", this.restartWatch);
+  };
+
+  headers = (key: string): { [key: string]: string } | undefined => {
+    const headers = this.allHeaders?.[key];
+    if (headers == null) {
+      return;
+    }
+    const x: { [key: string]: string } = {};
+    for (const [key, value] of headers) {
+      if (key != CHUNKS_HEADER) {
+        x[key] = value[0];
+      }
+    }
+    return x;
   };
 
   get = (key: string): T => {
@@ -601,19 +625,26 @@ export class GeneralKV<T = any> extends EventEmitter {
     await awaitMap(Object.keys(this.all), MAX_PARALLEL, this.delete);
   };
 
-  set = async (key: string, value: T) => {
-    await this.setOne(key, value);
+  set = async (key: string, value: T, headers?: { [name: string]: string }) => {
+    await this.setOne(key, value, headers);
   };
 
-  setMany = async (obj: { [key: string]: T }) => {
+  setMany = async (
+    obj: { [key: string]: T },
+    headers?: { [key: string]: { [name: string]: string } },
+  ) => {
     await awaitMap(
       Object.keys(obj),
       MAX_PARALLEL,
-      async (key) => await this.setOne(key, obj[key]),
+      async (key) => await this.setOne(key, obj[key], headers?.[key]),
     );
   };
 
-  private setOne = async (key: string, value: T) => {
+  private setOne = async (
+    key: string,
+    value: T,
+    headers?: { [name: string]: string | null },
+  ) => {
     if (!this.isValidKey(key)) {
       throw Error(
         `set: key (=${key}) must match the filter: ${JSON.stringify(this.filter)}`,
@@ -623,7 +654,35 @@ export class GeneralKV<T = any> extends EventEmitter {
       throw Error("not ready");
     }
     if (isEqual(this.all[key], value)) {
-      return;
+      // values equal.  What about headers?
+
+      if (headers == null || Object.keys(headers).length == 0) {
+        return;
+      }
+      // maybe trying to change headers
+      let changeHeaders = false;
+      if (this.allHeaders[key] == null) {
+        // this is null but headers isn't, so definitely trying to change
+        changeHeaders = true;
+      } else {
+        // look to see if any header is explicitly being changed
+        const keys = new Set(Object.keys(headers));
+        for (const [k, v] of this.allHeaders[key]) {
+          keys.delete(k);
+          if (headers[k] !== undefined && headers[k] != v[0]) {
+            changeHeaders = true;
+            break;
+          }
+        }
+        if (keys.size > 0) {
+          changeHeaders = true;
+        }
+      }
+      console.log({ headers, changeHeaders });
+      if (!changeHeaders) {
+        // not changing any header
+        return;
+      }
     }
     if (value === undefined) {
       return await this.delete(key);
@@ -654,9 +713,21 @@ export class GeneralKV<T = any> extends EventEmitter {
         val0 = val0.slice(maxMessageSize);
       }
       val = chunks[0];
-      let headers = createHeaders();
-      headers.append("chunks", `${chunks.length}`);
-      await jetstreamPut(this.kv, key, val, { previousSeq: revision, headers });
+      let allHeaders = createHeaders();
+      allHeaders.append(CHUNKS_HEADER, `${chunks.length}`);
+      if (headers) {
+        for (const k in headers) {
+          const v = headers[k];
+          if (v == null) {
+            continue;
+          }
+          allHeaders.append(k, v);
+        }
+      }
+      await jetstreamPut(this.kv, key, val, {
+        previousSeq: revision,
+        headers: allHeaders,
+      });
       // now save the other chunks somewhere.
       for (let i = 1; i < chunks.length; i++) {
         await jetstreamPut(this.kv, chunkedKey({ key, chunk: i }), chunks[i]);
@@ -676,9 +747,26 @@ export class GeneralKV<T = any> extends EventEmitter {
     } else {
       // not chunking
       try {
-        await this.kv.put(key, val, {
-          previousSeq: revision,
-        });
+        let allHeaders;
+        if (headers) {
+          allHeaders = createHeaders();
+          for (const k in headers) {
+            const v = headers[k];
+            if (v == null) {
+              continue;
+            }
+            allHeaders.append(k, v);
+          }
+          await jetstreamPut(this.kv, key, val, {
+            previousSeq: revision,
+            headers: allHeaders,
+          });
+        } else {
+          await this.kv.put(key, val, {
+            previousSeq: revision,
+            headers,
+          });
+        }
       } catch (err) {
         if (err.code == "MAX_PAYLOAD_EXCEEDED") {
           // nats rejects due to payload size
@@ -823,6 +911,7 @@ export class GeneralKV<T = any> extends EventEmitter {
 // Support for value chunking below
 
 const CHUNK = "chunk";
+const CHUNKS_HEADER = "CoCalc-Chunks";
 
 function chunkedKey({ key, chunk }: { key: string; chunk?: number }) {
   return `${key}.${chunk}.${CHUNK}`;
@@ -837,7 +926,7 @@ function getChunkCount(headers) {
     return 0;
   }
   for (const [key, value] of headers) {
-    if (key == "chunks") {
+    if (key == CHUNKS_HEADER) {
       return parseInt(value[0]);
     }
   }

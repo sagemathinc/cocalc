@@ -204,7 +204,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
   }
 
   private getData(sha1: string): Data | undefined {
-    // read the sha1 named file, decrompess it, and return it
+    // read the sha1 named file, decrompress it, and return it
     const path = join(BLOB_DIR, sha1);
     try {
       const buf = brotliDecompressSync(readFileSync(path));

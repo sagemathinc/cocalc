@@ -5,8 +5,6 @@
 
 /*
 Saving blobs to hub
-CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
-Copyright 2015, SageMath, Inc., GPL v3.
 */
 
 import { getLogger } from "@cocalc/backend/logger";
