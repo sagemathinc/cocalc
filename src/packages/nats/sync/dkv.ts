@@ -188,6 +188,9 @@ export class DKV<T = any> extends EventEmitter {
       desc: `${this.name} ${this.opts.desc ?? ""}`,
     });
     this.generalDKV.on("change", ({ key, value, prev }) => {
+      if (this.generalDKV == null) {
+        return;
+      }
       if (value !== undefined && value !== TOMBSTONE) {
         this.emit("change", {
           key: this.getKey(key),
@@ -200,6 +203,9 @@ export class DKV<T = any> extends EventEmitter {
       }
     });
     this.generalDKV.on("reject", ({ key, value }) => {
+      if (this.generalDKV == null) {
+        return;
+      }
       if (value != null) {
         this.emit("reject", { key: this.getKey(key), value });
       }
@@ -208,12 +214,13 @@ export class DKV<T = any> extends EventEmitter {
     this.updateInventory();
   });
 
-  close = () => {
-    if (this.generalDKV == null) {
+  close = async () => {
+    const generalDKV = this.generalDKV;
+    if (generalDKV == null) {
       return;
     }
-    this.generalDKV.close();
     delete this.generalDKV;
+    await generalDKV.close();
     // @ts-ignore
     delete this.opts;
     this.emit("closed");
