@@ -279,6 +279,17 @@ export class DStream<T = any> extends EventEmitter {
     await this.stream.load(opts);
   };
 
+  // this is not synchronous -- it makes sure everything is saved out,
+  // then purges the stream stored in nats.
+  // NOTE: other clients will NOT see the result of a purge (unless they reconnect).
+  purge = async (opts?) => {
+    await this.save();
+    if (this.stream == null) {
+      throw Error("not initialized");
+    }
+    await this.stream.purge(opts);
+  };
+
   private updateInventory = asyncThrottle(
     async () => {
       if (this.stream == null || this.opts.noInventory) {
@@ -293,7 +304,7 @@ export class DStream<T = any> extends EventEmitter {
         if (!inv.needsUpdate({ name, type: "stream", valueType })) {
           return;
         }
-        const stats = this.stream.stats();
+        const stats = this.stream?.stats();
         if (stats == null) {
           return;
         }

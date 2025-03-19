@@ -86,7 +86,8 @@ const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
 // For API consistency, max_age is is in nano-seconds.  Also, obviously
 // the true limit is the minimum of the full NATS stream limits and
 // these limits.
-const ENFORCE_LIMITS_THROTTLE_MS = 3000;
+const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 3000;
+
 export interface FilteredStreamLimitOptions {
   // How many messages may be in a Stream, oldest messages will be removed
   // if the Stream exceeds this size. -1 for unlimited.

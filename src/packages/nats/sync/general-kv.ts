@@ -128,7 +128,7 @@ import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
-import type { ValueType } from "@cocalc/nats/types";;
+import type { ValueType } from "@cocalc/nats/types";
 
 class RejectError extends Error {
   code: string;
