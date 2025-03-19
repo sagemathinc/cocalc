@@ -31,7 +31,6 @@ z.getAll()
 
 import { type NatsEnv, type State } from "@cocalc/nats/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
-import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
 import getTime, { getSkew } from "@cocalc/nats/time";
 
@@ -174,7 +173,7 @@ export class OpenFiles extends EventEmitter {
       project_id: this.project_id,
       env: this.env,
       limits: {
-        max_age: nanos(MAX_AGE_MS),
+        max_age: MAX_AGE_MS,
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,

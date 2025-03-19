@@ -24,11 +24,11 @@ With browser client using a project:
 
 # Involving limits:
 
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env, limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env, limits:{max_msgs:5,max_age:1000*15,max_bytes:10000,max_msg_size:1000}})
 > s.getAll()
 
 In browser:
-> s = await cc.client.nats_client.stream({project_id:cc.current().project_id, name:'foo',limits:{max_msgs:5,max_age:1000000*1000*15,max_bytes:10000,max_msg_size:1000}})
+> s = await cc.client.nats_client.stream({project_id:cc.current().project_id, name:'foo',limits:{max_msgs:5,max_age:1000*15,max_bytes:10000,max_msg_size:1000}})
 
 TODO:
   - maybe the limits and other config should be stored in a KV store so
@@ -47,7 +47,7 @@ import {
 } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
-import { nanos, type Nanos, millis, getMaxPayload } from "@cocalc/nats/util";
+import { getMaxPayload, millis, nanos } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
@@ -83,8 +83,8 @@ const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
 // but instead, these are for the stream **with the given filter**.
 // Limits are enforced by all clients *client side* within a few seconds of any
 // client making changes.
-// For API consistency, max_age is is in nano-seconds.  Also, obviously
-// the true limit is the minimum of the full NATS stream limits and
+// **Note that max_age is in milliseoncds, NOT nanoseconds like in Nats.**
+// Also, obviously the true limit is the minimum of the full NATS stream limits and
 // these limits.
 const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 3000;
 
@@ -93,10 +93,8 @@ export interface FilteredStreamLimitOptions {
   // if the Stream exceeds this size. -1 for unlimited.
   max_msgs: number;
   // Maximum age of any message in the stream matching the filter,
-  // expressed in nanoseconds. 0 for unlimited.
-  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)"
-  // to give input in milliseconds.
-  max_age: Nanos;
+  // expressed in milliseconds. 0 for unlimited.
+  max_age: number;
   // How big the Stream may be, when the combined stream size matching the filter
   // exceeds this old messages are removed. -1 for unlimited.
   // This is enforced only on write, so if you change it, it only applies
@@ -666,7 +664,7 @@ export class Stream<T = any> extends EventEmitter {
           // recent message.  For us, this should be fine, since we only impose limits
           // when writing new messages, and none of these limits are guaranteed.
           const now = last(recent).info.timestampNanos;
-          const cutoff = now - max_age;
+          const cutoff = now - nanos(max_age);
           for (let i = this.raw.length - 1; i >= 0; i--) {
             if (last(this.raw[i]).info.timestampNanos < cutoff) {
               // it just went over the limit.  Everything before

@@ -114,13 +114,7 @@ undefined
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { Kvm } from "@nats-io/kv";
-import {
-  getAllFromKv,
-  matchesPattern,
-  millis,
-  type Nanos,
-  getMaxPayload,
-} from "@cocalc/nats/util";
+import { getAllFromKv, matchesPattern, getMaxPayload } from "@cocalc/nats/util";
 import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
@@ -148,10 +142,8 @@ export interface KVLimits {
   // if the key-value store exceeds this size. -1 for unlimited.
   max_msgs: number;
 
-  // Maximum age of any key, expressed in nanoseconds. 0 for unlimited.
-  // Use 'import {nanos} from "@cocalc/nats/util"' then "nanos(milliseconds)"
-  // to give input in milliseconds.
-  max_age: Nanos; // nanoseconds!
+  // Maximum age of any key, expressed in milliseconds. 0 for unlimited.
+  max_age: number;
 
   // The maximum number of bytes to store in this KV, which means
   // the total of the bytes used to store everything.  Since we store
@@ -885,7 +877,7 @@ export class GeneralKV<T = any> extends EventEmitter {
           // recent message.  For us, this should be fine, since we only impose limits
           // when writing new messages, and none of these limits are guaranteed.
           const now = times[times.length - 1].time.valueOf();
-          const cutoff = new Date(now - millis(max_age));
+          const cutoff = new Date(now - max_age);
           for (let i = times.length - 2; i >= 0; i--) {
             if (times[i].time < cutoff) {
               // it just went over the limit.  Everything before
