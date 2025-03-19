@@ -25,6 +25,7 @@ import secretToken from "@cocalc/project/servers/secret-token";
 import { connect as connectViaWebsocket } from "nats.ws";
 import { WebSocket } from "ws";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { NatsConnection } from "@cocalc/nats/types";
 
 const logger = getLogger("project:nats:connection");
 
@@ -36,9 +37,9 @@ function getServers() {
   }
 }
 
-let nc: Awaited<ReturnType<typeof connectViaTCP>> | null = null;
+let nc: NatsConnection | null = null;
 
-const getConnection = reuseInFlight(async () => {
+const getConnection = reuseInFlight(async (): Promise<NatsConnection> => {
   if (nc != null) {
     return nc;
   }
