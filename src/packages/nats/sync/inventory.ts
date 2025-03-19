@@ -10,8 +10,10 @@ import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
 import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
+import type { ValueType } from "./kv";
 
 export const THROTTLE_MS = 5000;
+export const INVENTORY_NAME = "CoCalc-Inventory";
 
 interface Location {
   account_id?: string;
@@ -31,6 +33,8 @@ interface Item {
   count: number;
   // optional description, which can be anything
   desc?: JSONValue;
+  // type of values stored
+  valueType?: ValueType;
 }
 
 export class Inventory {
@@ -43,7 +47,7 @@ export class Inventory {
 
   init = async () => {
     this.dkv = await dkv({
-      name: "inventory",
+      name: INVENTORY_NAME,
       ...this.location,
     });
   };
@@ -54,12 +58,14 @@ export class Inventory {
     bytes,
     count,
     desc,
+    valueType,
   }: {
     type: StoreType;
     name: string;
     bytes: number;
     count: number;
     desc?: JSONValue;
+    valueType?: ValueType;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
@@ -74,6 +80,7 @@ export class Inventory {
       created,
       bytes,
       count,
+      valueType,
     });
   };
 
@@ -132,10 +139,10 @@ export class Inventory {
     if (cur == null) {
       return true;
     }
-    if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
-      return true;
-    }
-    return false;
+    //     if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
+    //       return true;
+    //     }
+    return true;
   };
 
   getAll = () => {
@@ -152,28 +159,35 @@ export class Inventory {
   ls = ({ log = console.log }: { log?: Function } = {}) => {
     const all = this.getAll();
     log(
-      "╭────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
+      "╭────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
     log(
-      `│ ${padRight("Type", 5)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Messages/Keys", 15)} │ ${padRight("Last Update", 20)} │`,
+      `│ ${padRight("Type", 5)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Count", 15)} │ ${padRight("Value Type", 15)} │ ${padRight("Last Update", 20)} │`,
     );
     log(
-      "├────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
+      "├────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
     for (const name_type in all) {
-      const { last, created, count, bytes, desc } = all[name_type];
+      const {
+        last,
+        created,
+        count,
+        bytes,
+        desc,
+        valueType = "json",
+      } = all[name_type];
       let i = name_type.lastIndexOf("-");
       const name = i == -1 ? name_type : name_type.slice(0, i);
       const type = i == -1 ? "-" : name_type.slice(i + 1);
       log(
-        `│ ${padRight(type ?? "-", 5)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
+        `│ ${padRight(type ?? "-", 5)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(valueType, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
       if (desc) {
         log(`│        │   ${JSON.stringify(desc)}`);
       }
     }
     log(
-      "╰────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
+      "╰────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
     );
   };
 }
@@ -200,6 +214,6 @@ export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
   },
 });
 
-export async function inventory(options: Location): Promise<Inventory> {
+export async function inventory(options: Location = {}): Promise<Inventory> {
   return await cache(options);
 }

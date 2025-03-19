@@ -1,8 +1,8 @@
 /*
-Always Consistent Centralized Key Value Store
+Async Consistent Centralized Key Value Store
 
 NOTE: I think this isn't used by anything actually.  Note it doesn't emit
-change events.    Maybe we should delete this.
+change events.    Maybe we should delete this?
 
 DEVELOPMENT:
 
@@ -23,12 +23,15 @@ import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 
+export type ValueType = "json" | "binary";
+
 export interface KVOptions extends Location {
   name: string;
   env?: NatsEnv;
   limits?: Partial<KVLimits>;
   noCache?: boolean;
   desc?: JSONValue;
+  valueType?: ValueType;
 }
 
 export class KV<T = any> extends EventEmitter {
@@ -39,7 +42,7 @@ export class KV<T = any> extends EventEmitter {
 
   constructor(options: KVOptions) {
     super();
-    const { name, account_id, project_id, env, limits } = options;
+    const { name, account_id, project_id, env, limits, valueType } = options;
     // name of the jetstream key:value store.
     const kvname = jsName({ account_id, project_id });
     this.name = name + localLocationName(options);
@@ -53,6 +56,7 @@ export class KV<T = any> extends EventEmitter {
       filter: `${this.prefix}.>`,
       env,
       limits,
+      valueType,
     });
     this.init();
     return new Proxy(this, {

@@ -38,7 +38,7 @@ import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
 import { inventory, THROTTLE_MS } from "./inventory";
-import { throttle } from "lodash";
+import { asyncThrottle } from "@cocalc/util/async-utils";
 import { getClient, type ClientWithState } from "@cocalc/nats/client";
 
 const MAX_PARALLEL = 250;
@@ -98,6 +98,7 @@ export class DStream<T = any> extends EventEmitter {
     });
     await this.stream.init();
     this.emit("connected");
+    this.updateInventory();
   });
 
   close = async () => {
@@ -265,11 +266,12 @@ export class DStream<T = any> extends EventEmitter {
     await this.stream.load(opts);
   };
 
-  private updateInventory = throttle(
+  private updateInventory = asyncThrottle(
     async () => {
       if (this.stream == null || this.opts.noInventory) {
         return;
       }
+      await delay(1000);
       try {
         const { account_id, project_id, desc } = this.opts;
         const inv = await inventory({ account_id, project_id });
@@ -292,7 +294,7 @@ export class DStream<T = any> extends EventEmitter {
       }
     },
     THROTTLE_MS,
-    { leading: false, trailing: true },
+    { leading: true, trailing: true },
   );
 }
 

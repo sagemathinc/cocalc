@@ -71,7 +71,7 @@ TODO:
 */
 
 import { EventEmitter } from "events";
-import { GeneralKV, type KVLimits } from "./general-kv";
+import { GeneralKV, type KVLimits, type ValueType } from "./general-kv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { isEqual } from "lodash";
@@ -103,6 +103,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
   private client?: ClientWithState;
+  public readonly valueType: ValueType;
 
   constructor({
     name,
@@ -112,6 +113,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     options,
     noAutosave,
     limits,
+    valueType,
   }: {
     name: string;
     env: NatsEnv;
@@ -131,13 +133,14 @@ export class GeneralDKV<T = any> extends EventEmitter {
     // the save may not be saved though.
     noAutosave?: boolean;
     options?;
+    valueType?: ValueType;
   }) {
     super();
     this.merge = merge;
     this.noAutosave = !!noAutosave;
-    //this.limits = limits;
     this.jc = env.jc;
-    this.kv = new GeneralKV({ name, env, filter, options, limits });
+    this.valueType = valueType ?? "json";
+    this.kv = new GeneralKV({ name, env, filter, options, limits, valueType });
     if (!noAutosave) {
       this.client = getClient();
       this.client.on("connected", this.save);

@@ -8,6 +8,7 @@ import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
 import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
 import { getEnv } from "@cocalc/backend/nats/env";
 import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
+export { inventory } from "@cocalc/nats/sync/inventory";
 
 export type { Stream, DStream, KV, DKV, DKO };
 

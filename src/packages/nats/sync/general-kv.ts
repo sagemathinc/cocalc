@@ -1,5 +1,5 @@
 /*
-Always Consistent Centralized Key Value Store
+Async Consistent Centralized Key Value Store
 
 - You give one or more subjects and this provides an asynchronous but consistent
   way to work with the KV store of keys matching any of those subjects,
@@ -9,6 +9,9 @@ Always Consistent Centralized Key Value Store
 - The set will fail if the local cached value (returned by get) turns out to be out of date.
 - Also delete and set will fail if the NATS connection is down or times out.
 - For an eventually consistent sync wrapper around this, use DKV, defined in the sibling file dkv.ts.
+
+WARNING: Nats itself actually currently seems to have no model for consistency, especially
+with multiple nodes.  See https://github.com/nats-io/nats-server/issues/6557
 
 This is a simple KV wrapper around NATS's KV, for small KV stores. Each client holds a local cache
 of all data, which is used to ensure set's are a no-op if there is no change.  Also, this automates
@@ -125,6 +128,8 @@ import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
+import type { ValueType } from "./kv";
+export type { ValueType };
 
 class RejectError extends Error {
   code: string;
@@ -174,6 +179,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private allHeaders: { [key: string]: MsgHdrs } = {};
   private limits: KVLimits;
   private revision: number = 0;
+  public readonly valueType: ValueType;
 
   constructor({
     name,
@@ -181,6 +187,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     filter,
     options,
     limits,
+    valueType,
   }: {
     name: string;
     // filter: optionally restrict to subset of named kv store matching these subjects.
@@ -189,6 +196,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     env: NatsEnv;
     options?;
     limits?: Partial<KVLimits>;
+    valueType?: ValueType;
   }) {
     super();
     this.limits = {
@@ -203,6 +211,10 @@ export class GeneralKV<T = any> extends EventEmitter {
     this.name = name;
     this.options = options;
     this.filter = typeof filter == "string" ? [filter] : filter;
+    this.valueType = valueType ?? "json";
+    if (this.valueType != "json" && this.valueType != "binary") {
+      throw Error("valueType must be 'json' or 'binary'");
+    }
   }
 
   init = reuseInFlight(async () => {

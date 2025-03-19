@@ -58,8 +58,9 @@ import { jsName, localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
-import { inventory, THROTTLE_MS } from "./inventory";
-import { throttle } from "lodash";
+import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
+import { asyncThrottle } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -87,11 +88,16 @@ export class DKV<T = any> extends EventEmitter {
       limits,
       noInventory,
       desc,
+      valueType,
     } = options;
     if (env == null) {
       throw Error("env must not be null");
     }
-    if (noInventory || (process.env.COCALC_TEST_MODE && noInventory == null)) {
+    if (
+      noInventory ||
+      (process.env.COCALC_TEST_MODE && noInventory == null) ||
+      name == INVENTORY_NAME
+    ) {
       // @ts-ignore
       this.updateInventory = () => {};
     }
@@ -111,6 +117,7 @@ export class DKV<T = any> extends EventEmitter {
       merge,
       noAutosave,
       limits,
+      valueType,
     };
 
     this.init();
@@ -185,6 +192,7 @@ export class DKV<T = any> extends EventEmitter {
       }
     });
     await this.generalDKV.init();
+    this.updateInventory();
   });
 
   close = () => {
@@ -291,6 +299,7 @@ export class DKV<T = any> extends EventEmitter {
       // NOTE that jc.encode encodes null and undefined the same, so supporting this
       // as a value is just begging for misery.
       this.delete(key);
+      this.updateInventory();
       return;
     }
     const encodedKey = `${this.prefix}.${this.sha1(key)}`;
@@ -320,11 +329,12 @@ export class DKV<T = any> extends EventEmitter {
     return await this.generalDKV?.save();
   };
 
-  private updateInventory = throttle(
+  private updateInventory = asyncThrottle(
     async () => {
       if (this.generalDKV == null || this.opts.noInventory) {
         return;
       }
+      await delay(1000);
       try {
         const inv = await inventory(this.opts.location);
         const name = this.opts.originalName;
@@ -336,7 +346,14 @@ export class DKV<T = any> extends EventEmitter {
           return;
         }
         const { count, bytes } = stats;
-        inv.set({ type: "kv", name, count, bytes, desc: this.opts.desc });
+        inv.set({
+          type: "kv",
+          name,
+          count,
+          bytes,
+          desc: this.opts.desc,
+          valueType: this.opts.valueType,
+        });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",
@@ -346,7 +363,7 @@ export class DKV<T = any> extends EventEmitter {
       }
     },
     THROTTLE_MS,
-    { leading: false, trailing: true },
+    { leading: true, trailing: true },
   );
 }
 
