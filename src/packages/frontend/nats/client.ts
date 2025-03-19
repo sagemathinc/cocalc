@@ -284,7 +284,7 @@ export class NatsClient extends EventEmitter {
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
-        await nc.addProjectPermissions([project_id]);
+        await (nc as any).addProjectPermissions([project_id]);
         resp = await nc.request(subject, mesg, { timeout });
       } else {
         throw err;
