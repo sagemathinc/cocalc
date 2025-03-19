@@ -86,7 +86,7 @@ describe("do a larger test that involves multiple chunks and a different name", 
       name,
     });
     // will get many chunks.
-    let chunks: Buffer[] = [];
+    let chunks: any[] = [];
     for await (const chunk of r) {
       chunks.push(chunk);
     }

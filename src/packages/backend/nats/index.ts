@@ -57,5 +57,5 @@ export const getConnection = reuseInFlight(async () => {
       wait = Math.min(7500, 1.25 * wait);
     }
   }
-  return nc;
+  return nc as any;
 });
