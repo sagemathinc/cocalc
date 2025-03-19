@@ -26,7 +26,7 @@ describe("create open file tracker and do some basic operations", () => {
   let file1 = `${Math.random()}.txt`;
   let file2 = `${Math.random()}.txt`;
 
-  it("creates two open files tracker (tracking same project) and clear them", async () => {
+  it("creates two open files trackers (tracking same project) and clear them", async () => {
     o1 = await create();
     o2 = await create();
     // ensure caching disable so our sync tests are real
@@ -35,13 +35,12 @@ describe("create open file tracker and do some basic operations", () => {
     await o1.save();
     expect(o1.hasUnsavedChanges()).toBe(false);
     o2.clear();
-    await delay(50);
-    while (o2.hasUnsavedChanges()) {
+    while (o2.hasUnsavedChanges() || o1.hasUnsavedChanges()) {
       try {
         // expected due to merge conflict and autosave being disabled.
         await o2.save();
       } catch {
-        await delay(50);
+        await delay(10);
       }
     }
   });
@@ -52,8 +51,6 @@ describe("create open file tracker and do some basic operations", () => {
   });
 
   it("touch file in one and observe change and timestamp getting assigned by server", async () => {
-    // NOTE: if this breaks its due to the above clearing not being done;
-    // maybe increase the "await delay(50)" above.
     o1.touch(file1);
     expect(o1.get(file1).time).toBeCloseTo(Date.now(), -3);
   });

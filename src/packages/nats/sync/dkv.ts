@@ -168,14 +168,14 @@ export class DKV<T = any> extends EventEmitter {
     };
     this.generalDKV = new GeneralDKV({ ...this.opts, merge });
     this.generalDKV.on("change", ({ key, value, prev }) => {
-      if (value != null && value !== TOMBSTONE) {
+      if (value !== undefined && value !== TOMBSTONE) {
         this.emit("change", {
           key: this.getKey(key),
           value,
           prev,
         });
-      } else if (prev != null) {
-        // value is null so it's a delete
+      } else {
+        // value is undefined or TOMBSTONE, so it's a delete, so do not set value here
         this.emit("change", { key: this.getKey(key), prev });
       }
     });
@@ -268,6 +268,7 @@ export class DKV<T = any> extends EventEmitter {
     }
     const h = this.generalDKV?.headers(k);
     if (h?.key == null) {
+      console.warn("headers = ", h);
       throw Error(`missing header for key '${k}'`);
     }
     return atob(h.key);

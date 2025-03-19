@@ -33,7 +33,7 @@ import { type NatsEnv, type State } from "@cocalc/nats/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { nanos } from "@cocalc/nats/util";
 import { EventEmitter } from "events";
-import getTime from "@cocalc/nats/time";
+import getTime, { getSkew } from "@cocalc/nats/time";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
@@ -188,6 +188,8 @@ export class OpenFiles extends EventEmitter {
         this.emit("change", entry as Entry);
       }
     });
+    // ensure clock is synchronized
+    await getSkew();
     this.setState("connected");
   };
 
@@ -228,13 +230,7 @@ export class OpenFiles extends EventEmitter {
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
     const cur = dkv.get(path);
-    let time;
-    try {
-      time = getTime();
-    } catch {
-      // give up -- try again once initialized
-      return;
-    }
+    const time = getTime();
     this.set(path, {
       ...cur,
       time,

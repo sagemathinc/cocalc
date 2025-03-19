@@ -5,6 +5,7 @@ To use this, call the default export, which is a sync
 function that returns the current sync'd time (in ms since epoch), or
 throws an error if the first time sync hasn't succeeded.
 This gets initialized by default on load of your process.
+If you want to await until the clock is sync'd, call "await getSkew()"
 
 It works using a key:value store via jetstream,
 which is complicated overall.  Normal request/reply

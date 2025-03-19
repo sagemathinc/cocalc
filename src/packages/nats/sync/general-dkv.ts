@@ -178,6 +178,12 @@ export class GeneralDKV<T = any> extends EventEmitter {
     delete this.merge;
   };
 
+  private discardLocalState = (key: string) => {
+    delete this.local[key];
+    delete this.options[key];
+    delete this.saved[key];
+  };
+
   private handleRemoteChange = ({ key, value: remote, prev }) => {
     const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
     let value: any = remote;
@@ -185,9 +191,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
       if (isEqual(local, remote)) {
         // we have a local change, but it's the same change as remote, so just
         // forget about our local change.
-        delete this.local[key];
-        delete this.options[key];
-        delete this.saved[key];
+        this.discardLocalState(key);
       } else {
         // console.log("merge conflict", { key, remote, local, prev });
         try {
@@ -209,9 +213,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
         }
         if (isEqual(value, remote)) {
           // no change, so forget our local value
-          delete this.local[key];
-          delete this.options[key];
-          delete this.saved[key];
+          this.discardLocalState(key);
         } else {
           // resolve with the new value, or if it is undefined, a TOMBSTONE,
           // meaning choice is to delete.
@@ -236,7 +238,10 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (local === TOMBSTONE) {
       return undefined;
     }
-    return local ?? this.kv.get(key);
+    if (local !== undefined) {
+      return local;
+    }
+    return this.kv.get(key);
   };
 
   get length(): number {
@@ -426,15 +431,13 @@ export class GeneralDKV<T = any> extends EventEmitter {
         if (!this.changed.has(key)) {
           // successfully saved this
           this.saved[key] = this.local[key];
-          delete this.options[key];
         }
       } catch (err) {
         console.log("attemptToSave failed", err);
         if (err.code == "REJECT" && err.key) {
           const value = this.local[err.key];
-          delete this.local[err.key]; // can never save this.
-          delete this.saved[err.key]; // can never save this.
-          delete this.options[err.key];
+          // can never save this.
+          this.discardLocalState(err.key);
           status.unsaved -= 1;
           this.emit("reject", { key: err.key, value });
         }

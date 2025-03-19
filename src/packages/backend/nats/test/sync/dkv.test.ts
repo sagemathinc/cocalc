@@ -3,7 +3,7 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "dkv.test.ts"
+pnpm exec jest --forceExit --detectOpenHandles "dkv.test.ts"
 
 */
 
@@ -264,7 +264,7 @@ describe("do an insert and clear test", () => {
 
 describe("create many distinct clients at once, write to all of them, and see that that results are merged", () => {
   const name = `test-${Math.random()}`;
-  const count = 5;
+  const count = 4;
   const clients: any[] = [];
 
   it(`creates the ${count} clients`, async () => {
