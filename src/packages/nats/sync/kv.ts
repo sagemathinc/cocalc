@@ -22,8 +22,7 @@ import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
-
-export type ValueType = "json" | "binary";
+import type { ValueType } from "@cocalc/nats/types";
 
 export interface KVOptions extends Location {
   name: string;

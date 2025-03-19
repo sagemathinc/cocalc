@@ -272,11 +272,11 @@ export class DStream<T = any> extends EventEmitter {
         return;
       }
       await delay(1000);
+      const { name, valueType } = this.opts.name;
       try {
-        const { account_id, project_id, desc } = this.opts;
+        const { account_id, project_id, desc, limits } = this.opts;
         const inv = await inventory({ account_id, project_id });
-        const name = this.opts.name;
-        if (!inv.needsUpdate({ name, type: "stream" })) {
+        if (!inv.needsUpdate({ name, type: "stream", valueType })) {
           return;
         }
         const stats = this.stream.stats();
@@ -284,7 +284,7 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { count, bytes } = stats;
-        inv.set({ type: "stream", name, count, bytes, desc });
+        inv.set({ type: "stream", name, count, bytes, desc, valueType, limits });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",

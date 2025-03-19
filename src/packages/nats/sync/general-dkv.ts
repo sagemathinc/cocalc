@@ -71,9 +71,9 @@ TODO:
 */
 
 import { EventEmitter } from "events";
-import { GeneralKV, type KVLimits, type ValueType } from "./general-kv";
+import { GeneralKV, type KVLimits } from "./general-kv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
@@ -326,6 +326,9 @@ export class GeneralDKV<T = any> extends EventEmitter {
       return TOMBSTONE;
     }
     if (this.valueType == "binary") {
+      if (!ArrayBuffer.isView(obj)) {
+        throw Error("value must be an array buffer");
+      }
       return obj;
     }
     // It's EXTREMELY important that anything we save to NATS has the property that

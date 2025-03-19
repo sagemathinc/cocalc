@@ -53,8 +53,9 @@ They aren't right here, because this module doesn't have info to connect to NATS
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
+import { jsName } from "@cocalc/nats/names";
 import { userKvKey, type KVOptions } from "./kv";
-import { jsName, localLocationName } from "@cocalc/nats/names";
+import { localLocationName } from "@cocalc/nats/names";
 import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
@@ -88,7 +89,7 @@ export class DKV<T = any> extends EventEmitter {
       limits,
       noInventory,
       desc,
-      valueType,
+      valueType = "json",
     } = options;
     if (env == null) {
       throw Error("env must not be null");
@@ -102,16 +103,22 @@ export class DKV<T = any> extends EventEmitter {
       this.updateInventory = () => {};
     }
     // name of the jetstream key:value store.
-    const kvname = jsName({ account_id, project_id });
-    this.name = name + localLocationName(options);
     this.sha1 = env.sha1 ?? sha1;
-    this.prefix = this.sha1(this.name);
+    this.name = name;
+
+    // *** WARNING: THIS CAN NEVER BE CHANGE! **
+    // The recipe for 'this.prefix' must never be changed, because
+    // it determines where the data is actually stored.  If you change
+    // it, then every user's data vanishes.
+    this.prefix = this.sha1(
+      JSON.stringify([name, valueType, localLocationName(options)]),
+    );
+
     this.opts = {
       location: { account_id, project_id },
-      originalName: name,
+      name: jsName({ account_id, project_id }),
       desc,
       noInventory,
-      name: kvname,
       filter: `${this.prefix}.>`,
       env,
       merge,
@@ -335,10 +342,11 @@ export class DKV<T = any> extends EventEmitter {
         return;
       }
       await delay(1000);
+      const { valueType } = this.opts;
+      const name = this.name;
       try {
         const inv = await inventory(this.opts.location);
-        const name = this.opts.originalName;
-        if (!inv.needsUpdate({ name, type: "kv" })) {
+        if (!inv.needsUpdate({ name, type: "kv", valueType })) {
           return;
         }
         const stats = this.generalDKV.stats();
@@ -353,11 +361,12 @@ export class DKV<T = any> extends EventEmitter {
           bytes,
           desc: this.opts.desc,
           valueType: this.opts.valueType,
+          limits: this.opts.limits,
         });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",
-          this.opts?.originalName,
+          this.opts?.name,
           err,
         );
       }

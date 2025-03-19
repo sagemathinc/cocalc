@@ -51,6 +51,10 @@ export function localLocationName({
   browser_id,
   path,
 }: Location): string {
+  // !!CRITICAL WARNING!! If you ever modify this code, only do so in a way that adds a new field
+  // so that the default value of that field leaves the output of this function UNCHANGED!
+  // Otherwise, it gets used for defining the location of kv stores, and if it changes
+  // on existing inputs, then all user data across all of cocalc would just go ** POOF ** !
   const v: string[] = [];
   if (compute_server_id) {
     v.push(`id=${compute_server_id}`);

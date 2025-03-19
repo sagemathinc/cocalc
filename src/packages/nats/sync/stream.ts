@@ -39,7 +39,7 @@ TODO:
 */
 
 import { EventEmitter } from "events";
-import { type NatsEnv } from "@cocalc/nats/types";
+import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import {
   jetstreamManager,
   jetstream,
@@ -120,6 +120,7 @@ export interface StreamOptions {
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
+  valueType?: ValueType;
 }
 
 export class Stream<T = any> extends EventEmitter {
@@ -136,6 +137,7 @@ export class Stream<T = any> extends EventEmitter {
   private jsm;
   private stream?;
   private watch?;
+  public readonly valueType: ValueType;
 
   // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
   public readonly raw: JsMsg[][] = [];
@@ -151,8 +153,11 @@ export class Stream<T = any> extends EventEmitter {
     natsStreamOptions,
     limits,
     start_seq,
+    valueType = "json",
   }: StreamOptions) {
     super();
+
+    this.valueType = valueType;
     if (env == null) {
       throw Error("bug: env must be specified");
     }

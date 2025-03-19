@@ -10,7 +10,9 @@ import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
 import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
-import type { ValueType } from "./kv";
+import type { ValueType } from "@cocalc/nats/types";
+import { type KVLimits } from "./general-kv";
+import { type FilteredStreamLimitOptions } from "./stream";
 
 export const THROTTLE_MS = 5000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
@@ -35,6 +37,8 @@ interface Item {
   desc?: JSONValue;
   // type of values stored
   valueType?: ValueType;
+  // limits for purging old data
+  limits?: KVLimits | FilteredStreamLimitOptions;
 }
 
 export class Inventory {
@@ -52,6 +56,7 @@ export class Inventory {
     });
   };
 
+  // Set but with NO LIMITS and no MERGE conflict algorithm. Use with care!
   set = ({
     type,
     name,
@@ -59,59 +64,78 @@ export class Inventory {
     count,
     desc,
     valueType,
+    limits,
   }: {
     type: StoreType;
     name: string;
     bytes: number;
     count: number;
     desc?: JSONValue;
-    valueType?: ValueType;
+    valueType: ValueType;
+    limits?: KVLimits | FilteredStreamLimitOptions;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
     const last = getTime();
-    const cur = this.dkv.get(this._key({ name, type }));
+    const key = this.encodeKey({ name, type, valueType });
+    const cur = this.dkv.get(key);
     const created = cur?.created ?? last;
     desc = desc ?? cur?.desc;
-    this.dkv.set(this._key({ name, type }), {
+    this.dkv.set(key, {
       desc,
       last,
       created,
       bytes,
       count,
-      valueType,
+      limits,
     });
   };
 
-  private _key = ({ name, type }) => `${name}-${type}`;
+  private encodeKey = ({ name, type, valueType = "json" }) =>
+    JSON.stringify({ name, type, valueType });
 
-  delete = ({ name, type }: { name: string; type: StoreType }) => {
+  private decodeKey = (key) => JSON.parse(key);
+
+  delete = ({
+    name,
+    type,
+    valueType,
+  }: {
+    name: string;
+    type: StoreType;
+    valueType: ValueType;
+  }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    this.dkv.delete(this._key({ name, type }));
+    this.dkv.delete(this.encodeKey({ name, type, valueType }));
   };
 
-  // Get but with NO LIMITS and no MERGE conflict algorithm. Use with care!
-  get = async (x: { name: string; type: StoreType } | string) => {
+  get = async (
+    x: { name: string; type: StoreType; valueType?: ValueType } | string,
+  ) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
     let cur;
     let name, type;
     if (typeof x == "string") {
-      // just the name -- we infer the type
+      // just the name -- we infer/guess the type and valueType
       name = x;
       type = "kv";
-      cur = this.dkv.get(this._key({ name, type }));
-      if (cur == null) {
-        type = "stream";
-        cur = this.dkv.get(this._key({ name, type }));
+      for (const valueType of ["json", "binary"]) {
+        cur = this.dkv.get(this.encodeKey({ name, type, valueType }));
+        if (cur == null) {
+          type = "stream";
+          cur = this.dkv.get(this.encodeKey({ name, type, valueType }));
+        }
+        if (cur != null) {
+          break;
+        }
       }
     } else {
-      ({ name, type } = x);
-      cur = this.dkv.get(this._key({ name, type }));
+      cur = this.dkv.get(this.encodeKey(x));
     }
     if (cur == null) {
       throw Error(`no ${type} named ${name}`);
@@ -125,17 +149,15 @@ export class Inventory {
     }
   };
 
-  needsUpdate = ({
-    name,
-    type,
-  }: {
+  needsUpdate = (x: {
     name: string;
     type: StoreType;
+    valueType: ValueType;
   }): boolean => {
     if (this.dkv == null) {
       return false;
     }
-    const cur = this.dkv.get(this._key({ name, type }));
+    const cur = this.dkv.get(this.encodeKey(x));
     if (cur == null) {
       return true;
     }
@@ -156,7 +178,10 @@ export class Inventory {
     this.dkv?.close();
   };
 
-  ls = ({ log = console.log }: { log?: Function } = {}) => {
+  ls = ({
+    log = console.log,
+    filter,
+  }: { log?: Function; filter?: string } = {}) => {
     const all = this.getAll();
     log(
       "╭────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
@@ -167,23 +192,20 @@ export class Inventory {
     log(
       "├────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
-    for (const name_type in all) {
-      const {
-        last,
-        created,
-        count,
-        bytes,
-        desc,
-        valueType = "json",
-      } = all[name_type];
-      let i = name_type.lastIndexOf("-");
-      const name = i == -1 ? name_type : name_type.slice(0, i);
-      const type = i == -1 ? "-" : name_type.slice(i + 1);
+    for (const key in all) {
+      const { last, created, count, bytes, desc, limits } = all[key];
+      const { name, type, valueType } = this.decodeKey(key);
+      if (filter && !name.toLowerCase().includes(filter.toLowerCase())) {
+        continue;
+      }
       log(
         `│ ${padRight(type ?? "-", 5)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(valueType, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
       if (desc) {
         log(`│        │   ${JSON.stringify(desc)}`);
+      }
+      if (limits) {
+        log(`│        │   ${JSON.stringify(limits)}`);
       }
     }
     log(
