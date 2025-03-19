@@ -297,7 +297,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       }
       this.sizes[key0] = value.length;
       try {
-        all0[key0] = this.env.jc.decode(value);
+        all0[key0] = this.decode(value);
       } catch (err) {
         // invalid json -- corruption.  I hit this ONLY when doing development
         // and explicitly putting bad data in.  This isn't normal.  But it's
@@ -318,6 +318,14 @@ export class GeneralKV<T = any> extends EventEmitter {
       }
     }
   });
+
+  private encode = (value) => {
+    return this.valueType == "json" ? this.env.jc.encode(value) : value;
+  };
+
+  private decode = (value) => {
+    return this.valueType == "json" ? this.env.jc.decode(value) : value;
+  };
 
   private restartWatch = () => {
     // we make a new watch, starting AFTER the last revision we retrieved
@@ -424,7 +432,7 @@ export class GeneralKV<T = any> extends EventEmitter {
         delete this.sizes[key0];
         delete this.chunkCounts[key0];
       } else {
-        this.all[key0] = this.env.jc.decode(value0);
+        this.all[key0] = this.decode(value0);
         this.times[key0] = sm.time;
         this.sizes[key0] = value0.length;
       }
@@ -710,7 +718,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       return await this.delete(key);
     }
     const revision = this.revisions[key];
-    let val = this.env.jc.encode(value);
+    let val = this.encode(value);
     if (
       this.limits.max_msg_size > -1 &&
       val.length > this.limits.max_msg_size

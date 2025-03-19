@@ -325,6 +325,9 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (obj === undefined) {
       return TOMBSTONE;
     }
+    if (this.valueType == "binary") {
+      return obj;
+    }
     // It's EXTREMELY important that anything we save to NATS has the property that
     // jc.decode(jc.encode(obj)) is the identity map. That is very much NOT
     // the case for stuff that set gets called on, e.g., {a:new Date()}.
