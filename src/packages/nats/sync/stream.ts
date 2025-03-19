@@ -287,6 +287,14 @@ export class Stream<T = any> extends EventEmitter {
     await awaitMap(args, MAX_PARALLEL, this.publish);
   };
 
+  private encodeValue = (value) => {
+    return this.valueType == "json" ? this.env.jc.encode(value) : value;
+  };
+
+  private decodeValue = (value) => {
+    return this.valueType == "json" ? this.env.jc.decode(value) : value;
+  };
+
   publish = async (
     mesg: T,
     options?: Partial<
@@ -296,7 +304,7 @@ export class Stream<T = any> extends EventEmitter {
     if (this.js == null) {
       throw Error("closed");
     }
-    const data = this.env.jc.encode(mesg);
+    const data = this.encodeValue(mesg);
     if (
       this.limits.max_msg_size > -1 &&
       data.length > this.limits.max_msg_size
@@ -551,7 +559,7 @@ export class Stream<T = any> extends EventEmitter {
           Buffer.concat(raw.map((mesg) => mesg.data));
 
     try {
-      return this.env.jc.decode(data);
+      return this.decodeValue(data);
     } catch (_err) {
       // console.log("WARNING: issue decoding nats stream data", { data, _err });
       // better than crashing:
@@ -736,7 +744,7 @@ export class Stream<T = any> extends EventEmitter {
           if (v[0] == v[1]) {
             // have all the chunks
             raw.push(chunks);
-            messages.push(this.decode(chunks));
+            messages.push(this.decodeValue(chunks));
           }
         }
       }
@@ -769,6 +777,7 @@ export interface UserStreamOptions {
   start_seq?: number;
   noCache?: boolean;
   desc?: JSONValue;
+  valueType?: ValueType;
 }
 
 export function userStreamOptionsKey(options: UserStreamOptions) {

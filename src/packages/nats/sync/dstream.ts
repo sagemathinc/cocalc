@@ -181,9 +181,22 @@ export class DStream<T = any> extends EventEmitter {
     );
   }
 
+  private toValue = (obj) => {
+    if (this.stream == null) {
+      throw Error("not initialized");
+    }
+    if (this.stream.valueType == "binary") {
+      if (!ArrayBuffer.isView(obj)) {
+        throw Error("value must be an array buffer");
+      }
+      return obj;
+    }
+    return this.opts.env.jc.decode(this.opts.env.jc.encode(obj));
+  };
+
   publish = (mesg: T): void => {
     const id = randomId();
-    this.local[id] = mesg;
+    this.local[id] = this.toValue(mesg);
     if (!this.noAutosave) {
       this.save();
     }
@@ -272,7 +285,8 @@ export class DStream<T = any> extends EventEmitter {
         return;
       }
       await delay(1000);
-      const { name, valueType } = this.opts.name;
+      const name = this.name;
+      const { valueType } = this.opts;
       try {
         const { account_id, project_id, desc, limits } = this.opts;
         const inv = await inventory({ account_id, project_id });
@@ -284,7 +298,15 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { count, bytes } = stats;
-        inv.set({ type: "stream", name, count, bytes, desc, valueType, limits });
+        inv.set({
+          type: "stream",
+          name,
+          count,
+          bytes,
+          desc,
+          valueType,
+          limits,
+        });
       } catch (err) {
         console.log(
           "WARNING: unable to update inventory for ",
@@ -304,10 +326,18 @@ const cache = refCache<UserStreamOptions, DStream>({
     if (options.env == null) {
       options.env = await getEnv();
     }
-    const { account_id, project_id, name } = options;
+    const { account_id, project_id, name, valueType = "json" } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
-    const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
+
+    // **CRITICAL:** do NOT change how the filter is computed as a function
+    // of options unless it is backwards compatible, or all user data
+    // involving streams will just go poof!
+    const uniqueFilter = JSON.stringify([name, valueType]);
+    const filter = subjects.replace(
+      ">",
+      (options.env.sha1 ?? sha1)(uniqueFilter),
+    );
     const dstream = new DStream({
       ...options,
       name,
