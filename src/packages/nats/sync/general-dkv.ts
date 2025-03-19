@@ -104,6 +104,8 @@ export class GeneralDKV<T = any> extends EventEmitter {
   private noAutosave: boolean;
   private client?: ClientWithState;
   public readonly valueType: ValueType;
+  public readonly name: string;
+  public readonly desc?: string;
 
   constructor({
     name,
@@ -114,8 +116,11 @@ export class GeneralDKV<T = any> extends EventEmitter {
     noAutosave,
     limits,
     valueType,
+    desc,
   }: {
     name: string;
+    // used for log and error messages
+    desc: string;
     env: NatsEnv;
     // 3-way merge conflict resolution
     merge?: (opts: {
@@ -136,6 +141,8 @@ export class GeneralDKV<T = any> extends EventEmitter {
     valueType?: ValueType;
   }) {
     super();
+    this.name = name;
+    this.desc = desc;
     this.merge = merge;
     this.noAutosave = !!noAutosave;
     this.jc = env.jc;
@@ -442,7 +449,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
           this.saved[key] = this.local[key];
         }
       } catch (err) {
-        console.log("attemptToSave failed", err);
+        console.log("kv store -- attemptToSave failed", this.desc, err);
         if (err.code == "REJECT" && err.key) {
           const value = this.local[err.key];
           // can never save this.

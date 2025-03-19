@@ -63,6 +63,8 @@ import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
+const KEY_HEADER_NAME = "CoCalc-Key";
+
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
   noAutosave?: boolean;
@@ -180,7 +182,11 @@ export class DKV<T = any> extends EventEmitter {
         return local;
       }
     };
-    this.generalDKV = new GeneralDKV({ ...this.opts, merge });
+    this.generalDKV = new GeneralDKV({
+      ...this.opts,
+      merge,
+      desc: `${this.name} ${this.opts.desc ?? ""}`,
+    });
     this.generalDKV.on("change", ({ key, value, prev }) => {
       if (value !== undefined && value !== TOMBSTONE) {
         this.emit("change", {
@@ -218,7 +224,7 @@ export class DKV<T = any> extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    this.generalDKV.delete(`${this.prefix}.${this.sha1(key)}`);
+    this.generalDKV.delete(this.encodeKey(key));
     this.updateInventory();
   };
 
@@ -235,9 +241,7 @@ export class DKV<T = any> extends EventEmitter {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    const times = this.generalDKV.time(
-      key ? `${this.prefix}.${this.sha1(key)}` : undefined,
-    );
+    const times = this.generalDKV.time(key ? this.encodeKey(key) : undefined);
     if (key != null || times == null) {
       return times;
     }
@@ -250,18 +254,23 @@ export class DKV<T = any> extends EventEmitter {
     return x;
   };
 
+  // The encoded key which we actually store in NATS.   It has to have
+  // a very, very restricted form and size, and a specified prefix, which
+  // is why the hashing, etc.  This allows arbitrary keys.
+  private encodeKey = (key) => `${this.prefix}.${this.sha1(key)}`;
+
   has = (key: string): boolean => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    return this.generalDKV.has(`${this.prefix}.${this.sha1(key)}`);
+    return this.generalDKV.has(this.encodeKey(key));
   };
 
   get = (key: string): T | undefined => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
-    return this.generalDKV.get(`${this.prefix}.${this.sha1(key)}`);
+    return this.generalDKV.get(this.encodeKey(key));
   };
 
   getAll = (): { [key: string]: T } => {
@@ -282,11 +291,15 @@ export class DKV<T = any> extends EventEmitter {
       return this.keys[k];
     }
     const h = this.generalDKV?.headers(k);
-    if (h?.key == null) {
+    if (h?.[KEY_HEADER_NAME] == null) {
       console.warn("headers = ", h);
-      throw Error(`missing header for key '${k}'`);
+      throw Error(`missing header '${KEY_HEADER_NAME}' for key '${k}'`);
     }
-    return atob(h.key);
+    return atob(h[KEY_HEADER_NAME]);
+  };
+
+  headers = (key: string) => {
+    return this.generalDKV?.headers(this.encodeKey(key));
   };
 
   get length(): number {
@@ -296,7 +309,13 @@ export class DKV<T = any> extends EventEmitter {
     return this.generalDKV.length;
   }
 
-  set = (key: string, value: T): void => {
+  set = (
+    key: string,
+    value: T,
+    // NOTE: if you call this.headers(n) it is NOT visible until the publish is confirmed.
+    // This could be changed with more work if it matters.
+    options?: { headers?: { [key: string]: string } },
+  ): void => {
     if (this.generalDKV == null) {
       throw Error("closed");
     }
@@ -309,10 +328,10 @@ export class DKV<T = any> extends EventEmitter {
       this.updateInventory();
       return;
     }
-    const encodedKey = `${this.prefix}.${this.sha1(key)}`;
+    const encodedKey = this.encodeKey(key);
     this.keys[encodedKey] = key;
     this.generalDKV.set(encodedKey, value, {
-      headers: { key: btoa(key) },
+      headers: { ...options?.headers, [KEY_HEADER_NAME]: btoa(key) },
     });
     this.updateInventory();
   };

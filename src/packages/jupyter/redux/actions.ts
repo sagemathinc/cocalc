@@ -42,6 +42,7 @@ import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { debounce } from "lodash";
 import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
+import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
 
 const { close, required, defaults } = misc;
 
@@ -72,6 +73,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected _file_watcher: any;
   protected _state: any;
   protected restartKernelOnClose?: (...args: any[]) => void;
+  protected blobs?: DKV;
 
   public _complete_request?: number;
   public store: JupyterStore;
@@ -120,7 +122,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         this.syncdb.commit();
       });
     }
-
     this.is_compute_server = client.is_compute_server();
 
     let directory: any;
@@ -149,9 +150,25 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this.fetch_jupyter_kernels();
     }
 
+    this.initBlobStore();
+
     // Hook for additional initialization.
     this.init2();
   }
+
+  private initBlobStore = async () => {
+    this.blobs = await dkv({
+      name: `jupyter:${this.path}`,
+      project_id: this.project_id,
+      valueType: "binary",
+      limits: {
+        // 1 month
+        max_age: 1000 * 60 * 60 * 24 * 30,
+        // 150 MB
+        max_bytes: 150000000,
+      },
+    });
+  };
 
   // default is to do nothing, but e.g., frontend browser client
   // does overload this to do a lot of additional init.

@@ -56,6 +56,9 @@ export class DStream<T = any> extends EventEmitter {
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
+  private publishOptions: {
+    [id: string]: { headers?: { [key: string]: string } };
+  } = {};
   private saved: { [seq: number]: T } = {};
   private opts;
   private client?: ClientWithState;
@@ -194,13 +197,28 @@ export class DStream<T = any> extends EventEmitter {
     return this.opts.env.jc.decode(this.opts.env.jc.encode(obj));
   };
 
-  publish = (mesg: T): void => {
+  publish = (
+    mesg: T,
+    // NOTE: if you call this.headers(n) it is NOT visible until the publish is confirmed.
+    // This could be changed with more work if it matters.
+    options?: { headers?: { [key: string]: string } },
+  ): void => {
     const id = randomId();
     this.local[id] = this.toValue(mesg);
+    if (options != null) {
+      this.publishOptions[id] = options;
+    }
     if (!this.noAutosave) {
       this.save();
     }
     this.updateInventory();
+  };
+
+  headers = (n) => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
+    return this.stream.headers(n);
   };
 
   push = (...args: T[]) => {
@@ -229,11 +247,11 @@ export class DStream<T = any> extends EventEmitter {
       try {
         await this.attemptToSave();
         //console.log("successfully saved");
-      } catch (_err) {
+      } catch (err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
         // [ ] TODO: I do not like silently not dealing with this error!
-        //console.log("problem saving", err);
+        console.log("stream: attemptToSave failed", this.name, err);
       }
       if (!this.hasUnsavedChanges()) {
         return;
@@ -249,12 +267,16 @@ export class DStream<T = any> extends EventEmitter {
       const mesg = this.local[id];
       try {
         // @ts-ignore
-        const { seq } = await this.stream.publish(mesg, { msgID: id });
+        const { seq } = await this.stream.publish(mesg, {
+          ...this.publishOptions[id],
+          msgID: id,
+        });
         if ((last(this.raw[this.raw.length - 1])?.seq ?? -1) < seq) {
           // it still isn't in this.raw
           this.saved[seq] = mesg;
         }
         delete this.local[id];
+        delete this.publishOptions[id];
       } catch (err) {
         if (err.code == "REJECT") {
           delete this.local[id];
