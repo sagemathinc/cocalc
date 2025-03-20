@@ -80,6 +80,7 @@ import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";
+import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -215,6 +216,14 @@ nodeCleanup(() => {
     }
   }
 });
+
+// TODO: are these the only base64 encoded types that jupyter kernels return?
+export const BASE64_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "application/pdf",
+  "base64",
+] as const;
 
 // NOTE: keep JupyterKernel implementation private -- use the kernel function
 // above, and the interface defined in types.
@@ -750,6 +759,20 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
+  private saveBlob = ({ type, data }: { type: string; data: string }) => {
+    const blobs = this._actions?.blobs;
+    if (blobs == null) {
+      throw Error("blob store not available");
+    }
+    const buf: Buffer = BASE64_TYPES.includes(type as any)
+      ? Buffer.from(data, "base64")
+      : Buffer.from(data);
+
+    const sha1: string = misc_node_sha1(buf);
+    blobs.set(sha1, buf, { headers: { type } });
+    return sha1;
+  };
+
   process_output(content: any): void {
     if (this._state === "closed") {
       return;
@@ -794,19 +817,29 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       if (content.data[type] == null) {
         continue;
       }
-      if (type.split("/")[0] === "image" || type === "application/pdf") {
-        // Store all images and PDF in the blob store:
-        content.data[type] = saveToBlobStore(content.data[type], type);
-      } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
-        // Likely iframe, so we treat it as such.  This is very important, e.g.,
-        // because of Sage's iframe 3d graphics.  We parse
-        // and remove these and serve them from the backend.
-        //  {iframe: sha1 of srcdoc}
-        content.data["iframe"] = iframe_process(
-          content.data[type],
-          saveToBlobStore,
-        );
-        delete content.data[type];
+      try {
+        if (type.split("/")[0] === "image" || type === "application/pdf") {
+          // Store all images and PDF in the blob store:
+          content.data[type] = this.saveBlob({ type, data: content.data[type] });
+        } else if (
+          type === "text/html" &&
+          is_likely_iframe(content.data[type])
+        ) {
+          // Likely iframe, so we treat it as such.  This is very important, e.g.,
+          // because of Sage's iframe 3d graphics.  We parse
+          // and remove these and serve them from the backend.
+          //  {iframe: sha1 of srcdoc}
+          content.data["iframe"] = iframe_process(
+            content.data[type],
+            saveToBlobStore,
+          );
+          delete content.data[type];
+        }
+      } catch (err) {
+        dbg(`WARNING: Jupyter blob store not working -- ${err}`);
+        // i think it'll just send the large data on in the usual way instead
+        // via the output, instead of using the blob store.  It's probably just
+        // less efficient.
       }
     }
   }

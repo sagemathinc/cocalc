@@ -8,19 +8,19 @@ import React from "react";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 
-import { get_blob_url } from "../server-urls";
-
 interface ImageProps {
   type: string;
   sha1?: string; // one of sha1 or value must be given
   value?: string;
-  project_id?: string;
   width?: number;
   height?: number;
+  actions?;
+  project_id?:string;
+  path?:string;
 }
 
 export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
-  const { type, sha1, value, project_id, width, height } = props;
+  const { actions, type, sha1, value, width, height, project_id, path } = props;
 
   const is_mounted = useIsMountedRef();
 
@@ -54,10 +54,18 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
     return <img {...props} alt="Image in a Jupyter notebook" />;
   }
 
-  function render_using_server(project_id: string, sha1: string): JSX.Element {
-    const blob_url = get_blob_url(project_id, extension(), sha1);
-    const src = `${blob_url}&attempts=${attempts}`;
-    return render_image(src, load_error);
+  function renderSha1Blob(sha1: string): JSX.Element {
+    console.log("renderSha1Blob", { sha1, project_id, path });
+    const blobs = actions?.blobs;
+    const buf = blobs?.get(sha1);
+    if (buf == null) {
+      return <div>image not available</div>;
+    }
+    const { type } = blobs.headers(sha1);
+    const blob = new Blob([buf], { type });
+    const url = URL.createObjectURL(blob);
+    // window.x = { blob, blobs, sha1, type, url, buf };
+    return render_image(url, load_error);
   }
 
   function encoding(): string {
@@ -80,8 +88,8 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
 
   if (value != null) {
     return render_locally(value);
-  } else if (sha1 != null && project_id != null) {
-    return render_using_server(project_id, sha1);
+  } else if (sha1 != null) {
+    return renderSha1Blob(sha1);
   } else {
     // not enough info to render
     return <span>[unavailable {extension()} image]</span>;

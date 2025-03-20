@@ -35,6 +35,7 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
+
 interface StableHtmlContextType {
   cellListDivRef?: MutableRefObject<any>;
   scrollOrResize?: { [key: string]: () => void };
@@ -196,6 +197,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return debounce(saveScroll, 2000);
   }, [use_windowed_list]);
 
+  const fileContext = useFileContext();
+
   async function restore_scroll(): Promise<void> {
     if (scrollTop == null || use_windowed_list) return;
     /* restore scroll state -- as rendering happens dynamically
@@ -341,11 +344,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index,
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index,
+          }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -355,12 +357,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index,
           align: "end",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index,
-              align: "end",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index,
+            align: "end",
+          }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -368,12 +369,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index,
           align: "start",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index,
-              align: "start",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index,
+            align: "start",
+          }),
         );
       }
     }
@@ -462,6 +462,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           mode={mode}
           font_size={font_size}
           project_id={project_id}
+          path={fileContext?.path}
           directory={directory}
           complete={complete}
           is_focused={is_focused}
@@ -557,8 +558,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }, []);
 
   useEffect(updateScrollOrResize, [cells]);
-
-  const fileContext = useFileContext();
 
   let body;
 

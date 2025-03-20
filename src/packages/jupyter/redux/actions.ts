@@ -73,7 +73,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected _file_watcher: any;
   protected _state: any;
   protected restartKernelOnClose?: (...args: any[]) => void;
-  protected blobs?: DKV;
+  public blobs?: DKV;
 
   public _complete_request?: number;
   public store: JupyterStore;
