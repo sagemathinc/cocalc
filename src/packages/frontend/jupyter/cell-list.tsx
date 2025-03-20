@@ -462,7 +462,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           mode={mode}
           font_size={font_size}
           project_id={project_id}
-          path={fileContext?.path}
           directory={directory}
           complete={complete}
           is_focused={is_focused}

@@ -66,7 +66,6 @@ function messageComponent(message: Map<string, any>): any {
 interface CellOutputMessageProps {
   message: Map<string, any>;
   project_id?: string;
-  path?: string;
   directory?: string;
   actions?: JupyterActions; // optional  - not needed by most messages
   name?: string;
@@ -87,7 +86,6 @@ interface CellOutputMessagesProps {
   actions?: any; // optional actions
   name?: string;
   project_id?: string;
-  path?: string;
   directory?: string;
   scrolled?: boolean;
   trust?: boolean;
@@ -109,7 +107,6 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     actions,
     name,
     project_id,
-    path,
     directory,
     scrolled,
     trust,
@@ -145,7 +142,6 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
             index={n}
             message={mesg}
             project_id={project_id}
-            path={path}
             directory={directory}
             actions={actions}
             name={name}

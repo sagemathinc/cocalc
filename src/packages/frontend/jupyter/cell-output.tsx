@@ -23,7 +23,6 @@ interface CellOutputProps {
   id: string;
   cell: ImmutableMap<string, any>;
   project_id?: string;
-  path?: string;
   directory?: string;
   more_output?: ImmutableMap<string, any>;
   trust?: boolean;
@@ -41,7 +40,6 @@ export function CellOutput({
   id,
   cell,
   project_id,
-  path,
   directory,
   more_output,
   trust,
@@ -93,7 +91,6 @@ export function CellOutput({
         id={id}
         more_output={more_output}
         project_id={project_id}
-        path={path}
         directory={directory}
         name={name}
         trust={trust}
@@ -110,7 +107,6 @@ interface OutputColumnProps {
   actions?: JupyterActions;
   more_output?: ImmutableMap<string, any>;
   project_id?: string;
-  path?: string;
   directory?: string;
   name?: string;
   trust?: boolean;
@@ -124,7 +120,6 @@ function OutputColumn({
   actions,
   more_output,
   project_id,
-  path,
   directory,
   name,
   trust,
@@ -165,7 +160,6 @@ function OutputColumn({
       scrolled={cell.get("scrolled")}
       output={output}
       project_id={project_id}
-      path={path}
       directory={directory}
       actions={actions}
       name={name}

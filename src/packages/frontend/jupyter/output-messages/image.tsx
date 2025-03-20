@@ -15,12 +15,10 @@ interface ImageProps {
   width?: number;
   height?: number;
   actions?;
-  project_id?:string;
-  path?:string;
 }
 
 export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
-  const { actions, type, sha1, value, width, height, project_id, path } = props;
+  const { actions, type, sha1, value, width, height } = props;
 
   const is_mounted = useIsMountedRef();
 
@@ -55,7 +53,7 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
   }
 
   function renderSha1Blob(sha1: string): JSX.Element {
-    console.log("renderSha1Blob", { sha1, project_id, path });
+    console.log("renderSha1Blob", { sha1 });
     const blobs = actions?.blobs;
     const buf = blobs?.get(sha1);
     if (buf == null) {

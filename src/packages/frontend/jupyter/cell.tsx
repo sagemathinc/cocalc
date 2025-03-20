@@ -162,7 +162,6 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         name={props.name}
         id={id}
         project_id={props.project_id}
-        path={props.path}
         directory={props.directory}
         more_output={props.more_output}
         trust={props.trust}

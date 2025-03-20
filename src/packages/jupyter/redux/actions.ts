@@ -250,6 +250,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
+    this.blobs?.close();
+    delete this.blobs;
+
     if (this.syncdb != null) {
       this.syncdb.close();
     }

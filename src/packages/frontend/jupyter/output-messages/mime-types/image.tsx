@@ -9,7 +9,7 @@ function isSha1(s: string): boolean {
 register(
   "image/.*",
   2,
-  ({ project_id, path, message, value, type, actions }) => {
+  ({ message, value, type, actions }) => {
     let height: any = undefined;
     let width: any = undefined;
     message.get("metadata", []).forEach((value, key) => {
@@ -47,8 +47,6 @@ register(
     return (
       <Image
         actions={actions}
-        project_id={project_id}
-        path={path}
         type={type}
         sha1={sha1}
         value={val}
