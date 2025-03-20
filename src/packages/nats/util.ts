@@ -1,5 +1,6 @@
 import jsonStableStringify from "json-stable-stringify";
 import type { MsgHdrs } from "@nats-io/nats-core";
+import { is_array } from "@cocalc/util/misc";
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 // export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
@@ -25,10 +26,23 @@ export async function getAllFromKv({
 }> {
   // const t = Date.now();
   // console.log("start getAllFromKv", key);
-  const all: any = {};
-  const revisions: { [key: string]: number } = {};
-  const times: { [key: string]: Date } = {};
-  const headers: { [key: string]: MsgHdrs } = {};
+  let all: any = {};
+  let revisions: { [key: string]: number } = {};
+  let times: { [key: string]: Date } = {};
+  let headers: { [key: string]: MsgHdrs } = {};
+
+  if (is_array(key) && key.length > 1) {
+    // do all separately and combine... otherwise it hangs.
+    for (const k of key) {
+      const x = await getAllFromKv({ kv, key: k });
+      all = { ...all, ...x.all };
+      revisions = { ...revisions, ...x.revisions };
+      times = { ...times, ...x.times };
+      headers = { ...headers, ...x.headers };
+    }
+    return { all, revisions, times, headers };
+  }
+
   const watch = await kv.watch({ key, ignoreDeletes: false });
   if (watch._data._info.num_pending > 0) {
     for await (const { key: key0, value, revision, sm } of watch) {

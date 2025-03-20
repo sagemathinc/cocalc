@@ -62,6 +62,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { GeneralKV } from "./general-kv";
 
 const KEY_HEADER_NAME = "CoCalc-Key";
 
@@ -108,13 +109,7 @@ export class DKV<T = any> extends EventEmitter {
     this.sha1 = env.sha1 ?? sha1;
     this.name = name;
 
-    // *** WARNING: THIS CAN NEVER BE CHANGE! **
-    // The recipe for 'this.prefix' must never be changed, because
-    // it determines where the data is actually stored.  If you change
-    // it, then every user's data vanishes.
-    this.prefix = this.sha1(
-      JSON.stringify([name, valueType, localLocationName(options)]),
-    );
+    this.prefix = getPrefix({ sha1: this.sha1, name, valueType, options });
 
     this.opts = {
       location: { account_id, project_id },
@@ -402,6 +397,14 @@ export class DKV<T = any> extends EventEmitter {
   );
 }
 
+// *** WARNING: THIS CAN NEVER BE CHANGE! **
+// The recipe for 'this.prefix' must never be changed, because
+// it determines where the data is actually stored.  If you change
+// it, then every user's data vanishes.
+function getPrefix({ sha1, name, valueType, options }) {
+  return sha1(JSON.stringify([name, valueType, localLocationName(options)]));
+}
+
 export const cache = refCache<DKVOptions, DKV>({
   createKey: userKvKey,
   createObject: async (opts) => {
@@ -416,4 +419,32 @@ export const cache = refCache<DKVOptions, DKV>({
 
 export async function dkv<T>(options: DKVOptions): Promise<DKV<T>> {
   return await cache(options);
+}
+
+// Just get one value asynchronously, rather than the entire dkv.
+export async function get(opts: DKVOptions & { key: string }) {
+  const {
+    name,
+    valueType = "json",
+    limits,
+    key,
+    account_id,
+    project_id,
+  } = opts;
+  const prefix = getPrefix({ sha1, name, valueType, options: opts });
+  const filter = `${prefix}.${sha1(key)}`;
+  const env = await getEnv();
+  const kv = new GeneralKV({
+    name: jsName({ account_id, project_id }),
+    env,
+    // need both filter and .> from it to get CHUNKS in case of chunked data.
+    filter: [filter, filter + ".>"],
+    limits,
+    valueType,
+    noWatch: true,
+  });
+  await kv.init();
+  const value = kv.get(filter);
+  await kv.close();
+  return value;
 }

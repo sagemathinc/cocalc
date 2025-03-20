@@ -171,6 +171,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private limits: KVLimits;
   private revision: number = 0;
   public readonly valueType: ValueType;
+  private noWatch: boolean;
 
   constructor({
     name,
@@ -179,6 +180,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     options,
     limits,
     valueType,
+    noWatch,
   }: {
     name: string;
     // filter: optionally restrict to subset of named kv store matching these subjects.
@@ -188,6 +190,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     options?;
     limits?: Partial<KVLimits>;
     valueType?: ValueType;
+    noWatch?: boolean;
   }) {
     super();
     this.limits = {
@@ -198,6 +201,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       ...limits,
     };
 
+    this.noWatch = !!noWatch;
     this.env = env;
     this.name = name;
     this.options = options;
@@ -299,8 +303,10 @@ export class GeneralKV<T = any> extends EventEmitter {
     this.all = all0;
     this.revision = Math.max(0, ...Object.values(this.revisions));
     this.emit("connected");
-    this.startWatch();
-    this.monitorWatch();
+    if (!this.noWatch) {
+      this.startWatch();
+      this.monitorWatch();
+    }
 
     // Also anything left at this point is garbage that needs to be freed:
     for (const key in all) {
@@ -716,6 +722,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
 
     const maxMessageSize = getMaxPayload(this.env.nc) - 10000;
+    // const maxMessageSize = 100;
 
     if (val.length > maxMessageSize) {
       // chunking
