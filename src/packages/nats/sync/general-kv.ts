@@ -639,14 +639,6 @@ export class GeneralKV<T = any> extends EventEmitter {
     await awaitMap(Object.keys(this.all), MAX_PARALLEL, this.delete);
   };
 
-  set = async (
-    key: string,
-    value: T,
-    options?: { headers?: { [name: string]: string | null } },
-  ) => {
-    await this.setOne(key, value, options);
-  };
-
   setMany = async (
     obj: { [key: string]: T },
     headers?: { [key: string]: { [name: string]: string } },
@@ -654,11 +646,11 @@ export class GeneralKV<T = any> extends EventEmitter {
     await awaitMap(
       Object.keys(obj),
       MAX_PARALLEL,
-      async (key) => await this.setOne(key, obj[key], headers?.[key]),
+      async (key) => await this.set(key, obj[key], headers?.[key]),
     );
   };
 
-  private setOne = async (
+  set = async (
     key: string,
     value: T,
     options?: { headers?: { [name: string]: string | null } },

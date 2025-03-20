@@ -195,7 +195,12 @@ export class Inventory {
     for (const key in all) {
       const { last, created, count, bytes, desc, limits } = all[key];
       const { name, type, valueType } = this.decodeKey(key);
-      if (filter && !name.toLowerCase().includes(filter.toLowerCase())) {
+      if (
+        filter &&
+        !`${desc ? JSON.stringify(desc) : ""} ${name}`
+          .toLowerCase()
+          .includes(filter.toLowerCase())
+      ) {
         continue;
       }
       log(

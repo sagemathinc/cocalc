@@ -442,6 +442,10 @@ export class GeneralDKV<T = any> extends EventEmitter {
       try {
         status.unsaved += 1;
         await this.kv.set(key, obj[key] as T, this.options[key]);
+        //         console.log("kv store -- attemptToSave succeed", this.desc, {
+        //           key,
+        //           value: obj[key],
+        //         });
         status.unsaved -= 1;
         status.set += 1;
         if (!this.changed.has(key)) {
@@ -449,16 +453,25 @@ export class GeneralDKV<T = any> extends EventEmitter {
           this.saved[key] = this.local[key];
         }
       } catch (err) {
-        console.log("kv store -- attemptToSave failed", this.desc, err, {
-          key,
-          value: obj[key],
-        });
+        //         console.log("kv store -- attemptToSave failed", this.desc, err, {
+        //           key,
+        //           value: obj[key],
+        //         });
         if (err.code == "REJECT" && err.key) {
           const value = this.local[err.key];
           // can never save this.
           this.discardLocalState(err.key);
           status.unsaved -= 1;
           this.emit("reject", { key: err.key, value });
+        }
+        if (
+          err.code == "10071" &&
+          err.message.startsWith("wrong last sequence")
+        ) {
+          // this happens when another client has published a NEWER version of this key,
+          // so the right thing is to just ignore this.  In a moment there will be no
+          // need to save anything, since we'll receive a message that overwrites this key.
+          return;
         }
         throw err;
       }

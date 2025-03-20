@@ -7,7 +7,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 
 ~/cocalc/src/packages/backend$ node
 
-> z = await require('@cocalc/backend/nats/sync').openFiles({project_id:cc.current().project_id)
+> z = await require('@cocalc/backend/nats/sync').openFiles({project_id:cc.current().project_id})
 > z.touch({path:'a.txt'})
 > z.get({path:'a.txt'})
 { open: true, count: 1, time:2025-02-09T16:37:20.713Z }

@@ -106,11 +106,11 @@ export class DKO<T = any> extends EventEmitter {
     await this.dkv.init();
   });
 
-  close = () => {
+  close = async () => {
     if (this.dkv == null) {
       return;
     }
-    this.dkv.close();
+    await this.dkv.close();
     delete this.dkv;
     this.emit("closed");
     this.removeAllListeners();

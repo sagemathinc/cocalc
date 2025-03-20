@@ -42,7 +42,7 @@ const FILE_SERVER_AUTOSAVE_S = 45;
 // const FILE_SERVER_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
-const MAX_FILE_SIZE_MB = 8;
+const MAX_FILE_SIZE_MB = 32;
 
 // How frequently to check if file is or is not read only.
 // The filesystem watcher is NOT sufficient for this, because
