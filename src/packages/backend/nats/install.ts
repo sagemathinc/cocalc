@@ -35,9 +35,9 @@ import getLogger from "@cocalc/backend/logger";
 
 const VERSIONS = {
   // https://github.com/nats-io/nats-server/releases
-  "nats-server": "v2.11.0-RC.4",
+  "nats-server": "v2.11.0",
   // https://github.com/nats-io/natscli/releases
-  nats: "v0.1.6",
+  nats: "v0.2.0",
 };
 
 export const bin = join(nats, "bin");
