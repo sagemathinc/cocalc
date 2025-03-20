@@ -2379,10 +2379,10 @@ export class Actions<
 
   _init_settings(): void {
     const settings = this._syncstring.get_settings();
-    this.setState({ settings: settings });
+    this.setState({ settings });
 
     if (this._spellcheck_is_supported) {
-      if (!settings.get("spell")) {
+      if (!settings?.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
         // Use browser spellcheck **by default** if that option is
         // is configured, otherwise default backend spellcheck.
@@ -2395,18 +2395,18 @@ export class Actions<
     }
 
     this._syncstring.on("settings-change", (settings) => {
-      this.setState({ settings: settings });
+      this.setState({ settings });
     });
   }
 
   set_title(id: string, title: string): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, title: title });
+    this.set_frame_tree({ id, title });
   }
 
   set_connection_status(id: string, status?: ConnectionStatus): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, connection_status: status });
+    this.set_frame_tree({ id, connection_status: status });
   }
 
   connection_status(_: string): void {
