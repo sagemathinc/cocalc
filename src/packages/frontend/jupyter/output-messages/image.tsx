@@ -4,9 +4,10 @@
  */
 
 import { delay } from "awaiting";
-import React from "react";
+import { once } from "@cocalc/util/async-utils";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import { useEffect, useState } from "react";
+import { Spin } from "antd";
 
 interface ImageProps {
   type: string;
@@ -17,53 +18,37 @@ interface ImageProps {
   actions?;
 }
 
-export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
-  const { actions, type, sha1, value, width, height } = props;
-
-  const is_mounted = useIsMountedRef();
-
-  const { val: attempts, inc: inc_attempts } = useCounter(0);
-
-  async function load_error(): Promise<void> {
-    if (attempts < 5 && is_mounted.current) {
-      await delay(500);
-      if (!is_mounted.current) return;
-      inc_attempts();
-    }
+function renderImage({
+  src,
+  on_error,
+  width,
+  height,
+}: {
+  src: string;
+  width?;
+  height?;
+  on_error?;
+}): JSX.Element {
+  const props = {
+    src,
+    width,
+    height,
+  };
+  props["style"] = {
+    maxWidth: "100%",
+    height: props.height ?? "auto",
+  } as React.CSSProperties;
+  if (on_error != null) {
+    props["onError"] = on_error;
   }
+  return <img {...props} alt="Image in a Jupyter notebook" />;
+}
+
+export function Image(props: ImageProps) {
+  const { type, value, width, height } = props;
 
   function extension(): string {
     return type.split("/")[1].split("+")[0];
-  }
-
-  function render_image(src, on_error?): JSX.Element {
-    const props = {
-      src,
-      width,
-      height,
-    };
-    props["style"] = {
-      maxWidth: "100%",
-      height: props.height ?? "auto",
-    } as React.CSSProperties;
-    if (on_error != null) {
-      props["onError"] = on_error;
-    }
-    return <img {...props} alt="Image in a Jupyter notebook" />;
-  }
-
-  function renderSha1Blob(sha1: string): JSX.Element {
-    console.log("renderSha1Blob", { sha1 });
-    const blobs = actions?.blobs;
-    const buf = blobs?.get(sha1);
-    if (buf == null) {
-      return <div>image not available</div>;
-    }
-    const { type } = blobs.headers(sha1);
-    const blob = new Blob([buf], { type });
-    const url = URL.createObjectURL(blob);
-    // window.x = { blob, blobs, sha1, type, url, buf };
-    return render_image(url, load_error);
   }
 
   function encoding(): string {
@@ -75,21 +60,68 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
     }
   }
 
-  function render_locally(value: string): JSX.Element {
+  if (value != null) {
     // The encodeURIComponent is definitely necessary these days.
     // See https://github.com/sagemathinc/cocalc/issues/3197 and the comments at
     // https://css-tricks.com/probably-dont-base64-svg/
     const prefix = `data:${type};${encoding()}`;
     const src = `${prefix},${encodeURIComponent(value)}`;
-    return render_image(src);
-  }
-
-  if (value != null) {
-    return render_locally(value);
-  } else if (sha1 != null) {
-    return renderSha1Blob(sha1);
+    return renderImage({ src, width, height });
+  } else if (props.sha1 && props.actions) {
+    const { sha1, actions, width, height } = props;
+    return (
+      <RenderBlobImage
+        sha1={sha1}
+        width={width}
+        height={height}
+        actions={actions}
+      />
+    );
   } else {
     // not enough info to render
     return <span>[unavailable {extension()} image]</span>;
   }
-});
+}
+
+function RenderBlobImage({
+  sha1,
+  actions,
+  width,
+  height,
+}: {
+  sha1: string;
+  actions;
+  width?;
+  height?;
+}) {
+  const [src, setSrc] = useState<string | undefined>(undefined);
+  const isMounted = useIsMountedRef();
+  useEffect(() => {
+    (async () => {
+      while (isMounted.current && !actions.is_closed()) {
+        const blobs = actions.blobs;
+        if (blobs) {
+          try {
+            const buf = blobs.get(sha1);
+            if (buf != null) {
+              const { type } = blobs.headers(sha1);
+              const blob = new Blob([buf], { type });
+              // TODO:memory leak!
+              const src = URL.createObjectURL(blob);
+              setSrc(src);
+              break;
+            }
+          } catch {}
+          await once(blobs, "change");
+        } else {
+          await delay(1000);
+        }
+      }
+    })();
+  }, [sha1]);
+  if (src) {
+    return renderImage({ src, width, height });
+  } else {
+    return <Spin delay={1000} />;
+  }
+}

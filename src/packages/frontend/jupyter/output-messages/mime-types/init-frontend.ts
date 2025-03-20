@@ -9,7 +9,6 @@ import "./markdown";
 import "./html";
 import "./widget";
 import "./image";
-import "./iframe";
 import "./javascript";
 import "./pdf";
 import "./latex";
