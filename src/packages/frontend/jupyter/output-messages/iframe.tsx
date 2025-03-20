@@ -14,6 +14,7 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { get_blob_url } from "../server-urls";
 import HTML from "./mime-types/html";
+import ShowError from "@cocalc/frontend/components/error";
 
 // This impact loading the iframe data from the backend project (via the sha1 hash).
 // Doing retries is useful, e.g., since the project might not be running.
@@ -26,18 +27,25 @@ const WIDTH = "100vw";
 
 interface Props {
   sha1: string;
-  project_id: string;
   cacheId?: string;
   index?: number;
   trust?: boolean;
+  actions?;
 }
 
 export default function IFrame(props: Props) {
   // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
-  if (props.cacheId == null || !props.trust) {
+  if ((false && props.cacheId == null) || !props.trust) {
     return <NonCachedIFrame {...props} />;
   } else {
-    const src = get_blob_url(props.project_id, "html", props.sha1);
+    let src;
+    try {
+      src = getSource(props);
+    } catch (err) {
+      return <ShowError error={err} />;
+    }
+    console.log("iframe", { src, sha1: props.sha1 });
+
     return (
       <HTML
         id={props.cacheId}
@@ -49,7 +57,27 @@ export default function IFrame(props: Props) {
   }
 }
 
-function NonCachedIFrame({ sha1, project_id }: Props) {
+function getSource({
+  actions,
+  sha1,
+}: {
+  actions?;
+  sha1: string;
+}): string | undefined {
+  const blobs = actions?.blobs;
+  if (blobs == null) {
+    throw Error("blobs not available");
+  }
+  const src = blobs.get(sha1);
+  const decoder = new TextDecoder();
+  const blob = new Blob([decoder.decode(src)], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  return url;
+}
+
+function NonCachedIFrame({ sha1, actions }: Props) {
+  const project_id = "";
+  console.log(actions);
   const { val: attempts, inc: incAttempts } = useCounter();
   const [failed, setFailed] = useState<boolean>(false);
   const delayRef = useRef<number>(500);

@@ -32,10 +32,6 @@ import { callback, delay } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
-import {
-  process as iframe_process,
-  is_likely_iframe,
-} from "@cocalc/jupyter/blobs/iframe";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
@@ -791,27 +787,6 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     remove_redundant_reps(content.data);
 
-    let saveToBlobStore;
-    try {
-      const blob_store = get_blob_store_sync();
-      saveToBlobStore = (
-        data: string,
-        type: string,
-        ipynb?: string,
-      ): string => {
-        const sha1 = blob_store.save(data, type, ipynb);
-        if (this._actions?.is_compute_server) {
-          this._actions?.saveBlobToProject(data, type, ipynb);
-        }
-        return sha1;
-      };
-    } catch (err) {
-      dbg(`WARNING: Jupyter blob store is not available -- ${err}`);
-      // there is nothing to process without the blob store to save
-      // data in!
-      return;
-    }
-
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] == null) {
@@ -819,21 +794,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       }
       try {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          // Store all images and PDF in the blob store:
-          content.data[type] = this.saveBlob({ type, data: content.data[type] });
-        } else if (
-          type === "text/html" &&
-          is_likely_iframe(content.data[type])
-        ) {
-          // Likely iframe, so we treat it as such.  This is very important, e.g.,
-          // because of Sage's iframe 3d graphics.  We parse
-          // and remove these and serve them from the backend.
-          //  {iframe: sha1 of srcdoc}
-          content.data["iframe"] = iframe_process(
-            content.data[type],
-            saveToBlobStore,
-          );
-          delete content.data[type];
+          // Store all images and PDF in a binary blob store, so we don't have
+          // to involve it in realtime sync.
+          content.data[type] = this.saveBlob({
+            type,
+            data: content.data[type],
+          });
         }
       } catch (err) {
         dbg(`WARNING: Jupyter blob store not working -- ${err}`);
