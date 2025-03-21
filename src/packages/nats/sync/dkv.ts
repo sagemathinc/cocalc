@@ -1,6 +1,19 @@
 /*
-Always Consistent Centralized Key Value Store
+Eventually Consistent Distributed Key Value Store
 
+Supports:
+
+ - automatic value chunking to store arbitrarily large values
+ - type checking the values
+ - arbitrary name
+ - arbitrary keys
+ - limits
+
+This downloads ALL data for the key:value store to the client,
+then keeps it is in sync with NATS.
+
+For an alternative space efficient async interface to the EXACT SAME DATA,
+see akv.ts.
 
 DEVELOPMENT:
 
@@ -62,9 +75,8 @@ import { getEnv } from "@cocalc/nats/client";
 import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
-import { GeneralKV } from "./general-kv";
 
-const KEY_HEADER_NAME = "CoCalc-Key";
+export const KEY_HEADER_NAME = "CoCalc-Key";
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -256,6 +268,8 @@ export class DKV<T = any> extends EventEmitter {
     return x;
   };
 
+  // WARNING: (1) DO NOT CHANGE THIS or all stored data will become invalid.
+  //          (2) This definition is used implicitly in akv.ts also!
   // The encoded key which we actually store in NATS.   It has to have
   // a very, very restricted form and size, and a specified prefix, which
   // is why the hashing, etc.  This allows arbitrary keys.
@@ -401,7 +415,7 @@ export class DKV<T = any> extends EventEmitter {
 // The recipe for 'this.prefix' must never be changed, because
 // it determines where the data is actually stored.  If you change
 // it, then every user's data vanishes.
-function getPrefix({ sha1, name, valueType, options }) {
+export function getPrefix({ sha1, name, valueType, options }) {
   return sha1(JSON.stringify([name, valueType, localLocationName(options)]));
 }
 
@@ -419,32 +433,4 @@ export const cache = refCache<DKVOptions, DKV>({
 
 export async function dkv<T>(options: DKVOptions): Promise<DKV<T>> {
   return await cache(options);
-}
-
-// Just get one value asynchronously, rather than the entire dkv.
-export async function get(opts: DKVOptions & { key: string }) {
-  const {
-    name,
-    valueType = "json",
-    limits,
-    key,
-    account_id,
-    project_id,
-  } = opts;
-  const prefix = getPrefix({ sha1, name, valueType, options: opts });
-  const filter = `${prefix}.${sha1(key)}`;
-  const env = await getEnv();
-  const kv = new GeneralKV({
-    name: jsName({ account_id, project_id }),
-    env,
-    // need both filter and .> from it to get CHUNKS in case of chunked data.
-    filter: [filter, filter + ".>"],
-    limits,
-    valueType,
-    noWatch: true,
-  });
-  await kv.init();
-  const value = kv.get(filter);
-  await kv.close();
-  return value;
 }

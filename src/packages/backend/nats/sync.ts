@@ -6,6 +6,7 @@ import {
 import { kv as createKV, type KV } from "@cocalc/nats/sync/kv";
 import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
 import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
+import { akv as createAKV, type AKV } from "@cocalc/nats/sync/akv";
 import { getEnv } from "@cocalc/backend/nats/env";
 import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 export { inventory } from "@cocalc/nats/sync/inventory";
@@ -26,6 +27,10 @@ export async function kv<T = any>(opts): Promise<KV<T>> {
 
 export async function dkv<T = any>(opts): Promise<DKV<T>> {
   return await createDKV<T>({ env: await getEnv(), ...opts });
+}
+
+export function akv<T = any>(opts): AKV<T> {
+  return createAKV<T>(opts);
 }
 
 export async function dko<T = any>(opts): Promise<DKO<T>> {
