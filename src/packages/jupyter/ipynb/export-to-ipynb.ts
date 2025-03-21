@@ -63,6 +63,7 @@ interface Options {
   more_output?: { [id: string]: OutputMessage[] };
 }
 
+// **WARNING: any input to export_to_ipynb function may be MUTATED!**
 export function export_to_ipynb(opts: Options) {
   if (opts.kernelspec == null) {
     opts.kernelspec = {};

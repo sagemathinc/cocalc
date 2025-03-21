@@ -267,7 +267,6 @@ export class OutputHandler extends EventEmitter {
       this._clear_output(false);
     }
 
-    // worry about length
     const s = JSON.stringify(mesg);
     const mesg_length = s.length;
 
@@ -276,34 +275,26 @@ export class OutputHandler extends EventEmitter {
       return;
     }
 
-    if (
-      this._opts.max_output_messages &&
-      this._n >= this._opts.max_output_messages
-    ) {
-      this._push_mesg({ more_output: true });
-      this._in_more_output_mode = true;
-      this.emit("more_output", mesg, mesg_length);
-      return;
-    }
-
-    if (!this._opts.max_output_length) {
-      this._push_mesg(mesg);
-      return;
-    }
+    // check if limits exceeded:
 
     this._output_length += mesg_length;
 
-    if (this._output_length <= this._opts.max_output_length) {
+    const notTooLong =
+      this._opts.max_output_length == null ||
+      this._output_length <= this._opts.max_output_length;
+    const notTooMany =
+      this._opts.max_output_messages == null ||
+      this._n < this._opts.max_output_messages;
+
+    if (notTooLong && notTooMany) {
+      // limits NOT exceeded
       this._push_mesg(mesg);
       return;
     }
 
-    // Check if we have entered the mode were output gets put in
-    // the set_more_output buffer.
-    if (!this._in_more_output_mode) {
-      this._push_mesg({ more_output: true });
-      this._in_more_output_mode = true;
-    }
+    // Switch to too much output mode:
+    this._push_mesg({ more_output: true });
+    this._in_more_output_mode = true;
     this.emit("more_output", mesg, mesg_length);
   };
 

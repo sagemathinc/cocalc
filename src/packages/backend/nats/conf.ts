@@ -48,7 +48,8 @@ export const natsAccountName = "cocalc";
 // I tested and if you make this bigger, then smaller, it does NOT break
 // large jetstream messages created when it was bigger.  So it should be
 // safe to adjust.
-const max_payload = "8MB";
+//const max_payload = "8MB";
+const max_payload = "1MB";
 
 export async function configureNatsServer() {
   logger.debug("configureNatsServer", { confPath, natsPorts });

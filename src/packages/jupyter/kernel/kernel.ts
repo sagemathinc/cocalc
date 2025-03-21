@@ -904,15 +904,15 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
   }
 
-  more_output(id: string): any[] {
+  more_output = (id: string): any[] => {
     if (id == null) {
       throw new Error("must specify id");
     }
     if (this._actions == null) {
       throw new Error("must have redux actions");
     }
-    return this._actions.store.get_more_output(id) || [];
-  }
+    return this._actions.store.get_more_output(id) ?? [];
+  };
 
   async nbconvert(args: string[], timeout?: number): Promise<void> {
     if (timeout === undefined) {

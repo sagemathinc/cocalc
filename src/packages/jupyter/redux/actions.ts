@@ -11,10 +11,12 @@ This can be used both on the frontend and the backend.
 // This was 10000 for a while and that caused regular noticeable problems:
 //    https://github.com/sagemathinc/cocalc/issues/4590
 const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
+//const DEFAULT_MAX_OUTPUT_LENGTH = 1000;
 
 // Maximum number of output messages total.  If nmore, you have to click
 // "Fetch additional output" to see them.
 export const MAX_OUTPUT_MESSAGES = 1000;
+//export const MAX_OUTPUT_MESSAGES = 5;
 
 // Limit blob store to 100 MB. This means you can have at most this much worth
 // of recents images displayed in notebooks.  E.g, if you had a single
@@ -579,14 +581,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  private syncdb_cell_change(id: string, new_cell: any): boolean {
+  private syncdb_cell_change = (id: string, new_cell: any): boolean => {
     const cells: immutable.Map<
       string,
       immutable.Map<string, any>
     > = this.store.get("cells");
-    if (cells == null) throw Error("BUG -- cells must have been initialized!");
+    if (cells == null) {
+      throw Error("BUG -- cells must have been initialized!");
+    }
+
     let cell_list_needs_recompute = false;
-    //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
+    //this.dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
     if (new_cell == null) {
       // delete cell
@@ -601,8 +606,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (new_cell.equals(old_cell)) {
         return false; // nothing to do
       }
-      if (old_cell != null && new_cell.get("start") !== old_cell.get("start")) {
-        // cell re-evaluated so any more output is no longer valid.
+      if (
+        old_cell != null &&
+        new_cell.get("start") > old_cell.get("start") &&
+        !this.is_project &&
+        !this.is_compute_server
+      ) {
+        // cell re-evaluated so any more output is no longer valid -- clear frontend state
         this.reset_more_output(id);
       }
       if (old_cell == null || old_cell.get("pos") !== new_cell.get("pos")) {
@@ -623,7 +633,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
-  }
+  };
 
   _syncdb_change = (changes: any) => {
     if (this.syncdb == null) return;
@@ -2022,7 +2032,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  async fetch_more_output(id: string): Promise<void> {
+  fetch_more_output = async (id: string): Promise<void> => {
     const time = this._client.server_time().valueOf();
     try {
       const more_output = await this.api({ timeout: 60000 }).more_output(id);
@@ -2034,7 +2044,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     } catch (err) {
       this.set_error(err);
     }
-  }
+  };
 
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {

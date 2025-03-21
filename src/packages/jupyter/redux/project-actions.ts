@@ -681,8 +681,8 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   // returns new output handler for this cell.
-  protected _output_handler(cell: any) {
-    const dbg = this.dbg(`handler(id='${cell.id}')`);
+  protected _output_handler(cell) {
+    const dbg = this.dbg(`_output_handler(id='${cell.id}')`);
     if (
       this.jupyter_kernel == null ||
       this.jupyter_kernel.get_state() == "closed"
@@ -928,33 +928,26 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  reset_more_output = (id: any) => {
+  reset_more_output = (id: string) => {
     if (id == null) {
-      delete this.store._more_output;
+      this.store._more_output = {};
     }
-    if (
-      (this.store._more_output != null
-        ? this.store._more_output[id]
-        : undefined) != null
-    ) {
-      return delete this.store._more_output[id];
+    if (this.store._more_output[id] != null) {
+      delete this.store._more_output[id];
     }
   };
 
-  set_more_output = (id: any, mesg: any, length: any): void => {
-    if (this.store._more_output == null) {
-      this.store._more_output = {};
+  set_more_output = (id: string, mesg: object, length: number): void => {
+    if (this.store._more_output[id] == null) {
+      this.store._more_output[id] = {
+        length: 0,
+        messages: [],
+        lengths: [],
+        discarded: 0,
+        truncated: 0,
+      };
     }
-    const output =
-      this.store._more_output[id] != null
-        ? this.store._more_output[id]
-        : (this.store._more_output[id] = {
-            length: 0,
-            messages: [],
-            lengths: [],
-            discarded: 0,
-            truncated: 0,
-          });
+    const output = this.store._more_output[id];
 
     output.length += length;
     output.lengths.push(length);
@@ -966,15 +959,12 @@ export class JupyterActions extends JupyterActions0 {
       let did_truncate = false;
 
       // check if there is a text field, which we can truncate
-      let len =
-        output.messages[0].text != null
-          ? output.messages[0].text.length
-          : undefined;
+      let len = output.messages[0].text?.length;
       if (len != null) {
         need = output.length - goal_length + 50;
         if (len > need) {
           // Instead of throwing this message away, let's truncate its text part.  After
-          // doing this, the message is at least need shorter than it was before.
+          // doing this, the message is at least shorter than it was before.
           output.messages[0].text = misc.trunc(
             output.messages[0].text,
             len - need,

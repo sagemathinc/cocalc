@@ -28,6 +28,7 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { startswith } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
+import { cloneDeep } from "lodash";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -119,7 +120,7 @@ export const initial_jupyter_store_state: {
 
 export class JupyterStore extends Store<JupyterStoreState> {
   // manipulated in jupyter/project-actions.ts
-  public _more_output: any;
+  public _more_output: { [id: string]: any } = {};
 
   // immutable List
   public get_cell_list = (): List<string> => {
@@ -223,6 +224,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
     }
 
+    // export_to_ipynb mutates its input... mostly not a problem, since
+    // we're toJS'ing most of it, but be careful with more_output.
     return export_to_ipynb({
       cells: this.get("cells").toJS(),
       cell_list: cell_list.toJS(),
@@ -230,7 +233,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output,
+      more_output: cloneDeep(more_output),
     });
   };
 
@@ -345,7 +348,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
               output[x] > 1 ? "messages were" : "message was"
             } ${x}.\n`;
           }
-          const warn = [{ text: text, name: "stderr" }];
+          const warn = [{ text, name: "stderr" }];
           if (messages.length > 0) {
             messages = warn.concat(messages).concat(warn);
           } else {

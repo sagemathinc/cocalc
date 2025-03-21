@@ -15,7 +15,9 @@ Set env variables as in a project (see  api/index.ts ), then in nodejs:
 
 DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
 
-> x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
+    x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
+
+
 [ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
 
 > x.openFiles.getAll();
