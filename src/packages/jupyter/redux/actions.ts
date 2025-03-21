@@ -12,6 +12,10 @@ This can be used both on the frontend and the backend.
 //    https://github.com/sagemathinc/cocalc/issues/4590
 const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
 
+// Maximum number of output messages total.  If nmore, you have to click
+// "Fetch additional output" to see them.
+export const MAX_OUTPUT_MESSAGES = 1000;
+
 // Limit blob store to 100 MB. This means you can have at most this much worth
 // of recents images displayed in notebooks.  E.g, if you had a single
 // notebook with more than this much in images, the oldest ones would

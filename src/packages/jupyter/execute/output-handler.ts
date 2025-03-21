@@ -11,15 +11,15 @@ WARNING: For efficiency reasons (involving syncdb patch sizes),
 outputs is a map from the (string representations of) the numbers
 from 0 to n-1, where there are n messages.  So watch out.
 
-OutputHandler emits two events:
+OutputHandler emits these events:
 
    - 'change' -- (save),  called when we change cell; if save=true, recommend
                  broadcasting this change to other users ASAP.
 
    - 'done'  -- emited once when finished; after this, everything is cleaned up
 
-   - 'more_output'  -- If we exceed the message limit, emit more_output  (mesg, mesg_length)
-                          with extra messages.
+   - 'more_output'  -- If we exceed the message limit, emit more_output
+                      (mesg, mesg_length) with extra messages.
 
    - 'process'  -- Gets called on any incoming message; it may
                    **mutate** the message, e.g., removing images uses this.
@@ -63,8 +63,10 @@ export class OutputHandler extends EventEmitter {
     super();
     this._opts = defaults(opts, {
       cell: required, // object; the cell whose output (etc.) will get mutated
-      max_output_length: undefined, // If given, used to truncate, discard output messages; extra
+      // If given, used to truncate, discard output messages; extra
       // messages are saved and made available.
+      max_output_length: undefined,
+      max_output_messages: undefined,
       report_started_ms: undefined, // If no messages for this many ms, then we update via set to indicate
       // that cell is being run.
       dbg: undefined,
@@ -200,7 +202,7 @@ export class OutputHandler extends EventEmitter {
         this.lastSave = n;
         this.saveIntervalMs = Math.min(
           MAX_SAVE_INTERVAL_MS,
-          this.saveIntervalMs * 1.1
+          this.saveIntervalMs * 1.1,
         );
       }
     } else if (save == true) {
@@ -265,14 +267,30 @@ export class OutputHandler extends EventEmitter {
       this._clear_output(false);
     }
 
+    // worry about length
+    const s = JSON.stringify(mesg);
+    const mesg_length = s.length;
+
+    if (this._in_more_output_mode) {
+      this.emit("more_output", mesg, mesg_length);
+      return;
+    }
+
+    if (
+      this._opts.max_output_messages &&
+      this._n >= this._opts.max_output_messages
+    ) {
+      this._push_mesg({ more_output: true });
+      this._in_more_output_mode = true;
+      this.emit("more_output", mesg, mesg_length);
+      return;
+    }
+
     if (!this._opts.max_output_length) {
       this._push_mesg(mesg);
       return;
     }
 
-    // worry about length
-    const s = JSON.stringify(mesg);
-    const mesg_length = (s && s.length) || 0;
     this._output_length += mesg_length;
 
     if (this._output_length <= this._opts.max_output_length) {

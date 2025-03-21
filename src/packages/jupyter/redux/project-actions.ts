@@ -18,7 +18,10 @@ import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
 import { debounce } from "lodash";
-import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
+import {
+  JupyterActions as JupyterActions0,
+  MAX_OUTPUT_MESSAGES,
+} from "@cocalc/jupyter/redux/actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
@@ -36,6 +39,9 @@ import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
+
+// refuse to open an ipynb that is bigger than this:
+const MAX_SIZE_IPYNB_MB = 150;
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -688,6 +694,7 @@ export class JupyterActions extends JupyterActions0 {
     const handler = new OutputHandler({
       cell,
       max_output_length: this.store.get("max_output_length"),
+      max_output_messages: MAX_OUTPUT_MESSAGES,
       report_started_ms: 250,
       dbg,
     });
@@ -1193,7 +1200,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       content = await callback2(this._client.path_read, {
         path,
-        maxsize_MB: 50,
+        maxsize_MB: MAX_SIZE_IPYNB_MB,
       });
     } catch (err) {
       // possibly file doesn't exist -- set notebook to empty.

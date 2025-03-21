@@ -219,7 +219,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     for (const id of cell_list.toJS()) {
       const x = this.get_more_output(id);
       if (x != null) {
-        more_output[id] = x.toJS();
+        more_output[id] = x;
       }
     }
 
