@@ -30,7 +30,6 @@ import {
   decodeUUIDtoNum,
   isEncodedNumUUID,
 } from "@cocalc/util/compute/manager";
-import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
@@ -1277,7 +1276,8 @@ export class JupyterActions extends JupyterActions0 {
     let ipynb = this.store.get_ipynb(blob_store);
     if (this.store.get("kernel")) {
       // if a kernel is set, check that it was sufficiently known that
-      // we can fill in data about it -- see https://github.com/sagemathinc/cocalc/issues/7286
+      // we can fill in data about it --
+      //   see https://github.com/sagemathinc/cocalc/issues/7286
       if (ipynb?.metadata?.kernelspec?.name == null) {
         dbg("kernelspec not known -- try loading kernels again");
         await this.fetch_jupyter_kernels();
@@ -1655,6 +1655,7 @@ export class JupyterActions extends JupyterActions0 {
       }
 
       case "save-blob-to-project": {
+        // TODO: this should be DEPRECATED in favor of NATS!!
         if (!this.is_project) {
           throw Error(
             "message save-blob-to-project should only be sent to the project",
@@ -1662,8 +1663,11 @@ export class JupyterActions extends JupyterActions0 {
         }
         // A compute server sent the project a blob to store
         // in the local blob store.
-        const blobStore = await get_blob_store();
-        blobStore.save(data.data, data.type, data.ipynb);
+        const blobStore = this.jupyter_kernel?.get_blob_store();
+        if (blobStore == null) {
+          throw Error("blob store not available");
+        }
+        blobStore.saveBase64(data.data);
         return;
       }
 

@@ -38,6 +38,18 @@ In this case, you aso don't need to use the terminate command if the compute
 server isn't actually running.  To terminate a compute server open files service though:
 
     (TODO)
+
+
+EDITOR ACTIONS:
+
+Stop the open-files server and define x as above in a terminal.  You can
+then get the actions or store in a nodejs terminal for a particular document
+as follows:
+
+project_id = '00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'; path = '2025-03-21-100921.ipynb';
+redux = require("@cocalc/jupyter/redux/app").redux;  a = redux.getEditorActions(project_id, path); s = redux.getEditorStore(project_id, path); 0;
+
+
 */
 
 import {
@@ -57,7 +69,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
-import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { createFormatterService } from "./formatter";
 import { type NatsService } from "@cocalc/nats/service/service";
 import { createTerminalService } from "./terminal";
@@ -405,7 +416,6 @@ const openDoc = reuseInFlight(async (path: string) => {
     switch (ext) {
       case "sage-jupyter2":
         logger.debug("initializing Jupyter backend for ", path);
-        await get_blob_store(); // make sure jupyter blobstore is available
         await initJupyterRedux(syncdoc, client);
         const path1 = original_path(syncdoc.get_path());
         syncdoc.on("closed", async () => {

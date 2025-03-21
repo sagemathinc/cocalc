@@ -4,7 +4,6 @@
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
     "./*": "./dist/*.js",
-    "./blobs": "./dist/blobs/index.js",
     "./execute/*": "./dist/execute/*.js",
     "./kernel": "./dist/kernel/index.js",
     "./kernel/*": "./dist/kernel/*.js",

@@ -34,12 +34,12 @@ export interface EventEmitterInterface {
 }
 
 export interface BlobStoreInterface {
-  save(data, type, ipynb?): string;
-  readFile(path: string, type: string): Promise<string>;
-  get(sha1: string): undefined | Buffer;
-  get_ipynb(sha1: string): any;
-  keys(): Promise<string[]>;
-  delete_all_blobs(): void;
+  // get base64 encoded binary data out of the blob store.
+  getBase64(sha1: string): string | undefined;
+  // save a string encoded in base64 as binary data in the blob store
+  saveBase64: (base64: string) => string | undefined;
+  // read file from disk and store in blob store.  returns sha1 hash of contents of file.
+  readFile(path: string): Promise<string>;
 }
 
 export interface MessageHeader {

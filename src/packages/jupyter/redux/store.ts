@@ -219,14 +219,14 @@ export class JupyterStore extends Store<JupyterStoreState> {
     for (const id of cell_list.toJS()) {
       const x = this.get_more_output(id);
       if (x != null) {
-        more_output[id] = x;
+        more_output[id] = x.toJS();
       }
     }
 
     return export_to_ipynb({
-      cells: this.get("cells"),
-      cell_list,
-      metadata: this.get("metadata"), // custom metadata
+      cells: this.get("cells").toJS(),
+      cell_list: cell_list.toJS(),
+      metadata: this.get("metadata")?.toJS(), // custom metadata
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
@@ -237,7 +237,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
   public get_language_info(): object | undefined {
     for (const key of ["backend_kernel_info", "metadata"]) {
       const language_info = this.unsafe_getIn([key, "language_info"]);
-      if (language_info != null) return language_info;
+      if (language_info != null) {
+        return language_info;
+      }
     }
   }
 

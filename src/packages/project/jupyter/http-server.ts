@@ -13,18 +13,10 @@ kernels, sending signals, doing tab completions, and so on.
 import { Router } from "express";
 import * as os_path from "node:path";
 import getLogger from "@cocalc/backend/logger";
-import { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
-import { startswith, to_json } from "@cocalc/util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { get_existing_kernel } from "@cocalc/jupyter/kernel";
-import {
-  BlobStoreDisk,
-  get_blob_store,
-  BlobStoreSqlite,
-} from "@cocalc/jupyter/blobs";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
-import { delay } from "awaiting";
 
 const log = getLogger("jupyter-http-server");
 
@@ -53,7 +45,7 @@ function jupyter_kernel_info_handler(router): void {
           res
             .status(404)
             .send(
-              `buffer associated to model ${model_id} at ${buffer_path} not known`
+              `buffer associated to model ${model_id} at ${buffer_path} not known`,
             );
           return;
         }
@@ -61,7 +53,7 @@ function jupyter_kernel_info_handler(router): void {
       } catch (err) {
         res.status(500).send(`Error getting ipywidgets buffer - ${err}`);
       }
-    }
+    },
   );
 
   // we are only actually using this to serve up the logo.
@@ -101,51 +93,11 @@ function jupyter_kernel_info_handler(router): void {
 }
 
 export default async function init(): Promise<Router> {
-  // this might take infinitely long, obviously:
-  let blob_store: BlobStoreSqlite | BlobStoreDisk;
-  let d = 3000;
-  while (true) {
-    try {
-      // This call right here causes the configured blobstore to be initialized in the file
-      // packages/jupyter/blobs/get.ts
-      blob_store = await get_blob_store();
-      get_ProjectStatusServer().clearComponentAlert("BlobStore");
-      break;
-    } catch (err) {
-      get_ProjectStatusServer().setComponentAlert("BlobStore");
-      log.warn(`unable to instantiate BlobStore -- ${err}`);
-    }
-    await delay(d);
-    d = Math.min(30000, 1.2 * d);
-  }
-
-  log.debug("got blob store, setting up jupyter http server");
+  log.debug("setup jupyter http server");
   const router = Router();
-
-  // Install handling for the blob store
-  jupyter_blobstore_handler(router, blob_store);
 
   // Handler for Jupyter kernel info
   jupyter_kernel_info_handler(router);
 
   return router;
-}
-
-function jupyter_blobstore_handler(
-  router: Router,
-  blob_store: BlobStoreInterface
-): void {
-  const base = BASE + "blobs/";
-
-  router.get(base, async (_, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.end(to_json(await blob_store.keys()));
-  });
-
-  router.get(base + "*", async (req, res) => {
-    const filename: string = req.path.slice(base.length);
-    const sha1: string = `${req.query.sha1}`;
-    res.type(filename);
-    res.send(await blob_store.get(sha1));
-  });
 }

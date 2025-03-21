@@ -78,5 +78,6 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 
 export function to_ipynb(doc): object {
-  return export_to_ipynb(get_cells(doc));
+  const { cells, cell_list } = get_cells(doc);
+  return export_to_ipynb({ cells: cells.toJS(), cell_list: cell_list.toJS() });
 }

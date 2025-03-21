@@ -35,6 +35,7 @@ import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
+  type BlobStoreInterface,
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
@@ -57,7 +58,6 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
-import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
 import {
   getLanguage,
   get_kernel_data_by_name,
@@ -77,6 +77,8 @@ import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";
 import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
+import { join } from "path";
+import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -934,16 +936,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     const dbg = this.dbg("load_attachment");
     dbg(`path='${path}'`);
     if (path[0] !== "/") {
-      path = process.env.HOME + "/" + path;
+      path = join(process.env.HOME ?? "", path);
     }
-    async function f(): Promise<string> {
-      const bs = get_blob_store_sync();
-      if (bs == null) throw new Error("BlobStore not available");
-      return bs.readFile(path, "base64");
-    }
+    const f = async (): Promise<string> => {
+      const bs = this.get_blob_store();
+      if (bs == null) {
+        throw new Error("BlobStore not available");
+      }
+      return await bs.readFile(path);
+    };
     try {
       return await retry_until_success({
-        f: f,
+        f,
         max_time: 30000,
       });
     } catch (err) {
@@ -954,14 +958,40 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   // This is called by project-actions when exporting the notebook
   // to an ipynb file:
-  get_blob_store() {
-    return get_blob_store_sync();
-  }
+  get_blob_store = (): BlobStoreInterface | undefined => {
+    const blobs = this._actions?.blobs;
+    if (blobs == null) {
+      return;
+    }
+    return {
+      getBase64: (sha1: string): string | undefined => {
+        const buf = blobs.get(sha1);
+        if (buf === undefined) {
+          return buf;
+        }
+        return buf.toString("base64");
+      },
 
-  process_attachment(base64, mime): string | undefined {
-    const blob_store = get_blob_store_sync();
-    return blob_store?.save(base64, mime);
-  }
+      readFile: async (path: string): Promise<string> => {
+        const buf = await readFile(path);
+        const sha1: string = misc_node_sha1(buf);
+        blobs.set(sha1, buf);
+        return sha1;
+      },
+
+      saveBase64: (data: string) => {
+        const buf = Buffer.from(data, "base64");
+        const sha1: string = misc_node_sha1(buf);
+        blobs.set(sha1, buf);
+        return sha1;
+      },
+    };
+  };
+
+  process_attachment = (base64: string): string | undefined => {
+    const blob_store = this.get_blob_store();
+    return blob_store?.saveBase64(base64);
+  };
 
   process_comm_message_from_kernel(mesg): void {
     if (this._actions == null) {
