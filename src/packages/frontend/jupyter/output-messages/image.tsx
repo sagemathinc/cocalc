@@ -3,11 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
-import { useEffect, useState } from "react";
 import { Spin } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
-import LRU from "lru-cache";
+import useBlob from "./use-blob";
+import { useState } from "react";
 
 interface ImageProps {
   type: string;
@@ -95,13 +94,6 @@ export function Image(props: ImageProps) {
   }
 }
 
-const cache = new LRU<string, string>({
-  max: 100,
-  dispose: (url) => {
-    URL.revokeObjectURL(url);
-  },
-});
-
 function RenderBlobImage({
   sha1,
   actions,
@@ -116,33 +108,7 @@ function RenderBlobImage({
   type: string;
 }) {
   const [error, setError] = useState<string>("");
-  const [src, setSrc] = useState<string | undefined>(cache.get(sha1));
-  const isMounted = useIsMountedRef();
-  useEffect(() => {
-    if (cache.has(sha1)) {
-      setSrc(cache.get(sha1));
-      return;
-    }
-    (async () => {
-      let buf;
-      try {
-        buf = await actions.asyncBlobStore.get(sha1, { timeout: 5000 });
-      } catch (err) {
-        setError(`${err}`);
-        return;
-      }
-      if (buf == null) {
-        setError("Image not available");
-        return;
-      }
-      const blob = new Blob([buf], { type });
-      const src = URL.createObjectURL(blob);
-      cache.set(sha1, src);
-      if (isMounted.current && !actions.is_closed()) {
-        setSrc(src);
-      }
-    })();
-  }, [sha1]);
+  const src = useBlob({ sha1, actions, type, setError });
 
   if (error) {
     return (

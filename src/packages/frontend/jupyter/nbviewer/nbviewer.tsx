@@ -9,7 +9,6 @@ Viewer for public ipynb files.
 
 import { Alert } from "antd";
 import { CSSProperties, useMemo } from "react";
-
 import { useBottomScroller } from "@cocalc/frontend/app-framework/use-bottom-scroller";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
