@@ -3,7 +3,7 @@ Asynchronous Memory Efficient Access to Key:Value Store
 
 This provides the same abstraction as dkv, except it doesn't download any
 data to the client until you actually call get.   The calls to get and
-set are async.
+set are thus async.
 
 Because AsyncKV has no global knowledge of this key:value store, the inventory
 is not updated and limits are not enforced.  Of course chunking (storing large

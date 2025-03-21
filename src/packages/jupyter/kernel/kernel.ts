@@ -755,17 +755,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
-  private saveBlob = ({ type, data }: { type: string; data: string }) => {
+  private saveBlob = (data, type) => {
     const blobs = this._actions?.blobs;
     if (blobs == null) {
       throw Error("blob store not available");
     }
-    const buf: Buffer = BASE64_TYPES.includes(type as any)
-      ? Buffer.from(data, "base64")
-      : Buffer.from(data);
+    const buf: Buffer =
+      type && BASE64_TYPES.includes(type as any)
+        ? Buffer.from(data, "base64")
+        : Buffer.from(data);
 
     const sha1: string = misc_node_sha1(buf);
-    blobs.set(sha1, buf, { headers: { type } });
+    blobs.set(sha1, buf);
     return sha1;
   };
 
@@ -796,10 +797,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
           // Store all images and PDF in a binary blob store, so we don't have
           // to involve it in realtime sync.
-          content.data[type] = this.saveBlob({
-            type,
-            data: content.data[type],
-          });
+          content.data[type] = this.saveBlob(content.data[type], type);
         }
       } catch (err) {
         dbg(`WARNING: Jupyter blob store not working -- ${err}`);

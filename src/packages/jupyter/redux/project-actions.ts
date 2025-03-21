@@ -33,6 +33,7 @@ import {
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
+import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
@@ -51,6 +52,11 @@ export class JupyterActions extends JupyterActions0 {
   private running_manager_run_cell_process_queue: boolean = false;
   private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
+  public blobs: DKV;
+
+  private initBlobStore = async () => {
+    this.blobs = await dkv(this.blobStoreOptions());
+  };
 
   public run_cell(
     id: string,
@@ -165,6 +171,9 @@ export class JupyterActions extends JupyterActions0 {
 
     dbg("initialize Jupyter NATS api handler");
     await this.initNatsApi();
+
+    dbg("initializing blob store");
+    await this.initBlobStore();
 
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
@@ -1476,6 +1485,8 @@ export class JupyterActions extends JupyterActions0 {
         dbg("WARNING -- issue removing jupyter redux", err);
       }
     })();
+
+    this.blobs?.close();
   }
 
   // not actually async...

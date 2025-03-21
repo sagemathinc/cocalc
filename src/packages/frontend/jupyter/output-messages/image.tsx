@@ -3,11 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useEffect, useState } from "react";
 import { Spin } from "antd";
+import ShowError from "@cocalc/frontend/components/error";
+import LRU from "lru-cache";
 
 interface ImageProps {
   type: string;
@@ -24,7 +24,7 @@ function renderImage({
   width,
   height,
 }: {
-  src: string;
+  src?: string;
   width?;
   height?;
   on_error?;
@@ -36,10 +36,21 @@ function renderImage({
   };
   props["style"] = {
     maxWidth: "100%",
-    height: props.height ?? "auto",
+    width: props.width,
+    maxHeight: props.height ?? "auto",
+    height: "auto",
+    padding: src ? undefined : "15px",
+    textAlign: "center",
   } as React.CSSProperties;
   if (on_error != null) {
     props["onError"] = on_error;
+  }
+  if (!src) {
+    return (
+      <div {...props}>
+        <Spin delay={1000} />
+      </div>
+    );
   }
   return <img {...props} alt="Image in a Jupyter notebook" />;
 }
@@ -68,13 +79,14 @@ export function Image(props: ImageProps) {
     const src = `${prefix},${encodeURIComponent(value)}`;
     return renderImage({ src, width, height });
   } else if (props.sha1 && props.actions) {
-    const { sha1, actions, width, height } = props;
+    const { sha1, actions } = props;
     return (
       <RenderBlobImage
         sha1={sha1}
         width={width}
         height={height}
         actions={actions}
+        type={type}
       />
     );
   } else {
@@ -83,45 +95,63 @@ export function Image(props: ImageProps) {
   }
 }
 
+const cache = new LRU<string, string>({
+  max: 100,
+  dispose: (url) => {
+    URL.revokeObjectURL(url);
+  },
+});
+
 function RenderBlobImage({
   sha1,
   actions,
   width,
   height,
+  type,
 }: {
   sha1: string;
   actions;
   width?;
   height?;
+  type: string;
 }) {
-  const [src, setSrc] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string>("");
+  const [src, setSrc] = useState<string | undefined>(cache.get(sha1));
   const isMounted = useIsMountedRef();
   useEffect(() => {
+    if (cache.has(sha1)) {
+      setSrc(cache.get(sha1));
+      return;
+    }
     (async () => {
-      while (isMounted.current && !actions.is_closed()) {
-        const blobs = actions.blobs;
-        if (blobs) {
-          try {
-            const buf = blobs.get(sha1);
-            if (buf != null) {
-              const { type } = blobs.headers(sha1);
-              const blob = new Blob([buf], { type });
-              // TODO:memory leak!
-              const src = URL.createObjectURL(blob);
-              setSrc(src);
-              break;
-            }
-          } catch {}
-          await once(blobs, "change");
-        } else {
-          await delay(1000);
-        }
+      let buf;
+      try {
+        buf = await actions.asyncBlobStore.get(sha1, { timeout: 5000 });
+      } catch (err) {
+        setError(`${err}`);
+        return;
+      }
+      if (buf == null) {
+        setError("Image not available");
+        return;
+      }
+      const blob = new Blob([buf], { type });
+      const src = URL.createObjectURL(blob);
+      cache.set(sha1, src);
+      if (isMounted.current && !actions.is_closed()) {
+        setSrc(src);
       }
     })();
   }, [sha1]);
-  if (src) {
-    return renderImage({ src, width, height });
-  } else {
-    return <Spin delay={1000} />;
+
+  if (error) {
+    return (
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ margin: "5px 0" }}
+      />
+    );
   }
+  return renderImage({ src, width, height });
 }

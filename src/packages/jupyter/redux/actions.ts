@@ -12,6 +12,14 @@ This can be used both on the frontend and the backend.
 //    https://github.com/sagemathinc/cocalc/issues/4590
 const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
 
+// Limit blob store to 100 MB. This means you can have at most this much worth
+// of recents images displayed in notebooks.  E.g, if you had a single
+// notebook with more than this much in images, the oldest ones would
+// start vanishing from output.  Also, this impacts time travel.
+// WARNING: It is *not* at all difficult to hit fairly large sizes, e.g., 50MB+
+// when working with a notebook, by just drawing a bunch of large plots.
+const MAX_BLOB_STORE_SIZE = 100 * 1000000;
+
 declare const localStorage: any;
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -42,7 +50,7 @@ import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { debounce } from "lodash";
 import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
-import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
+import { type AKV, akv } from "@cocalc/nats/sync/akv";
 
 const { close, required, defaults } = misc;
 
@@ -73,7 +81,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected _file_watcher: any;
   protected _state: any;
   protected restartKernelOnClose?: (...args: any[]) => void;
-  public blobs?: DKV;
+  public asyncBlobStore: AKV;
 
   public _complete_request?: number;
   public store: JupyterStore;
@@ -150,24 +158,21 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this.fetch_jupyter_kernels();
     }
 
-    this.initBlobStore();
+    this.asyncBlobStore = akv(this.blobStoreOptions());
 
     // Hook for additional initialization.
     this.init2();
   }
 
-  private initBlobStore = async () => {
-    this.blobs = await dkv({
+  protected blobStoreOptions = () => {
+    return {
       name: `jupyter:${this.path}`,
       project_id: this.project_id,
       valueType: "binary",
       limits: {
-        // 1 month
-        max_age: 1000 * 60 * 60 * 24 * 30,
-        // 150 MB
-        max_bytes: 150000000,
+        max_bytes: MAX_BLOB_STORE_SIZE,
       },
-    });
+    } as const;
   };
 
   // default is to do nothing, but e.g., frontend browser client
@@ -249,9 +254,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this.is_closed()) {
       return;
     }
-
-    this.blobs?.close();
-    delete this.blobs;
 
     if (this.syncdb != null) {
       this.syncdb.close();
