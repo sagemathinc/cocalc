@@ -14,14 +14,14 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 // with the non-standard appBasePath attribute
 declare const window: any;
 
-export function get_server_url(project_id: string): string {
+function get_server_url(project_id: string): string {
   return join(appBasePath, project_id, "raw/.smc/jupyter");
 }
 
 export function get_blob_url(
   project_id: string,
   extension: string,
-  sha1: string
+  sha1: string,
 ): string {
   return `${get_server_url(project_id)}/blobs/a.${extension}?sha1=${sha1}`;
 }
@@ -31,14 +31,13 @@ export function ipywidgetsGetBufferUrl(
   project_id: string,
   path: string,
   model_id: string,
-  buffer_path: string
+  buffer_path: string,
 ): string {
   return `${get_server_url(
-    project_id
+    project_id,
   )}/ipywidgets-get-buffer?path=${encodeURIComponent(
-    path
+    path,
   )}&model_id=${encodeURIComponent(model_id)}&buffer_path=${encodeURIComponent(
-    buffer_path
+    buffer_path,
   )}`;
 }
-
