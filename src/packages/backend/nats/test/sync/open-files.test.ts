@@ -29,7 +29,7 @@ describe("create open file tracker and do some basic operations", () => {
   it("creates two open files trackers (tracking same project) and clear them", async () => {
     o1 = await create();
     o2 = await create();
-    // ensure caching disable so our sync tests are real
+    // ensure caching disabled so our sync tests are real
     expect(o1.getDkv() === o2.getDkv()).toBe(false);
     o1.clear();
     await o1.save();
@@ -78,8 +78,7 @@ describe("create open file tracker and do some basic operations", () => {
     o1.delete(file1);
     expect(o1.get(file1)).toBe(undefined);
     expect(o1.getAll().length).toBe(1);
-    o1.save();
-    await delay(1000);
+    await o1.save();
     if (o2.get(file1) != null) {
       await once(o2, "change", 250);
     }
