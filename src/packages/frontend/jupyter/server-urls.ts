@@ -42,6 +42,3 @@ export function ipywidgetsGetBufferUrl(
   )}`;
 }
 
-export function get_logo_url(project_id: string, kernel: string): string {
-  return `${get_server_url(project_id)}/kernelspecs/${kernel}/logo-64x64.png`;
-}

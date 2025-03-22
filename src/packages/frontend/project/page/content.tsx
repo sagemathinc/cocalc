@@ -50,6 +50,7 @@ import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
 import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -173,6 +174,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           project_id,
           path,
           is_visible,
+          client: webapp_client,
         };
         return (
           <FileContext.Provider value={value}>

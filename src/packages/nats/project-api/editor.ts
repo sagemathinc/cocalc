@@ -6,6 +6,7 @@ export const editor = {
   jupyterStripNotebook: true,
   jupyterNbconvert: true,
   jupyterRunNotebook: true,
+  jupyterKernelLogo: true,
   formatterString: true,
 };
 
@@ -13,6 +14,10 @@ export interface Editor {
   jupyterStripNotebook: (path_ipynb: string) => Promise<string>;
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
   jupyterRunNotebook: (opts: RunNotebookOptions) => Promise<string>;
+  jupyterKernelLogo: (
+    kernelName: string,
+    opts?: { noCache?: boolean },
+  ) => Promise<{ filename: string; base64: string }>;
 
   // returns a patch to transform str into formatted form.
   formatterString: (opts: {
