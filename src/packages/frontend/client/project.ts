@@ -14,7 +14,6 @@ import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
-import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { API } from "@cocalc/frontend/project/websocket/api";
@@ -600,17 +599,7 @@ export class ProjectClient {
       path: string,
       model_id: string,
       buffer_path: string,
-      useHttp?: boolean, // ONLY works for home base, NOT compute servers!
     ): Promise<ArrayBuffer> => {
-      if (useHttp) {
-        const url = ipywidgetsGetBufferUrl(
-          project_id,
-          path,
-          model_id,
-          buffer_path,
-        );
-        return await (await fetch(url)).arrayBuffer();
-      }
       const actions = redux.getEditorActions(project_id, path);
       return await actions.jupyter_actions.ipywidgetsGetBuffer(
         model_id,

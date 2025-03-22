@@ -29,7 +29,6 @@ import { CodeMirror } from "./codemirror-component";
 import { CODE_BAR_BTN_STYLE, MINI_BUTTONS_STYLE_INNER } from "./consts";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
-import { get_blob_url } from "./server-urls";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -48,7 +47,8 @@ function attachmentTransform(
       if (project_id == null) {
         return href; // can't do anything.
       }
-      return get_blob_url(project_id, ext, sha1);
+      console.log("TODO", sha1);
+      throw Error("TODO!");
     case "base64":
       if (ext === "jpg") {
         ext = "jpeg";
