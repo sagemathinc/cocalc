@@ -988,11 +988,6 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     };
   };
 
-  process_attachment = (base64: string): string | undefined => {
-    const blob_store = this.get_blob_store();
-    return blob_store?.saveBase64(base64);
-  };
-
   process_comm_message_from_kernel(mesg): void {
     if (this._actions == null) {
       return;

@@ -2055,10 +2055,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       ipynb,
       existing_ids,
       new_id: this.new_id.bind(this),
-      process_attachment:
-        this.jupyter_kernel != null
-          ? this.jupyter_kernel.process_attachment.bind(this.jupyter_kernel)
-          : undefined,
       output_handler:
         this.jupyter_kernel != null
           ? this._output_handler.bind(this)

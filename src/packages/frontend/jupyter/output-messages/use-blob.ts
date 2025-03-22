@@ -2,12 +2,28 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useEffect, useState } from "react";
 import LRU from "lru-cache";
 
+const MAX_BLOB_URLS = 200;
+
 const cache = new LRU<string, string>({
-  max: 100,
+  max: MAX_BLOB_URLS,
   dispose: (url) => {
     URL.revokeObjectURL(url);
   },
 });
+
+export async function blobToUrl({ actions, sha1, type }) {
+  if (cache.has(sha1)) {
+    return cache.get(sha1)!;
+  }
+  const buf = await actions.asyncBlobStore.get(sha1, { timeout: 5000 });
+  if (buf == null) {
+    throw Error("Not available");
+  }
+  const blob = new Blob([buf], { type });
+  const src = URL.createObjectURL(blob);
+  cache.set(sha1, src);
+  return src;
+}
 
 export default function useBlob({
   sha1,
@@ -33,22 +49,14 @@ export default function useBlob({
       return;
     }
     (async () => {
-      let buf;
       try {
-        buf = await actions.asyncBlobStore.get(sha1, { timeout: 5000 });
+        const s = await blobToUrl({ actions, sha1, type });
+        if (!isMounted.current) {
+          return;
+        }
+        setSrc(s);
       } catch (err) {
         setError(`${err}`);
-        return;
-      }
-      if (buf == null) {
-        setError("Not available");
-        return;
-      }
-      const blob = new Blob([buf], { type });
-      const src = URL.createObjectURL(blob);
-      cache.set(sha1, src);
-      if (isMounted.current && !actions.is_closed()) {
-        setSrc(src);
       }
     })();
   }, [sha1]);

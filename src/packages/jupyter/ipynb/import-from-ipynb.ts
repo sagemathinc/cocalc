@@ -32,7 +32,6 @@ export class IPynbImporter {
   private _ipynb: any;
   private _new_id: any;
   private _output_handler: any;
-  private _process_attachment: any;
   private _existing_ids: any;
   private _cells: any;
   private _kernel: any;
@@ -45,13 +44,11 @@ export class IPynbImporter {
       // an is_available function; new_id(is_available) = a new id.
       existing_ids: [], // re-use these on loading for efficiency purposes
       output_handler: undefined, // h = output_handler(cell); h.message(...) -- hard to explain
-      process_attachment: undefined,
     }); // process attachments:  attachment(base64, mime) --> sha1
 
     this._ipynb = misc.deep_copy(opts.ipynb);
     this._new_id = opts.new_id;
     this._output_handler = opts.output_handler;
-    this._process_attachment = opts.process_attachment;
     this._existing_ids = opts.existing_ids; // option to re-use existing ids
 
     this._handle_old_versions(); // must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/cocalc/issues/1937
@@ -81,7 +78,6 @@ export class IPynbImporter {
     delete this._existing_ids;
     delete this._new_id;
     delete this._output_handler;
-    delete this._process_attachment;
   };
 
   // Everything below is the internal private implementation.
@@ -400,22 +396,7 @@ export class IPynbImporter {
         const val = cell.attachments[name];
         for (const mime in val) {
           const base64 = val[mime];
-          if (this._process_attachment != null) {
-            try {
-              const sha1 = this._process_attachment(base64, mime);
-              obj.attachments[name] = { type: "sha1", value: sha1 };
-            } catch (err) {
-              // We put this in input, since actually attachments are
-              // only for markdown cells (?), and they have no output.
-              // Anyway, I'm mainly putting this here to debug this
-              // and it should never failed when debugged.
-              // Just to be clear again: this should never ever happen.
-              const text = `\n${err.stack}\nCoCalc Bug -- ${err}\n`;
-              obj.input = (obj.input ?? "") + text;
-            }
-          } else {
-            obj.attachments[name] = { type: "base64", value: base64 };
-          }
+          obj.attachments[name] = { type: "base64", value: base64 };
         }
       }
     }

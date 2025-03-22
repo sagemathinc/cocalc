@@ -115,7 +115,7 @@ function cell_to_ipynb(id: string, opts: Options) {
   }
 
   processSlides(obj, cell.slide);
-  processAttachments(obj, cell.attachments, opts.blob_store);
+  processAttachments(obj, cell.attachments);
   processTags(obj, cell.tags);
 
   if (obj.cell_type !== "code") {
@@ -169,24 +169,23 @@ function processOtherMetadata(obj, other_metadata) {
   }
 }
 
-function processAttachments(obj, attachments, blob_store?: BlobStore) {
-  if (attachments == null || blob_store == null) {
+function processAttachments(obj, attachments) {
+  if (attachments == null) {
     // don't have to or can't do anything (https://github.com/sagemathinc/cocalc/issues/4272)
     return;
   }
   obj.attachments = {};
   for (const name in attachments) {
     const val = attachments[name];
-    if (val.type !== "sha1") {
-      return; // didn't even upload
+    if (val.type !== "base64") {
+      // we only handle this now
+      return;
     }
-    const sha1 = val.value;
-    const base64 = blob_store.getBase64(sha1);
     let ext = filename_extension(name);
     if (ext === "jpg") {
       ext = "jpeg";
     }
-    obj.attachments[name] = { [`image/${ext}`]: base64 }; // TODO -- other types?
+    obj.attachments[name] = { [`image/${ext}`]: val.value };
   }
 }
 

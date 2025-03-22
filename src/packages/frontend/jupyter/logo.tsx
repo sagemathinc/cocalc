@@ -132,6 +132,7 @@ function useLogo(opts: Options) {
     (async () => {
       try {
         setSrc(await getLogo(opts));
+        setError("");
       } catch (err) {
         setError(`${err}`);
       }
