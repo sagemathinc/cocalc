@@ -321,12 +321,13 @@ export class IpywidgetsState extends EventEmitter {
         "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
       );
     }
-    return await this.client.ipywidgetsGetBuffer(
+    const b = await this.client.ipywidgetsGetBuffer(
       this.syncdoc.project_id,
       auxFileToOriginal(this.syncdoc.path),
       model_id,
       path,
     );
+    return b;
   };
 
   // Used on the backend by the project http server
@@ -727,6 +728,7 @@ scat.x, scat.y = np.random.rand(2, 50)
     // WARNING: serializing any msg could cause huge server load, e.g., it could contain
     // a 20MB buffer in it.
     //dbg(JSON.stringify(msg));  // EXTREME DANGER!
+    //console.log("process_comm_message_from_kernel", msg);
     dbg(JSON.stringify(msg.header));
     this.assert_state("ready");
 
@@ -734,6 +736,17 @@ scat.x, scat.y = np.random.rand(2, 50)
 
     if (content == null) {
       dbg("content is null -- ignoring message");
+      return;
+    }
+
+    if (content.data.method == "echo_update") {
+      // just ignore echo_update -- it's a new ipywidgets 8 mechanism
+      // for some level of RTC sync between clients -- we don't need that
+      // since we have our own, obviously. Setting the env var
+      // JUPYTER_WIDGETS_ECHO to 0 will disable these messages to slightly
+      // reduce traffic.
+      // NOTE: this check was lower which wrecked the buffers,
+      // which was a bug for a long time. :-(
       return;
     }
 
@@ -808,11 +821,6 @@ scat.x, scat.y = np.random.rand(2, 50)
         break;
 
       case "echo_update":
-        // just ignore echo_update -- it's a new ipywidgets 8 mechanism
-        // for some level of RTC sync between clients -- we don't need that
-        // since we have our own, obviously. Setting the env var
-        // JUPYTER_WIDGETS_ECHO to 0 will disable these messages to slightly
-        // reduce traffic.
         return;
 
       case "update":
@@ -971,13 +979,11 @@ with out:
     let n = 0;
     for (const jsonPath of this.get(model_id, "buffers")?.keySeq() ?? []) {
       const path = JSON.parse(jsonPath);
-      console.log("path = ", path);
       if (path[0] == "outputs") {
         y[jsonPath] = "";
         n += 1;
       }
     }
-    console.log("y = ", y);
     if (n > 0) {
       this.set(model_id, "buffers", y, true, "shallow");
     }
