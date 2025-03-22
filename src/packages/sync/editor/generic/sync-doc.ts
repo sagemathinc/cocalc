@@ -1319,7 +1319,7 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         // for now just putting a 1-day limit on the ipywidgets table
-        // so we don't waste a ton of space.  We need to also clear this
+        // so we don't waste a ton of space.  TODO: We could to also clear this
         // table on halt, startup, etc.
         limits: { max_age: 1000 * 60 * 60 * 24 },
       });
