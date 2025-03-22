@@ -11,7 +11,6 @@ In particular, set global.x = ..., etc.
 
 import { createNatsJupyterService } from "@cocalc/nats/service/jupyter";
 import { get_existing_kernel as getKernel } from "@cocalc/jupyter/kernel";
-import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import { bufferToBase64 } from "@cocalc/util/base64";
 
 export async function initNatsService({
@@ -109,7 +108,6 @@ export async function initNatsService({
       return { buffer64: bufferToBase64(buffer) };
     },
 
-    kernels: get_kernel_data,
   };
   return await createNatsJupyterService({
     project_id,

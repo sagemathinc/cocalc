@@ -25,7 +25,14 @@ import { CellToolbarName } from "@cocalc/jupyter/types";
 import { callback2, once } from "@cocalc/util/async-utils";
 import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
 import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
-import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
+import {
+  closest_kernel_match,
+  from_json,
+  history_path,
+  merge_copy,
+  to_json,
+  uuid,
+} from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
@@ -37,6 +44,13 @@ import { CursorManager } from "./cursor-manager";
 import { NBGraderActions } from "./nbgrader/actions";
 import * as parsing from "./parsing";
 import { WidgetManager } from "./widgets/manager";
+import { retry_until_success } from "@cocalc/util/async-utils";
+import type { Kernels, Kernel } from "@cocalc/jupyter/util/misc";
+import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
+import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
+
+// local cache: map project_id (string) -> kernels (immutable)
+let jupyter_kernels = Map<string, Kernels>();
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -89,6 +103,8 @@ export class JupyterActions extends JupyterActions0 {
       // run progress
       this.updateRunProgress();
     });
+
+    this.fetch_jupyter_kernels();
 
     // Load kernel (once ipynb file loads).
     (async () => {
@@ -965,4 +981,247 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.check_select_kernel();
   }
+
+  fetch_jupyter_kernels = debounce(
+    reuseInFlight(async (): Promise<void> => {
+      let data;
+      const f = async () => {
+        const api = webapp_client.nats_client.projectApi({
+          project_id: this.project_id,
+          timeout: 5000,
+        });
+        data = await api.editor.jupyterKernels();
+        if (this._state === "closed") {
+          return;
+        }
+      };
+      try {
+        await retry_until_success({
+          max_time: 1000 * 15, // up to 15 seconds
+          start_delay: 3000,
+          max_delay: 10000,
+          f,
+          desc: "jupyter:fetch_jupyter_kernels",
+        });
+      } catch (err) {
+        this.set_error(err);
+        return;
+      }
+      if (this._state === "closed") {
+        return;
+      }
+      // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+      const kernels = fromJS(data ?? []).filter(
+        (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
+      );
+      const key: string = await this.store.jupyter_kernel_key();
+      jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+      this.setState({ kernels });
+      // We must also update the kernel info (e.g., display name), now that we
+      // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+      const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+      this.setState({ kernel_info });
+      // e.g. "kernel_selection" is derived from "kernels"
+      await this.update_select_kernel_data();
+      this.check_select_kernel();
+    }),
+    // this debounce basically "caches the result" for this long
+    // after attempts to get the kernels:
+    3000,
+    { leading: true, trailing: false },
+  );
+
+  set_jupyter_kernels = async () => {
+    if (this.store == null) return;
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
+    if (kernels != null) {
+      this.setState({ kernels });
+    } else {
+      await this.fetch_jupyter_kernels();
+    }
+    await this.update_select_kernel_data();
+    this.check_select_kernel();
+  };
+
+  update_select_kernel_data = async (): Promise<void> => {
+    if (this.store == null) return;
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
+    if (kernels == null) {
+      return;
+    }
+    const kernel_selection = this.store.get_kernel_selection(kernels);
+    const [kernels_by_name, kernels_by_language] =
+      get_kernels_by_name_or_language(kernels);
+    const default_kernel = this.store.get_default_kernel();
+    // do we have a similar kernel?
+    let closestKernel: Kernel | undefined = undefined;
+    const kernel = this.store.get("kernel");
+    const kernel_info = this.store.get_kernel_info(kernel);
+    // unknown kernel, we try to find a close match
+    if (kernel_info == null && kernel != null && kernel !== "") {
+      // kernel & kernels must be defined
+      closestKernel = closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
+    }
+    this.setState({
+      kernel_selection,
+      kernels_by_name,
+      kernels_by_language,
+      default_kernel,
+      closestKernel,
+    });
+  };
+
+  show_select_kernel = async (
+    reason: show_kernel_selector_reasons,
+  ): Promise<void> => {
+    await this.update_select_kernel_data();
+    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
+    // the select dialog will show a loading spinner
+    this.setState({
+      show_kernel_selector_reason: reason,
+      show_kernel_selector: true,
+    });
+  };
+
+  hide_select_kernel = (): void => {
+    this.setState({
+      show_kernel_selector_reason: undefined,
+      show_kernel_selector: false,
+    });
+  };
+
+  select_kernel = (kernel_name: string | null): void => {
+    this.set_kernel(kernel_name);
+    if (kernel_name != null && kernel_name !== "") {
+      this.set_default_kernel(kernel_name);
+    }
+    this.focus(true);
+    this.hide_select_kernel();
+  };
+
+  kernel_dont_ask_again = (dont_ask: boolean): void => {
+    // why is "as any" necessary?
+    const account_table = this.redux.getTable("account");
+    account_table.set({
+      editor_settings: { ask_jupyter_kernel: !dont_ask },
+    });
+  };
+
+  private set_kernel_after_load = async (): Promise<void> => {
+    // Browser Client: Wait until the .ipynb file has actually been parsed into
+    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+    // then set the kernel, if necessary.
+    try {
+      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
+    } catch (err) {
+      if (this._state != "ready") {
+        // Probably user just closed the notebook before it finished
+        // loading, so we don't need to set the kernel.
+        return;
+      }
+      throw Error("error waiting for ipynb file to load");
+    }
+    this._syncdb_init_kernel();
+  };
+
+  private _syncdb_init_kernel = (): void => {
+    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
+    if (this.store.get("kernel") == null) {
+      // Creating a new notebook with no kernel set
+      if (!this.is_project && !this.is_compute_server) {
+        // we either let the user select a kernel, or use a stored one
+        let using_default_kernel = false;
+
+        const account_store = this.redux.getStore("account") as any;
+        const editor_settings = account_store.get("editor_settings") as any;
+        if (
+          editor_settings != null &&
+          !editor_settings.get("ask_jupyter_kernel")
+        ) {
+          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
+          // TODO: check if kernel is actually known
+          if (default_kernel != null) {
+            this.set_kernel(default_kernel);
+            using_default_kernel = true;
+          }
+        }
+
+        if (!using_default_kernel) {
+          // otherwise we let the user choose a kernel
+          this.show_select_kernel("bad kernel");
+        }
+        // we also finalize the kernel selection check, because it doesn't switch to true
+        // if there is no kernel at all.
+        this.setState({ check_select_kernel_init: true });
+      }
+    } else {
+      // Opening an existing notebook
+      const default_kernel = this.store.get_default_kernel();
+      if (default_kernel == null && this.store.get("kernel")) {
+        // But user has no default kernel, since they never before explicitly set one.
+        // So we set it.  This is so that a user's default
+        // kernel is that of the first ipynb they
+        // opened, which is very sensible in courses.
+        this.set_default_kernel(this.store.get("kernel"));
+      }
+    }
+  };
+
+  set_kernel = (kernel: string | null) => {
+    if (this.syncdb.get_state() != "ready") {
+      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
+      return;
+    }
+    if (this.store.get("kernel") !== kernel) {
+      this._set({
+        type: "settings",
+        kernel,
+      });
+      // clear error when changing the kernel
+      this.set_error(null);
+    }
+    if (this.store.get("show_kernel_selector") || kernel === "") {
+      this.hide_select_kernel();
+    }
+    if (kernel === "") {
+      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
+    }
+  };
+
+  show_history_viewer = (): void => {
+    const project_actions = this.redux.getProjectActions(this.project_id);
+    if (project_actions == null) return;
+    project_actions.open_file({
+      path: history_path(this.path),
+      foreground: true,
+    });
+  };
+
+  private check_select_kernel = (): void => {
+    const kernel = this.store?.get("kernel");
+    if (kernel == null) return;
+    let unknown_kernel = false;
+    if (kernel === "") {
+      unknown_kernel = false; // it's the "no kernel" kernel
+    } else if (this.store.get("kernels") != null) {
+      unknown_kernel = this.store.get_kernel_info(kernel) == null;
+    }
+
+    // a kernel is set, but we don't know it
+    if (unknown_kernel) {
+      this.show_select_kernel("bad kernel");
+    } else {
+      // we got a kernel, close dialog if not requested by user
+      if (
+        this.store.get("show_kernel_selector") &&
+        this.store.get("show_kernel_selector_reason") === "bad kernel"
+      ) {
+        this.hide_select_kernel();
+      }
+    }
+
+    // also in the case when the kernel is "" we have to set this to true
+    this.setState({ check_select_kernel_init: true });
+  };
 }

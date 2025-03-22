@@ -3,3 +3,4 @@ export { jupyter_run_notebook as jupyterRunNotebook } from "@cocalc/jupyter/nbgr
 export { nbconvert as jupyterNbconvert } from "../../jupyter/convert";
 export { run_formatter_string as formatterString } from "../../formatters";
 export { logo as jupyterKernelLogo } from "@cocalc/jupyter/kernel/logo";
+export { get_kernel_data as jupyterKernels } from "@cocalc/jupyter/kernel/kernel-data";

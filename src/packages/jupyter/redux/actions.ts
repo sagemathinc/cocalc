@@ -36,14 +36,8 @@ import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
-import {
-  JupyterStore,
-  JupyterStoreState,
-  show_kernel_selector_reasons,
-} from "@cocalc/jupyter/redux/store";
+import { JupyterStore, JupyterStoreState } from "@cocalc/jupyter/redux/store";
 import { Cell, KernelInfo } from "@cocalc/jupyter/types";
-import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
-import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import {
@@ -54,14 +48,10 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { debounce } from "lodash";
 import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
 import { type AKV, akv } from "@cocalc/nats/sync/akv";
 
 const { close, required, defaults } = misc;
-
-// local cache: map project_id (string) -> kernels (immutable)
-let jupyter_kernels = immutable.Map<string, Kernels>();
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -160,10 +150,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("close", this.close);
 
-    if (!this.is_project) {
-      this.fetch_jupyter_kernels();
-    }
-
     this.asyncBlobStore = akv(this.blobStoreOptions());
 
     // Hook for additional initialization.
@@ -190,23 +176,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Only use this on the frontend, of course.
   protected getFrameActions() {
     return this.redux.getEditorActions(this.project_id, this.path);
-  }
-
-  protected async set_kernel_after_load(): Promise<void> {
-    // Browser Client: Wait until the .ipynb file has actually been parsed into
-    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
-    // then set the kernel, if necessary.
-    try {
-      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
-    } catch (err) {
-      if (this._state != "ready") {
-        // Probably user just closed the notebook before it finished
-        // loading, so we don't need to set the kernel.
-        return;
-      }
-      throw Error("error waiting for ipynb file to load");
-    }
-    this._syncdb_init_kernel();
   }
 
   sync_read_only = (): void => {
@@ -284,64 +253,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public close_project_only() {
     // real version is in derived class that project runs.
   }
-
-  fetch_jupyter_kernels = debounce(
-    reuseInFlight(async (): Promise<void> => {
-      let data;
-      const f = async () => {
-        const api = this.api({ timeout: 5000 });
-        data = await api.kernels();
-        if (this._state === "closed") {
-          return;
-        }
-      };
-      try {
-        await retry_until_success({
-          max_time: 1000 * 15, // up to 15 seconds
-          start_delay: 3000,
-          max_delay: 10000,
-          f,
-          desc: "jupyter:fetch_jupyter_kernels",
-        });
-      } catch (err) {
-        this.set_error(err);
-        return;
-      }
-      if (this._state === "closed") {
-        return;
-      }
-      // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-      const kernels = immutable
-        .fromJS(data ?? [])
-        .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
-      const key: string = await this.store.jupyter_kernel_key();
-      jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-      this.setState({ kernels });
-      // We must also update the kernel info (e.g., display name), now that we
-      // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-      const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
-      this.setState({ kernel_info });
-      // e.g. "kernel_selection" is derived from "kernels"
-      await this.update_select_kernel_data();
-      this.check_select_kernel();
-    }),
-    // this debounce basically "caches the result" for this long
-    // after attempts to get the kernels:
-    3000,
-    { leading: true, trailing: false },
-  );
-
-  set_jupyter_kernels = async () => {
-    if (this.store == null) return;
-    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
-    if (kernels != null) {
-      this.setState({ kernels });
-    } else {
-      await this.fetch_jupyter_kernels();
-    }
-    await this.update_select_kernel_data();
-    this.check_select_kernel();
-  };
 
   set_error = (err: any): void => {
     if (this._state === "closed") return;
@@ -812,49 +723,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   protected _output_handler(_cell: any) {
     throw Error("define in a derived class.");
-  }
-
-  private _syncdb_init_kernel(): void {
-    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
-    if (this.store.get("kernel") == null) {
-      // Creating a new notebook with no kernel set
-      if (!this.is_project && !this.is_compute_server) {
-        // we either let the user select a kernel, or use a stored one
-        let using_default_kernel = false;
-
-        const account_store = this.redux.getStore("account") as any;
-        const editor_settings = account_store.get("editor_settings") as any;
-        if (
-          editor_settings != null &&
-          !editor_settings.get("ask_jupyter_kernel")
-        ) {
-          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
-          // TODO: check if kernel is actually known
-          if (default_kernel != null) {
-            this.set_kernel(default_kernel);
-            using_default_kernel = true;
-          }
-        }
-
-        if (!using_default_kernel) {
-          // otherwise we let the user choose a kernel
-          this.show_select_kernel("bad kernel");
-        }
-        // we also finalize the kernel selection check, because it doesn't switch to true
-        // if there is no kernel at all.
-        this.setState({ check_select_kernel_init: true });
-      }
-    } else {
-      // Opening an existing notebook
-      const default_kernel = this.store.get_default_kernel();
-      if (default_kernel == null && this.store.get("kernel")) {
-        // But user has no default kernel, since they never before explicitly set one.
-        // So we set it.  This is so that a user's default
-        // kernel is that of the first ipynb they
-        // opened, which is very sensible in courses.
-        this.set_default_kernel(this.store.get("kernel"));
-      }
-    }
   }
 
   /*
@@ -1599,36 +1467,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // newer version, so this is only a fallback).
   get_cell_input(id: string): string {
     return this.store.getIn(["cells", id, "input"], "");
-  }
-
-  set_kernel = (kernel: string | null) => {
-    if (this.syncdb.get_state() != "ready") {
-      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
-      return;
-    }
-    if (this.store.get("kernel") !== kernel) {
-      this._set({
-        type: "settings",
-        kernel,
-      });
-      // clear error when changing the kernel
-      this.set_error(null);
-    }
-    if (this.store.get("show_kernel_selector") || kernel === "") {
-      this.hide_select_kernel();
-    }
-    if (kernel === "") {
-      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
-    }
-  };
-
-  public show_history_viewer(): void {
-    const project_actions = this.redux.getProjectActions(this.project_id);
-    if (project_actions == null) return;
-    project_actions.open_file({
-      path: misc.history_path(this.path),
-      foreground: true,
-    });
   }
 
   // Attempt to fetch completions for give code and cursor_pos
@@ -2538,7 +2376,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public set_raw_ipynb(): void {
+  set_raw_ipynb(): void {
     if (this._state != "ready") {
       // lies otherwise...
       return;
@@ -2546,60 +2384,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
-    });
-  }
-
-  protected check_select_kernel(): void {
-    const kernel = this.store?.get("kernel");
-    if (kernel == null) return;
-    let unknown_kernel = false;
-    if (kernel === "") {
-      unknown_kernel = false; // it's the "no kernel" kernel
-    } else if (this.store.get("kernels") != null) {
-      unknown_kernel = this.store.get_kernel_info(kernel) == null;
-    }
-
-    // a kernel is set, but we don't know it
-    if (unknown_kernel) {
-      this.show_select_kernel("bad kernel");
-    } else {
-      // we got a kernel, close dialog if not requested by user
-      if (
-        this.store.get("show_kernel_selector") &&
-        this.store.get("show_kernel_selector_reason") === "bad kernel"
-      ) {
-        this.hide_select_kernel();
-      }
-    }
-
-    // also in the case when the kernel is "" we have to set this to true
-    this.setState({ check_select_kernel_init: true });
-  }
-
-  async update_select_kernel_data(): Promise<void> {
-    if (this.store == null) return;
-    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
-    if (kernels == null) return;
-    const kernel_selection = this.store.get_kernel_selection(kernels);
-    const [kernels_by_name, kernels_by_language] =
-      get_kernels_by_name_or_language(kernels);
-    const default_kernel = this.store.get_default_kernel();
-    // do we have a similar kernel?
-    let closestKernel: Kernel | undefined = undefined;
-    const kernel = this.store.get("kernel");
-    const kernel_info = this.store.get_kernel_info(kernel);
-    // unknown kernel, we try to find a close match
-    if (kernel_info == null && kernel != null && kernel !== "") {
-      // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
-      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
-    }
-    this.setState({
-      kernel_selection,
-      kernels_by_name,
-      kernels_by_language,
-      default_kernel,
-      closestKernel,
     });
   }
 
@@ -2614,42 +2398,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public blur(): void {
     this.deprecated("blur");
   }
-
-  async show_select_kernel(
-    reason: show_kernel_selector_reasons,
-  ): Promise<void> {
-    await this.update_select_kernel_data();
-    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
-    // the select dialog will show a loading spinner
-    this.setState({
-      show_kernel_selector_reason: reason,
-      show_kernel_selector: true,
-    });
-  }
-
-  hide_select_kernel = (): void => {
-    this.setState({
-      show_kernel_selector_reason: undefined,
-      show_kernel_selector: false,
-    });
-  };
-
-  select_kernel = (kernel_name: string | null): void => {
-    this.set_kernel(kernel_name);
-    if (kernel_name != null && kernel_name !== "") {
-      this.set_default_kernel(kernel_name);
-    }
-    this.focus(true);
-    this.hide_select_kernel();
-  };
-
-  kernel_dont_ask_again = (dont_ask: boolean): void => {
-    // why is "as any" necessary?
-    const account_table = this.redux.getTable("account") as any;
-    account_table.set({
-      editor_settings: { ask_jupyter_kernel: !dont_ask },
-    });
-  };
 
   public check_edit_protection(id: string, reason?: string): boolean {
     if (!this.store.is_cell_editable(id)) {

@@ -21,7 +21,6 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   CSS,
   React,

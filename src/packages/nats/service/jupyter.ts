@@ -3,7 +3,7 @@ Services in a project.
 */
 
 import { createServiceClient, createServiceHandler } from "./typed";
-import type { KernelInfo, KernelSpec } from "@cocalc/util/jupyter/types";
+import type { KernelInfo } from "@cocalc/util/jupyter/types";
 
 const service = "api";
 
@@ -39,8 +39,6 @@ export interface JupyterApi {
     model_id;
     buffer_path;
   }) => Promise<{ buffer64: string }>;
-
-  kernels: (opts?: { noCache?: boolean }) => Promise<KernelSpec[]>;
 }
 
 export type JupyterApiEndpoint = keyof JupyterApi;

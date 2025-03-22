@@ -1232,6 +1232,12 @@ export class JupyterActions extends JupyterActions0 {
     this.set_last_load(true);
   };
 
+  private fetch_jupyter_kernels = async () => {
+    const data = await get_kernel_data();
+    const kernels = immutable.fromJS(data as any);
+    this.setState({ kernels });
+  };
+
   save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
     if (!this.isCellRunner()) {
