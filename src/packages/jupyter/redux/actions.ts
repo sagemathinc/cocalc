@@ -62,6 +62,8 @@ underlying synchronized state.
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
+type State = "init" | "load" | "ready" | "closed";
+
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public is_project: boolean;
   public is_compute_server?: boolean;
@@ -75,7 +77,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected set_save_status: any;
   protected _client: Client;
   protected _file_watcher: any;
-  protected _state: any;
+  protected _state: State;
   protected restartKernelOnClose?: (...args: any[]) => void;
   public asyncBlobStore: AKV;
 
@@ -196,7 +198,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  protected dbg = (f: string) => {
+  protected dbg(f: string) {
     if (this.is_closed()) {
       // calling dbg after the actions are closed is possible; this.store would
       // be undefined, and then this log message would crash, which sucks.  It happened to me.
@@ -204,7 +206,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return (..._) => {};
     }
     return this._client.dbg(`JupyterActions("${this.path}").${f}`);
-  };
+  }
 
   protected close_client_only(): void {
     // no-op: this can be defined in a derived class. E.g., in the frontend, it removes
@@ -734,7 +736,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   */
   _set = (obj: any, save: boolean = true) => {
     if (
-      this._state !== "ready" ||
+      // _set is called during initialization, so don't
+      // require this._state to be 'ready'!
+      this._state === "closed" ||
       this.store.get("read_only") ||
       (this.syncdb != null && this.syncdb.get_state() != "ready")
     ) {
@@ -807,11 +811,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
       await this.api().save_ipynb_file();
-      if (this._state === "closed") return;
+      if (this._state === ("closed" as State)) return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
-      if (this._state === "closed") return;
+      if (this._state === ("closed" as State)) return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -1019,7 +1023,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   clear_cell = (id: string, save = true) => {
     const cell = this.store.getIn(["cells", id]);
 
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -1039,7 +1043,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_cell_run_state = (id: string, save = true) => {
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -1063,7 +1067,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_cell_run_state = (): void => {
-    if (!this.store) return;
+    if (!this.store) {
+      return;
+    }
     this.store.get_cell_list().forEach((id) => {
       this.clear_cell_run_state(id, false);
     });
@@ -1745,9 +1751,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   });
 
   public shutdown = reuseInFlight(async (): Promise<void> => {
-    if (this._state === "closed") return;
+    if (this._state === ("closed" as State)) {
+      return;
+    }
     await this.signal("SIGKILL");
-    if (this._state === "closed") return;
+    if (this._state === ("closed" as State)) {
+      return;
+    }
     this.clear_all_cell_run_state();
     await this.save_asap();
   });

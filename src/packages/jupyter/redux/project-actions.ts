@@ -47,6 +47,7 @@ type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
   private _backend_state: BackendState = "init";
+  private lastSavedBackendState?: BackendState;
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
   private _manager_run_cell_queue: any;
@@ -63,12 +64,19 @@ export class JupyterActions extends JupyterActions0 {
     this.blobs = await dkv(this.blobStoreOptions());
   };
 
+  // uncomment for verbose logging of everything here to the console.
+  //   dbg(f: string) {
+  //     return (...args) => console.log(f, args);
+  //   }
+
   public run_cell(
     id: string,
     save: boolean = true,
     no_halt: boolean = false,
   ): void {
-    if (this.store.get("read_only")) return;
+    if (this.store.get("read_only")) {
+      return;
+    }
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       // it is trivial to run a cell that does not exist -- nothing needs to be done.
@@ -124,17 +132,14 @@ export class JupyterActions extends JupyterActions0 {
     this._backend_state = backend_state;
 
     if (this.isCellRunner()) {
-      const stored_backend_state = this.syncdb
-        .get_one({ type: "settings" })
-        ?.get("backend_state");
-
-      if (stored_backend_state != backend_state) {
+      if (this.lastSavedBackendState != backend_state) {
         this._set({
           type: "settings",
           backend_state,
           last_backend_state: Date.now(),
         });
         this.save_asap();
+        this.lastSavedBackendState = backend_state;
       }
 
       // The following is to clear kernel_error if things are working only.
@@ -233,7 +238,7 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  private async _first_load() {
+  private _first_load = async () => {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
     if (this.is_closed()) {
@@ -253,19 +258,20 @@ export class JupyterActions extends JupyterActions0 {
     }
     dbg("loading worked");
     this._init_after_first_load();
-  }
+  };
 
-  private _init_after_first_load() {
+  private _init_after_first_load = () => {
     const dbg = this.dbg("_init_after_first_load");
 
     dbg("initializing");
-    this.ensure_backend_kernel_setup(); // this may change the syncdb.
+    // this may change the syncdb.
+    this.ensure_backend_kernel_setup();
 
     this.init_file_watcher();
 
     this._state = "ready";
     this.ensure_there_is_a_cell();
-  }
+  };
 
   _backend_syncdb_change = (changes: any) => {
     if (this.is_closed()) {
@@ -323,8 +329,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   // ensure_backend_kernel_setup ensures that we have a connection
-  // to the proper type of kernel.
-  // If running is true, starts the kernel and waits until running.
+  // to the selected Jupyter kernel, if any.
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     if (this.isDeleted()) {
@@ -333,6 +338,7 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     const kernel = this.store.get("kernel");
+    dbg("ensure_backend_kernel_setup", { kernel });
 
     let current: string | undefined = undefined;
     if (this.jupyter_kernel != null) {
@@ -376,6 +382,7 @@ export class JupyterActions extends JupyterActions0 {
       // to satisfy typescript.
       throw Error("jupyter_kernel must be defined");
     }
+    dbg("kernel created -- installing handlers");
 
     // save so gets reported to frontend, and surfaced to user:
     // https://github.com/sagemathinc/cocalc/issues/4847
@@ -383,8 +390,17 @@ export class JupyterActions extends JupyterActions0 {
       this.set_kernel_error(error);
     });
 
-    // Since we just made a new kernel, clearly no cells are running on the backend.
+    // Since we just made a new kernel, clearly no cells are running on the backend:
     this._running_cells = {};
+
+    const toStart: string[] = [];
+    this.store?.get_cell_list().forEach((id) => {
+      if (this.store.getIn(["cells", id, "state"]) == "start") {
+        toStart.push(id);
+      }
+    });
+
+    dbg("clear cell run state");
     this.clear_all_cell_run_state();
 
     this.restartKernelOnClose = () => {
@@ -429,7 +445,17 @@ export class JupyterActions extends JupyterActions0 {
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
     this.handle_all_cell_attachments();
+    dbg("ready");
     this.set_backend_state("ready");
+
+    // Run cells that the user explicitly set to be running before the
+    // kernel actually had finished starting up.
+    // This must be done after the state is ready.
+    if (toStart.length > 0) {
+      for (const id of toStart) {
+        this.run_cell(id);
+      }
+    }
   };
 
   set_connection_file = () => {
@@ -1007,7 +1033,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  private init_file_watcher() {
+  private init_file_watcher = () => {
     const dbg = this.dbg("file_watcher");
     dbg();
     this._file_watcher = this._client.watch_file({
@@ -1026,7 +1052,7 @@ export class JupyterActions extends JupyterActions0 {
         dbg("failed to load on change", err);
       }
     });
-  }
+  };
 
   /*
     * Unfortunately, though I spent two hours on this approach... it just doesn't work,
