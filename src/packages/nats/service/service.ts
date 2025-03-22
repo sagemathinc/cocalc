@@ -22,6 +22,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
+import { requestMany, respondMany } from "./many";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -38,8 +39,18 @@ export interface ServiceCall extends ServiceDescription {
   mesg: any;
   timeout?: number;
   env?: NatsEnv;
+
   // if true, call returns the raw response message, with no decoding or error wrapping.
+  // (do not combine with many:true)
   raw?: boolean;
+
+  // if true, uses requestMany so **responses can be arbitrarily large**.
+  // This MUST be set for both client and server!  Don't use this unless
+  // you need it, since every response involves 2 messages instead of 1
+  // (the extra termination message).  A good example that uses this is
+  // the jupyter api, since large output gets returned when you click on
+  // "Fetch more output".
+  many?: boolean;
 }
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
@@ -50,9 +61,14 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
   try {
-    resp = await nc.request(subject, jc.encode(opts.mesg), {
-      timeout,
-    });
+    const data = jc.encode(opts.mesg);
+    if (opts.many) {
+      resp = await requestMany({ nc, subject, data, maxWait: timeout });
+    } else {
+      resp = await nc.request(subject, data, {
+        timeout,
+      });
+    }
     if (opts.raw) {
       return resp;
     }
@@ -79,14 +95,14 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
 
 export type CallNatsServiceFunction = typeof callNatsService;
 
-
 export interface Options extends ServiceDescription {
   env?: NatsEnv;
   description?: string;
   version?: string;
   handler: (mesg) => Promise<any>;
+  // see corresponding call option above.
+  many?: boolean;
 }
-
 
 export async function createNatsService(options: Options) {
   const s = new NatsService(options);
@@ -190,6 +206,7 @@ export class NatsService extends EventEmitter {
     const jc = env.jc;
     for await (const mesg of this.api) {
       const request = jc.decode(mesg.data) ?? ({} as any);
+
       // console.log("handle nats service call", request);
       let resp;
       try {
@@ -197,7 +214,26 @@ export class NatsService extends EventEmitter {
       } catch (err) {
         resp = { error: `${err}` };
       }
-      mesg.respond(jc.encode(resp));
+      try {
+        const data = jc.encode(resp);
+        if (this.options.many) {
+          await respondMany({ mesg, nc: env.nc, data });
+        } else {
+          await mesg.respond(data);
+        }
+      } catch (err) {
+        // If, e.g., resp is too big, then the error would be
+        //    "NatsError: MAX_PAYLOAD_EXCEEDED"
+        // and it is of course very important to make the caller aware that
+        // there was an error, as opposed to just silently leaving
+        // them hanging forever.
+        const data = jc.encode({ error: `${err}` });
+        if (this.options.many) {
+          await respondMany({ mesg, nc: env.nc, data });
+        } else {
+          await mesg.respond(data);
+        }
+      }
     }
   };
 
