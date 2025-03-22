@@ -2220,10 +2220,13 @@ export class Actions<
     // because it can be called via a keyboard shortcut.  That's why we gracefully
     // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
     const s = this.redux.getProjectStore(this.project_id);
-    if (s == null) return;
+    if (s == null) {
+      return;
+    }
     // TODO: Using any here since TypeMap is just not working right...
-    const af: any = s.get("available_features");
-    if (!this.has_format_support(id, af)) return;
+    if (!this.has_format_support(id, s.get("available_features"))) {
+      return;
+    }
 
     // Definitely have format support
     cm.focus();
@@ -2233,6 +2236,7 @@ export class Actions<
       syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
+      lastChanged: this._syncstring.last_changed().valueOf(),
     };
 
     this.set_status("Running code formatter...");

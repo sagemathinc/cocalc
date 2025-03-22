@@ -219,7 +219,7 @@ export class API {
         `For this project, the code formatter '${tool}' for language '${config.syntax}' is not available.`,
       );
     }
-    return { parser: tool };
+    return { parser: tool, lastChanged: config.lastChanged };
   };
 
   get_formatting = (): Capabilities | undefined => {

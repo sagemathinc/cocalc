@@ -41,6 +41,9 @@ export type { Config, Options, FormatterSyntax };
 import { getLogger } from "@cocalc/backend/logger";
 import { getClient } from "@cocalc/project/client";
 
+// don't wait too long, since the entire api call likely times out after 5s.
+const MAX_WAIT_FOR_SYNC = 3000;
+
 const logger = getLogger("project:formatters");
 
 export async function run_formatter({
@@ -66,6 +69,26 @@ export async function run_formatter({
   }
   if (syncstring.get_state() != "ready") {
     await once(syncstring, "ready");
+  }
+  if (options.lastChanged) {
+    // wait within reason until syncstring's last change is this new.
+    // (It's not a huge problem if this fails for some reason.)
+    const start = Date.now();
+    const waitUntil = new Date(options.lastChanged);
+    while (
+      Date.now() - start < MAX_WAIT_FOR_SYNC &&
+      syncstring.last_changed() < waitUntil
+    ) {
+      try {
+        await once(
+          syncstring,
+          "change",
+          MAX_WAIT_FOR_SYNC - (Date.now() - start),
+        );
+      } catch {
+        break;
+      }
+    }
   }
   const doc = syncstring.get_doc();
   let formatted, math, input0;

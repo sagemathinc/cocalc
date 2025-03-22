@@ -245,11 +245,15 @@ export interface Config {
   syntax: Syntax;
   tabWidth?: number;
   useTabs?: boolean;
+  // if given and using syncdoc, wait until our version is at least this new.
+  // this ensures we don't format an older version of the document.
+  lastChanged?: number;
 }
 
 export interface Options extends Omit<Config, "syntax"> {
   parser: Syntax; // TODO refactor this to tool
   tabWidth?: number;
+  lastChanged?: number;
 }
 
 export interface FormatResult {
