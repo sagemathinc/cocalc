@@ -2,7 +2,12 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useEffect, useState } from "react";
 import LRU from "lru-cache";
 
+// max number of recent blob url's to save - older ones will
+// silently be removed and data has to be re-downloaded from server.
 const MAX_BLOB_URLS = 200;
+
+// wait at most this long to get blob from backend.
+const BLOB_WAIT_TIMEOUT = 30000;
 
 const cache = new LRU<string, string>({
   max: MAX_BLOB_URLS,
@@ -15,7 +20,9 @@ export async function blobToUrl({ actions, sha1, type }) {
   if (cache.has(sha1)) {
     return cache.get(sha1)!;
   }
-  const buf = await actions.asyncBlobStore.get(sha1, { timeout: 5000 });
+  const buf = await actions.asyncBlobStore.get(sha1, {
+    timeout: BLOB_WAIT_TIMEOUT,
+  });
   if (buf == null) {
     throw Error("Not available");
   }
