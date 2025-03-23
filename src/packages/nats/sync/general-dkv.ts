@@ -192,6 +192,17 @@ export class GeneralDKV<T = any> extends EventEmitter {
     delete this.local[key];
     delete this.options[key];
     delete this.saved[key];
+    if (this.isStable()) {
+      this.emit("stable");
+    }
+  };
+
+  // stable = everything is saved *and* also echoed back from the server as confirmation.
+  isStable = () => {
+    for (const _ in this.local) {
+      return false;
+    }
+    return true;
   };
 
   private handleRemoteChange = ({ key, value: remote, prev }) => {

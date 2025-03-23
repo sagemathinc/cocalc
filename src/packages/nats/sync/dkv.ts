@@ -15,6 +15,30 @@ then keeps it is in sync with NATS.
 For an alternative space efficient async interface to the EXACT SAME DATA,
 see akv.ts.
 
+IMPORTANT: When you set data in a dkv, it is NOT guaranteed to be saved remotely
+forever immediately, obviously.  The dkv attempts to save to NATS in the background.
+**There are reasons whey saving might fail or data you have set could disappear!**
+E.g., if you set the max_msg_size limit, and try to set a value that is too
+large, then it is removed during save and a 'reject' event is fired.
+The other limits will silently delete data for other reasons as well (e.g., too old,
+too many messages).
+
+EVENTS:
+
+- 'change', {key:string, value?:T, prev:T} -- there is a change.
+    if value===undefined, that means that key is deleted and the value used to be prev.
+
+- 'reject',  {key, value} -- data you set is rejected when trying to save, e.g., if too large
+
+- 'stable' -- there are no unsaved changes and all saved changes have been
+            echoed back from server.
+
+- 'closed' -- the dkv is now closed.  Note that close's are reference counted, e.g., you can
+   grab the same dkv in multiple places in your code, close it when do with each, and it
+   is freed when the number of closes equals the number of objects you created.
+
+Merge conflicts are handled by your custom merge function, and no event is fired.
+
 DEVELOPMENT:
 
 From node.js
@@ -217,6 +241,7 @@ export class DKV<T = any> extends EventEmitter {
         this.emit("reject", { key: this.getKey(key), value });
       }
     });
+    this.generalDKV.on("stable", () => this.emit("stable"));
     await this.generalDKV.init();
     this.updateInventory();
   });
@@ -365,6 +390,10 @@ export class DKV<T = any> extends EventEmitter {
       return [];
     }
     return generalDKV.unsavedChanges().map((key) => this.getKey(key));
+  };
+
+  isStable = () => {
+    return this.generalDKV?.isStable();
   };
 
   save = async () => {

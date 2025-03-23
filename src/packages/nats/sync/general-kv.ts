@@ -823,108 +823,112 @@ export class GeneralKV<T = any> extends EventEmitter {
     return { count, bytes };
   };
 
-  // ensure any limits are satisfied, always by deleting old keys
-  private enforceLimits = throttle(
-    reuseInFlight(async () => {
-      if (this.all == null || this.times == null || this.sizes == null) {
-        return;
-      }
-      const { max_msgs, max_age, max_bytes } = this.limits;
-      let times: { time: Date; key: string }[] | null = null;
-      const getTimes = (): { time: Date; key: string }[] => {
-        if (times == null) {
-          // this is potentially a little worrisome regarding performance, but
-          // it has to be done, or we have to do something elsewhere to maintain
-          // this info.  The intention with these kv's is they are small and all
-          // in memory.
-          const v: { time: Date; key: string }[] = [];
-          for (const key in this.times) {
-            v.push({ time: this.times[key], key });
-          }
-          v.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
-          times = v;
+  // separated out from throttled version so it's easy to call directly for unit testing.
+  private enforceLimitsNow = reuseInFlight(async () => {
+    if (this.all == null || this.times == null || this.sizes == null) {
+      return;
+    }
+    const { max_msgs, max_age, max_bytes } = this.limits;
+    let times: { time: Date; key: string }[] | null = null;
+    const getTimes = (): { time: Date; key: string }[] => {
+      if (times == null) {
+        // this is potentially a little worrisome regarding performance, but
+        // it has to be done, or we have to do something elsewhere to maintain
+        // this info.  The intention with these kv's is they are small and all
+        // in memory.
+        const v: { time: Date; key: string }[] = [];
+        for (const key in this.times) {
+          v.push({ time: this.times[key], key });
         }
-        return times!;
-      };
-
-      // we check with each defined limit if some old messages
-      // should be dropped, and if so move limit forward.  If
-      // it is above -1 at the end, we do the drop.
-      let index = -1;
-      const setIndex = (i, _limit) => {
-        // console.log("setIndex", { i, _limit });
-        index = Math.max(i, index);
-      };
-
-      //max_msgs = max number of keys
-      const v = Object.keys(this.all);
-      if (max_msgs > -1 && v.length > max_msgs) {
-        // ensure there are at most this.limits.max_msgs messages
-        // by deleting the oldest ones up to a specified point.
-        const i = v.length - max_msgs;
-        if (i > 0) {
-          setIndex(i - 1, "max_msgs");
-        }
+        v.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+        times = v;
       }
+      return times!;
+    };
 
-      // max_age
-      if (max_age > 0) {
-        const times = getTimes();
-        if (times.length > 1) {
-          // expire messages older than max_age nanoseconds
-          // to avoid potential clock skew, we define *now* as the time of the most
-          // recent message.  For us, this should be fine, since we only impose limits
-          // when writing new messages, and none of these limits are guaranteed.
-          const now = times[times.length - 1].time.valueOf();
-          const cutoff = new Date(now - max_age);
-          for (let i = times.length - 2; i >= 0; i--) {
-            if (times[i].time < cutoff) {
-              // it just went over the limit.  Everything before
-              // and including the i-th message should be deleted.
-              setIndex(i, "max_age");
-              break;
-            }
-          }
-        }
+    // we check with each defined limit if some old messages
+    // should be dropped, and if so move limit forward.  If
+    // it is above -1 at the end, we do the drop.
+    let index = -1;
+    const setIndex = (i, _limit) => {
+      // console.log("setIndex", { i, _limit });
+      index = Math.max(i, index);
+    };
+
+    //max_msgs = max number of keys
+    const v = Object.keys(this.all);
+    // console.log("enforceLimitsNow", this.limits, v, getTimes());
+    if (max_msgs > -1 && v.length > max_msgs) {
+      // ensure there are at most this.limits.max_msgs messages
+      // by deleting the oldest ones up to a specified point.
+      const i = v.length - max_msgs;
+      if (i > 0) {
+        setIndex(i - 1, "max_msgs");
       }
+    }
 
-      // max_bytes
-      if (max_bytes >= 0) {
-        let t = 0;
-        const times = getTimes();
-        for (let i = times.length - 1; i >= 0; i--) {
-          t += this.sizes[times[i].key];
-          if (t > max_bytes) {
+    // max_age
+    if (max_age > 0) {
+      const times = getTimes();
+      if (times.length > 1) {
+        // expire messages older than max_age nanoseconds
+        // to avoid potential clock skew, we define *now* as the time of the most
+        // recent message.  For us, this should be fine, since we only impose limits
+        // when writing new messages, and none of these limits are guaranteed.
+        const now = times[times.length - 1].time.valueOf();
+        const cutoff = new Date(now - max_age);
+        for (let i = times.length - 2; i >= 0; i--) {
+          if (times[i].time < cutoff) {
             // it just went over the limit.  Everything before
-            // and including the i-th message must be deleted.
-            setIndex(i, "max_bytes");
+            // and including the i-th message should be deleted.
+            setIndex(i, "max_age");
             break;
           }
         }
       }
+    }
 
-      if (index > -1 && this.times != null) {
-        try {
-          // console.log("enforceLimits: deleting ", { index });
-          const times = getTimes();
-          const toDelete = times.slice(0, index + 1).map(({ key }) => key);
-          if (toDelete.length > 0) {
-            // console.log("enforceLImits: deleting ", toDelete.length, " keys");
-            const revisions = { ...this.revisions };
-            await awaitMap(toDelete, MAX_PARALLEL, async (key) => {
-              await this.delete(key, revisions[key]);
-            });
-          }
-        } catch (err) {
-          // code 10071 is for "JetStreamApiError: wrong last sequence", which is
-          // expected when there are multiple clients, since all of them try to impose
-          // limits up at once.
-          if (err.code != "TIMEOUT" && err.code != 10071) {
-            console.log(`WARNING: expiring old messages - ${err}`);
-          }
+    // max_bytes
+    if (max_bytes >= 0) {
+      let t = 0;
+      const times = getTimes();
+      for (let i = times.length - 1; i >= 0; i--) {
+        t += this.sizes[times[i].key];
+        if (t > max_bytes) {
+          // it just went over the limit.  Everything before
+          // and including the i-th message must be deleted.
+          setIndex(i, "max_bytes");
+          break;
         }
       }
-    }),
+    }
+
+    if (index > -1 && this.times != null) {
+      try {
+        // console.log("enforceLimits: deleting ", { index });
+        const times = getTimes();
+        const toDelete = times.slice(0, index + 1).map(({ key }) => key);
+        if (toDelete.length > 0) {
+          // console.log("enforceLImits: deleting ", toDelete.length, " keys");
+          const revisions = { ...this.revisions };
+          await awaitMap(toDelete, MAX_PARALLEL, async (key) => {
+            await this.delete(key, revisions[key]);
+          });
+        }
+      } catch (err) {
+        // code 10071 is for "JetStreamApiError: wrong last sequence", which is
+        // expected when there are multiple clients, since all of them try to impose
+        // limits up at once.
+        if (err.code != "TIMEOUT" && err.code != 10071) {
+          console.log(`WARNING: expiring old messages - ${err}`);
+        }
+      }
+    }
+  });
+
+  // ensure any limits are satisfied, always by deleting old keys
+  private enforceLimits = throttle(
+    this.enforceLimitsNow,
     ENFORCE_LIMITS_THROTTLE_MS,
     { leading: true, trailing: true },
   );
