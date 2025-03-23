@@ -1,107 +1,91 @@
 /*
-Testing basic ops with kv
+Testing basic ops with dko = distributed key:object store with SPARSE updates.
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "dko.test.ts"
+pnpm exec jest --forceExit --detectOpenHandles "dko.test.ts"
 
 */
 
 import { dko as createDko } from "@cocalc/backend/nats/sync";
-import { once } from "@cocalc/util/async-utils";
+import { getMaxPayload } from "@cocalc/nats/util";
+import { getConnection } from "@cocalc/nats/client";
 
-describe("create a public kv and do basic operations", () => {
+describe("create a public dko and do a basic operation", () => {
   let kv;
   const name = `test-${Math.random()}`;
 
-  it("creates the kv", async () => {
+  it("creates the dko", async () => {
     kv = await createDko({ name });
     expect(kv.getAll()).toEqual({});
   });
 
-  it("adds a key to the kv", () => {
-    kv.a = { x: 10 };
-    expect(kv.a).toEqual({ x: 10 });
-  });
-
-  it("complains if value is not an object", () => {
+  it("tries to add a non-object and fails", () => {
     expect(() => {
-      kv.x = 5;
-    }).toThrow("object");
+      kv.a = 10;
+    }).toThrow("must be objects");
   });
 
-  it("waits for the kv to be longterm saved, then closing and recreates the kv and verifies that the key is there.", async () => {
+  it("adds a key to the dko", () => {
+    kv.a = { a: 5, b: 7 };
+    expect(kv.a).toEqual({ a: 5, b: 7 });
+  });
+
+  it("waits for the dko to be saved, then closing and recreates the kv and verifies that the key is there.", async () => {
     await kv.save();
     kv.close();
     kv = await createDko({ name });
-    expect(kv.a).toEqual({ x: 10 });
+    expect(kv.a).toEqual({ a: 5, b: 7 });
   });
 
-  it("closes the kv", async () => {
-    kv.close();
+  it("verifies sparseness of underlying storage", () => {
+    expect(Object.keys(kv.getAll()).length).toBe(1);
+    // 3 = object structure (1) + values (2)
+    expect(Object.keys(kv.dkv.getAll()).length).toBe(3);
+  });
+
+  it("clears and closes the kv", async () => {
+    kv.clear();
+    await kv.close();
     expect(kv.getAll).toThrow("closed");
   });
 });
 
-describe("opens a kv twice and verifies the cached works and is reference counted", () => {
-  let kv1;
-  let kv2;
+describe("create dko and check more complicated keys", () => {
+  let kv;
   const name = `test-${Math.random()}`;
 
-  it("creates the same kv twice", async () => {
-    kv1 = await createDko({ name });
-    kv2 = await createDko({ name });
-    expect(kv1.getAll()).toEqual({});
-    expect(kv1 === kv2).toBe(true);
+  it("creates the dko", async () => {
+    kv = await createDko({ name });
+    expect(kv.getAll()).toEqual({});
+    const key = "a!@#$%^&*|()lkasdjfxxxxxxxxxx";
+    kv.set(key, { [key]: "bar" });
+    expect(kv.get(key)).toEqual({ [key]: "bar" });
   });
 
-  it("closes kv1 (one reference)", async () => {
-    kv1.close();
-    expect(kv2.getAll).not.toThrow();
-  });
-
-  it("closes kv2 (another reference)", async () => {
-    kv2.close();
-    // really closed!
-    expect(kv2.getAll).toThrow("closed");
-  });
-
-  it("create and see it is new now", async () => {
-    kv1 = await createDko({ name });
-    expect(kv1 === kv2).toBe(false);
+  it("clears and closes the kv", async () => {
+    kv.clear();
+    await kv.close();
   });
 });
 
-describe("opens a kv twice at once and observe sync", () => {
-  let kv1;
-  let kv2;
+describe("test a large value that requires chunking", () => {
+  let kv;
   const name = `test-${Math.random()}`;
 
-  it("creates the kv twice", async () => {
-    kv1 = await createDko({ name, noCache: true });
-    kv2 = await createDko({ name, noCache: true });
-    expect(kv1.getAll()).toEqual({});
-    expect(kv2.getAll()).toEqual({});
-    expect(kv1 === kv2).toBe(false);
+  it("creates the dko", async () => {
+    kv = await createDko({ name });
+    expect(kv.getAll()).toEqual({});
+
+    const n = getMaxPayload(await getConnection());
+    const big = { foo: "b".repeat(n * 1.3) };
+    kv.set("big", big);
+    expect(kv.get("big")).toEqual(big);
   });
 
-  it("sets a value in one and sees that it is NOT instantly set in the other", () => {
-    kv1.a = { x: 25 };
-    expect(kv2.a).toBe(undefined);
-  });
-
-  it("awaits save and then sees the value *eventually* appears in the other", async () => {
-    kv1.save();
-    // initially not there.
-    while (kv2.a?.x === undefined) {
-      await once(kv2, "change");
-    }
-    expect(kv2.a).toEqual(kv1.a);
-  });
-
-  it("close up", () => {
-    kv1.close();
-    kv2.close();
+  it("clears and closes the kv", async () => {
+    kv.clear();
+    await kv.close();
   });
 });
 

@@ -35,6 +35,7 @@ interface Options {
   immutable?: boolean; // if true, then get/set works with immutable.js objects instead.
   noCache?: boolean;
   limits?: Partial<KVLimits> | Partial<FilteredStreamLimitOptions>;
+  desc?: any;
 }
 
 function createObject(options: Options) {

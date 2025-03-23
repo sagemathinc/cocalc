@@ -1298,6 +1298,7 @@ export class SyncDoc extends EventEmitter {
         },
         stream: true,
         atomic: true,
+        desc: { path: this.path },
       });
     } else if (this.useNats && query.syncstrings) {
       synctable = await this.client.synctable_nats(query, {
@@ -1308,6 +1309,7 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: false,
         immutable: true,
+        desc: { path: this.path },
       });
     } else if (this.useNats && query.ipywidgets) {
       synctable = await this.client.synctable_nats(query, {
@@ -1322,6 +1324,7 @@ export class SyncDoc extends EventEmitter {
         // so we don't waste a ton of space.  TODO: We could to also clear this
         // table on halt, startup, etc.
         limits: { max_age: 1000 * 60 * 60 * 24 },
+        desc: { path: this.path },
       });
     } else if (this.useNats && (query.eval_inputs || query.eval_outputs)) {
       synctable = await this.client.synctable_nats(query, {
@@ -1333,6 +1336,7 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         limits: { max_age: 30000 },
+        desc: { path: this.path },
       });
     } else if (this.useNats) {
       synctable = await this.client.synctable_nats(query, {
@@ -1343,6 +1347,7 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: true,
         immutable: true,
+        desc: { path: this.path },
       });
     } else {
       switch (this.data_server) {

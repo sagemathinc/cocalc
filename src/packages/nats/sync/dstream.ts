@@ -317,12 +317,18 @@ export class DStream<T = any> extends EventEmitter {
       if (this.stream == null || this.opts.noInventory) {
         return;
       }
-      await delay(1000);
+      await delay(500);
+      if (this.stream == null) {
+        return;
+      }
       const name = this.name;
       const { valueType } = this.opts;
       try {
         const { account_id, project_id, desc, limits } = this.opts;
         const inv = await inventory({ account_id, project_id });
+        if (this.stream == null) {
+          return;
+        }
         if (!inv.needsUpdate({ name, type: "stream", valueType })) {
           return;
         }

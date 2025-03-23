@@ -376,11 +376,17 @@ export class DKV<T = any> extends EventEmitter {
       if (this.generalDKV == null || this.opts.noInventory) {
         return;
       }
-      await delay(1000);
+      await delay(500);
+      if (this.generalDKV == null) {
+        return;
+      }
       const { valueType } = this.opts;
       const name = this.name;
       try {
         const inv = await inventory(this.opts.location);
+        if (this.generalDKV == null) {
+          return;
+        }
         if (!inv.needsUpdate({ name, type: "kv", valueType })) {
           return;
         }

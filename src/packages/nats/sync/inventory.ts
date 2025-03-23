@@ -14,13 +14,33 @@ import { dstream } from "./dstream";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
-import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
+import {
+  human_readable_size as humanReadableSize,
+  trunc_middle,
+} from "@cocalc/util/misc";
 import type { ValueType } from "@cocalc/nats/types";
 import { type KVLimits } from "./general-kv";
 import { type FilteredStreamLimitOptions } from "./stream";
+import { DKO_PREFIX } from "./dko";
 
 export const THROTTLE_MS = 5000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
+
+type Sort =
+  | "last"
+  | "created"
+  | "count"
+  | "bytes"
+  | "name"
+  | "type"
+  | "valueType"
+  | "-last"
+  | "-created"
+  | "-count"
+  | "-bytes"
+  | "-name"
+  | "-type"
+  | "-valueType";
 
 interface Location {
   account_id?: string;
@@ -183,23 +203,74 @@ export class Inventory {
     this.dkv?.close();
   };
 
+  private sortedKeys = (all, sort0: Sort) => {
+    let reverse: boolean, sort: string;
+    if (sort0[0] == "-") {
+      reverse = true;
+      sort = sort0.slice(1);
+    } else {
+      reverse = false;
+      sort = sort0;
+    }
+    // return keys of all, sorted as specified
+    const x: { k: string; v: any }[] = [];
+    for (const k in all) {
+      x.push({ k, v: { ...all[k], ...this.decodeKey(k) } });
+    }
+    x.sort((a, b) => {
+      const a0 = a.v[sort];
+      const b0 = b.v[sort];
+      if (a0 < b0) {
+        return -1;
+      }
+      if (a0 > b0) {
+        return 1;
+      }
+      return 0;
+    });
+    const y = x.map(({ k }) => k);
+    if (reverse) {
+      y.reverse();
+    }
+    return y;
+  };
+
   ls = ({
     log = console.log,
     filter,
-  }: { log?: Function; filter?: string } = {}) => {
+    notrunc,
+    path: path0,
+    sort = "-last",
+  }: {
+    log?: Function;
+    filter?: string;
+    notrunc?: boolean;
+    path?: string;
+    sort?: Sort;
+  } = {}) => {
     const all = this.getAll();
     log(
-      "╭────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
+      "╭──────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
     log(
-      `│ ${padRight("Type", 5)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Count", 15)} │ ${padRight("Value Type", 15)} │ ${padRight("Last Update", 20)} │`,
+      `│ ${padRight("Type", 7)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Count", 15)} │ ${padRight("Value Type", 15)} │ ${padRight("Last Update", 20)} │`,
     );
     log(
-      "├────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
+      "├──────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
     );
-    for (const key in all) {
+    for (const key of this.sortedKeys(all, sort)) {
       const { last, created, count, bytes, desc, limits } = all[key];
-      const { name, type, valueType } = this.decodeKey(key);
+      if (path0 && desc?.["path"] != path0) {
+        continue;
+      }
+      let { name, type, valueType } = this.decodeKey(key);
+      if (name.startsWith(DKO_PREFIX)) {
+        type = "kvobject";
+        name = name.slice(DKO_PREFIX.length);
+      }
+      if (!notrunc) {
+        name = trunc_middle(name, 50);
+      }
       if (
         filter &&
         !`${desc ? JSON.stringify(desc) : ""} ${name}`
@@ -209,17 +280,17 @@ export class Inventory {
         continue;
       }
       log(
-        `│ ${padRight(type ?? "-", 5)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(valueType, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
+        `│ ${padRight(type ?? "-", 7)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(valueType, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
       if (desc) {
-        log(`│        │   ${JSON.stringify(desc)}`);
+        log(`│          |   ${padRight(JSON.stringify(desc), 153)} |`);
       }
       if (limits) {
-        log(`│        │   ${JSON.stringify(limits)}`);
+        log(`│          │   ${padRight(JSON.stringify(limits), 153)} |`);
       }
     }
     log(
-      "╰────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
+      "╰──────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
     );
   };
 }

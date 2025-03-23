@@ -80,7 +80,6 @@ export class SyncTableKV extends EventEmitter {
   private getName = () => {
     const primary: any = {};
     const spec = this.query[this.table][0];
-    console.log("getName!", this.table, spec);
     for (const key of this.primaryKeys) {
       const val = spec[key];
       if (val != null) {

@@ -21,19 +21,13 @@ import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 
-export interface DKOOptions extends DKVOptions {
-  sep?: string;
-}
-
 export class DKO<T = any> extends EventEmitter {
-  opts: DKOOptions;
-  sep: string;
+  opts: DKVOptions;
   dkv?: DKV; // can't type this
 
-  constructor(opts: DKOOptions) {
+  constructor(opts: DKVOptions) {
     super();
     this.opts = opts;
-    this.sep = opts.sep ?? "|";
     this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
@@ -68,7 +62,6 @@ export class DKO<T = any> extends EventEmitter {
     this.dkv = await createDKV<{ [key: string]: any }>({
       ...this.opts,
       name: dkoPrefix(this.opts.name),
-      noInventory: true,
     });
     this.dkv.on("change", ({ key: path, value }) => {
       if (path == null) {
@@ -116,13 +109,21 @@ export class DKO<T = any> extends EventEmitter {
     this.removeAllListeners();
   };
 
+  // WARNING: Do *NOT* change toPath and fromPath except in a backward incompat
+  // way, since it would corrupt all user data involving this.
   private toPath = (key: string, field: string): string => {
-    return `${key}${this.sep}${field}`;
+    return JSON.stringify([key, field]);
   };
 
-  private fromPath = (path: string): { key: string; field: string } => {
-    const [key, field] = path.split(this.sep);
-    return { key, field };
+  private fromPath = (path: string): { key: string; field?: string } => {
+    if (path.startsWith("[")) {
+      // json encoded as above
+      const [key, field] = JSON.parse(path);
+      return { key, field };
+    } else {
+      // not encoded since no field -- the value of this one is the list of keys
+      return { key: path };
+    }
   };
 
   delete = (key: string) => {
@@ -222,7 +223,7 @@ export class DKO<T = any> extends EventEmitter {
   };
 }
 
-export const cache = refCache<DKOOptions, DKO>({
+export const cache = refCache<DKVOptions, DKO>({
   createKey: userKvKey,
   createObject: async (opts) => {
     if (opts.env == null) {
@@ -234,10 +235,13 @@ export const cache = refCache<DKOOptions, DKO>({
   },
 });
 
+// WARNING: changing this or it will silently delete user data.
+export const DKO_PREFIX = "__dko__";
+
 function dkoPrefix(name: string): string {
-  return `__dko__${name}`;
+  return `${DKO_PREFIX}${name}`;
 }
 
-export async function dko<T>(options: DKOOptions): Promise<DKO<T>> {
+export async function dko<T>(options: DKVOptions): Promise<DKO<T>> {
   return await cache(options);
 }
