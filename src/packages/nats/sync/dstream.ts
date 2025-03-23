@@ -98,11 +98,24 @@ export class DStream<T = any> extends EventEmitter {
     this.stream.on("change", (mesg: T, raw: JsMsg[]) => {
       delete this.saved[last(raw).seq];
       this.emit("change", mesg);
+      if (this.isStable()) {
+        this.emit("stable");
+      }
     });
     await this.stream.init();
     this.emit("connected");
     this.updateInventory();
   });
+
+  isStable = () => {
+    for (const _ in this.saved) {
+      return false;
+    }
+    for (const _ in this.local) {
+      return false;
+    }
+    return true;
+  };
 
   close = async () => {
     if (this.stream == null) {
@@ -281,10 +294,13 @@ export class DStream<T = any> extends EventEmitter {
         if (err.code == "REJECT") {
           delete this.local[id];
           // err has mesg and subject set.
-          this.emit("reject", err);
+          this.emit("reject", { err, mesg });
         } else {
           throw err;
         }
+      }
+      if (this.isStable()) {
+        this.emit("stable");
       }
     };
     // NOTE: ES6 spec guarantees "String keys are returned in the order

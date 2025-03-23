@@ -630,79 +630,83 @@ export class Stream<T = any> extends EventEmitter {
     return { count, bytes };
   };
 
-  // ensure any limits are satisfied, i.e., delete old messages.
-  private enforceLimits = throttle(
-    reuseInFlight(async () => {
-      if (this.jsm == null) {
-        return;
+  private enforceLimitsNow = reuseInFlight(async () => {
+    if (this.jsm == null) {
+      return;
+    }
+    const { max_msgs, max_age, max_bytes } = this.limits;
+    // we check with each defined limit if some old messages
+    // should be dropped, and if so move limit forward.  If
+    // it is above -1 at the end, we do the drop.
+    let index = -1;
+    const setIndex = (i, _limit) => {
+      // console.log("setIndex", { i, _limit });
+      index = Math.max(i, index);
+    };
+    // max_msgs
+    // console.log({ max_msgs, l: this.messages.length, messages: this.messages });
+    if (max_msgs > -1 && this.messages.length > max_msgs) {
+      // ensure there are at most this.limits.max_msgs messages
+      // by deleting the oldest ones up to a specified point.
+      const i = this.messages.length - max_msgs;
+      if (i > 0) {
+        setIndex(i - 1, "max_msgs");
       }
-      const { max_msgs, max_age, max_bytes } = this.limits;
-      // we check with each defined limit if some old messages
-      // should be dropped, and if so move limit forward.  If
-      // it is above -1 at the end, we do the drop.
-      let index = -1;
-      const setIndex = (i, _limit) => {
-        // console.log("setIndex", { i, _limit });
-        index = Math.max(i, index);
-      };
-      //max_msgs
-      if (max_msgs > -1 && this.messages.length > max_msgs) {
-        // ensure there are at most this.limits.max_msgs messages
-        // by deleting the oldest ones up to a specified point.
-        const i = this.messages.length - max_msgs;
-        if (i > 0) {
-          setIndex(i - 1, "max_msgs");
-        }
-      }
+    }
 
-      // max_age
-      if (max_age > 0) {
-        // expire messages older than max_age nanoseconds
-        const recent = this.raw[this.raw.length - 1];
-        if (recent != null) {
-          // to avoid potential clock skew, we define *now* as the time of the most
-          // recent message.  For us, this should be fine, since we only impose limits
-          // when writing new messages, and none of these limits are guaranteed.
-          const now = last(recent).info.timestampNanos;
-          const cutoff = now - nanos(max_age);
-          for (let i = this.raw.length - 1; i >= 0; i--) {
-            if (last(this.raw[i]).info.timestampNanos < cutoff) {
-              // it just went over the limit.  Everything before
-              // and including the i-th message must be deleted.
-              setIndex(i, "max_age");
-              break;
-            }
-          }
-        }
-      }
-
-      // max_bytes
-      if (max_bytes >= 0) {
-        let t = 0;
+    // max_age
+    if (max_age > 0) {
+      // expire messages older than max_age nanoseconds
+      const recent = this.raw[this.raw.length - 1];
+      if (recent != null) {
+        // to avoid potential clock skew, we define *now* as the time of the most
+        // recent message.  For us, this should be fine, since we only impose limits
+        // when writing new messages, and none of these limits are guaranteed.
+        const now = last(recent).info.timestampNanos;
+        const cutoff = now - nanos(max_age);
         for (let i = this.raw.length - 1; i >= 0; i--) {
-          for (const r of this.raw[i]) {
-            t += r.data.length;
-          }
-          if (t > max_bytes) {
+          if (last(this.raw[i]).info.timestampNanos < cutoff) {
             // it just went over the limit.  Everything before
             // and including the i-th message must be deleted.
-            setIndex(i, "max_bytes");
+            setIndex(i, "max_age");
             break;
           }
         }
       }
+    }
 
-      if (index > -1) {
-        try {
-          // console.log("imposing limit via purge ", { index });
-          await this.purge({ index });
-        } catch (err) {
-          if (err.code != "TIMEOUT") {
-            console.log(`WARNING: purging old messages - ${err}`);
-          }
+    // max_bytes
+    if (max_bytes >= 0) {
+      let t = 0;
+      for (let i = this.raw.length - 1; i >= 0; i--) {
+        for (const r of this.raw[i]) {
+          t += r.data.length;
+        }
+        if (t > max_bytes) {
+          // it just went over the limit.  Everything before
+          // and including the i-th message must be deleted.
+          setIndex(i, "max_bytes");
+          break;
         }
       }
-    }),
+    }
+
+    // console.log("enforceLImits", { index });
+    if (index > -1) {
+      try {
+        // console.log("imposing limit via purge ", { index });
+        await this.purge({ index });
+      } catch (err) {
+        if (err.code != "TIMEOUT") {
+          console.log(`WARNING: purging old messages - ${err}`);
+        }
+      }
+    }
+  });
+
+  // ensure any limits are satisfied, i.e., delete old messages.
+  private enforceLimits = throttle(
+    this.enforceLimitsNow,
     ENFORCE_LIMITS_THROTTLE_MS,
     { leading: true, trailing: true },
   );
