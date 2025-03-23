@@ -81,7 +81,7 @@ export class SyncTableStream extends EventEmitter {
   }
 
   init = async () => {
-    const name = `patches-${this.string_id}`;
+    const name = `patches:${this.string_id}`;
     this.dstream = await dstream({
       name,
       project_id: this.project_id,

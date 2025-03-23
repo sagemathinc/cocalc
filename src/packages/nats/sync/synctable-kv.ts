@@ -80,6 +80,7 @@ export class SyncTableKV extends EventEmitter {
   private getName = () => {
     const primary: any = {};
     const spec = this.query[this.table][0];
+    console.log("getName!", this.table, spec);
     for (const key of this.primaryKeys) {
       const val = spec[key];
       if (val != null) {
@@ -89,7 +90,7 @@ export class SyncTableKV extends EventEmitter {
     if (Object.keys(primary).length == 0) {
       return this.table;
     } else {
-      return `${this.table}-${jsonStableStringify(primary)}`;
+      return `${this.table}:${jsonStableStringify(primary)}`;
     }
   };
 
