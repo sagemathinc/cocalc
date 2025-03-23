@@ -333,7 +333,7 @@ export class DKV<T = any> extends EventEmitter {
     }
     const h = this.generalDKV?.headers(k);
     if (h?.[KEY_HEADER_NAME] == null) {
-      console.warn("headers = ", h);
+      //console.warn("headers = ", h);
       throw Error(`missing header '${KEY_HEADER_NAME}' for key '${k}'`);
     }
     return atob(h[KEY_HEADER_NAME]);
