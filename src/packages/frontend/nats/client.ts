@@ -24,7 +24,7 @@ import { PubSub } from "@cocalc/nats/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions, type KV } from "@cocalc/nats/sync/kv";
 import { dkv, type DKVOptions, type DKV } from "@cocalc/nats/sync/dkv";
-import { dko, type DKOOptions, type DKO } from "@cocalc/nats/sync/dko";
+import { dko, type DKO } from "@cocalc/nats/sync/dko";
 import {
   stream,
   type UserStreamOptions,
@@ -512,7 +512,7 @@ export class NatsClient extends EventEmitter {
   };
 
   dko = async <T = any,>(
-    opts: Partial<DKOOptions> & { name: string },
+    opts: Partial<DKVOptions> & { name: string },
   ): Promise<DKO<T>> => {
     //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
     //       throw Error("account client can't set limits on public stream");
