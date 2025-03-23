@@ -115,8 +115,6 @@ export class XpraServer {
     const args = [
       "start",
       `:${this.display}`,
-      //"-d",
-      //"all",
       "--mdns=no", // disable dynamic dns via avahi
       "--compression_level=1",
       `--socket-dir=/tmp/xpra-${this.project_id}`,

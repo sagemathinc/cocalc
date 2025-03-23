@@ -67,29 +67,30 @@ export class Connection {
     this.send = this.send.bind(this);
   }
 
-  send(...packet): void {
+  send = (...packet): void => {
+    console.log("send", packet);
     if (packet.length <= 1) {
       // TODO: check only need for debug dev mode.
       throw Error(
-        `x11: send takes at least 2 arguments  -- ${JSON.stringify(packet)}`
+        `x11: send takes at least 2 arguments  -- ${JSON.stringify(packet)}`,
       );
     }
     this.sendQueue.push(packet, this.socket);
-  }
+  };
 
-  flush(): void {
+  flush = (): void => {
     this.sendQueue.clear();
     this.receiveQueue.clear();
-  }
+  };
 
-  open(config): void {
+  open = (config): void => {
     this.socket = createWebsocket(config.uri, this.bus);
-  }
+  };
 
-  close(): void {
+  close = (): void => {
     if (this.socket) {
       this.socket.close();
     }
     this.socket = null;
-  }
+  };
 }

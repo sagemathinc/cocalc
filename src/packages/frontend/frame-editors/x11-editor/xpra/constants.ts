@@ -28,6 +28,71 @@
 
 const { platform, userAgent } = navigator;
 
+export const PACKET_TYPES = {
+  ack_file_chunk: "ack-file-chunk",
+  bell: "bell",
+  buffer_refresh: "buffer-refresh",
+  button_action: "button-action",
+  challenge: "challenge",
+  clipboard_request: "clipboard-request",
+  clipboard_token: "clipboard-token",
+  clipboard_contents_none: "clipboard-contents-none",
+  clipboard_contents: "clipboard-contents",
+  close: "close",
+  close_window: "close-window",
+  configure_override_redirect: "configure-override-redirect",
+  configure_window: "configure-window",
+  connection_data: "connection-data",
+  cursor: "cursor",
+  damage_sequence: "damage-sequence",
+  desktop_size: "desktop_size",
+  disconnect: "disconnect",
+  draw: "draw",
+  encodings: "encodings",
+  eos: "eos",
+  error: "error",
+  focus: "focus",
+  hello: "hello",
+  info_request: "info-request",
+  info_response: "info-response",
+  initiate_moveresize: "initiate-moveresize",
+  key_action: "key-action",
+  layout_changed: "layout-changed",
+  logging: "logging",
+  lost_window: "lost-window",
+  map_window: "map-window",
+  new_override_redirect: "new-override-redirect",
+  new_tray: "new-tray",
+  new_window: "new-window",
+  notification_action: "notification-action",
+  notification_close: "notification-close",
+  notify_close: "notify_close",
+  notify_show: "notify_show",
+  open: "open",
+  open_url: "open-url",
+  ping: "ping",
+  ping_echo: "ping_echo",
+  pointer_position: "pointer-position",
+  printers: "printers",
+  raise_window: "raise-window",
+  resume: "resume",
+  send_file: "send-file",
+  send_file_chunk: "send-file-chunk",
+  set_clipboard_enabled: "set-clipboard-enabled",
+  setting_change: "setting-change",
+  sound_control: "sound-control",
+  sound_data: "sound-data",
+  startup_complete: "startup-complete",
+  start_command: "start-command",
+  suspend: "suspend",
+  unmap_window: "unmap-window",
+  wheel_motion: "wheel-motion",
+  window_icon: "window-icon",
+  window_metadata: "window-metadata",
+  window_move_resize: "window-move-resize",
+  window_resized: "window-resized",
+};
+
 export const IS_IE: boolean = userAgent.includes("MSIE");
 export const IS_OPERA: boolean = userAgent.toLowerCase().includes("opera");
 export const IS_FIREFOX: boolean = userAgent.toLowerCase().includes("firefox");
@@ -1762,7 +1827,7 @@ export const CHAR_TO_NAME = Object.keys(KEYSYM_TO_UNICODE).reduce(
     Object.assign({}, result, {
       [String.fromCharCode(KEYSYM_TO_UNICODE[key])]: key,
     }),
-  {}
+  {},
 );
 
 export const CODEC_DESCRIPTION = {

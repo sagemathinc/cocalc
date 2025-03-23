@@ -67,7 +67,7 @@ function createConfiguration(defaults = {}, append = {}) {
       lz4: true,
     },
     defaults,
-    append
+    append,
   );
 }
 
@@ -284,7 +284,7 @@ export class Client {
     data,
     sequence,
     rowstride,
-    options = {}
+    options = {},
   ): void {
     const found = this.findSurface(wid);
     if (found) {
@@ -304,7 +304,7 @@ export class Client {
           level,
           args.map((str) => {
             return unescape(encodeURIComponent(String(str)));
-          })
+          }),
         );
       } else {
         const f = console[name];
@@ -343,7 +343,7 @@ export class Client {
           surface.rescale(
             scale,
             Math.round(width * 0.85),
-            Math.round(height * 0.85)
+            Math.round(height * 0.85),
           );
         }
       }
@@ -363,7 +363,7 @@ export class Client {
     bus.on("ws:open", () => {
       this.clientCapabilities = getCapabilities(
         this.config,
-        this.audioCodecs.codecs
+        this.audioCodecs.codecs,
       );
 
       this.send("hello", this.clientCapabilities);
@@ -431,14 +431,13 @@ export class Client {
         w: number,
         h: number,
         metadata,
-        properties
+        properties,
       ) => {
         this.lastActiveWindow = 0;
 
         const props = Object.assign({}, properties || {}, {
-          "encodings.rgb_formats": this.clientCapabilities[
-            "encodings.rgb_formats"
-          ],
+          "encodings.rgb_formats":
+            this.clientCapabilities["encodings.rgb_formats"],
         });
 
         this.send("map-window", wid, x, y, w, h, props);
@@ -470,7 +469,7 @@ export class Client {
         this.surfaces[wid] = surface;
 
         bus.emit("window:create", surface);
-      }
+      },
     );
 
     bus.on(
@@ -482,7 +481,7 @@ export class Client {
         w: number,
         h: number,
         metadata,
-        properties
+        properties,
       ) => {
         let parentWid: number | undefined = metadata["transient-for"];
         if (parentWid === undefined) {
@@ -529,7 +528,7 @@ export class Client {
 
         bus.emit("overlay:create", surface);
         this.lastActiveWindow = parentWid;
-      }
+      },
     );
 
     bus.on("lost-window", (wid: number) => {
@@ -591,7 +590,7 @@ export class Client {
           console.log("x11: only png icons currently supported");
           // TODO!
         }
-      }
+      },
     );
 
     bus.on(
@@ -601,7 +600,7 @@ export class Client {
         // when a different user views it.  Obviously the move doesn't matter, but
         // the resize does.
         this.console.log("x11: TODO -- window-move-resize", wid, x, y, w, h);
-      }
+      },
     );
 
     bus.on("startup-complete", () => {
@@ -615,7 +614,7 @@ export class Client {
         this.send(
           "layout-changed",
           this.layout,
-          this.variant ? this.variant : ""
+          this.variant ? this.variant : "",
         );
         // console.log("x11 startup-complete layout-changed:", this.layout, this.variant);
       }
@@ -631,7 +630,7 @@ export class Client {
           if (this.surfaces[wid] === undefined) {
             this.bus.emit(
               "window:destroy",
-              this.surfaces_before_disconnect[wid]
+              this.surfaces_before_disconnect[wid],
             );
           }
         }
@@ -657,7 +656,7 @@ export class Client {
         expire_timeout,
         icon,
         actions,
-        hints
+        hints,
       ) => {
         bus.emit("notification:create", nid, {
           replaces_nid,
@@ -668,7 +667,7 @@ export class Client {
           actions,
           hints,
         });
-      }
+      },
     );
 
     bus.on("notify_close", (notificationId) => {
@@ -682,7 +681,7 @@ export class Client {
         mime: string,
         print: boolean,
         size: number,
-        data: string
+        data: string,
       ) => {
         if (data.length !== size) {
           console.warn("Invalid file", filename, mime, size);
@@ -694,7 +693,7 @@ export class Client {
         } else {
           bus.emit("system:upload", { filename, mime, size }, data);
         }
-      }
+      },
     );
 
     // TODO: figure out args, etc.

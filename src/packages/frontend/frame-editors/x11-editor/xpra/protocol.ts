@@ -25,7 +25,7 @@ const DEBUG = false;
 
 import { inflateSync } from "zlibjs";
 import { ord } from "./util";
-import { bencode, bdecode } from "./bencode";
+import { rencode, rdecode } from "./rencode";
 import { HEADER_SIZE } from "./constants";
 import { uncompressBlock } from "@rinsuki/lz4-ts";
 
@@ -72,7 +72,7 @@ function inflate(
 
 // Decodes a packet
 function decode(inflated: Uint8Array, rawQueue: Uint8Array[]): any[] {
-  const packet = bdecode(inflated);
+  const packet = rdecode(inflated);
   if (packet == null) {
     throw Error("unable to decode packet");
   }
@@ -123,18 +123,32 @@ function parsePacket(
       proto: Proto;
       packetSize: number;
     } {
-  // check for crypto protocol flag
+  // check for crypto protocol flag (we do not use or support or need
+  // crypto at all at this level for cocalc)
   const proto: Proto = {
     flags: header[1],
     padding: 0,
     crypto: header[1] & 0x2,
   };
 
-  if (proto.flags !== 0 && !proto.crypto) {
-    console.error("we can't handle this protocol flag yet", proto);
+  // proto.flags is or'd:
+  // 16 = rencodeplus, which is the only encoder
+  //  8 = flush -- "there aren't any other packets immediately following this one"
+  //  2 = encryption cipher
+  if (proto.flags & 2) {
+    console.error("encryption not supported");
     return false;
   }
+  if (!(proto.flags & 16)) {
+    console.error("only rencodeplus decoder supported", proto, header);
+    // return false;
+  }
 
+  // flush "there aren't any other packets immediately following this one
+  // seems not used in upstream at all.
+  // const flush = proto.flags & 8;
+
+  // compression level
   const level = header[2];
   if (level & 0x20) {
     console.error("lzo compression is not supported");
@@ -168,19 +182,30 @@ function parsePacket(
 }
 
 // Serializes an outgoing packet
-function serializePacket(data: string): number[] {
-  const level = 0; // TODO: zlib, but does not work
-  const proto_flags = 0;
+// See https://github.com/Xpra-org/xpra/blob/master/docs/Network/Protocol.md
 
-  const size = data.length;
-  const send = data.split("").map(ord);
-  const header = [ord("P"), proto_flags, level, 0];
-
-  for (let i = 3; i >= 0; i--) {
-    header.push((size >> (8 * i)) & 0xff);
+function makePacketHeader(proto_flags, level, payload_size) {
+  const header = new Uint8Array(8);
+  header[0] = "P".charCodeAt(0);
+  header[1] = proto_flags;
+  header[2] = level;
+  header[3] = 0;
+  //size header:
+  for (let index = 0; index < 4; index++) {
+    header[7 - index] = (payload_size >> (8 * index)) & 0xff;
   }
+  return header;
+}
 
-  return [...header, ...send];
+function serializePacket(data: Uint8Array): Uint8Array {
+  const level = 0;
+  let proto_flags = 0x10;
+  const header = makePacketHeader(proto_flags, level, data.length);
+  const actual_size = data.byteLength;
+  const packet = new Uint8Array(8 + actual_size);
+  packet.set(header, 0);
+  packet.set(data, 8);
+  return packet;
 }
 
 // The receive queue handler
@@ -292,6 +317,7 @@ export class ReceiveQueue {
         const packet = decode(inflated, this.rawQueue);
 
         debug("<<<", ...packet);
+        console.log("received ", packet);
 
         this.callback(...packet);
 
@@ -334,12 +360,11 @@ export class SendQueue {
       }
 
       debug(">>>", ...packet);
+      console.log("sending ", packet);
 
-      const data = bencode(packet);
-      const pkg = serializePacket(data);
-      const out = new Uint8Array(pkg).buffer;
-
-      socket.send(out);
+      const data = rencode(packet);
+      const buf = serializePacket(data);
+      socket.send(buf.buffer);
     }
   }
 

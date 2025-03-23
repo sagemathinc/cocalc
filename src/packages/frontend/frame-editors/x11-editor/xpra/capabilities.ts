@@ -91,7 +91,7 @@ function getEncodingCapabilities(config, soundCodecs) {
     config.audio_codecs.length > 0 ? config.audio_codecs : soundCodecs;
 
   return {
-    digest: digest,
+    digest,
     "salt-digest": digest,
     "generic-rgb-encodings": true,
     "sound.decoders": audioEncodings,
@@ -234,51 +234,42 @@ export function getCapabilities(config, soundCodecs) {
   const client = getClientCapabilities(config);
   const encoding = getEncodingCapabilities(config, soundCodecs);
 
-  const extras = {
-    /*
-     challenge: false,
-    'bandwidth-limit': 0
-      "connection-data"	: ci,
-      "start-new-session" : this.start_new_session});
-      "cipher"					: this.encryption,
-      "cipher.iv"					: Utilities.getHexUUID().slice(0, 16),
-      "cipher.key_salt"			: Utilities.getHexUUID()+Utilities.getHexUUID(),
-      "cipher.key_stretch_iterations"	: 1000,
-      "cipher.padding.options"	: ["PKCS#7"],
-     */
+  const extras = {};
+
+  return {
+    version: "18.0",
+    client_type: "HTML5",
+    platform: platform.type,
+    "platform.name": platform.name,
+    "patform.processor": platform.processor,
+    "platform.platform": platform.platform,
+    "session-type": browser.name,
+    "session-type.full": browser.agent,
+    namespace: true,
+    username: config.username,
+    uuid: config.uuid,
+    argv: [window.location.href],
+
+    // Compression bits
+    zlib: config.zlib,
+    lzi: false,
+    lz4: config.lz4,
+    "encoding.rgb_lz4": true,
+    "lz4.js.version": "0.5.1", //lz4.version,
+    compression_level: config.compression_level,
+
+    vrefresh: -1,
+
+    // Packet encoders
+    rencodeplus: true,
+    bencode: false,
+    yaml: false,
+    "open-url": true,
+
+    "setting-change": true, // required by v5 server
+
+    ...client,
+    ...encoding,
+    ...extras,
   };
-
-  return Object.assign(
-    {
-      version: "2.4",
-      platform: platform.type,
-      "platform.name": platform.name,
-      "patform.processor": platform.processor,
-      "platform.platform": platform.platform,
-      "session-type": browser.name,
-      "session-type.full": browser.agent,
-      namespace: true,
-      client_type: "HTML5",
-      username: config.username,
-      uuid: config.uuid,
-      argv: [window.location.href],
-
-      // Compression bits
-      zlib: config.zlib,
-      lzi: false,
-      lz4: config.lz4,
-      "encoding.rgb_lz4": true,
-      "lz4.js.version": "0.5.1", //lz4.version,
-      compression_level: config.compression_level,
-
-      // Packet encoders
-      rencode: false,
-      bencode: true,
-      yaml: false,
-      "open-url": true,
-    },
-    client,
-    encoding,
-    extras,
-  );
 }
