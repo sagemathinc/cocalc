@@ -3,7 +3,7 @@ Test using user-defined headers with kv and stream.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "headers.test.ts"
+pnpm exec jest --forceExit "headers.test.ts"
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup

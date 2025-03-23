@@ -3,7 +3,7 @@ Testing basic ops with dsteam (distributed streams)
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "dstream.test.ts"
+pnpm exec jest --watch --forceExit "dstream.test.ts"
 
 */
 

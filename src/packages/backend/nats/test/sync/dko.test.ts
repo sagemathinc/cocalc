@@ -3,7 +3,7 @@ Testing basic ops with dko = distributed key:object store with SPARSE updates.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "dko.test.ts"
+pnpm exec jest --forceExit "dko.test.ts"
 
 */
 

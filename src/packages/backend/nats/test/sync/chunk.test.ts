@@ -5,7 +5,7 @@ This tests that this actually works.
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "chunk.test.ts"
+pnpm exec jest --forceExit "chunk.test.ts"
 
 WARNING:
 

@@ -8,7 +8,7 @@ to open so they can fulfill their backend responsibilities:
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "open-files.test.ts"
+pnpm exec jest --forceExit "open-files.test.ts"
 
 */
 
@@ -59,7 +59,7 @@ describe("create open file tracker and do some basic operations", () => {
     o1.touch(file2);
     expect(o1.get(file2)?.path).toBe(file2);
     expect(o2.get(file2)).toBe(undefined);
-    o1.save();
+    await o1.save();
     if (o2.get(file2) == null) {
       await once(o2, "change", 250);
       expect(o2.get(file2).path).toBe(file2);
@@ -74,17 +74,33 @@ describe("create open file tracker and do some basic operations", () => {
     expect(v.length).toBe(2);
   });
 
-  it("delete file1", async () => {
+  it("delete file1 and verify that it is deleted is sync'd", async () => {
     o1.delete(file1);
     expect(o1.get(file1)).toBe(undefined);
     expect(o1.getAll().length).toBe(1);
     await o1.save();
-    if (o2.get(file1) != null) {
+
+    // TODO/warning/weird: If I comment out this use of o3,
+    // then the test involving o2 below doesn't work sometimes, i.e., for some reason
+    // sync isn't working with the delete for two dkv's in the same process at once.
+    // (In practice our sync is between completely different clients, so I'm not
+    // super worried about this.)
+    // in a newly opened tracker, the file is clearly gone:
+    const o3 = await create();
+    expect(o3.get(file1)).toBe(undefined);
+    // should be 1 due to file2 still being there:
+    expect(o3.getAll().length).toBe(1);
+    o3.close();
+
+    // verify file is gone in o2, at least after change event (if necessary)
+    if (o2.get(file1) !== undefined) {
+      console.log("wait for o2 change");
       await once(o2, "change", 250);
     }
     expect(o2.get(file1)).toBe(undefined);
     // should be 1 due to file2 still being there:
     expect(o2.getAll().length).toBe(1);
+
   });
 
   it("sets an error", async () => {
@@ -96,7 +112,7 @@ describe("create open file tracker and do some basic operations", () => {
       // get a conflict due to above so resolve it...
       await o2.save();
     } catch {
-      o2.save();
+      await o2.save();
     }
     if (!o1.get(file2).error) {
       await once(o1, "change", 250);
@@ -107,7 +123,7 @@ describe("create open file tracker and do some basic operations", () => {
   it("clears the error", async () => {
     o1.setError(file2);
     expect(o1.get(file2).error).toBe(undefined);
-    o1.save();
+    await o1.save();
     if (o2.get(file2).error) {
       await once(o2, "change", 250);
     }

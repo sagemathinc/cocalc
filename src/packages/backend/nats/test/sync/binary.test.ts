@@ -6,7 +6,7 @@ unit tests.  Here we test binary data instead.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "binary.test.ts"
+pnpm exec jest --forceExit "binary.test.ts"
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup

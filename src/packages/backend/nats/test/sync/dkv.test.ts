@@ -3,7 +3,7 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "dkv.test.ts"
+pnpm exec jest --forceExit "dkv.test.ts"
 
 */
 
@@ -33,6 +33,7 @@ describe("create a public dkv and do basic operations", () => {
   });
 
   it("closes the kv", async () => {
+    await kv.clear();
     kv.close();
     expect(kv.getAll).toThrow("closed");
   });
@@ -73,8 +74,8 @@ describe("opens a dkv twice at once and observe sync", () => {
   const name = `test-${Math.random()}`;
 
   it("creates the dkv twice", async () => {
-    kv1 = await createDkv({ name, noCache: true });
-    kv2 = await createDkv({ name, noCache: true });
+    kv1 = await createDkv({ name, noCache: true, noAutosave: true });
+    kv2 = await createDkv({ name, noCache: true, noAutosave: true });
     expect(kv1.getAll()).toEqual({});
     expect(kv2.getAll()).toEqual({});
     expect(kv1 === kv2).toBe(false);
@@ -86,16 +87,20 @@ describe("opens a dkv twice at once and observe sync", () => {
   });
 
   it("awaits save and then sees the value *eventually* appears in the other", async () => {
-    await kv1.save();
-    // initially not there.
+    // not initially not there.
     expect(kv2.a).toBe(undefined);
-    await once(kv2, "change");
+    await kv1.save();
+    if (kv2.a === undefined) {
+      await once(kv2, "change");
+    }
     expect(kv2.a).toBe(kv1.a);
   });
 
-  it("close up", () => {
-    kv1.close();
-    kv2.close();
+  it("close up", async () => {
+    await kv1.clear();
+    await kv1.close();
+    await kv2.clear();
+    await kv2.close();
   });
 });
 
@@ -130,8 +135,9 @@ describe("check server assigned times", () => {
     expect(t0).not.toEqual(kv.time("a"));
   });
 
-  it("close", () => {
-    kv.close();
+  it("close", async () => {
+    await kv.clear();
+    await kv.close();
   });
 });
 
@@ -209,6 +215,13 @@ describe("test deleting and clearing a dkv", () => {
     kv1.clear();
     expect(kv1.has(key2)).toBe(false);
   });
+
+  it("close", async () => {
+    await kv1.clear();
+    await kv1.close();
+    await kv2.clear();
+    await kv2.close();
+  });
 });
 
 describe("set several items, confirm write worked, save, and confirm they are still there after save", () => {
@@ -240,6 +253,9 @@ describe("set several items, confirm write worked, save, and confirm they are st
     expect(kv.generalDKV.local).toEqual({});
     // @ts-ignore: saved is private
     expect(kv.generalDKV.saved).toEqual({});
+
+    await kv.clear();
+    await kv.close();
   });
 });
 
@@ -305,6 +321,13 @@ describe("create many distinct clients at once, write to all of them, and see th
       expect(client.getAll()).toEqual(combined);
     }
   });
+
+  it("close", async () => {
+    for (const client of clients) {
+      await client.clear();
+      await client.close();
+    }
+  });
 });
 
 describe("tests involving null/undefined values", () => {
@@ -349,5 +372,12 @@ describe("tests involving null/undefined values", () => {
     expect(kv2.a === undefined).toBe(true);
     expect(kv2.length).toBe(0);
     expect(kv1.getAll()).toEqual({});
+  });
+
+  it("close", async () => {
+    await kv1.clear();
+    await kv1.close();
+    await kv2.clear();
+    await kv2.close();
   });
 });

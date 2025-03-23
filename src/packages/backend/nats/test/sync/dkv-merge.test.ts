@@ -3,7 +3,7 @@ Testing merge conflicts with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "dkv-merge.test.ts"
+pnpm exec jest --watch --forceExit "dkv-merge.test.ts"
 
 */
 

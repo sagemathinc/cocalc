@@ -3,7 +3,7 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit --detectOpenHandles "akv.test.ts"
+pnpm exec jest --forceExit "akv.test.ts"
 
 */
 
