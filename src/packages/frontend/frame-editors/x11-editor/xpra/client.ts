@@ -120,7 +120,6 @@ export class Client {
       info: this.log("info", 20),
       debug: this.log("debug", 10),
     };
-    window.x = { client: this };
   }
 
   decodeBase64 = (base64) => {

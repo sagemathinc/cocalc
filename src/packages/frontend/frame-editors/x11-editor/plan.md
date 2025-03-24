@@ -1,0 +1,8 @@
+- get x11 to work sensibly without using primus, using pub/sub instead of a primus channel \(?\).
+- Build upstream xpra\-html5 from source to location of our choice: ~/upstream/xpra\-html5\$ python3 setup.py install \$HOME/upstream/local
+- Modify the background image
+- Change to just having the standard or slightly modified client in an iframe.
+- Get the html from built location.
+- Replace the _websocket_ part by NATS proxied pub/sub later.
+- this is clearly the way to go
+- [https://github.com/sagemathinc/cocalc/tree/nats\-xpra](https://github.com/sagemathinc/cocalc/tree/nats-xpra) 

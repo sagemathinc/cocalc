@@ -110,6 +110,9 @@ export class XpraServer {
       args: ["-p", `/tmp/xpra-${this.project_id}`],
     });
     // Actually start xpra.
+
+    // xpra start :1507177745 --lock=no --bind-tcp=localhost:10000,auth=none --sharing=yes --terminate-children=yes --daemon=no --html=/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/upstream/local/usr/share/xpra/www --xvfb="/usr/bin/Xvfb -screen 0 8192x4096x24+32 -nolisten tcp -noreset"
+    
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
     const args = [
