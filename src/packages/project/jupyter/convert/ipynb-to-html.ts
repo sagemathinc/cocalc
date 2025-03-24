@@ -3,7 +3,8 @@ Some React-based nbconvert functionality.
 
 Note that this doesn't actually use upstream nbconvert itself at all!
 
- - html: using react; very fast and uses no command line calls; html depends on cdn.
+ - html: using react; very fast and uses no command line calls; html
+   has references in it to content on a cdn.
 */
 
 import * as fs from "fs";
