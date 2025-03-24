@@ -175,7 +175,7 @@ importers:
         specifier: ^4.14.202
         version: 4.17.9
       '@types/pg':
-        specifier: ^8.6.1
+        specifier: ^8.11.10
         version: 8.11.10
       '@types/uuid':
         specifier: ^8.3.1
@@ -208,8 +208,8 @@ importers:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
       pg:
-        specifier: ^8.7.1
-        version: 8.13.0
+        specifier: ^8.13.0
+        version: 8.13.1
       random-key:
         specifier: ^0.3.2
         version: 0.3.2
@@ -1057,6 +1057,9 @@ importers:
       '@openapitools/openapi-generator-cli':
         specifier: ^2.13.4
         version: 2.13.9(encoding@0.1.13)
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.11.10
       '@types/react':
         specifier: ^18.3.10
         version: 18.3.10
@@ -1118,8 +1121,8 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       pg:
-        specifier: ^8.7.1
-        version: 8.13.0
+        specifier: ^8.13.0
+        version: 8.13.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -10154,9 +10157,6 @@ packages:
     peerDependencies:
       pg: '>=8.0'
 
-  pg-protocol@1.5.0:
-    resolution: {integrity: sha512-muRttij7H8TqRNu/DxrAJQITO4Ac7RmX3Klyr/9mJEOBeIpgnF8f9jAfRz5d3XwQZl5qBjF9gLsUtMPJE0vezQ==}
-
   pg-protocol@1.7.0:
     resolution: {integrity: sha512-hTK/mE36i8fDDhgDFjy6xNOG+LCorxLG3WO17tku+ij6sVHXh1jQUJ8hYAnRhNla4QVD2H8er/FOjc/+EgC6yQ==}
 
@@ -10167,15 +10167,6 @@ packages:
   pg-types@4.0.2:
     resolution: {integrity: sha512-cRL3JpS3lKMGsKaWndugWQoLOCoP+Cic8oseVcbr0qhPzYD5DWXK+RZ9LY9wxRf7RQia4SCwQlXk0q6FCPrVng==}
     engines: {node: '>=10'}
-
-  pg@8.13.0:
-    resolution: {integrity: sha512-34wkUTh3SxTClfoHB3pQ7bIMvw9dpFU1audQQeZG837fmHfHpr14n/AELVDoOYVDW2h5RDWU78tFjkD+erSBsw==}
-    engines: {node: '>= 8.0.0'}
-    peerDependencies:
-      pg-native: '>=3.0.1'
-    peerDependenciesMeta:
-      pg-native:
-        optional: true
 
   pg@8.13.1:
     resolution: {integrity: sha512-OUir1A0rPNZlX//c7ksiu7crsGZTKSOXJPgtNiHGIlC9H0lO+NC6ZDYksSgBYY/thSWhnSRBv8w1lieNNGATNQ==}
@@ -16108,8 +16099,8 @@ snapshots:
 
   '@types/pg@8.11.10':
     dependencies:
-      '@types/node': 18.19.50
-      pg-protocol: 1.5.0
+      '@types/node': 18.19.55
+      pg-protocol: 1.7.0
       pg-types: 4.0.2
 
   '@types/pica@5.1.3': {}
@@ -22618,16 +22609,9 @@ snapshots:
 
   pg-numeric@1.0.2: {}
 
-  pg-pool@3.7.0(pg@8.13.0):
-    dependencies:
-      pg: 8.13.0
-
   pg-pool@3.7.0(pg@8.13.1):
     dependencies:
       pg: 8.13.1
-    optional: true
-
-  pg-protocol@1.5.0: {}
 
   pg-protocol@1.7.0: {}
 
@@ -22649,16 +22633,6 @@ snapshots:
       postgres-interval: 3.0.0
       postgres-range: 1.1.4
 
-  pg@8.13.0:
-    dependencies:
-      pg-connection-string: 2.7.0
-      pg-pool: 3.7.0(pg@8.13.0)
-      pg-protocol: 1.7.0
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.1.1
-
   pg@8.13.1:
     dependencies:
       pg-connection-string: 2.7.0
@@ -22668,7 +22642,6 @@ snapshots:
       pgpass: 1.0.5
     optionalDependencies:
       pg-cloudflare: 1.1.1
-    optional: true
 
   pgpass@1.0.5:
     dependencies:
