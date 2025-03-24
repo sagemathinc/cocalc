@@ -17,7 +17,8 @@ export interface KernelSpec {
 export interface CoCalcJupyter {
   cellList: string[];
   cells: { [id: string]: object };
-  cmOptions: { [field: string]: any };
+  cmOptions?: { [field: string]: any };
+  metadata?;
   kernelspec: KernelSpec;
 }
 

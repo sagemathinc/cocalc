@@ -35,9 +35,19 @@ export default function exportToHTML({
     if (cocalcJupyter != null) {
       throw Error("exactly one of ipynb or cocalcJupyter must be specified");
     }
-    notebook = createElement(NBViewer, { content: ipynb, fontSize, style });
+    notebook = createElement(NBViewer, {
+      key: "x",
+      content: ipynb,
+      fontSize,
+      style,
+    });
   } else if (cocalcJupyter != null) {
-    notebook = createElement(Notebook, { cocalcJupyter, fontSize, style });
+    notebook = createElement(Notebook, {
+      key: "x",
+      cocalcJupyter,
+      fontSize,
+      style,
+    });
   } else {
     throw Error("at least one of ipynb or cocalcJupyter must be specified");
   }

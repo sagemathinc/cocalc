@@ -51,6 +51,7 @@ import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
 import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
 import { cloneDeep } from "lodash";
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
+import exportToHTML from "./nbviewer/export";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -1236,8 +1237,8 @@ export class JupyterActions extends JupyterActions0 {
   // frontend like this does.
   toIpynb = async () => {
     const store = this.store;
-    if (store.get("cells") == null || store.get("cell_list") == null) {
-      throw Error("not loaded yet");
+    if (store?.get("cells") == null || store?.get("cell_list") == null) {
+      throw Error("not loaded");
     }
 
     const cell_list = store.get("cell_list");
@@ -1271,7 +1272,6 @@ export class JupyterActions extends JupyterActions0 {
     const pass1 = export_to_ipynb(options);
 
     let n = 0;
-    console.log({ hashes });
     for (const hash in hashes) {
       try {
         const ar = await this.asyncBlobStore.get(hash);
@@ -1291,5 +1291,23 @@ export class JupyterActions extends JupyterActions0 {
     };
 
     return export_to_ipynb({ ...options, blob_store: blob_store2 });
+  };
+
+  toHTML = async () => {
+    const store = this.store;
+    if (store?.get("cells") == null || store?.get("cell_list") == null) {
+      throw Error("not loaded");
+    }
+    const kernelspec = store.get_kernel_info(store.get("kernel"));
+    if (kernelspec == null) {
+      throw Error("unable to get kernelspec");
+    }
+    const cocalcJupyter = {
+      cells: store.get("cells").toJS(),
+      cellList: store.get("cell_list").toJS(),
+      metadata: store.get("metadata")?.toJS(),
+      kernelspec,
+    };
+    return exportToHTML({ cocalcJupyter });
   };
 }

@@ -84,7 +84,13 @@ export function CellOutput({
         "cocalc-output-div" /* used by stable unsafe html for clipping */
       }
     >
-      {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
+      {!hidePrompt && (
+        <ControlColumn
+          cell={cell}
+          actions={actions}
+          id={id}
+        />
+      )}
       <OutputColumn
         cell={cell}
         actions={actions}
@@ -206,7 +212,11 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled")}>
+      <OutputToggle
+        actions={actions}
+        id={id}
+        scrolled={cell.get("scrolled")}
+      >
         {prompt}
       </OutputToggle>
     );

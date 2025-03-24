@@ -31,8 +31,10 @@ interface OutputToggleProps {
 }
 
 export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
-  (props: OutputToggleProps) => {
-    const { actions, id, scrolled, children } = props;
+  ({ actions, id, scrolled, children }: OutputToggleProps) => {
+    if (actions == null) {
+      return null;
+    }
 
     function toggle_scrolled() {
       actions?.toggle_output(id, "scrolled");
@@ -41,6 +43,18 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
     function collapse_output() {
       actions?.toggle_output(id, "collapsed");
     }
+
+    const btn = (
+      <Button
+        type="text"
+        style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
+        onClick={toggle_scrolled}
+        onDoubleClick={collapse_output}
+      >
+        {children}
+        <span style={{ flex: 1 }} />
+      </Button>
+    );
 
     return (
       <Tooltip
@@ -55,15 +69,7 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
           </>
         }
       >
-        <Button
-          type="text"
-          style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
-          onClick={toggle_scrolled}
-          onDoubleClick={collapse_output}
-        >
-          {children}
-          <span style={{ flex: 1 }} />
-        </Button>
+        {btn}
       </Tooltip>
     );
   },

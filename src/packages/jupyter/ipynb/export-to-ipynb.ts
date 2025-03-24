@@ -48,7 +48,7 @@ export interface IPynbCell {
 }
 
 interface BlobStore {
-  getBase64: (sha1: string) => string | null | undefined;
+  getBase64: (sha1: string) => string | null | undefined | void;
 }
 
 interface Options {

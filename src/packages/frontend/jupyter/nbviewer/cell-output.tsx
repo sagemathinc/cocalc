@@ -1,10 +1,8 @@
-import { Map, fromJS } from "immutable";
-import { useEffect, useState } from "react";
-
+import { fromJS } from "immutable";
 import { CellOutput } from "../cell-output";
 
 interface Props {
-  cell: object;
+  cell?: object;
   project_id?: string;
   directory?: string;
   more_output?;
@@ -18,29 +16,13 @@ export default function NBViewerCellOutput({
   more_output,
   hidePrompt,
 }: Props) {
-  const [iCell, setICell] = useState<Map<string, any> | null>(
-    cell == null ? null : fromJS(cell),
-  );
-
-  useEffect(() => {
-    setICell(fromJS(cell));
-  }, [cell]);
-
-  const actions: any = {
-    toggle_output: (_id: string, state: "collapsed" | "scrolled") => {
-      if (iCell == null) return;
-      setICell(iCell.set(state, !iCell.get(state)));
-    },
-  };
-
-  if (iCell == null) {
+  if (cell == null) {
     return null;
   }
   return (
     <CellOutput
       id={cell["id"]}
-      cell={iCell}
-      actions={actions}
+      cell={fromJS(cell)}
       project_id={project_id}
       directory={directory}
       more_output={more_output}

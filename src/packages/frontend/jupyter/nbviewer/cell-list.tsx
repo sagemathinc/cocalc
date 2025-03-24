@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import { CSS } from "@cocalc/frontend/app-framework";
 import Cell from "./cell";
 

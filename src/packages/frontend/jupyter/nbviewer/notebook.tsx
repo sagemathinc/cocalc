@@ -3,7 +3,11 @@ import { useBottomScroller } from "@cocalc/frontend/app-framework/use-bottom-scr
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import { path_split } from "@cocalc/util/misc";
 import { JupyterContext } from "../jupyter-context";
-import type { CoCalcJupyter } from "@cocalc/jupyter/ipynb/parse";
+import {
+  type CoCalcJupyter,
+  getCMOptions,
+  getMode,
+} from "@cocalc/jupyter/ipynb/parse";
 import CellList from "./cell-list";
 
 interface Props {
@@ -26,7 +30,10 @@ export default function Notebook({
   scrollBottom,
 }: Props) {
   const ref = useBottomScroller<HTMLDivElement>(scrollBottom, cocalcJupyter);
-  const { cellList, cells, cmOptions, kernelspec } = cocalcJupyter;
+  let { cellList, cells, cmOptions, metadata, kernelspec } = cocalcJupyter;
+  if (cmOptions == null) {
+    cmOptions = getCMOptions(getMode({ metadata }));
+  }
 
   return (
     <JupyterContext.Provider value={{ kernelspec }}>
