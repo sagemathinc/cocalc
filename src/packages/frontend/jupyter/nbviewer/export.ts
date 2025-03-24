@@ -13,20 +13,34 @@ backend is impossible in a project without network access.
 */
 
 import NBViewer from "./nbviewer";
+import Notebook from "./notebook";
 import { renderToString } from "react-dom/server";
 import { createElement, CSSProperties } from "react";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import type { CoCalcJupyter } from "@cocalc/jupyter/ipynb/parse";
 
 export default function exportToHTML({
-  content,
+  ipynb,
+  cocalcJupyter,
   fontSize,
   style,
 }: {
-  content: string;
+  ipynb?: string;
+  cocalcJupyter?: CoCalcJupyter;
   fontSize?: number;
   style?: CSSProperties;
 }): string {
-  const notebook = createElement(NBViewer, { content, fontSize, style });
+  let notebook;
+  if (ipynb != null) {
+    if (cocalcJupyter != null) {
+      throw Error("exactly one of ipynb or cocalcJupyter must be specified");
+    }
+    notebook = createElement(NBViewer, { content: ipynb, fontSize, style });
+  } else if (cocalcJupyter != null) {
+    notebook = createElement(Notebook, { cocalcJupyter, fontSize, style });
+  } else {
+    throw Error("at least one of ipynb or cocalcJupyter must be specified");
+  }
   const element = createElement(
     FileContext.Provider,
     {

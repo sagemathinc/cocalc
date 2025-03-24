@@ -19,8 +19,8 @@ export default async function ipynbToHtml(path: string): Promise<string> {
     "@cocalc/frontend/jupyter/nbviewer/export"
   );
 
-  const content = (await readFile(path)).toString();
-  const html = toHtml({ content, style: { margin: "30px 30px 0 0" } });
+  const ipynb = (await readFile(path)).toString();
+  const html = toHtml({ ipynb, style: { margin: "30px 30px 0 0" } });
   const outfile = htmlPath(path);
   await writeFile(outfile, html);
   return outfile;

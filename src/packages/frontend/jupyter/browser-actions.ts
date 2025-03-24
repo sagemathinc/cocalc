@@ -32,6 +32,7 @@ import {
   merge_copy,
   to_json,
   uuid,
+  uint8ArrayToBase64,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
@@ -48,6 +49,8 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import type { Kernels, Kernel } from "@cocalc/jupyter/util/misc";
 import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
 import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
+import { cloneDeep } from "lodash";
+import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -1223,5 +1226,70 @@ export class JupyterActions extends JupyterActions0 {
 
     // also in the case when the kernel is "" we have to set this to true
     this.setState({ check_select_kernel_init: true });
+  };
+
+  // convert this Jupyter notebook to an ipynb file, including
+  // mime types like images in base64. This makes a first pass
+  // to find the sha1-indexed blobs, gets the blobs, then does
+  // a second passto fill them in.  There is a similar function
+  // in store that is sync, but doesn't fill in the blobs on the
+  // frontend like this does.
+  toIpynb = async () => {
+    const store = this.store;
+    if (store.get("cells") == null || store.get("cell_list") == null) {
+      throw Error("not loaded yet");
+    }
+
+    const cell_list = store.get("cell_list");
+    const more_output: { [id: string]: any } = {};
+    for (const id of cell_list.toJS()) {
+      const x = store.get_more_output(id);
+      if (x != null) {
+        more_output[id] = x;
+      }
+    }
+
+    const hashes: { [sha1: string]: string | null } = {};
+    const blob_store = {
+      getBase64: (hash) => {
+        hashes[hash] = null;
+      },
+    };
+
+    // export_to_ipynb mutates its input... mostly not a problem, since
+    // we're toJS'ing most of it, but be careful with more_output.
+    const options = {
+      cells: store.get("cells").toJS(),
+      cell_list: cell_list.toJS(),
+      metadata: store.get("metadata")?.toJS(), // custom metadata
+      kernelspec: store.get_kernel_info(store.get("kernel")),
+      language_info: store.get_language_info(),
+      blob_store,
+      more_output: cloneDeep(more_output),
+    };
+
+    const pass1 = export_to_ipynb(options);
+
+    let n = 0;
+    console.log({ hashes });
+    for (const hash in hashes) {
+      try {
+        const ar = await this.asyncBlobStore.get(hash);
+        if (ar) {
+          hashes[hash] = uint8ArrayToBase64(ar);
+          n += 1;
+        }
+      } catch (err) {
+        console.log("WARNING: missing image ", hash, err);
+      }
+    }
+    if (n == 0) {
+      return pass1;
+    }
+    const blob_store2 = {
+      getBase64: (hash) => hashes[hash],
+    };
+
+    return export_to_ipynb({ ...options, blob_store: blob_store2 });
   };
 }

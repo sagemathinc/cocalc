@@ -8,7 +8,6 @@ Exporting from our in-memory sync-friendly format to ipynb
 */
 
 import { deep_copy, keys, filename_extension } from "@cocalc/util/misc";
-import { type BlobStoreInterface as BlobStore } from "@cocalc/jupyter/types/project-interface";
 
 type CellType = "code" | "markdown" | "raw";
 
@@ -46,6 +45,10 @@ export interface IPynbCell {
   metadata?: Metadata;
   execution_count?: number;
   outputs?: OutputMessage[];
+}
+
+interface BlobStore {
+  getBase64: (sha1: string) => string | null | undefined;
 }
 
 interface Options {

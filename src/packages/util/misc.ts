@@ -1478,20 +1478,14 @@ export function retry_until_success(opts: {
           return;
         }
         if (err && opts.warn != null) {
-          opts.warn(
-            `retry_until_success(${opts.name}) -- err=${err}`,
-          );
+          opts.warn(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.log != null) {
-          opts.log(
-            `retry_until_success(${opts.name}) -- err=${err}`,
-          );
+          opts.log(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
           opts.cb?.(
-            `maximum tries (=${
-              opts.max_tries
-            }) exceeded - last error ${err}`,
+            `maximum tries (=${opts.max_tries}) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -1505,9 +1499,7 @@ export function retry_until_success(opts: {
           Date.now() - start_time + delta > opts.max_time
         ) {
           opts.cb?.(
-            `maximum time (=${
-              opts.max_time
-            }ms) exceeded - last error ${err}`,
+            `maximum time (=${opts.max_time}ms) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -2706,4 +2698,14 @@ export function isNumericString(str: string): boolean {
     !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(str))
   ); // ...and ensure strings of whitespace fail
+}
+
+// This is needed in browsers, where toString('base64') doesn't work
+// and .toBase64()
+export function uint8ArrayToBase64(uint8Array: Uint8Array) {
+  let binaryString = "";
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binaryString);
 }
