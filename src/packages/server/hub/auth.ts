@@ -456,6 +456,7 @@ export class PassportManager {
   private get_extra_opts(name: string, conf: PassportStrategyDBConfig) {
     // "extra_opts" is passed to the passport.js "Strategy" constructor!
     // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
+    const { type } = conf;
     const extracted = _.omit(conf, [
       "type", // not needed, we use it to pick the constructor
       "name", // deprecated, this is in the metadata "info" now
@@ -469,10 +470,21 @@ export class PassportManager {
       "auth_opts", // we pass them as a separate parameter
     ]);
 
-    return {
+    const opts = {
       ...this.get_extra_default_opts({ name, type: conf.type }),
       ...extracted,
     };
+
+    // node-saml>=5 renamed cert to idpCert (passport-saml dependency)
+    // https://github.com/node-saml/node-saml/pull/343
+    if (type === "saml" || type === "saml-v3" || type === "saml-v4") {
+      if (typeof opts.cert === "string") {
+        opts.idpCert = opts.cert;
+        delete opts.cert;
+      }
+    }
+
+    return opts;
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
@@ -593,8 +605,8 @@ export class PassportManager {
         req.user.profile != null
           ? req.user.profile
           : req.user.attributes != null
-            ? req.user.attributes
-            : req.user;
+          ? req.user.attributes
+          : req.user;
 
       // there are cases, where profile is a JSON string (e.g. oauth2next)
       let profile: passport.Profile;
