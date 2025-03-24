@@ -139,10 +139,6 @@ function parsePacket(
     console.error("encryption not supported");
     return false;
   }
-  if (!(proto.flags & 16)) {
-    console.error("only rencodeplus decoder supported", proto, header);
-    // return false;
-  }
 
   // flush "there aren't any other packets immediately following this one
   // seems not used in upstream at all.
@@ -159,6 +155,13 @@ function parsePacket(
   if (index >= 20) {
     console.error("Invalid packet index", index);
     return false;
+  }
+  // when proto.flags = 0, it's a non-encoded chunk
+  if (!index) {
+    if (!proto.flags) {
+      console.error("Packet with nonzero index but flags must be 0", header);
+      return false;
+    }
   }
 
   let packetSize = 0;

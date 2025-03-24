@@ -132,7 +132,7 @@ export class XpraServer {
       "--speaker=off",
       "--terminate-children=yes",
       `--bind-tcp=0.0.0.0:${port}`,
-      "--html=/tmp" /* just to make it serve the websocket; path isn't actually used.  Must be absolute */,
+      //l"--html=/tmp" /* just to make it serve the websocket; path isn't actually used.  Must be absolute */,
       "--daemon=yes",
       `--xvfb=${XVFB}`,
     ];

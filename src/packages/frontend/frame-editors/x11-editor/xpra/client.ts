@@ -34,6 +34,7 @@ import {
   keyboardLayout,
   timestamp,
 } from "./util";
+import { rdecode } from "./rencode";
 
 import { EventEmitter } from "events";
 import { close } from "@cocalc/util/misc";
@@ -91,8 +92,8 @@ export class Client {
 
   private layout: string = "";
   private variant: string = "";
+  private packetTypes?: Set<string>;
 
-  public send: Function;
   public console: {
     error: Function;
     warn: Function;
@@ -108,7 +109,6 @@ export class Client {
     this.mouse_inject = this.mouse_inject.bind(this);
 
     this.connection = new Connection(this.bus);
-    this.send = this.connection.send;
     this.keyboard = new Keyboard(this.send);
     this.init_bus();
     this.init_ping_interval();
@@ -120,7 +120,25 @@ export class Client {
       info: this.log("info", 20),
       debug: this.log("debug", 10),
     };
+    window.x = { client: this };
   }
+
+  decodeBase64 = (base64) => {
+    const binary_string = atob(base64);
+    const len = binary_string.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary_string.charCodeAt(i);
+    }
+    return rdecode(bytes.slice(8));
+  };
+
+  send = (...packet) => {
+    if (this.packetTypes != null && !this.packetTypes.has(packet[0])) {
+      throw Error(`unknown packet type '${packet[0]}'`);
+    }
+    this.connection.send(...packet);
+  };
 
   window_ids(): number[] {
     const v: number[] = [];
@@ -352,6 +370,9 @@ export class Client {
 
   private process_server_capabilities(cap): void {
     this.serverCapabilities = cap;
+    if (cap["packet-types"]) {
+      this.packetTypes = new Set(cap["packet-types"]);
+    }
     if (cap["modifier_keycodes"]) {
       this.keyboard.process_modifier_keycodes(cap["modifier_keycodes"]);
     }
