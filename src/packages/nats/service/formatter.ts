@@ -1,5 +1,5 @@
 /*
-Services in a project.
+Formatting services in a project.
 */
 
 import { createServiceClient, createServiceHandler } from "./typed";

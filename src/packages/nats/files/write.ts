@@ -180,18 +180,20 @@ async function handleMessage({
   }
 }
 
+export interface WriteFileOptions {
+  project_id: string;
+  compute_server_id?: number;
+  path: string;
+  stream: Readable;
+  maxWait?: number;
+}
+
 export async function writeFile({
   project_id,
   compute_server_id = 0,
   path,
   stream,
   maxWait = 1000 * 60 * 10, // 10 minutes
-}: {
-  project_id: string;
-  compute_server_id?: number;
-  path: string;
-  stream: Readable;
-  maxWait?: number;
 }): Promise<{ bytes: number; chunks: number }> {
   const name = randomId();
   try {

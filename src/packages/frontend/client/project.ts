@@ -8,7 +8,6 @@ Functionality that mainly involves working with a specific project.
 */
 
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -55,6 +54,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
+import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -72,6 +72,7 @@ export class ProjectClient {
     return this.client.nats_client.projectApi({ project_id });
   };
 
+  // This can write small text files in one message.
   public async write_text_file({
     project_id,
     path,
@@ -86,6 +87,18 @@ export class ProjectClient {
       content,
     });
   }
+
+  // writeFile -- easily write **arbitrarily large text or binary files**
+  // to a project from a readable stream or a string!
+  writeFile = async (
+    opts: WriteFileOptions & { content?: string },
+  ): Promise<{ bytes: number; chunks: number }> => {
+    if (opts.content != null) {
+      // @ts-ignore -- typescript doesn't like this at all, but it works fine.
+      opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
+    }
+    return await writeFile(opts);
+  };
 
   public async read_text_file({
     project_id,

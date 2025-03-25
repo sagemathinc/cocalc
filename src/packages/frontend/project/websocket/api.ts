@@ -36,7 +36,7 @@ import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { formatterClient } from "@cocalc/nats/service/project";
+import { formatterClient } from "@cocalc/nats/service/formatter";
 
 export class API {
   private conn;
