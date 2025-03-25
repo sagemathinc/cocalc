@@ -53,11 +53,14 @@ async function assertValidUser({ auth_token, project_id, account_id }) {
   if (auth_token?.startsWith("sk-") || auth_token?.startsWith("sk_")) {
     // auth_token is presumably an api key
     const a = await getAccountWithApiKey(auth_token);
-    if (a == project_id) {
+    if (project_id && a?.project_id == project_id) {
       return;
-    } else if (a == account_id) {
+    } else if (account_id && a?.account_id == account_id) {
       return;
     }
+    throw Error(
+      `auth_token valid for ${JSON.stringify(a)} by does not match ${project_id} or ${account_id}`,
+    );
   }
   if (project_id) {
     if ((await getProjectSecretToken(project_id)) == auth_token) {

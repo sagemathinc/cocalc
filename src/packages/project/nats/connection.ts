@@ -16,7 +16,7 @@ servers.
 
 import { getLogger } from "@cocalc/project/logger";
 import { connect as connectViaTCP } from "nats";
-import { natsPorts, natsServer } from "@cocalc/backend/data";
+import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { inboxPrefix as getInboxPrefix } from "@cocalc/nats/names";
 import { project_id } from "@cocalc/project/data";
@@ -33,7 +33,7 @@ function getServers() {
   if (process.env.NATS_SERVER) {
     return process.env.NATS_SERVER;
   } else {
-    return `${natsServer}:${natsPorts.server}`;
+    return natsWebsocketServer;
   }
 }
 
@@ -66,7 +66,7 @@ const getConnection = reuseInFlight(async (): Promise<NatsConnection> => {
         servers,
         name: JSON.stringify({ project_id }),
         user: `project-${project_id}`,
-        token: process.env.API_KEY ? process.env.API_KEY : await secretToken(),
+        token: apiKey ? apiKey : await secretToken(),
       });
       if (nc == null) {
         throw Error("connection failed");

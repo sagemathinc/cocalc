@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
+unset NATS_SERVER
+unset COCALC_NATS_SERVER
 unset COCALC_PROJECT_ID
+unset COCALC_USERNAME
+
 export API_KEY=`cat conf/api_key`
 export API_SERVER=`cat conf/api_server`
 export PROJECT_ID=`cat conf/project_id`

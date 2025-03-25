@@ -197,7 +197,10 @@ export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
   ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
 };
+
 export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
+// note: natsWebsocketServer will be changed below if API_KEY and API_SERVER
+// are set, but COCALC_NATS_SERVER is not set.
 export let natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
 
 export function setNatsPort(port) {
@@ -267,6 +270,16 @@ export function setNatsAuthCalloutXSeed(auth_callout: string) {
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
+if (
+  process.env.API_KEY &&
+  process.env.API_SERVER &&
+  !process.env.COCALC_NATS_SERVER
+) {
+  // the nats server was not set via env variables, but the api server is set,
+  // along with the api key. This happens for compute servers, and in this case
+  // we also set the nats server by default to the same as the api server.
+  natsWebsocketServer = "ws" + apiServer.slice(4) + "/nats";
+}
 
 // Delete API_KEY from environment to reduce chances of it leaking, e.g., to
 // spawned terminal subprocess.

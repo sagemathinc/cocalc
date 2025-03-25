@@ -24,6 +24,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/compute": "link:",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
