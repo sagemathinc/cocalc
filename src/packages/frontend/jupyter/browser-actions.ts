@@ -52,6 +52,7 @@ import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
 import { cloneDeep } from "lodash";
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import exportToHTML from "./nbviewer/export";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -1250,10 +1251,10 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
 
-    const hashes: { [sha1: string]: string | null } = {};
+    const blobs: { [sha1: string]: string | null } = {};
     const blob_store = {
       getBase64: (hash) => {
-        hashes[hash] = null;
+        blobs[hash] = null;
       },
     };
 
@@ -1272,11 +1273,11 @@ export class JupyterActions extends JupyterActions0 {
     const pass1 = export_to_ipynb(options);
 
     let n = 0;
-    for (const hash in hashes) {
+    for (const hash in blobs) {
       try {
         const ar = await this.asyncBlobStore.get(hash);
         if (ar) {
-          hashes[hash] = uint8ArrayToBase64(ar);
+          blobs[hash] = uint8ArrayToBase64(ar);
           n += 1;
         }
       } catch (err) {
@@ -1287,10 +1288,48 @@ export class JupyterActions extends JupyterActions0 {
       return pass1;
     }
     const blob_store2 = {
-      getBase64: (hash) => hashes[hash],
+      getBase64: (hash) => blobs[hash],
     };
 
     return export_to_ipynb({ ...options, blob_store: blob_store2 });
+  };
+
+  private getBase64Blobs = async (cells) => {
+    const blobs: { [hash: string]: string } = {};
+    const failed = new Set<string>();
+    for (const id in cells) {
+      const cell = cells[id];
+      if (!cell?.output) {
+        continue;
+      }
+      for (const i in cell.output) {
+        const mesg = cell.output[i];
+        if (!mesg.data) {
+          continue;
+        }
+        for (const type of JUPYTER_MIMETYPES) {
+          const hash = mesg.data[type];
+          if (hash?.length != 40) {
+            continue;
+          }
+          if (failed.has(hash)) {
+            continue;
+          }
+          if (blobs[hash] == null) {
+            try {
+              const ar = await this.asyncBlobStore.get(hash);
+              blobs[hash] = uint8ArrayToBase64(ar);
+            } catch {
+              failed.add(hash);
+              continue;
+            }
+          }
+          if (blobs[hash]) {
+            mesg.data[type] = blobs[hash];
+          }
+        }
+      }
+    }
   };
 
   toHTML = async () => {
@@ -1302,8 +1341,10 @@ export class JupyterActions extends JupyterActions0 {
     if (kernelspec == null) {
       throw Error("unable to get kernelspec");
     }
+    const cells = store.get("cells").toJS();
+    await this.getBase64Blobs(cells);
     const cocalcJupyter = {
-      cells: store.get("cells").toJS(),
+      cells,
       cellList: store.get("cell_list").toJS(),
       metadata: store.get("metadata")?.toJS(),
       kernelspec,

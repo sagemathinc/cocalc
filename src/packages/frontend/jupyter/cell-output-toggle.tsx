@@ -81,8 +81,14 @@ interface CollapsedOutputProps {
 }
 
 export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
-  (props: CollapsedOutputProps) => {
-    const { actions, id } = props;
+  ({ actions, id }: CollapsedOutputProps) => {
+    if (actions == null) {
+      return (
+        <div style={{ textAlign: "center", width: "100%", color: "#666" }}>
+          (Output Hidden)
+        </div>
+      );
+    }
 
     function show_output() {
       actions?.toggle_output(id, "collapsed");
