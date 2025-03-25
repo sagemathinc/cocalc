@@ -20,6 +20,9 @@ importers:
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
+      '@cocalc/project':
+        specifier: workspace:*
+        version: link:../project
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync

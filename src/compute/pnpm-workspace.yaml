@@ -3,6 +3,7 @@ packages:
   - "backend"
   - "comm"
   - "jupyter"
+  - "project"
   - "sync"
   - "sync-fs"
   - "sync-client"
