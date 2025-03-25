@@ -20,11 +20,13 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import type { CoCalcJupyter } from "@cocalc/jupyter/ipynb/parse";
 
 export default function exportToHTML({
+  title,
   ipynb,
   cocalcJupyter,
   fontSize,
   style,
 }: {
+  title?: string;
   ipynb?: string;
   cocalcJupyter?: CoCalcJupyter;
   fontSize?: number;
@@ -69,7 +71,9 @@ export default function exportToHTML({
   const { codemirror, antd, katex } = getVersions();
 
   return `<html>
-<head><meta charset="utf-8" />
+<head>
+<title>${title}</title>
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/${codemirror}/codemirror.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@${katex}/dist/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />

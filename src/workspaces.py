@@ -114,9 +114,9 @@ def all_packages() -> List[str]:
         'packages/api-client',
         'packages/jupyter',
         'packages/comm',
+        'packages/project',
         'packages/assets',
         'packages/frontend',  # static depends on frontend; frontend depends on assets
-        'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again), which also depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)

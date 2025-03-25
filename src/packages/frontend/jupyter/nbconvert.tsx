@@ -156,16 +156,14 @@ interface NBConvertProps {
 }
 
 export const NBConvert: React.FC<NBConvertProps> = React.memo(
-  (props: NBConvertProps) => {
-    const {
-      actions,
-      path,
-      project_id,
-      nbconvert,
-      nbconvert_dialog,
-      backend_kernel_info,
-    } = props;
-
+  ({
+    actions,
+    path,
+    project_id,
+    nbconvert,
+    nbconvert_dialog,
+    backend_kernel_info,
+  }: NBConvertProps) => {
     function target(): { targetPath?: string; url?: string; info? } {
       if (
         nbconvert == null ||
@@ -203,7 +201,9 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
 
     // on show of dialog, start running, if not already running.
     useEffect(() => {
-      if (nbconvert_dialog == null) return;
+      if (nbconvert_dialog == null) {
+        return;
+      }
       const state = nbconvert?.get("state");
       if (state != "start" && state != "run") {
         run();

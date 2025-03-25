@@ -53,6 +53,7 @@ import { cloneDeep } from "lodash";
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import exportToHTML from "./nbviewer/export";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import { parse } from "path";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -638,6 +639,12 @@ export class JupyterActions extends JupyterActions0 {
       console.warn("nbconvert: syncdb not available, aborting...");
       return;
     }
+
+    if (args[1] == "cocalc-html" || args[1] == "cocalc-pdf") {
+      this.nbconvertToHtml();
+      return;
+    }
+
     this.syncdb.set({
       type: "nbconvert",
       args,
@@ -1349,6 +1356,31 @@ export class JupyterActions extends JupyterActions0 {
       metadata: store.get("metadata")?.toJS(),
       kernelspec,
     };
-    return exportToHTML({ cocalcJupyter });
+    const { base: title } = parse(this.path);
+    return exportToHTML({ cocalcJupyter, title });
+  };
+
+  nbconvertToHtml = async () => {
+    try {
+      this.setState({ nbconvert: { state: "run", error: "" } });
+      const html = await this.toHTML();
+      const printWindow = window.open("", "_blank");
+      if (printWindow == null) {
+        throw Error("failed to open popup window");
+      }
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.onload = function () {
+        printWindow.print();
+        printWindow.onafterprint = function () {
+          printWindow.close();
+        };
+      };
+      this.setState({ nbconvert: { state: "done", error: "" } });
+    } catch (err) {
+      this.setState({ nbconvert: { state: "done", error: `${err}` } });
+    }
+    return;
   };
 }
