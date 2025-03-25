@@ -25,7 +25,6 @@ import { dirname, join } from "path";
 import { userInfo } from "os";
 import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType } from "./util";
 import { apiCall } from "@cocalc/api-client";
-import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
 import { delay } from "awaiting";
 import { executeCode } from "@cocalc/backend/execute-code";
 
@@ -127,8 +126,6 @@ class Manager {
       });
       await waitUntilFilesystemIsOfType(this.home, this.waitHomeFilesystemType);
     }
-    // initialize the blobstore
-    await initJupyterBlobStore();
     // connect to the project for participating in realtime sync
     const client_id = encodeIntToUUID(this.compute_server_id);
     this.client = new SyncClient({
