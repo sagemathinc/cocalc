@@ -38,7 +38,7 @@ export default function Notebook({
   return (
     <JupyterContext.Provider value={{ kernelspec }}>
       <div ref={ref} style={style}>
-        <div style={{ marginBottom: "15px", marginLeft: "15px" }}>
+        <div style={{ margin: "15px", textAlign:'right' }}>
           <b>Kernel:</b> {kernelspec.display_name}
         </div>
         <CellList
