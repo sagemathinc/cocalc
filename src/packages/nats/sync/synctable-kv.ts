@@ -114,6 +114,9 @@ export class SyncTableKV extends EventEmitter {
         desc: this.desc,
       });
     }
+    // For some reason this one line confuses typescript and break building the compute server package (nothing else similar happens).
+    // Do not remove.  The error is that "this.dkv.on" is not callable.
+    // @ts-ignore
     this.dkv.on("change", (x) => {
       if (!this.atomic) {
         if (x.value === undefined) {
