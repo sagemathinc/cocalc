@@ -61,7 +61,6 @@ import { registerListingsTable } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
-import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
@@ -332,7 +331,7 @@ class SyncTableChannel {
 
     spark.on("data", async (mesg) => {
       try {
-        await this.handle_mesg_from_browser(spark, mesg);
+        await this.handle_mesg_from_browser(mesg);
       } catch (err) {
         spark.write({ error: `error handling mesg -- ${err}` });
         this.log("error handling mesg -- ", err, err.stack);
@@ -393,10 +392,7 @@ class SyncTableChannel {
     }
   }
 
-  private async handle_mesg_from_browser(
-    spark: Spark,
-    mesg: any,
-  ): Promise<void> {
+  private handle_mesg_from_browser = async (mesg: any): Promise<void> => {
     // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
     // Temporarily enable as needed for debugging purposes.
     //this.log("handle_mesg_from_browser ", { mesg });
@@ -410,16 +406,16 @@ class SyncTableChannel {
       this.synctable.apply_changes_from_browser_client(mesg.timed_changes);
       await this.synctable.save();
     }
-  }
+  };
 
-  private send_versioned_changes_to_browsers(
+  private send_versioned_changes_to_browsers = (
     versioned_changes: VersionedChange[],
-  ): void {
+  ): void => {
     if (this.closed) return;
     this.log("send_versioned_changes_to_browsers");
     const x = { versioned_changes };
     this.channel.write(x);
-  }
+  };
 
   private async save_if_possible(): Promise<void> {
     if (this.closed || this.closing) {
