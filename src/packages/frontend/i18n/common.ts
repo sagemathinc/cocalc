@@ -524,7 +524,7 @@ export const labels = defineMessages({
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
-    defaultMessage: "Select a kernel",
+    defaultMessage: "Select a Kernel",
     description: "A kernel in a Jupyter Notebook",
   },
   invited: {

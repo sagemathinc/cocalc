@@ -6,9 +6,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project:
 
-    > await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
-
-    {status: 'terminated', service: 'api'}
+   await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
 
 1. Create a file project-env.sh as explained in projects/nats/README.md, which defines these environment variables (your values will be different):
 

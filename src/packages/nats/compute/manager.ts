@@ -42,6 +42,7 @@ export class ComputeServerManager extends EventEmitter {
     this.options = options;
     // It's reasonable to have many clients, e.g., one for each open file
     this.setMaxListeners(100);
+    this.init();
   }
 
   waitUntilReady = async () => {
@@ -99,7 +100,7 @@ export class ComputeServerManager extends EventEmitter {
 
   private getDkv = () => {
     if (this.dkv == null) {
-      throw Error(`compute server not initialized -- in state '${this.state}'`);
+      throw Error(`compute server manager not initialized -- in state '${this.state}'`);
     }
     return this.dkv;
   };

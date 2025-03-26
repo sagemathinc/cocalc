@@ -120,19 +120,19 @@ export const initial_jupyter_store_state: {
 
 export class JupyterStore extends Store<JupyterStoreState> {
   // manipulated in jupyter/project-actions.ts
-  public _more_output: { [id: string]: any } = {};
+  _more_output: { [id: string]: any } = {};
 
   // immutable List
-  public get_cell_list = (): List<string> => {
+  get_cell_list = (): List<string> => {
     return this.get("cell_list") ?? List();
   };
 
   // string[]
-  public get_cell_ids_list(): string[] {
+  get_cell_ids_list(): string[] {
     return this.get_cell_list().toJS();
   }
 
-  public get_cell_type(id: string): "markdown" | "code" | "raw" {
+  get_cell_type(id: string): "markdown" | "code" | "raw" {
     // NOTE: default cell_type is "code", which is common, to save space.
     // TODO: We use unsafe_getIn because maybe the cell type isn't spelled out yet, or our typescript isn't good enough.
     const type = this.unsafe_getIn(["cells", id, "cell_type"], "code");
@@ -142,7 +142,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return type;
   }
 
-  public get_cell_index(id: string): number {
+  get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
     if (cell_list == null) {
       // truly fatal
@@ -161,7 +161,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // the notebook (so there is no such cell) or there
   // is no cell with the given id; in particular,
   // we do NOT wrap around.
-  public get_cell_id(delta = 0, id: string): string | undefined {
+  get_cell_id(delta = 0, id: string): string | undefined {
     let i: number;
     try {
       i = this.get_cell_index(id);
@@ -237,7 +237,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     });
   };
 
-  public get_language_info(): object | undefined {
+  get_language_info(): object | undefined {
     for (const key of ["backend_kernel_info", "metadata"]) {
       const language_info = this.unsafe_getIn([key, "language_info"]);
       if (language_info != null) {
@@ -246,7 +246,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  public get_cm_mode() {
+  get_cm_mode() {
     let metadata_immutable = this.get("backend_kernel_info");
     if (metadata_immutable == null) {
       metadata_immutable = this.get("metadata");
@@ -382,11 +382,11 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // NOTE: defaults for these happen to be true if not given (due to bad
   // choice of name by some extension author).
-  public is_cell_editable(id: string): boolean {
+  is_cell_editable = (id: string): boolean => {
     return this.get_cell_metadata_flag(id, "editable", true);
-  }
+  };
 
-  public is_cell_deletable(id: string): boolean {
+  is_cell_deletable = (id: string): boolean => {
     if (!this.is_cell_editable(id)) {
       // I've decided that if a cell is not editable, then it is
       // automatically not deletable.  Relevant facts:
@@ -398,26 +398,26 @@ export class JupyterStore extends Store<JupyterStoreState> {
       return false;
     }
     return this.get_cell_metadata_flag(id, "deletable", true);
-  }
+  };
 
-  public get_cell_metadata_flag(
+  get_cell_metadata_flag = (
     id: string,
     key: string,
     default_value: boolean = false,
-  ): boolean {
+  ): boolean => {
     return this.unsafe_getIn(["cells", id, "metadata", key], default_value);
-  }
+  };
 
   // canonicalize the language of the kernel
-  public get_kernel_language(): string | undefined {
+  get_kernel_language = (): string | undefined => {
     return canonical_language(
       this.get("kernel"),
       this.getIn(["kernel_info", "language"]),
     );
-  }
+  };
 
   // map the kernel language to the syntax of a language we know
-  public get_kernel_syntax(): Syntax | undefined {
+  get_kernel_syntax = (): Syntax | undefined => {
     let lang = this.get_kernel_language();
     if (!lang) return undefined;
     lang = lang.toLowerCase();
@@ -433,14 +433,15 @@ export class JupyterStore extends Store<JupyterStoreState> {
       case "javascript":
         return "JavaScript";
     }
-  }
+  };
 
-  public async jupyter_kernel_key(): Promise<string> {
+  jupyter_kernel_key = async (): Promise<string> => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
     const customize = this.redux.getStore("customize");
-    const computeServerId =
-      this.redux.getActions(this.name)?.getComputeServerId() ?? 0;
+    const computeServerId = await this.redux
+      .getActions(this.name)
+      ?.getComputeServerId();
     if (customize == null) {
       // the customize store doesn't exist, e.g., in a compute server.
       // In that case no need for a complicated jupyter kernel key as
@@ -456,7 +457,5 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
-  }
-  
-  
+  };
 }

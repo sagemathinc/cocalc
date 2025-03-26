@@ -2431,12 +2431,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     throw Error("define this in derived class");
   }
 
-  // Return id of ACTIVE remote compute server, if one is connected, or 0
-  // if none is connected.
-  getComputeServerId = (): number => {
-    return this.syncdb.getComputeServerId();
-  };
-
   set_kernel_error = (err) => {
     this._set({
       type: "settings",

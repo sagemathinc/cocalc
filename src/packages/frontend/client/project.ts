@@ -643,6 +643,11 @@ export class ProjectClient {
   }): Promise<number | undefined> => {
     return await computeServers(project_id)?.getServerIdForPath(path);
   };
+
+  // will throw exception if compute servers dkv not yet initialized
+  getServerIdForPathSync = ({ project_id, path }): number | undefined => {
+    return computeServers(project_id).get(path);
+  };
 }
 
 // (NOTE: this won't throw an exception)

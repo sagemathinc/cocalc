@@ -54,6 +54,8 @@ import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import exportToHTML from "./nbviewer/export";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { parse } from "path";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
+import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -66,8 +68,10 @@ export class JupyterActions extends JupyterActions0 {
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
   private lastComputeServerId?: number;
+  private syncdbPath: string;
 
   protected init2(): void {
+    this.syncdbPath = syncdbPath(this.path);
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
@@ -994,49 +998,71 @@ export class JupyterActions extends JupyterActions0 {
     this.check_select_kernel();
   }
 
+  getComputeServerIdSync = (): number => {
+    return (
+      webapp_client.project_client.getServerIdForPathSync({
+        project_id: this.project_id,
+        path: this.syncdbPath,
+      }) ?? 0
+    );
+  };
+
+  getComputeServerId = async (): Promise<number> => {
+    return (
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id: this.project_id,
+        path: this.syncdbPath,
+      })) ?? 0
+    );
+  };
+
   fetch_jupyter_kernels = debounce(
-    reuseInFlight(async (): Promise<void> => {
-      let data;
-      const f = async () => {
-        const api = webapp_client.nats_client.projectApi({
-          project_id: this.project_id,
-          timeout: 5000,
-        });
-        data = await api.editor.jupyterKernels();
+    reuseInFlight(
+      async ({ noCache }: { noCache?: boolean } = {}): Promise<void> => {
+        let data;
+        const f = async () => {
+          if (this._state === "closed") {
+            return;
+          }
+          data = await getKernelSpec({
+            project_id: this.project_id,
+            compute_server_id: this.getComputeServerIdSync(),
+            noCache,
+          });
+        };
+        try {
+          await retry_until_success({
+            max_time: 1000 * 15, // up to 15 seconds
+            start_delay: 3000,
+            max_delay: 10000,
+            f,
+            desc: "jupyter:fetch_jupyter_kernels",
+          });
+        } catch (err) {
+          this.set_error(err);
+          return;
+        }
         if (this._state === "closed") {
           return;
         }
-      };
-      try {
-        await retry_until_success({
-          max_time: 1000 * 15, // up to 15 seconds
-          start_delay: 3000,
-          max_delay: 10000,
-          f,
-          desc: "jupyter:fetch_jupyter_kernels",
-        });
-      } catch (err) {
-        this.set_error(err);
-        return;
-      }
-      if (this._state === "closed") {
-        return;
-      }
-      // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-      const kernels = fromJS(data ?? []).filter(
-        (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
-      );
-      const key: string = await this.store.jupyter_kernel_key();
-      jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-      this.setState({ kernels });
-      // We must also update the kernel info (e.g., display name), now that we
-      // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-      const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
-      this.setState({ kernel_info });
-      // e.g. "kernel_selection" is derived from "kernels"
-      await this.update_select_kernel_data();
-      this.check_select_kernel();
-    }),
+        // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+        const kernels = fromJS(data ?? []).filter(
+          (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
+        );
+        const key: string = await this.store.jupyter_kernel_key();
+        jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+        this.setState({ kernels });
+        // We must also update the kernel info (e.g., display name), now that we
+        // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+        const kernel_info = this.store.get_kernel_info(
+          this.store.get("kernel"),
+        );
+        this.setState({ kernel_info });
+        // e.g. "kernel_selection" is derived from "kernels"
+        await this.update_select_kernel_data();
+        this.check_select_kernel();
+      },
+    ),
     // this debounce basically "caches the result" for this long
     // after attempts to get the kernels:
     3000,
@@ -1141,32 +1167,30 @@ export class JupyterActions extends JupyterActions0 {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this.is_project && !this.is_compute_server) {
-        // we either let the user select a kernel, or use a stored one
-        let using_default_kernel = false;
+      // we either let the user select a kernel, or use a stored one
+      let using_default_kernel = false;
 
-        const account_store = this.redux.getStore("account") as any;
-        const editor_settings = account_store.get("editor_settings") as any;
-        if (
-          editor_settings != null &&
-          !editor_settings.get("ask_jupyter_kernel")
-        ) {
-          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
-          // TODO: check if kernel is actually known
-          if (default_kernel != null) {
-            this.set_kernel(default_kernel);
-            using_default_kernel = true;
-          }
+      const account_store = this.redux.getStore("account") as any;
+      const editor_settings = account_store.get("editor_settings") as any;
+      if (
+        editor_settings != null &&
+        !editor_settings.get("ask_jupyter_kernel")
+      ) {
+        const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
+        // TODO: check if kernel is actually known
+        if (default_kernel != null) {
+          this.set_kernel(default_kernel);
+          using_default_kernel = true;
         }
-
-        if (!using_default_kernel) {
-          // otherwise we let the user choose a kernel
-          this.show_select_kernel("bad kernel");
-        }
-        // we also finalize the kernel selection check, because it doesn't switch to true
-        // if there is no kernel at all.
-        this.setState({ check_select_kernel_init: true });
       }
+
+      if (!using_default_kernel) {
+        // otherwise we let the user choose a kernel
+        this.show_select_kernel("bad kernel");
+      }
+      // we also finalize the kernel selection check, because it doesn't switch to true
+      // if there is no kernel at all.
+      this.setState({ check_select_kernel_init: true });
     } else {
       // Opening an existing notebook
       const default_kernel = this.store.get_default_kernel();

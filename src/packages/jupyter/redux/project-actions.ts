@@ -32,6 +32,7 @@ import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
+import { computeServerManager } from "@cocalc/nats/compute/manager";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
@@ -1528,5 +1529,21 @@ export class JupyterActions extends JupyterActions0 {
     if (matched) {
       this.syncdb.commit();
     }
+  };
+
+  getComputeServerIdSync = (): number => {
+    return (
+      computeServerManager({ project_id: this.project_id }).get(
+        this.syncdb.path,
+      ) ?? 0
+    );
+  };
+
+  getComputeServerId = async (): Promise<number> => {
+    return (
+      (await computeServerManager({
+        project_id: this.project_id,
+      }).getServerIdForPath(this.syncdb.path)) ?? 0
+    );
   };
 }
