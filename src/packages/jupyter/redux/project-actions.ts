@@ -29,7 +29,6 @@ import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
-import { isEncodedNumUUID } from "@cocalc/util/compute/manager";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
@@ -213,8 +212,6 @@ export class JupyterActions extends JupyterActions0 {
       "change",
       this.handle_ipywidgets_state_change,
     );
-
-    this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
 
     // initialize the websocket api
     if (false) {
@@ -1506,23 +1503,6 @@ export class JupyterActions extends JupyterActions0 {
   public handle_nbconvert_change(oldVal, newVal): void {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
-
-  private lastComputeServerId = 0;
-  private checkForComputeServerStateChange = (client_id) => {
-    if (this.is_closed()) {
-      return;
-    }
-    if (!isEncodedNumUUID(client_id)) {
-      return;
-    }
-    const id = this.getComputeServerId();
-    if (id != this.lastComputeServerId) {
-      // reset all run state
-      this.halt();
-      this.clear_all_cell_run_state();
-    }
-    this.lastComputeServerId = id;
-  };
 
   /*
   WebSocket API
