@@ -2143,7 +2143,8 @@ export class Actions<
   async ensure_latest_changes_are_saved(): Promise<boolean> {
     this.set_status("Ensuring your latest changes are saved...");
     let success = false;
-    for (let i = 0; i < 2; i++) { // TODO: looping is clearly a hack.
+    for (let i = 0; i < 2; i++) {
+      // TODO: looping is clearly a hack.
       this.set_syncstring_to_codemirror();
       success = await this.ensure_syncstring_is_saved();
       await delay(1);
@@ -2267,6 +2268,9 @@ export class Actions<
   }
 
   setFormatError(formatError: string, formatInput: string = "") {
+    while (formatError.startsWith("Error: ")) {
+      formatError = formatError.slice("Error: ".length);
+    }
     this.setState({ formatError, formatInput });
   }
 
