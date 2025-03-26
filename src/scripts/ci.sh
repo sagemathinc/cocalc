@@ -21,7 +21,7 @@ while true; do
         echo "FAIL at `date`" >> ci.log
     fi
   else
-    echo "No changes detected. Checking again in 1 minute."
+    echo "No changes detected. Checking again in 30 seconds."
   fi
 
   # Wait for 30 seconds before checking again
