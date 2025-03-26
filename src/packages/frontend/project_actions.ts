@@ -968,18 +968,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  public async open_file(opts: OpenFileOpts): Promise<void> {
+  open_file = async (opts: OpenFileOpts): Promise<void> => {
     await open_file(this, opts);
-  }
+  };
 
   /* Initialize the redux store and react component for editing
      a particular file.
   */
-  async initFileRedux(
+  initFileRedux = async (
     path: string,
     is_public: boolean = false,
     ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> {
+  ): Promise<string | undefined> => {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
     await import("./editors/register-all");
@@ -994,13 +994,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext,
     );
     return name;
-  }
+  };
 
-  private async init_file_react_redux(
+  private init_file_react_redux = async (
     path: string,
     is_public: boolean,
     ext?: string,
-  ): Promise<{ name: string | undefined; Editor: any }> {
+  ): Promise<{ name: string | undefined; Editor: any }> => {
     const name = await this.initFileRedux(path, is_public, ext);
 
     // Make the Editor react component
@@ -1015,9 +1015,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Log that we opened the file.
     log_file_open(this.project_id, path);
     return { name, Editor };
-  }
+  };
 
-  get_scroll_saver_for(path: string) {
+  get_scroll_saver_for = (path: string) => {
     if (path != null) {
       return (scroll_position) => {
         const store = this.get_store();
@@ -2724,13 +2724,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
-  async create_file(opts: {
+  create_file = async (opts: {
     name: string;
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
     compute_server_id?: number;
-  }) {
+  }) => {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2797,42 +2797,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "cc-new-file",
-      timeout: 10,
-      args: [p],
-      err_on_exit: true,
-      compute_server_id,
-      filesystem: true,
-      cb: (err, output) => {
-        if (!err) {
-          this.log({ event: "file_action", action: "created", files: [p] });
-        }
-        if (err) {
-          const stdout = output?.stdout ?? "";
-          const stderr = output?.stderr ?? "";
-          this.setState({
-            file_creation_error: `${stdout} ${stderr} ${err}`,
-          });
-        } else if (opts.switch_over) {
-          this.open_file({
-            path: p,
-            // so opens on current compute server, and because switch_over is only something
-            // we do when user is explicitly opening the file
-            explicit: true,
-          });
-        } else {
-          this.fetch_directory_listing();
-        }
-      },
-    });
-  }
+    let output;
+    try {
+      output = await webapp_client.exec({
+        project_id: this.project_id,
+        command: "cc-new-file",
+        timeout: 10,
+        args: [p],
+        err_on_exit: true,
+        compute_server_id,
+        filesystem: true,
+      });
+    } catch (err) {
+      const stdout = output?.stdout ?? "";
+      const stderr = output?.stderr ?? "";
+      this.setState({
+        file_creation_error: `${stdout} ${stderr} ${err}`,
+      });
+      return;
+    }
+    this.log({ event: "file_action", action: "created", files: [p] });
+    if (opts.switch_over) {
+      this.open_file({
+        path: p,
+        // so opens on current compute server, and because switch_over is only something
+        // we do when user is explicitly opening the file
+        explicit: true,
+        compute_server_id,
+      });
+    } else {
+      this.fetch_directory_listing();
+    }
+  };
 
-  private async new_file_from_web(
+  private new_file_from_web = async (
     url: string,
     current_path: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     let d = current_path;
     if (d === "") {
       d = "root directory of project";
@@ -2856,12 +2857,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ downloading_file: false });
       this.set_active_tab("files", { update_file_listing: false });
     }
-  }
+  };
 
   /*
    * Actions for PUBLIC PATHS
    */
-  public async set_public_path(
+  set_public_path = async (
     path,
     opts: {
       description?: string;
@@ -2873,7 +2874,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       jupyter_api?: boolean;
       redirect?: string;
     },
-  ) {
+  ) => {
     if (
       this.checkForSandboxError(
         "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
@@ -2971,7 +2972,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         redirect: obj.get("redirect"),
       });
     }
-  }
+  };
 
   // Make a database query to set the name of a
   // public path.  Because this can error due to
@@ -2979,19 +2980,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // changing the public_paths table.  This function
   // will throw an exception if anything goes wrong setting
   // the name.
-  public async setPublicPathName(path: string, name: string): Promise<void> {
+  setPublicPathName = async (path: string, name: string): Promise<void> => {
     const id = client_db.sha1(this.project_id, path);
     const query = {
       public_paths: { project_id: this.project_id, path, name, id },
     };
     await webapp_client.async_query({ query });
-  }
+  };
 
   /*
    * Actions for Project Search
    */
 
-  toggle_search_checkbox_subdirectories() {
+  toggle_search_checkbox_subdirectories = () => {
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -3001,9 +3002,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_subdirectories", subdirectories);
-  }
+  };
 
-  toggle_search_checkbox_case_sensitive() {
+  toggle_search_checkbox_case_sensitive = () => {
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -3013,7 +3014,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_case_sensitive", case_sensitive);
-  }
+  };
 
   toggle_search_checkbox_hidden_files() {
     const store = this.get_store();
@@ -3617,7 +3618,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private handleComputeServerManagerChange = ({ path, id }) => {
     const store = this.get_store();
     if (store == undefined) return;
-    const compute_servers_ids :any = store.get("compute_server_ids") ?? fromJS({});
+    const compute_servers_ids: any =
+      store.get("compute_server_ids") ?? fromJS({});
     this.setState({ compute_server_ids: compute_servers_ids.set(path, id) });
   };
 }

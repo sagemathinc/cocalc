@@ -29,6 +29,7 @@ import {
 import { SITE_NAME } from "@cocalc/util/theme";
 import { ensure_project_running } from "./project-start-warning";
 import { normalize } from "./utils";
+import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 
 export interface OpenFileOpts {
   path: string;
@@ -300,6 +301,9 @@ export async function open_file(
     let path = opts.path;
     if (path.endsWith(".term")) {
       path = termPath({ path, cmd: "", number: 0 });
+    }
+    if (path.endsWith(".ipynb")) {
+      path = ipynbSyncdbPath(path);
     }
     try {
       await actions.setComputeServerIdForFile({
