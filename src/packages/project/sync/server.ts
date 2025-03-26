@@ -115,9 +115,6 @@ class SyncTableChannel {
   private channel: Channel;
   private closed: boolean = false;
   private closing: boolean = false;
-  private setOnDisconnect: {
-    [spark_id: string]: { changes: any; merge: MergeType }[];
-  } = {};
   private num_connections: { n: number; changed: Date } = {
     n: 0,
     changed: new Date(),
@@ -355,21 +352,6 @@ class SyncTableChannel {
       `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${n}  (from this client = ${m})`,
     );
 
-    if (!this.closed) {
-      try {
-        const x = this.setOnDisconnect[spark.id];
-        this.log("do setOnDisconnect", x);
-        if (x != null) {
-          for (const { changes, merge } of x) {
-            this.synctable.set(changes, merge);
-          }
-          delete this.setOnDisconnect[spark.id];
-        }
-      } catch (err) {
-        this.log("setOnDisconnect error", err);
-      }
-    }
-
     this.check_if_should_save_or_close();
   }
 
@@ -424,28 +406,10 @@ class SyncTableChannel {
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
-    if (mesg.event == "set-on-disconnect") {
-      this.log("set-on-disconnect", mesg, spark.id);
-      if (this.setOnDisconnect[spark.id] == null) {
-        this.setOnDisconnect[spark.id] = [];
-      }
-      this.setOnDisconnect[spark.id].push(mesg);
-      return;
-    }
-    if (mesg.event == "message") {
-      // generic messages from any client to the project can be
-      // handled by backend code by listening for message events.
-      this.synctable.emit("message", {
-        data: mesg.data,
-        spark,
-        channel: this.channel,
-      });
-      return;
-    }
     if (mesg.timed_changes != null) {
       this.synctable.apply_changes_from_browser_client(mesg.timed_changes);
+      await this.synctable.save();
     }
-    await this.synctable.save();
   }
 
   private send_versioned_changes_to_browsers(

@@ -3285,7 +3285,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: normalize(full_path),
             });
           } catch (err) {
-            // e.g., project is not running...
+            // e.g., project is not running?
             alert_message({
               type: "error",
               message: `Error opening '${target}': ${err}`,

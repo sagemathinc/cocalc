@@ -212,11 +212,6 @@ export class JupyterActions extends JupyterActions0 {
       "change",
       this.handle_ipywidgets_state_change,
     );
-
-    // initialize the websocket api
-    if (false) {
-      this.initWebsocketApi();
-    }
   }
 
   private initNatsApi = async () => {
@@ -1454,7 +1449,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  public async process_comm_message_from_kernel(mesg: any): Promise<void> {
+  async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // serializing the full message could cause enormous load on the server, since
     // the mesg may contain large buffers.  Only do for low level debugging!
@@ -1467,14 +1462,14 @@ export class JupyterActions extends JupyterActions0 {
     await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
   }
 
-  public capture_output_message(mesg: any): boolean {
+  capture_output_message(mesg: any): boolean {
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
     return this.syncdb.ipywidgets_state.capture_output_message(mesg);
   }
 
-  public close_project_only() {
+  close_project_only() {
     const dbg = this.dbg("close_project_only");
     dbg();
     if (this.run_all_loop) {
@@ -1496,194 +1491,13 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   // not actually async...
-  public async signal(signal = "SIGINT"): Promise<void> {
+  async signal(signal = "SIGINT"): Promise<void> {
     this.jupyter_kernel?.signal(signal);
   }
 
-  public handle_nbconvert_change(oldVal, newVal): void {
+  handle_nbconvert_change(oldVal, newVal): void {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
-
-  /*
-  WebSocket API
-
-  1. Handles api requests from the user via the generic websocket message channel
-     provided by the syncdb.
-
-  2. In case a remote compute server connects and registers to handle api messages,
-     then those are proxied to the remote server, handled there, and proxied back.
-  */
-
-  private initWebsocketApi = () => {
-    if (this.is_project) {
-      // only the project receives these messages from clients.
-      this.syncdb.on("message", this.handleMessageFromClient);
-    } else if (this.is_compute_server) {
-      // compute servers receive messages from the project,
-      // proxying an api request from a client.
-      this.syncdb.on("message", this.handleMessageFromProject);
-    }
-  };
-
-  private remoteApiHandler: null | {
-    spark: any; // the spark channel connection between project and compute server
-    id: number; // this is a sequential id used for request/response pairing
-    // when get response from computer server, one of these callbacks gets called:
-    responseCallbacks: { [id: number]: (err: any, response: any) => void };
-  } = null;
-
-  private handleMessageFromClient = async ({ data, spark }) => {
-    // This is call in the project to handle api requests.
-    // It either handles them directly, or if there is a remote
-    // compute server, it forwards them to the remote compute server,
-    // then proxies the response back to the client.
-
-    const dbg = this.dbg("handleMessageFromClient");
-    dbg();
-    // WARNING: potentially very verbose
-    dbg(data);
-    switch (data.event) {
-      case "register-to-handle-api": {
-        if (this.remoteApiHandler?.spark?.id == spark.id) {
-          dbg(
-            "register-to-handle-api -- it's the current one so nothing to do",
-          );
-          return;
-        }
-        if (this.remoteApiHandler?.spark != null) {
-          dbg("register-to-handle-api -- remove existing handler");
-          this.remoteApiHandler.spark.removeAllListeners();
-          this.remoteApiHandler.spark.end();
-          this.remoteApiHandler = null;
-        }
-        // a compute server client is volunteering to handle all api requests until they disconnect
-        this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
-        dbg("register-to-handle-api -- spark.id = ", spark.id);
-        spark.on("end", () => {
-          dbg(
-            "register-to-handle-api -- spark ended, spark.id = ",
-            spark.id,
-            " and this.remoteApiHandler?.spark.id=",
-            this.remoteApiHandler?.spark.id,
-          );
-          if (this.remoteApiHandler?.spark.id == spark.id) {
-            this.remoteApiHandler = null;
-          }
-        });
-        return;
-      }
-
-      case "api-request": {
-        // browser client made an api request.  This will get handled
-        // either locally or via a remote compute server, depending on
-        // whether this.remoteApiHandler is set (via the
-        // register-to-handle-api event above).
-        spark.write({
-          event: "message",
-          data: { event: "error", error: "USE THE NEW NATS API!", id: data.id },
-        });
-        return;
-      }
-
-      case "api-response": {
-        // handling api request that we proxied to a remote compute server.
-        // We are handling the response from the remote compute server.
-        if (this.remoteApiHandler == null) {
-          dbg("WARNING: api-response event but there is no remote api handler");
-          // api-response event can't be handled because no remote api handler is registered
-          // This should only happen if the requesting spark just disconnected, so there's no way to
-          // responsd anyways.
-          return;
-        }
-        const cb = this.remoteApiHandler.responseCallbacks[data.id];
-        if (cb != null) {
-          delete this.remoteApiHandler.responseCallbacks[data.id];
-          cb(undefined, data);
-        } else {
-          dbg("WARNING: api-response event for unknown id", data.id);
-        }
-        return;
-      }
-
-      case "save-blob-to-project": {
-        // TODO: this should be DEPRECATED in favor of NATS!!
-        if (!this.is_project) {
-          throw Error(
-            "message save-blob-to-project should only be sent to the project",
-          );
-        }
-        // A compute server sent the project a blob to store
-        // in the local blob store.
-        const blobStore = this.jupyter_kernel?.get_blob_store();
-        if (blobStore == null) {
-          throw Error("blob store not available");
-        }
-        blobStore.saveBase64(data.data);
-        return;
-      }
-
-      default: {
-        // unknown event so send back error
-        spark.write({
-          event: "message",
-          data: {
-            event: "error",
-            message: `unknown event ${data.event}`,
-            id: data.id,
-          },
-        });
-      }
-    }
-  };
-
-  // this should only be called on a compute server.
-  public saveBlobToProject = (data: string, type: string, ipynb?: string) => {
-    if (!this.is_compute_server) {
-      throw Error(
-        "saveBlobToProject should only be called on a compute server",
-      );
-    }
-    const dbg = this.dbg("saveBlobToProject");
-    if (this.is_closed()) {
-      dbg("called AFTER closed");
-      return;
-    }
-    // This is call on a compute server whenever something is
-    // written to its local blob store.  TODO: We do not wait for
-    // confirmation that blob was sent yet though.
-    dbg();
-    this.syncdb.sendMessageToProject({
-      event: "save-blob-to-project",
-      data,
-      type,
-      ipynb,
-    });
-  };
-
-  private handleMessageFromProject = async (data) => {
-    const dbg = this.dbg("handleMessageFromProject");
-    if (this.is_closed()) {
-      dbg("called AFTER closed");
-      return;
-    }
-    // This is call on the remote compute server to handle api requests.
-    dbg();
-    // output could be very BIG:
-    // dbg(data);
-    if (data.event == "api-request") {
-      try {
-        await this.syncdb.sendMessageToProject({
-          event: "api-response",
-          id: data.id,
-          response: { error: "USE THE NEW NATS API!" },
-        });
-      } catch (err) {
-        // this happens when the websocket is disconnected
-        dbg(`WARNING -- issue responding to message ${err}`);
-      }
-      return;
-    }
-  };
 
   // Handle transient cell messages.
   handleTransientUpdate = (mesg) => {
@@ -1715,5 +1529,4 @@ export class JupyterActions extends JupyterActions0 {
       this.syncdb.commit();
     }
   };
-  // End Websocket API
 }

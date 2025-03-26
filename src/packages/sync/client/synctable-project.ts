@@ -64,12 +64,6 @@ class SyncTableChannel extends EventEmitter {
       project_id,
     );
     (this.synctable as any).channel = this; // for debugging
-    this.synctable.setOnDisconnect = (changes, merge) => {
-      this.send_mesg_to_project({ event: "set-on-disconnect", changes, merge });
-    };
-    this.synctable.sendMessageToProject = (data) => {
-      this.send_mesg_to_project({ event: "message", data });
-    };
     this.project_id = project_id;
     this.client = client;
     this.query = query;

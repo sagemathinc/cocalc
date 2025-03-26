@@ -704,25 +704,6 @@ export class SyncDoc extends EventEmitter {
     return this.my_user_id != null ? this.my_user_id : 0;
   };
 
-  // This gets used by clients that are connected to a backend
-  // with state in the project (e.g., jupyter).  Basically this
-  // is a special websocket channel just for this syncdoc, which
-  // uses the patches table.
-  public sendMessageToProject = async (data) => {
-    if (this.useNats) {
-      console.log("sendMessageToProject - IGNORING", data);
-      return;
-    }
-    const send = this.patches_table?.sendMessageToProject;
-    if (send == null || this.patches_table.channel == null) {
-      throw Error("sending messages to project not available");
-    }
-    if (!this.patches_table.channel.is_connected()) {
-      await once(this.patches_table.channel, "connected");
-    }
-    send(data);
-  };
-
   private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
       //console.trace();
@@ -1871,14 +1852,6 @@ export class SyncDoc extends EventEmitter {
     this.patches_table.on("saved", this.handle_offline);
     this.patch_list = patch_list;
 
-    // this only potentially happens for tables in the project,
-    // e.g., jupyter and compute servers:
-    // see packages/project/sync/server.ts
-    this.patches_table.on("message", (...args) => {
-      dbg("received message", args);
-      this.emit("message", ...args);
-    });
-
     dbg("done");
 
     /*
@@ -2022,19 +1995,6 @@ export class SyncDoc extends EventEmitter {
       }
     });
     this.cursors_table.on("change", this.handle_cursors_change);
-
-    if (this.cursors_table.setOnDisconnect != null) {
-      // setOnDisconnect is available, so clear our
-      // cursor positions when we disconnect for any reason.
-      this.cursors_table.setOnDisconnect(
-        {
-          string_id: this.string_id,
-          user_id: this.my_user_id,
-          locs: [],
-        },
-        "none",
-      );
-    }
 
     dbg("done");
   };
