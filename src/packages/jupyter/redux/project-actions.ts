@@ -1533,6 +1533,8 @@ export class JupyterActions extends JupyterActions0 {
       return false;
     }
     const dbg = this.dbg("isCellRunner");
+    dbg("always is cell runner now");
+    return true;
     let id;
     try {
       id = this.getComputeServerId();
