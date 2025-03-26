@@ -26,7 +26,7 @@ const getKernelSpec = reuseInFlight(
       compute_server_id ??
       redux.getProjectActions(project_id).getComputeServerId();
     const key = JSON.stringify({ project_id, compute_server_id });
-    console.log(key);
+    // console.log({ key, noCache });
     if (!noCache) {
       const spec = cache.get(key);
       if (spec != null) {

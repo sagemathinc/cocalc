@@ -174,6 +174,8 @@ export interface ProjectStoreState {
   // Default compute server id to use when browsing and
   // working with files.
   compute_server_id: number;
+  // Map from path to the id of the compute server that the file is supposed to opened on right now.
+  compute_server_ids?: TypedMap<{ [path: string]: number }>;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -562,7 +564,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       project_id: this.project_id,
       path,
       compute_server_id: compute_server_id ?? this.get("compute_server_id"),
-    });  };
+    });
+  };
 
   // returns false, if this project isn't capable of opening a file with the given extension
   async can_open_file_ext(

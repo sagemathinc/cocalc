@@ -103,6 +103,10 @@ import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/nats/compute/manager";
 
 const { defaults, required } = misc;
 
@@ -284,6 +288,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private new_filename_generator;
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
+  private computeServerManager?: ComputeServerManager;
 
   constructor(name, b) {
     super(name, b);
@@ -291,7 +296,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
-    computeServers.init(this.project_id);
+    this.initComputeServers();
   }
 
   public async api(): Promise<API> {
@@ -300,13 +305,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   destroy = (): void => {
     if (this.open_files == null) return;
+    this.closeComputeServers();
     must_define(this.redux);
     this.close_all_files();
     for (const table in QUERIES) {
       this.remove_table(table);
     }
     this.open_files.close();
-    computeServers.close(this.project_id);
     delete this.open_files;
   };
 
@@ -3574,5 +3579,45 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         console.log("WARNING: issue undeleting file", err);
       }
     })();
+  };
+
+  initComputeServers = () => {
+    // table of information about all the compute servers in this project
+    computeServers.init(this.project_id);
+    // table mapping paths to the id of the compute server it is hosted on
+    this.computeServerManager = computeServerManager({
+      project_id: this.project_id,
+    });
+    this.computeServerManager.on("connected", () => {
+      if (this.computeServerManager == null) {
+        return;
+      }
+      const compute_server_ids = this.computeServerManager.getAll() as any;
+      for (let path in compute_server_ids) {
+        compute_server_ids[path] = compute_server_ids[path].id;
+      }
+      this.setState({ compute_server_ids });
+    });
+    this.computeServerManager.on(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
+  };
+
+  private closeComputeServers = () => {
+    computeServers.close(this.project_id);
+    this.computeServerManager?.removeListener(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
+    this.computeServerManager?.close();
+    delete this.computeServerManager;
+  };
+
+  private handleComputeServerManagerChange = ({ path, id }) => {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const compute_servers_ids :any = store.get("compute_server_ids") ?? fromJS({});
+    this.setState({ compute_server_ids: compute_servers_ids.set(path, id) });
   };
 }

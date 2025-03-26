@@ -881,7 +881,8 @@ export function commands(actions: AllActions): {
       i: "refresh",
       m: jupyter.commands.refresh_kernels,
       t: jupyter.commands.refresh_kernels_tooltip,
-      f: () => actions.jupyter_actions?.fetch_jupyter_kernels(),
+      f: () =>
+        actions.jupyter_actions?.fetch_jupyter_kernels({ noCache: true }),
     },
 
     "custom kernel": {

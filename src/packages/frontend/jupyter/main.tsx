@@ -15,6 +15,7 @@ import {
   Rendered,
   useRedux,
   useRef,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 // Support for all the MIME types
 import { Button, Tooltip } from "antd";
@@ -45,6 +46,8 @@ import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import JupyterClassic from "./jupyter-classic";
+import { useEffect } from "react";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 
 export const ERROR_STYLE: CSS = {
   maxHeight: "30vh",
@@ -180,7 +183,14 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "check_select_kernel_init",
   ]);
-  const computeServerId = useRedux([name, "computeServerId"]) ?? 0;
+
+  const computeServerId = path
+    ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
+    : undefined;
+
+  useEffect(() => {
+    actions.fetch_jupyter_kernels();
+  }, [computeServerId]);
 
   // this is confusing: it's here because the "nbviewer" code reuses a subset of components
   // and this is here to pass down AI tools related functionality to those, which are used by the frontend
@@ -441,10 +451,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        <ComputeServerDocStatus
-          id={computeServerId}
-          project_id={project_id}
-        />
+        <ComputeServerDocStatus id={computeServerId ?? 0} project_id={project_id} />
         {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}

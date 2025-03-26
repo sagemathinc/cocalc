@@ -67,7 +67,6 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
-  private lastComputeServerId?: number;
   private syncdbPath: string;
 
   protected init2(): void {
@@ -362,13 +361,6 @@ export class JupyterActions extends JupyterActions0 {
     if (cells != null) {
       this.setState({ cells });
     }
-    // TODO: obviously this goes away since we won't use cursors with NATS at all for coordinating this!
-    const computeServerId = this.cursor_manager.computeServerId(cursors);
-    if (computeServerId != this.lastComputeServerId) {
-      this.lastComputeServerId = computeServerId;
-      this.fetch_jupyter_kernels();
-    }
-    this.setState({ computeServerId });
   };
 
   private account_change(state: Map<string, any>): void {
@@ -1016,58 +1008,50 @@ export class JupyterActions extends JupyterActions0 {
     );
   };
 
-  fetch_jupyter_kernels = debounce(
-    reuseInFlight(
-      async ({ noCache }: { noCache?: boolean } = {}): Promise<void> => {
-        let data;
-        const f = async () => {
-          if (this._state === "closed") {
-            return;
-          }
-          data = await getKernelSpec({
-            project_id: this.project_id,
-            compute_server_id: this.getComputeServerIdSync(),
-            noCache,
-          });
-        };
-        try {
-          await retry_until_success({
-            max_time: 1000 * 15, // up to 15 seconds
-            start_delay: 3000,
-            max_delay: 10000,
-            f,
-            desc: "jupyter:fetch_jupyter_kernels",
-          });
-        } catch (err) {
-          this.set_error(err);
-          return;
-        }
-        if (this._state === "closed") {
-          return;
-        }
-        // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-        const kernels = fromJS(data ?? []).filter(
-          (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
-        );
-        const key: string = await this.store.jupyter_kernel_key();
-        jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-        this.setState({ kernels });
-        // We must also update the kernel info (e.g., display name), now that we
-        // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-        const kernel_info = this.store.get_kernel_info(
-          this.store.get("kernel"),
-        );
-        this.setState({ kernel_info });
-        // e.g. "kernel_selection" is derived from "kernels"
-        await this.update_select_kernel_data();
-        this.check_select_kernel();
-      },
-    ),
-    // this debounce basically "caches the result" for this long
-    // after attempts to get the kernels:
-    3000,
-    { leading: true, trailing: false },
-  );
+  fetch_jupyter_kernels = async ({
+    noCache,
+  }: { noCache?: boolean } = {}): Promise<void> => {
+    let data;
+    const f = async () => {
+      if (this._state === "closed") {
+        return;
+      }
+      data = await getKernelSpec({
+        project_id: this.project_id,
+        compute_server_id: this.getComputeServerIdSync(),
+        noCache,
+      });
+    };
+    try {
+      await retry_until_success({
+        max_time: 1000 * 15, // up to 15 seconds
+        start_delay: 3000,
+        max_delay: 10000,
+        f,
+        desc: "jupyter:fetch_jupyter_kernels",
+      });
+    } catch (err) {
+      this.set_error(err);
+      return;
+    }
+    if (this._state === "closed") {
+      return;
+    }
+    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+    const kernels = fromJS(data ?? []).filter(
+      (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
+    );
+    const key: string = await this.store.jupyter_kernel_key();
+    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+    this.setState({ kernels });
+    // We must also update the kernel info (e.g., display name), now that we
+    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+    this.setState({ kernel_info });
+    // e.g. "kernel_selection" is derived from "kernels"
+    await this.update_select_kernel_data();
+    this.check_select_kernel();
+  };
 
   set_jupyter_kernels = async () => {
     if (this.store == null) return;

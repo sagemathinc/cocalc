@@ -101,10 +101,8 @@ export interface JupyterStoreState {
   start_time: any;
   toolbar?: boolean;
   widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
-  // computeServerId -- gets optionally set on the frontend (useful for react)
-  computeServerId?: number;
-  requestedComputeServerId?: number;
-  // run progress = Percent (0-100) of runnable cells that have been run since the last kernel restart. (Thus markdown and empty cells are excluded.)
+  // run progress = Percent (0-100) of runnable cells that have been run since the last
+  // kernel restart. (Thus markdown and empty cells are excluded.)
   runProgress?: number;
 }
 
