@@ -47,8 +47,6 @@ import { Kernel } from "./status";
 import JupyterClassic from "./jupyter-classic";
 
 export const ERROR_STYLE: CSS = {
-  whiteSpace: "pre" as "pre",
-  fontFamily: "monospace" as "monospace",
   maxHeight: "30vh",
   overflow: "auto",
 } as const;
