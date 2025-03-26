@@ -24,6 +24,7 @@ env:
   PGDATABASE: smc
   PGUSER: smc
   PGHOST: localhost
+  COCALC_MODE: "single-user"
 
 jobs:
   doclinks:
