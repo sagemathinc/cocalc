@@ -222,15 +222,26 @@ export class DKV<T = any> extends EventEmitter {
       if (this.generalDKV == null) {
         return;
       }
+      let decodedKey;
+      try {
+        decodedKey = this.getKey(key);
+      } catch (err) {
+        // key is missing so at this point there is no knowledge of it and
+        // nothing we can alert on.
+        // TODO: may remove this when/if we completely understand why
+        // this ever happens
+        console.log("WARNING: missing key for -- ", { key, err });
+        return;
+      }
       if (value !== undefined && value !== TOMBSTONE) {
         this.emit("change", {
-          key: this.getKey(key),
+          key: decodedKey,
           value,
           prev,
         });
       } else {
         // value is undefined or TOMBSTONE, so it's a delete, so do not set value here
-        this.emit("change", { key: this.getKey(key), prev });
+        this.emit("change", { key: decodedKey, prev });
       }
     });
     this.generalDKV.on("reject", ({ key, value }) => {

@@ -2701,7 +2701,10 @@ export function isNumericString(str: string): boolean {
 }
 
 // This is needed in browsers, where toString('base64') doesn't work
-// and .toBase64()
+// and .toBase64(). This also works on buffers.  In nodejs there is
+// toString('base64'), but that seems broken in some cases and a bit
+// dangerous since toString('base64') in the browser is just toString(),
+// which is very different.
 export function uint8ArrayToBase64(uint8Array: Uint8Array) {
   let binaryString = "";
   for (let i = 0; i < uint8Array.length; i++) {

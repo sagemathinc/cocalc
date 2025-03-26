@@ -56,6 +56,7 @@ import {
   original_path,
   path_split,
   uuid,
+  uint8ArrayToBase64,
 } from "@cocalc/util/misc";
 import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
 import {
@@ -969,7 +970,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         if (buf === undefined) {
           return buf;
         }
-        return buf.toString("base64");
+        return uint8ArrayToBase64(buf);
       },
 
       readFile: async (path: string): Promise<string> => {
