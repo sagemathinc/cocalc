@@ -25,7 +25,6 @@ import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import {
-  aux_file,
   close,
   endswith,
   filename_extension,
@@ -39,6 +38,7 @@ import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { NatsTerminalConnection } from "./nats-terminal-connection";
+import { termPath } from "@cocalc/util/terminal/names";
 
 declare const $: any;
 
@@ -830,16 +830,4 @@ function handleLink(_: MouseEvent, uri: string): void {
   const e = $(`<div><a href='${uri}'>x</a></div>`);
   e.process_smc_links();
   e.find("a").click();
-}
-
-export function termPath({
-  path,
-  number,
-  cmd,
-}: {
-  path: string;
-  number: number;
-  cmd?: string;
-}) {
-  return aux_file(`${path}-${number}${cmd ?? ""}`, "term");
 }

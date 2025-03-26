@@ -54,6 +54,7 @@ import {
   log_file_open,
   log_opened_time,
   open_file,
+  canonicalPath,
 } from "@cocalc/frontend/project/open-file";
 import { OpenFiles } from "@cocalc/frontend/project/open-files";
 import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
@@ -1035,7 +1036,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return scroll_position;
       };
     }
-  }
+  };
 
   // Moves to the given fragment if the gotoFragment action is implemented and accepted,
   // and the file actions exist already (e.g. file was opened).
@@ -1454,67 +1455,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: sidePath,
     });
     await computeServerAssociations.save();
-  };
-
-  //   getComputeServerIdForFile = async ({
-  //     path,
-  //     compute_server_id,
-  //   }: {}): Promise<number | undefined> => {
-  //     const computeServerAssociations =
-  //       webapp_client.project_client.computeServers(this.project_id);
-  //     return await computeServerAssociations.getServerIdForPath(path);
-  //   };
-
-  // in case of confirmation, returns true on success or false if user says "no"
-  setComputeServerIdForFile = async ({
-    path,
-    compute_server_id,
-    confirm,
-  }: {
-    path: string;
-    compute_server_id?: number;
-    confirm?: boolean;
-  }): Promise<boolean> => {
-    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    // this is what is currently configured:
-    const currentId =
-      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
-    if (currentId == selectedComputeServerId) {
-      // no need to set anything since we have what we want already
-      return true;
-    }
-    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
-      // (currently we only confirm this jupyter and terminals, which are
-      // the only supported file types with backend state).
-      if (
-        !(await redux.getActions("page").popconfirm(
-          modalParams({
-            current: currentId,
-            target: selectedComputeServerId,
-            path,
-          }),
-        ))
-      ) {
-        return false;
-      }
-    }
-    // Explicitly set the compute server id to what we want.
-    computeServerAssociations.connectComputeServerToPath({
-      id: selectedComputeServerId,
-      path,
-    });
-    // Now we save: why?
-    // Because we need to be sure the backend actually knows we want to use the compute
-    // server for the file before opening it; otherwise, it'll first get opened
-    // in the project, then later on the compute server, which is potentially VERY
-    // disconcerting and annoying, especially if the file doesn't exist.  It does
-    // work without doing this (because our design is robust to switching compute servers
-    // at any time), but it ends up with a blank file for a moment, and lots of empty files
-    // being created.
-    await computeServerAssociations.save();
-    return true;
   };
 
   set_file_search(search): void {
@@ -3621,5 +3561,66 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const compute_servers_ids: any =
       store.get("compute_server_ids") ?? fromJS({});
     this.setState({ compute_server_ids: compute_servers_ids.set(path, id) });
+  };
+
+  // undefined if not specified or not known
+  getComputeServerIdForFile = ({
+    path,
+  }: {
+    path: string;
+  }): number | undefined => {
+    return this.computeServerManager?.get(canonicalPath(path));
+  };
+
+  // in case of confirmation, returns true on success or false if user says "no"
+  setComputeServerIdForFile = async ({
+    path,
+    compute_server_id,
+    confirm,
+  }: {
+    path: string;
+    compute_server_id?: number;
+    confirm?: boolean;
+  }): Promise<boolean> => {
+    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const currentId =
+      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
+    if (currentId == selectedComputeServerId) {
+      // no need to set anything since we have what we want already
+      return true;
+    }
+    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
+      // (currently we only confirm this jupyter and terminals, which are
+      // the only supported file types with backend state).
+      if (
+        !(await redux.getActions("page").popconfirm(
+          modalParams({
+            current: currentId,
+            target: selectedComputeServerId,
+            path,
+          }),
+        ))
+      ) {
+        return false;
+      }
+    }
+    // Explicitly set the compute server id to what we want.
+    computeServerAssociations.connectComputeServerToPath({
+      id: selectedComputeServerId,
+      path,
+    });
+    // Now we save: why?
+    // Because we need to be sure the backend actually knows we want to use the compute
+    // server for the file before opening it; otherwise, it'll first get opened
+    // in the project, then later on the compute server, which is potentially VERY
+    // disconcerting and annoying, especially if the file doesn't exist.  It does
+    // work without doing this (because our design is robust to switching compute servers
+    // at any time), but it ends up with a blank file for a moment, and lots of empty files
+    // being created.
+    await computeServerAssociations.save();
+    return true;
   };
 }

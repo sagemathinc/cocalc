@@ -220,9 +220,9 @@ export class ProjectClient {
     return await connection_to_project(project_id);
   }
 
-  public async api(project_id: string): Promise<API> {
+  api = async (project_id: string): Promise<API> => {
     return (await this.websocket(project_id)).api;
-  }
+  };
 
   /*
     Execute code in a given project or associated compute server.

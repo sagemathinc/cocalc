@@ -2142,8 +2142,13 @@ export class Actions<
 
   async ensure_latest_changes_are_saved(): Promise<boolean> {
     this.set_status("Ensuring your latest changes are saved...");
-    this.set_syncstring_to_codemirror();
-    return await this.ensure_syncstring_is_saved();
+    let success = false;
+    for (let i = 0; i < 2; i++) { // TODO: looping is clearly a hack.
+      this.set_syncstring_to_codemirror();
+      success = await this.ensure_syncstring_is_saved();
+      await delay(1);
+    }
+    return success;
   }
 
   async ensure_syncstring_is_saved(): Promise<boolean> {

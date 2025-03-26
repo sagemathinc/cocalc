@@ -54,12 +54,16 @@ export class API {
   }
 
   private getApi = ({
-    compute_server_id = 0,
+    compute_server_id,
     timeout = 15000,
   }: {
     compute_server_id?: number;
     timeout?: number;
   }) => {
+    if (compute_server_id == null) {
+      compute_server_id =
+        redux.getProjectActions(this.project_id).getComputeServerId() ?? 0;
+    }
     const key = `${compute_server_id}-${timeout}`;
     if (this.apiCache[key] == null) {
       this.apiCache[key] = webapp_client.nats_client.projectApi({
@@ -103,6 +107,12 @@ export class API {
         throw err;
       }
     }
+  };
+
+  getComputeServerId = (path: string) => {
+    return redux
+      .getProjectActions(this.project_id)
+      .getComputeServerIdForFile({ path });
   };
 
   version = async (compute_server_id?: number): Promise<number> => {
@@ -179,14 +189,18 @@ export class API {
   configuration = async (
     aspect: ConfigurationAspect,
     no_cache = false,
-    compute_server_id: number = 0,
+    compute_server_id?: number,
   ): Promise<Configuration> => {
     const api = this.getApi({ compute_server_id });
     return await api.system.configuration(aspect, no_cache);
   };
 
   private homeDirectory: { [key: string]: string } = {};
-  getHomeDirectory = async (compute_server_id: number = 0) => {
+  getHomeDirectory = async (compute_server_id?: number) => {
+    if (compute_server_id == null) {
+      compute_server_id =
+        redux.getProjectActions(this.project_id).getComputeServerId() ?? 0;
+    }
     const key = `${compute_server_id}`;
     if (this.homeDirectory[key] == null) {
       const { capabilities } = await this.configuration(
@@ -252,7 +266,7 @@ export class API {
     const options: FormatterOptions = this.check_formatter_available(config);
     const client = formatterClient({
       project_id: this.project_id,
-      compute_server_id,
+      compute_server_id: compute_server_id ?? this.getComputeServerId(path),
     });
     return await client.formatter({ path, options });
   };
@@ -288,7 +302,9 @@ export class API {
     path: string,
     compute_server_id?: number,
   ): Promise<string> => {
-    const api = this.getApi({ compute_server_id });
+    const api = this.getApi({
+      compute_server_id: compute_server_id ?? this.getComputeServerId(path),
+    });
     return await api.system.realpath(path);
   };
 
@@ -300,7 +316,8 @@ export class API {
     compute_server_id?: number,
   ): Promise<any> => {
     const api = this.getApi({
-      compute_server_id,
+      compute_server_id:
+        compute_server_id ?? this.getComputeServerId(opts.args[0]),
       timeout: (opts.timeout ?? 60) * 1000 + 5000,
     });
     return await api.editor.jupyterNbconvert(opts);
@@ -311,7 +328,10 @@ export class API {
     ipynb_path: string,
     compute_server_id?: number,
   ): Promise<any> => {
-    const api = this.getApi({ compute_server_id });
+    const api = this.getApi({
+      compute_server_id:
+        compute_server_id ?? this.getComputeServerId(ipynb_path),
+    });
     return await api.editor.jupyterStripNotebook(ipynb_path);
   };
 
@@ -329,7 +349,8 @@ export class API {
     // timer do the job, than have to wait for this generic timeout here,
     // since we want to at least get output for problems that ran.
     const api = this.getApi({
-      compute_server_id,
+      compute_server_id:
+        compute_server_id ?? this.getComputeServerId(opts.path),
       timeout: 60 + 2 * max_total_time_ms,
     });
     return await api.editor.jupyterRunNotebook(opts);

@@ -217,12 +217,17 @@ export class NatsClient extends EventEmitter {
   };
 
   // Returns api for RPC calls to the project with typescript support!
+  // if compute_server_id is NOT given then:
+  //    if path is given use compute server id for path (assuming mapping is loaded)
+  //    if path is not given, use current project default
   projectApi = ({
     project_id,
-    compute_server_id = 0,
+    compute_server_id,
+    path,
     timeout,
   }: {
     project_id: string;
+    path?: string;
     compute_server_id?: number;
     timeout?: number;
   }): ProjectApi => {
@@ -230,6 +235,16 @@ export class NatsClient extends EventEmitter {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
     let lastAddedPermission = 0;
+    if (compute_server_id == null) {
+      const actions = redux.getProjectActions(project_id);
+      if (path != null) {
+        compute_server_id =
+          actions.getComputeServerIdForFile({ path }) ??
+          actions.getComputeServerId();
+      } else {
+        compute_server_id = actions.getComputeServerId();
+      }
+    }
     const callProjectApi = async ({ name, args }) => {
       const opts = {
         project_id,

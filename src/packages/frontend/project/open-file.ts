@@ -10,7 +10,6 @@ import { callback } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
-import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -30,6 +29,7 @@ import { SITE_NAME } from "@cocalc/util/theme";
 import { ensure_project_running } from "./project-start-warning";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
+import { termPath } from "@cocalc/util/terminal/names";
 
 export interface OpenFileOpts {
   path: string;
@@ -299,12 +299,7 @@ export async function open_file(
 
   if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
     let path = opts.path;
-    if (path.endsWith(".term")) {
-      path = termPath({ path, cmd: "", number: 0 });
-    }
-    if (path.endsWith(".ipynb")) {
-      path = ipynbSyncdbPath(path);
-    }
+    path = canonicalPath(path);
     try {
       await actions.setComputeServerIdForFile({
         path,
@@ -501,4 +496,14 @@ function get_side_chat_state(
   if (filename_extension(opts.path) === "sage-chat") {
     opts.chat = false;
   }
+}
+
+export function canonicalPath(path: string) {
+  if (path.endsWith(".ipynb")) {
+    return ipynbSyncdbPath(path);
+  }
+  if (path.endsWith("term") && path[0] != ".") {
+    return termPath({ path, cmd: "", number: 0 });
+  }
+  return path;
 }
