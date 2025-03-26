@@ -58,6 +58,7 @@ export class SyncTableStream extends EventEmitter {
     limits?: Partial<FilteredStreamLimitOptions>;
   }) {
     super();
+    this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
     this.env = env;
     this.limits = limits;

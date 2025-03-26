@@ -1767,7 +1767,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    if (this.isCellRunner() && (this.is_project || this.is_compute_server)) {
+    if (this.is_project || this.is_compute_server) {
       const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
       if (
         this.jupyter_kernel == null ||
@@ -2437,16 +2437,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb.getComputeServerId();
   };
 
-  protected isCellRunner = (): boolean => {
-    return false;
-  };
-
   set_kernel_error = (err) => {
-    // anybody can *clear* error, but only cell runner can set it, since
-    // only they should know.
-    if (err && !this.isCellRunner()) {
-      return;
-    }
     this._set({
       type: "settings",
       kernel_error: `${err}`,

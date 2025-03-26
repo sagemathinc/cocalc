@@ -29,10 +29,7 @@ import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
-import {
-  decodeUUIDtoNum,
-  isEncodedNumUUID,
-} from "@cocalc/util/compute/manager";
+import { isEncodedNumUUID } from "@cocalc/util/compute/manager";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
@@ -131,39 +128,36 @@ export class JupyterActions extends JupyterActions0 {
     }
     this._backend_state = backend_state;
 
-    if (this.isCellRunner()) {
-      if (this.lastSavedBackendState != backend_state) {
+    if (this.lastSavedBackendState != backend_state) {
+      this._set({
+        type: "settings",
+        backend_state,
+        last_backend_state: Date.now(),
+      });
+      this.save_asap();
+      this.lastSavedBackendState = backend_state;
+    }
+
+    // The following is to clear kernel_error if things are working only.
+    if (backend_state == "running") {
+      // clear kernel error if kernel successfully starts and stays
+      // in running state for a while.
+      this.clear_kernel_error = setTimeout(() => {
         this._set({
           type: "settings",
-          backend_state,
-          last_backend_state: Date.now(),
+          kernel_error: "",
         });
-        this.save_asap();
-        this.lastSavedBackendState = backend_state;
-      }
-
-      // The following is to clear kernel_error if things are working only.
-      if (backend_state == "running") {
-        // clear kernel error if kernel successfully starts and stays
-        // in running state for a while.
-        this.clear_kernel_error = setTimeout(() => {
-          this._set({
-            type: "settings",
-            kernel_error: "",
-          });
-        }, 3000);
-      } else {
-        // change to a different state; cancel attempt to clear kernel error
-        if (this.clear_kernel_error) {
-          clearTimeout(this.clear_kernel_error);
-          delete this.clear_kernel_error;
-        }
+      }, 3000);
+    } else {
+      // change to a different state; cancel attempt to clear kernel error
+      if (this.clear_kernel_error) {
+        clearTimeout(this.clear_kernel_error);
+        delete this.clear_kernel_error;
       }
     }
   }
 
   set_kernel_state = (state: any, save = false) => {
-    if (!this.isCellRunner()) return;
     this._kernel_state = state;
     this._set({ type: "settings", kernel_state: state }, save);
   };
@@ -523,8 +517,7 @@ export class JupyterActions extends JupyterActions0 {
 
     if (
       new_cell?.get("state") === "start" &&
-      old_cell?.get("state") !== "start" &&
-      this.isCellRunner()
+      old_cell?.get("state") !== "start"
     ) {
       this.manager_run_cell_enqueue(id);
       // attachments below only happen for markdown cells, which don't get run,
@@ -540,18 +533,16 @@ export class JupyterActions extends JupyterActions0 {
 
   protected __syncdb_change_post_hook(doInit: boolean) {
     if (doInit) {
-      if (this.isCellRunner()) {
-        // Since just opening the actions in the project, definitely the kernel
-        // isn't running so set this fact in the shared database.  It will make
-        // things always be in the right initial state.
-        this.syncdb.set({
-          type: "settings",
-          backend_state: "init",
-          kernel_state: "idle",
-          kernel_usage: { memory: 0, cpu: 0 },
-        });
-        this.syncdb.commit();
-      }
+      // Since just opening the actions in the project, definitely the kernel
+      // isn't running so set this fact in the shared database.  It will make
+      // things always be in the right initial state.
+      this.syncdb.set({
+        type: "settings",
+        backend_state: "init",
+        kernel_state: "idle",
+        kernel_usage: { memory: 0, cpu: 0 },
+      });
+      this.syncdb.commit();
 
       // Also initialize the execution manager, which runs cells that have been
       // requested to run.
@@ -570,10 +561,6 @@ export class JupyterActions extends JupyterActions0 {
     if (this.store == null || this._state !== "ready") {
       // not initialized, so we better not
       // mess with cell state (that is somebody else's responsibility).
-      return;
-    }
-    //  we are not the cell runner
-    if (!this.isCellRunner()) {
       return;
     }
 
@@ -1042,9 +1029,6 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this._file_watcher.on("change", async () => {
-      if (!this.isCellRunner()) {
-        return;
-      }
       dbg("change");
       try {
         await this.loadFromDiskIfNewer();
@@ -1266,10 +1250,6 @@ export class JupyterActions extends JupyterActions0 {
 
   save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
-    if (!this.isCellRunner()) {
-      dbg("not cell runner, so NOT saving ipynb file to disk");
-      return;
-    }
     dbg("saving to file");
 
     // Check first if file was deleted, in which case instead of saving to disk,
@@ -1347,7 +1327,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const cells = this.store.get("cells");
-    if (cells == null || (cells.size === 0 && this.isCellRunner())) {
+    if (cells == null || cells.size === 0) {
       this._set({
         type: "cell",
         id: this.new_id(),
@@ -1526,46 +1506,6 @@ export class JupyterActions extends JupyterActions0 {
   public handle_nbconvert_change(oldVal, newVal): void {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
-
-  protected isCellRunner = (): boolean => {
-    if (this.is_closed()) {
-      // it's closed, so obviously not the cell runner.
-      return false;
-    }
-    const dbg = this.dbg("isCellRunner");
-    dbg("always is cell runner now");
-    return true;
-    let id;
-    try {
-      id = this.getComputeServerId();
-    } catch (_) {
-      // normal since debounced,
-      // and anyways if anything like syncdb that getComputeServerId
-      // depends on doesn't work, then we are clearly
-      // not the cell runner
-      return false;
-    }
-    dbg("id = ", id);
-    if (id == 0 && this.is_project) {
-      dbg("yes we are the cell runner (the project)");
-      // when no remote compute servers are configured, the project is
-      // responsible for evaluating code.
-      return true;
-    }
-    if (this.is_compute_server) {
-      // a remote compute server is supposed to be responsible. Are we it?
-      try {
-        const myId = decodeUUIDtoNum(this.syncdb.client_id());
-        const isRunner = myId == id;
-        dbg(isRunner ? "Yes, we are cell runner" : "NOT cell runner");
-        return isRunner;
-      } catch (err) {
-        dbg(err);
-      }
-    }
-    dbg("NO we are not the cell runner");
-    return false;
-  };
 
   private lastComputeServerId = 0;
   private checkForComputeServerStateChange = (client_id) => {

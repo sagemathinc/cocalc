@@ -478,10 +478,6 @@ class SyncTableChannel {
           if (actions == null) {
             this.log("save_if_possible: jupyter -- actions is null");
           } else {
-            if (!actions.isCellRunner()) {
-              this.log("save_if_possible: jupyter -- not cell runner");
-              return;
-            }
             this.log("save_if_possible: jupyter -- saving to ipynb");
             await actions.save_ipynb_file();
           }
