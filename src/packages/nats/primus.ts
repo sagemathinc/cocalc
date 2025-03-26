@@ -1,6 +1,5 @@
 /*
-Implement a websocket as exposed in Primus over NATS.
-
+Implement something that acts like a websocket as exposed in Primus, but using NATS.
 
 Development:
 
@@ -129,11 +128,11 @@ export class Primus extends EventEmitter {
   constructor({ subject, channelName = "", env, role, id }: PrimusOptions) {
     super();
 
-    console.log("PRIMUS Creating", {
-      subject,
-      id,
-      channel: channelName,
-    });
+    //     console.log("PRIMUS Creating", {
+    //       subject,
+    //       id,
+    //       channel: channelName,
+    //     });
 
     this.subject = subject;
     this.channelName = channelName;
@@ -168,7 +167,6 @@ export class Primus extends EventEmitter {
       return;
     }
     this.state = "closed";
-    console.log("destroy", getKey(this));
     delete connections[getKey(this)];
     for (const sub of this.subs) {
       sub.close();
@@ -232,10 +230,10 @@ export class Primus extends EventEmitter {
       cmd: "connect",
       id: this.id,
     });
-    console.log("connecting...");
+    console.log("Nats Primus: connecting...");
     await this.env.nc.publish(this.subjects.control, mesg);
     this.clientPing();
-    console.log("connected:");
+    console.log("Nats Primus: connected:");
     const sub = this.env.nc.subscribe(this.subjects.client);
     this.subs.push(sub);
     for await (const mesg of sub) {
