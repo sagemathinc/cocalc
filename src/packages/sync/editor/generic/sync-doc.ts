@@ -114,6 +114,7 @@ import {
 import { isTestClient, patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
+import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -437,7 +438,7 @@ export class SyncDoc extends EventEmitter {
   });
 
   private getFileServerPath = () => {
-    if (this.path?.endsWith(".sage-jupyter2")) {
+    if (this.path?.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS)) {
       // treating jupyter as a weird special case here.
       return auxFileToOriginal(this.path);
     }
@@ -969,7 +970,7 @@ export class SyncDoc extends EventEmitter {
       !(await this.isFileServer()) ||
       this.fileserver_autosave_timer ||
       endswith(this.path, ".sagews") ||
-      endswith(this.path, ".ipynb.sage-jupyter2")
+      endswith(this.path, "."+JUPYTER_SYNCDB_EXTENSIONS)
     ) {
       return;
     }
@@ -1928,7 +1929,7 @@ export class SyncDoc extends EventEmitter {
   private init_ipywidgets = async () => {
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
-    if (ext != "sage-jupyter2") {
+    if (ext != JUPYTER_SYNCDB_EXTENSIONS) {
       dbg("done -- only use ipywidgets for jupyter");
       return;
     }

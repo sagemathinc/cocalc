@@ -24,6 +24,7 @@ import { EventEmitter } from "events";
 import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
 import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
 import { getLogger } from "@cocalc/backend/logger";
+import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 const logger = getLogger("project:sync:sync-doc");
 
@@ -207,7 +208,7 @@ async function init_syncdoc_async(
   const ext = filename_extension(opts.path);
   log("ext = ", ext);
   switch (ext) {
-    case "sage-jupyter2":
+    case JUPYTER_SYNCDB_EXTENSIONS:
       log("initializing Jupyter backend");
       await initJupyterRedux(syncdoc, client);
       const path = original_path(syncdoc.get_path());

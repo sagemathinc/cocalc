@@ -183,9 +183,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "check_select_kernel_init",
   ]);
   const computeServerId = useRedux([name, "computeServerId"]) ?? 0;
-  // this state right here is managed in frontend/compute/select-server.tsx
-  const requestedComputeServerId =
-    useRedux([name, "requestedComputeServerId"]) ?? 0;
 
   // this is confusing: it's here because the "nbviewer" code reuses a subset of components
   // and this is here to pass down AI tools related functionality to those, which are used by the frontend
@@ -448,7 +445,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       >
         <ComputeServerDocStatus
           id={computeServerId}
-          requestedId={requestedComputeServerId}
           project_id={project_id}
         />
         {!read_only && <KernelWarning name={name} actions={actions} />}

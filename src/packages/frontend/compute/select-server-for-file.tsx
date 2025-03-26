@@ -45,6 +45,9 @@ export default function SelectComputeServerForFile({
     if (type == "chat") {
       return chatFile(path);
     }
+    if (type == "jupyter_cell_notebook" && actions != null) {
+      return actions.jupyter_actions.syncdb.path;
+    }
     return path;
   };
   const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
@@ -82,24 +85,25 @@ export default function SelectComputeServerForFile({
           }
         }
         const id = (await computeServerAssociations.getServerIdForPath(p)) ?? 0;
-        if (type == "jupyter_cell_notebook" && actions != null) {
-          actions.jupyter_actions.setState({ requestedComputeServerId: id });
-          if (
-            actions.jupyter_actions.store?.get("kernel_error") &&
-            id != actions.jupyter_actions.getComputeServerId()
-          ) {
-            // show a warning about the kernel being killed isn't useful and
-            // is just redundant when actively switching.
-            actions.jupyter_actions.setState({ kernel_error: "" });
-          }
-        } else if (type == "terminal") {
-          const terminalRequestedComputeServerIds =
-            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
-            {};
-          terminalRequestedComputeServerIds[p] = id;
-          actions.setState({ terminalRequestedComputeServerIds });
-        }
+        //         if (type == "jupyter_cell_notebook" && actions != null) {
+        //           actions.jupyter_actions.setState({ requestedComputeServerId: id });
+        //           if (
+        //             actions.jupyter_actions.store?.get("kernel_error") &&
+        //             id != actions.jupyter_actions.getComputeServerId()
+        //           ) {
+        //             // show a warning about the kernel being killed isn't useful and
+        //             // is just redundant when actively switching.
+        //             actions.jupyter_actions.setState({ kernel_error: "" });
+        //           }
+        //         } else if (type == "terminal") {
+        //           const terminalRequestedComputeServerIds =
+        //             actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
+        //             {};
+        //           terminalRequestedComputeServerIds[p] = id;
+        //           actions.setState({ terminalRequestedComputeServerIds });
+        //         }
         setValue(id == null ? undefined : id);
+        computeServerAssociations.set(p, id);
       } catch (err) {
         console.warn(err);
       }

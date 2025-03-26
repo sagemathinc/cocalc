@@ -64,6 +64,7 @@ import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
+import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 type Query = { [key: string]: any };
 
@@ -468,7 +469,7 @@ class SyncTableChannel {
       if (syncdoc != null) {
         const path = syncdoc.get_path();
         this.log("save_if_possible: saving syncdoc to disk", { path });
-        if (path.endsWith(".sage-jupyter2")) {
+        if (path.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS)) {
           // treat jupyter notebooks in a special way, since they have
           // an aux .ipynb file that the syncdoc doesn't know about. In
           // this case we save the ipynb to disk, not just the hidden

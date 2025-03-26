@@ -19,12 +19,7 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
-import {
-  filename_extension,
-  keys,
-  path_split,
-  meta_file,
-} from "@cocalc/util/misc";
+import { filename_extension, keys, path_split } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
@@ -37,6 +32,7 @@ import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 
 const EXTENSION = ".time-travel";
 
@@ -92,7 +88,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
     if (this.docext == "ipynb") {
-      this.syncpath = meta_file(this.docpath, "jupyter2");
+      this.syncpath = syncdbPath(this.docpath);
     }
     this.setState({
       versions: List([]),

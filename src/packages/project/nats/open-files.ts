@@ -82,6 +82,7 @@ import {
   computeServerManager,
   ComputeServerManager,
 } from "@cocalc/nats/compute/manager";
+import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 // ensure nats connection stuff is initialized
 import "@cocalc/project/nats/env";
@@ -219,7 +220,7 @@ function supportAutoclose(path: string): boolean {
   // this feels way too "hard coded"; alternatively, maybe we make the kernel or whatever
   // actually update the interest?  or something else...
   if (
-    path.endsWith(".sage-jupyter2") ||
+    path.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS) ||
     path.endsWith(".sagews") ||
     path.endsWith(".term")
   ) {
@@ -334,14 +335,14 @@ async function watchForFileDeletionLoop() {
     }
     const paths = Object.keys(openDocs);
     if (paths.length == 0) {
-      logger.debug("watchForFileDeletionLoop: no paths currently open");
+      // logger.debug("watchForFileDeletionLoop: no paths currently open");
       continue;
     }
-    logger.debug(
-      "watchForFileDeletionLoop: checking",
-      paths.length,
-      "currently open paths to see if any were deleted",
-    );
+    //     logger.debug(
+    //       "watchForFileDeletionLoop: checking",
+    //       paths.length,
+    //       "currently open paths to see if any were deleted",
+    //     );
     await awaitMap(paths, 20, checkForFileDeletion);
   }
 }
@@ -416,7 +417,7 @@ const openDoc = reuseInFlight(async (path: string) => {
     // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
     const ext = filename_extension(path);
     switch (ext) {
-      case "sage-jupyter2":
+      case JUPYTER_SYNCDB_EXTENSIONS:
         logger.debug("initializing Jupyter backend for ", path);
         await initJupyterRedux(syncdoc, client);
         const path1 = original_path(syncdoc.get_path());
