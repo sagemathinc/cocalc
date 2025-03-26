@@ -92,4 +92,5 @@ jobs:
 
       - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
+      - run: cd src && pnpm nats-server-daemon
       - run: cd src && pnpm run test

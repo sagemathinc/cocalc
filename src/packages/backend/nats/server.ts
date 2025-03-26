@@ -19,10 +19,28 @@ export function startServer(): number {
   return pid;
 }
 
-export function main({ verbose }: { verbose?: boolean } = {}) {
+export function main({
+  verbose,
+  daemon,
+}: { verbose?: boolean; daemon?: boolean } = {}) {
   let { command, args, env } = params();
   if (verbose) {
     args = [...args, "-DV"];
   }
-  spawnSync(command, args, { ...env, stdio: "inherit" });
+  let opts;
+  if (daemon) {
+    opts = { ...env, detached: true, stdio: "ignore" };
+    const child = spawn(command, args, opts);
+    child.on("error", (err) => {
+      throw Error(`Failed to start process: ${err}`);
+    });
+
+    if (daemon) {
+      console.log(`Process started as daemon with PID: ${child.pid}`);
+      child.unref();
+    }
+  } else {
+    opts = { ...env, stdio: "inherit" };
+    spawnSync(command, args, opts);
+  }
 }
