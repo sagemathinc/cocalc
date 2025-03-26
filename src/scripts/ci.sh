@@ -15,6 +15,8 @@ while true; do
     git pull
 
     ./scripts/run-ci.sh
+    # temporary workaround
+    pkill -f `pwd`/packages/project/node_modules/@cocalc/project/bin/cocalc-project.js
     if [ $? -eq 0 ]; then
         echo "success at `date`" >> ci.log
     else
