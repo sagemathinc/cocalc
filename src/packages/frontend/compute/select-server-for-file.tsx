@@ -86,7 +86,6 @@ export default function SelectComputeServerForFile({
         }
         const id = (await computeServerAssociations.getServerIdForPath(p)) ?? 0;
         setValue(id == null ? undefined : id);
-        computeServerAssociations.set(p, id);
       } catch (err) {
         console.warn(err);
       }
