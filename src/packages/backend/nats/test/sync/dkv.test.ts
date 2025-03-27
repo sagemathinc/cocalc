@@ -180,6 +180,9 @@ describe("test deleting and clearing a dkv", () => {
     kv2.clear();
     expect(kv2.has("foo10")).toBe(false);
     await once(kv1, "change");
+    while (kv1.has("foo10")) {
+      await once(kv1, "change");
+    }
     expect(kv1.has("foo10")).toBe(false);
   });
 
