@@ -10,13 +10,23 @@ import { createServiceClient, createServiceHandler } from "./typed";
 interface SyncFsApiClient {
   // cause the compute server to initiate a sync asap.
   sync: () => Promise<void>;
+  copyFiles: (opts: { paths: string[]; dest?: string }) => Promise<void>;
 }
 
-export function syncFsClient({ compute_server_id, project_id }) {
+export function syncFsClient({
+  compute_server_id,
+  project_id,
+  timeout,
+}: {
+  compute_server_id: number;
+  project_id: string;
+  timeout?: number;
+}) {
   return createServiceClient<SyncFsApiClient>({
     project_id,
     compute_server_id,
     service: "syncfs-client",
+    timeout,
   });
 }
 

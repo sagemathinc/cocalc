@@ -471,15 +471,22 @@ export class API {
     );
   };
 
-  copyFromComputeServerToProject = async (opts: {
+  copyFromComputeServerToProject = async ({
+    compute_server_id,
+    paths,
+    dest,
+    timeout = 60,
+  }: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
   }) => {
-    await this.call(
-      { cmd: "copy_from_compute_server_to_project", opts },
-      (opts.timeout ?? 60) * 1000,
-    );
+    const client = syncFsClient({
+      project_id: this.project_id,
+      compute_server_id,
+      timeout,
+    });
+    return await client.copyFiles({ paths, dest });
   };
 }

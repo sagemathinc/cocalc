@@ -274,7 +274,7 @@ export class SyncFS {
     }
   };
 
-  private doApiRequest = async (data) => {
+  doApiRequest = async (data) => {
     log("doApiRequest", { data });
     switch (data?.event) {
       case "compute_server_sync_request":

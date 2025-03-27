@@ -22,6 +22,13 @@ export async function initNatsService({
     sync: async () => {
       await syncfs.sync();
     },
+
+    copyFiles: async (opts: { paths: string[]; dest?: string }) => {
+      await syncfs.doApiRequest({
+        ...opts,
+        event: "copy_from_compute_server_to_project",
+      });
+    },
   };
   return await createSyncFsClientService({
     compute_server_id,
