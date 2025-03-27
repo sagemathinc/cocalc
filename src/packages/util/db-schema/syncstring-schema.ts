@@ -306,6 +306,10 @@ Table({
       desc: "JSON string that parses to a patch, which transforms the previous version of the syncstring to this version",
       render: { type: "text" },
     },
+    is_snapshot: {
+      type: "boolean",
+      desc: "True if this is a snapshot (this is only used in NATS).",
+    },
     snapshot: {
       type: "string",
       desc: "Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.",
@@ -324,7 +328,8 @@ Table({
     },
   },
   rules: {
-    primary_key: ["string_id", "time"], // compound primary key
+    primary_key: ["string_id", "time", "is_snapshot"], // compound primary key
+    default_primary_key_value: { is_snapshot: false },
     unique_writes: true, // there is no reason for a user to write exactly the same record twice
     pg_indexes: ["time"],
     user_query: {
@@ -335,6 +340,7 @@ Table({
           patch: null,
           user_id: null,
           snapshot: null,
+          is_snapshot: null,
           sent: null,
           prev: null,
           format: null,
@@ -356,6 +362,7 @@ Table({
           patch: true,
           user_id: true,
           snapshot: true,
+          is_snapshot: true,
           sent: true,
           prev: true,
           format: true,

@@ -125,10 +125,15 @@ export class SyncTableStream extends EventEmitter {
     // console.log("set", obj);
     // delete string_id since it is redundant info
     const key = this.primaryString(obj);
+    const { string_id, ...obj2 } = obj;
     if (this.data[key] != null) {
+      // "You can not change a message once committed to a stream"
+      // https://github.com/nats-io/nats-server/discussions/4883
+      throw Error(
+        `object with key ${key} was already written to the stream -- written data cannot be modified`,
+      );
       return;
     }
-    const { string_id, ...obj2 } = obj;
     // console.log("set - publish", obj);
     if (this.dstream == null) {
       throw Error("closed");

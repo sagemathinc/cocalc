@@ -81,34 +81,46 @@ export class SortedPatchList extends EventEmitter {
     }
     const v: Patch[] = [];
     let oldest: Date | undefined = undefined;
-    let x: Patch;
-    for (x of patches) {
+    for (const x of patches) {
       const t: number = x.time.valueOf();
       const cur = this.times[t];
-      if (cur != null) {
-        // Hmm -- We already have a patch with this time.
-        if (
-          isEqual(cur.patch, x.patch) &&
-          cur.user_id === x.user_id &&
-          cur.snapshot === x.snapshot &&
-          cmp_Date(cur.prev, x.prev) === 0
-        ) {
-          // re-inserting a known patch; nothing at all to do
+      if (x.is_snapshot) {
+        // it's a snapshot -- if the patch was already loaded, edit
+        // the snapshot field of that patch.
+        this.all_snapshot_times[t] = true;
+        if (this.times[t] != null) {
+          this.times[t].snapshot = x.snapshot;
           continue;
-        } else {
-          // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
-          // remove patch with same timestamp from the sorted list of patches
-          this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
-          this.emit("overwrite", t);
+        }
+      } else {
+        // not a snapshot, but maybe it's a patch for a snapshot that
+        // was already loaded
+        if (this.times[t] != null && this.times[t].is_snapshot) {
+          this.times[t].patch = x.patch;
+          continue;
+        }
+        if (cur != null) {
+          // Hmm -- We already have a patch with this time.
+          if (
+            isEqual(cur.patch, x.patch) &&
+            cur.user_id === x.user_id &&
+            cur.snapshot === x.snapshot &&
+            cmp_Date(cur.prev, x.prev) === 0
+          ) {
+            // re-inserting a known patch; nothing at all to do
+            continue;
+          } else {
+            // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
+            // remove patch with same timestamp from the sorted list of patches
+            this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
+            this.emit("overwrite", t);
+          }
         }
       }
       v.push(x);
       this.times[t] = x;
       if (oldest == null || oldest > x.time) {
         oldest = x.time;
-      }
-      if (x.snapshot != null) {
-        this.all_snapshot_times[t] = true;
       }
     }
 
@@ -155,7 +167,13 @@ export class SortedPatchList extends EventEmitter {
     as a building block to implement undo.  We do not assume that
     without_times is sorted.
   */
-  value = (time?: Date, force?: boolean, without_times?: Date[]): Document => {
+  value = ({
+    time,
+    without_times,
+  }: {
+    time?: Date;
+    without_times?: Date[];
+  } = {}): Document => {
     // oldest time that is skipped:
     let oldest_without_time: Date | undefined = undefined;
     // all skipped times.
@@ -260,12 +278,6 @@ export class SortedPatchList extends EventEmitter {
           const x = this.patches[i];
           if (x.snapshot == null) {
             throw Error("to satisfy typescript");
-          }
-          if (force && cmp_Date(x.time, time) === 0) {
-            // If force is true we do NOT want to use the existing snapshot, since
-            // the whole point is to force recomputation of it, as it is wrong.
-            // Instead, we'll use the previous snapshot.
-            continue;
           }
           // Found a patch with known snapshot that is as old as the time.
           // This is the base on which we will apply other patches to move forward
@@ -452,7 +464,7 @@ export class SortedPatchList extends EventEmitter {
   show_history = ({
     milliseconds,
     trunc,
-    log,
+    log: log0,
   }: {
     milliseconds?: boolean;
     trunc?: number;
@@ -464,9 +476,13 @@ export class SortedPatchList extends EventEmitter {
     if (trunc === undefined) {
       trunc = trunc ? trunc : 80;
     }
-    if (log === undefined) {
-      log = console.log;
+    if (log0 === undefined) {
+      log0 = console.log;
     }
+    let output = "\n";
+    const log = (...args) => {
+      output += args.join(" ") + "\n";
+    };
     let i: number = 0;
     let s: Document | undefined;
     const prev_cutoff: Date = this.newest_snapshot_time();
@@ -505,10 +521,11 @@ export class SortedPatchList extends EventEmitter {
       first_time = false;
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
-        trunc_middle(s.to_str(), trunc).trim(),
+        JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
       );
       i += 1;
     }
+    log0(output);
   };
 
   /* This function does not MAKE a snapshot; it just
