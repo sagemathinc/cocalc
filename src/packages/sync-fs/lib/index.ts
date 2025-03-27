@@ -29,6 +29,7 @@ import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { initNatsService } from "./nats/service";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
@@ -76,7 +77,7 @@ const DEFAULT_SYNC_INTERVAL_MAX_S = 30;
 // result in massive bandwidth usage.
 const MAX_FAILURES_IN_A_ROW = 3;
 
-class SyncFS {
+export class SyncFS {
   private state: State = "init";
   private lower: string;
   private upper: string;
@@ -95,6 +96,7 @@ class SyncFS {
   private tar: { send; get };
   // number of failures in a row to sync.
   private numFails: number = 0;
+  private natsService;
 
   private client: SyncClient;
 
@@ -161,6 +163,7 @@ class SyncFS {
   }
 
   init = async () => {
+    await this.initNatsService();
     await this.mountUnionFS();
     await this.bindMountExcludes();
     await this.makeScratchDir();
@@ -177,6 +180,10 @@ class SyncFS {
       return;
     }
     this.state = "closed";
+    if (this.natsService != null) {
+      this.natsService.close();
+      delete this.natsService;
+    }
     if (this.timeout != null) {
       clearTimeout(this.timeout);
       delete this.timeout;
@@ -796,5 +803,13 @@ class SyncFS {
         progress: 85,
       });
     }
+  };
+
+  initNatsService = async () => {
+    this.natsService = await initNatsService({
+      syncfs: this,
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+    });
   };
 }

@@ -37,6 +37,7 @@ import type {
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
 import { formatterClient } from "@cocalc/nats/service/formatter";
+import { syncFsClient } from "@cocalc/nats/service/syncfs-client";
 
 export class API {
   private conn;
@@ -450,16 +451,12 @@ export class API {
   };
 
   computeServerSyncRequest = async (compute_server_id: number) => {
-    if (!(typeof compute_server_id == "number" && compute_server_id > 0)) {
-      throw Error("compute_server_id must be a positive integer");
-    }
-    await this.call(
-      {
-        cmd: "compute_server_sync_request",
-        opts: { compute_server_id },
-      },
-      30000,
-    );
+    console.log("doing sync request");
+    const client = syncFsClient({
+      project_id: this.project_id,
+      compute_server_id,
+    });
+    return await client.sync();
   };
 
   copyFromProjectToComputeServer = async (opts: {

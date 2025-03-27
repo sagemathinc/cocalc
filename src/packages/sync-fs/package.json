@@ -22,6 +22,7 @@
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/comm": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/lz4": "^0.6.3",
