@@ -1,6 +1,8 @@
 #!/bin/bash
 set -v
 
+echo "Waiting for changes in upstream."
+
 while true; do
   # Fetch the latest commits from upstream
   git fetch
@@ -22,8 +24,6 @@ while true; do
     else
         echo "FAIL at `date`" >> ci.log
     fi
-  else
-    echo "No changes detected. Checking again in 30 seconds."
   fi
 
   # Wait for 30 seconds before checking again
