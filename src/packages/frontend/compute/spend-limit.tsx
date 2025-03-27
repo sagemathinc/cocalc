@@ -224,7 +224,7 @@ export function SpendLimitStatus({ server, horizontal = false }) {
   const [desc, setDesc] = useState<string>("");
 
   useEffect(() => {
-    if (server.configuration.spendLimit?.enabled) {
+    if (server.configuration?.spendLimit?.enabled) {
       const { hours, dollars } = validatedSpendLimit(
         server.configuration.spendLimit,
       )!;
@@ -252,7 +252,7 @@ export function SpendLimitStatus({ server, horizontal = false }) {
         `${currency(total)} was spent on this compute server since it was created.  No spend limit is set.`,
       );
     })();
-  }, [server.id, server.configuration.spendLimit, server.spend]);
+  }, [server.id, server.configuration?.spendLimit, server.spend]);
 
   if (total == null) {
     return null;
@@ -284,7 +284,7 @@ export function SpendLimitStatus({ server, horizontal = false }) {
         >
           {currency(total)}
         </span>{" "}
-        {!!server.configuration.spendLimit?.enabled && (
+        {!!server.configuration?.spendLimit?.enabled && (
           <Progress
             style={{ width: "60px", height: horizontal ? "19px" : undefined }}
             showInfo={false}
