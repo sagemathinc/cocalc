@@ -1,11 +1,11 @@
 /*
-SyncFS Client Service
+SyncFS Client Service, which runs on compute servers
 */
 
 import { createSyncFsClientService } from "@cocalc/nats/service/syncfs-client";
 import { type SyncFS } from "../index";
 
-export async function initNatsService({
+export async function initNatsClientService({
   syncfs,
   compute_server_id,
   project_id,
@@ -23,10 +23,17 @@ export async function initNatsService({
       await syncfs.sync();
     },
 
-    copyFiles: async (opts: { paths: string[]; dest?: string }) => {
+    copyFilesToHomeBase: async (opts: { paths: string[]; dest?: string }) => {
       await syncfs.doApiRequest({
         ...opts,
         event: "copy_from_compute_server_to_project",
+      });
+    },
+
+    copyFilesFromHomeBase: async (opts: { paths: string[]; dest?: string }) => {
+      await syncfs.doApiRequest({
+        ...opts,
+        event: "copy_from_project_to_compute_server",
       });
     },
   };

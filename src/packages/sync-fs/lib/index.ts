@@ -16,7 +16,7 @@ import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
 import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
-import SyncClient from "@cocalc/sync-client/lib/index";
+import SyncClient, { type Role } from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
@@ -29,7 +29,8 @@ import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
-import { initNatsService } from "./nats/service";
+import { initNatsClientService } from "./nats/syncfs-client";
+import { initNatsServerService } from "./nats/syncfs-server";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
@@ -62,7 +63,7 @@ interface Options {
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
   data?: string; // absolute path to data directory (default: /data)
-  role;
+  role: Role;
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -103,6 +104,8 @@ export class SyncFS {
   private timeout;
   private websocket?;
 
+  private role: Role;
+
   constructor({
     lower,
     upper,
@@ -118,6 +121,7 @@ export class SyncFS {
     data = "/data",
     role,
   }: Options) {
+    this.role = role;
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
@@ -806,10 +810,19 @@ export class SyncFS {
   };
 
   initNatsService = async () => {
-    this.natsService = await initNatsService({
-      syncfs: this,
-      project_id: this.project_id,
-      compute_server_id: this.compute_server_id,
-    });
+    if (this.role == "compute_server") {
+      this.natsService = await initNatsClientService({
+        syncfs: this,
+        project_id: this.project_id,
+        compute_server_id: this.compute_server_id,
+      });
+    } else if (this.role == "project") {
+      this.natsService = await initNatsServerService({
+        syncfs: this,
+        project_id: this.project_id,
+      });
+    } else {
+      throw Error("only compute_server and project roles are supported");
+    }
   };
 }

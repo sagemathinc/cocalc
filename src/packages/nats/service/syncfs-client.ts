@@ -10,10 +10,21 @@ import { createServiceClient, createServiceHandler } from "./typed";
 interface SyncFsApiClient {
   // cause the compute server to initiate a sync asap.
   sync: () => Promise<void>;
-  copyFiles: (opts: { paths: string[]; dest?: string }) => Promise<void>;
+
+  // copy files from compute server to the home base
+  copyFilesToHomeBase: (opts: {
+    paths: string[];
+    dest?: string;
+  }) => Promise<void>;
+
+  // copy files from the home base to the compute server
+  copyFilesFromHomeBase: (opts: {
+    paths: string[];
+    dest?: string;
+  }) => Promise<void>;
 }
 
-export function syncFsClient({
+export function syncFsClientClient({
   compute_server_id,
   project_id,
   timeout,

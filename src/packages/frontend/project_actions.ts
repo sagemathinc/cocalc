@@ -2255,7 +2255,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const api = await this.api();
         if (opts.src_compute_server_id) {
           // from compute server to project
-          await api.copyFromComputeServerToProject({
+          await api.copyFromComputeServerToHomeBase({
             compute_server_id: opts.src_compute_server_id,
             paths: opts.src,
             dest: opts.dest,
@@ -2263,7 +2263,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           });
         } else if (opts.dest_compute_server_id) {
           // from project to compute server
-          await api.copyFromProjectToComputeServer({
+          await api.copyFromHomeBaseToComputeServer({
             compute_server_id: opts.dest_compute_server_id,
             paths: opts.src,
             dest: opts.dest,

@@ -37,7 +37,8 @@ import type {
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
 import { formatterClient } from "@cocalc/nats/service/formatter";
-import { syncFsClient } from "@cocalc/nats/service/syncfs-client";
+import { syncFsClientClient } from "@cocalc/nats/service/syncfs-client";
+// import { syncFsServerClient } from "@cocalc/nats/service/syncfs-server";
 
 export class API {
   private conn;
@@ -450,43 +451,51 @@ export class API {
     return this.conn.channel(channel_name);
   };
 
+  // Copying files to/from compute servers:
+
   computeServerSyncRequest = async (compute_server_id: number) => {
-    console.log("doing sync request");
-    const client = syncFsClient({
+    const client = syncFsClientClient({
       project_id: this.project_id,
       compute_server_id,
     });
     return await client.sync();
   };
 
-  copyFromProjectToComputeServer = async (opts: {
-    compute_server_id: number;
-    paths: string[];
-    dest?: string;
-    timeout?: number;
-  }) => {
-    await this.call(
-      { cmd: "copy_from_project_to_compute_server", opts },
-      (opts.timeout ?? 60) * 1000,
-    );
-  };
-
-  copyFromComputeServerToProject = async ({
-    compute_server_id,
+  copyFromHomeBaseToComputeServer = async ({
     paths,
     dest,
-    timeout = 60,
+    compute_server_id,
+    timeout = 60 * 1000,
   }: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
   }) => {
-    const client = syncFsClient({
+    const client = syncFsClientClient({
       project_id: this.project_id,
       compute_server_id,
       timeout,
     });
-    return await client.copyFiles({ paths, dest });
+    return await client.copyFilesFromHomeBase({ paths, dest });
+  };
+
+  copyFromComputeServerToHomeBase = async ({
+    compute_server_id,
+    paths,
+    dest,
+    timeout = 60 * 1000,
+  }: {
+    compute_server_id: number;
+    paths: string[];
+    dest?: string;
+    timeout?: number;
+  }) => {
+    const client = syncFsClientClient({
+      project_id: this.project_id,
+      compute_server_id,
+      timeout,
+    });
+    return await client.copyFilesToHomeBase({ paths, dest });
   };
 }

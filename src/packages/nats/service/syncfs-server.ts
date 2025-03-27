@@ -8,26 +8,29 @@ interface SyncFsServerApi {
   // nothing yet!
 }
 
-export function SyncFsClient({ compute_server_id, project_id }) {
+export function syncFsServerClient({
+  project_id,
+  timeout,
+}: {
+  project_id: string;
+  timeout?: number;
+}) {
   return createServiceClient<SyncFsServerApi>({
     project_id,
-    compute_server_id,
     service: "syncfs-server",
+    timeout,
   });
 }
 
 export async function createSyncFsServerService({
-  compute_server_id,
   project_id,
   impl,
 }: {
   project_id: string;
-  compute_server_id: number;
   impl: SyncFsServerApi;
 }) {
   return await createServiceHandler<SyncFsServerApi>({
     project_id,
-    compute_server_id,
     service: "syncfs-server",
     description:
       "SyncFs server service that runs in the home base or file server",
