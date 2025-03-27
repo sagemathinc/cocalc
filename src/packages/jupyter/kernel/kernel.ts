@@ -758,7 +758,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
-  private saveBlob = (data, type) => {
+  private saveBlob = (data: string, type?: string) => {
     const blobs = this._actions?.blobs;
     if (blobs == null) {
       throw Error("blob store not available");
@@ -791,22 +791,38 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     remove_redundant_reps(content.data);
 
-    let type: string;
-    for (type of JUPYTER_MIMETYPES) {
-      if (content.data[type] == null) {
-        continue;
-      }
+    const saveBlob = (data, type) => {
       try {
-        if (type.split("/")[0] === "image" || type === "application/pdf") {
-          // Store all images and PDF in a binary blob store, so we don't have
-          // to involve it in realtime sync.
-          content.data[type] = this.saveBlob(content.data[type], type);
-        }
+        return this.saveBlob(data, type);
       } catch (err) {
         dbg(`WARNING: Jupyter blob store not working -- ${err}`);
         // i think it'll just send the large data on in the usual way instead
         // via the output, instead of using the blob store.  It's probably just
         // less efficient.
+      }
+    };
+
+    let type: string;
+    for (type of JUPYTER_MIMETYPES) {
+      if (content.data[type] == null) {
+        continue;
+      }
+      if (
+        type.split("/")[0] === "image" ||
+        type === "application/pdf" ||
+        type === "text/html"
+      ) {
+        // Store all images and PDF and text/html in a binary blob store, so we don't have
+        // to involve it in realtime sync.  It tends to be large, etc.
+        const sha1 = saveBlob(content.data[type], type);
+        if (type == "text/html") {
+          // NOTE: in general, this may or may not get rendered as an iframe --
+          // we use iframe for backward compatibility.
+          content.data["iframe"] = sha1;
+          delete content.data["text/html"];
+        } else {
+          content.data[type] = sha1;
+        }
       }
     }
   }
@@ -964,6 +980,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     if (blobs == null) {
       return;
     }
+    const t = new TextDecoder();
     return {
       getBase64: (sha1: string): string | undefined => {
         const buf = blobs.get(sha1);
@@ -971,6 +988,14 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
           return buf;
         }
         return uint8ArrayToBase64(buf);
+      },
+
+      getString: (sha1: string): string | undefined => {
+        const buf = blobs.get(sha1);
+        if (buf === undefined) {
+          return buf;
+        }
+        return t.decode(buf);
       },
 
       readFile: async (path: string): Promise<string> => {

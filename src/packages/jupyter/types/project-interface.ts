@@ -36,6 +36,8 @@ export interface EventEmitterInterface {
 export interface BlobStoreInterface {
   // get base64 encoded binary data out of the blob store.
   getBase64(sha1: string): string | undefined;
+  // utf8 string
+  getString(sha1: string): string | undefined;
   // save a string encoded in base64 as binary data in the blob store
   saveBase64: (base64: string) => string | undefined;
   // read file from disk and store in blob store.  returns sha1 hash of contents of file.

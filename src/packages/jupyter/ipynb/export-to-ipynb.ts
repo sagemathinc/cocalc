@@ -49,6 +49,7 @@ export interface IPynbCell {
 
 interface BlobStore {
   getBase64: (sha1: string) => string | null | undefined | void;
+  getString: (sha1: string) => string | null | undefined | void;
 }
 
 interface Options {
@@ -279,16 +280,19 @@ function processOutputN(
       }
       if (k.startsWith("image/") || k === "application/pdf" || k === "iframe") {
         if (blob_store != null) {
-          const value = blob_store.getBase64(v);
+          let value;
+          if (k === "iframe") {
+            delete output_n.data[k];
+            k = "text/html";
+            value = blob_store.getString(v);
+          } else {
+            value = blob_store.getBase64(v);
+          }
           if (value == null) {
             // The image is no longer known; this could happen if the user reverts in the history
             // browser and there is an image in the output that was not saved in the latest version.
             // TODO: instead return an error.
             return;
-          }
-          if (k === "iframe") {
-            delete output_n.data[k];
-            k = "text/html";
           }
           output_n.data[k] = value;
         } else {

@@ -1248,7 +1248,7 @@ export class JupyterActions extends JupyterActions0 {
   // convert this Jupyter notebook to an ipynb file, including
   // mime types like images in base64. This makes a first pass
   // to find the sha1-indexed blobs, gets the blobs, then does
-  // a second passto fill them in.  There is a similar function
+  // a second pass to fill them in.  There is a similar function
   // in store that is sync, but doesn't fill in the blobs on the
   // frontend like this does.
   toIpynb = async () => {
@@ -1266,10 +1266,14 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
 
-    const blobs: { [sha1: string]: string | null } = {};
+    const blobsBase64: { [sha1: string]: string | null } = {};
+    const blobsString: { [sha1: string]: string | null } = {};
     const blob_store = {
       getBase64: (hash) => {
-        blobs[hash] = null;
+        blobsBase64[hash] = null;
+      },
+      getString: (hash) => {
+        blobsString[hash] = null;
       },
     };
 
@@ -1288,11 +1292,24 @@ export class JupyterActions extends JupyterActions0 {
     const pass1 = export_to_ipynb(options);
 
     let n = 0;
-    for (const hash in blobs) {
+    const blobs: { [sha1: string]: string | null } = {};
+    for (const hash in blobsBase64) {
       try {
         const ar = await this.asyncBlobStore.get(hash);
         if (ar) {
           blobs[hash] = uint8ArrayToBase64(ar);
+          n += 1;
+        }
+      } catch (err) {
+        console.log("WARNING: missing image ", hash, err);
+      }
+    }
+    const t = new TextDecoder();
+    for (const hash in blobsString) {
+      try {
+        const ar = await this.asyncBlobStore.get(hash);
+        if (ar) {
+          blobs[hash] = t.decode(ar);
           n += 1;
         }
       } catch (err) {
@@ -1304,6 +1321,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     const blob_store2 = {
       getBase64: (hash) => blobs[hash],
+      getString: (hash) => blobs[hash],
     };
 
     return export_to_ipynb({ ...options, blob_store: blob_store2 });
@@ -1312,6 +1330,7 @@ export class JupyterActions extends JupyterActions0 {
   private getBase64Blobs = async (cells) => {
     const blobs: { [hash: string]: string } = {};
     const failed = new Set<string>();
+    const t = new TextDecoder();
     for (const id in cells) {
       const cell = cells[id];
       if (!cell?.output) {
@@ -1322,25 +1341,45 @@ export class JupyterActions extends JupyterActions0 {
         if (!mesg.data) {
           continue;
         }
-        for (const type of JUPYTER_MIMETYPES) {
-          const hash = mesg.data[type];
-          if (hash?.length != 40) {
-            continue;
-          }
+        if (mesg.data.iframe) {
+          const hash = mesg.data.iframe;
           if (failed.has(hash)) {
             continue;
           }
           if (blobs[hash] == null) {
             try {
               const ar = await this.asyncBlobStore.get(hash);
-              blobs[hash] = uint8ArrayToBase64(ar);
+              blobs[hash] = t.decode(ar);
             } catch {
               failed.add(hash);
               continue;
             }
           }
+          delete mesg.data["iframe"];
           if (blobs[hash]) {
-            mesg.data[type] = blobs[hash];
+            mesg.data["text/html"] = blobs[hash];
+          }
+        } else {
+          for (const type of JUPYTER_MIMETYPES) {
+            const hash = mesg.data[type];
+            if (hash?.length != 40) {
+              continue;
+            }
+            if (failed.has(hash)) {
+              continue;
+            }
+            if (blobs[hash] == null) {
+              try {
+                const ar = await this.asyncBlobStore.get(hash);
+                blobs[hash] = uint8ArrayToBase64(ar);
+              } catch {
+                failed.add(hash);
+                continue;
+              }
+            }
+            if (blobs[hash]) {
+              mesg.data[type] = blobs[hash];
+            }
           }
         }
       }
