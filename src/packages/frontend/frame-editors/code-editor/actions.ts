@@ -2144,10 +2144,10 @@ export class Actions<
     this.set_status("Ensuring your latest changes are saved...");
     let success = false;
     for (let i = 0; i < 2; i++) {
-      // TODO: looping is clearly a hack.
+      // TODO: looping/delay is clearly a hack, which I do not think works sufficiently well.
       this.set_syncstring_to_codemirror();
       success = await this.ensure_syncstring_is_saved();
-      await delay(1);
+      await delay(25);
     }
     return success;
   }
