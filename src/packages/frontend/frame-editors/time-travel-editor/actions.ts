@@ -190,7 +190,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   loadMoreHistory = async (): Promise<void> => {
-    window.x = { t: this };
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
