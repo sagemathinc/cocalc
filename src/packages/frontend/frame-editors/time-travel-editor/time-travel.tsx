@@ -6,7 +6,7 @@
 // Time travel editor react component
 
 import { useState } from "react";
-import { Button, Checkbox, Tooltip } from "antd";
+import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import {
   redux,
@@ -22,7 +22,7 @@ import { NavigationSlider } from "./navigation-slider";
 import { RangeSlider } from "./range-slider";
 import { Version, VersionRange } from "./version";
 import { GitAuthors, TimeTravelAuthors } from "./authors";
-import { LoadFullHistory } from "./load-full-history";
+import { LoadMoreHistory } from "./load-more-history";
 import { OpenFile } from "./open-file";
 import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
@@ -259,11 +259,17 @@ export function TimeTravel(props: Props) {
     }
   };
 
-  const renderLoadFullHistory = () => {
-    if (hasFullHistory || gitMode) {
+  const renderLoadMoreHistory = () => {
+    if (gitMode || hasFullHistory) {
       return;
     }
-    return <LoadFullHistory id={props.id} actions={props.actions} />;
+    return (
+      <LoadMoreHistory
+        id={props.id}
+        actions={props.actions}
+        disabled={hasFullHistory}
+      />
+    );
   };
 
   const renderOpenFile = () => {
@@ -361,16 +367,20 @@ export function TimeTravel(props: Props) {
           </>
         )}
         {renderNavigationButtons()}
-        <div style={{ display: "inline-flex", margin: "0 5px" }}>
-          {renderLoadFullHistory()}
+        <Space.Compact style={{ margin: "0 5px" }}>
           {renderOpenFile()}
           {renderRevertFile()}
           {renderOpenSnapshots()}
           {renderExport()}
-        </div>
-        {renderVersion()}
-        {", "}
-        {renderAuthor()}
+          {renderLoadMoreHistory()}
+        </Space.Compact>
+        {(versions?.size ?? 0) > 0 && (
+          <>
+            {renderVersion()}
+            {", "}
+            {renderAuthor()}
+          </>
+        )}
       </div>
     );
   };
@@ -404,6 +414,7 @@ export function TimeTravel(props: Props) {
     );
   };
 
+  console.log({ loading, versions: versions.toJS() });
   if (loading) {
     return renderLoading();
   }

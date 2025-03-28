@@ -198,7 +198,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       return;
     }
     await this.syncdoc.loadMoreHistory();
-    // this.setState({ has_full_history: true });
+    this.setState({ has_full_history: this.syncdoc.has_full_history() });
     this.syncdoc_changed(); // load new versions list.
   };
 

@@ -10,14 +10,21 @@ import { Icon } from "../../components";
 interface Props {
   id: string;
   actions: TimeTravelActions;
+  disabled?: boolean;
 }
 
-export function LoadFullHistory({ id, actions }: Props) {
+export function LoadMoreHistory({ id, actions, disabled }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   return (
-    <Tooltip title={"Load more TimeTravel history"}>
+    <Tooltip
+      title={
+        disabled
+          ? "All TimeTravel history is loaded"
+          : "Load more TimeTravel history"
+      }
+    >
       <Button
-        disabled={loading}
+        disabled={loading || disabled}
         onClick={async () => {
           try {
             setLoading(true);

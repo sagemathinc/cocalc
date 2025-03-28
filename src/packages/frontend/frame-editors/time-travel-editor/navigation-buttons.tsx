@@ -12,7 +12,7 @@ Navigation Buttons to:
  - last
 */
 
-import { Button } from "antd";
+import { Button, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { TimeTravelActions } from "./actions";
 
@@ -32,7 +32,7 @@ export function NavigationButtons({
   max,
 }: Props) {
   return (
-    <div style={{ display: "inline-flex" }}>
+    <Space.Compact style={{ display: "inline-flex" }}>
       <Button
         title={"First version"}
         onClick={() => actions.step(id, -(version0 ?? 0))}
@@ -61,6 +61,6 @@ export function NavigationButtons({
       >
         <Icon name="forward" />
       </Button>
-    </div>
+    </Space.Compact>
   );
 }

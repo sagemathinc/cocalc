@@ -225,7 +225,6 @@ export class SyncDoc extends EventEmitter {
   private settings: Map<string, any> = Map();
 
   private syncstring_save_state: string = "";
-  private load_full_history_done: boolean = false;
 
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: XPatch } = {};
@@ -2441,19 +2440,23 @@ export class SyncDoc extends EventEmitter {
   };
 
   has_full_history = (): boolean => {
-    return !this.last_snapshot || this.load_full_history_done;
+    if (this.patch_list == null) {
+      return false;
+    }
+    return this.patch_list?.getOldestSnapshot()?.seq_info == null;
   };
 
   loadMoreHistory = async (): Promise<void> => {
     if (this.has_full_history() || this.ephemeral || this.patch_list == null) {
       return;
     }
-    //
-    const prev_seq = this.patch_list.getOldestSnapshot()?.seq_info?.prev_seq;
-    if (prev_seq == null) {
+
+    const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
+    if (seq_info == null) {
       // nothing more to load
       return;
     }
+    const { prev_seq = 1 } = seq_info;
     // Doing this load triggers change events for all the patch info
     // that gets loaded.
     // @ts-ignore
