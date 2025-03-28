@@ -2210,6 +2210,13 @@ export class SyncDoc extends EventEmitter {
       assertDefined(this.patch_list);
       this.patch_list.add([y]);
     }
+    // Since *we* just made a definite change to the document, we're
+    // active, so we check if we should make a snapshot. There is the
+    // potential of a race condition where more than one clients make
+    // a snapshot at the same time -- this would waste a little space
+    // in the nats jetstream, but is otherwise harmless, since the snapshots
+    // are identical.
+    this.snapshot_if_necessary();
   };
 
   // return the NATS sequence number of the oldest entry in the
@@ -3343,9 +3350,6 @@ export class SyncDoc extends EventEmitter {
           // due to synctable changes being emited on save.
           dbg("wait for next event loop");
           await delay(1);
-        } else {
-          dbg("Patch sent, now make a snapshot if we are due for one.");
-          await this.snapshot_if_necessary();
         }
       }
     } finally {
