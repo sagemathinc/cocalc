@@ -75,11 +75,11 @@ describe("test archiving and unarchiving two syncstrings with nontrivial but equ
       [string_id2, project_id, path2],
     );
     await pool.query(
-      "INSERT INTO patches(string_id,time,patch) VALUES($1,$2,$3)",
+      "INSERT INTO patches(string_id,time,patch,is_snapshot) VALUES($1,$2,$3,false)",
       [string_id, time, patch],
     );
     await pool.query(
-      "INSERT INTO patches(string_id,time,patch) VALUES($1,$2,$3)",
+      "INSERT INTO patches(string_id,time,patch,is_snapshot) VALUES($1,$2,$3,false)",
       [string_id2, time, patch],
     );
   });

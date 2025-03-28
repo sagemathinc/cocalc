@@ -1784,9 +1784,10 @@ export class SyncDoc extends EventEmitter {
     return !!error;
   }
 
-  private patch_table_query(cutoff?: Date) {
+  private patch_table_query = (cutoff?: Date) => {
     const query = {
       string_id: this.string_id,
+      is_snapshot: false, // only used with nats
       time: cutoff ? { ">=": cutoff } : null,
       // compressed format patch as a JSON *string*
       patch: null,
@@ -1805,7 +1806,7 @@ export class SyncDoc extends EventEmitter {
       (query as any).format = this.doctype.patch_format;
     }
     return query;
-  }
+  };
 
   private async init_patch_list(): Promise<void> {
     this.assert_not_closed("init_patch_list - start");
@@ -2171,6 +2172,7 @@ export class SyncDoc extends EventEmitter {
       time,
       patch: JSON.stringify(patch),
       user_id: this.my_user_id,
+      is_snapshot: false,
     };
 
     this.my_patches[time.valueOf()] = obj;
