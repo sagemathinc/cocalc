@@ -19,6 +19,7 @@ while true; do
     echo "`date` -- 🔨 Pulling..." >> ci.log
 
     git pull
+    git log -1 >> ci.log
     if [ $? -eq 0 ]; then
         echo "`date` -- ✔️ pulled" >> ci.log
         echo "`date` -- 🏃 Running..." >> ci.log
@@ -30,12 +31,14 @@ while true; do
         else
             echo "`date` -- 🤖 **FAIL**" >> ci.log
         fi
+        git log -1 >> ci.log
     else
         echo "🐛 failed to pull" >> ci.log
     fi
+    echo "" >> ci.log
     echo "`date` -- 🚧  Waiting for changes in upstream..." >> ci.log
   fi
 
-  # Wait for 30 seconds before checking again
-  sleep 30
+  # Wait for 15 seconds before checking again
+  sleep 15
 done
