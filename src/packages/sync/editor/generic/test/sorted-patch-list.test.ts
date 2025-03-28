@@ -61,7 +61,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("show history doesn't crash", () => {
-    patches.show_history({});
+    patches.show_history({ log: (..._args) => {} });
   });
 
   it("time of next snapshot (none since nothing yet)", () => {
@@ -82,7 +82,9 @@ describe("Test empty sorted patch list -- call all public methods", () => {
 
   it("close it, and check that it is seriously broken", () => {
     patches.close();
-    expect(() => patches.versions()).toThrow("Cannot read properties of undefined (reading 'map')");
+    expect(() => patches.versions()).toThrow(
+      "Cannot read properties of undefined (reading 'map')",
+    );
   });
 });
 
@@ -154,7 +156,7 @@ describe("Test sorted patch list with several patches", () => {
     make_patch("CoCalc", "CoCalc -- Collaborative Calculation"),
     make_patch(
       "CoCalc -- Collaborative Calculation",
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     ),
   ];
 
@@ -187,19 +189,19 @@ describe("Test sorted patch list with several patches", () => {
 
   it("gets the current value", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value again (will use a cache)", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value without cache", () => {
     expect(patches.value_no_cache().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
@@ -247,7 +249,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
     make_patch("SageMathCloud -- ", "CoCalc -- "),
     make_patch(
       "SageMathCloud -- ",
-      "SageMathCloud -- Collaborative Calculation"
+      "SageMathCloud -- Collaborative Calculation",
     ),
   ];
 
@@ -281,7 +283,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
 
   it("gets the current value", () => {
     expect(patches.value().to_str()).toBe(
-      "SageMathCloud -- Collaborative Calculation"
+      "SageMathCloud -- Collaborative Calculation",
     );
   });
 
@@ -299,13 +301,13 @@ describe("Test inserting missing patches (thus changing history)", () => {
 
   it("gets the current value again, which changes", () => {
     expect(patches.value().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 
   it("gets the current value without cache as double check", () => {
     expect(patches.value_no_cache().to_str()).toBe(
-      "CoCalc -- Collaborative Calculation"
+      "CoCalc -- Collaborative Calculation",
     );
   });
 

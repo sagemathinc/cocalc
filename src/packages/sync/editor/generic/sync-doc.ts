@@ -2440,31 +2440,29 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
-  public has_full_history = (): boolean => {
+  has_full_history = (): boolean => {
     return !this.last_snapshot || this.load_full_history_done;
   };
 
-  public load_full_history = async (): Promise<void> => {
-    if (this.has_full_history() || this.ephemeral) {
+  loadMoreHistory = async (): Promise<void> => {
+    if (this.has_full_history() || this.ephemeral || this.patch_list == null) {
       return;
     }
-    const query = this.patch_table_query();
-    const result = await callback2(this.client.query, {
-      project_id: this.project_id,
-      query: { patches: [query] },
-    });
-    const v: Patch[] = [];
-    // process_patch assumes immutable objects
-    fromJS(result.query.patches).forEach((x) => {
-      const p = this.process_patch(x, new Date(0), this.last_snapshot);
-      if (p != null) {
-        v.push(p);
-      }
-    });
-    assertDefined(this.patch_list);
-    this.patch_list.add(v);
-    this.load_full_history_done = true;
-    return;
+    //
+    const prev_seq = this.patch_list.getOldestSnapshot()?.seq_info?.prev_seq;
+    if (prev_seq == null) {
+      // nothing more to load
+      return;
+    }
+    // Doing this load triggers change events for all the patch info
+    // that gets loaded.
+    // @ts-ignore
+    await this.patches_table.dstream?.load({ start_seq: prev_seq });
+
+    // Wait until patch update queue is empty
+    while (this.patch_update_queue.length > 0) {
+      await once(this, "patch-update-queue-empty");
+    }
   };
 
   show_history = (opts = {}): void => {
@@ -3318,6 +3316,7 @@ export class SyncDoc extends EventEmitter {
           }
         }
         this.patch_update_queue = [];
+        this.emit("patch-update-queue-empty");
         assertDefined(this.patch_list);
         this.patch_list.add(v);
 

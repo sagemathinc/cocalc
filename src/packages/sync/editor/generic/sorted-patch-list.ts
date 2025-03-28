@@ -629,4 +629,11 @@ export class SortedPatchList extends EventEmitter {
   export = (): Patch[] => {
     return deep_copy(this.patches);
   };
+
+  // undefined means the oldest snapshot is "beginning of time"
+  getOldestSnapshot = (): Patch | undefined => {
+    if (this.patches[0]?.is_snapshot) {
+      return this.patches[0];
+    }
+  };
 }

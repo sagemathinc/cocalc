@@ -189,7 +189,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  loadFullHistory = async (): Promise<void> => {
+  loadMoreHistory = async (): Promise<void> => {
+    window.x = { t: this };
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
@@ -197,8 +198,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     ) {
       return;
     }
-    await this.syncdoc.load_full_history();
-    this.setState({ has_full_history: true });
+    await this.syncdoc.loadMoreHistory();
+    // this.setState({ has_full_history: true });
     this.syncdoc_changed(); // load new versions list.
   };
 

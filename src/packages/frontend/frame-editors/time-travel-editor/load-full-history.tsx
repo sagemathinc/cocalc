@@ -15,17 +15,13 @@ interface Props {
 export function LoadFullHistory({ id, actions }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   return (
-    <Tooltip
-      title={
-        "Load the full edit history for this file.  This may take a long time."
-      }
-    >
+    <Tooltip title={"Load more TimeTravel history"}>
       <Button
         disabled={loading}
         onClick={async () => {
           try {
             setLoading(true);
-            await actions.loadFullHistory();
+            await actions.loadMoreHistory();
           } catch (err) {
             console.log("ERROR!", err);
             actions.set_error(`${err}`);
@@ -35,7 +31,7 @@ export function LoadFullHistory({ id, actions }: Props) {
           }
         }}
       >
-        <Icon name="file-archive" /> Load All {loading && <Spin />}
+        <Icon name="file-archive" /> Load More {loading && <Spin />}
       </Button>
     </Tooltip>
   );

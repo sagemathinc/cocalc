@@ -712,7 +712,13 @@ export class Stream<T = any> extends EventEmitter {
   );
 
   // load older messages starting at start_seq
-  load = async ({ start_seq }: { start_seq: number }) => {
+  load = async ({
+    start_seq,
+    noEmit,
+  }: {
+    start_seq: number;
+    noEmit?: boolean;
+  }) => {
     if (this.start_seq == null) {
       // we already loaded everything on initialization; there can't be anything older.
       return;
@@ -765,6 +771,11 @@ export class Stream<T = any> extends EventEmitter {
     // raw and messages at the beginning:
     this.raw.unshift(...raw);
     this.messages.unshift(...messages);
+    if (!noEmit) {
+      for (let i = 0; i < raw.length; i++) {
+        this.emit("change", messages[i], raw[i]);
+      }
+    }
   };
 }
 
