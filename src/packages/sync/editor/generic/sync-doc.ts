@@ -988,7 +988,7 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.user_id(time);
   };
 
-  private syncstring_table_get_one(): Map<string, any> {
+  private syncstring_table_get_one = (): Map<string, any> => {
     if (this.syncstring_table == null) {
       throw Error("syncstring_table must be defined");
     }
@@ -998,18 +998,18 @@ export class SyncDoc extends EventEmitter {
       return Map();
     }
     return t;
-  }
+  };
 
   /* The project calls set_initialized once it has checked for
      the file on disk; this way the frontend knows that the
      syncstring has been initialized in the database, and also
      if there was an error doing the check.
    */
-  private async set_initialized(
+  private set_initialized = async (
     error: string,
     read_only: boolean,
     size: number,
-  ): Promise<void> {
+  ): Promise<void> => {
     this.assert_table_is_ready("syncstring");
     this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
@@ -1018,7 +1018,7 @@ export class SyncDoc extends EventEmitter {
       read_only,
       last_active: this.client.server_time(),
     });
-  }
+  };
 
   /* List of timestamps of the versions of this string in the sync
      table that we opened to start editing (so starts with what was
@@ -2808,6 +2808,19 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
+    const cur = this.syncstring_table_get_one().toJS()?.save;
+    if (cur != null) {
+      if (
+        cur.state == save.state &&
+        cur.error == save.error &&
+        cur.hash == (save.hash ?? cur.hash) &&
+        cur.expected_hash == (save.expected_hash ?? cur.expected_hash) &&
+        cur.time == (save.time ?? cur.time)
+      ) {
+        // no genuine change, so no point in wasting cycles on updating.
+        return;
+      }
+    }
     if (!save.time) {
       save.time = Date.now();
     }
