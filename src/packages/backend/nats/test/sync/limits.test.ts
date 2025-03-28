@@ -99,6 +99,7 @@ describe("create a dkv with limit on total bytes of keys, and confirm auto-delet
     if (!kv.isStable()) {
       await once(kv, "stable");
     }
+    await delay(250);
     await kv.generalDKV.kv.enforceLimitsNow();
     if (kv.has("a")) {
       await once(kv, "change", 500);

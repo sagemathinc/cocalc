@@ -230,7 +230,7 @@ export class DKV<T = any> extends EventEmitter {
         // nothing we can alert on.
         // TODO: may remove this when/if we completely understand why
         // this ever happens
-        console.log("WARNING: missing key for -- ", { key, err });
+        // console.log("WARNING: missing key for -- ", { key, err });
         return;
       }
       if (value !== undefined && value !== TOMBSTONE) {

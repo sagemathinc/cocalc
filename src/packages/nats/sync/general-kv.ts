@@ -581,6 +581,7 @@ export class GeneralKV<T = any> extends EventEmitter {
           previousSeq: revision ?? this.revisions[key],
         });
         this.revisions[key] = newRevision;
+        delete this.all[key];
       } catch (err) {
         this.all[key] = cur;
         throw err;
@@ -657,6 +658,17 @@ export class GeneralKV<T = any> extends EventEmitter {
   };
 
   set = async (
+    key: string,
+    value: T,
+    options?: { headers?: { [name: string]: string | null } },
+  ) => {
+    await this._set(key, value, options);
+    if (this.all != null) {
+      this.all[key] = value;
+    }
+  };
+
+  private _set = async (
     key: string,
     value: T,
     options?: { headers?: { [name: string]: string | null } },

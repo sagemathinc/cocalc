@@ -209,11 +209,14 @@ export class GeneralDKV<T = any> extends EventEmitter {
     const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
     let value: any = remote;
     if (local !== undefined) {
+      // we have an unsaved local value, so let's check to see if there is a
+      // conflict or not.
       if (isEqual(local, remote)) {
-        // we have a local change, but it's the same change as remote, so just
-        // forget about our local change.
+        // incoming remote value is equal to unsaved local value, so we can
+        // just discard our local value (no need to save it).
         this.discardLocalState(key);
       } else {
+        // There is a conflict.  Let's resolve the conflict:
         // console.log("merge conflict", { key, remote, local, prev });
         try {
           value = this.merge?.({ key, local, remote, prev }) ?? local;
@@ -441,7 +444,8 @@ export class GeneralDKV<T = any> extends EventEmitter {
         status.unsaved -= 1;
         delete obj[key];
         if (!this.changed.has(key)) {
-          this.saved[key] = this.local[key];
+          // successfully saved this and user didn't make a change *during* the set
+          this.discardLocalState(key);
         }
       }
     }
@@ -460,9 +464,14 @@ export class GeneralDKV<T = any> extends EventEmitter {
         status.unsaved -= 1;
         status.set += 1;
         if (!this.changed.has(key)) {
-          // successfully saved this
-          this.saved[key] = this.local[key];
+          // successfully saved this and user didn't make a change *during* the set
+          this.discardLocalState(key);
         }
+        // note that we CANNOT call  this.discardLocalState(key) here, because
+        // this.get(key) needs to work immediately after save, but if this.local[key]
+        // is deleted, then this.get(key) would be undefined, because
+        // this.kv.get(key) only has value in it once the value is
+        // echoed back from the server.
       } catch (err) {
         //         console.log("kv store -- attemptToSave failed", this.desc, err, {
         //           key,

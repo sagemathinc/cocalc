@@ -3,7 +3,7 @@ Testing basic ops with dsteam (distributed streams)
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit "dstream.test.ts"
+pnpm exec jest --forceExit "dstream.test.ts"
 
 */
 
@@ -78,7 +78,9 @@ describe("create two dstreams and observe sync between them", () => {
   it("now write to s2 and save and see that reflected in s1", async () => {
     s2.push("hi from s2");
     s2.save();
-    await once(s1, "change");
+    while (s1[1] != "hi from s2") {
+      await once(s1, "change");
+    }
     expect(s1[1]).toEqual("hi from s2");
   });
 
