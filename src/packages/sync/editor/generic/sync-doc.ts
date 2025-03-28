@@ -68,6 +68,8 @@ import {
   SYNCDB_PARAMS as COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
 } from "@cocalc/util/compute/manager";
 
+import { DEFAULT_SNAPSHOT_INTERVAL } from "@cocalc/util/db-schema/syncstring-schema";
+
 type XPatch = any;
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -1797,6 +1799,8 @@ export class SyncDoc extends EventEmitter {
       user_id: null,
       // (optional) a snapshot at this point in time
       snapshot: null,
+      // info about sequence number, count, etc. of this snapshot
+      seq_info: null,
       // (optional) when patch actually sent, which may
       // be later than when made
       sent: null,
@@ -2212,12 +2216,12 @@ export class SyncDoc extends EventEmitter {
   // patch list with the given time.
   private natsSnapshotSeqInfo = (
     time: Date,
-  ): { seq: number; prev_seq?: number; count: number } | undefined => {
+  ): { seq: number; prev_seq?: number; count: number } => {
     // @ts-ignore -- in general patches_table might not be a nats one still,
     // or at least dstream is an internal implementation detail.
     const { dstream } = this.patches_table;
     if (dstream == null) {
-      return undefined;
+      throw Error("dstream must be defined");
     }
     // actual sequence number of the message with the patch that we're snapshotting at -- i.e., at time
     let seq: number | undefined;
@@ -2252,7 +2256,7 @@ export class SyncDoc extends EventEmitter {
      of the string at the given point in time.  This should
      be the time of an existing patch.
   */
-  private snapshot = async (time: Date): Promise<void> => {
+  private snapshot = reuseInFlight(async (time: Date): Promise<void> => {
     assertDefined(this.patch_list);
     const x = this.patch_list.patch(time);
     if (x == null) {
@@ -2286,14 +2290,14 @@ export class SyncDoc extends EventEmitter {
     }
 
     // TODO: mysteriously, this does NOT work yet:
-    const last_seq = seq_info?.seq;
+    const last_seq = seq_info.seq;
     await this.set_syncstring_table({
       last_snapshot: time,
       last_seq,
     });
     this.last_snapshot = time;
     this.last_seq = last_seq;
-  };
+  });
 
   // Have a snapshot every this.snapshot_interval patches, except
   // for the very last interval.
@@ -2397,6 +2401,7 @@ export class SyncDoc extends EventEmitter {
       obj.snapshot = x.get("snapshot"); // this is a string
       obj.seq_info = x.get("seq_info")?.toJS();
       if (obj.snapshot == null || obj.seq_info == null) {
+        console.warn("WARNING: message = ", x.toJS());
         throw Error(
           `message with is_snapshot true must also set snapshot and seq_info fields -- time=${time}`,
         );
@@ -2624,7 +2629,8 @@ export class SyncDoc extends EventEmitter {
     this.last_snapshot = undefined;
     this.last_seq = undefined;
     this.snapshot_interval =
-      schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval;
+      schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval ??
+      DEFAULT_SNAPSHOT_INTERVAL;
 
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves

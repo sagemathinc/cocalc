@@ -563,7 +563,7 @@ export class SortedPatchList extends EventEmitter {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
-      const is_snapshot: boolean = this.patches[i].snapshot != null;
+      const is_snapshot: boolean = !!this.patches[i].is_snapshot;
       if (!is_snapshot) {
         // add this patch to our size count.  NOTE -- we do not
         // include the snapshot in the size count, since the

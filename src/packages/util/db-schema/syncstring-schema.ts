@@ -4,6 +4,8 @@ import { Table } from "./types";
 import { deep_copy, minutes_ago } from "../misc";
 import { SCHEMA as schema } from "./index";
 
+export const DEFAULT_SNAPSHOT_INTERVAL = 300;
+
 Table({
   name: "syncstrings",
   fields: {
@@ -95,7 +97,7 @@ Table({
           users: null,
           last_snapshot: null,
           last_seq: null,
-          snapshot_interval: 300,
+          snapshot_interval: DEFAULT_SNAPSHOT_INTERVAL,
           project_id: null,
           path: null,
           deleted: null,
@@ -320,6 +322,10 @@ Table({
       type: "string",
       desc: "Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.",
     },
+    seq_info: {
+      type: "map",
+      desc: "nats info about snapshot -- {seq:number; prev_seq?:number; count:number}",
+    },
     sent: {
       type: "timestamp",
       desc: "Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.",
@@ -347,6 +353,7 @@ Table({
           user_id: null,
           snapshot: null,
           is_snapshot: null,
+          seq_info: null,
           sent: null,
           prev: null,
           format: null,
@@ -369,6 +376,7 @@ Table({
           user_id: true,
           snapshot: true,
           is_snapshot: true,
+          seq_info: true,
           sent: true,
           prev: true,
           format: true,

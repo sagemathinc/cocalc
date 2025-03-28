@@ -414,7 +414,6 @@ export function TimeTravel(props: Props) {
     );
   };
 
-  console.log({ loading, versions: versions.toJS() });
   if (loading) {
     return renderLoading();
   }
