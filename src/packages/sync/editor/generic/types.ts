@@ -23,11 +23,27 @@ export interface Patch {
                    JSON *string* in database, but array/object here) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
-  is_snapshot?: boolean;
-  snapshot?: string; // to_str() applied to the document at this point in time
   sent?: Date; // when patch actually sent, which may be later than when made
   prev?: Date; // timestamp of previous patch sent from this session
   size: number; // size of the patch (by defn length of string representation)
+
+  is_snapshot?: boolean;
+  snapshot?: string; // to_str() applied to the document at this point in time
+  seq_info?: {
+    // seq = sequence number of the message with the patch/timestamp of the snapshot.
+    // Load with start_seq = seq to get all patch info back to this snapshot.
+    seq: number;
+    // prev_seq = sequence numbrer of *previous* snapshot patch.
+    // Load with start_seq = prev_seq to get all info about timetravel
+    // back to previous snapshot.  That previous snapshot will itself
+    // have a prev_seq, etc., making it possible to incremental load
+    // patches back in time.
+    prev_seq?: number;
+    // count is the number of patches *before* this one starting from the
+    // beginning.  using count to display a version number to the user that
+    // is meaningful independent of how much history has been loaded.
+    count: number;
+  };
 }
 
 export interface Document {

@@ -2206,6 +2206,46 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
+  // return the NATS sequence number of the oldest entry in the
+  // patch list with the given time.
+  private natsSnapshotSeqInfo = (
+    time: Date,
+  ): { seq: number; prev_seq?: number; count: number } | undefined => {
+    // @ts-ignore -- in general patches_table might not be a nats one still,
+    // or at least dstream is an internal implementation detail.
+    const { dstream } = this.patches_table;
+    if (dstream == null) {
+      return undefined;
+    }
+    // actual sequence number of the message with the patch that we're snapshotting at -- i.e., at time
+    let seq: number | undefined;
+    // sequence number of patch of *previous* snapshot, if there is a previous one.  This is needed
+    // for incremental loading of more history.
+    let prev_seq: number | undefined;
+    const t = time.toISOString();
+    let i = 0;
+    let count = 0;
+    for (const mesg of dstream.getAll()) {
+      if (mesg.is_snapshot && mesg.seq_info != null) {
+        // the seq field of this message has the actual sequence number of the patch
+        // that was snapshotted.
+        prev_seq = mesg.seq_info.seq;
+        count = mesg.seq_info.count;
+      } else {
+        count += 1;
+      }
+      if (mesg.time == t) {
+        seq = dstream.seq(i);
+        break;
+      }
+      i += 1;
+    }
+    if (seq == null) {
+      throw Error(`unable to find message with time '${time}'`);
+    }
+    return { seq, prev_seq, count };
+  };
+
   /* Create and store in the database a snapshot of the state
      of the string at the given point in time.  This should
      be the time of an existing patch.
@@ -2224,6 +2264,7 @@ export class SyncDoc extends EventEmitter {
 
     const snapshot: string = this.patch_list.value({ time }).to_str();
     // save the snapshot itself in the patches table.
+    const seq_info = this.natsSnapshotSeqInfo(time);
     const obj = {
       size: snapshot.length,
       string_id: this.string_id,
@@ -2231,6 +2272,7 @@ export class SyncDoc extends EventEmitter {
       is_snapshot: true,
       snapshot,
       user_id: x.user_id,
+      seq_info,
     };
     // also set snapshot in the this.patch_list, which which saves a little time.
     // and ensures that "(x.snapshot != null)" above works if snapshot is called again.
@@ -2244,6 +2286,7 @@ export class SyncDoc extends EventEmitter {
     // TODO: mysteriously, this does NOT work yet:
     await this.set_syncstring_table({
       last_snapshot: time,
+      last_seq: seq_info?.seq,
     });
     this.last_snapshot = time;
   };
@@ -2333,7 +2376,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    const obj: any = {
+    const obj: Patch = {
       time,
       user_id,
       patch,
@@ -2347,9 +2390,12 @@ export class SyncDoc extends EventEmitter {
       obj.prev = prev;
     }
     if (is_snapshot) {
-      const snapshot: string | undefined = x.get("snapshot");
-      if (snapshot != null) {
-        obj.snapshot = snapshot;
+      obj.snapshot = x.get("snapshot"); // this is a string
+      obj.seq_info = x.get("seq_info")?.toJS();
+      if (obj.snapshot == null || obj.seq_info == null) {
+        throw Error(
+          `message with is_snapshot true must also set snapshot and seq_info fields -- time=${time}`,
+        );
       }
     }
     return obj;

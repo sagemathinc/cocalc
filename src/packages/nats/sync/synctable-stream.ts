@@ -206,4 +206,5 @@ export class SyncTableStream extends EventEmitter {
   has_uncommitted_changes = () => {
     return this.dstream?.hasUnsavedChanges();
   };
+
 }

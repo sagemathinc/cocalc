@@ -89,7 +89,9 @@ export class SortedPatchList extends EventEmitter {
         // the snapshot field of that patch.
         this.all_snapshot_times[t] = true;
         if (this.times[t] != null) {
+          this.times[t].is_snapshot = true;
           this.times[t].snapshot = x.snapshot;
+          this.times[t].seq_info = x.seq_info;
           continue;
         }
       } else {
