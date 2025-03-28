@@ -41,6 +41,7 @@ export class SyncTableStream extends EventEmitter {
   private dstream?: DStream;
   private getHook: Function;
   private limits?: Partial<FilteredStreamLimitOptions>;
+  private start_seq?: number;
 
   constructor({
     query,
@@ -49,6 +50,7 @@ export class SyncTableStream extends EventEmitter {
     project_id,
     immutable,
     limits,
+    start_seq,
   }: {
     query;
     env: NatsEnv;
@@ -56,12 +58,14 @@ export class SyncTableStream extends EventEmitter {
     project_id?: string;
     immutable?: boolean;
     limits?: Partial<FilteredStreamLimitOptions>;
+    start_seq?: number;
   }) {
     super();
     this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
     this.env = env;
     this.limits = limits;
+    this.start_seq = start_seq;
     const table = keys(query)[0];
     this.table = table;
     if (table != "patches") {
@@ -89,6 +93,7 @@ export class SyncTableStream extends EventEmitter {
       env: this.env,
       limits: this.limits,
       desc: { path: this.path },
+      start_seq: this.start_seq,
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);
@@ -206,5 +211,4 @@ export class SyncTableStream extends EventEmitter {
   has_uncommitted_changes = () => {
     return this.dstream?.hasUnsavedChanges();
   };
-
 }

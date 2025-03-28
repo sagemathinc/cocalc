@@ -216,7 +216,8 @@ export class SyncDoc extends EventEmitter {
   private last_user_change: Date = minutes_ago(60);
   private last_save_to_disk_time: Date = new Date(0);
 
-  private last_snapshot: Date | undefined;
+  private last_snapshot?: Date;
+  private last_seq?: number;
   private snapshot_interval: number;
 
   private users: string[];
@@ -1281,6 +1282,7 @@ export class SyncDoc extends EventEmitter {
         stream: true,
         atomic: true,
         desc: { path: this.path },
+        start_seq: this.last_seq,
       });
     } else if (this.useNats && query.syncstrings) {
       synctable = await this.client.synctable_nats(query, {
@@ -1372,6 +1374,7 @@ export class SyncDoc extends EventEmitter {
           path: this.path,
           users: null,
           last_snapshot: null,
+          last_seq: null,
           snapshot_interval: null,
           save: null,
           last_active: null,
@@ -2284,11 +2287,13 @@ export class SyncDoc extends EventEmitter {
     }
 
     // TODO: mysteriously, this does NOT work yet:
+    const last_seq = seq_info?.seq;
     await this.set_syncstring_table({
       last_snapshot: time,
-      last_seq: seq_info?.seq,
+      last_seq,
     });
     this.last_snapshot = time;
+    this.last_seq = last_seq;
   };
 
   // Have a snapshot every this.snapshot_interval patches, except
@@ -2616,6 +2621,7 @@ export class SyncDoc extends EventEmitter {
     // Brand new document
     this.emit("load-time-estimate", { type: "new", time: 1 });
     this.last_snapshot = undefined;
+    this.last_seq = undefined;
     this.snapshot_interval =
       schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval;
 
@@ -2656,6 +2662,7 @@ export class SyncDoc extends EventEmitter {
     }
     // TODO: handle doctype change here (?)
     this.last_snapshot = x.last_snapshot;
+    this.last_seq = x.last_seq;
     this.snapshot_interval = x.snapshot_interval;
     this.users = x.users ?? [];
     // @ts-ignore

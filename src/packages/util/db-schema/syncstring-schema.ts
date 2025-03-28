@@ -56,6 +56,10 @@ Table({
       type: "timestamp",
       desc: "timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.",
     },
+    last_seq: {
+      type: "number",
+      desc: "sequence number of patch that snapshot was last made for",
+    },
     snapshot_interval: {
       type: "integer",
       desc: "If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.",

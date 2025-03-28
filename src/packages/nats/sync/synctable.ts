@@ -36,6 +36,7 @@ interface Options {
   noCache?: boolean;
   limits?: Partial<KVLimits> | Partial<FilteredStreamLimitOptions>;
   desc?: any;
+  start_seq?: number;
 }
 
 function createObject(options: Options) {
