@@ -2677,7 +2677,7 @@ export class SyncDoc extends EventEmitter {
     // TODO: handle doctype change here (?)
     this.last_snapshot = x.last_snapshot;
     this.last_seq = x.last_seq;
-    this.snapshot_interval = x.snapshot_interval;
+    this.snapshot_interval = x.snapshot_interval ?? DEFAULT_SNAPSHOT_INTERVAL;
     this.users = x.users ?? [];
     // @ts-ignore
     this.project_id = x.project_id;
