@@ -1,7 +1,10 @@
 #!/bin/bash
-set -v
 
+echo >> ci.log
+echo "`date` -- 📈  Starting local CoCalc CI." >> ci.log
 echo "`date` -- 🚧  Waiting for changes in upstream..." >> ci.log
+echo "You must ALSO run 'pnpm nats-server-ci' and 'pnpm database' in two other terminals."
+echo "Run 'tail -F ci.log' in a terminal to monitor CI status."
 
 while true; do
   # Fetch the latest commits from upstream
