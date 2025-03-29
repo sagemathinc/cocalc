@@ -75,6 +75,8 @@ describe("test that complicated keys work", () => {
       "foo.!@#$%^&()",
       "foo.bar.baz!.bl__-+#@ah.nat\\s",
       "foo.CoCalc-和-NATS-的结合非常棒!",
+      // and a VERY long 50kb key:
+      "foo." + "x".repeat(50000),
     ]) {
       await kv.set(k, "cocalc");
       expect(kv.get(k)).toEqual("cocalc");
@@ -149,6 +151,9 @@ describe("test using a range of useful functions: length, has, time, headers, et
 
   it("sets a value and observe time is reasonable", async () => {
     await kv.set("foo.time", 10);
+    while (kv.time("foo.time") == null) {
+      await delay(10);
+    }
     expect(Math.abs(kv.time("foo.time").valueOf() - Date.now())).toBeLessThan(
       10000,
     );
@@ -192,6 +197,9 @@ describe("test using a range of useful functions: length, has, time, headers, et
   it("sets and gets a header", async () => {
     await kv.set("foo.head", 10, { headers: { CoCalc: "NATS" } });
     expect(kv.get("foo.head")).toBe(10);
+    while (kv.headers("foo.head") == null) {
+      await delay(10);
+    }
     expect(kv.headers("foo.head").CoCalc).toBe("NATS");
   });
 
