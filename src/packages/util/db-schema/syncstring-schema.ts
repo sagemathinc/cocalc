@@ -324,7 +324,7 @@ Table({
     },
     seq_info: {
       type: "map",
-      desc: "nats info about snapshot -- {seq:number; prev_seq?:number; count:number}",
+      desc: "nats info about snapshot -- {seq:number; prev_seq?:number; index:number}",
     },
     sent: {
       type: "timestamp",

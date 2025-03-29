@@ -39,11 +39,21 @@ export interface Patch {
     // have a prev_seq, etc., making it possible to incremental load
     // patches back in time.
     prev_seq?: number;
-    // count is the number of patches *before* this one starting from the
-    // beginning.  using count to display a version number to the user that
+    // index is the global index of this patch among all patches. count is
+    // used to display a version number to the user that
     // is meaningful independent of how much history has been loaded.
-    count: number;
+    // That said, the index for a **very recent** patch can change
+    // if new patches are inserted before it.
+    index: number;
   };
+
+  // This is set only in the sorted-patch-list.  It's the global
+  // index of the patch, which starts at 0 for the very first change.
+  // This doesn't depend on how many patches have been loaded, but
+  // for recent patches it CAN change, as new patches are inserted
+  // into the patch list!  It's computed using the count from the
+  // last snapshot.
+  index?: number;
 }
 
 export interface Document {

@@ -21,9 +21,10 @@ const MAX_PATCHLIST_CACHE_SIZE = 20;
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
   private patches: Patch[] = [];
+  private unusedSnapshots: { [time: number]: Patch } = {};
 
   // the patches indexed by time
-  private times: { [time: string]: Patch } = {};
+  private times: { [time: number]: Patch } = {};
 
   private versions_cache: Date[] | undefined;
 
@@ -74,35 +75,54 @@ export class SortedPatchList extends EventEmitter {
     return new Date(t);
   };
 
+  // Add patches to the patch list.  This *CAN* be already in the patch
+  // list, can be replicated, and they will get put in the right place
+  // with any new information they contain merged in.  Snapshot info
+  // also is handled properly.
   add = (patches: Patch[]): void => {
     if (patches.length === 0) {
       // nothing to do
       return;
     }
-    const v: Patch[] = [];
+    // This implementation is complicated because it can't make any assumptions
+    // about uniqueness, etc., and also the snapshot info gets added later
+    // long after the patch is initially made; it's done as a message later
+    // in the stream.
+    const v: { [time: number]: Patch } = {};
     let oldest: Date | undefined = undefined;
     for (const x of patches) {
       const t: number = x.time.valueOf();
-      const cur = this.times[t];
+      const cur = this.times[t] ?? v[t];
       if (x.is_snapshot) {
-        // it's a snapshot -- if the patch was already loaded, edit
-        // the snapshot field of that patch.
-        this.all_snapshot_times[t] = true;
+        // it's a snapshot
         if (this.times[t] != null) {
+          // The corresponding patch was already loaded, so edit
+          // the snapshot field of that patch.
+          this.all_snapshot_times[t] = true;
           this.times[t].is_snapshot = true;
           this.times[t].snapshot = x.snapshot;
           this.times[t].seq_info = x.seq_info;
-          continue;
+        } else {
+          // The corresponding patch was NOT yet loaded, so just
+          // store this for later, in case it is loaded later.
+          this.unusedSnapshots[t] = x;
         }
+        // never include a snapshot message -- these just change patches,
+        // and are not patches themselves.
+        continue;
       } else {
         // not a snapshot, but maybe it's a patch for a snapshot that
-        // was already loaded
-        if (this.times[t] != null && this.times[t].is_snapshot) {
-          this.times[t].patch = x.patch;
-          continue;
+        // was already loaded or just a new patch
+        if (this.unusedSnapshots[t] != null) {
+          // It is for a snapshot, so merge in that snapshot info to x,
+          // then handle x as normal below.
+          x.is_snapshot = true;
+          x.snapshot = this.unusedSnapshots[t].snapshot;
+          x.seq_info = this.unusedSnapshots[t].seq_info;
+          delete this.unusedSnapshots[t];
         }
         if (cur != null) {
-          // Hmm -- We already have a patch with this time.
+          // We already have a patch with this time.  Update it, if necessary?
           if (
             isEqual(cur.patch, x.patch) &&
             cur.user_id === x.user_id &&
@@ -110,16 +130,17 @@ export class SortedPatchList extends EventEmitter {
             cmp_Date(cur.prev, x.prev) === 0
           ) {
             // re-inserting a known patch; nothing at all to do
-            continue;
           } else {
+            // I think this should never happen anymore. (?)
             // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
             // remove patch with same timestamp from the sorted list of patches
             this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
             this.emit("overwrite", t);
           }
+          continue;
         }
       }
-      v.push(x);
+      v[t] = x;
       this.times[t] = x;
       if (oldest == null || oldest > x.time) {
         oldest = x.time;
@@ -134,11 +155,13 @@ export class SortedPatchList extends EventEmitter {
     // This is O(n*log(n)) where n is the length of this.patches.
     // TODO: Better would probably be an insertion sort, which
     // would be O(m*log(n)) where m=patches.length...
-    if (v.length > 0) {
+    const newPatches = Object.values(v);
+    if (newPatches.length > 0) {
       delete this.versions_cache;
-      this.patches = this.patches.concat(v);
+      this.patches = this.patches.concat(newPatches);
       this.patches.sort(patch_cmp);
     }
+    this.updateIndexes();
   };
 
   private newest_snapshot_time = (): Date => {
@@ -602,7 +625,7 @@ export class SortedPatchList extends EventEmitter {
   };
 
   // Times of all snapshots in memory on this client; these are
-  // the only ones we need to worry about for offline patches...
+  // the only ones we need to worry about for offline patches.
   snapshot_times = (): Date[] => {
     const v: Date[] = [];
     let t: string;
@@ -635,5 +658,17 @@ export class SortedPatchList extends EventEmitter {
     if (this.patches[0]?.is_snapshot) {
       return this.patches[0];
     }
+  };
+
+  updateIndexes = () => {
+    let index = this.patches[0]?.seq_info?.index ?? 0;
+    for (const patch of this.patches) {
+      patch.index = index;
+      index += 1;
+    }
+  };
+
+  getIndex = (time: Date): number | undefined => {
+    return this.times[time.valueOf()]?.index;
   };
 }

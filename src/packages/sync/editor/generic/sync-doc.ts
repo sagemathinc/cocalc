@@ -2220,43 +2220,45 @@ export class SyncDoc extends EventEmitter {
   };
 
   // return the NATS sequence number of the oldest entry in the
-  // patch list with the given time.
+  // patch list with the given time, and also:
+  //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
+  //    - index -- the global index of the entry with the given time.
   private natsSnapshotSeqInfo = (
     time: Date,
-  ): { seq: number; prev_seq?: number; count: number } => {
+  ): { seq: number; prev_seq?: number; index: number } => {
     // @ts-ignore -- in general patches_table might not be a nats one still,
     // or at least dstream is an internal implementation detail.
     const { dstream } = this.patches_table;
     if (dstream == null) {
       throw Error("dstream must be defined");
     }
-    // actual sequence number of the message with the patch that we're snapshotting at -- i.e., at time
-    let seq: number | undefined;
-    // sequence number of patch of *previous* snapshot, if there is a previous one.  This is needed
-    // for incremental loading of more history.
+    // seq = actual sequence number of the message with the patch that we're
+    // snapshotting at -- i.e., at time
+    let seq: number | undefined = undefined;
+    // prev_seq = sequence number of patch of *previous* snapshot, if there is a previous one.
+    // This is needed for incremental loading of more history.
     let prev_seq: number | undefined;
     const t = time.toISOString();
     let i = 0;
-    let count = 0;
     for (const mesg of dstream.getAll()) {
-      if (mesg.is_snapshot && mesg.seq_info != null) {
+      if (mesg.is_snapshot && mesg.time < t) {
         // the seq field of this message has the actual sequence number of the patch
-        // that was snapshotted.
+        // that was snapshotted, along with the index of that patch.
         prev_seq = mesg.seq_info.seq;
-        count = mesg.seq_info.count;
-      } else {
-        count += 1;
       }
-      if (mesg.time == t) {
+      if (seq === undefined && mesg.time == t) {
         seq = dstream.seq(i);
-        break;
       }
       i += 1;
     }
     if (seq == null) {
       throw Error(`unable to find message with time '${time}'`);
     }
-    return { seq, prev_seq, count };
+    const index = this.patch_list?.getIndex(time);
+    if (index == null) {
+      throw Error(`unable to get index of patch with time '${time}'`);
+    }
+    return { seq, prev_seq, index };
   };
 
   /* Create and store in the database a snapshot of the state
