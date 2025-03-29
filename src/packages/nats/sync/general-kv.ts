@@ -75,6 +75,9 @@ TODO:
 
 DEVELOPMENT:
 
+(See packages/backend/nats/test/sync/general-kv.test.ts for a unit tested version of what is below that
+actually works.)
+
 ~/cocalc/src/packages/server$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
@@ -87,10 +90,11 @@ Type ".help" for more information.
 undefined
 > s.getAll()
 {}
+> await s.set("foo.x", 10)
 
 // Since the filters are disjoint these are totally different:
 
-> t = new a.GeneralKV({name:'test',env,filter:['bar.>']}); await t.init();
+> t = new a.GeneralKV({name:'test2',env,filter:['bar.>']}); await t.init();
 > await t.getAll()
 {}
 > await t.set("bar.abc", 10)
@@ -101,7 +105,7 @@ undefined
 { 'foo.x': 10 }
 
 // The union:
-> u = new a.GeneralKV({name:'test',env,filter:['bar.>', 'foo.>']}); await u.init();
+> u = new a.GeneralKV({name:'test3',env,filter:['bar.>', 'foo.>']}); await u.init();
 > u.getAll()
 { 'foo.x': 10, 'bar.abc': 10 }
 > await s.set('foo.x', 999)
@@ -136,6 +140,7 @@ const WATCH_MONITOR_INTERVAL = 15 * 1000;
 // which is convenient for consistency.  This is not consistent with NATS's
 // own KV store limit naming.
 const ENFORCE_LIMITS_THROTTLE_MS = 3000;
+
 export interface KVLimits {
   // How many keys may be in the KV store. Oldest keys will be removed
   // if the key-value store exceeds this size. -1 for unlimited.
@@ -220,6 +225,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       compression: true,
       ...this.options,
     });
+    this.kv.validateKey = validateKey;
     const { all, revisions, times, headers } = await getAllFromKv({
       kv: this.kv,
       key: this.filter,
@@ -1031,3 +1037,14 @@ async function jetstreamPut(
     return Promise.reject(err);
   }
 }
+
+// see https://github.com/nats-io/nats.js/issues/246
+// In particular, we need this just to be able to support
+// base64 encoded keys!
+const validKeyRe = /^[^\u0000\s*>]+$/;
+function validateKey(k: string) {
+  if (k.startsWith(".") || k.endsWith(".") || !validKeyRe.test(k)) {
+    throw new Error(`invalid key: ${k}`);
+  }
+}
+

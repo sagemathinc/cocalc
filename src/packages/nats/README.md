@@ -1,4 +1,11 @@
 ### NOTES
 
-- we are using sha1 hashes a lot because we have to store various data, e.g., arbitrary file paths, as nats segments, so MUST have a bounded size string with simple characters.
-  The very low probability of a collision is discussed here: https://crypto.stackexchange.com/questions/2583/is-it-fair-to-assume-that-sha1-collisions-wont-occur-on-a-set-of-100k-strings
+- We are using base64 encoding of keys because w
+
+- We have to store various data, e.g., arbitrary file paths, as nats segments, so MUST have a string with allowed characters.  
+
+  - NATS officially allows: "Any Unicode character except null, space, ., * and >"
+    See https://docs.nats.io/nats-concepts/subjects#characters-allowed-and-recommended-for-subject-names
+  - However, the nats kv javascript client uses an incredibly restrictive key checker, which doesn't even allow base64 encoding! Geez: https://github.com/nats-io/nats.js/issues/246
+  
+  
