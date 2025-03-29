@@ -31,26 +31,3 @@ html
   padding: 0
   border: 0
 
-.cc-error-display
-  margin: 0
-  padding: 1px 0
-  max-height: 30%
-  position: relative
-  display: flex
-  flex-direction: column
-  > .ant-alert-banner
-    display: block
-
-// The frame-editor title-bar's "..." popover has a higher z-index than e.g. the "Halt" modal
-// This makes the antd modals appear on top of all other elements
-// Ref: https://github.com/sagemathinc/cocalc/issues/6467
-// I found this ticket: https://github.com/ant-design/ant-design/issues/31513
-// UPDATE: this style hack breaks the CRM's "add additional tables" dialog, and could
-// break all kinds of other things(!?).  This is bad to change generically.
-// The correct fix, which I implemented for the "..." popover in title-bar.tsx is
-//       <Popover overlayStyle={{ zIndex: 990 }}...>
-// which makes the popover lower than the modal (which is at 1000 without the hack below).
-// Then all other popovers are not impacted.
-
-// .ant-modal-root .ant-modal-wrap
-//   z-index: 1100

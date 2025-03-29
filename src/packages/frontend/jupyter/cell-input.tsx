@@ -10,7 +10,6 @@ React component that describes the input of a cell
 import { Button } from "antd";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef } from "react";
-
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
@@ -30,10 +29,8 @@ import { CodeMirror } from "./codemirror-component";
 import { CODE_BAR_BTN_STYLE, MINI_BUTTONS_STYLE_INNER } from "./consts";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
-import { get_blob_url } from "./server-urls";
 
 function attachmentTransform(
-  project_id: string | undefined,
   cell: Map<string, any>,
   href?: string,
 ): string | undefined {
@@ -44,12 +41,6 @@ function attachmentTransform(
   const data = cell.getIn(["attachments", name]) as any;
   let ext = filename_extension(name);
   switch (data?.get("type")) {
-    case "sha1":
-      const sha1 = data.get("value");
-      if (project_id == null) {
-        return href; // can't do anything.
-      }
-      return get_blob_url(project_id, ext, sha1);
     case "base64":
       if (ext === "jpg") {
         ext = "jpeg";
@@ -216,7 +207,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const urlTransform = useCallback(
       (url, tag?) => {
-        const url1 = attachmentTransform(props.project_id, props.cell, url);
+        const url1 = attachmentTransform(props.cell, url);
         if (url1 != null && url1 != url) {
           return url1;
         }

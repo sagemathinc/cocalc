@@ -349,8 +349,10 @@ if (
   throw Error("make typescript happy");
 }
 schema.projects_all.user_query.get.options = [];
+schema.projects_all.user_query.get.options_load = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];
+schema.projects_all.user_query.get.pg_where_load = ["projects"];
 
 // Table that provides extended read info about a single project
 // but *ONLY* for admin.
@@ -697,3 +699,45 @@ export function isExecOptsBlocking(opts: unknown): opts is ExecOptsBlocking {
 export type ExecOutput = ExecuteCodeOutput & {
   time: number; // time in ms, from user point of view.
 };
+
+export interface CreateProjectOptions {
+  account_id?: string;
+  title?: string;
+  description?: string;
+  // (optional) image ID
+  image?: string;
+  // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
+  license?: string;
+  public_path_id?: string; // may imply use of a license
+  // noPool = do not allow using the pool (e.g., need this when creating projects to put in the pool);
+  // not a real issue since when creating for pool account_id is null, and then we wouldn't use the pool...
+  noPool?: boolean;
+  // start running the moment the project is created -- uses more resources, but possibly better user experience
+  start?: boolean;
+}
+
+interface BaseCopyOptions {
+  target_project_id?: string;
+  target_path?: string; // path into project; if not given, defaults to source path above.
+  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
+  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
+  backup?: boolean; // make backup files
+  timeout?: number; // in **seconds**, not milliseconds
+  bwlimit?: number;
+  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
+  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
+  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
+  exclude?: string[]; // options passed to rsync via --exclude
+}
+export interface UserCopyOptions extends BaseCopyOptions {
+  account_id?: string;
+  src_project_id: string;
+  src_path: string;
+  // simulate copy taking at least this long -- useful for dev/debugging.
+  debug_delay_ms?: number;
+}
+
+// for copying files within and between projects
+export interface CopyOptions extends BaseCopyOptions {
+  path: string;
+}

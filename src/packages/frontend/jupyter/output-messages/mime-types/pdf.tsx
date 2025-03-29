@@ -1,17 +1,33 @@
 import register from "./register";
 import { PDF } from "../pdf";
 
-/* NOTE: I have absolutely no clue how to actually get this
-   to appear in a Python notebook.   Using
-      https://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html#IPython.display.display_pdf
-   just seems to do nothing.
-   I wouldn't be surprised if this implementation below is
-   broken...
+/*
+# You can make this appear using this code:
+
+from IPython.display import display
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from io import BytesIO
+
+def create_pdf():
+    # alternatively, for a file a.pdf
+    #    return open('a.pdf','rb').read()
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.drawString(100, 500, "Hello, World!")
+    p.showPage()
+    p.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
+
+pdf_data = create_pdf()
+display({'application/pdf': pdf_data}, raw=True)
 */
-register("application/pdf", 6, ({ value, project_id }) => {
-  if (project_id == null || value == null) {
-    console.warn("PDF: project_id and value must be specified");
+register("application/pdf", 6, ({ id, value, actions }) => {
+  if (value == null) {
+    console.warn("PDF: value must be specified");
     return <pre>Invalid PDF output</pre>;
   }
-  return <PDF value={value} project_id={project_id} />;
+  return <PDF value={value} actions={actions} id={id} />;
 });

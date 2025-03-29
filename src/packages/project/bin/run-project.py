@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This is a script that is useful for debugging why a project crashes
 on startup when logfiles are not sufficient.

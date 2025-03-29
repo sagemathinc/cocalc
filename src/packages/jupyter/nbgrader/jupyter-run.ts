@@ -3,12 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { RunNotebookOptions } from "@cocalc/jupyter/nbgrader/types";
-import type { JupyterNotebook } from "@cocalc/jupyter/nbgrader/types";
+import type {
+  JupyterNotebook,
+  RunNotebookOptions,
+} from "@cocalc/util/jupyter/nbgrader-types";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { kernel } from "@cocalc/jupyter/kernel";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("jupyter:nbgrader:jupyter-run");
 
 // For tracking limits during the run:
 export interface Limits {
@@ -26,8 +31,7 @@ function global_timeout_exceeded(limits: Limits): boolean {
 }
 
 export async function jupyter_run_notebook(
-  logger,
-  opts: RunNotebookOptions
+  opts: RunNotebookOptions,
 ): Promise<string> {
   const log = (...args) => {
     logger.debug("jupyter_run_notebook", ...args);
@@ -129,7 +133,7 @@ export async function jupyter_run_notebook(
 export async function run_cell(
   jupyter: JupyterKernel,
   limits: Limits,
-  cell
+  cell,
 ): Promise<void> {
   if (jupyter == null) {
     throw Error("jupyter must be defined");
@@ -140,8 +144,8 @@ export async function run_cell(
     // for each cell in the rest of the notebook.
     throw Error(
       `Total time limit (=${Math.round(
-        limits.timeout_ms / 1000
-      )} seconds) exceeded`
+        limits.timeout_ms / 1000,
+      )} seconds) exceeded`,
     );
   }
 

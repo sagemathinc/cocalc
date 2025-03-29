@@ -19,7 +19,12 @@ window.addEventListener("load", async function () {
   }
 });
 
+declare var DEBUG;
+
 export default function Manifest() {
+  if (DEBUG) {
+    return null;
+  }
   return (
     <Helmet>
       <link

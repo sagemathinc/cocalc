@@ -32,13 +32,10 @@ import { callback, delay } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
-import {
-  process as iframe_process,
-  is_likely_iframe,
-} from "@cocalc/jupyter/blobs/iframe";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
+  type BlobStoreInterface,
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
@@ -59,9 +56,9 @@ import {
   original_path,
   path_split,
   uuid,
+  uint8ArrayToBase64,
 } from "@cocalc/util/misc";
 import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
-import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
 import {
   getLanguage,
   get_kernel_data_by_name,
@@ -76,10 +73,13 @@ import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
-import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";
+import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
+import { join } from "path";
+import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -215,6 +215,14 @@ nodeCleanup(() => {
     }
   }
 });
+
+// TODO: are these the only base64 encoded types that jupyter kernels return?
+export const BASE64_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "application/pdf",
+  "base64",
+] as const;
 
 // NOTE: keep JupyterKernel implementation private -- use the kernel function
 // above, and the interface defined in types.
@@ -750,6 +758,21 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
+  private saveBlob = (data: string, type?: string) => {
+    const blobs = this._actions?.blobs;
+    if (blobs == null) {
+      throw Error("blob store not available");
+    }
+    const buf: Buffer =
+      type && BASE64_TYPES.includes(type as any)
+        ? Buffer.from(data, "base64")
+        : Buffer.from(data);
+
+    const sha1: string = misc_node_sha1(buf);
+    blobs.set(sha1, buf);
+    return sha1;
+  };
+
   process_output(content: any): void {
     if (this._state === "closed") {
       return;
@@ -768,45 +791,38 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     remove_redundant_reps(content.data);
 
-    let saveToBlobStore;
-    try {
-      const blob_store = get_blob_store_sync();
-      saveToBlobStore = (
-        data: string,
-        type: string,
-        ipynb?: string,
-      ): string => {
-        const sha1 = blob_store.save(data, type, ipynb);
-        if (this._actions?.is_compute_server) {
-          this._actions?.saveBlobToProject(data, type, ipynb);
-        }
-        return sha1;
-      };
-    } catch (err) {
-      dbg(`WARNING: Jupyter blob store is not available -- ${err}`);
-      // there is nothing to process without the blob store to save
-      // data in!
-      return;
-    }
+    const saveBlob = (data, type) => {
+      try {
+        return this.saveBlob(data, type);
+      } catch (err) {
+        dbg(`WARNING: Jupyter blob store not working -- ${err}`);
+        // i think it'll just send the large data on in the usual way instead
+        // via the output, instead of using the blob store.  It's probably just
+        // less efficient.
+      }
+    };
 
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] == null) {
         continue;
       }
-      if (type.split("/")[0] === "image" || type === "application/pdf") {
-        // Store all images and PDF in the blob store:
-        content.data[type] = saveToBlobStore(content.data[type], type);
-      } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
-        // Likely iframe, so we treat it as such.  This is very important, e.g.,
-        // because of Sage's iframe 3d graphics.  We parse
-        // and remove these and serve them from the backend.
-        //  {iframe: sha1 of srcdoc}
-        content.data["iframe"] = iframe_process(
-          content.data[type],
-          saveToBlobStore,
-        );
-        delete content.data[type];
+      if (
+        type.split("/")[0] === "image" ||
+        type === "application/pdf" ||
+        type === "text/html"
+      ) {
+        // Store all images and PDF and text/html in a binary blob store, so we don't have
+        // to involve it in realtime sync.  It tends to be large, etc.
+        const sha1 = saveBlob(content.data[type], type);
+        if (type == "text/html") {
+          // NOTE: in general, this may or may not get rendered as an iframe --
+          // we use iframe for backward compatibility.
+          content.data["iframe"] = sha1;
+          delete content.data["text/html"];
+        } else {
+          content.data[type] = sha1;
+        }
       }
     }
   }
@@ -905,15 +921,15 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
   }
 
-  more_output(id: string): any[] {
+  more_output = (id: string): any[] => {
     if (id == null) {
       throw new Error("must specify id");
     }
     if (this._actions == null) {
       throw new Error("must have redux actions");
     }
-    return this._actions.store.get_more_output(id) || [];
-  }
+    return this._actions.store.get_more_output(id) ?? [];
+  };
 
   async nbconvert(args: string[], timeout?: number): Promise<void> {
     if (timeout === undefined) {
@@ -937,16 +953,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     const dbg = this.dbg("load_attachment");
     dbg(`path='${path}'`);
     if (path[0] !== "/") {
-      path = process.env.HOME + "/" + path;
+      path = join(process.env.HOME ?? "", path);
     }
-    async function f(): Promise<string> {
-      const bs = get_blob_store_sync();
-      if (bs == null) throw new Error("BlobStore not available");
-      return bs.readFile(path, "base64");
-    }
+    const f = async (): Promise<string> => {
+      const bs = this.get_blob_store();
+      if (bs == null) {
+        throw new Error("BlobStore not available");
+      }
+      return await bs.readFile(path);
+    };
     try {
       return await retry_until_success({
-        f: f,
+        f,
         max_time: 30000,
       });
     } catch (err) {
@@ -957,14 +975,44 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   // This is called by project-actions when exporting the notebook
   // to an ipynb file:
-  get_blob_store() {
-    return get_blob_store_sync();
-  }
+  get_blob_store = (): BlobStoreInterface | undefined => {
+    const blobs = this._actions?.blobs;
+    if (blobs == null) {
+      return;
+    }
+    const t = new TextDecoder();
+    return {
+      getBase64: (sha1: string): string | undefined => {
+        const buf = blobs.get(sha1);
+        if (buf === undefined) {
+          return buf;
+        }
+        return uint8ArrayToBase64(buf);
+      },
 
-  process_attachment(base64, mime): string | undefined {
-    const blob_store = get_blob_store_sync();
-    return blob_store?.save(base64, mime);
-  }
+      getString: (sha1: string): string | undefined => {
+        const buf = blobs.get(sha1);
+        if (buf === undefined) {
+          return buf;
+        }
+        return t.decode(buf);
+      },
+
+      readFile: async (path: string): Promise<string> => {
+        const buf = await readFile(path);
+        const sha1: string = misc_node_sha1(buf);
+        blobs.set(sha1, buf);
+        return sha1;
+      },
+
+      saveBase64: (data: string) => {
+        const buf = Buffer.from(data, "base64");
+        const sha1: string = misc_node_sha1(buf);
+        blobs.set(sha1, buf);
+        return sha1;
+      },
+    };
+  };
 
   process_comm_message_from_kernel(mesg): void {
     if (this._actions == null) {
@@ -1007,7 +1055,8 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     buffers?: Buffer[];
   }): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
-    dbg({ msg_id, comm_id, target_name, data, buffers64 });
+    // this is HUGE
+    // dbg({ msg_id, comm_id, target_name, data, buffers64 });
     if (buffers64 != null && buffers64.length > 0) {
       buffers = buffers64?.map((x) => Buffer.from(base64ToBuffer(x))) ?? [];
       dbg(
@@ -1040,7 +1089,8 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       buffers,
     };
 
-    dbg(message);
+    // HUGE
+    // dbg(message);
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);

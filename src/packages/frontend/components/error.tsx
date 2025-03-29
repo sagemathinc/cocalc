@@ -7,17 +7,20 @@ interface Props {
   setError?: (error: any) => void;
   style?: CSSProperties;
   message?;
+  banner?;
 }
 export default function ShowError({
   message = "Error",
   error,
   setError,
   style,
+  banner,
 }: Props) {
   if (!error) return null;
   const err = `${error}`.replace(/^Error:/, "").trim();
   return (
     <Alert
+      banner={banner}
       style={style}
       showIcon
       message={message}

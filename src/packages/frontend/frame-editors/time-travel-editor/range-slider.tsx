@@ -10,34 +10,34 @@ Uses https://github.com/tajo/react-range
 */
 
 import { List } from "immutable";
-import { TimeTravelActions } from "./actions";
 import { TimeAgo } from "../../components";
 import { Slider } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
-  id: string;
-  actions: TimeTravelActions;
-  versions: List<Date>;
-  version0: number;
-  version1: number;
+  versions?: List<number>;
+  version0?: number;
+  version1?: number;
+  setVersion0: (number) => void;
+  setVersion1: (number) => void;
 }
 
 export function RangeSlider({
-  id,
-  actions,
   versions,
   version0,
   version1,
+  setVersion0,
+  setVersion1,
 }: Props) {
   const { isVisible } = useFrameContext();
 
   // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
   if (
     !isVisible ||
+    versions == null ||
     versions.size == 0 ||
-    version0 < 0 ||
-    version1 >= versions.size
+    version0 == null ||
+    version1 == null
   ) {
     // invalid input
     return <div />;
@@ -47,16 +47,17 @@ export function RangeSlider({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    actions.setVersions(id, values[0], values[1]);
+    setVersion0(versions.get(values[0]));
+    setVersion1(versions.get(values[1]));
   };
 
   const renderTooltip = (index) => {
-    const date = versions?.get(index);
-
-    if (date == null) {
-      return;
+    const d = versions.get(index);
+    if (d == null) {
       // shouldn't happen
+      return;
     }
+    const date = new Date(d);
     if (index == version0) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
@@ -84,7 +85,7 @@ export function RangeSlider({
         range
         min={0}
         max={versions.size - 1}
-        value={[version0, version1]}
+        value={[versions.indexOf(version0), versions.indexOf(version1)]}
         onChange={handleChange}
         tooltip={{ open: true, formatter: renderTooltip }}
       />

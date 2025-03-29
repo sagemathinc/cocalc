@@ -1,9 +1,8 @@
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
-import { database } from "./database";
 
 export default function getHandler() {
   return async (_req, res) => {
-    const settings = await get_server_settings(database); // don't worry -- this is cached.
+    const settings = await get_server_settings(); // don't worry -- this is cached.
     res.header("Content-Type", "text/plain");
     res.header("Cache-Control", "public, max-age=3600, must-revalidate");
     if (!settings.landing_pages) {

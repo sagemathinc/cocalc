@@ -21,7 +21,6 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   CSS,
   React,
@@ -427,7 +426,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = (
             <>
               Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-              {actions.getComputeServerId() ? (
+              {actions.getComputeServerIdSync() ? (
                 "this compute server"
               ) : (
                 <>
@@ -548,7 +547,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function renderRefreshButton(): Rendered | undefined {
       if (kernel == null || kernel_info == null) return;
       return (
-        <Button onClick={() => actions.fetch_jupyter_kernels()}>
+        <Button
+          onClick={() => actions.fetch_jupyter_kernels({ noCache: true })}
+        >
           <Icon name="refresh" /> Refresh
         </Button>
       );

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { render, sorter, ANY } from "./register";
-import { Progress, Select, Tag } from "antd";
+import { Progress, Select, Tag, Space } from "antd";
 import { capitalize, cmp } from "@cocalc/util/misc";
 import { useEditableContext } from "./context";
 import LRU from "lru-cache";
@@ -13,7 +13,7 @@ function StatusDisplay({ value, color, n }) {
 function PriorityDisplay({ value, color, n, len }) {
   if (n == -1) return null;
   return (
-    <div>
+    <Space>
       <Progress
         style={{ marginRight: "5px" }}
         strokeColor={color}
@@ -22,7 +22,7 @@ function PriorityDisplay({ value, color, n, len }) {
         percent={(100 * (n + 1)) / len}
       />
       <div style={{ color: "#666" }}>{capitalize(value)}</div>
-    </div>
+    </Space>
   );
 }
 
@@ -77,7 +77,7 @@ render(
     }
     const { options, valueDisplay, valueToNumber } = useMemo(
       () => parse(spec),
-      [spec]
+      [spec],
     );
 
     const { counter, save, error } = useEditableContext<string>(field);
@@ -119,7 +119,7 @@ render(
         {error}
       </div>
     );
-  }
+  },
 );
 
 sorter({ type: "select", options: ANY, colors: ANY, priority: ANY }, (spec) => {

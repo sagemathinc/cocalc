@@ -2,10 +2,13 @@
 
 process.env.API_SERVER = process.env.API_SERVER ?? "https://cocalc.com";
 console.log("API_SERVER=", process.env.API_SERVER);
+const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
+const project_id = process.env.PROJECT_ID;
+process.env.COCALC_PROJECT_ID = project_id;
+process.env.COCALC_USERNAME = project_id.replace(/-/g, "");
+process.env.HOME = PROJECT_HOME;
 
 const { manager } = require("../dist/lib");
-
-const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
 
 async function main() {
   const exitHandler = async () => {
@@ -21,9 +24,6 @@ async function main() {
   process.on("SIGTERM", exitHandler);
 
   const M = manager({
-    home: PROJECT_HOME,
-    project_id: process.env.PROJECT_ID,
-    compute_server_id: parseInt(process.env.COMPUTE_SERVER_ID),
     waitHomeFilesystemType:
       process.env.UNIONFS_UPPER && process.env.UNIONFS_LOWER
         ? "fuse.unionfs-fuse"

@@ -7,14 +7,15 @@
 Handle iframe output messages involving a src doc.
 */
 
+import { Spin } from "antd";
 import { delay } from "awaiting";
 import { useEffect, useRef, useState } from "react";
+import useBlob from "./use-blob";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import { get_blob_url } from "../server-urls";
 import HTML from "./mime-types/html";
-
+import ShowError from "@cocalc/frontend/components/error";
 // This impact loading the iframe data from the backend project (via the sha1 hash).
 // Doing retries is useful, e.g., since the project might not be running.
 const MAX_ATTEMPTS = 10;
@@ -22,22 +23,47 @@ const MAX_WAIT = 5000;
 const BACKOFF = 1.3;
 
 const HEIGHT = "70vh";
-const WIDTH = "100vw";
+const WIDTH = "70vw";
 
 interface Props {
   sha1: string;
-  project_id: string;
+  actions?;
   cacheId?: string;
   index?: number;
   trust?: boolean;
 }
 
 export default function IFrame(props: Props) {
-  // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
+  const [error, setError] = useState<string>("");
+  const src = useBlob({
+    sha1: props.sha1,
+    actions: props.actions,
+    type: "text/html",
+    setError,
+  });
+
+  if (error) {
+    return (
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ margin: "5px 0" }}
+      />
+    );
+  }
+  if (!src) {
+    return (
+      <div {...props}>
+        <Spin delay={1000} />
+      </div>
+    );
+  }
+
   if (props.cacheId == null || !props.trust) {
-    return <NonCachedIFrame {...props} />;
+    return <NonCachedIFrame src={src} />;
   } else {
-    const src = get_blob_url(props.project_id, "html", props.sha1);
+    // we only use cached iframe if the iframecontext is setup, e.g., it is in
+    // Jupyter notebooks, but not in whiteboards.
     return (
       <HTML
         id={props.cacheId}
@@ -49,7 +75,7 @@ export default function IFrame(props: Props) {
   }
 }
 
-function NonCachedIFrame({ sha1, project_id }: Props) {
+function NonCachedIFrame({ src }) {
   const { val: attempts, inc: incAttempts } = useCounter();
   const [failed, setFailed] = useState<boolean>(false);
   const delayRef = useRef<number>(500);
@@ -81,8 +107,8 @@ function NonCachedIFrame({ sha1, project_id }: Props) {
 
   return (
     <iframe
+      src={src}
       ref={iframeRef}
-      src={get_blob_url(project_id, "html", sha1) + `&attempts=${attempts}`}
       onError={load_error}
       style={{ border: 0, width: WIDTH, minHeight: HEIGHT }}
     />

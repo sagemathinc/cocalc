@@ -7,14 +7,8 @@
 Functionality related to Sync.
 */
 
-import { callback2 } from "@cocalc/util/async-utils";
 import { once } from "@cocalc/util/async-utils";
-import {
-  defaults,
-  is_valid_uuid_string,
-  merge,
-  required,
-} from "@cocalc/util/misc";
+import { defaults, is_valid_uuid_string, required } from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
 import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -27,6 +21,7 @@ import {
 } from "@cocalc/sync/table";
 import synctable_project from "./synctable-project";
 import type { Channel, AppClient } from "./types";
+import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
@@ -142,44 +137,30 @@ export class SyncClient {
     return new SyncDB(opts0);
   }
 
-  public async open_existing_sync_document(opts: {
+  public async open_existing_sync_document({
+    project_id,
+    path,
+    data_server,
+    persistent,
+  }: {
     project_id: string;
     path: string;
     data_server?: string;
     persistent?: boolean;
   }): Promise<SyncDoc | undefined> {
-    const resp = await callback2(this.client.query, {
-      query: {
-        syncstrings: {
-          project_id: opts.project_id,
-          path: opts.path,
-          doctype: null,
-        },
-      },
+    const doctype = await getSyncDocType({
+      project_id,
+      path,
+      client: this.client,
     });
-    if (resp.event === "error") {
-      throw Error(resp.error);
-    }
-    if (resp.query?.syncstrings == null) {
-      throw Error(`no document '${opts.path}' in project '${opts.project_id}'`);
-    }
-    const doctype = JSON.parse(
-      resp.query.syncstrings.doctype ?? '{"type":"string"}',
-    );
-    let opts2: any = {
-      project_id: opts.project_id,
-      path: opts.path,
-    };
-    if (opts.data_server) {
-      opts2.data_server = opts.data_server;
-    }
-    if (opts.persistent) {
-      opts2.persistent = opts.persistent;
-    }
-    if (doctype.opts != null) {
-      opts2 = merge(opts2, doctype.opts);
-    }
-    const f = `sync_${doctype.type}`;
-    return (this as any)[f](opts2);
+    const { type } = doctype;
+    const f = `sync_${type}`;
+    return (this as any)[f]({
+      project_id,
+      path,
+      data_server,
+      persistent,
+      ...doctype.opts,
+    });
   }
 }

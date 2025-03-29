@@ -3,6 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+
+DEVELOPMENT:
+
+pnpm exec jest --watch --forceExit --detectOpenHandles "execute-code.test.ts"
+
+*/
+
 process.env.COCALC_PROJECT_MONITOR_INTERVAL_S = "1";
 // default is much lower, might fail if you have more procs than the default
 process.env.COCALC_PROJECT_INFO_PROC_LIMIT = "10000";
@@ -101,12 +109,12 @@ describe("test timeout", () => {
 
 describe("test longer execution", () => {
   it(
-    "runs 5 seconds",
+    "runs 1 seconds",
     async () => {
       const t0 = Date.now();
       const { stdout, stderr, exit_code } = await executeCode({
         command: "sh",
-        args: ["-c", "echo foo; sleep 5; echo bar"],
+        args: ["-c", "echo foo; sleep 1; echo bar"],
         err_on_exit: false,
         bash: false,
       });
@@ -114,7 +122,7 @@ describe("test longer execution", () => {
       expect(stderr).toBe("");
       expect(exit_code).toBe(0);
       const t1 = Date.now();
-      expect((t1 - t0) / 1000).toBeGreaterThan(4.9);
+      expect((t1 - t0) / 1000).toBeGreaterThan(0.9);
     },
     10 * 1000,
   );
@@ -256,6 +264,10 @@ describe("async", () => {
     expect(s.exit_code).toEqual(1);
   });
 
+  // TODO: I really don't like these tests, which waste a lot of my time.
+  // Instead of taking 5+ seconds to test some polling implementation,
+  // they should have a parameter to change the polling interval, so the
+  // test can be much quicker.  -- WS
   it(
     "long running async job",
     async () => {

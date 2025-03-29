@@ -78,7 +78,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       setError(null);
     } catch (err) {
       setLoading(false);
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -87,7 +87,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       await manage({ action: "delete", id });
       getAllApiKeys();
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -102,7 +102,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       await manage({ action: "edit", id, name, expire });
       getAllApiKeys();
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -117,6 +117,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       getAllApiKeys();
 
       Modal.success({
+        width: 600,
         title: "New Secret API Key",
         content: (
           <>
@@ -137,7 +138,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       });
       setError(null);
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 

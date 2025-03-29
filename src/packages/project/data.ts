@@ -24,14 +24,14 @@ export const SSH_LOG = join(data, "sshd.log");
 export const SSH_ERR = join(data, "sshd.err");
 export const secretToken =
   process.env.COCALC_SECRET_TOKEN ?? join(data, "secret_token");
+export const compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0");
 
 // note that the "username" need not be the output of `whoami`, e.g.,
 // when using a cc-in-cc dev project where users are "virtual".
 function getIDs() {
-  let project_id, username;
-  if (process.env.COCALC_PROJECT_ID && process.env.COCALC_USERNAME) {
+  let project_id;
+  if (process.env.COCALC_PROJECT_ID) {
     project_id = process.env.COCALC_PROJECT_ID;
-    username = process.env.COCALC_USERNAME;
   } else {
     if (!process.env.HOME) {
       throw Error("HOME not defined, so no way to determine project_id");
@@ -41,15 +41,12 @@ function getIDs() {
     if (!is_valid_uuid_string(project_id)) {
       throw Error("unable to determine project_id from HOME directory path");
     }
-    username = project_id.replace(/-/g, "");
   }
   // Throw in some consistency checks:
   if (!is_valid_uuid_string(project_id)) {
     throw Error(`project_id=${project_id} is not a valid UUID`);
   }
-  if (!username) {
-    throw Error("unable to determine username");
-  }
+  const username = process.env.COCALC_USERNAME ?? project_id.replace(/-/g, "");
   return { project_id, username };
 }
 

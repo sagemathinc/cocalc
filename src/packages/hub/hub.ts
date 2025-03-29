@@ -41,6 +41,7 @@ import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
+import initNatsServer from "@cocalc/server/nats";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
@@ -178,6 +179,10 @@ async function startServer(): Promise<void> {
     initIdleTimeout(projectControl);
   }
 
+  if (program.natsServer) {
+    await initNatsServer();
+  }
+
   if (program.websocketServer) {
     // Initialize the version server -- must happen after updating schema
     // (for first ever run).
@@ -227,6 +232,8 @@ async function startServer(): Promise<void> {
       program.websocketServer &&
       process.env["NODE_ENV"] == "development",
   });
+
+  //initNatsServer();
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
   // or complains a lot. This is obviously not really necessary, but we leave it for now.
@@ -397,11 +404,12 @@ async function main(): Promise<void> {
       "--all",
       "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
-    .option("--websocket-server", "run the websocket server")
-    .option("--proxy-server", "run the proxy server")
+    .option("--websocket-server", "run a websocket server in this process")
+    .option("--nats-server", "run a hub nats API server in this process")
+    .option("--proxy-server", "run a proxy server in this process")
     .option(
       "--next-server",
-      "run the nextjs server (landing pages, share server, etc.)",
+      "run a nextjs server (landing pages, share server, etc.) in this process",
     )
     .option(
       "--https-key [string]",
@@ -496,11 +504,15 @@ async function main(): Promise<void> {
   }
   if (program.all) {
     program.websocketServer =
+      program.natsServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =
       program.updateDatabaseSchema =
         true;
+  }
+  if (process.env.COCALC_DISABLE_NEXT) {
+    program.nextServer = false;
   }
 
   //console.log("got opts", opts);

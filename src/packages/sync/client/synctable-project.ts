@@ -9,7 +9,7 @@ Synctable that uses the project websocket rather than the database.
 
 import { delay } from "awaiting";
 
-import { SyncTable, synctable_no_database } from "@cocalc/sync/table";
+import { type SyncTable, synctable_no_database } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { assertDefined } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -64,12 +64,6 @@ class SyncTableChannel extends EventEmitter {
       project_id,
     );
     (this.synctable as any).channel = this; // for debugging
-    this.synctable.setOnDisconnect = (changes, merge) => {
-      this.send_mesg_to_project({ event: "set-on-disconnect", changes, merge });
-    };
-    this.synctable.sendMessageToProject = (data) => {
-      this.send_mesg_to_project({ event: "message", data });
-    };
     this.project_id = project_id;
     this.client = client;
     this.query = query;

@@ -1,11 +1,10 @@
 /*
-Dropdown on frame title bar for running that Jupyter notebook or terminal on a compute server.
+Dropdown on frame title bar for running that on a compute server.
 */
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
-
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";

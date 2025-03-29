@@ -19,6 +19,8 @@ import * as awaiting from "awaiting";
 
 import { reuseInFlight } from "./reuse-in-flight";
 
+export { asyncDebounce, asyncThrottle } from "./async-debounce-throttle";
+
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
 // awaiting.callback, but for our functions that take opts.
@@ -37,17 +39,6 @@ export function callback_opts(f: Function) {
     }
     return await awaiting.callback(g);
   };
-}
-
-/**
- * convert the given error to a string, by either serializing the object or returning the string as it is
- */
-function err2str(err: any): string {
-  if (typeof err === "string") {
-    return err;
-  } else {
-    return JSON.stringify(err);
-  }
 }
 
 /* retry_until_success keeps calling an async function f with
@@ -80,10 +71,7 @@ export async function retry_until_success<T>(
 
   // Return nonempty string if time or tries exceeded.
   function check_done(): string {
-    if (
-      opts.max_time &&
-      next_delay + Date.now() - start_time > opts.max_time
-    ) {
+    if (opts.max_time && next_delay + Date.now() - start_time > opts.max_time) {
       return "maximum time exceeded";
     }
     if (opts.max_tries && tries >= opts.max_tries) {
@@ -109,9 +97,7 @@ export async function retry_until_success<T>(
         // yep -- game over, throw an error
         let e;
         if (last_exc) {
-          e = Error(
-            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`,
-          );
+          e = Error(`${err} -- last error was '${last_exc}' -- ${opts.desc}`);
         } else {
           e = Error(`${err} -- ${opts.desc}`);
         }

@@ -43,6 +43,7 @@ interface Props {
   is_selected?: boolean;
   is_markdown_edit?: boolean;
   project_id?: string;
+  path?: string;
   directory?: string;
   complete?: Map<string, any>; // TODO: types
   is_focused?: boolean;
@@ -266,8 +267,8 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     const marginTop = props.isFirst
       ? "30px"
       : props.actions != null
-      ? "10px"
-      : "20px";
+        ? "10px"
+        : "20px";
 
     const style: React.CSSProperties = {
       border: `1px solid ${color}`,

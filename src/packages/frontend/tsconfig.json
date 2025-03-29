@@ -28,6 +28,7 @@
   "references": [
     { "path": "../comm" },
     { "path": "../jupyter" },
+    { "path": "../nats" },
     { "path": "../sync" },
     { "path": "../util" }
   ]

@@ -177,6 +177,8 @@ export type OpenFile = {
   filename: string;
   time?: number;
   type?: string;
+  // if true, opening a file that was deleted
+  deleted?: number;
 };
 
 export type ProjectControlEvent = {

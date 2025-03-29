@@ -9,9 +9,9 @@ in a browser to cause a connection to happen.   Also, a.md need to be a file tha
 you have edited.
 */
 
-import { meta_file } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema";
 import { client } from "./server";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 
 export default async function getSyncdocHistory({
   path,
@@ -26,7 +26,7 @@ export default async function getSyncdocHistory({
   // transform jupyter path -- TODO: this should
   // be more centralized... since this is brittle.
   if (path.endsWith(".ipynb")) {
-    path = meta_file(path, "jupyter2");
+    path = syncdbPath(path);
   }
 
   // compute the string_id

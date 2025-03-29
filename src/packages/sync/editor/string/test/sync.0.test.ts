@@ -3,6 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+
+/*
+
+DEVELOPMENT:
+
+pnpm test sync.0.test.ts
+
+*/
+
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
 import { a_txt } from "./data";
@@ -128,8 +137,8 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     expect(syncstring.has_full_history()).toBe(true);
   });
 
-  it("loads full history (which does basically nothing)", async () => {
-    await syncstring.load_full_history();
+  it("loads more history (which does basically nothing)", async () => {
+    await syncstring.loadMoreHistory();
   });
 
   it("do a save (no-op, since haven't done anything yet)", async () => {

@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
+    "./nats": "./dist/nats/index.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
@@ -18,7 +19,7 @@
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest --detectOpenHandles",
+    "test": "pnpm exec jest --forceExit --runInBand",
     "prepublishOnly": "pnpm test"
   },
   "files": [
@@ -31,7 +32,9 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@nats-io/nkeys": "^2.0.3",
     "@types/debug": "^4.1.12",
     "@types/watchpack": "^2.4.4",
     "awaiting": "^3.0.0",
@@ -40,11 +43,13 @@
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "nats": "^2.29.3",
     "password-hash": "^1.2.2",
     "prom-client": "^13.0.0",
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
+    "tmp-promise": "^3.0.3",
     "underscore": "^1.12.1"
   },
   "repository": {

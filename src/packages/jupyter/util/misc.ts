@@ -19,15 +19,19 @@ import { cmp } from "@cocalc/util/misc";
 
 // This list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
 // The order matters -- we only keep the left-most type (see import-from-ipynb.coffee)
+// See https://jupyterlab.readthedocs.io/en/stable/user/file_formats.html#file-and-output-formats
 
 export const JUPYTER_MIMETYPES = [
   "application/javascript",
+  "application/json",
   "text/html",
   "text/markdown",
   "text/latex",
   "image/svg+xml",
   "image/png",
   "image/jpeg",
+  "image/bmp",
+  "image/gif",
   "application/pdf",
   "text/plain",
 ] as const;

@@ -19,6 +19,7 @@ export interface HandlerProps {
   data: Map<string, any>;
   message: Map<string, any>;
   project_id?: string;
+  path?: string;
   directory?: string;
   actions?: JupyterActions;
   name?: string;

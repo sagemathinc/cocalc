@@ -5,8 +5,8 @@
 
 // Time travel editor react component
 
-import { useState } from "react";
-import { Button, Checkbox, Tooltip } from "antd";
+import { useEffect, useState } from "react";
+import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import {
   redux,
@@ -22,7 +22,7 @@ import { NavigationSlider } from "./navigation-slider";
 import { RangeSlider } from "./range-slider";
 import { Version, VersionRange } from "./version";
 import { GitAuthors, TimeTravelAuthors } from "./authors";
-import { LoadFullHistory } from "./load-full-history";
+import { LoadMoreHistory } from "./load-more-history";
 import { OpenFile } from "./open-file";
 import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
@@ -36,6 +36,7 @@ import type { Document } from "@cocalc/sync/editor/generic/types";
 import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
 import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 import ShowError from "@cocalc/frontend/components/error";
+import { debounce } from "lodash";
 
 interface Props {
   actions: TimeTravelActions;
@@ -52,6 +53,7 @@ interface Props {
 
 export function TimeTravel(props: Props) {
   const { project_id, path } = props;
+
   const useEditor = useEditorRedux<TimeTravelState>({ project_id, path });
   const unlicensedLimit = useTypedRedux(
     "customize",
@@ -60,32 +62,107 @@ export function TimeTravel(props: Props) {
   const licenses = useLicenses({ project_id });
   const error = useEditor("error");
   const versions = useEditor("versions");
+  const startIndex = useEditor("start_index") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
   const loading = useEditor("loading");
   const docpath = useEditor("docpath");
   const docext = useEditor("docext");
   const git = !!useEditor("git");
-  const gitMode = !!props.desc?.get("git_mode");
-  const textMode = !!props.desc?.get("text_mode");
-  const changesMode = !!props.desc?.get("changes_mode");
 
   const [doc, setDoc] = useState<Document | undefined>(undefined);
   const [doc0, setDoc0] = useState<string | undefined>(undefined);
   const [doc1, setDoc1] = useState<string | undefined>(undefined);
   const [useJson, setUseJson] = useState<boolean>(false);
 
-  const version = props.desc?.get("version");
-  const version0 = changesMode ? props.desc?.get("version0") : version;
-  const version1 = changesMode ? props.desc?.get("version1") : version;
+  const [gitMode, setGitMode] = useState<boolean>(!!props.desc?.get("gitMode"));
+  const [textMode, setTextMode] = useState<boolean>(
+    !!props.desc?.get("textMode"),
+  );
+  const [changesMode, setChangesMode] = useState<boolean>(
+    !!props.desc?.get("changesMode"),
+  );
+  const [version, setVersion] = useState<number | undefined>(
+    props.desc?.get("version"),
+  );
+  const [version0, setVersion0] = useState<number | undefined>(
+    props.desc?.get("version0"),
+  );
+  const [version1, setVersion1] = useState<number | undefined>(
+    props.desc?.get("version1"),
+  );
 
-  const getDoc = async (
-    version?: number | Date | undefined,
-  ): Promise<Document | undefined> => {
-    version =
-      version == null || typeof version == "number"
-        ? getVersion(version)
-        : version;
+  // ensure version consistency
+  useEffect(() => {
+    const v = gitMode ? gitVersions : versions;
+    if (v == null || v.size == 0) {
+      return;
+    }
+    if (changesMode) {
+      let v0 = version0;
+      let v1 = version1;
+      if (v0 == null || v.indexOf(v0) == -1) {
+        v0 = v.get(0);
+      }
+      if (v1 == null || v.indexOf(v1) == -1) {
+        v1 = v.get(-1);
+      }
+      if (v0 == v1 && v.size > 1) {
+        if (v0 == v.get(0)) {
+          v1 = v.get(1);
+        } else if (v1 == v.get(-1)) {
+          v0 = v.get(-2);
+        } else {
+          v0 = v.get(v.indexOf(v1!) - 1);
+        }
+      }
+
+      if (v0 != version0) {
+        setVersion0(v0);
+      }
+      if (v1 != version1) {
+        setVersion1(v1);
+      }
+    } else {
+      if (version == null) {
+        setVersion(v.get(-1));
+      } else if (v.indexOf(version) == -1) {
+        let a;
+        if (version < v.get(0)!) {
+          a = v.get(0);
+        } else if (version > v.get(-1)!) {
+          a = v.get(-1);
+        } else {
+          a = v.get(-1);
+        }
+        setVersion(a);
+      }
+    }
+  }, [
+    version,
+    version0,
+    version1,
+    versions,
+    changesMode,
+    gitMode,
+    versions,
+    gitVersions,
+  ]);
+
+  useEffect(() => {
+    saveState(props.actions, {
+      id: props.id,
+      version,
+      version0,
+      version1,
+      changesMode,
+      gitMode,
+      textMode,
+    });
+  }, [version, version0, version1, changesMode, gitMode, textMode]);
+
+  const getDoc = async (version?: number): Promise<Document | undefined> => {
+    version = getVersion(version);
     if (version == null) {
       return;
     }
@@ -96,16 +173,11 @@ export function TimeTravel(props: Props) {
   };
 
   // convert from version number to Date object (or undefined)
-  const getVersion = (version?): Date | undefined => {
+  const getVersion = (version?: number): number | undefined => {
     if (props.desc == null || versions == null) {
       return;
     }
-    version = version ?? props.desc?.get("version");
-    const d: Date | undefined = (gitMode ? gitVersions : versions)?.get(
-      version,
-    );
-    if (d != null) return d;
-    return versions.get(-1);
+    return version ?? props.desc?.get("version");
   };
 
   useAsyncEffect(async () => {
@@ -146,18 +218,45 @@ export function TimeTravel(props: Props) {
   ]);
 
   const renderVersion = () => {
-    const max = (gitMode ? gitVersions : versions)?.size;
-    if (props.desc == null || max == null) {
-      return;
+    const v = gitMode ? gitVersions : versions;
+    if (v == null || v.size == 0) {
+      return null;
     }
+    const max = v.size;
     if (changesMode) {
-      return <VersionRange version0={version0} version1={version1} max={max} />;
-    } else {
-      const date = getVersion();
-      if (date == null || version == null) {
-        return;
+      if (version0 == null || version1 == null) {
+        return null;
       }
-      return <Version date={date} number={version + 1} max={max} />;
+      const i0 = versions.indexOf(version0);
+      if (i0 == -1) {
+        return null;
+      }
+      const i1 = versions.indexOf(version1);
+      if (i1 == -1) {
+        return null;
+      }
+      return (
+        <VersionRange
+          version0={i0 + startIndex}
+          version1={i1 + startIndex}
+          max={max + startIndex}
+        />
+      );
+    } else {
+      if (version == null) {
+        return null;
+      }
+      const i = versions.indexOf(version);
+      if (i == -1) {
+        return null;
+      }
+      return (
+        <Version
+          date={new Date(version)}
+          number={i + 1 + startIndex}
+          max={max + startIndex}
+        />
+      );
     }
   };
 
@@ -198,51 +297,44 @@ export function TimeTravel(props: Props) {
     if (changesMode && (version0 == null || version1 == null)) {
       return;
     }
-    const size = (gitMode ? gitVersions : versions)?.size;
-    if (size == null) {
-      return;
-    }
     return (
       <NavigationButtons
-        id={props.id}
-        actions={props.actions}
+        changesMode={changesMode}
+        versions={gitMode ? gitVersions : versions}
+        version={version}
+        setVersion={setVersion}
         version0={version0}
+        setVersion0={setVersion0}
         version1={version1}
-        max={size - 1}
+        setVersion1={setVersion1}
       />
     );
   };
 
   const renderNavigationSlider = () => {
-    const size = (gitMode ? gitVersions : versions)?.size;
-    if (size == null || changesMode) {
+    if (changesMode) {
       return;
     }
     return (
       <NavigationSlider
-        id={props.id}
-        actions={props.actions}
         version={version}
+        setVersion={setVersion}
         versions={gitMode ? gitVersions : versions}
       />
     );
   };
 
   const renderRangeSlider = () => {
-    if (version0 == null || version1 == null || !changesMode) {
-      return;
-    }
-    const v = gitMode ? gitVersions : versions;
-    if (v == null) {
+    if (!changesMode) {
       return;
     }
     return (
       <RangeSlider
-        id={props.id}
-        actions={props.actions}
-        versions={v}
+        versions={gitMode ? gitVersions : versions}
         version0={version0}
+        setVersion0={setVersion0}
         version1={version1}
+        setVersion1={setVersion1}
       />
     );
   };
@@ -259,11 +351,13 @@ export function TimeTravel(props: Props) {
     }
   };
 
-  const renderLoadFullHistory = () => {
-    if (hasFullHistory || gitMode) {
+  const renderLoadMoreHistory = () => {
+    if (gitMode || hasFullHistory) {
       return;
     }
-    return <LoadFullHistory id={props.id} actions={props.actions} />;
+    return (
+      <LoadMoreHistory actions={props.actions} disabled={hasFullHistory} />
+    );
   };
 
   const renderOpenFile = () => {
@@ -295,10 +389,9 @@ export function TimeTravel(props: Props) {
     const size = (gitMode ? gitVersions : versions)?.size ?? 0;
     return (
       <ChangesMode
-        id={props.id}
-        actions={props.actions}
         disabled={size <= 1}
-        changes_mode={changesMode}
+        changesMode={changesMode}
+        setChangesMode={setChangesMode}
       />
     );
   };
@@ -325,9 +418,7 @@ export function TimeTravel(props: Props) {
           <Tooltip title="Display underlying file as text">
             <Checkbox
               defaultChecked={textMode}
-              onChange={(e) =>
-                props.actions.setTextMode(props.id, e.target.checked)
-              }
+              onChange={(e) => setTextMode(e.target.checked)}
             >
               Text
             </Checkbox>
@@ -338,9 +429,7 @@ export function TimeTravel(props: Props) {
             <Tooltip title="Show Git history instead of CoCalc edit history">
               <Checkbox
                 defaultChecked={gitMode}
-                onChange={(e) =>
-                  props.actions.setGitMode(props.id, e.target.checked)
-                }
+                onChange={(e) => setGitMode(e.target.checked)}
               >
                 Git
               </Checkbox>
@@ -361,16 +450,20 @@ export function TimeTravel(props: Props) {
           </>
         )}
         {renderNavigationButtons()}
-        <div style={{ display: "inline-flex", margin: "0 5px" }}>
-          {renderLoadFullHistory()}
+        <Space.Compact style={{ margin: "0 5px" }}>
           {renderOpenFile()}
           {renderRevertFile()}
           {renderOpenSnapshots()}
           {renderExport()}
-        </div>
-        {renderVersion()}
-        {", "}
-        {renderAuthor()}
+          {renderLoadMoreHistory()}
+        </Space.Compact>
+        {(versions?.size ?? 0) > 0 && (
+          <>
+            {renderVersion()}
+            {", "}
+            {renderAuthor()}
+          </>
+        )}
       </div>
     );
   };
@@ -389,6 +482,7 @@ export function TimeTravel(props: Props) {
   };
 
   const renderGitSubject = () => {
+    if (version == null) return;
     const subject = props.actions.gitSubject(version);
     if (!subject) return;
     return (
@@ -456,3 +550,12 @@ export function TimeTravel(props: Props) {
     </div>
   );
 }
+
+const saveState = debounce((actions, obj) => {
+  for (const a of [actions, actions.ambient_actions]) {
+    if (a == null) continue;
+    const node = a._get_frame_node(obj.id);
+    if (node == null) continue;
+    a.set_frame_tree(obj);
+  }
+}, 2000);
