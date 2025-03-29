@@ -33,9 +33,10 @@ import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
-import { delay } from "awaiting";
 
 const EXTENSION = ".time-travel";
+
+// const log = (...args) => console.log("time-travel", ...args);
 
 // We use a global cache so if user closes and opens file
 // later it is fast.
@@ -91,6 +92,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (head != "") {
       this.docpath = head + "/" + this.docpath;
     }
+    // log("init", { path: this.path });
     this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
     if (this.docext == "ipynb") {
@@ -148,73 +150,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   };
 
-  private ensureSelectedVersionsAreConsistent = async (id?: string) => {
-    await delay(1);
-    if (id == null) {
-      const ids = new Set<string>();
-      for (const actions of [this.ambient_actions, this]) {
-        if (actions == null) continue;
-        for (const id in actions._get_leaf_ids()) {
-          const node = actions._get_frame_node(id);
-          if (node?.get("type") == "time_travel") {
-            ids.add(id);
-          }
-        }
-      }
-      for (const id of ids) {
-        this.ensureSelectedVersionsAreConsistent(id);
-      }
-      return;
-    }
-
-    for (const actions of [this.ambient_actions, this]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node?.get("type") != "time_travel") {
-        continue;
-      }
-      let { versions, version0, version1, version, changes_mode } =
-        this.getVersions(id);
-      if (versions == null || versions.size == 0) {
-        return;
-      }
-      if (changes_mode) {
-        let changed = false;
-        if (version0 == null || versions.indexOf(version0) == -1) {
-          version0 = versions.get(0)!;
-          changed = true;
-        }
-        if (version1 == null || versions.indexOf(version1) == -1) {
-          version1 = versions.get(-1)!;
-          changed = true;
-        }
-        if (changed) {
-          this.setVersions(id, version0, version1);
-        }
-      } else {
-        let changed = false;
-        if (version == null) {
-          changed = true;
-          version = versions.get(-1)!;
-        } else if (versions.indexOf(version) == -1) {
-          changed = true;
-          if (version < versions.get(0)!) {
-            version = versions.get(0)!;
-          } else if (version > versions.get(-1)!) {
-            version = versions.get(-1)!;
-          } else {
-            version = versions.get(-1)!;
-          }
-        }
-        if (changed) {
-          this.setVersions(id, version);
-        }
-      }
-      return;
-    }
-  };
-
   loadMoreHistory = async (): Promise<void> => {
+    // log("loadMoreHistory");
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
@@ -228,6 +165,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   private syncdoc_changed = (): void => {
+    //  log("syncdoc_changed");
     if (this.syncdoc == null) return;
     if (this.syncdoc?.get_state() != "ready") {
       return;
@@ -246,12 +184,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.setState({ versions, start_index });
     if (this.first_load) {
       this.first_load = false;
-      this.ensureSelectedVersionsAreConsistent();
     }
   };
 
   // Get the given version of the document.
   get_doc = (version: number): Document | undefined => {
+    // log("get_doc", version);
     if (this.syncdoc == null) {
       return;
     }
@@ -263,11 +201,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   get_account_ids = (version0: number, version1: number): string[] => {
+    // log("get_account_ids", version0, version1);
     if (this.syncdoc == null) {
       return [];
     }
     const account_ids: { [account_id: string]: boolean } = {};
-    for (let version = version0; version <= version1; version++) {
+    for (const version of Array.from(new Set([version0, version1]))) {
       if (version == null) {
         continue;
       }
@@ -283,6 +222,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   private getFrameNodeGlobal = (id: string) => {
+    // log("getFrameNodeGlobal", id);
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
@@ -291,177 +231,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     throw Error(`BUG -- no node with id ${id}`);
   };
 
-  private getVersions = (
-    id: string,
-  ): {
-    versions?: List<number>;
-    version?: number;
-    version0?: number;
-    version1?: number;
-    changes_mode?: boolean;
-    actions?;
-  } => {
-    for (const actions of [this, this.ambient_actions]) {
-      const node = actions?._get_frame_node(id);
-      if (node == null) {
-        continue;
-      }
-      return {
-        versions: node.get("git_mode")
-          ? this.store.get("git_versions")
-          : this.store.get("versions"),
-        version: node.get("version"),
-        version0: node.get("version0"),
-        version1: node.get("version1"),
-        changes_mode: node.get("changes_mode"),
-        actions,
-      };
-    }
-    return {};
-  };
-
-  step = (id: string, button: "first" | "prev" | "next" | "last"): void => {
-    let { versions, version0, version1, version, changes_mode } =
-      this.getVersions(id);
-    if (versions == null || versions.size == 0) {
-      return;
-    }
-    if (changes_mode) {
-      if (version0 == null) {
-        version0 = versions.get(0)!;
-      }
-      let i0 = versions.indexOf(version0);
-      if (i0 == -1) {
-        i0 = 0;
-      }
-      if (version1 == null) {
-        version1 = versions.get(-1)!;
-      }
-      let i1 = versions.indexOf(version1);
-      if (i1 == -1) {
-        i1 = versions.size - 1;
-      }
-      if (button == "first") {
-        this.setVersions(id, versions.get(0), versions.get(i1 - i0));
-      } else if (button == "last") {
-        this.setVersions(id, versions.get(i0 - i1 - 1), versions.get(-1));
-      } else if (button == "next") {
-        this.setVersions(id, versions.get(i0 + 1), versions.get(i1 + 1));
-      } else if (button == "prev") {
-        this.setVersions(id, versions.get(i0 - 1), versions.get(i1 - 1));
-      }
-      return;
-    } else {
-      if (version == null) {
-        version = versions.get(-1)!;
-      }
-      let i: number = -1;
-      if (button == "first") {
-        i = 0;
-      } else if (button == "last") {
-        i = versions.size - 1;
-      } else if (button == "prev") {
-        i = versions.indexOf(version) - 1;
-      } else if (button == "next") {
-        i = versions.indexOf(version) + 1;
-      }
-      if (i < 0) {
-        i = 0;
-      } else if (i >= versions.size) {
-        i = versions.size - 1;
-      }
-      this.setVersions(id, versions.get(i));
-    }
-  };
-
-  setChangesMode = (id: string, changes_mode: boolean): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      changes_mode = !!changes_mode;
-      actions.set_frame_tree({ id, changes_mode });
-      this.ensureSelectedVersionsAreConsistent(id);
-      return;
-    }
-  };
-
-  setTextMode = (id: string, text_mode: boolean): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      text_mode = !!text_mode;
-      actions.set_frame_tree({ id, text_mode });
-      break;
-    }
-  };
-
-  setGitMode = async (id: string, git_mode: boolean) => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      const cur = !!node.get("git_mode");
-      git_mode = !!git_mode;
-      if (cur != git_mode) {
-        // actually changing it
-        actions.set_frame_tree({ id, git_mode });
-        this.ensureSelectedVersionsAreConsistent(id);
-      }
-      break;
-    }
-  };
-
-  setVersions = (
-    id: string,
-    version0: number | undefined,
-    version1?: number | undefined,
-  ): void => {
-    const { versions, changes_mode, actions } = this.getVersions(id);
-    if (versions == null || versions.size == 0 || actions == null) {
-      // not configured.
-      return;
-    }
-    if (!changes_mode) {
-      let version = version0;
-      if (version == null) {
-        version = versions.get(-1)!;
-      }
-      if (version < versions.get(0)!) {
-        version = versions.get(0)!;
-      } else if (version > versions.get(-1)!) {
-        version = versions.get(-1)!;
-      }
-      actions.set_frame_tree({ id, version: version0 });
-    } else {
-      if (version0 == null) {
-        version0 = versions.get(0);
-      }
-      if (version1 == null) {
-        version1 = versions.get(-1);
-      }
-      if (version0 == null || version1 == null) {
-        throw Error("bug");
-      }
-      if (version0 >= version1) {
-        version0 = versions.get(versions.indexOf(version1) - 1) ?? 0;
-      }
-      if (version0 > versions.get(-1)!) {
-        version0 = versions.get(-1)!;
-      }
-      if (version0 < versions.get(0)!) {
-        version0 = versions.get(0)!;
-      }
-      if (version1 > versions.get(-1)!) {
-        version1 = versions.get(-1)!;
-      }
-      console.log("===> ", { version0, version1 });
-      actions.set_frame_tree({ id, version0, version1 });
-    }
-  };
-
   open_file = async (): Promise<void> => {
+    // log("open_file");
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path: this.docpath, foreground: true });
   };
@@ -472,6 +243,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     version: number,
     doc: Document,
   ): Promise<void> => {
+    // log("revert", { id, version, doc });
     const { syncdoc } = this;
     if (syncdoc == null) {
       return;
@@ -489,10 +261,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   open_snapshots = (): void => {
+    // log("open_snapshots");
     this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
   };
 
   exportEditHistory = async (): Promise<string> => {
+    // log("exportEditHistory");
     const path = await export_to_json(
       this.syncdoc,
       this.docpath,
@@ -509,6 +283,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   // async programmatical_goto_line() {}
 
   private gitCommand = async (args: string[], commit?: string) => {
+    // log("gitCommand", { args, commit });
     const { head, tail } = path_split(this.docpath);
     return await exec({
       command: "git",
@@ -520,6 +295,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   updateGitVersions = async () => {
+    // log("updateGitVersions");
     // versions is an ordered list of Date objects, one for each commit that involves this file.
     try {
       const { stdout } = await this.gitCommand([
@@ -553,7 +329,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         git: versions.length > 0,
         git_versions,
       });
-      this.ensureSelectedVersionsAreConsistent();
       return git_versions;
     } catch (_err) {
       // Do NOT report error -- instead, disable git mode.  This should
@@ -564,6 +339,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   private gitShow = async (version: number): Promise<string | undefined> => {
+    // log("gitShow", { version });
     const h = this.gitLog[version]?.hash;
     if (h == null) {
       return;
@@ -583,6 +359,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   gitNames = (version0: number, version1: number): string[] => {
+    // log("gitNames", { version0, version1 });
     const versions = this.store.get("git_versions");
     if (versions == null) {
       return [];
@@ -611,6 +388,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   gitSubject = (version: number): string | undefined => {
+    // log("gitSubject", { version });
     const versions = this.store.get("git_versions");
     if (versions == null) {
       return;
@@ -620,6 +398,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   gitDoc = async (version: number): Promise<ViewDocument | undefined> => {
+    // log("gitDoc", { version });
     const str = await this.gitShow(version);
     if (str == null) {
       return undefined;

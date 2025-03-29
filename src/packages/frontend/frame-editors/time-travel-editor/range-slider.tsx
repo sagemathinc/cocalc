@@ -10,30 +10,35 @@ Uses https://github.com/tajo/react-range
 */
 
 import { List } from "immutable";
-import { TimeTravelActions } from "./actions";
 import { TimeAgo } from "../../components";
 import { Slider } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
-  id: string;
-  actions: TimeTravelActions;
-  versions: List<number>;
-  version0: number;
-  version1: number;
+  versions?: List<number>;
+  version0?: number;
+  version1?: number;
+  setVersion0: (number) => void;
+  setVersion1: (number) => void;
 }
 
 export function RangeSlider({
-  id,
-  actions,
   versions,
   version0,
   version1,
+  setVersion0,
+  setVersion1,
 }: Props) {
   const { isVisible } = useFrameContext();
 
   // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
-  if (!isVisible || versions.size == 0) {
+  if (
+    !isVisible ||
+    versions == null ||
+    versions.size == 0 ||
+    version0 == null ||
+    version1 == null
+  ) {
     // invalid input
     return <div />;
   }
@@ -42,7 +47,8 @@ export function RangeSlider({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    actions.setVersions(id, versions.get(values[0]), versions.get(values[1]));
+    setVersion0(versions.get(values[0]));
+    setVersion1(versions.get(values[1]));
   };
 
   const renderTooltip = (index) => {
