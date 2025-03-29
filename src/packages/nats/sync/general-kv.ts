@@ -80,35 +80,34 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/nats/sync/general-kv"); s = new a.GeneralKV({name:'test',env,filter:['foo.>']}); await s.init();
 
-> await s.set({"foo.x":10}) // or s.set("foo.x", 10)
+> await s.set("foo.x", 10)
 > s.getAll()
 { 'foo.x': 10 }
 > await s.delete("foo.x")
 undefined
 > s.getAll()
 {}
-> await s.set({"foo.x":10, "foo.bar":20})
 
 // Since the filters are disjoint these are totally different:
 
-> t = new a.KV({name:'test',env,filter:['bar.>']}); await t.init();
+> t = new a.GeneralKV({name:'test',env,filter:['bar.>']}); await t.init();
 > await t.getAll()
 {}
-> await t.set({"bar.abc":10})
+> await t.set("bar.abc", 10)
 undefined
 > await t.getAll()
-{ 'bar.abc': Uint8Array(2) [ 49, 48 ] }
+{ 'bar.abc': 10}
 > await s.getAll()
-{ 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
+{ 'foo.x': 10 }
 
 // The union:
-> u = new a.KV({name:'test',env,filter:['bar.>', 'foo.>']}); await u.init();
+> u = new a.GeneralKV({name:'test',env,filter:['bar.>', 'foo.>']}); await u.init();
 > u.getAll()
-{ 'foo.x': 10, 'foo.bar': 20, 'bar.abc': 10 }
-> await s.set({'foo.x':999})
+{ 'foo.x': 10, 'bar.abc': 10 }
+> await s.set('foo.x', 999)
 undefined
 > u.getAll()
-{ 'foo.x': 999, 'foo.bar': 20, 'bar.abc': 10 }
+{ 'bar.abc': 10, 'foo.x': 999}
 */
 
 import { EventEmitter } from "events";
