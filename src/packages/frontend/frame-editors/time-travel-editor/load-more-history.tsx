@@ -8,12 +8,11 @@ import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
 interface Props {
-  id: string;
   actions: TimeTravelActions;
   disabled?: boolean;
 }
 
-export function LoadMoreHistory({ id, actions, disabled }: Props) {
+export function LoadMoreHistory({ actions, disabled }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   return (
     <Tooltip
@@ -34,7 +33,6 @@ export function LoadMoreHistory({ id, actions, disabled }: Props) {
             actions.set_error(`${err}`);
           } finally {
             setLoading(false);
-            actions.setNewestVersion(id);
           }
         }}
       >

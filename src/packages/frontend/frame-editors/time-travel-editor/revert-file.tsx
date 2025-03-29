@@ -10,7 +10,7 @@ import { Icon } from "../../components";
 interface Props {
   id: string;
   actions: TimeTravelActions;
-  version: Date | undefined;
+  version: number | undefined;
   doc;
   changesMode?: boolean;
 }

@@ -1052,10 +1052,16 @@ export class SyncDoc extends EventEmitter {
      possibly much older versions than returned by this.versions(), in
      case the full history has been loaded.  The list of timestamps
      is sorted from oldest to newest. */
-  public all_versions = (): Date[] => {
+  all_versions = (): Date[] => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.versions();
+  };
+
+  historyStartIndex = () => {
+    this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
+    return this.patch_list.startIndex();
   };
 
   public last_changed = (): Date => {

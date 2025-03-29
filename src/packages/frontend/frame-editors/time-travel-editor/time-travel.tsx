@@ -60,6 +60,7 @@ export function TimeTravel(props: Props) {
   const licenses = useLicenses({ project_id });
   const error = useEditor("error");
   const versions = useEditor("versions");
+  const startIndex = useEditor("start_index") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
   const loading = useEditor("loading");
@@ -79,13 +80,8 @@ export function TimeTravel(props: Props) {
   const version0 = changesMode ? props.desc?.get("version0") : version;
   const version1 = changesMode ? props.desc?.get("version1") : version;
 
-  const getDoc = async (
-    version?: number | Date | undefined,
-  ): Promise<Document | undefined> => {
-    version =
-      version == null || typeof version == "number"
-        ? getVersion(version)
-        : version;
+  const getDoc = async (version?: number): Promise<Document | undefined> => {
+    version = getVersion(version);
     if (version == null) {
       return;
     }
@@ -96,16 +92,11 @@ export function TimeTravel(props: Props) {
   };
 
   // convert from version number to Date object (or undefined)
-  const getVersion = (version?): Date | undefined => {
+  const getVersion = (version?: number): number | undefined => {
     if (props.desc == null || versions == null) {
       return;
     }
-    version = version ?? props.desc?.get("version");
-    const d: Date | undefined = (gitMode ? gitVersions : versions)?.get(
-      version,
-    );
-    if (d != null) return d;
-    return versions.get(-1);
+    return version ?? props.desc?.get("version");
   };
 
   useAsyncEffect(async () => {
@@ -151,13 +142,25 @@ export function TimeTravel(props: Props) {
       return;
     }
     if (changesMode) {
-      return <VersionRange version0={version0} version1={version1} max={max} />;
+      return (
+        <VersionRange
+          version0={versions.indexOf(version0) + startIndex}
+          version1={versions.indexOf(version1) + startIndex}
+          max={max + startIndex}
+        />
+      );
     } else {
       const date = getVersion();
       if (date == null || version == null) {
         return;
       }
-      return <Version date={date} number={version + 1} max={max} />;
+      return (
+        <Version
+          date={new Date(date)}
+          number={versions.indexOf(version) + 1 + startIndex}
+          max={max + startIndex}
+        />
+      );
     }
   };
 
@@ -198,17 +201,13 @@ export function TimeTravel(props: Props) {
     if (changesMode && (version0 == null || version1 == null)) {
       return;
     }
-    const size = (gitMode ? gitVersions : versions)?.size;
-    if (size == null) {
-      return;
-    }
     return (
       <NavigationButtons
         id={props.id}
         actions={props.actions}
+        versions={gitMode ? gitVersions : versions}
         version0={version0}
         version1={version1}
-        max={size - 1}
       />
     );
   };
@@ -264,11 +263,7 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-      <LoadMoreHistory
-        id={props.id}
-        actions={props.actions}
-        disabled={hasFullHistory}
-      />
+      <LoadMoreHistory actions={props.actions} disabled={hasFullHistory} />
     );
   };
 

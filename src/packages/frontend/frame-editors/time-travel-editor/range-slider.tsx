@@ -18,7 +18,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 interface Props {
   id: string;
   actions: TimeTravelActions;
-  versions: List<Date>;
+  versions: List<number>;
   version0: number;
   version1: number;
 }
@@ -33,12 +33,7 @@ export function RangeSlider({
   const { isVisible } = useFrameContext();
 
   // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
-  if (
-    !isVisible ||
-    versions.size == 0 ||
-    version0 < 0 ||
-    version1 >= versions.size
-  ) {
+  if (!isVisible || versions.size == 0) {
     // invalid input
     return <div />;
   }
@@ -47,16 +42,16 @@ export function RangeSlider({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    actions.setVersions(id, values[0], values[1]);
+    actions.setVersions(id, versions.get(values[0]), versions.get(values[1]));
   };
 
   const renderTooltip = (index) => {
-    const date = versions?.get(index);
-
-    if (date == null) {
-      return;
+    const d = versions.get(index);
+    if (d == null) {
       // shouldn't happen
+      return;
     }
+    const date = new Date(d);
     if (index == version0) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
@@ -84,7 +79,7 @@ export function RangeSlider({
         range
         min={0}
         max={versions.size - 1}
-        value={[version0, version1]}
+        value={[versions.indexOf(version0), versions.indexOf(version1)]}
         onChange={handleChange}
         tooltip={{ open: true, formatter: renderTooltip }}
       />

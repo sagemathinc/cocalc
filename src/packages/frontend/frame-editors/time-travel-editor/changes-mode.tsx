@@ -15,7 +15,7 @@ interface Props {
 
 export function ChangesMode(props: Props) {
   const toggle = () => {
-    props.actions.set_changes_mode(props.id, !props.changes_mode);
+    props.actions.setChangesMode(props.id, !props.changes_mode);
   };
 
   return (

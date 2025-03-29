@@ -30,9 +30,9 @@ export function NavigationSlider({ id, actions, version, versions }: Props) {
       style={{ margin: "10px 15px" }}
       min={0}
       max={versions.size - 1}
-      value={version}
+      value={versions.indexOf(version)}
       onChange={(value) => {
-        actions.set_version(id, value);
+        actions.setVersions(id, versions.get(value));
       }}
       tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />

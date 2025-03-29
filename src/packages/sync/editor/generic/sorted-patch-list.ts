@@ -671,4 +671,8 @@ export class SortedPatchList extends EventEmitter {
   getIndex = (time: Date): number | undefined => {
     return this.times[time.valueOf()]?.index;
   };
+
+  startIndex = (): number | undefined => {
+    return this.patches[0]?.index;
+  };
 }
