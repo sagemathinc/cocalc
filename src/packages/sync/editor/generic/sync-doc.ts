@@ -1820,6 +1820,12 @@ export class SyncDoc extends EventEmitter {
     return query;
   };
 
+  private setLastSnapshot(last_snapshot?: Date) {
+    // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot.
+    this.last_snapshot = last_snapshot;
+    this.patch_list?.setLastSnapshot(last_snapshot);
+  }
+
   private async init_patch_list(): Promise<void> {
     this.assert_not_closed("init_patch_list - start");
     const dbg = this.dbg("init_patch_list");
@@ -1831,7 +1837,7 @@ export class SyncDoc extends EventEmitter {
     // to it only after we're done.
     delete this.patch_list;
 
-    const patch_list = new SortedPatchList(this._from_str);
+    const patch_list = new SortedPatchList(this._from_str, this.last_snapshot);
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
@@ -2310,7 +2316,7 @@ export class SyncDoc extends EventEmitter {
       last_snapshot: time,
       last_seq,
     });
-    this.last_snapshot = time;
+    this.setLastSnapshot(time);
     this.last_seq = last_seq;
   });
 
@@ -2641,7 +2647,7 @@ export class SyncDoc extends EventEmitter {
   private handle_syncstring_update_new_document = async (): Promise<void> => {
     // Brand new document
     this.emit("load-time-estimate", { type: "new", time: 1 });
-    this.last_snapshot = undefined;
+    this.setLastSnapshot();
     this.last_seq = undefined;
     this.snapshot_interval =
       schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval ??
@@ -2683,7 +2689,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
     // TODO: handle doctype change here (?)
-    this.last_snapshot = x.last_snapshot;
+    this.setLastSnapshot(x.last_snapshot);
     this.last_seq = x.last_seq;
     this.snapshot_interval = x.snapshot_interval ?? DEFAULT_SNAPSHOT_INTERVAL;
     this.users = x.users ?? [];

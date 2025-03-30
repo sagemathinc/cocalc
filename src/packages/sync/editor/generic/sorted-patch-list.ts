@@ -15,13 +15,16 @@ import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
 import { Entry, PatchValueCache } from "./patch-value-cache";
 
 // Make this bigger to make things faster... at the
-// cost of using more memory.
+// cost of using more memory.  TODO: a global LRU cache
+// accounting for size might make more sense (?).
 const MAX_PATCHLIST_CACHE_SIZE = 20;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
+  private last_snapshot?: Date;
   private patches: Patch[] = [];
-  private unusedSnapshots: { [time: number]: Patch } = {};
+  private heldSnapshots: { [time: number]: Patch } = {};
+  private heldPatches: { [time: number]: Patch } = {};
 
   // the patches indexed by time
   private times: { [time: number]: Patch } = {};
@@ -33,9 +36,30 @@ export class SortedPatchList extends EventEmitter {
   // all the times when there are snapshots.
   private all_snapshot_times: { [time: string]: boolean } = {};
 
-  constructor(from_str) {
+  constructor(from_str, last_snapshot?: Date) {
     super();
     this.from_str = from_str;
+    this.last_snapshot = last_snapshot;
+  }
+
+  setLastSnapshot(last_snapshot?: Date) {
+    const prev = this.last_snapshot;
+    this.last_snapshot = last_snapshot;
+    if (prev != null && (last_snapshot ?? new Date(0)) < prev) {
+      // moving the last_snapshot time back in time, e.g., due to loading more history.
+      // In this case we should check if any of the held patches are within the new window.
+      const cutoff = (last_snapshot ?? new Date(0)).valueOf();
+      const patches: Patch[] = [];
+      for (const t in this.heldPatches) {
+        if (parseInt(t) >= cutoff) {
+          patches.push(this.heldPatches[t]);
+          delete this.heldPatches[t];
+        }
+      }
+      if (patches.length > 0) {
+        this.add(patches);
+      }
+    }
   }
 
   close = (): void => {
@@ -90,8 +114,21 @@ export class SortedPatchList extends EventEmitter {
     // in the stream.
     const v: { [time: number]: Patch } = {};
     let oldest: Date | undefined = undefined;
-    for (const x of patches) {
+    for (const originalPatch of patches) {
+      // we make a shallow copy of the original patch, since this code
+      // may shallow mutate it, e.g., filling in the snapshot info, and
+      // we want to avoid any surprises/bugs (mainly with unit tests)
+      const x = { ...originalPatch };
       const t: number = x.time.valueOf();
+
+      if (this.last_snapshot != null && x.time < this.last_snapshot) {
+        // this is a patch that was added late (e.g., due to a user being
+        // offline), so it's time is before we are even interested, but its
+        // sequence numbrer is large.  We will only look at it if the
+        // user decides to load more history, which updates last_snapshot.
+        this.heldPatches[t] = x;
+        continue;
+      }
       const cur = this.times[t] ?? v[t];
       if (x.is_snapshot) {
         // it's a snapshot
@@ -105,7 +142,7 @@ export class SortedPatchList extends EventEmitter {
         } else {
           // The corresponding patch was NOT yet loaded, so just
           // store this for later, in case it is loaded later.
-          this.unusedSnapshots[t] = x;
+          this.heldSnapshots[t] = x;
         }
         // never include a snapshot message -- these just change patches,
         // and are not patches themselves.
@@ -113,13 +150,13 @@ export class SortedPatchList extends EventEmitter {
       } else {
         // not a snapshot, but maybe it's a patch for a snapshot that
         // was already loaded or just a new patch
-        if (this.unusedSnapshots[t] != null) {
+        if (this.heldSnapshots[t] != null) {
           // It is for a snapshot, so merge in that snapshot info to x,
           // then handle x as normal below.
           x.is_snapshot = true;
-          x.snapshot = this.unusedSnapshots[t].snapshot;
-          x.seq_info = this.unusedSnapshots[t].seq_info;
-          delete this.unusedSnapshots[t];
+          x.snapshot = this.heldSnapshots[t].snapshot;
+          x.seq_info = this.heldSnapshots[t].seq_info;
+          delete this.heldSnapshots[t];
         }
         if (cur != null) {
           // We already have a patch with this time.  Update it, if necessary?
