@@ -99,8 +99,6 @@ import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
-export const KEY_HEADER_NAME = "CoCalc-Key";
-
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
   noAutosave?: boolean;
@@ -312,6 +310,12 @@ export class DKV<T = any> extends EventEmitter {
   //   https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-20.md#object-name
   private encodeKey = (key) => `${this.prefix}.${btoa(key)}`;
 
+  // decodeKey is the inverse of encodeKey
+  private decodeKey = (encodedKey) => {
+    const v = encodedKey.split(".");
+    return atob(v[1]);
+  };
+
   has = (key: string): boolean => {
     if (this.generalDKV == null) {
       throw Error("closed");
@@ -343,12 +347,7 @@ export class DKV<T = any> extends EventEmitter {
     if (this.keys[k] != null) {
       return this.keys[k];
     }
-    const h = this.generalDKV?.headers(k);
-    if (h?.[KEY_HEADER_NAME] == null) {
-      //console.warn("headers = ", h);
-      throw Error(`missing header '${KEY_HEADER_NAME}' for key '${k}'`);
-    }
-    return atob(h[KEY_HEADER_NAME]);
+    return this.decodeKey(k);
   };
 
   headers = (key: string) => {
@@ -384,7 +383,7 @@ export class DKV<T = any> extends EventEmitter {
     const encodedKey = this.encodeKey(key);
     this.keys[encodedKey] = key;
     this.generalDKV.set(encodedKey, value, {
-      headers: { ...options?.headers, [KEY_HEADER_NAME]: btoa(key) },
+      headers: { ...options?.headers },
     });
     this.updateInventory();
   };

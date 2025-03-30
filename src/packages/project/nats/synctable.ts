@@ -1,7 +1,6 @@
 import getConnection from "./connection";
 import { project_id } from "@cocalc/project/data";
 import { JSONCodec } from "nats";
-import { sha1 } from "@cocalc/backend/sha1";
 import {
   createSyncTable,
   type NatsSyncTable,
@@ -30,7 +29,7 @@ const synctable: NatsSyncTableFunction = async (
     project_id,
     ...options,
     query,
-    env: { sha1, jc, nc },
+    env: { jc, nc },
   });
   await s.init();
   return s;

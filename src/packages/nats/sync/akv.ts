@@ -14,7 +14,7 @@ There is no need to close this because it is stateless.
 
 import { GeneralKV } from "./general-kv";
 import { getEnv } from "@cocalc/nats/client";
-import { type DKVOptions, getPrefix, KEY_HEADER_NAME } from "./dkv";
+import { type DKVOptions, getPrefix } from "./dkv";
 import { once } from "@cocalc/util/async-utils";
 import { jsName } from "@cocalc/nats/names";
 
@@ -113,7 +113,7 @@ export class AKV<T = any> {
     const kv = await this.getGeneralKVForOneKey(key);
     const filter = this.encodeKey(key);
     await kv.set(filter, value, {
-      headers: { ...options?.headers, [KEY_HEADER_NAME]: btoa(key) },
+      headers: { ...options?.headers },
     });
   };
 }

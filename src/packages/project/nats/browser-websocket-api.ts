@@ -41,7 +41,6 @@ import { JSONCodec } from "nats";
 import getConnection from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
-import { sha1 } from "@cocalc/backend/sha1";
 import { getSubject } from "./names";
 
 const logger = getLogger("project:nats:browser-websocket-api");
@@ -59,7 +58,7 @@ export async function init() {
     subject: getSubject({
       service: "primus",
     }),
-    env: { nc, sha1, jc },
+    env: { nc, jc },
     role: "server",
     id: "project",
   });
