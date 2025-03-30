@@ -32,7 +32,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
-import { sha1 } from "@cocalc/util/misc";
 import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
@@ -389,10 +388,7 @@ const cache = refCache<UserStreamOptions, DStream>({
     // of options unless it is backwards compatible, or all user data
     // involving streams will just go poof!
     const uniqueFilter = JSON.stringify([name, valueType]);
-    const filter = subjects.replace(
-      ">",
-      (options.env.sha1 ?? sha1)(uniqueFilter),
-    );
+    const filter = subjects.replace(">", btoa(uniqueFilter));
     const dstream = new DStream({
       ...options,
       name,

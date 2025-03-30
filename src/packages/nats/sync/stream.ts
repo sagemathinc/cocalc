@@ -52,7 +52,6 @@ import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
 import { map as awaitMap } from "awaiting";
-import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
@@ -811,7 +810,7 @@ export const cache = refCache<UserStreamOptions, Stream>({
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
-    const filter = subjects.replace(">", (options.env.sha1 ?? sha1)(name));
+    const filter = subjects.replace(">", btoa(name));
     const stream = new Stream({
       ...options,
       name,

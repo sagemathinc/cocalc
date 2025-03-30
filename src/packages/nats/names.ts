@@ -3,7 +3,7 @@ Names we use with nats.
 
 For Jetstream:
 
-project-{project_id}-{compute_server_id}[.-service][.-sha1(path)]
+project-{project_id}-{compute_server_id}[.-service][.-{btoa(path)}]
 
 For Subjects:
 
@@ -11,7 +11,6 @@ For Subjects:
 
 */
 
-import { sha1 } from "@cocalc/util/misc";
 import generateVouchers from "@cocalc/util/vouchers";
 import type { Location } from "./types";
 
@@ -124,7 +123,7 @@ export function projectSubject({
   service,
   project_id,
   compute_server_id,
-  // path = optional name of specific path for that microservice -- replaced by its sha1
+  // path = optional name of specific path for that microservice -- replaced by its base64 encoding
   path,
 }: {
   project_id: string;
@@ -140,7 +139,7 @@ export function projectSubject({
     project_id,
     compute_server_id ?? "-",
     service ?? "-",
-    path ? sha1(path) : "-",
+    path ? btoa(path) : "-",
   ];
   return segments.join(".");
 }
@@ -149,7 +148,7 @@ export function projectStreamName({
   project_id,
   // service = optional name of the microservice, e.g., 'api', 'terminal'
   service,
-  // path = optional name of specific path for that microservice -- replaced by its sha1
+  // path = optional name of specific path for that microservice -- replaced by its base64 encoding
   path,
 }: {
   project_id: string;
@@ -163,7 +162,7 @@ export function projectStreamName({
   if (service) {
     streamName += "-" + service;
     if (path) {
-      streamName += "-" + sha1(path);
+      streamName += "-" + btoa(path);
     }
   }
   return streamName;

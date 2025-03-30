@@ -17,19 +17,12 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
-    "prepublishOnly": "pnpm test"
+    "prepublishOnly": "pnpm test",
+    "test": "echo 'see packages/backend/nats/tests instead'"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "nats",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "nats", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",
@@ -43,8 +36,7 @@
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.21",
-    "sha1": "^1.1.1"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@types/json-stable-stringify": "^1.0.32",

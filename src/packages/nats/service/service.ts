@@ -17,7 +17,7 @@ import {
   type ServiceIdentity,
 } from "@nats-io/services";
 import { type NatsEnv, type Location } from "@cocalc/nats/types";
-import { sha1, trunc_middle } from "@cocalc/util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { getEnv } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
@@ -124,7 +124,7 @@ export function serviceSubject({
   path,
 }: ServiceDescription): string {
   let segments;
-  path = path ? sha1(path) : "_";
+  path = path ? btoa(path) : "_";
   if (!project_id && !account_id) {
     segments = ["public", service];
   } else if (account_id) {

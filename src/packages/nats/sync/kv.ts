@@ -18,7 +18,6 @@ import { type NatsEnv, type Location } from "@cocalc/nats/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { GeneralKV, type KVLimits } from "./general-kv";
 import { jsName, localLocationName } from "@cocalc/nats/names";
-import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
@@ -37,7 +36,6 @@ export class KV<T = any> extends EventEmitter {
   generalKV?: GeneralKV<T>;
   name: string;
   private prefix: string;
-  private sha1;
 
   constructor(options: KVOptions) {
     super();
@@ -48,8 +46,7 @@ export class KV<T = any> extends EventEmitter {
     if (env == null) {
       throw Error("env must be defined");
     }
-    this.sha1 = env.sha1 ?? sha1;
-    this.prefix = this.sha1(this.name);
+    this.prefix = btoa(this.name);
     this.generalKV = new GeneralKV({
       name: kvname,
       filter: `${this.prefix}.>`,
@@ -106,7 +103,7 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.delete(`${this.prefix}.${this.sha1(key)}`);
+    await this.generalKV.delete(`${this.prefix}.${btoa(key)}`);
   };
 
   // delete everything
@@ -122,16 +119,14 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    return this.generalKV.time(
-      key ? `${this.prefix}.${this.sha1(key)}` : undefined,
-    );
+    return this.generalKV.time(key ? `${this.prefix}.${btoa(key)}` : undefined);
   };
 
   get = (key: string): T | undefined => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    return this.generalKV.get(`${this.prefix}.${this.sha1(key)}`);
+    return this.generalKV.get(`${this.prefix}.${btoa(key)}`);
   };
 
   getAll = (): { [key: string]: T } => {
@@ -155,7 +150,7 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.set(`${this.prefix}.${this.sha1(key)}`, value, {
+    await this.generalKV.set(`${this.prefix}.${btoa(key)}`, value, {
       headers: { key: btoa(key) },
     });
   };

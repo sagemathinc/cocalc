@@ -72,6 +72,7 @@ describe("test that complicated keys work", () => {
 
   it("creates complicated keys that ARE allowed", async () => {
     for (const k of [
+      `foo.${base64}`,
       "foo.!@#$%^&()",
       "foo.bar.baz!.bl__-+#@ah.nat\\s",
       "foo.CoCalc-和-NATS-的结合非常棒!",
@@ -96,6 +97,24 @@ describe("test that complicated keys work", () => {
     }
   });
 
+  it("clear and closes the kv", async () => {
+    await kv.clear();
+    kv.close();
+  });
+});
+
+const base64 =
+  "0123456789+/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz=";
+
+describe("a complicated filter", () => {
+  let kv, env;
+  const name = `test-${Math.round(1000 * Math.random())}`;
+
+  it("creates the kv", async () => {
+    env = await getEnv();
+    kv = new GeneralKV({ name, env, filter: [`${base64}.>`] });
+    await kv.init();
+  });
   it("clear and closes the kv", async () => {
     await kv.clear();
     kv.close();

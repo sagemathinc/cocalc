@@ -226,6 +226,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       ...this.options,
     });
     this.kv.validateKey = validateKey;
+    this.kv.validateSearchKey = validateSearchKey;
     const { all, revisions, times, headers } = await getAllFromKv({
       kv: this.kv,
       key: this.filter,
@@ -1041,6 +1042,9 @@ async function jetstreamPut(
 // see https://github.com/nats-io/nats.js/issues/246
 // In particular, we need this just to be able to support
 // base64 encoded keys!
+
+// upstream is: /^[-/=.\w]+$/;
+
 const validKeyRe = /^[^\u0000\s*>]+$/;
 function validateKey(k: string) {
   if (k.startsWith(".") || k.endsWith(".") || !validKeyRe.test(k)) {
@@ -1048,3 +1052,10 @@ function validateKey(k: string) {
   }
 }
 
+// upstream is: /^[-/=.>*\w]+$/;
+const validSearchKey = /^[^\u0000\s]+$/
+export function validateSearchKey(k: string) {
+  if (k.startsWith(".") || k.endsWith(".") || !validSearchKey.test(k)) {
+    throw new Error(`invalid key: ${k}`);
+  }
+}

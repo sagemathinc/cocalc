@@ -71,9 +71,7 @@ function getKey({ subject, channelName, role, id }: PrimusOptions) {
   return JSON.stringify({ subject, channelName, role, id });
 }
 
-function getSubjects({ subject, id, channel, sha1 }) {
-  // NOTE: when channel is set its sha1 is added as a last
-  // segment after all of these.
+function getSubjects({ subject, id, channel }) {
   const subjects = {
     // control = request/response control channel; clients tell
     //           server they are connecting via this
@@ -90,8 +88,8 @@ function getSubjects({ subject, id, channel, sha1 }) {
     serverChannel: `${subject}.channel.server`,
   };
   if (channel) {
-    // use sha1 so channel can be any string.
-    const segment = sha1(channel);
+    // use btoa (base64 encoding) so channel can be any string.
+    const segment = btoa(channel);
     for (const k in subjects) {
       subjects[k] += `.${segment}`;
     }
@@ -144,7 +142,6 @@ export class Primus extends EventEmitter {
       subject,
       id,
       channel: channelName,
-      sha1: env.sha1,
     });
     if (role == "server") {
       this.serve();
@@ -323,7 +320,6 @@ export class Spark extends EventEmitter {
       subject,
       id,
       channel: channelName,
-      sha1: primus.env.sha1,
     });
     this.init();
   }

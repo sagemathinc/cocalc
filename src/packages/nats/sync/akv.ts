@@ -16,7 +16,6 @@ import { GeneralKV } from "./general-kv";
 import { getEnv } from "@cocalc/nats/client";
 import { type DKVOptions, getPrefix, KEY_HEADER_NAME } from "./dkv";
 import { once } from "@cocalc/util/async-utils";
-import { sha1 } from "@cocalc/util/misc";
 import { jsName } from "@cocalc/nats/names";
 
 export class AKV<T = any> {
@@ -27,14 +26,13 @@ export class AKV<T = any> {
     this.options = options;
     const { name, valueType = "json" } = options;
     this.prefix = getPrefix({
-      sha1,
       name,
       valueType,
       options,
     });
   }
 
-  private encodeKey = (key) => `${this.prefix}.${sha1(key)}`;
+  private encodeKey = (key) => `${this.prefix}.${btoa(key)}`;
 
   private getGeneralKVForOneKey = async (
     key: string,

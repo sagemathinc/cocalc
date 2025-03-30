@@ -9,7 +9,7 @@ It uses a NATS stream to store the elements in a well defined order.
 
 import jsonStableStringify from "json-stable-stringify";
 import { keys } from "lodash";
-import { cmp_Date, is_array, isValidUUID, sha1 } from "@cocalc/util/misc";
+import { cmp_Date, is_array, isValidUUID } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
@@ -79,8 +79,9 @@ export class SyncTableStream extends EventEmitter {
     if (!this.path) {
       throw Error("path MUST be specified");
     }
-    query[table][0].string_id = this.string_id = (env.sha1 ?? sha1)(
-      `${this.project_id}${this.path}`,
+    query[table][0].string_id = this.string_id = client_db.sha1(
+      this.project_id,
+      this.path,
     );
     this.primaryKeys = client_db.primary_keys(table);
   }

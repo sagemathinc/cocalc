@@ -13,8 +13,6 @@ export interface NatsEnv {
   // nats connection, but frontend extends it to be an EventEmitter
   nc: NatsConnection;
   jc; // jsoncodec
-  // compute sha1 hash efficiently (set differently on backend)
-  sha1?: (string) => string;
 }
 
 export type State = "disconnected" | "connected" | "closed";

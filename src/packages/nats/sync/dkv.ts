@@ -93,7 +93,6 @@ import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
 import { jsName } from "@cocalc/nats/names";
 import { userKvKey, type KVOptions } from "./kv";
 import { localLocationName } from "@cocalc/nats/names";
-import { sha1 } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
@@ -112,7 +111,6 @@ export class DKV<T = any> extends EventEmitter {
   generalDKV?: GeneralDKV;
   name: string;
   private prefix: string;
-  private sha1;
   private opts;
   private keys: { [encodedKey: string]: string } = {};
 
@@ -142,10 +140,9 @@ export class DKV<T = any> extends EventEmitter {
       this.updateInventory = () => {};
     }
     // name of the jetstream key:value store.
-    this.sha1 = env.sha1 ?? sha1;
     this.name = name;
 
-    this.prefix = getPrefix({ sha1: this.sha1, name, valueType, options });
+    this.prefix = getPrefix({ name, valueType, options });
 
     this.opts = {
       location: { account_id, project_id },
@@ -307,9 +304,13 @@ export class DKV<T = any> extends EventEmitter {
   // WARNING: (1) DO NOT CHANGE THIS or all stored data will become invalid.
   //          (2) This definition is used implicitly in akv.ts also!
   // The encoded key which we actually store in NATS.   It has to have
-  // a very, very restricted form and size, and a specified prefix, which
+  // a restricted form, and a specified prefix, which
   // is why the hashing, etc.  This allows arbitrary keys.
-  private encodeKey = (key) => `${this.prefix}.${this.sha1(key)}`;
+  // We have to monkey patch nats to accept even base64 keys!)
+  // There are NOT issues with key length though.  This same strategy of encoding
+  // keys using base64 is used by Nats object store:
+  //   https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-20.md#object-name
+  private encodeKey = (key) => `${this.prefix}.${btoa(key)}`;
 
   has = (key: string): boolean => {
     if (this.generalDKV == null) {
@@ -461,8 +462,8 @@ export class DKV<T = any> extends EventEmitter {
 // The recipe for 'this.prefix' must never be changed, because
 // it determines where the data is actually stored.  If you change
 // it, then every user's data vanishes.
-export function getPrefix({ sha1, name, valueType, options }) {
-  return sha1(JSON.stringify([name, valueType, localLocationName(options)]));
+export function getPrefix({ name, valueType, options }) {
+  return btoa(JSON.stringify([name, valueType, localLocationName(options)]));
 }
 
 export const cache = refCache<DKVOptions, DKV>({

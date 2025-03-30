@@ -6,7 +6,7 @@ DEVELOPMENT:
 > c.state
 'connected'
 > Object.keys(await c.getNatsEnv())
-[ 'nc', 'jc', 'sha1' ]
+[ 'nc', 'jc' ]
 */
 
 import type { NatsEnv, NatsEnvFunction } from "@cocalc/nats/types";
