@@ -164,7 +164,7 @@ export interface UndoState {
 // NOTE: Do not make multiple SyncDoc's for the same document, especially
 // not on the frontend.  Proper reference counted handling of this is done
 // at sync/client/sync-client.ts, or in some applications where you can easily
-// be sure there is only reference, just be sure. 
+// be sure there is only reference, just be sure.
 
 export class SyncDoc extends EventEmitter {
   public readonly project_id: string; // project_id that contains the doc

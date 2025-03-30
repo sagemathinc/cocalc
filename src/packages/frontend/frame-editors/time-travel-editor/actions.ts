@@ -139,6 +139,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (this.syncdoc.get_state() != "ready") {
       await once(this.syncdoc, "ready");
     }
+    // cause initial load -- we could be plugging into an already loaded syncdoc,
+    // so there wouldn't be any change event, so we have to trigger this.
+    this.syncdoc_changed();
     this.syncdoc.on("close", () => {
       // in our code we don't check if the state is closed, but instead
       // that this.syncdoc is not null.
