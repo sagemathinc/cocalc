@@ -1870,7 +1870,7 @@ export class SyncDoc extends EventEmitter {
       update_has_unsaved_changes();
     });
 
-    dbg("adding patches");
+    dbg("adding all known patches");
     patch_list.add(this.get_patches());
 
     const doc = patch_list.value();
@@ -2225,7 +2225,7 @@ export class SyncDoc extends EventEmitter {
       // TODO: just for NATS right now!
       x = fromJS(obj);
     }
-    const y = this.process_patch(x, undefined, undefined, patch);
+    const y = this.process_patch(x, patch);
     if (y != null) {
       assertDefined(this.patch_list);
       this.patch_list.add([y]);
@@ -2354,15 +2354,11 @@ export class SyncDoc extends EventEmitter {
   };
 
   /*- x - patch object
-    - time0, time1: optional range of times
-        return undefined if patch not in this range
     - patch: if given will be used as an actual patch
         instead of x.patch, which is a JSON string.
   */
   private process_patch = (
     x: Map<string, any>,
-    time0?: Date,
-    time1?: Date,
     patch?: any,
   ): Patch | undefined => {
     let t = x.get("time");
@@ -2380,11 +2376,6 @@ export class SyncDoc extends EventEmitter {
       }
     }
     const time: Date = t;
-    if ((time0 != null && time < time0) || (time1 != null && time > time1)) {
-      // out of range
-      return;
-    }
-
     const user_id: number = x.get("user_id");
     const sent: Date = x.get("sent");
     const prev: Date | undefined = x.get("prev");
@@ -2448,12 +2439,9 @@ export class SyncDoc extends EventEmitter {
      If time0 undefined then sets time0 equal to time of last_snapshot.
      If time1 undefined treated as +oo.
   */
-  private get_patches = (time0?: Date, time1?: Date): Patch[] => {
+  private get_patches = (): Patch[] => {
     this.assert_table_is_ready("patches");
 
-    if (time0 == null) {
-      time0 = this.last_snapshot;
-    }
     // m below is an immutable map with keys the string that
     // is the JSON version of the primary key
     // [string_id, timestamp, user_number].
@@ -2468,7 +2456,7 @@ export class SyncDoc extends EventEmitter {
     }
     const v: Patch[] = [];
     m.forEach((x, _) => {
-      const p = this.process_patch(x, time0, time1);
+      const p = this.process_patch(x);
       if (p != null) {
         return v.push(p);
       }
@@ -2516,7 +2504,6 @@ export class SyncDoc extends EventEmitter {
           if (dstream.seq(i) == prev_seq) {
             // this is the one
             const d = new Date(mesg.time);
-            console.log("found it -- setting ", d, mesg);
             patch_list.setFirstSnapshot(d);
             break;
           }

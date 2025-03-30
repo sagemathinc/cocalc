@@ -45,7 +45,6 @@ export class SortedPatchList extends EventEmitter {
   setFirstSnapshot = (firstSnapshot?: Date) => {
     const prev = this.firstSnapshot;
     this.firstSnapshot = firstSnapshot;
-    console.log("setFirstSnapshot", this.firstSnapshot);
     if (prev != null && (firstSnapshot ?? new Date(0)) < prev) {
       // moving the firstSnapshot time back in time, e.g., due to loading more history.
       // In this case we should check if any of the held patches are within the new window.
@@ -127,7 +126,11 @@ export class SortedPatchList extends EventEmitter {
         // offline), so it's time is before we are even interested, but its
         // sequence numbrer is large.  We will only look at it if the
         // user decides to load more history, which updates firstSnapshot.
-        this.heldPatches[t] = x;
+        if (x.is_snapshot) {
+          this.heldSnapshots[t] = x;
+        } else {
+          this.heldPatches[t] = x;
+        }
         continue;
       }
       const cur = this.times[t] ?? v[t];
