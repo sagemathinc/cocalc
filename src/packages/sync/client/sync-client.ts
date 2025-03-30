@@ -23,10 +23,17 @@ import synctable_project from "./synctable-project";
 import type { Channel, AppClient } from "./types";
 import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
 
-interface SyncOpts extends Omit<SyncOpts0, "client"> {}
+import { refCacheSync } from "@cocalc/util/refcache";
+
+interface SyncOpts extends Omit<SyncOpts0, "client"> {
+  noCache?: boolean;
+  client?: AppClient;
+}
 
 interface SyncDBOpts extends Omit<SyncDBOpts0, "client" | "string_cols"> {
   string_cols?: string[];
+  noCache?: boolean;
+  client?: AppClient;
 }
 
 export class SyncClient {
@@ -98,43 +105,11 @@ export class SyncClient {
   }
 
   public sync_string(opts: SyncOpts): SyncString {
-    const opts0: SyncOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      persistent: false,
-      data_server: undefined,
-      client: this.client,
-      ephemeral: false,
-    });
-    return new SyncString(opts0);
+    return syncstringCache({ ...opts, client: this.client });
   }
 
-  public sync_db(opts: SyncDBOpts): SyncDoc {
-    const opts0: SyncDBOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      change_throttle: undefined,
-      persistent: false,
-      data_server: undefined,
-
-      primary_keys: required,
-      string_cols: [],
-
-      client: this.client,
-
-      ephemeral: false,
-    });
-    return new SyncDB(opts0);
+  public sync_db(opts: SyncDBOpts): SyncDB {
+    return syncdbCache({ ...opts, client: this.client });
   }
 
   public async open_existing_sync_document({
@@ -164,3 +139,56 @@ export class SyncClient {
     });
   }
 }
+
+const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
+  createKey: ({ project_id, path }: SyncDBOpts) => {
+    return JSON.stringify({ project_id, path });
+  },
+
+  createObject: (opts: SyncDBOpts) => {
+    const opts0: SyncDBOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      change_throttle: undefined,
+      persistent: false,
+      data_server: undefined,
+
+      primary_keys: required,
+      string_cols: [],
+
+      client: required,
+
+      ephemeral: false,
+    });
+    return new SyncDB(opts0);
+  },
+});
+
+const syncstringCache = refCacheSync<SyncOpts, SyncString>({
+  createKey: ({ project_id, path }: SyncOpts) => {
+    const key = JSON.stringify({ project_id, path });
+    return key;
+  },
+
+  createObject: (opts: SyncOpts) => {
+    const opts0: SyncOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      persistent: false,
+      data_server: undefined,
+      client: required,
+      ephemeral: false,
+    });
+    return new SyncString(opts0);
+  },
+});

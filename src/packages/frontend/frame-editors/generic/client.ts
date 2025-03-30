@@ -177,7 +177,7 @@ export function syncstring(opts: SyncstringOpts): any {
 
 import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
 
-import { SyncString } from "@cocalc/sync/editor/string/sync";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -192,7 +192,7 @@ interface SyncstringOpts2 {
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncString(opts1);
+  return webapp_client.sync_client.sync_string(opts1);
 }
 
 export interface SyncDBOpts {
@@ -214,7 +214,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -222,7 +222,7 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   }
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncDB(opts1);
+  return webapp_client.sync_client.sync_db(opts1);
 }
 
 interface QueryOpts {

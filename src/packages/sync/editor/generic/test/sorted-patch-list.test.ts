@@ -323,29 +323,29 @@ describe("Test inserting missing patches (thus changing history)", () => {
   });
 });
 
-describe("Test last_snapshot", () => {
+describe("Test firstSnapshot", () => {
   let patches: SortedPatchList;
-  const last_snapshot = new Date("2025-01-01T00:00:00.000Z");
+  const firstSnapshot = new Date("2025-01-01T00:00:00.000Z");
 
   const w = [make_patch("", "x"), make_patch("", "y")];
 
   const v = [
     {
-      time: new Date(last_snapshot.valueOf() + 10000),
+      time: new Date(firstSnapshot.valueOf() + 10000),
       patch: w[0],
       user_id: 0,
       size: JSON.stringify(w[0]).length,
     },
     {
-      time: new Date(last_snapshot.valueOf() - 10000),
+      time: new Date(firstSnapshot.valueOf() - 10000),
       patch: w[1],
       user_id: 0,
       size: JSON.stringify(w[0]).length,
     },
   ];
 
-  it(`creates a sorted patch list with last_snapshot=${last_snapshot}`, () => {
-    patches = new SortedPatchList(from_str, last_snapshot);
+  it(`creates a sorted patch list with firstSnapshot=${firstSnapshot}`, () => {
+    patches = new SortedPatchList(from_str, firstSnapshot);
   });
 
   it("insert one patches that is after the snapshot and one before it, and confirm the one before is hidden for now", () => {
@@ -359,8 +359,8 @@ describe("Test last_snapshot", () => {
     ]);
   });
 
-  it("now adjust the last_snapshot time and see the other patch appear", () => {
-    patches.setLastSnapshot(v[1].time);
+  it("now adjust the firstSnapshot time and see the other patch appear", () => {
+    patches.setFirstSnapshot(v[1].time);
     const { heldPatches, times } = patches as any;
     expect(Object.keys(heldPatches)).toEqual([]);
     expect(Object.keys(times).length).toEqual(2);

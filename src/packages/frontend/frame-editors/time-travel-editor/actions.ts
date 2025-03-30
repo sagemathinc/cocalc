@@ -115,13 +115,13 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   init_frame_tree = () => {};
 
-  close(): void {
+  close = (): void => {
     if (this.syncdoc != null) {
       this.syncdoc.close();
       delete this.syncdoc;
     }
     super.close();
-  }
+  };
 
   set_error = (error) => {
     this.setState({ error });

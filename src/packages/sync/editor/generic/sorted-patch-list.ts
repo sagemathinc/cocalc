@@ -21,7 +21,7 @@ const MAX_PATCHLIST_CACHE_SIZE = 20;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
-  private last_snapshot?: Date;
+  private firstSnapshot?: Date;
   private patches: Patch[] = [];
   private heldSnapshots: { [time: number]: Patch } = {};
   private heldPatches: { [time: number]: Patch } = {};
@@ -36,19 +36,20 @@ export class SortedPatchList extends EventEmitter {
   // all the times when there are snapshots.
   private all_snapshot_times: { [time: string]: boolean } = {};
 
-  constructor(from_str, last_snapshot?: Date) {
+  constructor(from_str, firstSnapshot?: Date) {
     super();
     this.from_str = from_str;
-    this.last_snapshot = last_snapshot;
+    this.firstSnapshot = firstSnapshot;
   }
 
-  setLastSnapshot(last_snapshot?: Date) {
-    const prev = this.last_snapshot;
-    this.last_snapshot = last_snapshot;
-    if (prev != null && (last_snapshot ?? new Date(0)) < prev) {
-      // moving the last_snapshot time back in time, e.g., due to loading more history.
+  setFirstSnapshot = (firstSnapshot?: Date) => {
+    const prev = this.firstSnapshot;
+    this.firstSnapshot = firstSnapshot;
+    console.log("setFirstSnapshot", this.firstSnapshot);
+    if (prev != null && (firstSnapshot ?? new Date(0)) < prev) {
+      // moving the firstSnapshot time back in time, e.g., due to loading more history.
       // In this case we should check if any of the held patches are within the new window.
-      const cutoff = (last_snapshot ?? new Date(0)).valueOf();
+      const cutoff = (firstSnapshot ?? new Date(0)).valueOf();
       const patches: Patch[] = [];
       for (const t in this.heldPatches) {
         if (parseInt(t) >= cutoff) {
@@ -60,7 +61,7 @@ export class SortedPatchList extends EventEmitter {
         this.add(patches);
       }
     }
-  }
+  };
 
   close = (): void => {
     this.removeAllListeners();
@@ -121,11 +122,11 @@ export class SortedPatchList extends EventEmitter {
       const x = { ...originalPatch };
       const t: number = x.time.valueOf();
 
-      if (this.last_snapshot != null && x.time < this.last_snapshot) {
+      if (this.firstSnapshot != null && x.time < this.firstSnapshot) {
         // this is a patch that was added late (e.g., due to a user being
         // offline), so it's time is before we are even interested, but its
         // sequence numbrer is large.  We will only look at it if the
-        // user decides to load more history, which updates last_snapshot.
+        // user decides to load more history, which updates firstSnapshot.
         this.heldPatches[t] = x;
         continue;
       }

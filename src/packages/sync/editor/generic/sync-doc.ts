@@ -161,6 +161,11 @@ export interface UndoState {
   final?: CompressedPatch;
 }
 
+// NOTE: Do not make multiple SyncDoc's for the same document, especially
+// not on the frontend.  Proper reference counted handling of this is done
+// at sync/client/sync-client.ts, or in some applications where you can easily
+// be sure there is only reference, just be sure. 
+
 export class SyncDoc extends EventEmitter {
   public readonly project_id: string; // project_id that contains the doc
   public readonly path: string; // path of the file corresponding to the doc
@@ -1820,10 +1825,13 @@ export class SyncDoc extends EventEmitter {
     return query;
   };
 
-  private setLastSnapshot(last_snapshot?: Date) {
-    // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot.
+  private setLastSnapshot(last_snapshot?) {
+    // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot
+    // and also be certain about the data type (being Date or undefined).
+    if (last_snapshot != null) {
+      last_snapshot = new Date(last_snapshot);
+    }
     this.last_snapshot = last_snapshot;
-    this.patch_list?.setLastSnapshot(last_snapshot);
   }
 
   private async init_patch_list(): Promise<void> {
@@ -2231,6 +2239,16 @@ export class SyncDoc extends EventEmitter {
     this.snapshot_if_necessary();
   };
 
+  private dstream = () => {
+    // @ts-ignore -- in general patches_table might not be a nats one still,
+    // or at least dstream is an internal implementation detail.
+    const { dstream } = this.patches_table ?? {};
+    if (dstream == null) {
+      throw Error("dstream must be defined");
+    }
+    return dstream;
+  };
+
   // return the NATS sequence number of the oldest entry in the
   // patch list with the given time, and also:
   //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
@@ -2238,12 +2256,7 @@ export class SyncDoc extends EventEmitter {
   private natsSnapshotSeqInfo = (
     time: Date,
   ): { seq: number; prev_seq?: number; index: number } => {
-    // @ts-ignore -- in general patches_table might not be a nats one still,
-    // or at least dstream is an internal implementation detail.
-    const { dstream } = this.patches_table;
-    if (dstream == null) {
-      throw Error("dstream must be defined");
-    }
+    const dstream = this.dstream();
     // seq = actual sequence number of the message with the patch that we're
     // snapshotting at -- i.e., at time
     let seq: number | undefined = undefined;
@@ -2310,7 +2323,6 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
-    // TODO: mysteriously, this does NOT work yet:
     const last_seq = seq_info.seq;
     await this.set_syncstring_table({
       last_snapshot: time,
@@ -2491,6 +2503,26 @@ export class SyncDoc extends EventEmitter {
     // Wait until patch update queue is empty
     while (this.patch_update_queue.length > 0) {
       await once(this, "patch-update-queue-empty");
+    }
+
+    const { patch_list } = this;
+    if (patch_list != null) {
+      if (prev_seq <= 1) {
+        patch_list.setFirstSnapshot(undefined);
+      } else {
+        const dstream = this.dstream();
+        let i = 0;
+        for (const mesg of dstream.getAll()) {
+          if (dstream.seq(i) == prev_seq) {
+            // this is the one
+            const d = new Date(mesg.time);
+            console.log("found it -- setting ", d, mesg);
+            patch_list.setFirstSnapshot(d);
+            break;
+          }
+          i += 1;
+        }
+      }
     }
   };
 
@@ -3327,21 +3359,22 @@ export class SyncDoc extends EventEmitter {
         const v: Patch[] = [];
         for (const key of this.patch_update_queue) {
           let x = this.patches_table.get(key);
-          if (x != null) {
-            if (!Map.isMap(x)) {
-              // NATS TODO!
-              x = fromJS(x);
-            }
-            // may be null, e.g., when deleted.
-            const t = x.get("time");
-            // Only need to process patches that we didn't
-            // create ourselves.
-            if (t && !this.my_patches[`${t.valueOf()}`]) {
-              const p = this.process_patch(x);
-              //dbg(`patch=${JSON.stringify(p)}`);
-              if (p != null) {
-                v.push(p);
-              }
+          if (x == null) {
+            continue;
+          }
+          if (!Map.isMap(x)) {
+            // TODO: my NATS synctable-stream doesn't convert to immutable on get.
+            x = fromJS(x);
+          }
+          // may be null, e.g., when deleted.
+          const t = x.get("time");
+          // Optimization: only need to process patches that we didn't
+          // create ourselves during this session.
+          if (t && !this.my_patches[t.valueOf()]) {
+            const p = this.process_patch(x);
+            //dbg(`patch=${JSON.stringify(p)}`);
+            if (p != null) {
+              v.push(p);
             }
           }
         }
