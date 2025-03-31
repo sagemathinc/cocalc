@@ -136,6 +136,9 @@ export class Stream<T = any> extends EventEmitter {
   private stream?;
   private watch?;
   public readonly valueType: ValueType;
+  // seq = the last sequence number of a message on this stream that we received
+  // from NATS. This is used only for resuming without missing anything.
+  private seq: number = 1;
 
   // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
   public readonly raw: JsMsg[][] = [];
@@ -537,7 +540,7 @@ export class Stream<T = any> extends EventEmitter {
     // make a new consumer, starting AFTER the last event we retrieved
     this.watch?.stop(); // stop current watch (if any)
     // make new one:
-    const start_seq = last(this.raw[this.raw.length - 1])?.seq + 1;
+    const start_seq = this.seq + 1;
     const consumer = await this.fetchInitialData({ start_seq });
     if (this.stream == null) {
       // closed
@@ -569,6 +572,9 @@ export class Stream<T = any> extends EventEmitter {
     const mesg = this.decode(raw);
     this.messages.push(mesg);
     this.raw.push(raw);
+    for (const { seq } of raw) {
+      this.seq = Math.max(this.seq, seq);
+    }
     if (!noEmit) {
       this.emit("change", mesg, raw);
     }
