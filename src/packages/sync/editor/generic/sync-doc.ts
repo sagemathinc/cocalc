@@ -2192,6 +2192,7 @@ export class SyncDoc extends EventEmitter {
 
   private commit_patch = (time: Date, patch: XPatch): void => {
     this.assert_not_closed("commit_patch");
+    assertDefined(this.patch_list);
     const obj: any = {
       // version for database
       string_id: this.string_id,
@@ -2199,6 +2200,7 @@ export class SyncDoc extends EventEmitter {
       patch: JSON.stringify(patch),
       user_id: this.my_user_id,
       is_snapshot: false,
+      parents: this.patch_list.getHeads(),
     };
 
     this.my_patches[time.valueOf()] = obj;
@@ -2227,7 +2229,6 @@ export class SyncDoc extends EventEmitter {
     }
     const y = this.process_patch(x, patch);
     if (y != null) {
-      assertDefined(this.patch_list);
       this.patch_list.add([y]);
     }
     // Since *we* just made a definite change to the document, we're
@@ -2378,6 +2379,7 @@ export class SyncDoc extends EventEmitter {
     const time: Date = t;
     const user_id: number = x.get("user_id");
     const sent: Date = x.get("sent");
+    const parents: number[] = x.get("parents")?.toJS() ?? [];
     const prev: Date | undefined = x.get("prev");
     let size: number;
     const is_snapshot = x.get("is_snapshot");
@@ -2414,6 +2416,7 @@ export class SyncDoc extends EventEmitter {
       patch,
       size,
       is_snapshot,
+      parents,
     };
     if (sent != null) {
       obj.sent = sent;

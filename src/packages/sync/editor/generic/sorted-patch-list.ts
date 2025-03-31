@@ -716,4 +716,26 @@ export class SortedPatchList extends EventEmitter {
   startIndex = (): number | undefined => {
     return this.patches[0]?.index;
   };
+
+  getHeads = (): number[] => {
+    const X = new Set<number>(Object.keys(this.times).map((x) => parseInt(x)));
+    if (X.size == 0) {
+      return [];
+    }
+    for (const patch of Object.values(this.times)) {
+      if (patch.parents != null) {
+        for (const s of patch.parents) {
+          X.delete(s);
+          if (X.size <= 1) {
+            // since this is a DAG, there has to be *at least* one
+            // head so we can shortcut out at this point, rather
+            // than spend  alot of time deleting things that are
+            // already removed.
+            return Array.from(X).sort();
+          }
+        }
+      }
+    }
+    return Array.from(X).sort();
+  };
 }

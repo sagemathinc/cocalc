@@ -54,6 +54,16 @@ export interface Patch {
   // into the patch list!  It's computed using the count from the
   // last snapshot.
   index?: number;
+
+  // The set of all patches forms a directed acyclic graph.
+  // There is an edge from the patch to its parents, which were all source
+  // vertices that were *known* when the patch was made.
+  // Right now, creating a new patch always
+  // involves merging all parents known to this client.  However, that's not
+  // required by this data structure: instead parents could just be the branches
+  // that we are merging.  I.e., we might only add something when
+  // the user wants to manually do a merge.  That's for later...
+  parents?: number[];
 }
 
 export interface Document {
