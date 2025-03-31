@@ -340,7 +340,8 @@ Table({
     },
     parents: {
       type: "array",
-      desc: "The parent timestamps, as ms since epoch",
+      pg_type: "INTEGER[]",
+      desc: "The parent timestamps as ms since epoch",
     },
   },
   rules: {
