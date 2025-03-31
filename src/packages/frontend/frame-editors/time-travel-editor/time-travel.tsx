@@ -150,6 +150,13 @@ export function TimeTravel(props: Props) {
   ]);
 
   useEffect(() => {
+    if (error) {
+      //clear error on version list change
+      props.actions.set_error("");
+    }
+  }, [version, version0, version1, gitMode, changesMode]);
+
+  useEffect(() => {
     saveState(props.actions, {
       id: props.id,
       version,
@@ -218,11 +225,11 @@ export function TimeTravel(props: Props) {
       if (version0 == null || version1 == null) {
         return null;
       }
-      const i0 = versions.indexOf(version0);
+      const i0 = v.indexOf(version0);
       if (i0 == -1) {
         return null;
       }
-      const i1 = versions.indexOf(version1);
+      const i1 = v.indexOf(version1);
       if (i1 == -1) {
         return null;
       }
@@ -237,7 +244,7 @@ export function TimeTravel(props: Props) {
       if (version == null) {
         return null;
       }
-      const i = versions.indexOf(version);
+      const i = v.indexOf(version);
       if (i == -1) {
         return null;
       }
