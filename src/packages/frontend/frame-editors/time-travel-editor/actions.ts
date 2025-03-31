@@ -19,7 +19,7 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
-import { filename_extension, keys, path_split } from "@cocalc/util/misc";
+import { filename_extension, path_split } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
@@ -204,24 +204,28 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   get_account_ids = (version0: number, version1: number): string[] => {
-    // log("get_account_ids", version0, version1);
+    //    log("get_account_ids", version0, version1);
     if (this.syncdoc == null) {
       return [];
     }
-    const account_ids: { [account_id: string]: boolean } = {};
+    const account_ids = new Set<string>();
     for (const version of Array.from(new Set([version0, version1]))) {
       if (version == null) {
         continue;
       }
       const date = new Date(version);
       try {
-        account_ids[this.syncdoc.account_id(date)] = true;
+        const account_id = this.syncdoc.account_id(date);
+        if (account_id) {
+          account_ids.add(account_id);
+        }
       } catch (err) {
+        console.log(err);
         // fails if version is not actually known.
         continue;
       }
     }
-    return keys(account_ids);
+    return Array.from(account_ids);
   };
 
   private getFrameNodeGlobal = (id: string) => {
@@ -246,7 +250,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     version: number,
     doc: Document,
   ): Promise<void> => {
-    // log("revert", { id, version, doc });
     const { syncdoc } = this;
     if (syncdoc == null) {
       return;
@@ -258,9 +261,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     } else {
       syncdoc.revert(new Date(version));
     }
-    await syncdoc.commit();
+    await syncdoc.commit(true);
     await this.open_file();
-    syncdoc.emit("change");
   };
 
   open_snapshots = (): void => {
@@ -361,14 +363,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  gitNames = (version0: number, version1: number): string[] => {
+  gitNames = (v0: number | undefined, v1: number | undefined): string[] => {
     // log("gitNames", { version0, version1 });
-    const versions = this.store.get("git_versions");
-    if (versions == null) {
-      return [];
-    }
-    const v0 = versions.get(version0)?.valueOf();
-    const v1 = versions.get(version1)?.valueOf();
     if (v0 == null || v1 == null) {
       return [];
     }
@@ -391,13 +387,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   gitSubject = (version: number): string | undefined => {
-    // log("gitSubject", { version });
-    const versions = this.store.get("git_versions");
-    if (versions == null) {
-      return;
-    }
-    const t = versions.get(version)?.valueOf();
-    return this.gitLog[`${t}`]?.subject;
+    return this.gitLog[version]?.subject;
   };
 
   gitDoc = async (version: number): Promise<ViewDocument | undefined> => {

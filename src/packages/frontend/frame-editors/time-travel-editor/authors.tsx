@@ -17,11 +17,14 @@ import { plural } from "@cocalc/util/misc";
 
 interface Props {
   actions: TimeTravelActions;
-  version0: number;
-  version1: number;
+  version0: number | undefined;
+  version1: number | undefined;
 }
 
 export function GitAuthors({ actions, version0, version1 }: Props) {
+  if (version == null || version1 == null) {
+    return null;
+  }
   const names = actions.gitNames(version0, version1);
   const data: { [person: string]: { emails: Set<string>; count: number } } = {};
   const people: string[] = [];
@@ -60,6 +63,9 @@ export function GitAuthors({ actions, version0, version1 }: Props) {
 
 export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
   const userMap = useTypedRedux("users", "user_map");
+  if (version == null || version1 == null) {
+    return null;
+  }
 
   const renderUser = (account_id: string) => {
     return <User account_id={account_id} user_map={userMap} key={account_id} />;

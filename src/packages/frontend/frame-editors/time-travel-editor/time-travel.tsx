@@ -162,7 +162,6 @@ export function TimeTravel(props: Props) {
   }, [version, version0, version1, changesMode, gitMode, textMode]);
 
   const getDoc = async (version?: number): Promise<Document | undefined> => {
-    version = getVersion(version);
     if (version == null) {
       return;
     }
@@ -170,14 +169,6 @@ export function TimeTravel(props: Props) {
       return await props.actions.gitDoc(version);
     }
     return props.actions.get_doc(version);
-  };
-
-  // convert from version number to Date object (or undefined)
-  const getVersion = (version?: number): number | undefined => {
-    if (props.desc == null || versions == null) {
-      return;
-    }
-    return version ?? props.desc?.get("version");
   };
 
   useAsyncEffect(async () => {
@@ -340,14 +331,27 @@ export function TimeTravel(props: Props) {
   };
 
   const renderAuthor = () => {
-    if (version0 == null || version1 == null) {
+    if (changesMode && (version0 == null || version1 == null)) {
       return;
     }
-    const opts = { actions: props.actions, version0, version1 };
+    if (!changesMode && version == null) {
+      return;
+    }
+    const opts = changesMode
+      ? { actions: props.actions, version0, version1 }
+      : { actions: props.actions, version0: version, version1: version };
     if (gitMode) {
-      return <GitAuthors {...opts} />;
+      return (
+        <>
+          , <GitAuthors {...opts} />
+        </>
+      );
     } else {
-      return <TimeTravelAuthors {...opts} />;
+      return (
+        <>
+          , <TimeTravelAuthors {...opts} />
+        </>
+      );
     }
   };
 
@@ -378,7 +382,7 @@ export function TimeTravel(props: Props) {
       <RevertFile
         changesMode={changesMode}
         actions={props.actions}
-        version={getVersion()}
+        version={version}
         id={props.id}
         doc={doc}
       />
@@ -460,7 +464,6 @@ export function TimeTravel(props: Props) {
         {(versions?.size ?? 0) > 0 && (
           <>
             {renderVersion()}
-            {", "}
             {renderAuthor()}
           </>
         )}
