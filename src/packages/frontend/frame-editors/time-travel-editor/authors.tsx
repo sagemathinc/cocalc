@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function GitAuthors({ actions, version0, version1 }: Props) {
-  if (version == null || version1 == null) {
+  if (version0 == null || version1 == null) {
     return null;
   }
   const names = actions.gitNames(version0, version1);
@@ -63,7 +63,7 @@ export function GitAuthors({ actions, version0, version1 }: Props) {
 
 export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
   const userMap = useTypedRedux("users", "user_map");
-  if (version == null || version1 == null) {
+  if (version0 == null || version1 == null) {
     return null;
   }
 
