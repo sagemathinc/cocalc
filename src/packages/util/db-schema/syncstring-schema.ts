@@ -338,6 +338,10 @@ Table({
       type: "integer",
       desc: "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects.",
     },
+    parents: {
+      type: "array",
+      desc: "The parent timestamps, as ms since epoch",
+    },
   },
   rules: {
     primary_key: ["string_id", "time", "is_snapshot"], // compound primary key
@@ -357,6 +361,7 @@ Table({
           sent: null,
           prev: null,
           format: null,
+          parents: null,
         },
         check_hook(db, obj, account_id, project_id, cb) {
           // this verifies that user has read access to these patches
@@ -379,6 +384,7 @@ Table({
           seq_info: true,
           sent: true,
           prev: true,
+          parents: true,
           format: true,
         },
         required_fields: {

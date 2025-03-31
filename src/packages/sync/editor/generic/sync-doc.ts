@@ -1818,6 +1818,7 @@ export class SyncDoc extends EventEmitter {
       // (optional) timestamp of previous patch sent
       // from this session
       prev: null,
+      parents: null,
     };
     if (this.doctype.patch_format != null) {
       (query as any).format = this.doctype.patch_format;
