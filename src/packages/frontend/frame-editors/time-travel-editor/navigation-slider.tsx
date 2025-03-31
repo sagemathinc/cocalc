@@ -6,34 +6,43 @@
 import { Slider } from "antd";
 import { TimeAgo } from "../../components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { type List } from "immutable";
+import { type ReactNode, useMemo } from "react";
 
 interface Props {
-  versions?;
+  versions?: List<number>;
   version?: number;
   setVersion: (number) => void;
 }
 
 export function NavigationSlider({ version, versions, setVersion }: Props) {
   const { isVisible } = useFrameContext();
-  if (versions == null || version == null || !isVisible) {
+  if (versions == null || version == null || !isVisible || versions.size <= 0) {
     return null;
   }
 
-  const renderTooltip = (index) => {
-    const date = versions.get(index);
-    if (date == null) return; // shouldn't happen
-    return <TimeAgo date={date} />;
+  const renderTooltip = (version) => {
+    return <TimeAgo date={new Date(version)} />;
   };
+
+  const marks = useMemo(() => {
+    const marks: { [value: number]: ReactNode } = {};
+    for (const v of versions) {
+      marks[v] = <span />;
+    }
+    return marks;
+  }, [versions]);
 
   return (
     <Slider
+      marks={marks}
+      included={false}
+      step={null}
       style={{ margin: "10px 15px" }}
-      min={0}
-      max={versions.size - 1}
-      value={versions.indexOf(version)}
-      onChange={(value) => {
-        setVersion(versions.get(value));
-      }}
+      min={versions.get(0)!}
+      max={versions.get(-1)!}
+      value={version}
+      onChange={setVersion}
       tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
   );

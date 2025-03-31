@@ -13,6 +13,7 @@ import { List } from "immutable";
 import { TimeAgo } from "../../components";
 import { Slider } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { type ReactNode, useMemo } from "react";
 
 interface Props {
   versions?: List<number>;
@@ -43,22 +44,25 @@ export function RangeSlider({
     return <div />;
   }
 
+  const marks = useMemo(() => {
+    const marks: { [value: number]: ReactNode } = {};
+    for (const v of versions) {
+      marks[v] = <span />;
+    }
+    return marks;
+  }, [versions]);
+
   const handleChange = (values: number[]): void => {
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    setVersion0(versions.get(values[0]));
-    setVersion1(versions.get(values[1]));
+    setVersion0(values[0]);
+    setVersion1(values[1]);
   };
 
-  const renderTooltip = (index) => {
-    const d = versions.get(index);
-    if (d == null) {
-      // shouldn't happen
-      return;
-    }
-    const date = new Date(d);
-    if (index == version0) {
+  const renderTooltip = (version) => {
+    const date = new Date(version);
+    if (version == version0) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
       // thing totally unusable in such cases.
@@ -82,10 +86,13 @@ export function RangeSlider({
       }}
     >
       <Slider
+        marks={marks}
+        step={null}
+        included={false}
         range
-        min={0}
-        max={versions.size - 1}
-        value={[versions.indexOf(version0), versions.indexOf(version1)]}
+        min={versions.get(0)}
+        max={versions.get(-1)}
+        value={[version0, version1]}
         onChange={handleChange}
         tooltip={{ open: true, formatter: renderTooltip }}
       />
