@@ -5,7 +5,6 @@
 
 import { Alert } from "antd";
 import { debounce } from "lodash";
-
 import {
   CSS,
   redux,
@@ -25,7 +24,6 @@ import { ConnectedTerminalInterface } from "@cocalc/frontend/frame-editors/termi
 import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
 import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 import { sha1 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_PADDING } from "./consts";
 
 interface TerminalFlyoutProps {
@@ -326,7 +324,7 @@ export function TerminalFlyout({
       <div
         style={{
           flex: "1 0 auto",
-          background: COLORS.GRAY_LLL,
+          background: backgroundColor,
           height: heightPx,
         }}
         className={"cocalc-xtermjs"}
