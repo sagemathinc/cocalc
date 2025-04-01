@@ -83,6 +83,8 @@ import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
+type State = "failed" | "off" | "spawning" | "starting" | "running" | "closed";
+
 const logger = getLogger("jupyter:kernel");
 
 // We make it so nbconvert functionality can be dynamically enabled
@@ -239,7 +241,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   private ulimit?: string;
   private _path: string;
   private _actions?: JupyterActions;
-  private _state: string;
+  private _state: State;
   private _directory: string;
   private _filename: string;
   private _kernel?: SpawnedKernel;
@@ -284,8 +286,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   };
 
   // no-op if calling it doesn't change the state.
-  private _set_state = (state: string): void => {
+  private _set_state = (state: State): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
+    //             'failed'
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
@@ -361,10 +364,15 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         await this.finish_spawn();
       } catch (err) {
         dbg("ERROR spawning kernel", err);
-        if (this._state === "closed") {
+        // @ts-ignore
+        if (this._state == "closed") {
           throw Error("closed -- kernel spawn later");
         }
-        this._set_state("off");
+        this._set_state("failed");
+        this.emit(
+          "kernel_error",
+          `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
+        );
         throw err;
       }
 

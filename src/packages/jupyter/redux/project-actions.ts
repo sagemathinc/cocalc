@@ -330,9 +330,17 @@ export class JupyterActions extends JupyterActions0 {
     let current: string | undefined = undefined;
     if (this.jupyter_kernel != null) {
       current = this.jupyter_kernel.name;
-      if (current == kernel && this.jupyter_kernel.get_state() != "closed") {
-        dbg("everything is properly setup and working");
-        return;
+      if (current == kernel) {
+        const state = this.jupyter_kernel.get_state();
+        if (state == "error") {
+          dbg("kernel is broken");
+          // nothing to do -- let user ponder the error they should see.
+          return;
+        }
+        if (state != "closed") {
+          dbg("everything is properly setup and working");
+          return;
+        }
       }
     }
 
@@ -482,7 +490,9 @@ export class JupyterActions extends JupyterActions0 {
       dbg("done getting kernel info");
     }
     const is_running = (s): boolean => {
-      if (this._state === "closed") return true;
+      if (this._state === "closed") {
+        return true;
+      }
       const t = s.get_one({ type: "settings" });
       if (t == null) {
         dbg("no settings");
