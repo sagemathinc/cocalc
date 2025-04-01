@@ -16,7 +16,7 @@ const cache = new LRU<string, string>({
   },
 });
 
-export async function blobToUrl({ actions, sha1, type }) {
+async function blobToUrl({ actions, sha1, type, leaveAsString }) {
   if (cache.has(sha1)) {
     return cache.get(sha1)!;
   }
@@ -26,8 +26,18 @@ export async function blobToUrl({ actions, sha1, type }) {
   if (buf == null) {
     throw Error("Not available");
   }
+  let src;
+  if (leaveAsString != null) {
+    const t = new TextDecoder("utf8");
+    const str = t.decode(buf);
+    if (leaveAsString(str)) {
+      src = str;
+      cache.set(sha1, src);
+      return src;
+    }
+  }
   const blob = new Blob([buf], { type });
-  const src = URL.createObjectURL(blob);
+  src = URL.createObjectURL(blob);
   cache.set(sha1, src);
   return src;
 }
@@ -37,12 +47,14 @@ export default function useBlob({
   actions,
   type,
   setError,
+  leaveAsString,
 }: {
   sha1: string;
   actions?;
   // the mime type
   type: string;
   setError: (string) => void;
+  leaveAsString?: (buf) => boolean;
 }) {
   const isMounted = useIsMountedRef();
   const [src, setSrc] = useState<string | undefined>(cache.get(sha1));
@@ -57,11 +69,11 @@ export default function useBlob({
     }
     (async () => {
       try {
-        const s = await blobToUrl({ actions, sha1, type });
+        const src = await blobToUrl({ actions, sha1, type, leaveAsString });
         if (!isMounted.current) {
           return;
         }
-        setSrc(s);
+        setSrc(src);
       } catch (err) {
         setError(`${err}`);
       }

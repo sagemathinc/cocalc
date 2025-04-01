@@ -7,7 +7,7 @@ register("iframe", 7, ({ id, value, index, trust, actions }) => {
   }
   return (
     <IFrame
-      cacheId={id}
+      cacheid={id}
       actions={actions}
       sha1={value}
       index={index}
