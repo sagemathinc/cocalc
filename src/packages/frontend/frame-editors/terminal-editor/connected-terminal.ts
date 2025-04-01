@@ -311,9 +311,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.terminal.refresh(0, this.terminal.rows - 1);
         this.init_keyhandler();
         this.measureSize();
-        if (this.conn != null) {
-          this.conn.write(this.conn_write_buffer.join(""));
-          this.conn_write_buffer.length = 0;
+        if (this.conn != null && this.conn_write_buffer.length > 0) {
+          const buf = this.conn_write_buffer.join("");
+          if (buf) {
+            this.conn.write(buf);
+            this.conn_write_buffer.length = 0;
+          }
         }
       });
       if (endswith(this.path, ".term")) {
@@ -335,7 +338,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return; // no-op  -- see #4918
     }
     if (this.conn === undefined) {
-      this.conn_write_buffer.push(data);
+      if (typeof data == "string") {
+        this.conn_write_buffer.push(data);
+      }
       return;
     }
     this.conn.write(data);
