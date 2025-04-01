@@ -356,7 +356,7 @@ export class Actions<
     this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
-          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`,
+          `${err}\nFix this, then try opening the file again.`,
         );
         return;
       }
@@ -403,7 +403,7 @@ export class Actions<
 
     this._syncstring.once("error", (err) => {
       this.set_error(
-        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`,
+        `${err}\nFix this, then try opening the file again.`,
       );
     });
 
@@ -464,7 +464,7 @@ export class Actions<
     });
     this._syncdb.once("error", (err) => {
       this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`,
+        `${err}.\nFix this, then try opening the file again.`,
       );
     });
 

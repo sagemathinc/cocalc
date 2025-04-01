@@ -348,28 +348,25 @@ export class SyncDoc extends EventEmitter {
     log("initializing all tables...");
     try {
       //const t0 = new Date();
-      await this.init_all();
+      await this.initAll();
       //console.log(  // TODO remove at some point.
       //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
       //);
     } catch (err) {
       if (this.state == "closed") {
+        // completely normal that this could happen on frontend - it just means
+        // that we closed the file before finished opening it...
         return;
       }
-      log(`WARNING -- error initializing ${err}`);
-      // completely normal that this could happen on frontend - it just means
-      // that we closed the file before finished opening it...
-      if (this.state != ("closed" as State)) {
-        log(
-          "Error -- NOT caused by closing during the init_all, so we report it.",
-        );
-        this.emit("error", err);
-      }
+      log(
+        `Error -- NOT caused by closing during the initAll, so we report it. ${err}`,
+      );
+      this.emit("error", err);
       await this.close();
       return;
     }
 
-    // Success -- everything perfectly initialized with no issues.
+    // Success -- everything initialized with no issues.
     this.set_state("ready");
     this.init_watch();
     this.emit_change(); // from nothing to something.
@@ -948,7 +945,7 @@ export class SyncDoc extends EventEmitter {
 
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
-  private async init_file_autosave() {
+  private init_file_autosave = async () => {
     // Do not autosave sagews until we resolve
     //   https://github.com/sagemathinc/cocalc/issues/974
     // Similarly, do not autosave ipynb because of
@@ -967,7 +964,7 @@ export class SyncDoc extends EventEmitter {
     this.fileserver_autosave_timer = <any>(
       setInterval(this.save_to_disk_autosave, FILE_SERVER_AUTOSAVE_S * 1000)
     );
-  }
+  };
 
   // account_id of the user who made the edit at
   // the given point in time.
@@ -1179,7 +1176,7 @@ export class SyncDoc extends EventEmitter {
     dbg("close done");
   });
 
-  private async async_close() {
+  private async_close = async () => {
     const promises: Promise<any>[] = [];
 
     if (this.syncstring_table != null) {
@@ -1209,7 +1206,7 @@ export class SyncDoc extends EventEmitter {
         throw Error(result.reason);
       }
     });
-  }
+  };
 
   // TODO: We **have** to do this on the client, since the backend
   // **security model** for accessing the patches table only
@@ -1230,7 +1227,7 @@ export class SyncDoc extends EventEmitter {
   // because the patches table can't be opened anywhere if the syncstring
   // object doesn't exist, due to how our security works, *AND* that the
   // patches table uses the string_id, which is a SHA1 hash.
-  private async ensure_syncstring_exists_in_db(): Promise<void> {
+  private ensure_syncstring_exists_in_db = async (): Promise<void> => {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
     if (this.useNats) {
       dbg("skipping -- no database");
@@ -1262,7 +1259,7 @@ export class SyncDoc extends EventEmitter {
       },
     });
     dbg("wrote syncstring to db - done.");
-  }
+  };
 
   private synctable = async (
     query,
@@ -1377,7 +1374,7 @@ export class SyncDoc extends EventEmitter {
     return synctable;
   };
 
-  private async init_syncstring_table(): Promise<void> {
+  private init_syncstring_table = async (): Promise<void> => {
     const query = {
       syncstrings: [
         {
@@ -1431,7 +1428,7 @@ export class SyncDoc extends EventEmitter {
     };
     dbg("waiting for syncstring to be not archived");
     await this.syncstring_table.wait(is_not_archived, 120);
-  }
+  };
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
@@ -1459,26 +1456,26 @@ export class SyncDoc extends EventEmitter {
     return this.client.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
-  private async init_all(): Promise<void> {
+  private initAll = async (): Promise<void> => {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
-    const log = this.dbg("init_all");
+    const log = this.dbg("initAll");
 
     log("update interest");
     this.initInterestLoop();
 
-    log("ensure syncstring exists in database");
-    this.assert_not_closed("init_all -- before ensuring syncstring exists");
+    log("ensure syncstring exists in database (if not using NATS)");
+    this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
     log("syncstring_table");
-    this.assert_not_closed("init_all -- before init_syncstring_table");
+    this.assert_not_closed("initAll -- before init_syncstring_table");
     await this.init_syncstring_table();
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
-      "init_all -- before init patch_list, cursors, evaluator, ipywidgets",
+      "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
     );
     //     await Promise.all([
     //       this.init_patch_list(),
@@ -1487,16 +1484,16 @@ export class SyncDoc extends EventEmitter {
     //       this.init_ipywidgets(),
     //     ]);
     await this.init_patch_list();
-    this.assert_not_closed("init_all -- successful init_patch_list");
+    this.assert_not_closed("initAll -- successful init_patch_list");
     await this.init_cursors();
-    this.assert_not_closed("init_all -- successful init_patch_cursors");
+    this.assert_not_closed("initAll -- successful init_patch_cursors");
     await this.init_evaluator();
-    this.assert_not_closed("init_all -- successful init_evaluator");
+    this.assert_not_closed("initAll -- successful init_evaluator");
     await this.init_ipywidgets();
-    this.assert_not_closed("init_all -- successful init_ipywidgets");
+    this.assert_not_closed("initAll -- successful init_ipywidgets");
 
     this.init_table_close_handlers();
-    this.assert_not_closed("init_all -- successful init_table_close_handlers");
+    this.assert_not_closed("initAll -- successful init_table_close_handlers");
 
     log("file_use_interval");
     this.init_file_use_interval();
@@ -1519,13 +1516,13 @@ export class SyncDoc extends EventEmitter {
         desc: "syncdoc -- load_from_disk",
       });
       log("done loading from disk");
-      this.assert_not_closed("init_all -- load from disk");
+      this.assert_not_closed("initAll -- load from disk");
     }
 
     log("wait_until_fully_ready");
     await this.wait_until_fully_ready();
 
-    this.assert_not_closed("init_all -- after waiting until fully ready");
+    this.assert_not_closed("initAll -- after waiting until fully ready");
 
     if (await this.isFileServer()) {
       log("init file autosave");
@@ -1533,9 +1530,9 @@ export class SyncDoc extends EventEmitter {
     }
     this.update_has_unsaved_changes();
     log("done");
-  }
+  };
 
-  private init_error(): string | undefined {
+  private init_error = (): string | undefined => {
     let x;
     try {
       x = this.syncstring_table.get_one();
@@ -1545,24 +1542,21 @@ export class SyncDoc extends EventEmitter {
       return undefined;
     }
     return x?.get("init")?.get("error");
-  }
+  };
 
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
-  private async wait_until_fully_ready(): Promise<void> {
-    if (this.useNats) {
-      return;
-    }
+  private wait_until_fully_ready = async (): Promise<void> => {
     this.assert_not_closed("wait_until_fully_ready");
     const dbg = this.dbg("wait_until_fully_ready");
     dbg();
 
     if (this.client.is_browser() && this.init_error()) {
-      // init is set and is in error state.  Give the backend a few seconds
+      // init is set and is in error state.  Give the backend 3 seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
       try {
-        await this.syncstring_table.wait(() => !this.init_error(), 5);
+        await this.syncstring_table.wait(() => !this.init_error(), 3);
       } catch (err) {
         // fine -- let the code below deal with this problem...
       }
@@ -1620,7 +1614,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
     this.emit("init");
-  }
+  };
 
   private assert_table_is_ready(table: string): void {
     const t = this[table + "_table"]; // not using string template only because it breaks codemirror!
@@ -1757,7 +1751,7 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  private async load_from_disk_if_newer(): Promise<boolean> {
+  private load_from_disk_if_newer = async (): Promise<boolean> => {
     const last_changed = this.last_changed();
     const firstLoad = this.versions().length == 0;
     const dbg = this.dbg("load_from_disk_if_newer");
@@ -1791,13 +1785,13 @@ export class SyncDoc extends EventEmitter {
         dbg("read_only", is_read_only);
       }
     } catch (err) {
-      error = `${err.toString()} -- ${err.stack}`;
+      error = `${err}`;
     }
 
     await this.set_initialized(error, is_read_only, size);
     dbg("done");
     return !!error;
-  }
+  };
 
   private patch_table_query = (cutoff?: Date) => {
     const query = {
@@ -1835,7 +1829,7 @@ export class SyncDoc extends EventEmitter {
     this.last_snapshot = last_snapshot;
   }
 
-  private async init_patch_list(): Promise<void> {
+  private init_patch_list = async (): Promise<void> => {
     this.assert_not_closed("init_patch_list - start");
     const dbg = this.dbg("init_patch_list");
     dbg();
@@ -1885,7 +1879,7 @@ export class SyncDoc extends EventEmitter {
     this.patch_list = patch_list;
 
     dbg("done");
-  }
+  };
 
   private init_evaluator = async () => {
     const dbg = this.dbg("init_evaluator");
