@@ -257,14 +257,6 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     super();
 
     this.ulimit = ulimit;
-    this.spawn = reuseInFlight(this.spawn.bind(this));
-
-    this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
-    this.nbconvert = reuseInFlight(this.nbconvert.bind(this));
-    this.ensure_running = reuseInFlight(this.ensure_running.bind(this));
-
-    this.close = this.close.bind(this);
-    this.process_output = this.process_output.bind(this);
 
     this.name = name;
     this._path = _path;
@@ -287,110 +279,112 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     dbg("done");
   }
 
-  public get_path() {
+  get_path = () => {
     return this._path;
-  }
+  };
 
   // no-op if calling it doesn't change the state.
-  private _set_state(state: string): void {
+  private _set_state = (state: string): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
-  }
+  };
 
-  get_state(): string {
+  get_state = (): string => {
     return this._state;
-  }
+  };
 
-  async spawn(spawn_opts?: { env?: { [key: string]: string } }): Promise<void> {
-    if (this._state === "closed") {
-      // game over!
-      throw Error("closed -- kernel spawn");
-    }
-    if (!this.name) {
-      // spawning not allowed.
-      throw Error("cannot spawn since no kernel is set");
-    }
-    if (["running", "starting"].includes(this._state)) {
-      // Already spawned, so no need to do it again.
-      return;
-    }
-    this._set_state("spawning");
-    const dbg = this.dbg("spawn");
-    dbg("spawning kernel...");
-
-    // ****
-    // CRITICAL: anything added to opts better not be specific
-    // to the kernel path or it will completely break using a
-    // pool, which makes things massively slower.
-    // ****
-
-    const opts: LaunchJupyterOpts = {
-      env: spawn_opts?.env ?? {},
-      ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
-    };
-
-    try {
-      const kernelData = await get_kernel_data_by_name(this.name);
-      // This matches "sage", "sage-x.y", and Sage Python3 ("sage -python -m ipykernel")
-      if (kernelData.argv[0].startsWith("sage")) {
-        dbg("setting special environment for Sage kernels");
-        opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
-      }
-    } catch (err) {
-      dbg(`No kernelData available for ${this.name}`);
-    }
-
-    // Make cocalc default to the colab renderer for cocalc-jupyter, since
-    // this one happens to work best for us, and they don't have a custom
-    // one for us.  See https://plot.ly/python/renderers/ and
-    // https://github.com/sagemathinc/cocalc/issues/4259
-    opts.env.PLOTLY_RENDERER = "colab";
-    opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
-
-    // !!! WARNING: do NOT add anything new here that depends on that path!!!!
-    // Otherwise the pool will switch to falling back to not being used, and
-    // cocalc would then be massively slower.
-    // Non-uniform customization.
-    // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
-    if (this._directory) {
-      opts.cwd = this._directory;
-    }
-    // launchJupyterKernel is explicitly smart enough to deal with opts.env.COCALC_JUPYTER_FILENAME
-    opts.env.COCALC_JUPYTER_FILENAME = this._path;
-    // and launchJupyterKernel is NOT smart enough to deal with anything else!
-
-    try {
-      dbg("launching kernel interface...");
-      this._kernel = await launchJupyterKernel(this.name, opts);
-      await this.finish_spawn();
-    } catch (err) {
-      dbg("ERROR spawning kernel", err);
+  spawn = reuseInFlight(
+    async (spawn_opts?: { env?: { [key: string]: string } }): Promise<void> => {
       if (this._state === "closed") {
-        throw Error("closed -- kernel spawn later");
+        // game over!
+        throw Error("closed -- kernel spawn");
       }
-      this._set_state("off");
-      throw err;
-    }
+      if (!this.name) {
+        // spawning not allowed.
+        throw Error("cannot spawn since no kernel is set");
+      }
+      if (["running", "starting"].includes(this._state)) {
+        // Already spawned, so no need to do it again.
+        return;
+      }
+      this._set_state("spawning");
+      const dbg = this.dbg("spawn");
+      dbg("spawning kernel...");
 
-    // NOW we do path-related customizations:
-    // TODO: we will set each of these after getting a kernel from the pool
-    // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
-    //opts.env.COCALC_JUPYTER_FILENAME = this._path;
-    //     if (this._directory !== "") {
-    //       opts.cwd = this._directory;
-    //     }
-  }
+      // ****
+      // CRITICAL: anything added to opts better not be specific
+      // to the kernel path or it will completely break using a
+      // pool, which makes things massively slower.
+      // ****
 
-  get_spawned_kernel() {
+      const opts: LaunchJupyterOpts = {
+        env: spawn_opts?.env ?? {},
+        ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
+      };
+
+      try {
+        const kernelData = await get_kernel_data_by_name(this.name);
+        // This matches "sage", "sage-x.y", and Sage Python3 ("sage -python -m ipykernel")
+        if (kernelData.argv[0].startsWith("sage")) {
+          dbg("setting special environment for Sage kernels");
+          opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
+        }
+      } catch (err) {
+        dbg(`No kernelData available for ${this.name}`);
+      }
+
+      // Make cocalc default to the colab renderer for cocalc-jupyter, since
+      // this one happens to work best for us, and they don't have a custom
+      // one for us.  See https://plot.ly/python/renderers/ and
+      // https://github.com/sagemathinc/cocalc/issues/4259
+      opts.env.PLOTLY_RENDERER = "colab";
+      opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
+
+      // !!! WARNING: do NOT add anything new here that depends on that path!!!!
+      // Otherwise the pool will switch to falling back to not being used, and
+      // cocalc would then be massively slower.
+      // Non-uniform customization.
+      // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
+      if (this._directory) {
+        opts.cwd = this._directory;
+      }
+      // launchJupyterKernel is explicitly smart enough to deal with opts.env.COCALC_JUPYTER_FILENAME
+      opts.env.COCALC_JUPYTER_FILENAME = this._path;
+      // and launchJupyterKernel is NOT smart enough to deal with anything else!
+
+      try {
+        dbg("launching kernel interface...");
+        this._kernel = await launchJupyterKernel(this.name, opts);
+        await this.finish_spawn();
+      } catch (err) {
+        dbg("ERROR spawning kernel", err);
+        if (this._state === "closed") {
+          throw Error("closed -- kernel spawn later");
+        }
+        this._set_state("off");
+        throw err;
+      }
+
+      // NOW we do path-related customizations:
+      // TODO: we will set each of these after getting a kernel from the pool
+      // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
+      //opts.env.COCALC_JUPYTER_FILENAME = this._path;
+      //     if (this._directory !== "") {
+      //       opts.cwd = this._directory;
+      //     }
+    },
+  );
+
+  get_spawned_kernel = () => {
     return this._kernel;
-  }
+  };
 
-  public get_connection_file(): string | undefined {
+  get_connection_file = (): string | undefined => {
     return this._kernel?.connectionFile;
-  }
+  };
 
   private finish_spawn = async () => {
     const dbg = this.dbg("finish_spawn");
@@ -536,7 +530,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
-  signal(signal: string): void {
+  signal = (signal: string): void => {
     const dbg = this.dbg("signal");
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
     const pid = spawn?.pid;
@@ -550,12 +544,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     } catch (err) {
       dbg(`error: ${err}`);
     }
-  }
+  };
 
   // This is async, but the process.kill happens *before*
   // anything async. That's important for cleaning these
   // up when the project terminates.
-  async close(): Promise<void> {
+  close = async (): Promise<void> => {
     this.dbg("close")();
     if (this._state === "closed") {
       return;
@@ -581,10 +575,10 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       }
       this._execute_code_queue = [];
     }
-  }
+  };
 
   // public, since we do use it from some other places...
-  dbg(f: string): Function {
+  dbg = (f: string): Function => {
     return (...args) => {
       //console.log(
       logger.debug(
@@ -594,9 +588,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         ...args,
       );
     };
-  }
+  };
 
-  low_level_dbg(): void {
+  low_level_dbg = (): void => {
     const dbg = (...args) => logger.silly("low_level_debug", ...args);
     dbg("Enabling");
     if (this._kernel) {
@@ -608,9 +602,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     this.channel?.subscribe((mesg) => {
       dbg(mesg);
     });
-  }
+  };
 
-  async ensure_running(): Promise<void> {
+  ensure_running = reuseInFlight(async (): Promise<void> => {
     const dbg = this.dbg("ensure_running");
     dbg(this._state);
     if (this._state == "closed") {
@@ -630,12 +624,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     if (!this.has_ensured_running) {
       this.has_ensured_running = true;
     }
-  }
+  });
 
-  execute_code(
+  execute_code = (
     opts: ExecOpts,
     skipToFront = false,
-  ): CodeExecutionEmitterInterface {
+  ): CodeExecutionEmitterInterface => {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
@@ -654,9 +648,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       this._process_execute_code_queue();
     }
     return code;
-  }
+  };
 
-  cancel_execute(id: string): void {
+  cancel_execute = (id: string): void => {
     if (this._state === "closed") {
       return;
     }
@@ -687,9 +681,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       dbg("interrupting running computation");
       this.signal("SIGINT");
     }
-  }
+  };
 
-  async _process_execute_code_queue(): Promise<void> {
+  _process_execute_code_queue = async (): Promise<void> => {
     const dbg = this.dbg("_process_execute_code_queue");
     dbg(`state='${this._state}'`);
     if (this._state === "closed") {
@@ -719,9 +713,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       }
       this._execute_code_queue = [];
     }
-  }
+  };
 
-  public clear_execute_code_queue(): void {
+  clear_execute_code_queue = (): void => {
     const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
@@ -740,12 +734,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       code_execution_emitter.close();
     }
     this._execute_code_queue = [];
-  }
+  };
 
   // This is like execute_code, but async and returns all the results,
   // and does not use the internal execution queue.
   // This is used for unit testing and interactive work at the terminal and nbgrader and the stateless api.
-  async execute_code_now(opts: ExecOpts): Promise<object[]> {
+  execute_code_now = async (opts: ExecOpts): Promise<object[]> => {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {
       throw Error("closed -- kernel -- execute_code_now");
@@ -756,7 +750,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     await this.ensure_running();
     return await new CodeExecutionEmitter(this, opts).go();
-  }
+  };
 
   private saveBlob = (data: string, type?: string) => {
     const blobs = this._actions?.blobs;
@@ -773,7 +767,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return sha1;
   };
 
-  process_output(content: any): void {
+  process_output = (content: any): void => {
     if (this._state === "closed") {
       return;
     }
@@ -825,9 +819,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         }
       }
     }
-  }
+  };
 
-  async call(msg_type: string, content?: any): Promise<any> {
+  call = async (msg_type: string, content?: any): Promise<any> => {
     this.dbg("call")(msg_type);
     if (!this.has_ensured_running) {
       await this.ensure_running();
@@ -880,27 +874,27 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     };
     await callback(wait_for_response);
     return the_mesg;
-  }
+  };
 
-  async complete(opts: { code: any; cursor_pos: any }): Promise<any> {
+  complete = async (opts: { code: any; cursor_pos: any }): Promise<any> => {
     const dbg = this.dbg("complete");
     dbg(`code='${opts.code}', cursor_pos='${opts.cursor_pos}'`);
     return await this.call("complete_request", opts);
-  }
+  };
 
-  async introspect(opts: {
+  introspect = async (opts: {
     code: any;
     cursor_pos: any;
     detail_level: any;
-  }): Promise<any> {
+  }): Promise<any> => {
     const dbg = this.dbg("introspect");
     dbg(
       `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`,
     );
     return await this.call("inspect_request", opts);
-  }
+  };
 
-  async kernel_info(): Promise<KernelInfo> {
+  kernel_info = reuseInFlight(async (): Promise<KernelInfo> => {
     if (this._kernel_info !== undefined) {
       return this._kernel_info;
     }
@@ -911,15 +905,15 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     this._kernel_info = info;
     return info;
-  }
+  });
 
-  async save_ipynb_file(): Promise<void> {
+  save_ipynb_file = async (): Promise<void> => {
     if (this._actions != null) {
       await this._actions.save_ipynb_file();
     } else {
       throw Error("save_ipynb_file -- ERROR: actions not known");
     }
-  }
+  };
 
   more_output = (id: string): any[] => {
     if (id == null) {
@@ -931,25 +925,27 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return this._actions.store.get_more_output(id) ?? [];
   };
 
-  async nbconvert(args: string[], timeout?: number): Promise<void> {
-    if (timeout === undefined) {
-      timeout = 60; // seconds
-    }
-    if (!is_array(args)) {
-      throw new Error("args must be an array");
-    }
-    args = copy(args);
-    args.push("--");
-    args.push(this._filename);
-    await nbconvert({
-      args,
-      timeout,
-      directory: this._directory,
-    });
-  }
+  nbconvert = reuseInFlight(
+    async (args: string[], timeout?: number): Promise<void> => {
+      if (timeout === undefined) {
+        timeout = 60; // seconds
+      }
+      if (!is_array(args)) {
+        throw new Error("args must be an array");
+      }
+      args = copy(args);
+      args.push("--");
+      args.push(this._filename);
+      await nbconvert({
+        args,
+        timeout,
+        directory: this._directory,
+      });
+    },
+  );
 
   // TODO: double check that this actually returns sha1
-  async load_attachment(path: string): Promise<string> {
+  load_attachment = async (path: string): Promise<string> => {
     const dbg = this.dbg("load_attachment");
     dbg(`path='${path}'`);
     if (path[0] !== "/") {
@@ -971,7 +967,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       unlink(path); // TODO: think through again if this is the right thing to do.
       throw err;
     }
-  }
+  };
 
   // This is called by project-actions when exporting the notebook
   // to an ipynb file:
@@ -1014,7 +1010,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     };
   };
 
-  process_comm_message_from_kernel(mesg): void {
+  process_comm_message_from_kernel = (mesg): void => {
     if (this._actions == null) {
       return;
     }
@@ -1023,13 +1019,13 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     // massive binary data!
     dbg(mesg.header);
     this._actions.process_comm_message_from_kernel(mesg);
-  }
+  };
 
-  public ipywidgetsGetBuffer(
+  ipywidgetsGetBuffer = (
     model_id: string,
     // buffer_path is the string[] *or* the JSON of that.
     buffer_path: string | string[],
-  ): Buffer | undefined {
+  ): Buffer | undefined => {
     if (typeof buffer_path != "string") {
       buffer_path = JSON.stringify(buffer_path);
     }
@@ -1037,9 +1033,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       model_id,
       buffer_path,
     );
-  }
+  };
 
-  public send_comm_message_to_kernel({
+  send_comm_message_to_kernel = ({
     msg_id,
     comm_id,
     target_name,
@@ -1053,7 +1049,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     data: any;
     buffers64?: string[];
     buffers?: Buffer[];
-  }): void {
+  }): void => {
     const dbg = this.dbg("send_comm_message_to_kernel");
     // this is HUGE
     // dbg({ msg_id, comm_id, target_name, data, buffers64 });
@@ -1094,9 +1090,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);
-  }
+  };
 
-  async chdir(path: string): Promise<void> {
+  chdir = async (path: string): Promise<void> => {
     if (!this.name) return; // no kernel, no current directory
     const dbg = this.dbg("chdir");
     dbg({ path });
@@ -1116,7 +1112,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       // returns '' if no command needed, e.g., for sparql.
       await this.execute_code_now({ code });
     }
-  }
+  };
 }
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
