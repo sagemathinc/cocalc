@@ -1846,7 +1846,11 @@ export class SyncDoc extends EventEmitter {
     // to it only after we're done.
     delete this.patch_list;
 
-    const patch_list = new SortedPatchList(this._from_str, this.last_snapshot);
+    const patch_list = new SortedPatchList(
+      this._from_str,
+      this.last_snapshot,
+      this.loadMoreHistory,
+    );
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
@@ -2476,15 +2480,17 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list?.getOldestSnapshot()?.seq_info == null;
   };
 
-  loadMoreHistory = async (): Promise<void> => {
+  // returns true if there may be additional history to load
+  // after loading this. return false if definitely done.
+  loadMoreHistory = async (): Promise<boolean> => {
     if (this.has_full_history() || this.ephemeral || this.patch_list == null) {
-      return;
+      return false;
     }
 
     const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
     if (seq_info == null) {
       // nothing more to load
-      return;
+      return false;
     }
     const { prev_seq = 1 } = seq_info;
     // Doing this load triggers change events for all the patch info
@@ -2515,6 +2521,7 @@ export class SyncDoc extends EventEmitter {
         }
       }
     }
+    return prev_seq > 1;
   };
 
   show_history = (opts = {}): void => {

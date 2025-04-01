@@ -13,6 +13,7 @@ import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
 import { Entry, PatchValueCache } from "./patch-value-cache";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // Make this bigger to make things faster... at the
 // cost of using more memory.  TODO: a global LRU cache
@@ -22,6 +23,8 @@ const MAX_PATCHLIST_CACHE_SIZE = 20;
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
   private firstSnapshot?: Date;
+  private loadMoreHistory?: () => Promise<boolean>;
+
   private patches: Patch[] = [];
   private heldSnapshots: { [time: number]: Patch } = {};
   private heldPatches: { [time: number]: Patch } = {};
@@ -36,10 +39,15 @@ export class SortedPatchList extends EventEmitter {
   // all the times when there are snapshots.
   private all_snapshot_times: { [time: string]: boolean } = {};
 
-  constructor(from_str, firstSnapshot?: Date) {
+  constructor(
+    from_str,
+    firstSnapshot?: Date,
+    loadMoreHistory?: () => Promise<boolean>,
+  ) {
     super();
     this.from_str = from_str;
     this.firstSnapshot = firstSnapshot;
+    this.loadMoreHistory = loadMoreHistory;
   }
 
   setFirstSnapshot = (firstSnapshot?: Date) => {
@@ -701,13 +709,14 @@ export class SortedPatchList extends EventEmitter {
     }
   };
 
-  updateIndexes = () => {
+  updateIndexes = reuseInFlight(async () => {
+    await this.ensureTailsAreSnapshots();
     let index = this.patches[0]?.seq_info?.index ?? 0;
     for (const patch of this.patches) {
       patch.index = index;
       index += 1;
     }
-  };
+  });
 
   getIndex = (time: Date): number | undefined => {
     return this.times[time.valueOf()]?.index;
@@ -737,5 +746,60 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     return Array.from(X).sort();
+  };
+
+  private getTails = (): number[] => {
+    // the tails are the nodes with no parents in the DAG.
+    const tails: number[] = [];
+    for (const patch of Object.values(this.times)) {
+      if (patch.parents == null || patch.parents.length == 0) {
+        tails.push(patch.time.valueOf());
+      } else {
+        let isTail = true;
+        for (const t of patch.parents) {
+          if (this.times[t] != null) {
+            isTail = false;
+            break;
+          }
+        }
+        if (isTail) {
+          tails.push(patch.time.valueOf());
+        }
+      }
+    }
+    return tails;
+  };
+
+  private nonSnapshotTails = () => {
+    const tails = this.getTails();
+    const nonSnapshotTails: number[] = [];
+    for (const t of tails) {
+      const patch = this.times[t];
+      if (patch.parents == null || patch.parents.length == 0) {
+        // start of editing, so is a snapshot
+      } else if (patch.snapshot != null) {
+        // is a snapshot
+      } else {
+        // not a snapshot
+        nonSnapshotTails.push(t);
+      }
+    }
+    return nonSnapshotTails;
+  };
+
+  private ensureTailsAreSnapshots = async () => {
+    if (this.loadMoreHistory == null) {
+      throw Error("loading more history is not enabled");
+    }
+    while (true) {
+      const nsTails = this.nonSnapshotTails();
+      if (nsTails.length == 0) {
+        return;
+      }
+      const hasMore = await this.loadMoreHistory();
+      if (!hasMore) {
+        return;
+      }
+    }
   };
 }

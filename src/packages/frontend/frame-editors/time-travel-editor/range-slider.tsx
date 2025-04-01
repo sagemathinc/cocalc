@@ -32,6 +32,17 @@ export function RangeSlider({
 }: Props) {
   const { isVisible } = useFrameContext();
 
+  const marks = useMemo(() => {
+    if (versions == null) {
+      return {};
+    }
+    const marks: { [value: number]: ReactNode } = {};
+    for (const v of versions) {
+      marks[v] = <span />;
+    }
+    return marks;
+  }, [versions]);
+
   // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
   if (
     !isVisible ||
@@ -43,14 +54,6 @@ export function RangeSlider({
     // invalid input
     return <div />;
   }
-
-  const marks = useMemo(() => {
-    const marks: { [value: number]: ReactNode } = {};
-    for (const v of versions) {
-      marks[v] = <span />;
-    }
-    return marks;
-  }, [versions]);
 
   const handleChange = (values: number[]): void => {
     if (values[0] == null || values[1] == null) {

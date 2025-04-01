@@ -17,21 +17,25 @@ interface Props {
 
 export function NavigationSlider({ version, versions, setVersion }: Props) {
   const { isVisible } = useFrameContext();
-  if (versions == null || version == null || !isVisible || versions.size <= 0) {
-    return null;
-  }
 
   const renderTooltip = (version) => {
     return <TimeAgo date={new Date(version)} />;
   };
 
   const marks = useMemo(() => {
+    if (versions == null) {
+      return {};
+    }
     const marks: { [value: number]: ReactNode } = {};
     for (const v of versions) {
       marks[v] = <span />;
     }
     return marks;
   }, [versions]);
+
+  if (versions == null || version == null || !isVisible || versions.size <= 0) {
+    return null;
+  }
 
   return (
     <Slider
