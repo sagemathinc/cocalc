@@ -789,7 +789,8 @@ export class SortedPatchList extends EventEmitter {
 
   private ensureTailsAreSnapshots = async () => {
     if (this.loadMoreHistory == null) {
-      throw Error("loading more history is not enabled");
+      // functionality is not available (e.g., when unit testing we might not enable this)
+      return;
     }
     while (true) {
       const nsTails = this.nonSnapshotTails();
