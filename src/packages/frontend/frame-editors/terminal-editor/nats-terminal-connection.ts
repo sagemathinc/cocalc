@@ -72,7 +72,7 @@ export class NatsTerminalConnection extends EventEmitter {
   write = async (data) => {
     if (this.state == "init" || this.state == "closed") {
       // ignore initial data while initializing.
-      // This is the trickt to avoid "junk characters" on refresh/reconnect.
+      // This is the trick to avoid "junk characters" on refresh/reconnect.
       return;
     }
     if (this.state == "disconnected") {

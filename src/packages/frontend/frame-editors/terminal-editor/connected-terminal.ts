@@ -83,7 +83,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private ignore_terminal_data: boolean = true;
   private render_buffer: string = "";
-  private conn_write_buffer: any = [];
+  private conn_write_buffer: string[] = [];
   private history: string = "";
   private last_geom: { rows: number; cols: number } | undefined;
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
@@ -311,6 +311,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.terminal.refresh(0, this.terminal.rows - 1);
         this.init_keyhandler();
         this.measureSize();
+        if (this.conn != null) {
+          this.conn.write(this.conn_write_buffer.join(""));
+          this.conn_write_buffer.length = 0;
+        }
       });
       if (endswith(this.path, ".term")) {
         touchPath(this.project_id, this.path); // no need to await
@@ -327,7 +331,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   conn_write = (data): void => {
-    if (this.state == "closed") return; // no-op  -- see #4918
+    if (this.state == "closed") {
+      return; // no-op  -- see #4918
+    }
     if (this.conn === undefined) {
       this.conn_write_buffer.push(data);
       return;
