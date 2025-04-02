@@ -44,6 +44,7 @@ import {
   jetstreamManager,
   jetstream,
   type JetStreamPublishOptions,
+  AckPolicy,
 } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
@@ -67,16 +68,19 @@ class PublishRejectError extends Error {
 
 const MAX_PARALLEL = 50;
 
-// confirm that ephemeral consumer still exists every 15 seconds:
+// confirm that ephemeral consumer still exists periodically.
 // In case of a long disconnect from the network, this is what
-// ensures we successfully get properly updated.
-const CONSUMER_MONITOR_INTERVAL = 15 * 1000;
+// ensures we successfully get properly updated.  This is a lot
+// of traffic and in *most* cases it doesn't get used.  We
+// do have an explicit "reconnect" event as well that is emitted
+// and used instead.  This is a just-in-case fallback.
+const CONSUMER_MONITOR_INTERVAL = 60 * 1000;
 
-// Have server keep ephemeral consumers alive for 5 minutes.  This
-// means even if we drop from the internet for up to an hour, the server
-// doesn't forget about our consumer.  But even if we are forgotten,
+// Have server keep ephemeral consumers alive for some time.  This
+// means even if we drop from the internet for this time, the server
+// doesn't forget about our consumer's state.  But even if we are forgotten,
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
-const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
+const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.
@@ -396,6 +400,7 @@ export class Stream<T = any> extends EventEmitter {
     // after inactive_threshold.   At that point we MUST reset state.
     const options = {
       filter_subject: this.filter,
+      ack_policy: AckPolicy.Explicit,
       inactive_threshold: nanos(EPHEMERAL_CONSUMER_THRESH),
     };
     let startOptions;
@@ -424,9 +429,6 @@ export class Stream<T = any> extends EventEmitter {
     // This code seems exactly necessary and efficient, and most
     // other things I tried ended too soon or hung. See also
     // comment in getAllFromKv about permissions.
-    // const start = Date.now();
-    // let count = 0;
-    //try {
     while (true) {
       const info = await consumer.info();
       if (info.num_pending == 0) {
@@ -436,6 +438,7 @@ export class Stream<T = any> extends EventEmitter {
       this.watch = fetch;
       let chunks: JsMsg[] = [];
       for await (const mesg of fetch) {
+        mesg.ack();
         let isChunked = false;
         // chunked?
         if (mesg.headers != null) {
@@ -461,16 +464,13 @@ export class Stream<T = any> extends EventEmitter {
           // not chunked
           this.handle([mesg], true);
           this.enforceLimits();
-        } // count += 1;
+        }
         const pending = mesg.info.pending;
         if (pending <= 0) {
           return consumer;
         }
       }
     }
-    //     } finally {
-    //       console.log("fetchInitialData", { count, time: Date.now() - start });
-    //     }
   };
 
   private watchForNewData = async (consumer) => {
@@ -489,6 +489,7 @@ export class Stream<T = any> extends EventEmitter {
     this.watch = consume;
     let chunks: JsMsg[] = [];
     for await (const mesg of consume) {
+      mesg.ack();
       let isChunked = false;
       // chunked?
       for (const [key, value] of mesg.headers ?? []) {
@@ -529,24 +530,34 @@ export class Stream<T = any> extends EventEmitter {
         ) {
           // if it is a consumer not found error, we make a new consumer:
           this.restartConsumer();
-          return; // because watchForNewData creates a new consumer monitor loop
+          // return, because watchForNewData creates a new consumer monitor loop
+          return;
         }
       }
       await delay(CONSUMER_MONITOR_INTERVAL);
     }
   };
 
-  private restartConsumer = async () => {
+  private restartConsumer = async (): Promise<void> => {
     // make a new consumer, starting AFTER the last event we retrieved
-    this.watch?.stop(); // stop current watch (if any)
-    // make new one:
-    const start_seq = this.last_seq + 1;
-    const consumer = await this.fetchInitialData({ start_seq });
-    if (this.stream == null) {
-      // closed
-      return;
+    let d = 250;
+    while (true) {
+      this.watch?.stop(); // stop current watch (if any)
+      // make new one:
+      const start_seq = this.last_seq + 1;
+      try {
+        const consumer = await this.fetchInitialData({ start_seq });
+        if (this.stream == null) {
+          // closed
+          return;
+        }
+        this.watchForNewData(consumer);
+        return;
+      } catch (err) {
+        d = Math.min(30000, d * 1.3) + Math.random();
+        await delay(d);
+      }
     }
-    this.watchForNewData(consumer);
   };
 
   private decode = (raw: JsMsg[]) => {

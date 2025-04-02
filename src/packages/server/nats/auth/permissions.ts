@@ -81,6 +81,11 @@ function commonPermissions(cocalcUser) {
   pub.allow.push("$JS.API.*.*.public.>");
   pub.allow.push("$JS.API.CONSUMER.MSG.NEXT.public.>");
 
+  // everyone can ack messages -- this publish to something like this
+  // $JS.ACK.account-6aae57c6-08f1-4bb5-848b-3ceb53e61ede.lZiQnTzW.11.1.98.1743611921171669063.0
+  // which contains a random string, so there is no danger letting anyone publish to this.
+  pub.allow.push("$JS.ACK.>");
+
   // microservices info api -- **TODO: security concerns!?**
   // Please don't tell me I have to name all microservice identically :-(
   sub.allow.push("$SRV.>");

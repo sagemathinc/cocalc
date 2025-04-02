@@ -220,6 +220,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (this.all != null) {
       return;
     }
+
     const kvm = new Kvm(this.env.nc);
     this.kv = await kvm.create(this.name, {
       compression: true,
@@ -1053,7 +1054,7 @@ function validateKey(k: string) {
 }
 
 // upstream is: /^[-/=.>*\w]+$/;
-const validSearchKey = /^[^\u0000\s]+$/
+const validSearchKey = /^[^\u0000\s]+$/;
 export function validateSearchKey(k: string) {
   if (k.startsWith(".") || k.endsWith(".") || !validSearchKey.test(k)) {
     throw new Error(`invalid key: ${k}`);
