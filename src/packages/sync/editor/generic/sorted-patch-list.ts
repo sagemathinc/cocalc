@@ -175,8 +175,7 @@ export class SortedPatchList extends EventEmitter {
           if (
             isEqual(cur.patch, x.patch) &&
             cur.user_id === x.user_id &&
-            cur.snapshot === x.snapshot &&
-            cmp_Date(cur.prev, x.prev) === 0
+            cur.snapshot === x.snapshot
           ) {
             // re-inserting a known patch; nothing at all to do
           } else {
@@ -213,17 +212,17 @@ export class SortedPatchList extends EventEmitter {
     this.updateIndexes();
   };
 
-  private newest_snapshot_time = (): Date => {
-    let t0 = 0;
-    let t: string;
-    for (t in this.all_snapshot_times) {
-      const d: number = parseInt(t);
-      if (d > t0) {
-        t0 = d;
-      }
-    }
-    return new Date(t0);
-  };
+//   private newest_snapshot_time = (): Date => {
+//     let t0 = 0;
+//     let t: string;
+//     for (t in this.all_snapshot_times) {
+//       const d: number = parseInt(t);
+//       if (d > t0) {
+//         t0 = d;
+//       }
+//     }
+//     return new Date(t0);
+//   };
 
   /*
     value: Return the value of the document at the given (optional)
@@ -277,9 +276,6 @@ export class SortedPatchList extends EventEmitter {
       }
     }
 
-    // we do not discard patch due to prev if prev is before this.
-    const prev_cutoff: Date = this.newest_snapshot_time();
-
     // Determine oldest cached value (undefined if nothing cached)
     const oldest_cached_time: Date | undefined = this.cache.oldest_time();
 
@@ -314,18 +310,11 @@ export class SortedPatchList extends EventEmitter {
           break;
         }
         if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
+          oldest_without_time == null ||
+          (oldest_without_time != null && !without_times_set[x.time.valueOf()])
         ) {
-          if (
-            oldest_without_time == null ||
-            (oldest_without_time != null &&
-              !without_times_set[x.time.valueOf()])
-          ) {
-            // apply patch x to update value to be closer to what we want
-            value = value.apply_patch(x.patch);
-          }
+          // apply patch x to update value to be closer to what we want
+          value = value.apply_patch(x.patch);
         }
         // also record the time of the last patch we applied:
         cache_time = x.time;
@@ -375,29 +364,22 @@ export class SortedPatchList extends EventEmitter {
         // Apply a patch to move us forward.
         //console.log("applying patch #{i}")
         if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
+          oldest_without_time == null ||
+          (oldest_without_time != null && !without_times_set[x.time.valueOf()])
         ) {
-          if (
-            oldest_without_time == null ||
-            (oldest_without_time != null &&
-              !without_times_set[x.time.valueOf()])
-          ) {
-            try {
-              value = value.apply_patch(x.patch);
-            } catch (err) {
-              // See https://github.com/sagemathinc/cocalc/issues/3191
-              // This apply_patch *can* fail in practice due to
-              // a horrible massively nested data structure that appears
-              // due to a bug.  This happened with #3191.  It's better
-              // just skip the patch than to make the project and all
-              // files basically be massively broken!
-              console.warn(
-                "WARNING: unable to apply a patch -- skipping it",
-                err,
-              );
-            }
+          try {
+            value = value.apply_patch(x.patch);
+          } catch (err) {
+            // See https://github.com/sagemathinc/cocalc/issues/3191
+            // This apply_patch *can* fail in practice due to
+            // a horrible massively nested data structure that appears
+            // due to a bug.  This happened with #3191.  It's better
+            // just skip the patch than to make the project and all
+            // files basically be massively broken!
+            console.warn(
+              "WARNING: unable to apply a patch -- skipping it",
+              err,
+            );
           }
         }
         cache_time = x.time;
@@ -431,7 +413,6 @@ export class SortedPatchList extends EventEmitter {
   value_no_cache = (time?: Date, snapshots: boolean = true): Document => {
     let value: Document = this.from_str(""); // default in case no snapshots
     let start: number = 0;
-    const prev_cutoff: Date = this.newest_snapshot_time();
     if (snapshots && this.patches.length > 0) {
       for (let i = this.patches.length - 1; i >= 0; i--) {
         const x: Patch = this.patches[i];
@@ -453,15 +434,7 @@ export class SortedPatchList extends EventEmitter {
         // Done -- no more patches need to be applied
         break;
       }
-      if (
-        x.prev == null ||
-        this.times[x.prev.valueOf()] ||
-        x.prev <= prev_cutoff
-      ) {
-        value = value.apply_patch(x.patch);
-      } else {
-        console.log("skipping patch due to prev", x);
-      }
+      value = value.apply_patch(x.patch);
     }
     return value;
   };
@@ -508,14 +481,6 @@ export class SortedPatchList extends EventEmitter {
     return x.user_id;
   };
 
-  // Returns time when patch was sent out, or undefined.  This is
-  // ONLY set if the patch was sent at a significantly different
-  // time than when it was created, e.g., due to it being offline.
-  // Throws an exception if there is no patch at that point in time.
-  time_sent = (time): Date | undefined => {
-    return this.patch(time).sent;
-  };
-
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
   patch = (time): Patch => {
@@ -559,7 +524,6 @@ export class SortedPatchList extends EventEmitter {
     };
     let i: number = 0;
     let s: Document | undefined;
-    const prev_cutoff: Date = this.newest_snapshot_time();
     let x: Patch;
     let first_time: boolean = true;
     for (x of this.patches) {
@@ -580,17 +544,7 @@ export class SortedPatchList extends EventEmitter {
       if (first_time && x.snapshot != null) {
         // do not apply patch no matter what.
       } else {
-        if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
-        ) {
-          s = s.apply_patch(x.patch);
-        } else {
-          log(
-            `prev=${x.prev.valueOf()} is missing, so not applying this patch`,
-          );
-        }
+        s = s.apply_patch(x.patch);
       }
       first_time = false;
       log(

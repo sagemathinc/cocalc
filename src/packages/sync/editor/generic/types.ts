@@ -23,8 +23,6 @@ export interface Patch {
                    JSON *string* in database, but array/object here) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
-  sent?: Date; // when patch actually sent, which may be later than when made
-  prev?: Date; // timestamp of previous patch sent from this session
   size: number; // size of the patch (by defn length of string representation)
 
   is_snapshot?: boolean;

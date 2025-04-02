@@ -55,10 +55,6 @@ describe("Test empty sorted patch list -- call all public methods", () => {
     expect(() => patches.user_id(new Date())).toThrow("no patch");
   });
 
-  it("gets time sent of a patch (error since no patches)", () => {
-    expect(() => patches.time_sent(new Date())).toThrow("no patch");
-  });
-
   it("gets patch at time (error since no patches)", () => {
     expect(() => patches.patch(new Date())).toThrow("no patch");
   });
@@ -127,10 +123,6 @@ describe("Test sorted patch list with one patch", () => {
 
   it("gets id of user who made edit at time", () => {
     expect(patches.user_id(patch.time)).toBe(patch.user_id);
-  });
-
-  it("gets time sent of a patch (undefined since not yet sent)", () => {
-    expect(patches.time_sent(patch.time)).toBe(undefined);
   });
 
   it("gets patch at time (error since no patches)", () => {

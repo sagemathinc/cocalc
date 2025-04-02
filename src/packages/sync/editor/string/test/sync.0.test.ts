@@ -93,10 +93,6 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     expect(() => syncstring.account_id(new Date())).toThrow("no patch at");
   });
 
-  it("time sent of change at given point in time gives error", () => {
-    expect(() => syncstring.time_sent(new Date())).toThrow("no patch at");
-  });
-
   it("user_id of change at given point in time gives error", () => {
     expect(() => syncstring.user_id(new Date())).toThrow("no patch at");
   });

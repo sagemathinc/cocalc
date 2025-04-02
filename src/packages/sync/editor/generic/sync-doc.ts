@@ -244,8 +244,6 @@ export class SyncDoc extends EventEmitter {
 
   private undo_state: UndoState | undefined;
 
-  private save_patch_prev: Date | undefined;
-
   private save_to_disk_start_ctime: number | undefined;
   private save_to_disk_end_ctime: number | undefined;
 
@@ -971,17 +969,6 @@ export class SyncDoc extends EventEmitter {
   public account_id = (time: Date): string => {
     this.assert_is_ready("account_id");
     return this.users[this.user_id(time)];
-  };
-
-  /* Approximate time when patch with given timestamp was
-     actually sent to the server; returns undefined if time
-     sent is approximately the timestamp time.  Only defined
-     when there is a significant difference, due to editing
-     when offline! */
-  public time_sent = (time: Date): Date | undefined => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.time_sent(time);
   };
 
   // Integer index of user who made the edit at given
@@ -1806,12 +1793,6 @@ export class SyncDoc extends EventEmitter {
       snapshot: null,
       // info about sequence number, count, etc. of this snapshot
       seq_info: null,
-      // (optional) when patch actually sent, which may
-      // be later than when made
-      sent: null,
-      // (optional) timestamp of previous patch sent
-      // from this session
-      prev: null,
       parents: null,
     };
     if (this.doctype.patch_format != null) {
@@ -2207,11 +2188,6 @@ export class SyncDoc extends EventEmitter {
     if (this.doctype.patch_format != null) {
       obj.format = this.doctype.patch_format;
     }
-    if (this.save_patch_prev != null) {
-      // timestamp of last saved patch during this session
-      obj.prev = this.save_patch_prev;
-    }
-    this.save_patch_prev = time;
 
     // If in undo mode put the just-created patch in our
     // without timestamp list, so it won't be included
@@ -2377,9 +2353,7 @@ export class SyncDoc extends EventEmitter {
     }
     const time: Date = t;
     const user_id: number = x.get("user_id");
-    const sent: Date = x.get("sent");
     const parents: number[] = x.get("parents")?.toJS() ?? [];
-    const prev: Date | undefined = x.get("prev");
     let size: number;
     const is_snapshot = x.get("is_snapshot");
     if (is_snapshot) {
@@ -2417,12 +2391,6 @@ export class SyncDoc extends EventEmitter {
       is_snapshot,
       parents,
     };
-    if (sent != null) {
-      obj.sent = sent;
-    }
-    if (prev != null) {
-      obj.prev = prev;
-    }
     if (is_snapshot) {
       obj.snapshot = x.get("snapshot"); // this is a string
       obj.seq_info = x.get("seq_info")?.toJS();
@@ -2529,45 +2497,6 @@ export class SyncDoc extends EventEmitter {
     });
     await this.syncstring_table.save();
   };
-
-  /* Check if any patches that just got confirmed as saved
-     are relatively old; if so, we mark them as such and
-     also possibly recompute snapshots.
-  */
-  /*
-  private handle_offline = async (data): Promise<void> => {
-    this.assert_not_closed("handle_offline");
-    const now: Date = this.client.server_time();
-    let oldest: Date | undefined = undefined;
-    for (const obj of data) {
-      if (obj.sent) {
-        // CRITICAL: ignore anything already processed! (otherwise, infinite loop)
-        continue;
-      }
-      if (now.valueOf() - obj.time.valueOf() >= 1000 * OFFLINE_THRESH_S) {
-        // patch is "old" -- mark it as likely being sent as a result of being
-        // offline, so clients could potentially discard it.
-        obj.sent = now;
-        this.patches_table.set(obj);
-        this.patches_table.save();
-        if (oldest == null || obj.time < oldest) {
-          oldest = obj.time;
-        }
-      }
-    }
-    if (oldest) {
-      //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
-      assertDefined(this.patch_list);
-      for (const snapshot_time of this.patch_list.snapshot_times()) {
-        if (snapshot_time >= oldest) {
-          //console.log("recomputing snapshot #{snapshot_time}")
-          // todo -- this second argument true is NOT supported anymore, obviously
-          await this.snapshot(snapshot_time, true);
-        }
-      }
-    }
-  };
-*/
 
   public get_last_save_to_disk_time = (): Date => {
     return this.last_save_to_disk_time;
@@ -3499,7 +3428,7 @@ export class SyncDoc extends EventEmitter {
   // until the next "render loop" to avoid huge performance issues
   // with a nested for loop of sets.  Doing it this way, massively
   // simplifies client code.
-  emit_change_debounced = debounce(this.emit_change.bind(this), 0);
+  emit_change_debounced = debounce(this.emit_change, 0);
 
   private set_syncstring_table = async (obj, save = true) => {
     const value0 = this.syncstring_table_get_one();
