@@ -270,7 +270,8 @@ export class Actions<
     }
   }
 
-  // Init setting of value whenever syncstring changes -- only used in derived classes
+  // Init setting of value whenever syncstring changes --
+  // this value in the store is used in derived classes (i.e., other frame editors)
   protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
       if (!this._syncstring) {
@@ -355,9 +356,7 @@ export class Actions<
 
     this._syncstring.once("ready", (err) => {
       if (err) {
-        this.set_error(
-          `${err}\nFix this, then try opening the file again.`,
-        );
+        this.set_error(`${err}\nFix this, then try opening the file again.`);
         return;
       }
       if (!this._syncstring || this.isClosed()) {
@@ -402,9 +401,7 @@ export class Actions<
     });
 
     this._syncstring.once("error", (err) => {
-      this.set_error(
-        `${err}\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}\nFix this, then try opening the file again.`);
     });
 
     this._syncstring.once("closed", () => {
@@ -463,9 +460,7 @@ export class Actions<
       file_use_interval: 0, // disable file use, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", (err) => {
-      this.set_error(
-        `${err}.\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}.\nFix this, then try opening the file again.`);
     });
 
     this._syncdb.once("closed", () => {

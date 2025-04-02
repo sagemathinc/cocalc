@@ -262,6 +262,14 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       syncdoc.revert(new Date(version));
     }
     await syncdoc.commit(true);
+
+    // Some editors, e.g., the code text editor, only update Codemirror when
+    // "after-change" is emitted (not just "change"), and commit does NOT result
+    // in an after-change on this client (because usually you don't want that).
+    // So we do it manually here.  Without this, revert when editing code would
+    // not work.
+    syncdoc.emit("after-change");
+
     await this.open_file();
   };
 
