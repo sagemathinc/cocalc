@@ -187,12 +187,19 @@ interface TimeAgoProps {
   style?: CSS;
   date?;
   click_to_toggle?: boolean; // default true
+  time_ago_absolute?: boolean;
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
-  (props: TimeAgoElementProps) => {
-    const { placement, tip, live, style, date, click_to_toggle = true } = props;
-
+  ({
+    placement,
+    tip,
+    live,
+    style,
+    date,
+    click_to_toggle = true,
+    time_ago_absolute,
+  }: TimeAgoElementProps) => {
     const { timeAgoAbsolute } = useAppContext();
 
     if (date == null) {
@@ -205,7 +212,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         placement={placement}
         tip={tip}
         live={live}
-        time_ago_absolute={timeAgoAbsolute ?? false}
+        time_ago_absolute={time_ago_absolute ?? timeAgoAbsolute ?? false}
         style={style}
         click_to_toggle={click_to_toggle}
       />
@@ -221,6 +228,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         "live",
         "click_to_toggle",
         "style",
+        "time_ago_absolute",
       ])
     );
   },

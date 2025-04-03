@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
@@ -15,20 +16,29 @@ export function Version({ date, number, max }: Props) {
   if (max == 0) return <span />;
   return (
     <span>
-      <span
-        style={{
-          fontWeight: "bold",
-          fontSize: "12pt",
-          color: "#666",
-          whiteSpace: "nowrap",
-        }}
+      <Tooltip
+        title={
+          <>
+            This is <b>the exact</b> version of the document that the author was
+            editing at <TimeAgo date={date} time_ago_absolute />.
+          </>
+        }
       >
-        <TimeAgo date={date} />
-      </span>
-      ,{" "}
-      <span style={{ whiteSpace: "nowrap" }}>
-        revision {number} (of {max})
-      </span>
+        <span
+          style={{
+            fontWeight: "bold",
+            fontSize: "12pt",
+            color: "#666",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <TimeAgo date={date} />
+        </span>
+        ,{" "}
+        <span style={{ whiteSpace: "nowrap" }}>
+          Revision {number} (of {max})
+        </span>
+      </Tooltip>
     </span>
   );
 }
