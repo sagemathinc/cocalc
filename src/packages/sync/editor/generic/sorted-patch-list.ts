@@ -246,7 +246,10 @@ export class SortedPatchList extends EventEmitter {
     noCache?: boolean;
     verbose?: boolean;
   } = {}) => {
-    let key = time?.valueOf();
+    if (time != null && this.times[time.valueOf()] == null) {
+      throw Error(`unknown time: ${time}`);
+    }
+    const key = time?.valueOf();
     let without;
     if (without_times == null) {
       without = null;
@@ -282,7 +285,6 @@ export class SortedPatchList extends EventEmitter {
         k = new Set<number>();
       } else {
         if (heads.length == 1 && !noCache) {
-          key = heads[0];
           const v = this.cache.get(heads[0]);
           if (v != null) {
             return v;
@@ -350,6 +352,7 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     if (key != null && (without == null || without.size == 0)) {
+      console.log("saving to cache", { key, value: value.to_str() });
       this.cache.set(key, value);
     }
     return value;

@@ -201,7 +201,15 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (state != "ready") {
       return;
     }
-    return this.syncdoc.version(new Date(version));
+    try {
+      return this.syncdoc.version(new Date(version));
+    } catch (_) {
+      console.log(
+        "TimeTravel: unknown or not loaded version",
+        new Date(version),
+      );
+      return;
+    }
   };
 
   get_account_ids = (version0: number, version1: number): string[] => {

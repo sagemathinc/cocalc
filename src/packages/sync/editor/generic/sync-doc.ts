@@ -117,6 +117,7 @@ import { isTestClient, patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
+import { isEqual } from "lodash";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -1854,29 +1855,50 @@ export class SyncDoc extends EventEmitter {
     dbg("adding all known patches");
     patch_list.add(this.get_patches());
 
-    //this.patches_table.on("saved", this.handle_offline);
-    this.patch_list = patch_list;
-
-    while (this.patch_list.nonSnapshotTails().length > 0) {
-      console.log("there are non-snapshot tails, so must load more history");
-      if (!(await this.loadMoreHistory())) {
+    dbg("fill in any missing patches");
+    let last: number[] = [];
+    while (true) {
+      const tails = patch_list.nonSnapshotTails().sort();
+      if (tails.length == 0) {
+        // done
+        break;
+      }
+      let start_seq;
+      if (isEqual(tails, last)) {
+        // didn't shrink, so we just get everything
+        start_seq = 1;
+      } else {
+        last = tails;
+        const snap = patch_list.getOldestSnapshot();
+        const seq_info = snap?.seq_info ?? {
+          prev_seq: 1,
+        };
+        start_seq = seq_info.prev_seq ?? 1;
+      }
+      // @ts-ignore
+      const dstream = this.patches_table.dstream;
+      if (dstream == null) {
+        throw Error("must be using nats and dstream must be defined");
+      }
+      await dstream.load({ start_seq });
+      patch_list.add(this.get_patches());
+      if (start_seq <= 1) {
+        // loaded everything -- ensure all held patches are applied
+        patch_list.setFirstSnapshot(undefined);
         break;
       }
     }
 
-    if (this.patch_list.nonSnapshotTails().length > 0) {
-      // should never happen!
-      console.log("some versions may not be available");
-    }
-    console.log("getting doc");
+    //this.patches_table.on("saved", this.handle_offline);
+    this.patch_list = patch_list;
+
     let doc;
     try {
       doc = patch_list.value();
     } catch (err) {
-      console.trace("error getting doc", err);
+      console.warn("error getting doc", err);
       doc = this._from_str("");
     }
-    console.log("got doc = ", doc);
     this.last = this.doc = doc;
     this.patches_table.on("change", this.handle_patch_update);
 
