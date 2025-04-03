@@ -139,6 +139,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (this.syncdoc.get_state() != "ready") {
       await once(this.syncdoc, "ready");
     }
+    if (this.syncdoc == null) return;
     // cause initial load -- we could be plugging into an already loaded syncdoc,
     // so there wouldn't be any change event, so we have to trigger this.
     this.syncdoc_changed();

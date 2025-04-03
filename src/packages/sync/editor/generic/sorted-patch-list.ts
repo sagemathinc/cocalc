@@ -231,23 +231,29 @@ export class SortedPatchList extends EventEmitter {
   If without_times is given, we restrict it to times <= time, and only if
   that is empty, then we can use cached values.
   */
+
+  // **TODO** this gives the wrong answer for old things since we may
+  // have to load more!!!  E.g., if a patch points to something that isn't
+  // loaded yet, then needs to throw an error.
   value = ({
     time,
     without_times,
     noCache,
+    verbose,
   }: {
     time?: Date;
     without_times?: Date[];
     noCache?: boolean;
+    verbose?: boolean;
   } = {}) => {
-    const key = time?.valueOf();
+    let key = time?.valueOf();
     let without;
     if (without_times == null) {
       without = null;
     } else {
       let w = without_times.map((x) => x.valueOf());
       if (key != null) {
-        w = w.filter((x) => x <= key);
+        w = w.filter((x) => x <= key!);
       }
       without = new Set<number>(w);
     }
@@ -273,6 +279,7 @@ export class SortedPatchList extends EventEmitter {
         k = new Set<number>();
       } else {
         if (heads.length == 1 && !noCache) {
+          key = heads[0];
           const v = this.cache.get(heads[0]);
           if (v != null) {
             return v;
@@ -298,12 +305,18 @@ export class SortedPatchList extends EventEmitter {
     } else {
       value = this.from_str("");
     }
+    if (verbose) {
+      console.log({ value: value.to_str() });
+    }
     for (const t of v) {
       if (without != null && without.has(t)) {
         continue;
       }
       const { patch } = this.times[t];
       value = value.apply_patch(patch);
+      if (verbose) {
+        console.log({ patch, value: value.to_str() });
+      }
     }
     if (key != null && (without == null || without.size == 0)) {
       this.cache.set(key, value);
@@ -394,10 +407,8 @@ export class SortedPatchList extends EventEmitter {
     const log = (...args) => {
       output += args.join(" ") + "\n";
     };
-    let i: number = 0;
-    let s: Document | undefined;
+    let i: number = 1;
     let x: Patch;
-    let first_time: boolean = true;
     for (x of this.patches) {
       const tm: Date = x.time;
       const tm_show: number | string = milliseconds
@@ -408,17 +419,10 @@ export class SortedPatchList extends EventEmitter {
         i,
         x.user_id,
         tm_show,
+        JSON.stringify(x.parents),
         trunc_middle(JSON.stringify(x.patch), trunc),
       );
-      if (s === undefined) {
-        s = this.from_str(x.snapshot != null ? x.snapshot : "");
-      }
-      if (first_time && x.snapshot != null) {
-        // do not apply patch no matter what.
-      } else {
-        s = s.apply_patch(x.patch);
-      }
-      first_time = false;
+      const s = this.value({ time: tm });
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
         JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
@@ -651,9 +655,6 @@ export class SortedPatchList extends EventEmitter {
       // patch is loaded so add it to our list
       visited.add(current);
       if (patch?.parents != null && !patch.is_snapshot) {
-        if (patch.parents.length > 1) {
-          console.log("fork", patch.parents);
-        }
         for (const s of patch.parents) {
           if (!visited.has(s)) {
             stack.push(s);
