@@ -37,21 +37,7 @@ export interface Patch {
     // have a prev_seq, etc., making it possible to incremental load
     // patches back in time.
     prev_seq?: number;
-    // index is the global index of this patch among all patches. count is
-    // used to display a version number to the user that
-    // is meaningful independent of how much history has been loaded.
-    // That said, the index for a **very recent** patch can change
-    // if new patches are inserted before it.
-    index: number;
   };
-
-  // This is set only in the sorted-patch-list.  It's the global
-  // index of the patch, which starts at 0 for the very first change.
-  // This doesn't depend on how many patches have been loaded, but
-  // for recent patches it CAN change, as new patches are inserted
-  // into the patch list!  It's computed using the count from the
-  // last snapshot.
-  index?: number;
 
   // The set of all patches forms a directed acyclic graph.
   // There is an edge from the patch to its parents, which were all source
@@ -62,6 +48,8 @@ export interface Patch {
   // that we are merging.  I.e., we might only add something when
   // the user wants to manually do a merge.  That's for later...
   parents?: number[];
+
+  version?: number;
 }
 
 export interface Document {

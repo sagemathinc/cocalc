@@ -70,8 +70,9 @@ export interface TimeTravelState extends CodeEditorState {
   //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
   // timetravel has own error state
   error: string;
-  // first index of versions. This changes when you load more.
-  start_index: number;
+  // first loaded versions. This changes when you load more.
+  first_version: number;
+  last_version: number;
 }
 
 export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
@@ -184,11 +185,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.setState({ versions: List([]) });
       return;
     }
-    const start_index = this.syncdoc.historyStartIndex();
-    this.setState({ versions, start_index });
+    const first_version = this.syncdoc.historyFirstVersion();
+    const last_version = this.syncdoc.historyLastVersion();
+    this.setState({ versions, first_version, last_version });
     if (this.first_load) {
       this.first_load = false;
     }
+  };
+
+  versionNumber = (version: number): number | undefined => {
+    return this.syncdoc?.historyVersionNumber(new Date(version));
   };
 
   // Get the given version of the document.

@@ -62,7 +62,8 @@ export function TimeTravel(props: Props) {
   const licenses = useLicenses({ project_id });
   const error = useEditor("error");
   const versions = useEditor("versions");
-  const startIndex = useEditor("start_index") ?? 0;
+  const firstVersion = useEditor("first_version") ?? 0;
+  const lastVersion = useEditor("last_version") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
   const loading = useEditor("loading");
@@ -223,7 +224,6 @@ export function TimeTravel(props: Props) {
     if (v == null || v.size == 0) {
       return null;
     }
-    const max = v.size;
     if (changesMode) {
       if (version0 == null || version1 == null) {
         return null;
@@ -238,9 +238,9 @@ export function TimeTravel(props: Props) {
       }
       return (
         <VersionRange
-          version0={i0 + startIndex}
-          version1={i1 + startIndex}
-          max={max + startIndex}
+          version0={props.actions.versionNumber(version0) ?? i0 + firstVersion}
+          version1={props.actions.versionNumber(version1) ?? i1 + firstVersion}
+          max={lastVersion}
         />
       );
     } else {
@@ -254,8 +254,8 @@ export function TimeTravel(props: Props) {
       return (
         <Version
           date={new Date(version)}
-          number={i + 1 + startIndex}
-          max={max + startIndex}
+          number={props.actions.versionNumber(version) ?? i + firstVersion}
+          max={lastVersion}
         />
       );
     }

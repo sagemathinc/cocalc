@@ -688,23 +688,23 @@ export class SyncDoc extends EventEmitter {
     this.emit(state);
   };
 
-  public get_state = (): State => {
+  get_state = (): State => {
     return this.state;
   };
 
-  public get_project_id = (): string => {
+  get_project_id = (): string => {
     return this.project_id;
   };
 
-  public get_path = (): string => {
+  get_path = (): string => {
     return this.path;
   };
 
-  public get_string_id = (): string => {
+  get_string_id = (): string => {
     return this.string_id;
   };
 
-  public get_my_user_id = (): number => {
+  get_my_user_id = (): number => {
     return this.my_user_id != null ? this.my_user_id : 0;
   };
 
@@ -715,7 +715,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public set_doc = (doc: Document, exit_undo_mode: boolean = true): void => {
+  set_doc = (doc: Document, exit_undo_mode: boolean = true): void => {
     if (doc.is_equal(this.doc)) {
       // no change.
       return;
@@ -731,25 +731,25 @@ export class SyncDoc extends EventEmitter {
 
   // Convenience function to avoid having to do
   // get_doc and set_doc constantly.
-  public set = (x: any): void => {
+  set = (x: any): void => {
     this.set_doc(this.doc.set(x));
   };
 
-  public delete = (x?: any): void => {
+  delete = (x?: any): void => {
     this.set_doc(this.doc.delete(x));
   };
 
-  public get = (x?: any): any => {
+  get = (x?: any): any => {
     return this.doc.get(x);
   };
 
-  public get_one(x?: any): any {
+  get_one(x?: any): any {
     return this.doc.get_one(x);
   }
 
   // Return underlying document, or undefined if document
   // hasn't been set yet.
-  public get_doc = (): Document => {
+  get_doc = (): Document => {
     if (this.doc == null) {
       throw Error("doc must be set");
     }
@@ -757,28 +757,28 @@ export class SyncDoc extends EventEmitter {
   };
 
   // Set this doc from its string representation.
-  public from_str = (value: string): void => {
+  from_str = (value: string): void => {
     // console.log(`sync-doc.from_str("${value}")`);
     this.doc = this._from_str(value);
   };
 
   // Return string representation of this doc,
   // or exception if not yet ready.
-  public to_str = (): string => {
+  to_str = (): string => {
     if (this.doc == null) {
       throw Error("doc must be set");
     }
     return this.doc.to_str();
   };
 
-  public count = (): number => {
+  count = (): number => {
     return this.doc.count();
   };
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
-  public version = (time?: Date): Document => {
+  version = (time?: Date): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ time });
@@ -787,7 +787,7 @@ export class SyncDoc extends EventEmitter {
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
-  public version_without = (without_times: Date[]): Document => {
+  version_without = (without_times: Date[]): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ without_times });
@@ -797,7 +797,7 @@ export class SyncDoc extends EventEmitter {
   // There doesn't have to be a patch at exactly that point in
   // time -- if there isn't it just uses the patch before that
   // point in time.
-  public revert = (time: Date): void => {
+  revert = (time: Date): void => {
     this.set_doc(this.version(time));
   };
 
@@ -825,14 +825,14 @@ export class SyncDoc extends EventEmitter {
 
   Doing any set_doc explicitly exits undo mode automatically.
   */
-  public undo = (): Document => {
+  undo = (): Document => {
     const prev = this._undo();
     this.set_doc(prev, false);
     this.commit();
     return prev;
   };
 
-  public redo = (): Document => {
+  redo = (): Document => {
     const next = this._redo();
     this.set_doc(next, false);
     this.commit();
@@ -909,11 +909,11 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public in_undo_mode = (): boolean => {
+  in_undo_mode = (): boolean => {
     return this.undo_state != null;
   };
 
-  public exit_undo_mode = (): void => {
+  exit_undo_mode = (): void => {
     this.undo_state = undefined;
   };
 
@@ -968,14 +968,14 @@ export class SyncDoc extends EventEmitter {
 
   // account_id of the user who made the edit at
   // the given point in time.
-  public account_id = (time: Date): string => {
+  account_id = (time: Date): string => {
     this.assert_is_ready("account_id");
     return this.users[this.user_id(time)];
   };
 
   // Integer index of user who made the edit at given
   // point in time.
-  public user_id = (time: Date): number => {
+  user_id = (time: Date): number => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.user_id(time);
@@ -1017,7 +1017,7 @@ export class SyncDoc extends EventEmitter {
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
-  public versions = (): Date[] => {
+  versions = (): Date[] => {
     this.assert_table_is_ready("patches");
 
     // check for new NATS function and use that if available.
@@ -1049,13 +1049,23 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.versions();
   };
 
-  historyStartIndex = () => {
+  historyFirstVersion = () => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
-    return this.patch_list.startIndex();
+    return this.patch_list.firstVersion();
   };
 
-  public last_changed = (): Date => {
+  historyLastVersion = () => {
+    this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
+    return this.patch_list.lastVersion();
+  };
+
+  historyVersionNumber = (time: Date): number | undefined => {
+    return this.patch_list?.versionNumber(time);
+  };
+
+  last_changed = (): Date => {
     const v = this.versions();
     if (v.length > 0) {
       return v[v.length - 1];
@@ -1075,7 +1085,7 @@ export class SyncDoc extends EventEmitter {
 
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
-  public close = reuseInFlight(async () => {
+  close = reuseInFlight(async () => {
     if (this.state == "closed") {
       return;
     }
@@ -1614,13 +1624,13 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public assert_is_ready = (desc: string): void => {
+  assert_is_ready = (desc: string): void => {
     if (this.state != "ready") {
       throw Error(`must be ready -- ${desc}`);
     }
   };
 
-  public wait_until_ready = async (): Promise<void> => {
+  wait_until_ready = async (): Promise<void> => {
     this.assert_not_closed("wait_until_ready");
     if (this.state !== ("ready" as State)) {
       // wait for a state change to ready.
@@ -1633,7 +1643,7 @@ export class SyncDoc extends EventEmitter {
      until it is defined, then calls wait.  Timeout only starts
      when patches_table is already initialized.
   */
-  public wait = async (until: Function, timeout: number = 30): Promise<any> => {
+  wait = async (until: Function, timeout: number = 30): Promise<any> => {
     await this.wait_until_ready();
     //console.trace("SYNC WAIT -- start...");
     const result = await wait({
@@ -1664,7 +1674,7 @@ export class SyncDoc extends EventEmitter {
      WORRY: Race condition where constructor might write stuff as
      it is being deleted?
   */
-  public delete_from_database = async (): Promise<void> => {
+  delete_from_database = async (): Promise<void> => {
     const queries: object[] = this.ephemeral
       ? []
       : [
@@ -1796,6 +1806,7 @@ export class SyncDoc extends EventEmitter {
       // info about sequence number, count, etc. of this snapshot
       seq_info: null,
       parents: null,
+      version: null,
     };
     if (this.doctype.patch_format != null) {
       (query as any).format = this.doctype.patch_format;
@@ -2129,7 +2140,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   // get settings object
-  public get_settings = (): Map<string, any> => {
+  get_settings = (): Map<string, any> => {
     this.assert_is_ready("get_settings");
     return this.syncstring_table_get_one().get("settings", Map());
   };
@@ -2142,7 +2153,7 @@ export class SyncDoc extends EventEmitter {
 
   Save any changes we have as a new patch.
   */
-  public save = reuseInFlight(async () => {
+  save = reuseInFlight(async () => {
     const dbg = this.dbg("save");
     dbg();
     // We just keep trying while syncdoc is ready and there
@@ -2224,6 +2235,7 @@ export class SyncDoc extends EventEmitter {
       user_id: this.my_user_id,
       is_snapshot: false,
       parents: this.patch_list.getHeads(),
+      version: this.patch_list.lastVersion() + 1,
     };
 
     this.my_patches[time.valueOf()] = obj;
@@ -2274,7 +2286,7 @@ export class SyncDoc extends EventEmitter {
   //    - index -- the global index of the entry with the given time.
   private natsSnapshotSeqInfo = (
     time: Date,
-  ): { seq: number; prev_seq?: number; index: number } => {
+  ): { seq: number; prev_seq?: number } => {
     const dstream = this.dstream();
     // seq = actual sequence number of the message with the patch that we're
     // snapshotting at -- i.e., at time
@@ -2298,11 +2310,7 @@ export class SyncDoc extends EventEmitter {
     if (seq == null) {
       throw Error(`unable to find message with time '${time}'`);
     }
-    const index = this.patch_list?.getIndex(time);
-    if (index == null) {
-      throw Error(`unable to get index of patch with time '${time}'`);
-    }
-    return { seq, prev_seq, index };
+    return { seq, prev_seq };
   };
 
   /* Create and store in the database a snapshot of the state
@@ -2433,6 +2441,7 @@ export class SyncDoc extends EventEmitter {
       size,
       is_snapshot,
       parents,
+      version: x.get("version"),
     };
     if (is_snapshot) {
       obj.snapshot = x.get("snapshot"); // this is a string
@@ -2482,7 +2491,8 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_list == null) {
       return false;
     }
-    return (this.patch_list?.getOldestSnapshot()?.index ?? 0) == 0;
+    const parents = this.patch_list?.getOldestSnapshot()?.parents ?? [];
+    return parents.length == 0;
   };
 
   // returns true if there may be additional history to load
@@ -2541,7 +2551,7 @@ export class SyncDoc extends EventEmitter {
     await this.syncstring_table.save();
   };
 
-  public get_last_save_to_disk_time = (): Date => {
+  get_last_save_to_disk_time = (): Date => {
     return this.last_save_to_disk_time;
   };
 

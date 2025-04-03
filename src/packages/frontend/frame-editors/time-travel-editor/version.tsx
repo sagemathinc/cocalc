@@ -19,8 +19,9 @@ export function Version({ date, number, max }: Props) {
       <Tooltip
         title={
           <>
-            This is <b>the exact</b> version of the document that the author was
-            editing at <TimeAgo date={date} time_ago_absolute />.
+            You are looking at <b>the exact document</b> that the author was
+            editing at <TimeAgo date={date} time_ago_absolute />. Version
+            numbers are <b>only</b> unique within a given branch.
           </>
         }
       >
@@ -55,7 +56,7 @@ export function VersionRange({ version0, version1, max }: RangeProps) {
   }
   return (
     <span style={{ whiteSpace: "nowrap" }}>
-      Versions {version0 + 1} to {version1 + 1} (of {max})
+      Versions {version0} to {version1} (of {max})
     </span>
   );
 }

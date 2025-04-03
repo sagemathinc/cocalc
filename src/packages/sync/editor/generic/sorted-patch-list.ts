@@ -32,7 +32,7 @@ export class SortedPatchList extends EventEmitter {
   private versions_cache: Date[] | undefined;
 
   // todo -- size?
-  private cache: LRU<number, Document> = new LRU({
+  private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
     max: MAX_PATCHLIST_CACHE_SIZE,
   });
 
@@ -74,6 +74,19 @@ export class SortedPatchList extends EventEmitter {
     this.removeAllListeners();
     this.cache.clear();
     close(this);
+  };
+
+  lastVersion = () => {
+    const n = this.patches.length;
+    return this.patches[n - 1]?.version ?? n;
+  };
+
+  firstVersion = () => {
+    return this.patches[0]?.version ?? 1;
+  };
+
+  versionNumber = (time: Date): undefined | number => {
+    return this.times[time.valueOf()]?.version;
   };
 
   /* Choose the next available time in ms that is congruent to
@@ -205,7 +218,7 @@ export class SortedPatchList extends EventEmitter {
       this.patches = this.patches.concat(newPatches);
       this.patches.sort(patch_cmp);
     }
-    this.updateIndexes();
+    this.ensureTailsAreSnapshots();
   };
 
   /*
@@ -266,7 +279,7 @@ export class SortedPatchList extends EventEmitter {
     }
 
     if (!noCache && key != null) {
-      const v = this.cache.get(key);
+      const v = this.getCache(key);
       if (v != null) {
         if (verbose) {
           console.log("value: done -- is in the cache");
@@ -285,7 +298,7 @@ export class SortedPatchList extends EventEmitter {
         k = new Set<number>();
       } else {
         if (heads.length == 1 && !noCache) {
-          const v = this.cache.get(heads[0]);
+          const v = this.getCache(heads[0]);
           if (v != null) {
             return v;
           }
@@ -301,7 +314,7 @@ export class SortedPatchList extends EventEmitter {
     if (k.size == 0) {
       const value = this.from_str("");
       if (key != null) {
-        this.cache.set(key, value);
+        this.setCache(key, value, 0);
       }
       return value;
     }
@@ -316,9 +329,10 @@ export class SortedPatchList extends EventEmitter {
       // It may be possible to initialize using the cache, which would avoid a lot of work.
       for (let i = v.length - 1; i >= 0; i--) {
         const t = v[i];
-        if (this.cache.has(t)) {
-          value = this.cache.get(t)!;
+        const x = this.getCache(t, i + 1);
+        if (x != null) {
           v = v.slice(i + 1);
+          value = x;
           if (verbose) {
             console.log("value: initialized using cached value", {
               value,
@@ -352,9 +366,29 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     if (key != null && (without == null || without.size == 0)) {
-      this.cache.set(key, value);
+      this.setCache(key, value, k.size);
     }
     return value;
+  };
+
+  private setCache = (time: number, doc: Document, numTimes: number) => {
+    this.cache.set(time, { doc, numTimes });
+  };
+
+  private getCache = (
+    time: number,
+    numTimes?: number,
+  ): Document | undefined => {
+    const v = this.cache.get(time);
+    if (v == null) {
+      return;
+    }
+    if (numTimes == null) {
+      return v.doc;
+    }
+    if (v.numTimes == numTimes) {
+      return v.doc;
+    }
   };
 
   // For testing/debugging.  Go through the complete patch history and
@@ -419,13 +453,15 @@ export class SortedPatchList extends EventEmitter {
 
   // Show the history of this document; used mainly for debugging purposes.
   show_history = ({
-    milliseconds,
+    milliseconds = true,
     trunc,
     log: log0,
+    noCache,
   }: {
     milliseconds?: boolean;
     trunc?: number;
     log?: Function;
+    noCache?: boolean;
   } = {}) => {
     if (milliseconds === undefined) {
       milliseconds = false;
@@ -451,17 +487,23 @@ export class SortedPatchList extends EventEmitter {
         "-----------------------------------------------------\n",
         i,
         x.user_id,
+        x.version,
         tm_show,
         JSON.stringify(x.parents),
         trunc_middle(JSON.stringify(x.patch), trunc),
       );
-      const s = this.value({ time: tm });
+      const s = this.value({ time: tm, noCache });
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
         JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
       );
       i += 1;
     }
+    output +=
+      "\n\nCurrent: " +
+      JSON.stringify(
+        trunc_middle(this.value({ noCache }).to_str(), trunc).trim(),
+      );
     log0(output);
   };
 
@@ -572,23 +614,6 @@ export class SortedPatchList extends EventEmitter {
     }
   };
 
-  updateIndexes = reuseInFlight(async () => {
-    await this.ensureTailsAreSnapshots();
-    let index = this.patches[0]?.seq_info?.index ?? 0;
-    for (const patch of this.patches) {
-      patch.index = index;
-      index += 1;
-    }
-  });
-
-  getIndex = (time: Date): number | undefined => {
-    return this.times[time.valueOf()]?.index;
-  };
-
-  startIndex = (): number | undefined => {
-    return this.patches[0]?.index;
-  };
-
   getHeads = (): number[] => {
     const X = new Set<number>(Object.keys(this.times).map((x) => parseInt(x)));
     if (X.size == 0) {
@@ -653,7 +678,7 @@ export class SortedPatchList extends EventEmitter {
     return nonSnapshotTails;
   };
 
-  private ensureTailsAreSnapshots = async () => {
+  private ensureTailsAreSnapshots = reuseInFlight(async () => {
     if (this.loadMoreHistory == null) {
       // functionality is not available (e.g., when unit testing we might not enable this)
       return;
@@ -668,7 +693,7 @@ export class SortedPatchList extends EventEmitter {
         return;
       }
     }
-  };
+  });
 
   // Iterative version using a stack to find the components of a node
   // This is fast enough, e.g. 100K nodes in 50ms and scales linearly.

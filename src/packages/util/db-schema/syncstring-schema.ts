@@ -343,6 +343,10 @@ Table({
       pg_type: "INTEGER[]",
       desc: "The parent timestamps as ms since epoch",
     },
+    version: {
+      type: "integer",
+      desc: "Version number of this patch.  Not necessarily globally unique across branches.  Used only to provide users a convenient way to refer to a particular version.",
+    },
   },
   rules: {
     primary_key: ["string_id", "time", "is_snapshot"], // compound primary key
@@ -361,6 +365,7 @@ Table({
           seq_info: null,
           sent: null,
           prev: null,
+          version: null,
           format: null,
           parents: null,
         },
@@ -385,6 +390,7 @@ Table({
           seq_info: true,
           sent: true,
           prev: true,
+          version: true,
           parents: true,
           format: true,
         },
