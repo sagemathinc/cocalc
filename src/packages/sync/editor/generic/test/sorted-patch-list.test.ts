@@ -44,7 +44,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("gets the current value without cache", () => {
-    expect(patches.value_no_cache().to_str()).toBe("");
+    expect(patches.value({ noCache: true }).to_str()).toBe("");
   });
 
   it("validates snapshots (triviality)", () => {
@@ -118,7 +118,7 @@ describe("Test sorted patch list with one patch", () => {
   });
 
   it("gets the current value without cache", () => {
-    expect(patches.value_no_cache().to_str()).toBe("CoCalc");
+    expect(patches.value({ noCache: true }).to_str()).toBe("CoCalc");
   });
 
   it("gets id of user who made edit at time", () => {
@@ -199,7 +199,7 @@ describe("Test sorted patch list with several patches", () => {
   });
 
   it("gets the current value without cache", () => {
-    expect(patches.value_no_cache().to_str()).toBe(
+    expect(patches.value({ noCache: true }).to_str()).toBe(
       "CoCalc -- Collaborative Calculation",
     );
   });
@@ -305,7 +305,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
   });
 
   it("gets the current value without cache as double check", () => {
-    expect(patches.value_no_cache().to_str()).toBe(
+    expect(patches.value({ noCache: true }).to_str()).toBe(
       "CoCalc -- Collaborative Calculation",
     );
   });

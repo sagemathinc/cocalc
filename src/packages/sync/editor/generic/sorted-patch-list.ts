@@ -12,13 +12,10 @@ import { isEqual } from "lodash";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
-import { Entry, PatchValueCache } from "./patch-value-cache";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import LRU from "lru-cache";
 
-// Make this bigger to make things faster... at the
-// cost of using more memory.  TODO: a global LRU cache
-// accounting for size might make more sense (?).
-const MAX_PATCHLIST_CACHE_SIZE = 20;
+const MAX_PATCHLIST_CACHE_SIZE = 40;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
@@ -34,9 +31,10 @@ export class SortedPatchList extends EventEmitter {
 
   private versions_cache: Date[] | undefined;
 
-  private cache: PatchValueCache = new PatchValueCache();
-
-  private knownTimesCache: { [time: number]: Set<number> } = {};
+  // todo -- size?
+  private cache: LRU<number, Document> = new LRU({
+    max: MAX_PATCHLIST_CACHE_SIZE,
+  });
 
   // all the times when there are snapshots.
   private all_snapshot_times: { [time: string]: boolean } = {};
@@ -74,6 +72,7 @@ export class SortedPatchList extends EventEmitter {
 
   close = (): void => {
     this.removeAllListeners();
+    this.cache.clear();
     close(this);
   };
 
@@ -197,11 +196,6 @@ export class SortedPatchList extends EventEmitter {
       }
     }
 
-    if (oldest != null) {
-      // invalidate anything cached back to oldest.
-      this.cache.invalidate(oldest);
-    }
-
     // This is O(n*log(n)) where n is the length of this.patches.
     // TODO: Better would probably be an insertion sort, which
     // would be O(m*log(n)) where m=patches.length...
@@ -214,17 +208,86 @@ export class SortedPatchList extends EventEmitter {
     this.updateIndexes();
   };
 
+  /*
+  value: Return the value of the document at the given (optional)
+  point in time.  If the time is given, we include exactly the patches
+  that were known at that point in time, applied in time order.
+  If time is not given, we compute the current value of the document,
+  which is the result of applying all *known* patches in time order.
+  In particular, there are multiple heads, this is the result of
+  merging them.
+
+  If without_times is defined, it must be an array of Date objects; in that case
+  the current value of the string is computed, but with all the patches
+  at the given times in "without_times" ignored.  This is used elsewhere
+  as a building block to implement undo.  We do not assume that
+  without_times is sorted.
+
+  CACHING: value({time}) does NOT depend in any way on patches that
+  may be received in the future -- if even they are for past points in
+  time (!) --, so we can safely cache it!  Patches for a past point in
+  time received in the future would be part of a different branch (different
+  component of the DAG), so we never have to consider them.
+  If without_times is given, we restrict it to times <= time, and only if
+  that is empty, then we can use cached values.
+  */
   value = ({
     time,
     without_times,
+    noCache,
   }: {
     time?: Date;
     without_times?: Date[];
+    noCache?: boolean;
   } = {}) => {
+    const key = time?.valueOf();
+    let without;
+    if (without_times == null) {
+      without = null;
+    } else {
+      let w = without_times.map((x) => x.valueOf());
+      if (key != null) {
+        w = w.filter((x) => x <= key);
+      }
+      without = new Set<number>(w);
+    }
+    if (!noCache && (without?.size ?? 0) > 0) {
+      // do not use cache if without is relevant.
+      noCache = true;
+    }
+
+    if (!noCache && key != null) {
+      const v = this.cache.get(key);
+      if (v != null) {
+        return v;
+      }
+    }
+
     // get all times that were known at the given time
-    const k = this.knownTimes(time);
+    let k: Set<number>;
+    if (key != null) {
+      k = this.knownTimes([key]);
+    } else {
+      const heads = this.getHeads();
+      if (heads.length == 0) {
+        k = new Set<number>();
+      } else {
+        if (heads.length == 1 && !noCache) {
+          const v = this.cache.get(heads[0]);
+          if (v != null) {
+            return v;
+          }
+        }
+        k = this.knownTimes(heads);
+      }
+    }
+
     if (k.size == 0) {
-      return this.from_str("");
+      const value = this.from_str("");
+      if (key != null) {
+        this.cache.set(key, value);
+      }
+      return value;
     }
     const v = Array.from(k).sort();
     const patch = this.times[v[0]];
@@ -235,10 +298,6 @@ export class SortedPatchList extends EventEmitter {
     } else {
       value = this.from_str("");
     }
-    const without =
-      without_times != null
-        ? new Set<number>(without_times.map((x) => x.valueOf()))
-        : null;
     for (const t of v) {
       if (without != null && without.has(t)) {
         continue;
@@ -246,220 +305,8 @@ export class SortedPatchList extends EventEmitter {
       const { patch } = this.times[t];
       value = value.apply_patch(patch);
     }
-    return value;
-  };
-
-  /*
-    value: Return the value of the document at the given (optional)
-    point in time.  If the time is given, only include patches up
-    to (and including) the given time; otherwise, return the current
-    (newest) value.
-
-    If force is true, doesn't use snapshot at given input time, even if
-    there is one; this is used to update snapshots in case of offline changes
-    getting inserted into the changelog.
-
-    If without_times is defined, it must be an array of Date objects; in that case
-    the current value of the string is computed, but with all the patches
-    at the given times in "without_times" ignored.  This is used elsewhere
-    as a building block to implement undo.  We do not assume that
-    without_times is sorted.
-  */
-  value0 = ({
-    time,
-    without_times,
-  }: {
-    time?: Date;
-    without_times?: Date[];
-  } = {}): Document => {
-    // oldest time that is skipped:
-    let oldest_without_time: Date | undefined = undefined;
-    // all skipped times.
-    let without_times_set: { [time_since_epoch: number]: true } = {};
-
-    if (without_times != null) {
-      // Process without_times to get a map from time numbers to true.
-      if (without_times.length > 0) {
-        for (const x of without_times) {
-          // convert x to number (then string as key)
-          without_times_set[x.valueOf()] = true;
-          if (oldest_without_time == null || x < oldest_without_time) {
-            oldest_without_time = x;
-          }
-        }
-        if (
-          time != null &&
-          oldest_without_time != null &&
-          time < oldest_without_time
-        ) {
-          // requesting value at time before any oldest_without_time, so
-          // is not relevant, so ignore.
-          oldest_without_time = undefined;
-          without_times = undefined;
-          without_times_set = {};
-        }
-      }
-    }
-
-    // Determine oldest cached value (undefined if nothing cached)
-    const oldest_cached_time: Date | undefined = this.cache.oldest_time();
-
-    let value: Document;
-    // If the oldest cached value exists and is at least as old as
-    // the requested point in time, use it as a base.
-    if (
-      oldest_cached_time != null &&
-      (time == null || time >= oldest_cached_time) &&
-      (oldest_without_time == null || oldest_without_time > oldest_cached_time)
-    ) {
-      // There is something in the cache, and it is at least as
-      // far back in time as the value we want to compute now or
-      // any without skips.
-      let entry: Entry | undefined;
-      if (oldest_without_time != null) {
-        // true makes "at most" strict, so <.
-        entry = this.cache.newest_value_at_most(oldest_without_time, true);
-      } else {
-        entry = this.cache.newest_value_at_most(time);
-      }
-      if (entry === undefined) {
-        throw Error("BUG -- cache should contain a value, but doesn't");
-      }
-      let { start, time: cache_time } = entry;
-      value = entry.value;
-      let x: Patch;
-      for (x of this.patches.slice(start, this.patches.length)) {
-        // all patches starting with the cached one
-        if (time != null && x.time > time) {
-          // We are done -- no more patches need to be applied
-          break;
-        }
-        if (
-          oldest_without_time == null ||
-          (oldest_without_time != null && !without_times_set[x.time.valueOf()])
-        ) {
-          // apply patch x to update value to be closer to what we want
-          value = value.apply_patch(x.patch);
-        }
-        // also record the time of the last patch we applied:
-        cache_time = x.time;
-        start += 1;
-      }
-      if (
-        oldest_without_time == null &&
-        (time == null || start - entry.start >= 10)
-      ) {
-        // Newest -- or at least 10 patches needed to be applied -- so cache result
-        this.cache.include(cache_time, value, start);
-        this.cache.prune(MAX_PATCHLIST_CACHE_SIZE); // TODO: include info about size of docs?
-      }
-    } else {
-      // Cache is empty or doesn't have anything sufficiently old to be useful.
-      // Find the newest snapshot at a time that is <= time.
-      value = this.from_str(""); // default in case no snapshots
-      let start: number = 0;
-      for (let i = this.patches.length - 1; i >= 0; i--) {
-        if (
-          (time == null || this.patches[i].time <= time) &&
-          this.patches[i].snapshot != null
-        ) {
-          const x = this.patches[i];
-          if (x.snapshot == null) {
-            throw Error("to satisfy typescript");
-          }
-          // Found a patch with known snapshot that is as old as the time.
-          // This is the base on which we will apply other patches to move forward
-          // to the requested time.
-          value = this.from_str(x.snapshot);
-          start = i + 1;
-          break;
-        }
-      }
-
-      // Apply each of the patches we need to get from
-      // value (the last snapshot) to time.
-      let cache_time: Date | undefined = undefined;
-      let cache_start: number = start;
-      let x: Patch;
-      for (x of this.patches.slice(start, this.patches.length)) {
-        if (time != null && x.time > time) {
-          // Done -- no more patches need to be applied
-          break;
-        }
-        // Apply a patch to move us forward.
-        //console.log("applying patch #{i}")
-        if (
-          oldest_without_time == null ||
-          (oldest_without_time != null && !without_times_set[x.time.valueOf()])
-        ) {
-          try {
-            value = value.apply_patch(x.patch);
-          } catch (err) {
-            // See https://github.com/sagemathinc/cocalc/issues/3191
-            // This apply_patch *can* fail in practice due to
-            // a horrible massively nested data structure that appears
-            // due to a bug.  This happened with #3191.  It's better
-            // just skip the patch than to make the project and all
-            // files basically be massively broken!
-            console.warn(
-              "WARNING: unable to apply a patch -- skipping it",
-              err,
-            );
-          }
-        }
-        cache_time = x.time;
-        cache_start += 1;
-      }
-      if (
-        cache_time != null &&
-        oldest_without_time == null &&
-        (time == null || cache_start - start >= 10)
-      ) {
-        // Newest -- or at least 10 patches needed to be applied -- so
-        // update the cache with our new known value
-        this.cache.include(cache_time, value, cache_start);
-        this.cache.prune(MAX_PATCHLIST_CACHE_SIZE); // TODO: use info about size of docs?
-      }
-    }
-
-    // Use the following only for testing/debugging,
-    // since it will make everything VERY slow.
-    /*
-    if (value != null && !value.is_equal(this.value_no_cache(time))) {
-        console.warn(`value for time ${time} is wrong!`)
-    }
-    */
-
-    return value;
-  };
-
-  // VERY Slow -- only for consistency checking purposes and debugging.
-  // If snapshots=false, don't use snapshots.
-  value_no_cache = (time?: Date, snapshots: boolean = true): Document => {
-    let value: Document = this.from_str(""); // default in case no snapshots
-    let start: number = 0;
-    if (snapshots && this.patches.length > 0) {
-      for (let i = this.patches.length - 1; i >= 0; i--) {
-        const x: Patch = this.patches[i];
-        if ((time == null || x.time <= time) && x.snapshot != null) {
-          // Found a patch with known snapshot that is as old as the time.
-          // This is the base on which we will apply other patches to move
-          // forward to the requested time.
-          value = this.from_str(x.snapshot);
-          start = i + 1;
-          break;
-        }
-      }
-    }
-    // Apply each of the patches we need to get from
-    // value (the last snapshot) to time.
-    let x: Patch;
-    for (x of this.patches.slice(start, this.patches.length)) {
-      if (time != null && x.time > time) {
-        // Done -- no more patches need to be applied
-        break;
-      }
-      value = value.apply_patch(x.patch);
+    if (key != null && (without == null || without.size == 0)) {
+      this.cache.set(key, value);
     }
     return value;
   };
@@ -783,39 +630,38 @@ export class SortedPatchList extends EventEmitter {
     }
   };
 
-  // TODO: this is a stupid implementation that is recursive so will *easily* break!
-  private knownTimes = (time?: Date | number | null): Set<number> => {
-    if (time == null) {
-      const heads = this.getHeads();
-      if (heads.length == 0) {
-        return new Set();
+  // Iterative version using a stack to find the components of a node
+  // This is fast enough, e.g. 100K nodes in 50ms and scales linearly.
+  // ** This stops at snapshots, i.e., it's the component containing the
+  // node with given time, but when we hit any snasphot not we stop
+  // going further.**
+  private knownTimes = (heads: number[]): Set<number> => {
+    const visited = new Set<number>([]);
+    const stack: number[] = [...heads];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (current == null || visited.has(current)) {
+        continue;
       }
-      const X = this.knownTimes(heads[0]);
-      for (const h of heads.slice(1)) {
-        const Y = this.knownTimes(h);
-        for (const a of Y) {
-          X.add(a);
+      const patch = this.times[current];
+      if (patch == null) {
+        continue;
+      }
+      // patch is loaded so add it to our list
+      visited.add(current);
+      if (patch?.parents != null && !patch.is_snapshot) {
+        if (patch.parents.length > 1) {
+          console.log("fork", patch.parents);
+        }
+        for (const s of patch.parents) {
+          if (!visited.has(s)) {
+            stack.push(s);
+          }
         }
       }
-      return X;
     }
 
-    const t = typeof time == "number" ? time : time.valueOf();
-    const c = this.knownTimesCache[t];
-    if (c != null) {
-      return c;
-    }
-    const patch = this.times[t];
-    if (patch == null) {
-      return new Set([]);
-    }
-    const k = new Set<number>([t]);
-    for (const s of patch.parents ?? []) {
-      for (const a of this.knownTimes(s)) {
-        k.add(a);
-      }
-    }
-    this.knownTimesCache[t] = k;
-    return k;
+    return visited;
   };
 }
