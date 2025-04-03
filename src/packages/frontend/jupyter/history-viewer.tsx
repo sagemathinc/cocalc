@@ -8,7 +8,7 @@ History viewer for Jupyter notebooks
 */
 
 import { fromJS, List, Map } from "immutable";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay } from "@cocalc/frontend/components";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import { path_split } from "@cocalc/util/misc";
@@ -40,7 +40,6 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
   });
 
   const kernel_error = doc.get_one({ type: "settings" })?.get("kernel_error");
-  const actions = redux.getEditorActions(project_id, path)?.jupyter_actions;
 
   return (
     <div
@@ -59,7 +58,6 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
         />
       )}
       <CellList
-        actions={actions}
         cell_list={cell_list}
         cells={cells}
         font_size={font_size ?? default_font_size}

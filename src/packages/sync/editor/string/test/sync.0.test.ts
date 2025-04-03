@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-
 /*
 
 DEVELOPMENT:
@@ -76,8 +75,8 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     expect(syncstring.version_without([new Date()]).to_str()).toBe("");
   });
 
-  it("revert to version now (does nothing - no error)", () => {
-    syncstring.revert(new Date());
+  it("revert to version now (error since no version with this time)", () => {
+    expect(() => syncstring.revert(new Date())).toThrow("unknown time");
   });
 
   it("undo/redo -- nothing to undo yet...", () => {

@@ -352,7 +352,6 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     if (key != null && (without == null || without.size == 0)) {
-      console.log("saving to cache", { key, value: value.to_str() });
       this.cache.set(key, value);
     }
     return value;
