@@ -15,7 +15,47 @@ interface Props {
   setVersion: (number) => void;
 }
 
-export function NavigationSlider({ version, versions, setVersion }: Props) {
+export function NavigationSlider({
+  marks,
+  ...props
+}: Props & { marks?: boolean }) {
+  if (marks) {
+    return <NavigationSliderMarks {...props} />;
+  } else {
+    return <NavigationSliderNoMarks {...props} />;
+  }
+}
+
+function NavigationSliderNoMarks({ version, versions, setVersion }: Props) {
+  const { isVisible } = useFrameContext();
+  if (versions == null || version == null || !isVisible) {
+    return null;
+  }
+
+  const renderTooltip = (index) => {
+    const date = versions.get(index);
+    if (date == null) return; // shouldn't happen
+    return <TimeAgo date={date} />;
+  };
+
+  return (
+    <Slider
+      style={{ margin: "10px 15px" }}
+      min={0}
+      max={versions.size - 1}
+      value={versions.indexOf(version)}
+      onChange={(value) => {
+        setVersion(versions.get(value));
+      }}
+      tooltip={{ formatter: renderTooltip, placement: "bottom" }}
+    />
+  );
+}
+
+// This lays the marks out with dots spread by when they actually happened, like
+// a timeline.  It is sometimes very nice and sometimes very annoying.
+
+function NavigationSliderMarks({ version, versions, setVersion }: Props) {
   const { isVisible } = useFrameContext();
 
   const renderTooltip = (version) => {

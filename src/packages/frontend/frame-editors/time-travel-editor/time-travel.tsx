@@ -75,6 +75,7 @@ export function TimeTravel(props: Props) {
   const [doc1, setDoc1] = useState<string | undefined>(undefined);
   const [useJson, setUseJson] = useState<boolean>(false);
 
+  const [marks, setMarks] = useState<boolean>(!!props.desc?.get("marks"));
   const [gitMode, setGitMode] = useState<boolean>(!!props.desc?.get("gitMode"));
   const [textMode, setTextMode] = useState<boolean>(
     !!props.desc?.get("textMode"),
@@ -145,6 +146,7 @@ export function TimeTravel(props: Props) {
     versions,
     changesMode,
     gitMode,
+    marks,
     versions,
     gitVersions,
   ]);
@@ -165,6 +167,7 @@ export function TimeTravel(props: Props) {
       changesMode,
       gitMode,
       textMode,
+      marks,
     });
   }, [version, version0, version1, changesMode, gitMode, textMode]);
 
@@ -318,6 +321,7 @@ export function TimeTravel(props: Props) {
         version={version}
         setVersion={setVersion}
         versions={gitMode ? gitVersions : versions}
+        marks={marks}
       />
     );
   };
@@ -333,6 +337,7 @@ export function TimeTravel(props: Props) {
         setVersion0={setVersion0}
         version1={version1}
         setVersion1={setVersion1}
+        marks={marks}
       />
     );
   };
@@ -460,6 +465,15 @@ export function TimeTravel(props: Props) {
             )}
           </>
         )}
+
+        <Tooltip title="Display slider marks according to timestamp when they happened">
+          <Checkbox
+            defaultChecked={marks}
+            onChange={(e) => setMarks(e.target.checked)}
+          >
+            Marks
+          </Checkbox>
+        </Tooltip>
         {renderNavigationButtons()}
         <Space.Compact style={{ margin: "0 5px" }}>
           {renderOpenFile()}
