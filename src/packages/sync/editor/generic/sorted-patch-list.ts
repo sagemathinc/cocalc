@@ -691,7 +691,9 @@ export class SortedPatchList extends EventEmitter {
         // that is NOT a snapshot, which means it is impossible to
         // properly compute all known times or the value of the document
         // with the given heads without loading more history.
-        throw Error("incomplete patch data: load more history");
+        throw Error(
+          `incomplete patch data at time ${current}: load more history`,
+        );
       }
       // patch is loaded so add it to our list
       visited.add(current);

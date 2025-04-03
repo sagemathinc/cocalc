@@ -351,6 +351,7 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
       //);
     } catch (err) {
+      console.trace(err);
       if (this.state == "closed") {
         // completely normal that this could happen on frontend - it just means
         // that we closed the file before finished opening it...
@@ -1853,9 +1854,6 @@ export class SyncDoc extends EventEmitter {
     dbg("adding all known patches");
     patch_list.add(this.get_patches());
 
-    const doc = patch_list.value();
-    this.last = this.doc = doc;
-    this.patches_table.on("change", this.handle_patch_update);
     //this.patches_table.on("saved", this.handle_offline);
     this.patch_list = patch_list;
 
@@ -1865,9 +1863,22 @@ export class SyncDoc extends EventEmitter {
         break;
       }
     }
+
     if (this.patch_list.nonSnapshotTails().length > 0) {
+      // should never happen!
       console.log("some versions may not be available");
     }
+    console.log("getting doc");
+    let doc;
+    try {
+      doc = patch_list.value();
+    } catch (err) {
+      console.trace("error getting doc", err);
+      doc = this._from_str("");
+    }
+    console.log("got doc = ", doc);
+    this.last = this.doc = doc;
+    this.patches_table.on("change", this.handle_patch_update);
 
     dbg("done");
   };
