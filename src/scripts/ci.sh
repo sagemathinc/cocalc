@@ -7,6 +7,10 @@ echo "You must ALSO run 'pnpm nats-server-ci' and 'pnpm database' in two other t
 echo "Run 'tail -F ci.log' in a terminal to monitor CI status."
 
 while true; do
+  # wait -- best to do this first, since at initial startup we can't immediately kick off build,
+  # since nats-server needs to build a little to startup, and they will conflict.
+  sleep 30
+
   # Fetch the latest commits from upstream
   git fetch
 
@@ -38,7 +42,4 @@ while true; do
     echo "" >> ci.log
     echo "`date` -- 🚧  Waiting for changes in upstream..." >> ci.log
   fi
-
-  # Wait for 15 seconds before checking again
-  sleep 15
 done
