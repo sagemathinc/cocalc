@@ -265,6 +265,9 @@ export class SortedPatchList extends EventEmitter {
     if (!noCache && key != null) {
       const v = this.cache.get(key);
       if (v != null) {
+        if (verbose) {
+          console.log("value: done -- is in the cache");
+        }
         return v;
       }
     }
@@ -289,6 +292,10 @@ export class SortedPatchList extends EventEmitter {
       }
     }
 
+    if (verbose) {
+      console.log("value: known times", k);
+    }
+
     if (k.size == 0) {
       const value = this.from_str("");
       if (key != null) {
@@ -296,14 +303,38 @@ export class SortedPatchList extends EventEmitter {
       }
       return value;
     }
-    const v = Array.from(k).sort();
-    const patch = this.times[v[0]];
-    let value: Document;
-    if (patch.snapshot != null) {
-      value = this.from_str(patch.snapshot);
-      v.shift();
-    } else {
-      value = this.from_str("");
+
+    // We are *not* using the cache to compute the value at the requested time.
+    // The value is by definition the result of applying all patches in
+    // the set k of times in sorted order.
+
+    let v = Array.from(k).sort();
+    let value: Document | null = null;
+    if (!noCache) {
+      // It may be possible to initialize using the cache, which would avoid a lot of work.
+      for (let i = v.length - 1; i >= 0; i--) {
+        const t = v[i];
+        if (this.cache.has(t)) {
+          value = this.cache.get(t)!;
+          v = v.slice(i + 1);
+          if (verbose) {
+            console.log("value: initialized using cached value", {
+              value,
+              time: t,
+            });
+          }
+          break;
+        }
+      }
+    }
+    if (value == null) {
+      const patch = this.times[v[0]];
+      if (patch.snapshot != null) {
+        value = this.from_str(patch.snapshot);
+        v.shift();
+      } else {
+        value = this.from_str("");
+      }
     }
     if (verbose) {
       console.log({ value: value.to_str() });
@@ -315,7 +346,7 @@ export class SortedPatchList extends EventEmitter {
       const { patch } = this.times[t];
       value = value.apply_patch(patch);
       if (verbose) {
-        console.log({ patch, value: value.to_str() });
+        console.log("value", { patch, value: value.to_str() });
       }
     }
     if (key != null && (without == null || without.size == 0)) {
@@ -600,7 +631,10 @@ export class SortedPatchList extends EventEmitter {
     return tails;
   };
 
-  private nonSnapshotTails = () => {
+  // if true, then it is necessary to load more history before computing
+  // all values.  For some value computations, an error would be raised
+  // due to missing history.
+  nonSnapshotTails = () => {
     const tails = this.getTails();
     const nonSnapshotTails: number[] = [];
     for (const t of tails) {
@@ -650,7 +684,14 @@ export class SortedPatchList extends EventEmitter {
       }
       const patch = this.times[current];
       if (patch == null) {
-        continue;
+        if (visited.size == 0) {
+          throw Error(`there is no patch at time ${current}`);
+        }
+        // If this happens, it means that there is a tail in the DAG
+        // that is NOT a snapshot, which means it is impossible to
+        // properly compute all known times or the value of the document
+        // with the given heads without loading more history.
+        throw Error("incomplete patch data: load more history");
       }
       // patch is loaded so add it to our list
       visited.add(current);

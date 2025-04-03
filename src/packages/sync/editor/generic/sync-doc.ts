@@ -1859,6 +1859,16 @@ export class SyncDoc extends EventEmitter {
     //this.patches_table.on("saved", this.handle_offline);
     this.patch_list = patch_list;
 
+    while (this.patch_list.nonSnapshotTails().length > 0) {
+      console.log("there are non-snapshot tails, so must load more history");
+      if (!(await this.loadMoreHistory())) {
+        break;
+      }
+    }
+    if (this.patch_list.nonSnapshotTails().length > 0) {
+      console.log("some versions may not be available");
+    }
+
     dbg("done");
   };
 
