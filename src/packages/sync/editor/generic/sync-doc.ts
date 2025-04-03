@@ -2439,7 +2439,7 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_list == null) {
       return false;
     }
-    return this.patch_list?.getOldestSnapshot()?.seq_info == null;
+    return (this.patch_list?.getOldestSnapshot()?.index ?? 0) == 0;
   };
 
   // returns true if there may be additional history to load

@@ -36,6 +36,8 @@ export class SortedPatchList extends EventEmitter {
 
   private cache: PatchValueCache = new PatchValueCache();
 
+  private knownTimesCache: { [time: number]: Set<number> } = {};
+
   // all the times when there are snapshots.
   private all_snapshot_times: { [time: string]: boolean } = {};
 
@@ -212,17 +214,40 @@ export class SortedPatchList extends EventEmitter {
     this.updateIndexes();
   };
 
-//   private newest_snapshot_time = (): Date => {
-//     let t0 = 0;
-//     let t: string;
-//     for (t in this.all_snapshot_times) {
-//       const d: number = parseInt(t);
-//       if (d > t0) {
-//         t0 = d;
-//       }
-//     }
-//     return new Date(t0);
-//   };
+  value = ({
+    time,
+    without_times,
+  }: {
+    time?: Date;
+    without_times?: Date[];
+  } = {}) => {
+    // get all times that were known at the given time
+    const k = this.knownTimes(time);
+    if (k.size == 0) {
+      return this.from_str("");
+    }
+    const v = Array.from(k).sort();
+    const patch = this.times[v[0]];
+    let value: Document;
+    if (patch.snapshot != null) {
+      value = this.from_str(patch.snapshot);
+      v.shift();
+    } else {
+      value = this.from_str("");
+    }
+    const without =
+      without_times != null
+        ? new Set<number>(without_times.map((x) => x.valueOf()))
+        : null;
+    for (const t of v) {
+      if (without != null && without.has(t)) {
+        continue;
+      }
+      const { patch } = this.times[t];
+      value = value.apply_patch(patch);
+    }
+    return value;
+  };
 
   /*
     value: Return the value of the document at the given (optional)
@@ -240,7 +265,7 @@ export class SortedPatchList extends EventEmitter {
     as a building block to implement undo.  We do not assume that
     without_times is sorted.
   */
-  value = ({
+  value0 = ({
     time,
     without_times,
   }: {
@@ -756,5 +781,41 @@ export class SortedPatchList extends EventEmitter {
         return;
       }
     }
+  };
+
+  // TODO: this is a stupid implementation that is recursive so will *easily* break!
+  private knownTimes = (time?: Date | number | null): Set<number> => {
+    if (time == null) {
+      const heads = this.getHeads();
+      if (heads.length == 0) {
+        return new Set();
+      }
+      const X = this.knownTimes(heads[0]);
+      for (const h of heads.slice(1)) {
+        const Y = this.knownTimes(h);
+        for (const a of Y) {
+          X.add(a);
+        }
+      }
+      return X;
+    }
+
+    const t = typeof time == "number" ? time : time.valueOf();
+    const c = this.knownTimesCache[t];
+    if (c != null) {
+      return c;
+    }
+    const patch = this.times[t];
+    if (patch == null) {
+      return new Set([]);
+    }
+    const k = new Set<number>([t]);
+    for (const s of patch.parents ?? []) {
+      for (const a of this.knownTimes(s)) {
+        k.add(a);
+      }
+    }
+    this.knownTimesCache[t] = k;
+    return k;
   };
 }

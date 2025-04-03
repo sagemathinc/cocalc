@@ -220,7 +220,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
           account_ids.add(account_id);
         }
       } catch (err) {
-        console.log(err);
         // fails if version is not actually known.
         continue;
       }
