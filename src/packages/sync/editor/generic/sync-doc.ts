@@ -2404,7 +2404,13 @@ export class SyncDoc extends EventEmitter {
     }
     const time: Date = t;
     const user_id: number = x.get("user_id");
-    const parents: number[] = x.get("parents")?.toJS() ?? [];
+    let parents: number[];
+    if (x.get("prev")) {
+      // backward compat only
+      parents = [x.get("prev").valueOf()];
+    } else {
+      parents = x.get("parents")?.toJS() ?? [];
+    }
     let size: number;
     const is_snapshot = x.get("is_snapshot");
     if (is_snapshot) {
