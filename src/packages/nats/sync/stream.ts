@@ -374,6 +374,8 @@ export class Stream<T = any> extends EventEmitter {
             : { msgID: `${options.msgID}-${i}` }),
           headers: headers[i],
         });
+        // NOTE: the resp we get back contains a sequence number and GUARANTEES that the
+        // data has been written to disk by the nats server.
       } catch (err) {
         if (err.code == "MAX_PAYLOAD_EXCEEDED") {
           // nats rejects due to payload size
