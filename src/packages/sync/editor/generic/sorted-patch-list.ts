@@ -38,7 +38,7 @@ export class SortedPatchList extends EventEmitter {
 
   private versions_cache: Date[] | undefined;
 
-  // todo: use size?  most versions have the same size, so might not matter much.
+  // should we use size?  most versions have the same size, so might not matter much.
   private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
     max: MAX_PATCHLIST_CACHE_SIZE,
   });
@@ -61,6 +61,29 @@ export class SortedPatchList extends EventEmitter {
     this.removeAllListeners();
     this.cache.clear();
     close(this);
+  };
+
+  needsMoreHistory = () => {
+    if (this.hasFullHistory()) {
+      return false;
+    }
+    for (const _ in this.staging) {
+      return true;
+    }
+  };
+
+  hasFullHistory = () => {
+    const p = this.patches[0];
+    if (p == null) {
+      // no patches
+      for (const _ in this.staging) {
+        return false;
+      }
+      // and nothing in staging
+      return true;
+    }
+    // is p the first every patch?
+    return !p.is_snapshot && (p.parents ?? []).length == 0;
   };
 
   lastVersion = () => {
@@ -206,8 +229,6 @@ export class SortedPatchList extends EventEmitter {
     }
 
     // This is O(n*log(n)) where n is the length of this.patches.
-    // TODO: Better would probably be an insertion sort, which
-    // would be O(m*log(n)) where m=patches.length...
     const newPatches = Object.values(v);
     if (newPatches.length > 0) {
       delete this.versions_cache;
@@ -239,10 +260,6 @@ export class SortedPatchList extends EventEmitter {
   If without_times is given, we restrict it to times <= time, and only if
   that is empty, then we can use cached values.
   */
-
-  // **TODO** this gives the wrong answer for old things since we may
-  // have to load more!!!  E.g., if a patch points to something that isn't
-  // loaded yet, then needs to throw an error.
   value = ({
     time,
     without_times,
@@ -595,9 +612,7 @@ export class SortedPatchList extends EventEmitter {
   // This is ONLY used for loading more patches by using the
   // sequence number data recorded in the snapshot.
   getOldestSnapshot = (): Patch | undefined => {
-    const p = this.patches[0];
-    if (p == null || (!p.is_snapshot && (p.parents ?? []).length == 0)) {
-      // first patch is the beginning of time
+    if(this.hasFullHistory()) {
       return undefined;
     }
     return this.oldestSnapshot;
@@ -649,7 +664,7 @@ export class SortedPatchList extends EventEmitter {
   //   });
 
   private knownTimes = (heads: number[]): Set<number> => {
-    return getTimesWithHeads(this.live, heads);
+    return getTimesWithHeads(this.live, heads, true);
   };
 }
 
@@ -717,6 +732,7 @@ function getTails(graph: { [time: number]: Patch }): number[] {
 function getTimesWithHeads(
   graph: { [time: number]: Patch },
   heads: number[],
+  verify = false,
 ): Set<number> {
   const visited = new Set<number>([]);
   const stack: number[] = [...heads];
@@ -729,16 +745,19 @@ function getTimesWithHeads(
     const patch = graph[current];
     if (patch == null) {
       if (visited.size == 0) {
-        console.warn(`there is no patch at time ${current}`);
+        if (verify) {
+          throw Error(`there is no patch at time ${current}`);
+        }
       }
-      // If this happens, it means that there is a tail in the DAG
-      // that is NOT a snapshot, which means it is impossible to
-      // properly compute all known times or the value of the document
-      // with the given heads without loading more history.
-      console.warn(
-        `incomplete patch data at time ${current}: load more history`,
-      );
-      continue;
+      if (verify) {
+        // If this happens, it means that there is a tail in the DAG
+        // that is NOT a snapshot, which means it is impossible to
+        // properly compute all known times or the value of the document
+        // with the given heads without loading more history.
+        throw Error(
+          `incomplete patch data at time ${current}: load more history`,
+        );
+      }
     }
     // patch is loaded so add it to our list
     visited.add(current);

@@ -129,7 +129,7 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("verifies it has the full history already", () => {
-    expect(syncstring.has_full_history()).toBe(true);
+    expect(syncstring.hasFullHistory()).toBe(true);
   });
 
   it("loads more history (which does basically nothing)", async () => {

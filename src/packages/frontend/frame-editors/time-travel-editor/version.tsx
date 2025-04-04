@@ -37,8 +37,11 @@ export function Version({ date, number, user }: Props) {
         </span>
         ,{" "}
         <span style={{ whiteSpace: "nowrap" }}>
-          Revision {number}
-          {toLetterCode(user)}
+          Revision{" "}
+          <b>
+            {number}
+            {toLetterCode(user)}
+          </b>
         </span>
       </Tooltip>
     </span>
@@ -55,9 +58,16 @@ interface RangeProps {
 export function VersionRange({ version0, version1, user0, user1 }: RangeProps) {
   return (
     <span style={{ whiteSpace: "nowrap" }}>
-      Versions {version0}
-      {toLetterCode(user0)} to {version1}
-      {toLetterCode(user1)}
+      Versions{" "}
+      <b>
+        {version0}
+        {toLetterCode(user0)}
+      </b>{" "}
+      to{" "}
+      <b>
+        {version1}
+        {toLetterCode(user1)}
+      </b>
     </span>
   );
 }

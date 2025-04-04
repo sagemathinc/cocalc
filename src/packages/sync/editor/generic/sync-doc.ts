@@ -117,7 +117,6 @@ import { isTestClient, patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
-import { isEqual } from "lodash";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -1836,7 +1835,6 @@ export class SyncDoc extends EventEmitter {
 
     const patch_list = new SortedPatchList({
       from_str: this._from_str,
-      // loadMoreHistory: this.loadMoreHistory,
     });
 
     dbg("opening the table...");
@@ -1865,32 +1863,31 @@ export class SyncDoc extends EventEmitter {
     dbg("adding all known patches");
     patch_list.add(this.get_patches());
 
-    dbg("fill in any missing patches");
-    let last: number[] = [];
-    while (true) {
-      const tails = patch_list.nonSnapshotTails().sort();
-      if (tails.length == 0) {
-        // done
-        break;
-      }
-      let start_seq;
-      if (isEqual(tails, last)) {
-        // didn't shrink, so we just get everything
-        start_seq = 1;
-      } else {
-        last = tails;
-        const snap = patch_list.getOldestSnapshot();
-        const seq_info = snap?.seq_info ?? {
-          prev_seq: 1,
-        };
-        start_seq = seq_info.prev_seq ?? 1;
-      }
+    dbg("possibly kick off loading more history");
+    let last_start_seq: null | number = null;
+    while (patch_list.needsMoreHistory()) {
       // @ts-ignore
       const dstream = this.patches_table.dstream;
       if (dstream == null) {
-        throw Error("must be using nats and dstream must be defined");
+        break;
       }
+      const snap = patch_list.getOldestSnapshot();
+      if (snap == null) {
+        break;
+      }
+      const seq_info = snap.seq_info ?? {
+        prev_seq: 1,
+      };
+      const start_seq = seq_info.prev_seq ?? 1;
+      if (last_start_seq != null && start_seq >= last_start_seq) {
+        // no progress, e.g., corruption would cause this.
+        // "corruption" is EXPECTED, since a user might be submitting
+        // patches after being offline, and get disconnected halfway through.
+        break;
+      }
+      last_start_seq = start_seq;
       await dstream.load({ start_seq });
+      dbg("load more history");
       patch_list.add(this.get_patches());
       if (start_seq <= 1) {
         // loaded everything
@@ -2491,17 +2488,17 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
-  has_full_history = (): boolean => {
+  hasFullHistory = (): boolean => {
     if (this.patch_list == null) {
       return false;
     }
-    return this.patch_list?.getOldestSnapshot() == null;
+    return this.patch_list.hasFullHistory();
   };
 
   // returns true if there may be additional history to load
   // after loading this. return false if definitely done.
   loadMoreHistory = async (): Promise<boolean> => {
-    if (this.has_full_history() || this.ephemeral || this.patch_list == null) {
+    if (this.hasFullHistory() || this.ephemeral || this.patch_list == null) {
       return false;
     }
 

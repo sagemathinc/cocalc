@@ -150,7 +150,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
     this.setState({
       loading: false,
-      has_full_history: this.syncdoc.has_full_history(),
+      has_full_history: this.syncdoc.hasFullHistory(),
     });
   };
 
@@ -164,7 +164,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       return;
     }
     await this.syncdoc.loadMoreHistory();
-    this.setState({ has_full_history: this.syncdoc.has_full_history() });
+    this.setState({ has_full_history: this.syncdoc.hasFullHistory() });
     this.syncdoc_changed(); // load new versions list.
   };
 
