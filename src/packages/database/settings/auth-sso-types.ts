@@ -112,6 +112,8 @@ export interface PassportStrategyDBConfig {
   userinfoURL?: string; // OAuth2, to get a profile
   login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
   auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
+  cert?: string; // passport-saml<5
+  idpCert?: string; // passport-saml>=5  https://github.com/node-saml/node-saml/pull/343
 }
 
 /**

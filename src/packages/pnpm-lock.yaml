@@ -1382,7 +1382,7 @@ importers:
         version: 0.3.11(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.24
-        version: 0.3.24(6tdwl5h3swyd75cburrhme34b4)
+        version: 0.3.24(2436c3669a6c925ec9fb8d917e8aa538)
       '@langchain/core':
         specifier: ^0.3.30
         version: 0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))
@@ -1396,8 +1396,8 @@ importers:
         specifier: ^0.3.17
         version: 0.3.17(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@node-saml/passport-saml':
-        specifier: ^4.0.4
-        version: 4.0.4
+        specifier: ^5.0.1
+        version: 5.0.1
       '@passport-js/passport-twitter':
         specifier: ^1.0.8
         version: 1.0.8
@@ -3942,13 +3942,13 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@node-saml/node-saml@4.0.5':
-    resolution: {integrity: sha512-J5DglElbY1tjOuaR1NPtjOXkXY5bpUhDoKVoeucYN98A3w4fwgjIOPqIGcb6cQsqFq2zZ6vTCeKn5C/hvefSaw==}
-    engines: {node: '>= 14'}
+  '@node-saml/node-saml@5.0.1':
+    resolution: {integrity: sha512-YQzFPEC+CnsfO9AFYnwfYZKIzOLx3kITaC1HrjHVLTo6hxcQhc+LgHODOMvW4VCV95Gwrz1MshRUWCPzkDqmnA==}
+    engines: {node: '>= 18'}
 
-  '@node-saml/passport-saml@4.0.4':
-    resolution: {integrity: sha512-xFw3gw0yo+K1mzlkW15NeBF7cVpRHN/4vpjmBKzov5YFImCWh/G0LcTZ8krH3yk2/eRPc3Or8LRPudVJBjmYaw==}
-    engines: {node: '>= 14'}
+  '@node-saml/passport-saml@5.0.1':
+    resolution: {integrity: sha512-fMztg3zfSnjLEgxvpl6HaDMNeh0xeQX4QHiF9e2Lsie2dc4qFE37XYbQZhVmn8XJ2awPpSWLQ736UskYgGU8lQ==}
+    engines: {node: '>= 18'}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4948,9 +4948,6 @@ packages:
   '@types/ws@8.5.13':
     resolution: {integrity: sha512-osM/gWBTPKgHV8XkTunnegTRIsvF6owmf5w+JtAfOw472dptdm0dlGv4xCt6GwQRcC2XVOvvRE/0bAoQcL2QkA==}
 
-  '@types/xml-crypto@1.4.6':
-    resolution: {integrity: sha512-A6jEW2FxLZo1CXsRWnZHUX2wzR3uDju2Bozt6rDbSmU/W8gkilaVbwFEVN0/NhnUdMVzwYobWtM6bU1QJJFb7Q==}
-
   '@types/xml-encryption@1.2.4':
     resolution: {integrity: sha512-I69K/WW1Dv7j6O3jh13z0X8sLWJRXbu5xnHDl9yHzUNDUBtUoBY058eb5s+x/WG6yZC1h8aKdI2EoyEPjyEh+Q==}
 
@@ -5093,6 +5090,10 @@ packages:
 
   '@wwa/statvfs@1.1.18':
     resolution: {integrity: sha512-C33QeTo2Nma9gMAJy3l1AQc0Qz5Lbf7mCY2C3F1W3noCdukODWH8nB8sjavdwjw9S7Qa+zrvQAfbbYCOzIphAw==}
+
+  '@xmldom/is-dom-node@1.0.1':
+    resolution: {integrity: sha512-CJDxIgE5I0FH+ttq/Fxy6nRpxP70+e2O048EPe85J2use3XKdatVM7dDVvFNjQudd9B49NPoZ+8PG49zj4Er8Q==}
+    engines: {node: '>= 16'}
 
   '@xmldom/xmldom@0.8.10':
     resolution: {integrity: sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw==}
@@ -10043,6 +10044,10 @@ packages:
     resolution: {integrity: sha512-0fe+p3ZnrWRW74fe8+SvCyf4a3Pb2/h7gFkQ8yTJpAO50gDzlfjZUZTO1k5Eg9kUct22OxHLqDZoKUWRHOh9ug==}
     engines: {node: '>= 0.4.0'}
 
+  passport@0.7.0:
+    resolution: {integrity: sha512-cPLl+qZpSc+ireUvt+IzqbED1cHHkDoVYMo30jbJIdOOjQ1MQYZBPiNvmi8UM6lJuOpTPXJGZQk0DtC4y61MYQ==}
+    engines: {node: '>= 0.4.0'}
+
   password-hash@1.2.2:
     resolution: {integrity: sha512-Dy/5+Srojwv+1XnMrK2bn7f2jN3k2p90DfBVA0Zd6PrjWF7lXHOTWgKT4uBp1gIsqV7/llYqm+hj+gwDBF/Fmg==}
     engines: {node: '>= 0.4.0'}
@@ -12733,16 +12738,16 @@ packages:
     resolution: {integrity: sha512-GCPAHLvrIH13+c0SuacwvRYj2SxJXQ4kaVTT5xgL3kPrz56XxkF21IGhjSE1+W0aw7gpBWRGXLCPnPby6lSpmQ==}
     engines: {node: '>=12'}
 
-  xml-crypto@3.2.0:
-    resolution: {integrity: sha512-qVurBUOQrmvlgmZqIVBqmb06TD2a/PpEUfFPgD7BuBfjmoH4zgkqaWSIJrnymlCvM2GGt9x+XtJFA+ttoAufqg==}
-    engines: {node: '>=4.0.0'}
+  xml-crypto@6.0.1:
+    resolution: {integrity: sha512-v05aU7NS03z4jlZ0iZGRFeZsuKO1UfEbbYiaeRMiATBFs6Jq9+wqKquEMTn4UTrYZ9iGD8yz3KT4L9o2iF682w==}
+    engines: {node: '>=16'}
 
   xml-encryption@3.0.2:
     resolution: {integrity: sha512-VxYXPvsWB01/aqVLd6ZMPWZ+qaj0aIdF+cStrVJMcFj3iymwZeI0ABzB3VqMYv48DkSpRhnrXqTUkR34j+UDyg==}
     engines: {node: '>=12'}
 
-  xml2js@0.5.0:
-    resolution: {integrity: sha512-drPFnkQJik/O+uPKpqSgr22mpuFHqKdbS835iAQrUC73L2F5WkboIRd63ai/2Yg6I1jzifPFKH2NTK+cfglkIA==}
+  xml2js@0.6.2:
+    resolution: {integrity: sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==}
     engines: {node: '>=4.0.0'}
 
   xmlbuilder2@3.1.1:
@@ -12757,12 +12762,16 @@ packages:
     resolution: {integrity: sha512-yMqGBqtXyeN1e3TGYvgNgDVZ3j84W4cwkOXQswghol6APgZWaff9lnbvN7MHYJOiXsvGPXtjTYJEiC9J2wv9Eg==}
     engines: {node: '>=8.0'}
 
-  xpath@0.0.27:
-    resolution: {integrity: sha512-fg03WRxtkCV6ohClePNAECYsmpKKTv5L8y/X3Dn1hQrec3POx2jHZ/0P2qQ6HvsrU1BmeqXcof3NGGueG6LxwQ==}
-    engines: {node: '>=0.6.0'}
-
   xpath@0.0.32:
     resolution: {integrity: sha512-rxMJhSIoiO8vXcWvSifKqhvV96GjiD5wYb8/QHdoRyQvraTpp4IEv944nhGausZZ3u7dhQXteZuZbaqfpB7uYw==}
+    engines: {node: '>=0.6.0'}
+
+  xpath@0.0.33:
+    resolution: {integrity: sha512-NNXnzrkDrAzalLhIUc01jO2mOzXGXh1JwPgkihcLLzw98c0WgYDmmjSh1Kl3wzaxSVWMuA+fe0WTWOBDWCBmNA==}
+    engines: {node: '>=0.6.0'}
+
+  xpath@0.0.34:
+    resolution: {integrity: sha512-FxF6+rkr1rNSQrhUNYrAFJpRXNzlDoMxeXN5qI84939ylEv3qqPFKa85Oxr6tDaJKqwW6KKyo2v26TSv3k6LeA==}
     engines: {node: '>=0.6.0'}
 
   xss@1.0.15:
@@ -12994,7 +13003,7 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.6.7(encoding@0.1.13)
+      node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -13672,7 +13681,7 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.6.7(encoding@0.1.13)
+      node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -13721,7 +13730,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.6.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -14668,7 +14677,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.3.24(6tdwl5h3swyd75cburrhme34b4)':
+  '@langchain/community@0.3.24(2436c3669a6c925ec9fb8d917e8aa538)':
     dependencies:
       '@browserbasehq/stagehand': 1.10.1(@playwright/test@1.50.0)(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(openai@4.78.1(encoding@0.1.13)(zod@3.23.8))(zod@3.23.8)
       '@ibm-cloud/watsonx-ai': 1.3.2(@langchain/core@0.3.30(openai@4.78.1(encoding@0.1.13)(zod@3.23.8)))
@@ -15029,29 +15038,30 @@ snapshots:
   '@next/swc-win32-x64-msvc@14.2.22':
     optional: true
 
-  '@node-saml/node-saml@4.0.5':
+  '@node-saml/node-saml@5.0.1':
     dependencies:
       '@types/debug': 4.1.12
-      '@types/passport': 1.0.16
-      '@types/xml-crypto': 1.4.6
+      '@types/qs': 6.9.17
       '@types/xml-encryption': 1.2.4
       '@types/xml2js': 0.4.14
+      '@xmldom/is-dom-node': 1.0.1
       '@xmldom/xmldom': 0.8.10
-      debug: 4.4.0(supports-color@8.1.1)
-      xml-crypto: 3.2.0
+      debug: 4.4.0
+      xml-crypto: 6.0.1
       xml-encryption: 3.0.2
-      xml2js: 0.5.0
+      xml2js: 0.6.2
       xmlbuilder: 15.1.1
+      xpath: 0.0.34
     transitivePeerDependencies:
       - supports-color
 
-  '@node-saml/passport-saml@4.0.4':
+  '@node-saml/passport-saml@5.0.1':
     dependencies:
-      '@node-saml/node-saml': 4.0.5
+      '@node-saml/node-saml': 5.0.1
       '@types/express': 4.17.21
       '@types/passport': 1.0.16
       '@types/passport-strategy': 0.2.38
-      passport: 0.6.0
+      passport: 0.7.0
       passport-strategy: 1.0.0
     transitivePeerDependencies:
       - supports-color
@@ -15718,7 +15728,7 @@ snapshots:
 
   '@types/bonjour@3.5.13':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/caseless@0.12.5': {}
 
@@ -15731,7 +15741,7 @@ snapshots:
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 5.0.1
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/connect@3.4.35':
     dependencies:
@@ -16045,7 +16055,7 @@ snapshots:
 
   '@types/node-forge@1.3.11':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/node-zendesk@2.0.15':
     dependencies:
@@ -16097,7 +16107,7 @@ snapshots:
 
   '@types/passport-strategy@0.2.38':
     dependencies:
-      '@types/express': 5.0.0
+      '@types/express': 4.17.21
       '@types/passport': 1.0.16
 
   '@types/passport@1.0.16':
@@ -16174,7 +16184,7 @@ snapshots:
 
   '@types/serve-index@1.9.4':
     dependencies:
-      '@types/express': 5.0.0
+      '@types/express': 4.17.21
 
   '@types/serve-static@1.15.0':
     dependencies:
@@ -16191,7 +16201,7 @@ snapshots:
 
   '@types/sockjs@0.3.36':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/stack-utils@2.0.3': {}
 
@@ -16225,12 +16235,7 @@ snapshots:
 
   '@types/ws@8.5.13':
     dependencies:
-      '@types/node': 18.19.64
-
-  '@types/xml-crypto@1.4.6':
-    dependencies:
-      '@types/node': 18.19.64
-      xpath: 0.0.27
+      '@types/node': 18.19.74
 
   '@types/xml-encryption@1.2.4':
     dependencies:
@@ -16238,7 +16243,7 @@ snapshots:
 
   '@types/xml2js@0.4.14':
     dependencies:
-      '@types/node': 18.19.64
+      '@types/node': 18.19.74
 
   '@types/yargs-parser@21.0.0': {}
 
@@ -16437,6 +16442,8 @@ snapshots:
       node-addon-api: 8.1.0
       prebuild-install: 7.1.2
 
+  '@xmldom/is-dom-node@1.0.1': {}
+
   '@xmldom/xmldom@0.8.10': {}
 
   '@xtuc/ieee754@1.2.0': {}
@@ -16509,13 +16516,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -16825,14 +16832,14 @@ snapshots:
   axios@1.7.4(debug@4.4.0):
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
-      form-data: 4.0.0
+      form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
 
   axios@1.7.7:
     dependencies:
-      follow-redirects: 1.15.6(debug@4.4.0)
+      follow-redirects: 1.15.6
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -18235,6 +18242,10 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
+  debug@4.4.0:
+    dependencies:
+      ms: 2.1.3
+
   debug@4.4.0(supports-color@8.1.1):
     dependencies:
       ms: 2.1.3
@@ -19253,13 +19264,15 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  follow-redirects@1.15.6: {}
+
   follow-redirects@1.15.6(debug@4.4.0):
     optionalDependencies:
       debug: 4.4.0(supports-color@8.1.1)
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
 
   font-atlas@2.1.0:
     dependencies:
@@ -20063,7 +20076,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -20090,14 +20103,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -20127,7 +20140,7 @@ snapshots:
       '@types/tough-cookie': 4.0.5
       axios: 1.7.4(debug@4.4.0)
       camelcase: 6.3.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
       dotenv: 16.4.7
       extend: 3.0.2
       file-type: 16.5.4
@@ -22536,6 +22549,12 @@ snapshots:
   passport-strategy@1.0.0: {}
 
   passport@0.6.0:
+    dependencies:
+      passport-strategy: 1.0.0
+      pause: 0.0.1
+      utils-merge: 1.0.1
+
+  passport@0.7.0:
     dependencies:
       passport-strategy: 1.0.0
       pause: 0.0.1
@@ -25738,10 +25757,11 @@ snapshots:
 
   xdg-basedir@5.1.0: {}
 
-  xml-crypto@3.2.0:
+  xml-crypto@6.0.1:
     dependencies:
+      '@xmldom/is-dom-node': 1.0.1
       '@xmldom/xmldom': 0.8.10
-      xpath: 0.0.32
+      xpath: 0.0.33
 
   xml-encryption@3.0.2:
     dependencies:
@@ -25749,7 +25769,7 @@ snapshots:
       escape-html: 1.0.3
       xpath: 0.0.32
 
-  xml2js@0.5.0:
+  xml2js@0.6.2:
     dependencies:
       sax: 1.4.1
       xmlbuilder: 11.0.1
@@ -25765,9 +25785,11 @@ snapshots:
 
   xmlbuilder@15.1.1: {}
 
-  xpath@0.0.27: {}
-
   xpath@0.0.32: {}
+
+  xpath@0.0.33: {}
+
+  xpath@0.0.34: {}
 
   xss@1.0.15:
     dependencies:
