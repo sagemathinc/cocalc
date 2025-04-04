@@ -7,7 +7,9 @@ import { merge, sortBy, throttle, uniq, xor } from "lodash";
 import { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import api from "@cocalc/frontend/client/api";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
 import {
   GetStarredBookmarks,
@@ -25,6 +27,8 @@ import {
 // The only really important situation to think of are when there is nothing in local storage but in the database,
 // or when there is
 export function useStarredFilesManager(project_id: string) {
+  const account_id = useTypedRedux("account", "account_id");
+
   const [starred, setStarred] = useState<FlyoutActiveStarred>(
     getFlyoutActiveStarred(project_id),
   );
@@ -55,7 +59,17 @@ export function useStarredFilesManager(project_id: string) {
         project_id,
         stars,
       };
-      await api("bookmarks/set", payload);
+      //await api("bookmarks/set", payload);
+
+      const data = await webapp_client.async_query({
+        query: {
+          bookmarks: {
+            ...payload,
+            account_id,
+          },
+        },
+      });
+      console.log("save starred files", data);
     } catch (err) {
       console.error("api error", err);
     }
@@ -71,6 +85,17 @@ export function useStarredFilesManager(project_id: string) {
           project_id,
         };
         const data: GetStarredBookmarks = await api("bookmarks/get", payload);
+
+        const data2 = await webapp_client.async_query({
+          query: {
+            bookmarks: {
+              ...payload,
+              type: STARRED_FILES,
+              stars: null,
+            },
+          },
+        });
+        console.log({ data, data2 });
 
         const { type, status } = data;
 
