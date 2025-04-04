@@ -2497,27 +2497,36 @@ export class SyncDoc extends EventEmitter {
 
   // returns true if there may be additional history to load
   // after loading this. return false if definitely done.
-  loadMoreHistory = async (): Promise<boolean> => {
+  loadMoreHistory = async ({
+    all,
+  }: {
+    // if true, loads all history
+    all?: boolean;
+  } = {}): Promise<boolean> => {
     if (this.hasFullHistory() || this.ephemeral || this.patch_list == null) {
       return false;
     }
-
-    const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
-    if (seq_info == null) {
-      // nothing more to load
-      return false;
+    let start_seq;
+    if (all) {
+      start_seq = 1;
+    } else {
+      const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
+      if (seq_info == null) {
+        // nothing more to load
+        return false;
+      }
+      start_seq = seq_info.prev_seq ?? 1;
     }
-    const { prev_seq = 1 } = seq_info;
     // Doing this load triggers change events for all the patch info
     // that gets loaded.
     // @ts-ignore
-    await this.patches_table.dstream?.load({ start_seq: prev_seq });
+    await this.patches_table.dstream?.load({ start_seq });
 
     // Wait until patch update queue is empty
     while (this.patch_update_queue.length > 0) {
       await once(this, "patch-update-queue-empty");
     }
-    return prev_seq > 1;
+    return start_seq > 1;
   };
 
   show_history = (opts = {}): void => {

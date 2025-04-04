@@ -14,30 +14,52 @@ interface Props {
 
 export function LoadMoreHistory({ actions, disabled }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
+  //const [loadingAll, setLoadingAll] = useState<boolean>(false);
   return (
-    <Tooltip
-      title={
-        disabled
-          ? "All TimeTravel history is loaded"
-          : "Load more TimeTravel history"
-      }
-    >
+    <>
+      <Tooltip
+        title={
+          disabled
+            ? "All TimeTravel history is loaded"
+            : "Load more TimeTravel history"
+        }
+      >
+        <Button
+          disabled={loading || disabled}
+          onClick={async () => {
+            try {
+              setLoading(true);
+              await actions.loadMoreHistory();
+            } catch (err) {
+              console.log("ERROR!", err);
+              actions.set_error(`${err}`);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          <Icon name="file-archive" /> More {loading && <Spin />}
+        </Button>
+      </Tooltip>
+    </>
+  );
+}
+
+/*
       <Button
-        disabled={loading || disabled}
+        disabled={loading || loadingAll || disabled}
         onClick={async () => {
           try {
-            setLoading(true);
-            await actions.loadMoreHistory();
+            setLoadingAll(true);
+            await actions.loadMoreHistory({ all: true });
           } catch (err) {
             console.log("ERROR!", err);
             actions.set_error(`${err}`);
           } finally {
-            setLoading(false);
+            setLoadingAll(false);
           }
         }}
       >
-        <Icon name="file-archive" /> Load More {loading && <Spin />}
+        <Icon name="file-archive" /> All {loadingAll && <Spin />}
       </Button>
-    </Tooltip>
-  );
-}
+*/
