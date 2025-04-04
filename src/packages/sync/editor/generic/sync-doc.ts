@@ -1834,11 +1834,10 @@ export class SyncDoc extends EventEmitter {
     // to it only after we're done.
     delete this.patch_list;
 
-    const patch_list = new SortedPatchList(
-      this._from_str,
-      this.last_snapshot,
-      this.loadMoreHistory,
-    );
+    const patch_list = new SortedPatchList({
+      from_str: this._from_str,
+      // loadMoreHistory: this.loadMoreHistory,
+    });
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
@@ -1894,8 +1893,7 @@ export class SyncDoc extends EventEmitter {
       await dstream.load({ start_seq });
       patch_list.add(this.get_patches());
       if (start_seq <= 1) {
-        // loaded everything -- ensure all held patches are applied
-        patch_list.setFirstSnapshot(undefined);
+        // loaded everything
         break;
       }
     }
@@ -2497,8 +2495,7 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_list == null) {
       return false;
     }
-    const parents = this.patch_list?.getOldestSnapshot()?.parents ?? [];
-    return parents.length == 0;
+    return this.patch_list?.getOldestSnapshot() == null;
   };
 
   // returns true if there may be additional history to load
@@ -2522,25 +2519,6 @@ export class SyncDoc extends EventEmitter {
     // Wait until patch update queue is empty
     while (this.patch_update_queue.length > 0) {
       await once(this, "patch-update-queue-empty");
-    }
-
-    const { patch_list } = this;
-    if (patch_list != null) {
-      if (prev_seq <= 1) {
-        patch_list.setFirstSnapshot(undefined);
-      } else {
-        const dstream = this.dstream();
-        let i = 0;
-        for (const mesg of dstream.getAll()) {
-          if (dstream.seq(i) == prev_seq) {
-            // this is the one
-            const d = new Date(mesg.time);
-            patch_list.setFirstSnapshot(d);
-            break;
-          }
-          i += 1;
-        }
-      }
     }
     return prev_seq > 1;
   };

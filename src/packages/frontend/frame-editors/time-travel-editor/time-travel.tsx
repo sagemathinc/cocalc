@@ -63,7 +63,6 @@ export function TimeTravel(props: Props) {
   const error = useEditor("error");
   const versions = useEditor("versions");
   const firstVersion = useEditor("first_version") ?? 0;
-  const lastVersion = useEditor("last_version") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
   const loading = useEditor("loading");
@@ -239,8 +238,9 @@ export function TimeTravel(props: Props) {
       return (
         <VersionRange
           version0={props.actions.versionNumber(version0) ?? i0 + firstVersion}
+          user0={props.actions.getUser(version0)}
           version1={props.actions.versionNumber(version1) ?? i1 + firstVersion}
-          max={lastVersion}
+          user1={props.actions.getUser(version1)}
         />
       );
     } else {
@@ -255,7 +255,7 @@ export function TimeTravel(props: Props) {
         <Version
           date={new Date(version)}
           number={props.actions.versionNumber(version) ?? i + firstVersion}
-          max={lastVersion}
+          user={props.actions.getUser(version)}
         />
       );
     }

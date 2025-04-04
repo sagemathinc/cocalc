@@ -72,7 +72,6 @@ export interface TimeTravelState extends CodeEditorState {
   error: string;
   // first loaded versions. This changes when you load more.
   first_version: number;
-  last_version: number;
 }
 
 export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
@@ -186,8 +185,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       return;
     }
     const first_version = this.syncdoc.historyFirstVersion();
-    const last_version = this.syncdoc.historyLastVersion();
-    this.setState({ versions, first_version, last_version });
+    this.setState({ versions, first_version });
     if (this.first_load) {
       this.first_load = false;
     }
@@ -240,6 +238,13 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       }
     }
     return Array.from(account_ids);
+  };
+
+  getUser = (version: number): number | undefined => {
+    if (this.syncdoc == null) {
+      return;
+    }
+    return this.syncdoc.user_id(new Date(version));
   };
 
   private getFrameNodeGlobal = (id: string) => {

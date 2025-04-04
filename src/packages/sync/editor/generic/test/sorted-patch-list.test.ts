@@ -26,7 +26,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   let patches: SortedPatchList;
 
   it("creates a sorted patch list", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     expect(patches.value().to_str()).toBe("");
   });
 
@@ -71,10 +71,6 @@ describe("Test empty sorted patch list -- call all public methods", () => {
     expect(patches.time_of_unmade_periodic_snapshot(100, 9999)).toBe(undefined);
   });
 
-  it("time of snapshots (none of course)", () => {
-    expect(patches.snapshot_times()).toEqual([]);
-  });
-
   it("most recent patch", () => {
     expect(patches.newest_patch_time()).toBe(undefined);
   });
@@ -95,7 +91,7 @@ describe("Test sorted patch list with one patch", () => {
   let patches: SortedPatchList;
 
   it("creates a sorted patch list", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     expect(patches.value().to_str()).toBe("");
   });
 
@@ -146,7 +142,7 @@ describe("Test sorted patch list with several patches", () => {
   let patches: SortedPatchList;
 
   it("creates a sorted patch list", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     expect(patches.value().to_str()).toBe("");
   });
 
@@ -239,7 +235,7 @@ describe("Test inserting missing patches (thus changing history)", () => {
   let patches: SortedPatchList;
 
   it("creates a sorted patch list", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     expect(patches.value().to_str()).toBe("");
   });
 
@@ -315,50 +311,6 @@ describe("Test inserting missing patches (thus changing history)", () => {
   });
 });
 
-describe("Test firstSnapshot", () => {
-  let patches: SortedPatchList;
-  const firstSnapshot = new Date("2025-01-01T00:00:00.000Z");
-
-  const w = [make_patch("", "x"), make_patch("", "y")];
-
-  const v = [
-    {
-      time: new Date(firstSnapshot.valueOf() + 10000),
-      patch: w[0],
-      user_id: 0,
-      size: JSON.stringify(w[0]).length,
-    },
-    {
-      time: new Date(firstSnapshot.valueOf() - 10000),
-      patch: w[1],
-      user_id: 0,
-      size: JSON.stringify(w[0]).length,
-    },
-  ];
-
-  it(`creates a sorted patch list with firstSnapshot=${firstSnapshot}`, () => {
-    patches = new SortedPatchList(from_str, firstSnapshot);
-  });
-
-  it("insert one patches that is after the snapshot and one before it, and confirm the one before is hidden for now", () => {
-    patches.add([v[0], v[1]]);
-    expect(patches.value().to_str()).toBe("x");
-    expect(Object.keys((patches as any).heldPatches)).toEqual([
-      `${v[1].time.valueOf()}`,
-    ]);
-    expect(Object.keys((patches as any).times)).toEqual([
-      `${v[0].time.valueOf()}`,
-    ]);
-  });
-
-  it("now adjust the firstSnapshot time and see the other patch appear", () => {
-    patches.setFirstSnapshot(v[1].time);
-    const { heldPatches, times } = patches as any;
-    expect(Object.keys(heldPatches)).toEqual([]);
-    expect(Object.keys(times).length).toEqual(2);
-  });
-});
-
 describe("Testing adding a snapshot to the patch list", () => {
   let patches: SortedPatchList;
 
@@ -370,6 +322,8 @@ describe("Testing adding a snapshot to the patch list", () => {
       patch: w[0],
       user_id: 0,
       size: JSON.stringify(w[0]).length,
+      parents: [],
+      version: 1,
     },
     // make it a snapshot
     {
@@ -382,7 +336,7 @@ describe("Testing adding a snapshot to the patch list", () => {
   ];
 
   it("creates a sorted patch list and add a patch", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     patches.add([v[0]]);
     expect(patches.getOldestSnapshot()).toBe(undefined);
     expect(patches.count()).toBe(1);
@@ -390,24 +344,21 @@ describe("Testing adding a snapshot to the patch list", () => {
 
   it("apply the snapshot message and see the first patch is now a snapshot", () => {
     patches.add([v[1]]);
-    expect(patches.getOldestSnapshot()?.time).toEqual(v[0].time);
-    expect(patches.getOldestSnapshot()?.patch).toEqual(v[0].patch);
-    expect(patches.getOldestSnapshot()).toEqual(
-      expect.objectContaining({ ...v[1], ...v[0] }),
-    );
+    const p = patches.patch(v[0].time);
+    expect(p.time).toEqual(v[0].time);
+    expect(p.patch).toEqual(v[0].patch);
+    expect(p).toEqual(expect.objectContaining({ ...v[1], ...v[0] }));
     // still 1
     expect(patches.count()).toBe(1);
   });
 
   it("adds the snapshot info *then* the patch later and verifies that works", () => {
-    patches = new SortedPatchList(from_str);
+    patches = new SortedPatchList({ from_str });
     patches.add([v[1]]);
-    expect(patches.getOldestSnapshot()).toBe(undefined);
     expect(patches.count()).toBe(0);
     patches.add([v[0]]);
     expect(patches.count()).toBe(1);
-    expect(patches.getOldestSnapshot()).toEqual(
-      expect.objectContaining({ ...v[1], ...v[0] }),
-    );
+    const q = patches.patch(v[0].time);
+    expect(q).toEqual(expect.objectContaining({ ...v[1], ...v[0] }));
   });
 });

@@ -8,67 +8,54 @@ Sorted list of patches applied to a starting string/object.
 */
 
 import { EventEmitter } from "events";
-import { isEqual } from "lodash";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
-import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { close, deep_copy, trunc_middle } from "@cocalc/util/misc";
+// import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 
-const MAX_PATCHLIST_CACHE_SIZE = 40;
+const MAX_PATCHLIST_CACHE_SIZE = 100;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
-  private firstSnapshot?: Date;
-  private loadMoreHistory?: () => Promise<boolean>;
+  //private loadMoreHistory?: () => Promise<boolean>;
 
   private patches: Patch[] = [];
-  private heldSnapshots: { [time: number]: Patch } = {};
-  private heldPatches: { [time: number]: Patch } = {};
 
-  // the patches indexed by time
-  private times: { [time: number]: Patch } = {};
+  // Messages that we have NOT yet merged into our pristine and
+  // always valid this.live.
+  private heldSnapshots: { [time: number]: Patch } = {};
+  private staging: { [time: number]: Patch } = {};
+
+  // this.live = All patches indexed by time that we consider when defining the
+  // current state of the document.  Any code changing this.live can only
+  // add new patches to it (or modify a patch to be a snapshot) and must
+  // *always* synchronously leave it having the following property:
+  //     Property: all tails are snapshots.
+  // This property ensures that it is possible to meaningfully define
+  // an immutable value at every key of this.live.
+  private live: { [time: number]: Patch } = {};
 
   private versions_cache: Date[] | undefined;
 
-  // todo -- size?
+  // todo: use size?  most versions have the same size, so might not matter much.
   private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
     max: MAX_PATCHLIST_CACHE_SIZE,
   });
 
-  // all the times when there are snapshots.
-  private all_snapshot_times: { [time: string]: boolean } = {};
+  private oldestSnapshot?: Patch;
 
-  constructor(
+  constructor({
     from_str,
-    firstSnapshot?: Date,
-    loadMoreHistory?: () => Promise<boolean>,
-  ) {
+    // loadMoreHistory,
+  }: {
+    from_str: (s: string) => Document;
+    //loadMoreHistory?: () => Promise<boolean>;
+  }) {
     super();
     this.from_str = from_str;
-    this.firstSnapshot = firstSnapshot;
-    this.loadMoreHistory = loadMoreHistory;
+    //this.loadMoreHistory = loadMoreHistory;
   }
-
-  setFirstSnapshot = (firstSnapshot?: Date) => {
-    const prev = this.firstSnapshot;
-    this.firstSnapshot = firstSnapshot;
-    if (prev != null && (firstSnapshot ?? new Date(0)) < prev) {
-      // moving the firstSnapshot time back in time, e.g., due to loading more history.
-      // In this case we should check if any of the held patches are within the new window.
-      const cutoff = (firstSnapshot ?? new Date(0)).valueOf();
-      const patches: Patch[] = [];
-      for (const t in this.heldPatches) {
-        if (parseInt(t) >= cutoff) {
-          patches.push(this.heldPatches[t]);
-          delete this.heldPatches[t];
-        }
-      }
-      if (patches.length > 0) {
-        this.add(patches);
-      }
-    }
-  };
 
   close = (): void => {
     this.removeAllListeners();
@@ -86,7 +73,7 @@ export class SortedPatchList extends EventEmitter {
   };
 
   versionNumber = (time: Date): undefined | number => {
-    return this.times[time.valueOf()]?.version;
+    return this.live[time.valueOf()]?.version;
   };
 
   /* Choose the next available time in ms that is congruent to
@@ -115,7 +102,7 @@ export class SortedPatchList extends EventEmitter {
       a += n;
     }
     t += a; // now t = m (mod n)
-    while (this.times[t] != null) {
+    while (this.live[t] != null) {
       t += n;
     }
     return new Date(t);
@@ -130,45 +117,39 @@ export class SortedPatchList extends EventEmitter {
       // nothing to do
       return;
     }
+
     // This implementation is complicated because it can't make any assumptions
     // about uniqueness, etc., and also the snapshot info gets added later
     // long after the patch is initially made; it's done as a message later
     // in the stream.
-    const v: { [time: number]: Patch } = {};
-    let oldest: Date | undefined = undefined;
     for (const originalPatch of patches) {
       // we make a shallow copy of the original patch, since this code
       // may shallow mutate it, e.g., filling in the snapshot info, and
       // we want to avoid any surprises/bugs (mainly with unit tests)
       const x = { ...originalPatch };
       const t: number = x.time.valueOf();
-
-      if (this.firstSnapshot != null && x.time < this.firstSnapshot) {
-        // this is a patch that was added late (e.g., due to a user being
-        // offline), so it's time is before we are even interested, but its
-        // sequence numbrer is large.  We will only look at it if the
-        // user decides to load more history, which updates firstSnapshot.
-        if (x.is_snapshot) {
-          this.heldSnapshots[t] = x;
-        } else {
-          this.heldPatches[t] = x;
-        }
-        continue;
-      }
-      const cur = this.times[t] ?? v[t];
       if (x.is_snapshot) {
         // it's a snapshot
-        if (this.times[t] != null) {
+        if (this.live[t] != null) {
           // The corresponding patch was already loaded, so edit
           // the snapshot field of that patch.
-          this.all_snapshot_times[t] = true;
-          this.times[t].is_snapshot = true;
-          this.times[t].snapshot = x.snapshot;
-          this.times[t].seq_info = x.seq_info;
+          this.live[t].is_snapshot = true;
+          this.live[t].snapshot = x.snapshot;
+          this.live[t].seq_info = x.seq_info;
+        } else if (this.staging[t] != null) {
+          this.staging[t].is_snapshot = true;
+          this.staging[t].snapshot = x.snapshot;
+          this.staging[t].seq_info = x.seq_info;
         } else {
           // The corresponding patch was NOT yet loaded, so just
           // store this for later, in case it is loaded later.
           this.heldSnapshots[t] = x;
+        }
+        if (
+          this.oldestSnapshot == null ||
+          this.oldestSnapshot.time.valueOf() > t
+        ) {
+          this.oldestSnapshot = x;
         }
         // never include a snapshot message -- these just change patches,
         // and are not patches themselves.
@@ -184,28 +165,43 @@ export class SortedPatchList extends EventEmitter {
           x.seq_info = this.heldSnapshots[t].seq_info;
           delete this.heldSnapshots[t];
         }
-        if (cur != null) {
-          // We already have a patch with this time.  Update it, if necessary?
-          if (
-            isEqual(cur.patch, x.patch) &&
-            cur.user_id === x.user_id &&
-            cur.snapshot === x.snapshot
-          ) {
-            // re-inserting a known patch; nothing at all to do
-          } else {
-            // I think this should never happen anymore. (?)
-            // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
-            // remove patch with same timestamp from the sorted list of patches
-            this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
-            this.emit("overwrite", t);
-          }
+      }
+      this.staging[t] = x;
+    }
+
+    const v: { [time: number]: Patch } = {};
+    const heads = getHeads(this.staging);
+    if (heads.length == 0) {
+      return;
+    }
+    const graph = { ...this.live, ...this.staging };
+    for (const head of heads) {
+      const times = getTimesWithHeads(graph, [head]);
+      let isComplete = true;
+      for (const t of times) {
+        const patch = graph[t];
+        if (isSnapshot(patch)) {
           continue;
         }
+        for (const parent of patch.parents ?? []) {
+          if (graph[parent] == null) {
+            // non-snapshot with a missing parent!
+            isComplete = false;
+            break;
+          }
+        }
+        if (!isComplete) {
+          break;
+        }
       }
-      v[t] = x;
-      this.times[t] = x;
-      if (oldest == null || oldest > x.time) {
-        oldest = x.time;
+      if (isComplete) {
+        for (const t of times) {
+          if (this.live[t] == null) {
+            this.live[t] = this.staging[t];
+            v[t] = this.live[t];
+            delete this.staging[t];
+          }
+        }
       }
     }
 
@@ -218,7 +214,6 @@ export class SortedPatchList extends EventEmitter {
       this.patches = this.patches.concat(newPatches);
       this.patches.sort(patch_cmp);
     }
-    this.ensureTailsAreSnapshots();
   };
 
   /*
@@ -259,7 +254,7 @@ export class SortedPatchList extends EventEmitter {
     noCache?: boolean;
     verbose?: boolean;
   } = {}) => {
-    if (time != null && this.times[time.valueOf()] == null) {
+    if (time != null && this.live[time.valueOf()] == null) {
       throw Error(`unknown time: ${time}`);
     }
     const key = time?.valueOf();
@@ -344,7 +339,7 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     if (value == null) {
-      const patch = this.times[v[0]];
+      const patch = this.live[v[0]];
       if (patch.snapshot != null) {
         value = this.from_str(patch.snapshot);
         v.shift();
@@ -359,7 +354,7 @@ export class SortedPatchList extends EventEmitter {
       if (without != null && without.has(t)) {
         continue;
       }
-      const { patch } = this.times[t];
+      const { patch } = this.live[t];
       value = value.apply_patch(patch);
       if (verbose) {
         console.log("value", { patch, value: value.to_str() });
@@ -436,7 +431,7 @@ export class SortedPatchList extends EventEmitter {
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
   patch = (time): Patch => {
-    const p = this.times[time.valueOf()];
+    const p = this.live[time.valueOf()];
     if (p == null) {
       throw Error(`no patch at ${time}`);
     }
@@ -540,7 +535,7 @@ export class SortedPatchList extends EventEmitter {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
-      const is_snapshot: boolean = !!this.patches[i].is_snapshot;
+      const is_snapshot = isSnapshot(this.patches[i]);
       if (!is_snapshot) {
         // add this patch to our size count.  NOTE -- we do not
         // include the snapshot in the size count, since the
@@ -578,18 +573,6 @@ export class SortedPatchList extends EventEmitter {
     }
   };
 
-  // Times of all snapshots in memory on this client; these are
-  // the only ones we need to worry about for offline patches.
-  snapshot_times = (): Date[] => {
-    const v: Date[] = [];
-    let t: string;
-    for (t in this.all_snapshot_times) {
-      v.push(new Date(parseInt(t)));
-    }
-    v.sort(cmp_Date);
-    return v;
-  };
-
   /* Return the most recent time of a patch, or undefined if
      there are no patches. */
   newest_patch_time = (): Date | undefined => {
@@ -607,55 +590,25 @@ export class SortedPatchList extends EventEmitter {
     return deep_copy(this.patches);
   };
 
-  // undefined means the oldest snapshot is "beginning of time"
+  // get oldest snapshot, or undefined if the oldest "snapshot"
+  // is "beginning of time" and we have it.
+  // This is ONLY used for loading more patches by using the
+  // sequence number data recorded in the snapshot.
   getOldestSnapshot = (): Patch | undefined => {
-    if (this.patches[0]?.is_snapshot) {
-      return this.patches[0];
+    const p = this.patches[0];
+    if (p == null || (!p.is_snapshot && (p.parents ?? []).length == 0)) {
+      // first patch is the beginning of time
+      return undefined;
     }
+    return this.oldestSnapshot;
   };
 
   getHeads = (): number[] => {
-    const X = new Set<number>(Object.keys(this.times).map((x) => parseInt(x)));
-    if (X.size == 0) {
-      return [];
-    }
-    for (const patch of Object.values(this.times)) {
-      if (patch.parents != null) {
-        for (const s of patch.parents) {
-          X.delete(s);
-          if (X.size <= 1) {
-            // since this is a DAG, there has to be *at least* one
-            // head so we can shortcut out at this point, rather
-            // than spend  alot of time deleting things that are
-            // already removed.
-            return Array.from(X).sort();
-          }
-        }
-      }
-    }
-    return Array.from(X).sort();
+    return getHeads(this.live);
   };
 
   private getTails = (): number[] => {
-    // the tails are the nodes with no parents in the DAG.
-    const tails: number[] = [];
-    for (const patch of Object.values(this.times)) {
-      if (patch.parents == null || patch.parents.length == 0) {
-        tails.push(patch.time.valueOf());
-      } else {
-        let isTail = true;
-        for (const t of patch.parents) {
-          if (this.times[t] != null) {
-            isTail = false;
-            break;
-          }
-        }
-        if (isTail) {
-          tails.push(patch.time.valueOf());
-        }
-      }
-    }
-    return tails;
+    return getTails(this.live);
   };
 
   // if true, then it is necessary to load more history before computing
@@ -665,7 +618,7 @@ export class SortedPatchList extends EventEmitter {
     const tails = this.getTails();
     const nonSnapshotTails: number[] = [];
     for (const t of tails) {
-      const patch = this.times[t];
+      const patch = this.live[t];
       if (patch.parents == null || patch.parents.length == 0) {
         // start of editing, so is a snapshot
       } else if (patch.snapshot != null) {
@@ -678,61 +631,125 @@ export class SortedPatchList extends EventEmitter {
     return nonSnapshotTails;
   };
 
-  private ensureTailsAreSnapshots = reuseInFlight(async () => {
-    if (this.loadMoreHistory == null) {
-      // functionality is not available (e.g., when unit testing we might not enable this)
-      return;
-    }
-    while (true) {
-      const nsTails = this.nonSnapshotTails();
-      if (nsTails.length == 0) {
-        return;
-      }
-      const hasMore = await this.loadMoreHistory();
-      if (!hasMore) {
-        return;
-      }
-    }
-  });
+  //   private ensureTailsAreSnapshots = reuseInFlight(async () => {
+  //     if (this.loadMoreHistory == null) {
+  //       // functionality is not available (e.g., when unit testing we might not enable this)
+  //       return;
+  //     }
+  //     while (true) {
+  //       const nsTails = this.nonSnapshotTails();
+  //       if (nsTails.length == 0) {
+  //         return;
+  //       }
+  //       const hasMore = await this.loadMoreHistory();
+  //       if (!hasMore) {
+  //         return;
+  //       }
+  //     }
+  //   });
 
-  // Iterative version using a stack to find the components of a node
-  // This is fast enough, e.g. 100K nodes in 50ms and scales linearly.
-  // ** This stops at snapshots, i.e., it's the component containing the
-  // node with given time, but when we hit any snasphot not we stop
-  // going further.**
   private knownTimes = (heads: number[]): Set<number> => {
-    const visited = new Set<number>([]);
-    const stack: number[] = [...heads];
+    return getTimesWithHeads(this.live, heads);
+  };
+}
 
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (current == null || visited.has(current)) {
-        continue;
-      }
-      const patch = this.times[current];
-      if (patch == null) {
-        if (visited.size == 0) {
-          throw Error(`there is no patch at time ${current}`);
-        }
-        // If this happens, it means that there is a tail in the DAG
-        // that is NOT a snapshot, which means it is impossible to
-        // properly compute all known times or the value of the document
-        // with the given heads without loading more history.
-        throw Error(
-          `incomplete patch data at time ${current}: load more history`,
-        );
-      }
-      // patch is loaded so add it to our list
-      visited.add(current);
-      if (patch?.parents != null && !patch.is_snapshot) {
-        for (const s of patch.parents) {
-          if (!visited.has(s)) {
-            stack.push(s);
-          }
+// a patch is a snapshot if it is an actual patch (not
+// just a message adding snapshot info) and it is either
+// an actual snapshot or a patch with no parents, i.e.,
+// which should only be the first ever patch when the
+// document was initialized by a file on disk.
+function isSnapshot(patch: Patch): boolean {
+  return (
+    patch.patch != null &&
+    (patch.is_snapshot || (patch.parents ?? []).length == 0)
+  );
+}
+
+function getHeads(graph: { [time: number]: Patch }): number[] {
+  const X = new Set<number>(Object.keys(graph).map((x) => parseInt(x)));
+  if (X.size == 0) {
+    return [];
+  }
+  for (const patch of Object.values(graph)) {
+    if (patch.parents != null) {
+      for (const s of patch.parents) {
+        X.delete(s);
+        if (X.size <= 1) {
+          // since this is a DAG, there has to be *at least* one
+          // head so we can shortcut out at this point, rather
+          // than spend  alot of time deleting things that are
+          // already removed.
+          return Array.from(X).sort();
         }
       }
     }
+  }
+  return Array.from(X).sort();
+}
 
-    return visited;
-  };
+function getTails(graph: { [time: number]: Patch }): number[] {
+  // the tails are the nodes with no parents in the DAG.
+  const tails: number[] = [];
+  for (const patch of Object.values(graph)) {
+    if (patch.parents == null || patch.parents.length == 0) {
+      tails.push(patch.time.valueOf());
+    } else {
+      let isTail = true;
+      for (const t of patch.parents) {
+        if (graph[t] != null) {
+          isTail = false;
+          break;
+        }
+      }
+      if (isTail) {
+        tails.push(patch.time.valueOf());
+      }
+    }
+  }
+  return tails;
+}
+
+// Iterative version using a stack to find the components of a node
+// This is fast enough, e.g. 100K nodes in 50ms and scales linearly.
+// ** This stops at snapshots, i.e., it's the component containing the
+// node with given time, but when we hit any snasphot not we stop
+// going further.**
+function getTimesWithHeads(
+  graph: { [time: number]: Patch },
+  heads: number[],
+): Set<number> {
+  const visited = new Set<number>([]);
+  const stack: number[] = [...heads];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current == null || visited.has(current)) {
+      continue;
+    }
+    const patch = graph[current];
+    if (patch == null) {
+      if (visited.size == 0) {
+        console.warn(`there is no patch at time ${current}`);
+      }
+      // If this happens, it means that there is a tail in the DAG
+      // that is NOT a snapshot, which means it is impossible to
+      // properly compute all known times or the value of the document
+      // with the given heads without loading more history.
+      console.warn(
+        `incomplete patch data at time ${current}: load more history`,
+      );
+      continue;
+    }
+    // patch is loaded so add it to our list
+    visited.add(current);
+    if (patch?.parents != null && !patch.is_snapshot) {
+      for (const s of patch.parents) {
+        if (!visited.has(s)) {
+          stack.push(s);
+        }
+      }
+    }
+  }
+
+  return visited;
 }
