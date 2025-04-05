@@ -22,7 +22,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { IconName } from "@cocalc/frontend/components/icon";
+import { IconName, Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
@@ -48,6 +48,7 @@ import SettingsModal from "./settings-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import Next from "@cocalc/frontend/components/next";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -209,37 +210,26 @@ export const Page: React.FC = () => {
     }
   }
 
-  function sign_in_tab_clicked() {
-    if (active_top_tab === "account") {
-      page_actions.sign_in();
-    }
-  }
-
   function render_sign_in_tab(): JSX.Element | null {
     if (is_logged_in) return null;
 
-    let style: CSS | undefined = undefined;
-    if (active_top_tab !== "account") {
-      // Strongly encourage clicking on the sign in tab.
-      // Especially important if user got signed out due
-      // to cookie expiring or being deleted (say).
-      style = { backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG, fontSize: "16pt" };
-    }
     return (
-      <NavTab
-        name="account"
-        label={intl.formatMessage({
+      <Next
+        sameTab
+        href="/auth/sign-in"
+        style={{
+          backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG,
+          fontSize: "16pt",
+          color: "black",
+          padding: "5px 15px",
+        }}
+      >
+        <Icon name="sign-in" />{" "}
+        {intl.formatMessage({
           id: "page.sign_in.label",
           defaultMessage: "Sign in",
         })}
-        label_class={NAV_CLASS}
-        icon="sign-in"
-        on_click={sign_in_tab_clicked}
-        active_top_tab={active_top_tab}
-        style={style}
-        add_inner_style={{ color: "black" }}
-        hide_label={!show_label}
-      />
+      </Next>
     );
   }
 
