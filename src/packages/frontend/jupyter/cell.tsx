@@ -307,6 +307,9 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_metadata_state(): Rendered {
+    if (props.read_only) {
+      return;
+    }
     let style: React.CSSProperties;
 
     // note -- that second part is because the official

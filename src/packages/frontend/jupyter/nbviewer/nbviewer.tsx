@@ -25,7 +25,6 @@ interface Props {
 
 export default function NBViewer({
   content, // JSON string of an ipynb notebook
-
   ...props
 }: Props) {
   const cocalcJupyter = useMemo(() => {

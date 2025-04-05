@@ -6,7 +6,7 @@
 import { Progress, Space, Tooltip } from "antd";
 import { TimeAgo, Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { seconds2hms, server_time } from "@cocalc/util/misc";
+import { capitalize, seconds2hms, server_time } from "@cocalc/util/misc";
 import { useEffect } from "react";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
@@ -17,6 +17,7 @@ interface CellTimingProps {
   last?: number;
   state?;
   isLive?: boolean;
+  kernel?: string;
 }
 
 // make this small so smooth.
@@ -28,6 +29,7 @@ export default function CellTiming({
   last,
   state,
   isLive,
+  kernel,
 }: CellTimingProps) {
   const isMountedRef = useIsMountedRef();
   const { inc } = useCounter();
@@ -51,8 +53,8 @@ export default function CellTiming({
       <Tooltip
         title={
           <>
-            Evaluated <TimeAgo date={new Date(start)} /> and took about{" "}
-            {seconds2hms(ms / 1000, true)}.
+            Evaluated <TimeAgo date={new Date(start)} /> using {capitalize(kernel)} and took
+            about {seconds2hms(ms / 1000, true)}.
             {last != null ? (
               <> Previous run took {seconds2hms(last / 1000, true)}.</>
             ) : undefined}
