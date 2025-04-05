@@ -37,17 +37,19 @@ export default function DeletedFile({ project_id, path, time }: Props) {
         title={
           <div style={{ paddingRight: "15px" }}>
             The file "{filename}" was deleted or moved{" "}
-            <TimeAgo date={new Date(time)} />. Open it anyways?
+            <TimeAgo date={new Date(time)} />. Restore this file?
           </div>
         }
         onOk={openFile}
+        okText={"Restore File"}
+        cancelText={"Leave File Closed"}
         onCancel={() => {
           setOpen(false);
           redux.getProjectActions(project_id).close_tab(path);
         }}
       >
         {!path?.endsWith(".term") && (
-          <> After you open {path}, use TimeTravel to get past versions.</>
+          <> You can always restore later using the project log.  If you restore {path}, use TimeTravel to get past versions.</>
         )}
       </Modal>
     </div>

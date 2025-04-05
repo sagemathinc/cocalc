@@ -244,7 +244,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (this.syncdoc == null) {
       return;
     }
-    return this.syncdoc.user_id(new Date(version));
+    try {
+      return this.syncdoc.user_id(new Date(version));
+    } catch {
+      return;
+    }
   };
 
   private getFrameNodeGlobal = (id: string) => {
