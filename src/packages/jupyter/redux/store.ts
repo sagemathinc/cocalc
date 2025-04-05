@@ -10,7 +10,6 @@ This is used by everybody involved in using jupyter -- the project, the browser 
 */
 
 import { List, Map, OrderedMap, Set } from "immutable";
-
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import {
@@ -342,7 +341,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
           if (x === "truncated") {
             text = "WARNING: some intermediate output was truncated.\n";
           } else {
-            text = `WARNING: ${output[x]} intermediate output ${
+            text = `WARNING: at least ${output[x]} intermediate output ${
               output[x] > 1 ? "messages were" : "message was"
             } ${x}.\n`;
           }

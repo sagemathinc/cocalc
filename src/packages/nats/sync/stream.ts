@@ -89,7 +89,10 @@ const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 // this, as it can be expensive to the server.
 // Also, obviously the true limit is the minimum of the full NATS stream limits and
 // these limits.
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 15000;
+
+// Significant throttling is VERY, VERY important, since purging old messages frequently
+// seems to put a very significant load on NATS!
+const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 30000;
 
 export interface FilteredStreamLimitOptions {
   // How many messages may be in a Stream, oldest messages will be removed
@@ -727,7 +730,7 @@ export class Stream<T = any> extends EventEmitter {
   private enforceLimits = throttle(
     this.enforceLimitsNow,
     ENFORCE_LIMITS_THROTTLE_MS,
-    { leading: true, trailing: true },
+    { leading: false, trailing: true },
   );
 
   // load older messages starting at start_seq

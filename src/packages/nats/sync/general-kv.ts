@@ -139,7 +139,10 @@ const WATCH_MONITOR_INTERVAL = 15 * 1000;
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
 // own KV store limit naming.
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 15000;
+
+// Significant throttling is VERY, VERY important, since purging old messages frequently
+// seems to put a very significant load on NATS!
+const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 30000;
 
 export interface KVLimits {
   // How many keys may be in the KV store. Oldest keys will be removed
@@ -949,7 +952,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private enforceLimits = throttle(
     this.enforceLimitsNow,
     ENFORCE_LIMITS_THROTTLE_MS,
-    { leading: true, trailing: true },
+    { leading: false, trailing: true },
   );
 }
 

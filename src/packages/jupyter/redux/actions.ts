@@ -10,12 +10,12 @@ This can be used both on the frontend and the backend.
 
 // This was 10000 for a while and that caused regular noticeable problems:
 //    https://github.com/sagemathinc/cocalc/issues/4590
-const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
+const DEFAULT_MAX_OUTPUT_LENGTH = 250000;
 //const DEFAULT_MAX_OUTPUT_LENGTH = 1000;
 
 // Maximum number of output messages total.  If nmore, you have to click
 // "Fetch additional output" to see them.
-export const MAX_OUTPUT_MESSAGES = 1000;
+export const MAX_OUTPUT_MESSAGES = 500;
 //export const MAX_OUTPUT_MESSAGES = 5;
 
 // Limit blob store to 100 MB. This means you can have at most this much worth
