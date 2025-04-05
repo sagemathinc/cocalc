@@ -101,12 +101,26 @@ export class NatsClient extends EventEmitter {
   getEnv = async () => await getEnv();
 
   private initBrowserApi = async () => {
+    if (!this.client.account_id) {
+      // it's impossible to initialize the browser api if user is not signed in,
+      // and there is no way to ever sign in without explicitly leaving this
+      // page and coming back.
+      return;
+    }
     // have to delay so that this.client is fully created.
     await delay(1);
-    try {
-      await initApi();
-    } catch (err) {
-      console.warn("ERROR -- failed to initialize browser api", err);
+    let d = 2000;
+    while (true) {
+      try {
+        await initApi();
+        return;
+      } catch (err) {
+        console.log(
+          `WARNING: failed to initialize browser api (will retry) -- ${err}`,
+        );
+      }
+      d = Math.min(25000, d * 1.3) + Math.random();
+      await delay(d);
     }
   };
 
@@ -411,8 +425,7 @@ export class NatsClient extends EventEmitter {
       });
     } catch (err) {
       if (noError) {
-        console.warn("changefeedInterest -- error", query);
-        console.warn(err);
+        console.log(`WARNING: changefeed -- ${err}`, query);
         return;
       } else {
         throw err;

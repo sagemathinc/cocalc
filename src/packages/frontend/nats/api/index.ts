@@ -8,13 +8,11 @@ import { Svcm } from "@nats-io/services";
 import { browserSubject } from "@cocalc/nats/names";
 
 export async function initApi() {
-  console.log("init nats browser api - x");
   const { account_id } = webapp_client;
   if (!account_id) {
     throw Error("must be signed in");
   }
   const { sessionId } = webapp_client.nats_client;
-  console.log("create browser microservice");
   const { jc, nc } = await webapp_client.nats_client.getEnv();
   // @ts-ignore
   const svcm = new Svcm(nc);
