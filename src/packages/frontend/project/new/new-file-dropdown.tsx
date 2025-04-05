@@ -54,7 +54,7 @@ export function NewFileDropdown({
 
   title ??= intl.formatMessage({
     id: "project.new.new-file-dropdown.label",
-    defaultMessage: "More file types...",
+    defaultMessage: "File types...",
     description:
       "Label on a button to create one of several additional file types",
   });
