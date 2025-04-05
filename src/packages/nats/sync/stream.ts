@@ -84,12 +84,12 @@ const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.
-// Limits are enforced by all clients *client side* within a few seconds of any
-// client making changes.
-// **Note that max_age is in milliseoncds, NOT nanoseconds like in Nats.**
+// Limits are enforced by all clients *client side* within ENFORCE_LIMITS_THROTTLE_MS
+// of any client making changes.  It is important to significantly throttle
+// this, as it can be expensive to the server.
 // Also, obviously the true limit is the minimum of the full NATS stream limits and
 // these limits.
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 3000;
+const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 15000;
 
 export interface FilteredStreamLimitOptions {
   // How many messages may be in a Stream, oldest messages will be removed
@@ -97,6 +97,7 @@ export interface FilteredStreamLimitOptions {
   max_msgs: number;
   // Maximum age of any message in the stream matching the filter,
   // expressed in milliseconds. 0 for unlimited.
+  // **Note that max_age is in milliseoncds, NOT nanoseconds like in Nats!!!**
   max_age: number;
   // How big the Stream may be, when the combined stream size matching the filter
   // exceeds this old messages are removed. -1 for unlimited.

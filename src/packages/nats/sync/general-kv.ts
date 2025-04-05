@@ -139,7 +139,7 @@ const WATCH_MONITOR_INTERVAL = 15 * 1000;
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
 // own KV store limit naming.
-const ENFORCE_LIMITS_THROTTLE_MS = 3000;
+const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 15000;
 
 export interface KVLimits {
   // How many keys may be in the KV store. Oldest keys will be removed
