@@ -104,6 +104,7 @@ export const Page: React.FC = () => {
   const cookie_warning = useTypedRedux("page", "cookie_warning");
   const new_version = useTypedRedux("page", "new_version");
 
+  const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -137,6 +138,13 @@ export const Page: React.FC = () => {
   }
 
   function render_account_tab(): JSX.Element {
+    if (!accountIsReady) {
+      return (
+        <div>
+          Account Status: <Loading />
+        </div>
+      );
+    }
     const icon = account_tab_icon();
     let label, style;
     if (is_anonymous) {
