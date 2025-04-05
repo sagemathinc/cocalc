@@ -19,7 +19,7 @@ import {
   SIZE_TIMEOUT_MS,
 } from "@cocalc/nats/service/terminal";
 import { project_id } from "@cocalc/project/data";
-import { isEqual } from "lodash";
+import { isEqual, throttle } from "lodash";
 
 const logger = getLogger("server:nats:terminal");
 
@@ -28,6 +28,14 @@ const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = 20000;
+
+// Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
+
+//   Limit number of MB/s in data:
+const MAX_BYTES_PER_SECOND = 1 * 1000000;
+
+//   Limit number of messages per second (not doing this makes it easy to cause trouble to the server)
+const MAX_MSGS_PER_SECOND = 250;
 
 const sessions: { [path: string]: Session } = {};
 
@@ -42,7 +50,9 @@ export async function createTerminalService(path: string) {
       await createTerminal({ ...options, path });
       const session = sessions[path];
       if (session == null) {
-        throw Error(`BUG: failed to create terminal session - ${path} (this should not happen)`);
+        throw Error(
+          `BUG: failed to create terminal session - ${path} (this should not happen)`,
+        );
       }
       return session;
     }
@@ -234,9 +244,31 @@ class Session {
   createStream = async () => {
     this.stream = await dstream<string>({
       name: this.streamName,
-      limits: { max_bytes: HISTORY_LIMIT_BYTES },
+      limits: {
+        max_bytes: HISTORY_LIMIT_BYTES,
+        max_bytes_per_second: MAX_BYTES_PER_SECOND,
+        max_msgs_per_second: MAX_MSGS_PER_SECOND,
+      },
+    });
+    this.stream.on("reject", ({ err }) => {
+      if (err.limit == "max_bytes_per_second") {
+        // instead, send something small
+        this.throttledEllipses();
+      } else if (err.limit == "max_msgs_per_second") {
+        // only sometimes send [...], because channel is already full and it
+        // doesn't help to double the messages!
+        this.throttledEllipses();
+      }
     });
   };
+
+  private throttledEllipses = throttle(
+    () => {
+      this.stream?.publish(" [...(truncated)...] ");
+    },
+    1000,
+    { leading: true, trailing: true },
+  );
 
   init = async () => {
     const { head, tail } = path_split(this.path);

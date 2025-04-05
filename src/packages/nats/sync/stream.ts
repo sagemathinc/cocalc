@@ -64,6 +64,7 @@ class PublishRejectError extends Error {
   code: string;
   mesg: any;
   subject?: string;
+  limit?: string;
 }
 
 const MAX_PARALLEL = 50;
@@ -109,6 +110,15 @@ export interface FilteredStreamLimitOptions {
   max_bytes: number;
   // The largest message that will be accepted by the Stream. -1 for unlimited.
   max_msg_size: number;
+
+  // Attempting to publish a message that causes this to be exceeded
+  // throws an exception instead.  -1 (or 0) for unlimited
+  // For dstream, the messages are explicitly rejected and the client
+  // gets a "reject" event emitted.  E.g., the terminal running in the project
+  // writes [...] when it gets these rejects, indicating that data was
+  // dropped.
+  max_bytes_per_second: number;
+  max_msgs_per_second: number;
 }
 
 export interface StreamOptions {
@@ -134,6 +144,7 @@ export class Stream<T = any> extends EventEmitter {
   public readonly jsname: string;
   private natsStreamOptions?;
   private limits: FilteredStreamLimitOptions;
+  private bytesSent: { [time: number]: number } = {};
   private subjects: string | string[];
   private filter?: string;
   private subject?: string;
@@ -196,6 +207,8 @@ export class Stream<T = any> extends EventEmitter {
       max_age: 0,
       max_bytes: -1,
       max_msg_size: -1,
+      max_bytes_per_second: -1,
+      max_msgs_per_second: -1,
       ...limits,
     };
     return new Proxy(this, {
@@ -324,6 +337,7 @@ export class Stream<T = any> extends EventEmitter {
       err.code = "REJECT";
       err.mesg = mesg;
       err.subject = this.subject;
+      err.limit = "max_msg_size";
       throw err;
     }
     this.enforceLimits();
@@ -333,6 +347,51 @@ export class Stream<T = any> extends EventEmitter {
     // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
     const maxMessageSize = getMaxPayload(this.env.nc) - 1000;
     //const maxMessageSize = 20; // DEV ONLY!!!
+
+    const now = Date.now();
+    if (
+      this.limits.max_bytes_per_second > 0 ||
+      this.limits.max_msgs_per_second > 0
+    ) {
+      const cutoff = now - 1000;
+      let bytes = 0,
+        msgs = 0;
+      for (const t in this.bytesSent) {
+        if (parseInt(t) < cutoff) {
+          delete this.bytesSent[t];
+        } else {
+          bytes += this.bytesSent[t];
+          msgs += 1;
+        }
+      }
+      if (
+        this.limits.max_bytes_per_second > 0 &&
+        bytes + data.length > this.limits.max_bytes_per_second
+      ) {
+        const err = new PublishRejectError(
+          `bytes per second limit of ${this.limits.max_bytes_per_second} exceeded`,
+        );
+        err.code = "REJECT";
+        err.mesg = mesg;
+        err.subject = this.subject;
+        err.limit = "max_bytes_per_second";
+        throw err;
+      }
+      if (
+        this.limits.max_msgs_per_second > 0 &&
+        msgs > this.limits.max_msgs_per_second
+      ) {
+        const err = new PublishRejectError(
+          `messages per second limit of ${this.limits.max_msgs_per_second} exceeded`,
+        );
+        err.code = "REJECT";
+        err.mesg = mesg;
+        err.subject = this.subject;
+        err.limit = "max_msgs_per_second";
+        throw err;
+      }
+      this.bytesSent[now] = data.length;
+    }
 
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
