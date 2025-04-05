@@ -25,6 +25,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
   const status = useTypedRedux("page", "connection_status");
   const hub = useTypedRedux("account", "hub");
   const page_actions = useActions("page");
+  const nats = useTypedRedux("page", "nats");
 
   function close() {
     page_actions.show_connection(false);
@@ -37,10 +38,17 @@ export const ConnectionInfo: React.FC = React.memo(() => {
       onCancel={close}
       onOk={close}
       title={
-        <>
+        <div
+          style={{ display: "flex", alignItems: "center", marginRight: "30px" }}
+        >
           <Icon name="wifi" style={{ marginRight: "1em" }} />{" "}
           {intl.formatMessage(labels.connection)}
-        </>
+          <div style={{ flex: 1 }} />
+          <Button onClick={webapp_client.hub_client.fix_connection}>
+            <Icon name="repeat" spin={status === "connecting"} />{" "}
+            {intl.formatMessage(labels.reconnect)}
+          </Button>
+        </div>
       }
     >
       <div>
@@ -71,10 +79,25 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         ) : undefined}
         <Row>
           <Col sm={3}>
+            <h4>NATS.io client</h4>
+          </Col>
+          {nats != null && (
+            <Col sm={8}>
+              <pre>
+                {JSON.stringify(nats.toJS(), undefined, 2)
+                  .replace(/{|}|,|\"/g, "")
+                  .trim()
+                  .replace("  data:", "data:")}
+              </pre>
+            </Col>
+          )}
+        </Row>
+        <Row>
+          <Col sm={3}>
             <h4>
               <FormattedMessage
                 id="connection-info.hub_server"
-                defaultMessage="Hub server"
+                defaultMessage="Hub"
                 description={"Ping how long a server takes to respond"}
               />
             </h4>
@@ -82,16 +105,12 @@ export const ConnectionInfo: React.FC = React.memo(() => {
           <Col sm={6}>
             <pre>{hub != null ? hub : "Not signed in"}</pre>
           </Col>
-          <Col sm={2}>
-            <Button onClick={webapp_client.hub_client.fix_connection}>
-              <Icon name="repeat" spin={status === "connecting"} />{" "}
-              {intl.formatMessage(labels.reconnect)}
-            </Button>
-          </Col>
         </Row>
         <Row>
           <Col sm={3}>
-            <h4>{intl.formatMessage(labels.message_plural, { num: 10 })}</h4>
+            <h4>
+              Hub {intl.formatMessage(labels.message_plural, { num: 10 })}
+            </h4>
           </Col>
           <Col sm={6}>
             <MessageInfo />

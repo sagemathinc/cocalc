@@ -176,7 +176,7 @@ export const Cursor: React.FC<CursorProps> = React.memo(
       </span>
     );
   },
-  (prev, next) => !is_different(prev, next, ["name", "color", "paddingText"])
+  (prev, next) => !is_different(prev, next, ["name", "color", "paddingText"]),
 );
 
 interface PositionedCursorProps {
@@ -206,8 +206,10 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
       return () => {
         if (elt.current != null) {
           if (root.current != null) {
-            root.current.unmount();
-            root.current = null;
+            setTimeout(() => {
+              root.current.unmount();
+              root.current = null;
+            });
           }
           elt.current.remove();
           elt.current = null;
@@ -260,7 +262,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
             top={IS_FIREFOX ? "0px" : IS_SAFARI ? "-1ex" : "-1.2em"}
             time={time}
             showNameRef={showNameRef}
-          />
+          />,
         );
       }
     }
@@ -269,7 +271,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
     return <span />;
   },
   (prev, next) =>
-    !is_different(prev, next, ["line", "ch", "name", "color", "time"])
+    !is_different(prev, next, ["line", "ch", "name", "color", "time"]),
 );
 
 interface StaticPositionedCursorProps {
@@ -310,7 +312,7 @@ const StaticPositionedCursor: React.FC<StaticPositionedCursorProps> =
       prev.line === next.line &&
       prev.ch === next.ch &&
       prev.name === next.name &&
-      prev.color === next.color
+      prev.color === next.color,
   );
 
 export type CursorsType = Map<string, any>;
@@ -351,7 +353,7 @@ export const Cursors: React.FC<CursorsProps> = React.memo(
                 line={pos.get("y", 0)}
                 ch={pos.get("x", 0)}
                 codemirror={codemirror}
-              />
+              />,
             );
           }
         });
@@ -361,12 +363,12 @@ export const Cursors: React.FC<CursorsProps> = React.memo(
       <div style={{ position: "relative", height: 0, zIndex: 5 }}>{v}</div>
     );
   },
-  (prev, next) => !is_different(prev, next, ["cursors"])
+  (prev, next) => !is_different(prev, next, ["cursors"]),
 );
 
 export function getProfile(
   account_id,
-  user_map
+  user_map,
 ): { color: string; name: string } {
   if (user_map == null) return UNKNOWN_USER_PROFILE;
   const user = user_map.get(account_id);
@@ -374,7 +376,7 @@ export function getProfile(
   const color = user.getIn(["profile", "color"], "rgb(170,170,170)");
   const name = trunc_middle(
     user.get("first_name", "") + " " + user.get("last_name", ""),
-    60
+    60,
   );
   return { color, name };
 }

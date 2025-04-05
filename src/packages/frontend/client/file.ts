@@ -18,7 +18,7 @@ export class FileClient {
   // Currently only used for testing and development in the console.
   public async syncdoc_history(
     string_id: string,
-    patches?: boolean
+    patches?: boolean,
   ): Promise<any> {
     return (
       await this.async_call({
@@ -33,15 +33,11 @@ export class FileClient {
 
   // Returns true if the given file in the given project is currently
   // marked as deleted.
-  public is_deleted(filename: string, project_id: string): boolean {
+  public is_deleted(path: string, project_id: string): boolean {
     return !!redux
       .getProjectStore(project_id)
-      ?.get_listings()
-      ?.isDeleted(filename);
-  }
-
-  public undelete(filename: string, project_id: string): void {
-    redux.getProjectStore(project_id)?.get_listings()?.undelete(filename);
+      ?.get("recentlyDeletedPaths")
+      ?.get(path);
   }
 
   public set_deleted(_filename, _project_id): void {
@@ -67,7 +63,7 @@ export class FileClient {
   }
 
   public async remove_blob_ttls(
-    uuids: string[] // list of sha1 hashes of blobs stored in the blobstore
+    uuids: string[], // list of sha1 hashes of blobs stored in the blobstore
   ) {
     if (uuids.length === 0) return;
     await this.async_call({

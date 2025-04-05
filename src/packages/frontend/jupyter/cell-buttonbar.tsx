@@ -107,7 +107,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarRunStop() {
-      if (id == null || actions == null || actions.is_closed()) {
+      if (id == null || actions == null || actions.is_closed() || is_readonly) {
         return;
       }
 
@@ -155,7 +155,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarComputeServer() {
-      if (!is_current || !computeServerId) return;
+      if (!is_current || !computeServerId || is_readonly) return;
       return <ComputeServerPrompt id={computeServerId} />;
     }
 
@@ -168,13 +168,14 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             last={cell.get("last")}
             state={cell.get("state")}
             isLive={!is_readonly && actions != null}
+            kernel={cell.get("kernel")}
           />
         </div>
       );
     }
 
     function renderCodeBarLLMButtons() {
-      if (!llmTools || !haveLLMCellTools) return;
+      if (!llmTools || !haveLLMCellTools || is_readonly) return;
       return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
     }
 
@@ -228,12 +229,14 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
         {renderCodeBarFormatButton()}
-        <CodeBarDropdownMenu
-          actions={actions}
-          frameActions={frameActions}
-          id={id}
-          cell={cell}
-        />
+        {!is_readonly && (
+          <CodeBarDropdownMenu
+            actions={actions}
+            frameActions={frameActions}
+            id={id}
+            cell={cell}
+          />
+        )}
         <CellIndexNumber index={index} />
       </div>
     );

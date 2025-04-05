@@ -60,3 +60,33 @@ export async function isCollaboratorMulti({
   }
   return true;
 }
+
+// return which projects account_id is a collab on
+export async function subsetCollaboratorMulti({
+  account_id,
+  project_ids,
+}: {
+  account_id: string;
+  project_ids: string[];
+}): Promise<string[]> {
+  if (!isValid(account_id)) {
+    throw Error("invalid account_id");
+  }
+  for (const project_id of project_ids) {
+    if (!isValid(project_id)) {
+      throw Error("all project_id's must be valid uuids");
+    }
+  }
+  const pool = getPool("long");
+  const { rows } = await pool.query(
+    `SELECT project_id, users#>'{${account_id},group}' AS group FROM projects WHERE project_id=ANY($1)`,
+    [project_ids],
+  );
+  const collab: string[] = [];
+  for (const { group, project_id } of rows) {
+    if (group == "owner" || group == "collaborator") {
+      collab.push(project_id);
+    }
+  }
+  return collab;
+}

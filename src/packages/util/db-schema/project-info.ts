@@ -19,7 +19,7 @@ Table({
     info: {
       // change this according to all the usual schema rules
       type: "map",
-      pg_type: "JSONB[]",
+      pg_type: "JSONB",
       desc: "Info about the project",
     },
   },

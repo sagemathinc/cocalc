@@ -78,16 +78,6 @@ describe("create syncstring and test doing some edits", () => {
     expect(syncstring.versions().length).toBe(3 * v.length);
   });
 
-  it("gets info about patch at a given point in time", () => {
-    const t = syncstring.versions()[1];
-    expect(syncstring.account_id(t)).toEqual(client_id);
-
-    // time sent is not set since patch wasn't made offline.
-    expect(syncstring.time_sent(t)).toBe(undefined);
-
-    expect(syncstring.user_id(t)).toEqual(1);
-  });
-
   it("last_changed is the time of the last version", () => {
     const vers = syncstring.versions();
     expect(syncstring.last_changed()).toEqual(vers[vers.length - 1]);

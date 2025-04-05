@@ -7,7 +7,7 @@ import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isGoogleModel } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
@@ -19,7 +19,7 @@ interface GoogleGenAIOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be ollama-[model]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
 }
@@ -85,9 +85,8 @@ export async function evaluateGoogleGenAILC(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -103,8 +102,7 @@ export async function evaluateGoogleGenAILC(
     opts.stream?.(content);
   }
 
-  // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // we use that GPT3 tokenizer to get an approximate number of tokens
   const prompt_tokens = numTokens(input) + historyTokens;

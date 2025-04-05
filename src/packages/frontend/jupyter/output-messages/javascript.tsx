@@ -43,12 +43,17 @@ export const Javascript: React.FC<JavascriptProps> = (
     }
     let block: string;
     let errors: string = "";
-    for (block of blocks) {
-      errors += javascript_eval(block, element);
-      if (errors.length > 0) {
-        set_errors(errors);
+    const doEval = () => {
+      for (block of blocks) {
+        errors += javascript_eval(block, element);
+        if (errors.length > 0) {
+          set_errors(errors);
+        }
       }
-    }
+    };
+    // javascript maybe be run on something that gets rendered in the DOM, so give that
+    // a chance to happen.  Bokeh randomly breaks without this.  **TODO: Obviously, this sucks.**
+    setTimeout(doEval, 300);
   }, [value]);
 
   if (errors) {

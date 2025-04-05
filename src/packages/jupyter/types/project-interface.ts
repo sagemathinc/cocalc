@@ -12,6 +12,8 @@ so that Typescript can meaningfully type check everything.
 */
 
 import type { Channels } from "@nteract/messaging";
+import type { KernelInfo } from "@cocalc/util/jupyter/types";
+export type { KernelInfo };
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -32,12 +34,14 @@ export interface EventEmitterInterface {
 }
 
 export interface BlobStoreInterface {
-  save(data, type, ipynb?): string;
-  readFile(path: string, type: string): Promise<string>;
-  get(sha1: string): undefined | Buffer;
-  get_ipynb(sha1: string): any;
-  keys(): Promise<string[]>;
-  delete_all_blobs(): void;
+  // get base64 encoded binary data out of the blob store.
+  getBase64(sha1: string): string | undefined;
+  // utf8 string
+  getString(sha1: string): string | undefined;
+  // save a string encoded in base64 as binary data in the blob store
+  saveBase64: (base64: string) => string | undefined;
+  // read file from disk and store in blob store.  returns sha1 hash of contents of file.
+  readFile(path: string): Promise<string>;
 }
 
 export interface MessageHeader {
@@ -79,38 +83,6 @@ export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   go(): Promise<object[]>;
 }
 
-interface CodeMirrorMode {
-  name: string;
-  version: number;
-}
-
-interface HelpLink {
-  text: string;
-  url: string;
-}
-
-interface LanguageInfo {
-  name: string;
-  version: string;
-  mimetype: string;
-  codemirror_mode: CodeMirrorMode;
-  pygments_lexer: string;
-  nbconvert_exporter: string;
-  file_extension: string;
-}
-
-export interface KernelInfo {
-  nodejs_version: string;
-  start_time: number;
-  implementation_version: string;
-  banner: string;
-  protocol_version: string;
-  implementation: string;
-  status: string;
-  language_info: LanguageInfo;
-  help_links: HelpLink[];
-}
-
 interface JupyterKernelInterfaceSpawnOpts {
   env: { [key: string]: string }; // environment variables
 }
@@ -140,7 +112,6 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
   load_attachment(path: string): Promise<string>;
-  process_attachment(base64, mime): string | undefined;
   send_comm_message_to_kernel(msg: {
     msg_id: string;
     comm_id: string;

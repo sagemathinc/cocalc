@@ -1,8 +1,9 @@
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
-import debug from "debug";
 import { DNS_COST_PER_HOUR } from "@cocalc/util/compute/dns";
 
-const log = debug("cocalc:util:compute-cost");
+// import debug from "debug";
+//const log = debug("cocalc:util:compute-cost");
+const log = (..._args) => {};
 
 // copy-pasted from my @cocalc/gcloud-pricing-calculator package to help with sanity in code below.
 

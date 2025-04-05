@@ -72,6 +72,9 @@ export interface IFileContext {
   project_id?: string;
   path?: string;
 
+  // The webapp_client -- get this in the app, but not when rendered from nextjs, obviously.
+  client?;
+
   is_visible?: boolean;
 }
 

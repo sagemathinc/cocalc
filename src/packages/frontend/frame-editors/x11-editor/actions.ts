@@ -54,11 +54,16 @@ export class Actions extends BaseActions<X11EditorState> {
   client?: XpraClient;
 
   async _init2(): Promise<void> {
-    await this.check_capabilities();
     this.launch = reuseInFlight(this.launch.bind(this));
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    // IMPORTANT: call check_capabilities *after* init_client!!!!!
+    // This was buggy, where the terminal would come up and
+    // try to use this.client immediately, but it wasn't defined
+    // since _init2 was stuck awaiting this.check_capabilities.
+    // The init_client function is just setting
+    await this.check_capabilities();
     try {
       await this.init_channel();
     } catch (err) {

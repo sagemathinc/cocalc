@@ -500,7 +500,7 @@ export default function NewFilePage(props: Props) {
             <FormattedMessage
               id="new.file-type-page.header.description"
               defaultMessage={
-                "What would you like to create? Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+                "Click a button to create a new file.  Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
               }
               values={{
                 A: (ch) => (

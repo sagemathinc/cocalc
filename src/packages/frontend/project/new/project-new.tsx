@@ -19,7 +19,7 @@ export function ProjectNew({ project_id }: Props): JSX.Element {
   const offset = isWide ? 1 : 0;
 
   return (
-    <Row style={{ ...ROOT_STYLE }}>
+    <Row style={{ ...ROOT_STYLE, maxWidth: null, margin: null }}>
       <Col md={12} mdOffset={0} lg={12 - 2 * offset} lgOffset={offset}>
         <NewFilePage project_id={project_id} />
       </Col>

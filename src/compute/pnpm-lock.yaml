@@ -6,12 +6,6 @@ settings:
 
 importers:
 
-  api-client: {}
-
-  backend: {}
-
-  comm: {}
-
   compute:
     dependencies:
       '@cocalc/api-client':
@@ -26,6 +20,12 @@ importers:
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
+      '@cocalc/nats':
+        specifier: workspace:*
+        version: link:../nats
+      '@cocalc/project':
+        specifier: workspace:*
+        version: link:../project
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -69,18 +69,6 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
-
-  jupyter: {}
-
-  sync: {}
-
-  sync-client: {}
-
-  sync-fs: {}
-
-  terminal: {}
-
-  util: {}
 
 packages:
 

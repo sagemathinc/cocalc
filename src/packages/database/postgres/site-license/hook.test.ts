@@ -4,6 +4,9 @@
  */
 
 /**
+
+pnpm test hook.test.ts 
+
  * This tests the core of ./hook.ts
  * It's not using it directly, though, because of the complex dependency of the database.
  * The main purpose of this test is to simulate what happens, if first a partial set of licenses,

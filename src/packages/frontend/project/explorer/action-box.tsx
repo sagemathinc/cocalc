@@ -115,9 +115,11 @@ export function ActionBox(props: ReactProps) {
   }
 
   function delete_click(): void {
-    props.actions.delete_files({
-      paths: props.checked_files.toArray(),
-    });
+    const paths = props.checked_files.toArray();
+    for (const path of paths) {
+      props.actions.close_tab(path);
+    }
+    props.actions.delete_files({ paths });
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
     props.actions.fetch_directory_listing();

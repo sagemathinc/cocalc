@@ -10,7 +10,6 @@ React component that describes the output of a cell
 import { Alert } from "antd";
 import type { Map as ImmutableMap } from "immutable";
 import React from "react";
-
 import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
@@ -85,7 +84,13 @@ export function CellOutput({
         "cocalc-output-div" /* used by stable unsafe html for clipping */
       }
     >
-      {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
+      {!hidePrompt && (
+        <ControlColumn
+          cell={cell}
+          actions={actions}
+          id={id}
+        />
+      )}
       <OutputColumn
         cell={cell}
         actions={actions}
@@ -207,7 +212,11 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled")}>
+      <OutputToggle
+        actions={actions}
+        id={id}
+        scrolled={cell.get("scrolled")}
+      >
         {prompt}
       </OutputToggle>
     );

@@ -8,7 +8,8 @@ process.env.JUPYTER_BLOBS_DB_FILE = "memory";
 
 import { kernel as jupyter_kernel } from "../jupyter";
 
-import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
+//import type { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
+type JupyterKernelInterface = any;
 export type JupyterKernel = JupyterKernelInterface;
 
 import json from "json-stable-stringify";

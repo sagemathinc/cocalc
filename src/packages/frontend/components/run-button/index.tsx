@@ -237,7 +237,7 @@ export default function RunButton({
       let resp;
       try {
         if (!kernel) {
-          setOutput({ error: "Select a kernel" });
+          setOutput({ error: "Select a Kernel" });
           return;
         }
         resp = await api("execute", {

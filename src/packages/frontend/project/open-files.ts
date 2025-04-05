@@ -29,7 +29,6 @@ The point of this code here is ensure that these objects stay in sync properly.
 */
 
 import { List, Map } from "immutable";
-
 import { close } from "@cocalc/util/misc";
 import { ProjectActions } from "../project_actions";
 import { ProjectStore } from "../project_store";

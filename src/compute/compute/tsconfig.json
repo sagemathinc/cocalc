@@ -9,6 +9,7 @@
     { "path": "../api-client" },
     { "path": "../backend" },
     { "path": "../jupyter" },
+    { "path": "../project" },
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../sync-fs" },

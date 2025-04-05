@@ -3,6 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+
+DEVELOPMENT:
+
+pnpm test sync.0.test.ts
+
+*/
+
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
 import { a_txt } from "./data";
@@ -67,8 +75,8 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     expect(syncstring.version_without([new Date()]).to_str()).toBe("");
   });
 
-  it("revert to version now (does nothing - no error)", () => {
-    syncstring.revert(new Date());
+  it("revert to version now (error since no version with this time)", () => {
+    expect(() => syncstring.revert(new Date())).toThrow("unknown time");
   });
 
   it("undo/redo -- nothing to undo yet...", () => {
@@ -82,10 +90,6 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("account_id of change at given point in time gives error", () => {
     expect(() => syncstring.account_id(new Date())).toThrow("no patch at");
-  });
-
-  it("time sent of change at given point in time gives error", () => {
-    expect(() => syncstring.time_sent(new Date())).toThrow("no patch at");
   });
 
   it("user_id of change at given point in time gives error", () => {
@@ -125,11 +129,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("verifies it has the full history already", () => {
-    expect(syncstring.has_full_history()).toBe(true);
+    expect(syncstring.hasFullHistory()).toBe(true);
   });
 
-  it("loads full history (which does basically nothing)", async () => {
-    await syncstring.load_full_history();
+  it("loads more history (which does basically nothing)", async () => {
+    await syncstring.loadMoreHistory();
   });
 
   it("do a save (no-op, since haven't done anything yet)", async () => {

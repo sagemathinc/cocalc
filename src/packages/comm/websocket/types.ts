@@ -11,7 +11,7 @@ between the frontend app and the project.
 import type {
   NBGraderAPIOptions,
   RunNotebookOptions,
-} from "@cocalc/jupyter/nbgrader/types";
+} from "@cocalc/util/jupyter/nbgrader-types";
 import type { Channel } from "@cocalc/sync/client/types";
 import type { Options } from "@cocalc/util/code-formatter";
 export type { Channel };

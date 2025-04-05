@@ -21,6 +21,8 @@ import {
 import { apiCall } from "@cocalc/api-client";
 import sendFiles from "./send-files";
 import getFiles from "./get-files";
+// ensure that the nats client is initialized so that syncfs can connect to nats properly.
+import "@cocalc/project/nats";
 
 const logger = getLogger("compute:filesystem");
 

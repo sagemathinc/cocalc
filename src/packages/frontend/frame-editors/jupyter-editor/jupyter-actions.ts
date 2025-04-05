@@ -10,10 +10,10 @@ import {
 } from "@cocalc/jupyter/redux/store";
 import { syncdb2 as new_syncdb } from "../generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { meta_file } from "@cocalc/util/misc";
 import { alert_message } from "@cocalc/frontend/alerts";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 
 export function redux_name(name: string): string {
   return `jupyter-${name}`;
@@ -32,12 +32,12 @@ export function create_jupyter_actions(
     JupyterStore,
     initial_jupyter_store_state,
   );
-  const syncdb_path = meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
+  const syncdb_path = syncdbPath(path);
 
   // Ensure meta_file isn't marked as deleted, which would block
   // opening the syncdb, which is clearly not the user's intention
   // at this point (since we're opening the ipynb file).
-  redux.getProjectStore(project_id)?.get_listings()?.undelete(syncdb_path);
+  redux.getProjectActions(project_id)?.setNotDeleted(syncdb_path);
 
   const syncdb = new_syncdb({
     ...SYNCDB_OPTIONS,

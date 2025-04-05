@@ -3,48 +3,59 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { AsyncCall } from "./client";
 import { User } from "../frame-editors/generic/client";
 import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
-import api from "./api";
 import TTL from "@isaacs/ttlcache";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import * as message from "@cocalc/util/message";
+import type { WebappClient } from "./client";
 
 const nameCache = new TTL({ ttl: 60 * 1000 });
 
 export class UsersClient {
-  private async_call: AsyncCall;
+  private client: WebappClient;
 
-  constructor(_call: Function, async_call: AsyncCall) {
-    this.async_call = async_call;
+  constructor(client) {
+    this.client = client;
   }
 
+  /*
+  There are two possible item types in the query list: email addresses
+  and strings that are not email addresses. An email query item will return
+  account id, first name, last name, and email address for the unique
+  account with that email address, if there is one. A string query item
+  will return account id, first name, and last name for all matching
+  accounts.
+
+  We do not reveal email addresses of users queried by name to non admins.
+
+  String query matches first and last names that start with the given string.
+  If a string query item consists of two strings separated by space,
+  the search will return accounts in which the first name begins with one
+  of the two strings and the last name begins with the other.
+  String and email queries may be mixed in the list for a single
+  user_search call. Searches are case-insensitive.
+
+  Note: there is a hard limit of 50 returned items in the results, except for
+  admins that can search for more.
+  */
   user_search = reuseInFlight(
-    async (opts: {
+    async ({
+      query,
+      limit = 20,
+      admin,
+      only_email,
+    }: {
       query: string;
       limit?: number;
-      active?: string; // if given, would restrict to users active this recently
       admin?: boolean; // admins can do an admin version of the query, which also does substring searches on email address (not just name)
       only_email?: boolean; // search only via email address
     }): Promise<User[]> => {
-      if (opts.limit == null) {
-        opts.limit = 20;
-      }
-      if (opts.active == null) {
-        opts.active = "";
-      }
-
-      const { results } = await this.async_call({
-        message: message.user_search({
-          query: opts.query,
-          limit: opts.limit,
-          admin: opts.admin,
-          active: opts.active,
-          only_email: opts.only_email,
-        }),
+      return await this.client.nats_client.hub.system.userSearch({
+        query,
+        limit,
+        admin,
+        only_email,
       });
-      return results;
     },
   );
 
@@ -72,7 +83,11 @@ export class UsersClient {
   getNames = reuseInFlight(async (account_ids: string[]) => {
     const x: {
       [account_id: string]:
-        | { first_name: string; last_name: string }
+        | {
+            first_name: string;
+            last_name: string;
+            profile?: { color?: string; image?: string };
+          }
         | undefined;
     } = {};
     const v: string[] = [];
@@ -84,7 +99,7 @@ export class UsersClient {
       }
     }
     if (v.length > 0) {
-      const { names } = await api("/accounts/get-names", { account_ids: v });
+      const names = await this.client.nats_client.hub.system.getNames(v);
       for (const account_id of v) {
         // iterate over v to record accounts that don't exist too
         x[account_id] = names[account_id];

@@ -15,6 +15,8 @@ import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
 import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
+import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
+export { type User };
 
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
@@ -133,7 +135,7 @@ export async function formatter(
   const resp = await api.formatter(path, config);
 
   if (resp.status === "error") {
-    const loc = resp.error.loc;
+    const loc = resp.error?.loc;
     if (loc && loc.start) {
       throw Error(
         `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
@@ -175,7 +177,7 @@ export function syncstring(opts: SyncstringOpts): any {
 
 import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
 
-import { SyncString } from "@cocalc/sync/editor/string/sync";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -190,7 +192,7 @@ interface SyncstringOpts2 {
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncString(opts1);
+  return webapp_client.sync_client.sync_string(opts1);
 }
 
 export interface SyncDBOpts {
@@ -212,7 +214,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -220,7 +222,7 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   }
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncDB(opts1);
+  return webapp_client.sync_client.sync_db(opts1);
 }
 
 interface QueryOpts {
@@ -252,16 +254,6 @@ export function get_editor_settings(): Map<string, any> {
   return Map(); // not loaded
 }
 
-export interface User {
-  account_id: string;
-  created?: number; // since commit 63e8e9954dc51632cf
-  email_address?: string;
-  first_name?: string;
-  last_active?: number; // since commit 63e8e9954dc51632cf
-  last_name?: string;
-  banned?: boolean;
-}
-
 export async function user_search(opts: {
   query: string;
   limit?: number;
@@ -279,9 +271,4 @@ import { API } from "@cocalc/frontend/project/websocket/api";
 
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
-}
-
-// Returns the raw URL to read the file from the project.
-export function raw_url_of_file(project_id: string, path: string): string {
-  return webapp_client.project_client.read_file({ project_id, path });
 }

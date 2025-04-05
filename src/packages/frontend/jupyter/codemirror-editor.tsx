@@ -812,7 +812,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           }}
           onClick={focus_cm}
         >
-          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 10px" }}>
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 20px" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
           <a

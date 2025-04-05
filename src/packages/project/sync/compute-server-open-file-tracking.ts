@@ -7,9 +7,10 @@ TODO: terminals aren't handled at all here, since they don't have a syncdoc.
 import type { SyncDocs } from "./sync-doc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { once } from "@cocalc/util/async-utils";
-import { meta_file, auxFileToOriginal } from "@cocalc/util/misc";
+import { auxFileToOriginal } from "@cocalc/util/misc";
 import { terminalTracker } from "@cocalc/terminal";
 import { getLogger } from "@cocalc/backend/logger";
+import { syncdbPath, JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 const log = getLogger("project:sync:compute-file-tracker").debug;
 
@@ -112,7 +113,7 @@ export default async function computeServerOpenFileTracking(
 }
 
 function syncDocPathToComputePath(path: string): string {
-  if (path.endsWith(".sage-jupyter2")) {
+  if (path.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS)) {
     return auxFileToOriginal(path);
   }
   return path;
@@ -120,7 +121,7 @@ function syncDocPathToComputePath(path: string): string {
 
 function computePathToSyncDocPath(path: string): string {
   if (path.endsWith(".ipynb")) {
-    return meta_file(path, "jupyter2");
+    return syncdbPath(path);
   }
   return path;
 }
