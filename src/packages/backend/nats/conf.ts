@@ -115,7 +115,11 @@ accounts {
       max_consumers: -1
     }
   }
-  SYS {}
+  SYS {
+   users: [
+       { user:"sys", password:"${PASSWORD}" }
+    ],
+  }
 }
 system_account: SYS
 
@@ -128,7 +132,7 @@ authorization {
   auth_callout {
     issuer: ${ISSUER_NKEY}
     xkey: ${ISSUER_XKEY}
-    users: [ ${natsUser} ]
+    users: [ ${natsUser}, sys ]
     account: COCALC
   }
 }

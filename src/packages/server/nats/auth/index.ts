@@ -99,6 +99,22 @@ import { getUserPermissions } from "./permissions";
 import { validate } from "./validate";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 
+
+// we put a per-connection limit on subscription to hopefully avoid
+// some potential DOS situations.  For reference each open file
+// takes up to 15 subs (3 for a txt file, ~15 for a jupyter notebook).
+// WARNING: I do not think this does anything at all:
+const MAX_SUBSCRIPTIONS = 1500;
+//const MAX_SUBSCRIPTIONS = 50;
+
+// some high but nontrivial limit on MB per second for each client
+// WARNING: I do not think this does anything at all:
+const MAX_BYTES_SECOND = 100 * 1000000;
+//const MAX_BYTES_SECOND = 1000000;
+
+// ADMIN -- use `pnpm nats-cli-sys` then `nats server report connections`
+// to see the number of connections by each user.
+
 const logger = getLogger("server:nats:auth-callout");
 
 let api: any | null = null;
@@ -179,6 +195,11 @@ async function handleRequest(mesg, xkp) {
         pub,
         sub,
         locale: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        // I don't think the data and subs limits actually do anything at all.
+        // bytes per second
+        data: MAX_BYTES_SECOND,
+        // total number of simultaneous subscriptions
+        subs: MAX_SUBSCRIPTIONS,
       },
       opts,
     );

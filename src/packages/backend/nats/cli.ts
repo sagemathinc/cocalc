@@ -10,14 +10,14 @@ import { join } from "path";
 import { spawnSync } from "node:child_process";
 import { natsServerUrl } from "./conf";
 
-function params() {
+function params({ user }) {
   return {
     command: "bash",
     args: ["--norc", "--noprofile"],
     env: {
       NATS_URL: natsServerUrl,
       NATS_PASSWORD: natsPassword,
-      NATS_USER: natsUser,
+      NATS_USER: user,
       HOME: process.env.HOME,
       PS1: "\\w [nats-cli]$ ",
     },
@@ -26,8 +26,10 @@ function params() {
 
 // echo; echo '# Use CoCalc config of NATS (nats and nsc) via this subshell:'; echo; NATS_URL=nats://${COCALC_NATS_SERVER:=localhost}:${COCALC_NATS_PORT:=4222} XDG_DATA_HOME=${COCALC_ROOT:=$INIT_CWD}/data XDG_CONFIG_HOME=${COCALC_ROOT:=$INIT_CWD}/data PATH=${COCALC_ROOT:=$INIT_CWD}/data/nats/bin:$PATH bash
 
-export function main() {
-  let { command, args, env } = params();
+// the supported users here are natsUser and 'sys'.
+
+export function main({ user = natsUser }: { user?: string } = {}) {
+  let { command, args, env } = params({ user });
   const PATH0 = join(data, "nats", "bin");
   console.log("# Use CoCalc config of NATS (nats and nsc) via this subshell:");
   console.log(
