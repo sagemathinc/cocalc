@@ -3,6 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+
+
+DEVELOPMENT:
+
+pnpm test sync.1.test.ts
+
+*/
+
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
 import { once } from "@cocalc/util/async-utils";
@@ -30,6 +39,7 @@ describe("create syncstring and test doing some edits", () => {
       expect(syncstring.to_str()).toBe(v[i]);
       expect(syncstring.count()).toBe(v[i].length);
       expect(syncstring.versions().length).toBe(i);
+      await syncstring.commit();
       await syncstring.save();
       expect(syncstring.versions().length).toBe(i + 1);
     }

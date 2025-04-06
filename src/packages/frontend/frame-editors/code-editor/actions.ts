@@ -2237,7 +2237,7 @@ export class Actions<
       syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
-      lastChanged: this._syncstring.last_changed().valueOf(),
+      lastChanged: this._syncstring.last_changed(),
     };
 
     this.set_status("Running code formatter...");

@@ -152,10 +152,7 @@ export class SyncTableStream extends EventEmitter {
       return true;
     }
     const key = this.primaryString(obj);
-    this.data[key] = { ...obj, time: new Date(obj.time) };
-    if (this.data[key].prev != null) {
-      this.data[key].prev = new Date(this.data[key].prev);
-    }
+    this.data[key] = { ...obj };
     if (changeEvent) {
       this.emit("change", [key]);
     }

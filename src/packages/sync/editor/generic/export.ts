@@ -21,12 +21,12 @@ export interface HistoryExportOptions {
 export function export_history(
   account_ids: string[],
   patch_list: SortedPatchList,
-  options: HistoryExportOptions
+  options: HistoryExportOptions,
 ): HistoryEntry[] {
   const patches: Patch[] = patch_list.export();
   const entries: HistoryEntry[] = [];
   for (const x of patches) {
-    const time_utc = x.time;
+    const time_utc = new Date(x.time);
     let account_id = account_ids[x.user_id];
     if (account_id == null) {
       account_id = "unknown"; // should never happen...

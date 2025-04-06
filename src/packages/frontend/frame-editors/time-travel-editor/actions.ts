@@ -177,9 +177,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     let versions;
     try {
       // syncdoc_changed -- can get called at any time, so have to be extra careful
-      versions = List<number>(
-        this.syncdoc.all_versions().map((x) => x.valueOf()),
-      );
+      versions = List<number>(this.syncdoc.versions());
     } catch (err) {
       this.setState({ versions: List([]) });
       return;
@@ -192,7 +190,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   versionNumber = (version: number): number | undefined => {
-    return this.syncdoc?.historyVersionNumber(new Date(version));
+    return this.syncdoc?.historyVersionNumber(version);
   };
 
   // Get the given version of the document.
@@ -206,7 +204,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       return;
     }
     try {
-      return this.syncdoc.version(new Date(version));
+      return this.syncdoc.version(version);
     } catch (_) {
       console.log(
         "TimeTravel: unknown or not loaded version",
@@ -226,9 +224,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       if (version == null) {
         continue;
       }
-      const date = new Date(version);
       try {
-        const account_id = this.syncdoc.account_id(date);
+        const account_id = this.syncdoc.account_id(version);
         if (account_id) {
           account_ids.add(account_id);
         }
@@ -245,7 +242,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       return;
     }
     try {
-      return this.syncdoc.user_id(new Date(version));
+      return this.syncdoc.user_id(version);
     } catch {
       return;
     }
@@ -282,7 +279,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (node.get("git_mode")) {
       syncdoc.from_str(doc.to_str());
     } else {
-      syncdoc.revert(new Date(version));
+      syncdoc.revert(version);
     }
     await syncdoc.commit(true);
 

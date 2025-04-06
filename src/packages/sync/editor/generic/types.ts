@@ -18,9 +18,8 @@ import type {
 } from "@cocalc/nats/service";
 
 export interface Patch {
-  time: Date; // timestamp of when patch made
-  patch?: CompressedPatch /* compressed format patch (stored as a
-                   JSON *string* in database, but array/object here) */;
+  time: number; // timestamp of when patch made -- ms since the epoch
+  patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
   size: number; // size of the patch (by defn length of string representation)

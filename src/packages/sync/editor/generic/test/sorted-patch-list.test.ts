@@ -31,7 +31,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("calls next_available_time to get next time cong to 3 mod 10", () => {
-    const d = new Date(1546543588867); // 7 mod 10.
+    const d = 1546543588867; // 7 mod 10.
     const t = patches.next_available_time(d, 3, 10);
     const d1 = t.valueOf();
     expect(d1 % 10).toEqual(3);
@@ -52,11 +52,11 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("gets id of user who made edit at time (error since no edits)", () => {
-    expect(() => patches.user_id(new Date())).toThrow("no patch");
+    expect(() => patches.user_id(Date.now())).toThrow("no patch");
   });
 
   it("gets patch at time (error since no patches)", () => {
-    expect(() => patches.patch(new Date())).toThrow("no patch");
+    expect(() => patches.patch(Date.now())).toThrow("no patch");
   });
 
   it("empty list of versions", () => {
@@ -96,7 +96,7 @@ describe("Test sorted patch list with one patch", () => {
   });
 
   const patch = {
-    time: new Date("2019-01-03T20:33:47.360Z"),
+    time: new Date("2019-01-03T20:33:47.360Z").valueOf(),
     patch: make_patch("", "CoCalc"),
     user_id: 0,
     size: JSON.stringify(make_patch("", "CoCalc")).length,
@@ -157,21 +157,21 @@ describe("Test sorted patch list with several patches", () => {
 
   const v = [
     {
-      time: new Date("2019-01-03T20:33:47.360Z"),
+      time: new Date("2019-01-03T20:33:47.360Z").valueOf(),
       patch: w[0],
       user_id: 0,
-      sent: new Date("2019-01-03T20:33:47.40Z"),
+      sent: new Date("2019-01-03T20:33:47.40Z").valueOf(),
       size: JSON.stringify(w[0]).length,
     },
     {
-      time: new Date("2019-01-03T20:33:50Z"),
+      time: new Date("2019-01-03T20:33:50Z").valueOf(),
       patch: w[1],
       user_id: 1,
-      sent: new Date("2019-01-03T20:34"),
+      sent: new Date("2019-01-03T20:34").valueOf(),
       size: JSON.stringify(w[1]).length,
     },
     {
-      time: new Date("2019-01-03T20:34:50Z"),
+      time: new Date("2019-01-03T20:34:50Z").valueOf(),
       patch: w[2],
       user_id: 0,
       size: JSON.stringify(w[2]).length,
@@ -250,24 +250,24 @@ describe("Test inserting missing patches (thus changing history)", () => {
 
   const v = [
     {
-      time: new Date("2019-01-03T20:33:47.360Z"),
+      time: new Date("2019-01-03T20:33:47.360Z").valueOf(),
       patch: w[0],
       user_id: 0,
-      sent: new Date("2019-01-03T20:33:47.40Z"),
+      sent: new Date("2019-01-03T20:33:47.40Z").valueOf(),
       size: JSON.stringify(w[0]).length,
     },
     {
-      time: new Date("2019-01-03T20:33:50Z"),
+      time: new Date("2019-01-03T20:33:50Z").valueOf(),
       patch: w[1],
       user_id: 1,
-      sent: new Date("2019-01-03T20:34"),
+      sent: new Date("2019-01-03T20:34").valueOf(),
       size: JSON.stringify(w[1]).length,
     },
     {
-      time: new Date("2019-01-03T20:34:50Z"),
+      time: new Date("2019-01-03T20:34:50Z").valueOf(),
       patch: w[2],
       user_id: 0,
-      sent: new Date("2019-01-03T20:35"),
+      sent: new Date("2019-01-03T20:35").valueOf(),
       size: JSON.stringify(w[1]).length,
     },
   ];
@@ -318,7 +318,7 @@ describe("Testing adding a snapshot to the patch list", () => {
   const v = [
     // a patch
     {
-      time: new Date("2025-01-01T00:00:00.000Z"),
+      time: new Date("2025-01-01T00:00:00.000Z").valueOf(),
       patch: w[0],
       user_id: 0,
       size: JSON.stringify(w[0]).length,
@@ -327,7 +327,7 @@ describe("Testing adding a snapshot to the patch list", () => {
     },
     // make it a snapshot
     {
-      time: new Date("2025-01-01T00:00:00.000Z"),
+      time: new Date("2025-01-01T00:00:00.000Z").valueOf(),
       is_snapshot: true,
       snapshot: "x",
       user_id: 0,

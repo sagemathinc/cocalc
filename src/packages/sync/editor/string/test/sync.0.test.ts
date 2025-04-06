@@ -72,11 +72,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("get version without (removing nothing though)", () => {
     expect(syncstring.version_without([]).to_str()).toBe("");
-    expect(syncstring.version_without([new Date()]).to_str()).toBe("");
+    expect(syncstring.version_without([Date.now()]).to_str()).toBe("");
   });
 
   it("revert to version now (error since no version with this time)", () => {
-    expect(() => syncstring.revert(new Date())).toThrow("unknown time");
+    expect(() => syncstring.revert(Date.now())).toThrow("unknown time");
   });
 
   it("undo/redo -- nothing to undo yet...", () => {
@@ -89,23 +89,19 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("account_id of change at given point in time gives error", () => {
-    expect(() => syncstring.account_id(new Date())).toThrow("no patch at");
+    expect(() => syncstring.account_id(Date.now())).toThrow("no patch at");
   });
 
   it("user_id of change at given point in time gives error", () => {
-    expect(() => syncstring.user_id(new Date())).toThrow("no patch at");
+    expect(() => syncstring.user_id(Date.now())).toThrow("no patch at");
   });
 
   it("get list of versions (should be empty)", () => {
     expect(syncstring.versions()).toEqual([]);
   });
 
-  it("get all known versions (also empty)", () => {
-    expect(syncstring.all_versions()).toEqual([]);
-  });
-
   it("last changed when time began", () => {
-    expect(syncstring.last_changed()).toEqual(new Date(0));
+    expect(syncstring.last_changed()).toEqual(0);
   });
 
   it("check ready state", async () => {

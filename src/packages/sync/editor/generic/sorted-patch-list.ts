@@ -36,7 +36,7 @@ export class SortedPatchList extends EventEmitter {
   // an immutable value at every key of this.live.
   private live: { [time: number]: Patch } = {};
 
-  private versions_cache: Date[] | undefined;
+  private versions_cache: number[] | undefined;
 
   // should we use size?  most versions have the same size, so might not matter much.
   private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
@@ -95,8 +95,8 @@ export class SortedPatchList extends EventEmitter {
     return this.patches[0]?.version ?? 1;
   };
 
-  versionNumber = (time: Date): undefined | number => {
-    return this.live[time.valueOf()]?.version;
+  versionNumber = (time: number): undefined | number => {
+    return this.live[time]?.version;
   };
 
   /* Choose the next available time in ms that is congruent to
@@ -106,29 +106,22 @@ export class SortedPatchList extends EventEmitter {
      guaranteed to not collide.  Note: even if there is a
      collision, it will automatically fix itself very quickly. */
   next_available_time = (
-    time: Date | number,
+    time: number,
     m: number = 0,
     n: number = 1,
-  ): Date => {
-    let t: number;
-    if (typeof time === "number") {
-      t = time;
-    } else {
-      t = time.valueOf();
-    }
-
+  ): number => {
     if (n <= 0) {
       n = 1;
     }
-    let a = m - (t % n);
+    let a = m - (time % n);
     if (a < 0) {
       a += n;
     }
-    t += a; // now t = m (mod n)
-    while (this.live[t] != null) {
-      t += n;
+    time += a; // now time = m (mod n)
+    while (this.live[time] != null) {
+      time += n;
     }
-    return new Date(t);
+    return time;
   };
 
   // Add patches to the patch list.  This *CAN* be already in the patch
@@ -150,7 +143,7 @@ export class SortedPatchList extends EventEmitter {
       // may shallow mutate it, e.g., filling in the snapshot info, and
       // we want to avoid any surprises/bugs (mainly with unit tests)
       const x = { ...originalPatch };
-      const t: number = x.time.valueOf();
+      const t: number = x.time;
       if (x.is_snapshot) {
         // it's a snapshot
         if (this.live[t] != null) {
@@ -168,10 +161,7 @@ export class SortedPatchList extends EventEmitter {
           // store this for later, in case it is loaded later.
           this.heldSnapshots[t] = x;
         }
-        if (
-          this.oldestSnapshot == null ||
-          this.oldestSnapshot.time.valueOf() > t
-        ) {
+        if (this.oldestSnapshot == null || this.oldestSnapshot.time > t) {
           this.oldestSnapshot = x;
         }
         // never include a snapshot message -- these just change patches,
@@ -266,22 +256,22 @@ export class SortedPatchList extends EventEmitter {
     noCache,
     verbose,
   }: {
-    time?: Date;
-    without_times?: Date[];
+    time?: number;
+    without_times?: number[];
     noCache?: boolean;
     verbose?: boolean;
   } = {}) => {
-    if (time != null && this.live[time.valueOf()] == null) {
+    if (time != null && this.live[time] == null) {
       throw Error(`unknown time: ${time}`);
     }
-    const key = time?.valueOf();
+    const key = time;
     let without;
     if (without_times == null) {
       without = null;
     } else {
-      let w = without_times.map((x) => x.valueOf());
+      let w = without_times;
       if (key != null) {
-        w = w.filter((x) => x <= key!);
+        w = w.filter((x) => x <= key);
       }
       without = new Set<number>(w);
     }
@@ -448,14 +438,14 @@ export class SortedPatchList extends EventEmitter {
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
   patch = (time): Patch => {
-    const p = this.live[time.valueOf()];
+    const p = this.live[time];
     if (p == null) {
       throw Error(`no patch at ${time}`);
     }
     return p;
   };
 
-  versions = (): Date[] => {
+  versions = (): number[] => {
     // Compute and cache result,then return it; result gets cleared when new patches added.
     if (this.versions_cache == null) {
       this.versions_cache = this.patches.map((x) => x.time);
@@ -491,7 +481,7 @@ export class SortedPatchList extends EventEmitter {
     let i: number = 1;
     let x: Patch;
     for (x of this.patches) {
-      const tm: Date = x.time;
+      const tm: Date = new Date(x.time);
       const tm_show: number | string = milliseconds
         ? tm.valueOf()
         : tm.toLocaleString();
@@ -504,7 +494,7 @@ export class SortedPatchList extends EventEmitter {
         JSON.stringify(x.parents),
         trunc_middle(JSON.stringify(x.patch), trunc),
       );
-      const s = this.value({ time: tm, noCache });
+      const s = this.value({ time: x.time, noCache });
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
         JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
@@ -548,7 +538,7 @@ export class SortedPatchList extends EventEmitter {
   time_of_unmade_periodic_snapshot = (
     interval: number,
     max_size: number,
-  ): Date | undefined => {
+  ): number | undefined => {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
@@ -592,7 +582,7 @@ export class SortedPatchList extends EventEmitter {
 
   /* Return the most recent time of a patch, or undefined if
      there are no patches. */
-  newest_patch_time = (): Date | undefined => {
+  newest_patch_time = (): number | undefined => {
     if (this.patches.length === 0) {
       return;
     }
@@ -612,7 +602,7 @@ export class SortedPatchList extends EventEmitter {
   // This is ONLY used for loading more patches by using the
   // sequence number data recorded in the snapshot.
   getOldestSnapshot = (): Patch | undefined => {
-    if(this.hasFullHistory()) {
+    if (this.hasFullHistory()) {
       return undefined;
     }
     return this.oldestSnapshot;
@@ -707,7 +697,7 @@ function getTails(graph: { [time: number]: Patch }): number[] {
   const tails: number[] = [];
   for (const patch of Object.values(graph)) {
     if (patch.parents == null || patch.parents.length == 0) {
-      tails.push(patch.time.valueOf());
+      tails.push(patch.time);
     } else {
       let isTail = true;
       for (const t of patch.parents) {
@@ -717,7 +707,7 @@ function getTails(graph: { [time: number]: Patch }): number[] {
         }
       }
       if (isTail) {
-        tails.push(patch.time.valueOf());
+        tails.push(patch.time);
       }
     }
   }

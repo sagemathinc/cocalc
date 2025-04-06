@@ -97,8 +97,8 @@ import { cmp_array } from "@cocalc/util/misc";
 
 export function patch_cmp(a: Patch, b: Patch): number {
   return cmp_array(
-    [a.time.valueOf(), a.user_id],
-    [b.time.valueOf(), b.user_id],
+    [a.time, a.version, a.user_id],
+    [b.time, b.version, b.user_id],
   );
 }
 
@@ -131,5 +131,3 @@ export function three_way_merge(opts: {
 export function isTestClient(client: any) {
   return !!client?.isTestClient?.();
 }
-
-

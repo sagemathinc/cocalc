@@ -84,14 +84,11 @@ import {
 import { wait } from "@cocalc/util/async-wait";
 import {
   auxFileToOriginal,
-  ISO_to_Date,
   assertDefined,
   close,
-  cmp_Date,
   endswith,
   filename_extension,
   hash_string,
-  is_date,
   keys,
   minutes_ago,
   uuid,
@@ -155,9 +152,9 @@ export interface SyncOpts extends SyncOpts0 {
 }
 
 export interface UndoState {
-  my_times: Date[];
+  my_times: number[];
   pointer: number;
-  without: Date[];
+  without: number[];
   final?: CompressedPatch;
 }
 
@@ -223,7 +220,7 @@ export class SyncDoc extends EventEmitter {
   private last_user_change: Date = minutes_ago(60);
   private last_save_to_disk_time: Date = new Date(0);
 
-  private last_snapshot?: Date;
+  private last_snapshot?: number;
   private last_seq?: number;
   private snapshot_interval: number;
 
@@ -777,7 +774,7 @@ export class SyncDoc extends EventEmitter {
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
-  version = (time?: Date): Document => {
+  version = (time?: number): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ time });
@@ -786,7 +783,7 @@ export class SyncDoc extends EventEmitter {
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
-  version_without = (without_times: Date[]): Document => {
+  version_without = (without_times: number[]): Document => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ without_times });
@@ -796,7 +793,7 @@ export class SyncDoc extends EventEmitter {
   // There doesn't have to be a patch at exactly that point in
   // time -- if there isn't it just uses the patch before that
   // point in time.
-  revert = (time: Date): void => {
+  revert = (time: number): void => {
     this.set_doc(this.version(time));
   };
 
@@ -843,7 +840,7 @@ export class SyncDoc extends EventEmitter {
     let state = this.undo_state;
     if (state == null) {
       // not in undo mode
-      state = this.undo_state = this.init_undo_state();
+      state = this.initUndoState();
     }
     if (state.pointer === state.my_times.length) {
       // pointing at live state (e.g., happens on entering undo mode)
@@ -916,18 +913,19 @@ export class SyncDoc extends EventEmitter {
     this.undo_state = undefined;
   };
 
-  private init_undo_state(): UndoState {
+  private initUndoState = (): UndoState => {
     if (this.undo_state != null) {
       return this.undo_state;
     }
-    const my_times = keys(this.my_patches).map((x) => new Date(parseInt(x)));
-    my_times.sort(cmp_Date);
-    return (this.undo_state = {
+    const my_times = keys(this.my_patches).map((x) => parseInt(x));
+    my_times.sort();
+    this.undo_state = {
       my_times,
       pointer: my_times.length,
       without: [],
-    });
-  }
+    };
+    return this.undo_state;
+  };
 
   private save_to_disk_autosave = async (): Promise<void> => {
     if (this.state !== "ready") {
@@ -967,14 +965,14 @@ export class SyncDoc extends EventEmitter {
 
   // account_id of the user who made the edit at
   // the given point in time.
-  account_id = (time: Date): string => {
+  account_id = (time: number): string => {
     this.assert_is_ready("account_id");
     return this.users[this.user_id(time)];
   };
 
   // Integer index of user who made the edit at given
   // point in time.
-  user_id = (time: Date): number => {
+  user_id = (time: number): number => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.user_id(time);
@@ -1016,34 +1014,7 @@ export class SyncDoc extends EventEmitter {
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
-  versions = (): Date[] => {
-    this.assert_table_is_ready("patches");
-
-    // check for new NATS function and use that if available.
-    const { getSortedTimes } = this.patches_table as any;
-    if (getSortedTimes != null) {
-      return getSortedTimes();
-    }
-
-    const v: Date[] = [];
-    const s: Map<string, any> | undefined = this.patches_table.get();
-    if (s == null) {
-      // shouldn't happen do to assert_is_ready above.
-      throw Error("patches_table must be initialized");
-    }
-    s.map((x, _) => {
-      v.push(x.get("time"));
-    });
-    v.sort(cmp_Date);
-    return v;
-  };
-
-  /* List of all known timestamps of versions of this string, including
-     possibly much older versions than returned by this.versions(), in
-     case the full history has been loaded.  The list of timestamps
-     is sorted from oldest to newest. */
-  all_versions = (): Date[] => {
-    this.assert_table_is_ready("patches");
+  versions = (): number[] => {
     assertDefined(this.patch_list);
     return this.patch_list.versions();
   };
@@ -1060,17 +1031,13 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.lastVersion();
   };
 
-  historyVersionNumber = (time: Date): number | undefined => {
+  historyVersionNumber = (time: number): number | undefined => {
     return this.patch_list?.versionNumber(time);
   };
 
-  last_changed = (): Date => {
+  last_changed = (): number => {
     const v = this.versions();
-    if (v.length > 0) {
-      return v[v.length - 1];
-    } else {
-      return new Date(0);
-    }
+    return v[v.length - 1] ?? 0;
   };
 
   private init_table_close_handlers(): void {
@@ -1750,7 +1717,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private load_from_disk_if_newer = async (): Promise<boolean> => {
-    const last_changed = this.last_changed();
+    const last_changed = new Date(this.last_changed());
     const firstLoad = this.versions().length == 0;
     const dbg = this.dbg("load_from_disk_if_newer");
     let is_read_only: boolean = false;
@@ -1791,7 +1758,7 @@ export class SyncDoc extends EventEmitter {
     return !!error;
   };
 
-  private patch_table_query = (cutoff?: Date) => {
+  private patch_table_query = (cutoff?: number) => {
     const query = {
       string_id: this.string_id,
       is_snapshot: false, // only used with nats
@@ -1813,11 +1780,11 @@ export class SyncDoc extends EventEmitter {
     return query;
   };
 
-  private setLastSnapshot(last_snapshot?) {
+  private setLastSnapshot(last_snapshot?: number) {
     // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot
-    // and also be certain about the data type (being Date or undefined).
-    if (last_snapshot != null) {
-      last_snapshot = new Date(last_snapshot);
+    // and also be certain about the data type (being number or undefined).
+    if (last_snapshot !== undefined && typeof last_snapshot != "number") {
+      throw Error("type of last_snapshot must be number or undefined");
     }
     this.last_snapshot = last_snapshot;
   }
@@ -2204,12 +2171,12 @@ export class SyncDoc extends EventEmitter {
     await this.patches_table.save();
   });
 
-  private next_patch_time = (): Date => {
-    let time = this.client.server_time();
+  private next_patch_time = (): number => {
+    let time = this.client.server_time().valueOf();
     assertDefined(this.patch_list);
     const min_time = this.patch_list.newest_patch_time();
     if (min_time != null && min_time >= time) {
-      time = new Date(min_time.valueOf() + 1);
+      time = min_time.valueOf() + 1;
     }
     time = this.patch_list.next_available_time(
       time,
@@ -2219,7 +2186,7 @@ export class SyncDoc extends EventEmitter {
     return time;
   };
 
-  private commit_patch = (time: Date, patch: XPatch): void => {
+  private commit_patch = (time: number, patch: XPatch): void => {
     this.assert_not_closed("commit_patch");
     assertDefined(this.patch_list);
     const obj: any = {
@@ -2252,7 +2219,7 @@ export class SyncDoc extends EventEmitter {
       // TODO: just for NATS right now!
       x = fromJS(obj);
     }
-    const y = this.process_patch(x, patch);
+    const y = this.processPatch({ x, patch, size: obj.patch.size });
     if (y != null) {
       this.patch_list.add([y]);
     }
@@ -2280,7 +2247,7 @@ export class SyncDoc extends EventEmitter {
   //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
   //    - index -- the global index of the entry with the given time.
   private natsSnapshotSeqInfo = (
-    time: Date,
+    time: number,
   ): { seq: number; prev_seq?: number } => {
     const dstream = this.dstream();
     // seq = actual sequence number of the message with the patch that we're
@@ -2289,21 +2256,22 @@ export class SyncDoc extends EventEmitter {
     // prev_seq = sequence number of patch of *previous* snapshot, if there is a previous one.
     // This is needed for incremental loading of more history.
     let prev_seq: number | undefined;
-    const t = time.toISOString();
     let i = 0;
     for (const mesg of dstream.getAll()) {
-      if (mesg.is_snapshot && mesg.time < t) {
+      if (mesg.is_snapshot && mesg.time < time) {
         // the seq field of this message has the actual sequence number of the patch
         // that was snapshotted, along with the index of that patch.
         prev_seq = mesg.seq_info.seq;
       }
-      if (seq === undefined && mesg.time == t) {
+      if (seq === undefined && mesg.time == time) {
         seq = dstream.seq(i);
       }
       i += 1;
     }
     if (seq == null) {
-      throw Error(`unable to find message with time '${time}'`);
+      throw Error(
+        `unable to find message with time '${time}'=${new Date(time)}`,
+      );
     }
     return { seq, prev_seq };
   };
@@ -2312,7 +2280,7 @@ export class SyncDoc extends EventEmitter {
      of the string at the given point in time.  This should
      be the time of an existing patch.
   */
-  private snapshot = reuseInFlight(async (time: Date): Promise<void> => {
+  private snapshot = reuseInFlight(async (time: number): Promise<void> => {
     assertDefined(this.patch_list);
     const x = this.patch_list.patch(time);
     if (x == null) {
@@ -2379,33 +2347,22 @@ export class SyncDoc extends EventEmitter {
     - patch: if given will be used as an actual patch
         instead of x.patch, which is a JSON string.
   */
-  private process_patch = (
-    x: Map<string, any>,
-    patch?: any,
-  ): Patch | undefined => {
+  private processPatch = ({
+    x,
+    patch,
+    size: size0,
+  }: {
+    x: Map<string, any>;
+    patch?: any;
+    size?: number;
+  }): Patch | undefined => {
     let t = x.get("time");
-    if (!is_date(t)) {
-      // who knows what is in the database...
-      try {
-        t = ISO_to_Date(t);
-        if (isNaN(t)) {
-          // ignore patches with bad times
-          return;
-        }
-      } catch (err) {
-        // ignore patches with invalid times
-        return;
-      }
+    if (typeof t != "number") {
+      t = new Date(t).valueOf();
     }
-    const time: Date = t;
+    const time: number = t;
     const user_id: number = x.get("user_id");
-    let parents: number[];
-    if (x.get("prev")) {
-      // backward compat only
-      parents = [x.get("prev").valueOf()];
-    } else {
-      parents = x.get("parents")?.toJS() ?? [];
-    }
+    let parents: number[] = x.get("parents")?.toJS() ?? [];
     let size: number;
     const is_snapshot = x.get("is_snapshot");
     if (is_snapshot) {
@@ -2429,9 +2386,7 @@ export class SyncDoc extends EventEmitter {
         }
       } else {
         const p = x.get("patch");
-        // Looking at other code, I think this JSON.stringify (which
-        // would be a waste of time) never gets called in practice.
-        size = p != null ? p.length : JSON.stringify(patch).length;
+        size = p?.length ?? size0 ?? JSON.stringify(patch).length;
       }
     }
 
@@ -2479,7 +2434,7 @@ export class SyncDoc extends EventEmitter {
     }
     const v: Patch[] = [];
     m.forEach((x, _) => {
-      const p = this.process_patch(x);
+      const p = this.processPatch({ x });
       if (p != null) {
         return v.push(p);
       }
@@ -3335,7 +3290,7 @@ export class SyncDoc extends EventEmitter {
           // Optimization: only need to process patches that we didn't
           // create ourselves during this session.
           if (t && !this.my_patches[t.valueOf()]) {
-            const p = this.process_patch(x);
+            const p = this.processPatch({ x });
             //dbg(`patch=${JSON.stringify(p)}`);
             if (p != null) {
               v.push(p);
