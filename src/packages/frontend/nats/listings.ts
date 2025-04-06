@@ -227,7 +227,6 @@ export class Listings extends EventEmitter {
         throw Error("project not running");
       }
     }
-    // todo: trigger_start_project
     return await this.api.getListing({ path, hidden: true });
   };
 

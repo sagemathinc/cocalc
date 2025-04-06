@@ -442,7 +442,6 @@ const Explorer0 = rclass(
       project_is_running: boolean,
     ) {
       if (fetch_directory_error) {
-        // TODO: the refresh button text is inconsistant
         return (
           <div>
             <FetchDirectoryErrors

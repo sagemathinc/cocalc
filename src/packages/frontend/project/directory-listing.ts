@@ -67,18 +67,16 @@ export async function get_directory_listing(opts: ListingOpts) {
       if (err.message != null) {
         if (err.message.indexOf("ENOENT") != -1) {
           listing_err = Error("no_dir");
+          return;
         } else if (err.message.indexOf("ENOTDIR") != -1) {
           listing_err = Error("not_a_dir");
-        } else {
-          listing_err = err.message;
+          return;
         }
-        return undefined;
-      } else {
-        if (timeout < 5) {
-          timeout *= 1.3;
-        }
-        throw err;
       }
+      if (timeout < 5) {
+        timeout *= 1.3;
+      }
+      throw err;
     }
   }
 
@@ -114,7 +112,7 @@ export async function get_directory_listing(opts: ListingOpts) {
   }
 }
 
-import { Listings } from "./nats/listings";
+import { Listings } from "@cocalc/frontend/nats/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   log("get_directory_listing2", opts);

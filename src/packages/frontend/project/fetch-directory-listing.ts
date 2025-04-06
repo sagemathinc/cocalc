@@ -70,7 +70,7 @@ const fetchDirectoryListing = reuseInFlight(
       status = "Loading file list";
     }
 
-    let value;
+    let error = "";
     try {
       // only show actions indicator, if the project is running or starting
       // if it is stopped, we get a stale listing from the database, which is fine.
@@ -89,29 +89,29 @@ const fetchDirectoryListing = reuseInFlight(
         project_id: actions.project_id,
         path,
         hidden: true,
-        max_time_s: 10,
+        max_time_s: 15,
         trigger_start_project: false,
         group: "collaborator", // nothing else is implemented
         compute_server_id,
       });
       log("got ", listing.files);
-      value = fromJS(listing.files);
-    } catch (err) {
-      log("error", err);
-      value = `${err}`;
-    } finally {
+      const value = fromJS(listing.files);
       log("saving result");
-      actions.set_activity({ id, stop: "" });
       store = actions.get_store();
       if (store == null) {
         return;
       }
       const directory_listings = store.get("directory_listings");
-      let listing = directory_listings.get(compute_server_id) ?? Map();
-      listing = listing.set(path, value);
+      let listing2 = directory_listings.get(compute_server_id) ?? Map();
+      listing2 = listing2.set(path, value);
       actions.setState({
-        directory_listings: directory_listings.set(compute_server_id, listing),
+        directory_listings: directory_listings.set(compute_server_id, listing2),
       });
+    } catch (err) {
+      log("error", err);
+      error = `${err}`;
+    } finally {
+      actions.set_activity({ id, stop: "", error });
     }
   },
   {

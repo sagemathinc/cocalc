@@ -1494,7 +1494,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         directory_listings: directory_listings.set(compute_server_id, listing),
       });
     } catch (err) {
-      console.warn(`Unable to fetch all files -- "${err}"`);
+      console.warn(`Unable to fetch directory listing -- "${err}"`);
     }
   }
 

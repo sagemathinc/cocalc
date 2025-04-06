@@ -26,7 +26,7 @@ import {
   TypedMap,
 } from "@cocalc/frontend/app-framework";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import { Listings, listings } from "@cocalc/frontend/project/nats/listings";
+import { Listings, listings } from "@cocalc/frontend/nats/listings";
 import {
   FILE_ACTIONS,
   ProjectActions,

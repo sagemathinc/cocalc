@@ -18,7 +18,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/nats/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { FileRow } from "./file-row";
@@ -26,7 +26,6 @@ import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { TERM_MODE_CHAR } from "./utils";
-
 import * as misc from "@cocalc/util/misc";
 import { FormattedMessage } from "react-intl";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
