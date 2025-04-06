@@ -32,7 +32,8 @@ export class AKV<T = any> {
     });
   }
 
-  private encodeKey = (key) => `${this.prefix}.${btoa(key)}`;
+  private encodeKey = (key) =>
+    key ? `${this.prefix}.${btoa(key)}` : this.prefix;
 
   private getGeneralKVForOneKey = async (
     key: string,

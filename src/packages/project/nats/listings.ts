@@ -24,7 +24,8 @@ DEVELOPMENT:
 
 .../src/packages/project/nats$ node
 
-> await require('@cocalc/project/nats/listings').init()
+
+    await require('@cocalc/project/nats/listings').init()
 
 */
 
@@ -164,6 +165,8 @@ class Listings {
         count: files.length,
         more,
       });
+      console.log("just set ", { path });
+      console.log("value now", this.listings.get(path));
     } catch (err) {
       let error = `${err}`;
       if (error.startsWith("Error: ")) {

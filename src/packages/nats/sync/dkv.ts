@@ -147,7 +147,7 @@ export class DKV<T = any> extends EventEmitter {
       name: jsName({ account_id, project_id }),
       desc,
       noInventory,
-      filter: `${this.prefix}.>`,
+      filter: [this.prefix, `${this.prefix}.>`],
       env,
       merge,
       noAutosave,
@@ -308,12 +308,13 @@ export class DKV<T = any> extends EventEmitter {
   // There are NOT issues with key length though.  This same strategy of encoding
   // keys using base64 is used by Nats object store:
   //   https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-20.md#object-name
-  private encodeKey = (key) => `${this.prefix}.${btoa(key)}`;
+  private encodeKey = (key) =>
+    key ? `${this.prefix}.${btoa(key)}` : this.prefix;
 
   // decodeKey is the inverse of encodeKey
   private decodeKey = (encodedKey) => {
     const v = encodedKey.split(".");
-    return atob(v[1]);
+    return v[1] ? atob(v[1]) : "";
   };
 
   has = (key: string): boolean => {

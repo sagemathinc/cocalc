@@ -377,6 +377,16 @@ describe("tests involving null/undefined values", () => {
     expect(kv1.getAll()).toEqual({});
   });
 
+  it("makes sure using '' as a key works", async () => {
+    kv1.set("", 10);
+    expect(kv1.get("")).toEqual(10);
+    await kv1.save();
+    if (kv2.get("") != 10) {
+      await once(kv2, "change");
+    }
+    expect(kv2.get("")).toEqual(10);
+  });
+
   it("close", async () => {
     await kv1.clear();
     await kv1.close();

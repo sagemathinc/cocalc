@@ -6,6 +6,7 @@ import { createServiceClient, createServiceHandler } from "./typed";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { EventEmitter } from "events";
+import refCache from "@cocalc/util/refcache";
 
 // record info about at most this many files in a given directory
 //export const MAX_FILES_PER_DIRECTORY = 10;
@@ -184,8 +185,13 @@ export class ListingsClient extends EventEmitter {
   };
 }
 
-export async function listingsClient(options) {
-  const C = new ListingsClient(options);
-  await C.init();
-  return C;
-}
+export const listingsClient = refCache<
+  ListingsOptions & { noCache?: boolean },
+  ListingsClient
+>({
+  createObject: async (options: ListingsOptions) => {
+    const C = new ListingsClient(options);
+    await C.init();
+    return C;
+  },
+});
