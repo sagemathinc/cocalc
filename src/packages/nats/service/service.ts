@@ -304,7 +304,7 @@ export async function natsServiceStats({
 
 export async function waitForNatsService({
   options,
-  maxWait = 30000,
+  maxWait = 60000,
 }: {
   options: ServiceDescription;
   maxWait?: number;

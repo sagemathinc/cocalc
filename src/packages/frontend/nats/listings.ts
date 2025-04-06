@@ -108,16 +108,19 @@ export class Listings extends EventEmitter {
     if (this.listingsClient == null) {
       throw Error("listings not ready");
     }
+    if (this.listingsClient == null) return;
     try {
       await this.listingsClient.watch(path, force);
     } catch (err) {
       if (err.code == "503") {
+        if (this.listingsClient == null) return;
         // The listings service isn't running in the project right now,
         // e.g., maybe the project isn't running at all.
         // So watch is a no-op, as it does nothing when listing
         // server doesn't exist.  So we at least wait for a while
-        // e.g., maybe project is tarting, then try once more.
+        // e.g., maybe project is starting, then try once more.
         await this.listingsClient.api.nats.waitFor();
+        if (this.listingsClient == null) return;
         try {
           await this.listingsClient.watch(path, force);
         } catch (err) {

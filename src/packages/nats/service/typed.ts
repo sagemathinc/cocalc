@@ -46,9 +46,8 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
               mesg: { name: prop, args },
             });
           } catch (err) {
-            throw Error(
-              `Error calling remote function '${prop}': ${err.message}`,
-            );
+            err.message = `Error calling remote function '${prop}': ${err.message}`;
+            throw err;
           }
         };
       },
