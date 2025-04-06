@@ -1,5 +1,5 @@
 /*
-Services in a project.
+Services in a project/compute server for working with a Jupyter notebook.
 */
 
 import { createServiceClient, createServiceHandler } from "./typed";

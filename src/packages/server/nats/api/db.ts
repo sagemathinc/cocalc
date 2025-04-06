@@ -1,7 +1,8 @@
 import { db } from "@cocalc/database";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import userQuery from "@cocalc/database/user-query";
 import { callback2 } from "@cocalc/util/async-utils";
+import getPool from "@cocalc/database/pool";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export { userQuery };
 
@@ -30,4 +31,50 @@ export async function touch({
   // TODO: we also connect still (this will of course go away very soon!!)
   D.ensure_connection_to_project?.(project_id);
   await callback2(D.touch, { account_id, project_id, path, action });
+}
+
+export async function getLegacyTimeTravelBlobId({
+  account_id,
+  project_id,
+  path,
+}: {
+  account_id: string;
+  project_id: string;
+  path: string;
+}): Promise<string | undefined> {
+  const pool = getPool("long");
+  const D = db();
+  const string_id = D.sha1(project_id, path);
+  const { rows } = await pool.query(
+    "SELECT archived FROM syncstrings WHERE string_id=$1",
+    [string_id],
+  );
+  const uuid = rows[0]?.archived;
+  if (!uuid) {
+    // don't worry about auth if there's no info -- just save a little work
+    // in this VERY common case.
+    return;
+  }
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project");
+  }
+  return uuid;
+}
+
+export async function getLegacyTimeTravelPatches({
+  account_id,
+  uuid,
+}: {
+  account_id: string;
+  uuid: string;
+}): Promise<string> {
+  // only restriction on getting a blob when you know the sha1 uuid is
+  // that you are signed in.
+  if (!account_id) {
+    throw Error("you must be signed in");
+  }
+  const D = db();
+  const blob = await callback2(D.get_blob, { uuid });
+  // we do NOT de-json this - leave it to the browser client to do that hard work...
+  return blob.toString();
 }

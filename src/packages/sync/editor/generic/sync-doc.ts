@@ -102,7 +102,7 @@ import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
 import { IpywidgetsState } from "./ipywidgets-state";
 import { SortedPatchList } from "./sorted-patch-list";
-import {
+import type {
   Client,
   CompressedPatch,
   DocType,
@@ -114,6 +114,7 @@ import { isTestClient, patch_cmp } from "./util";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
+import { LegacyHistory } from "./legacy";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -258,6 +259,7 @@ export class SyncDoc extends EventEmitter {
   private static computeServerManagerDoc?: SyncDoc;
 
   private useNats: boolean;
+  legacy: LegacyHistory;
 
   constructor(opts: SyncOpts) {
     super();
@@ -285,6 +287,12 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
+
+    this.legacy = new LegacyHistory({
+      project_id: this.project_id,
+      path: this.path,
+      client: this.client,
+    });
 
     // NOTE: Do not use nats in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't

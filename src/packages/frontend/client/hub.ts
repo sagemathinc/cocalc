@@ -113,7 +113,8 @@ export class HubClient {
   }
 
   public send(mesg: object): void {
-    console.log("send to hub", mesg);
+    // uncomment this to work on removing the hub websocket connection entirely.
+    // console.log("send to hub", mesg);
     const data = to_json_socket(mesg);
     this.mesg_data.sent_length += data.length;
     this.emit_mesg_data();

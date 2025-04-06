@@ -92,7 +92,7 @@ export class NatsClient extends EventEmitter {
     this.clientWithState = getClientWithState();
     this.clientWithState.on("state", (state) => {
       if (state != "closed") {
-        console.log("NATS connection: ", { state });
+        console.log("NATS: ", state);
         this.emit(state);
       }
     });
