@@ -68,7 +68,7 @@ export class ComputeServerManager extends EventEmitter {
       d.on("change", this.handleChange);
       this.setState("connected");
     } catch (err) {
-      console.warn("failed to create compute server manager", err);
+      // console.log("WARNING: issue creating compute server manager", err);
       this.close();
       throw err;
     }
@@ -83,7 +83,7 @@ export class ComputeServerManager extends EventEmitter {
   };
 
   close = () => {
-    console.warn("closing a compute server manager");
+    // console.log("closing a compute server manager");
     if (this.dkv != null) {
       this.dkv.removeListener("change", this.handleChange);
       this.dkv.close();
@@ -177,4 +177,3 @@ export class ComputeServerManager extends EventEmitter {
     return v;
   };
 }
-

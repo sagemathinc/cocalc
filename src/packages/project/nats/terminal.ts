@@ -35,7 +35,7 @@ const HISTORY_LIMIT_BYTES = 20000;
 const MAX_BYTES_PER_SECOND = 1 * 1000000;
 
 //   Limit number of messages per second (not doing this makes it easy to cause trouble to the server)
-const MAX_MSGS_PER_SECOND = 250;
+const MAX_MSGS_PER_SECOND = 150;
 
 const sessions: { [path: string]: Session } = {};
 

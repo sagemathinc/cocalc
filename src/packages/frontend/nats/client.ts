@@ -563,9 +563,21 @@ export class NatsClient extends EventEmitter {
   };
 
   computeServerManager = async (options: ComputeServerManagerOptions) => {
-    const M = computeServerManager(options);
-    await M.init();
-    return M;
+    const f = async () => {
+      const M = computeServerManager(options);
+      await M.init();
+      return M;
+    };
+    try {
+      return await f();
+    } catch (err) {
+      if (err.code == "PERMISSIONS_VIOLATION" && options.project_id) {
+        await this.addProjectPermissions([options.project_id]);
+        return await f();
+      } else {
+        throw err;
+      }
+    }
   };
 
   getTime = (): number => {

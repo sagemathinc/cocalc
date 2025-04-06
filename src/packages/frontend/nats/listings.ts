@@ -43,6 +43,7 @@ export class Listings extends EventEmitter {
   }
 
   private createClient = async () => {
+    await webapp_client.nats_client.addProjectPermissions([this.project_id]);
     let d = 3000;
     const MAX_DELAY_MS = 15000;
     while (this.state != "closed") {
@@ -54,21 +55,10 @@ export class Listings extends EventEmitter {
         // success!
         return;
       } catch (err) {
-        // console.log("creating listings client failed", err);
-        if (err.code == "PERMISSIONS_VIOLATION") {
-          try {
-            //             console.log(
-            //               `request update of our credentials to include ${this.project_id}, then try again`,
-            //             );
-            await webapp_client.nats_client.addProjectPermissions([
-              this.project_id,
-            ]);
-            continue;
-          } catch (err) {
-            // console.log("updating permissions failed", err);
-            d = Math.max(7000, d);
-          }
-        }
+        console.log(
+          "WARNING: issue connecting to project listings service",
+          err,
+        );
       }
       if (this.state == ("closed" as State)) return;
       d = Math.min(MAX_DELAY_MS, d * 1.3);
@@ -112,24 +102,30 @@ export class Listings extends EventEmitter {
     try {
       await this.listingsClient.watch(path, force);
     } catch (err) {
-      if (err.code == "503") {
-        if (this.listingsClient == null) return;
-        // The listings service isn't running in the project right now,
-        // e.g., maybe the project isn't running at all.
-        // So watch is a no-op, as it does nothing when listing
-        // server doesn't exist.  So we at least wait for a while
-        // e.g., maybe project is starting, then try once more.
-        await this.listingsClient.api.nats.waitFor();
-        if (this.listingsClient == null) return;
-        try {
-          await this.listingsClient.watch(path, force);
-        } catch (err) {
-          if (err.code != "503") {
-            throw err;
+      try {
+        if (err.code == "503") {
+          if (this.listingsClient == null) return;
+          // The listings service isn't running in the project right now,
+          // e.g., maybe the project isn't running at all.
+          // So watch is a no-op, as it does nothing when listing
+          // server doesn't exist.  So we at least wait for a while
+          // e.g., maybe project is starting, then try once more.
+          await this.listingsClient.api.nats.waitFor({
+            maxWait: 15 * 1000 * 60,
+          });
+          if (this.listingsClient == null) return;
+          try {
+            await this.listingsClient.watch(path, force);
+          } catch (err) {
+            if (err.code != "503") {
+              throw err;
+            }
           }
+        } else {
+          throw err;
         }
-      } else {
-        throw err;
+      } catch (err) {
+        console.log("WARNING: unable to update directory listing watcher", err);
       }
     }
   };

@@ -164,7 +164,7 @@ export const COMPUTE_STATES: ComputeStates = {
   opened: {
     desc: defineMessage({
       id: "util.compute-states.opened.desc",
-      defaultMessage: "Project is available and ready to try to run.",
+      defaultMessage: "Project is available and ready to run.",
     }),
     icon: "stop",
     display: defineMessage({
