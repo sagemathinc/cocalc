@@ -128,14 +128,13 @@ export class Watcher extends EventEmitter {
   private async initWatchExistence(): Promise<void> {
     const containing_path = path_split(this.path).head;
     this.watchExistence = watch(containing_path, ChokidarOpts);
-    this.watchExistence.on("all", this.watchExistenceChange(containing_path));
+    this.watchExistence.on("all", this.watchExistenceChange);
     this.watchExistence.on("error", (err) => {
       this.log(`error watching for existence of ${this.path} -- ${err}`);
     });
   }
 
-  private watchExistenceChange = (containing_path) => async (_, filename) => {
-    const path = join(containing_path, filename);
+  private watchExistenceChange = async (_, path) => {
     if (path != this.path) return;
     const e = await exists(this.path);
     if (!this.exists && e) {
