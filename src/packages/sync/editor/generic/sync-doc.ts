@@ -87,6 +87,7 @@ import {
   assertDefined,
   close,
   endswith,
+  field_cmp,
   filename_extension,
   hash_string,
   keys,
@@ -2363,7 +2364,7 @@ export class SyncDoc extends EventEmitter {
     x: Map<string, any>;
     patch?: any;
     size?: number;
-  }): Patch | undefined => {
+  }): Patch => {
     let t = x.get("time");
     if (typeof t != "number") {
       t = new Date(t).valueOf();
@@ -2491,6 +2492,54 @@ export class SyncDoc extends EventEmitter {
     }
     return start_seq > 1;
   };
+
+  hasLegacyHistory = async () => {
+    return !!(await this.legacy.getBlobId());
+  };
+
+  private loadedLegacyHistory = false;
+  loadLegacyHistory = reuseInFlight(async () => {
+    if (this.loadedLegacyHistory) {
+      return;
+    }
+    this.loadedLegacyHistory = true;
+    if (!this.hasFullHistory()) {
+      throw Error("must first load full history first");
+    }
+    const patches = await this.legacy.getPatches();
+    if (this.patch_list == null) {
+      return;
+    }
+    // @ts-ignore - cheating here
+    const first = this.patch_list.patches[0];
+    if ((first.parents ?? []).length > 0) {
+      throw Error("first patch should have no parents");
+    }
+    for (const patch of patches) {
+      patch.time = new Date(patch.time).valueOf();
+    }
+    patches.sort(field_cmp("time"));
+    const v: Patch[] = [];
+    let version = -patches.length;
+    let i = 0;
+    for (const patch of patches) {
+      patch.version = version;
+      version += 1;
+      if (i > 0) {
+        patch.parents = [patches[i - 1].time];
+      } else {
+        patch.parents = [];
+      }
+      const p = this.processPatch({ x: fromJS(patch) });
+      i += 1;
+      v.push(p);
+    }
+    first.parents = [patches[patches.length - 1].time];
+    first.is_snapshot = true;
+    first.snapshot = this.patch_list.value({ time: first.time }).to_str();
+    this.patch_list.add(v);
+    this.emit("change");
+  });
 
   show_history = (opts = {}): void => {
     assertDefined(this.patch_list);
