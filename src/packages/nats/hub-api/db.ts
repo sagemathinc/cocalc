@@ -3,7 +3,7 @@ import { authFirst } from "./util";
 export const db = {
   userQuery: authFirst,
   touch: authFirst,
-  getLegacyTimeTravelBlobId: authFirst,
+  getLegacyTimeTravelInfo: authFirst,
   getLegacyTimeTravelPatches: authFirst,
 };
 
@@ -22,11 +22,11 @@ export interface DB {
     action?: string;
   }) => Promise<void>;
 
-  getLegacyTimeTravelBlobId: (opts: {
+  getLegacyTimeTravelInfo: (opts: {
     account_id?: string;
     project_id: string;
     path: string;
-  }) => Promise<string | undefined>;
+  }) => Promise<{ uuid: string; users?: string[] }>;
 
   // returns JSON.stringify({patches:[patch0,patch1,...]})
   getLegacyTimeTravelPatches: (opts: {

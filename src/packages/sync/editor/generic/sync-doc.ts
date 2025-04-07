@@ -2494,7 +2494,8 @@ export class SyncDoc extends EventEmitter {
   };
 
   legacyHistoryExists = async () => {
-    return !!(await this.legacy.getBlobId());
+    const info = await this.legacy.getInfo();
+    return !!info.uuid;
   };
 
   private loadedLegacyHistory = false;
@@ -2506,7 +2507,7 @@ export class SyncDoc extends EventEmitter {
     if (!this.hasFullHistory()) {
       throw Error("must first load full history first");
     }
-    const patches = await this.legacy.getPatches();
+    const { patches, users } = await this.legacy.getPatches();
     if (this.patch_list == null) {
       return;
     }
@@ -2516,6 +2517,7 @@ export class SyncDoc extends EventEmitter {
       throw Error("first patch should have no parents");
     }
     for (const patch of patches) {
+      // @ts-ignore
       patch.time = new Date(patch.time).valueOf();
     }
     patches.sort(field_cmp("time"));
@@ -2523,17 +2525,31 @@ export class SyncDoc extends EventEmitter {
     let version = -patches.length;
     let i = 0;
     for (const patch of patches) {
+      // @ts-ignore
       patch.version = version;
       version += 1;
       if (i > 0) {
+        // @ts-ignore
         patch.parents = [patches[i - 1].time];
       } else {
+        // @ts-ignore
         patch.parents = [];
       }
+
+      // remap the user_id field
+      const account_id = users[patch.user_id];
+      let user_id = this.users.indexOf(account_id);
+      if (user_id == -1) {
+        this.users.push(account_id);
+        user_id = this.users.length - 1;
+      }
+      patch.user_id = user_id;
+
       const p = this.processPatch({ x: fromJS(patch) });
       i += 1;
       v.push(p);
     }
+    // @ts-ignore
     first.parents = [patches[patches.length - 1].time];
     first.is_snapshot = true;
     first.snapshot = this.patch_list.value({ time: first.time }).to_str();

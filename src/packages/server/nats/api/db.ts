@@ -33,7 +33,7 @@ export async function touch({
   await callback2(D.touch, { account_id, project_id, path, action });
 }
 
-export async function getLegacyTimeTravelBlobId({
+export async function getLegacyTimeTravelInfo({
   account_id,
   project_id,
   path,
@@ -41,24 +41,24 @@ export async function getLegacyTimeTravelBlobId({
   account_id: string;
   project_id: string;
   path: string;
-}): Promise<string | undefined> {
+}): Promise<{ uuid: string; users?: string[] }> {
   const pool = getPool("long");
   const D = db();
   const string_id = D.sha1(project_id, path);
   const { rows } = await pool.query(
-    "SELECT archived FROM syncstrings WHERE string_id=$1",
+    "SELECT archived as uuid, users FROM syncstrings WHERE string_id=$1 AND archived IS NOT NULL",
     [string_id],
   );
-  const uuid = rows[0]?.archived;
+  const uuid = rows[0]?.uuid;
   if (!uuid) {
     // don't worry about auth if there's no info -- just save a little work
     // in this VERY common case.
-    return;
+    return { uuid: "" };
   }
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project");
   }
-  return uuid;
+  return { uuid, users: rows[0]?.users };
 }
 
 export async function getLegacyTimeTravelPatches({

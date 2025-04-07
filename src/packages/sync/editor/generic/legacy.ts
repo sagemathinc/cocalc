@@ -5,6 +5,16 @@ Support legacy TimeTravel history from before the switch to NATS.
 import { type Client } from "./types";
 import { type DB } from "@cocalc/nats/hub-api/db";
 
+export interface LegacyPatch {
+  time: Date;
+  patch: string;
+  user_id: number;
+  snapshot?: string;
+  sent?: Date; // when patch actually sent, which may be later than when made
+  prev?: Date; // timestamp of previous patch sent from this session
+  size: number; // size of the patch (by defn length of string representation)
+}
+
 export class LegacyHistory {
   private db: DB;
   private project_id: string;
@@ -27,21 +37,28 @@ export class LegacyHistory {
 
   // Returns '' if no legacy data.  Returns sha1 hash of blob
   // with the legacy data if there is legacy data.
-  private blobId?: string;
-  getBlobId = async (): Promise<string> => {
-    if (this.blobId == null) {
-      this.blobId = await this.db.getLegacyTimeTravelBlobId({
+  private info?: { uuid: string; users?: string[] };
+  getInfo = async (): Promise<{ uuid: string; users?: string[] }> => {
+    if (this.info == null) {
+      this.info = await this.db.getLegacyTimeTravelInfo({
         project_id: this.project_id,
         path: this.path,
       });
     }
-    return this.blobId!;
+    return this.info!;
   };
 
-  getPatches = async () => {
+  getPatches = async (): Promise<{
+    patches: LegacyPatch[];
+    users: string[];
+  }> => {
+    const info = await this.getInfo();
+    if (!info.uuid || !info.users) {
+      return { patches: [], users: [] };
+    }
     const s = await this.db.getLegacyTimeTravelPatches({
-      uuid: await this.getBlobId(),
+      uuid: info.uuid,
     });
-    return JSON.parse(s).patches;
+    return { patches: JSON.parse(s).patches, users: info.users };
   };
 }
