@@ -149,7 +149,7 @@ export class Stream<T = any> extends EventEmitter {
   private filter?: string;
   private subject?: string;
   private env: NatsEnv;
-  private start_seq?: number;
+  private _start_seq?: number;
   private js;
   private jsm;
   private stream?;
@@ -201,7 +201,7 @@ export class Stream<T = any> extends EventEmitter {
       throw Error("subjects must be at least one string");
     }
     this.filter = filter;
-    this.start_seq = start_seq;
+    this._start_seq = start_seq;
     this.limits = {
       max_msgs: -1,
       max_age: 0,
@@ -303,6 +303,10 @@ export class Stream<T = any> extends EventEmitter {
 
   get length(): number {
     return this.messages.length;
+  }
+
+  get start_seq(): number | undefined {
+    return this._start_seq;
   }
 
   push = async (...args: T[]) => {
@@ -469,8 +473,8 @@ export class Stream<T = any> extends EventEmitter {
       inactive_threshold: nanos(EPHEMERAL_CONSUMER_THRESH),
     };
     let startOptions;
-    if (start_seq == null && this.start_seq != null) {
-      start_seq = this.start_seq;
+    if (start_seq == null && this._start_seq != null) {
+      start_seq = this._start_seq;
     }
     if (start_seq != null) {
       startOptions = {
@@ -800,7 +804,7 @@ export class Stream<T = any> extends EventEmitter {
     start_seq: number;
     noEmit?: boolean;
   }) => {
-    if (this.start_seq == null) {
+    if (this._start_seq == null || this._start_seq <= 1) {
       // we already loaded everything on initialization; there can't be anything older.
       return;
     }
@@ -857,6 +861,7 @@ export class Stream<T = any> extends EventEmitter {
         this.emit("change", messages[i], raw[i]);
       }
     }
+    this._start_seq = start_seq;
   };
 }
 

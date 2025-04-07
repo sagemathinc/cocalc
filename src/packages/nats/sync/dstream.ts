@@ -327,6 +327,10 @@ export class DStream<T = any> extends EventEmitter {
     await this.stream.purge(opts);
   };
 
+  get start_seq(): number | undefined {
+    return this.stream?.start_seq;
+  }
+
   private updateInventory = asyncThrottle(
     async () => {
       if (this.stream == null || this.opts.noInventory) {

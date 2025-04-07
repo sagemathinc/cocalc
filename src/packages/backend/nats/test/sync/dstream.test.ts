@@ -206,12 +206,14 @@ describe("testing start_seq", () => {
     });
     expect(s.length).toBe(1);
     expect(s.getAll()).toEqual([3]);
+    expect(s.start_seq).toEqual(seq[2]);
   });
 
   it("it then pulls in the previous message, so now two messages are loaded", async () => {
     await s.load({ start_seq: seq[1] });
     expect(s.length).toBe(2);
     expect(s.getAll()).toEqual([2, 3]);
+    expect(s.start_seq).toEqual(seq[1]);
   });
 });
 
