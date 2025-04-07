@@ -48,8 +48,11 @@ export const natsAccountName = "cocalc";
 // I tested and if you make this bigger, then smaller, it does NOT break
 // large jetstream messages created when it was bigger.  So it should be
 // safe to adjust.
-//const max_payload = "8MB";
-const max_payload = "1MB";
+// 1MB is the global NATS default
+//const max_payload = "1MB";
+// Note that 64MB is the max allowed.
+// 8MB this seems good for CoCalc use cases.
+const max_payload = "8MB";
 
 export async function configureNatsServer() {
   logger.debug("configureNatsServer", { confPath, natsPorts });
