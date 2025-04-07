@@ -10,11 +10,37 @@ import { Icon } from "../../components";
 interface Props {
   actions: TimeTravelActions;
   disabled?: boolean;
+  hasFullHistory?: boolean;
+  loadedLegacyHistory?: boolean;
+  legacyHistoryExists?: boolean;
 }
 
-export function LoadMoreHistory({ actions, disabled }: Props) {
+export function LoadMoreHistory({
+  actions,
+  hasFullHistory,
+  loadedLegacyHistory,
+  legacyHistoryExists,
+}: Props) {
   const [loading, setLoading] = useState<boolean>(false);
-  //const [loadingAll, setLoadingAll] = useState<boolean>(false);
+
+  let disabled = false;
+  let f;
+  if (hasFullHistory && (!legacyHistoryExists || loadedLegacyHistory)) {
+    // no need for the button
+    disabled = true;
+    f = () => {};
+  } else if (!hasFullHistory) {
+    f = async () => {
+      await actions.loadMoreHistory();
+    };
+  } else if (!legacyHistoryExists || loadedLegacyHistory) {
+    return null;
+  } else {
+    f = async () => {
+      await actions.loadLegacyHistory();
+    };
+  }
+
   return (
     <>
       <Tooltip
@@ -29,7 +55,7 @@ export function LoadMoreHistory({ actions, disabled }: Props) {
           onClick={async () => {
             try {
               setLoading(true);
-              await actions.loadMoreHistory();
+              await f();
             } catch (err) {
               console.log("ERROR!", err);
               actions.set_error(`${err}`);
@@ -44,22 +70,3 @@ export function LoadMoreHistory({ actions, disabled }: Props) {
     </>
   );
 }
-
-/*
-      <Button
-        disabled={loading || loadingAll || disabled}
-        onClick={async () => {
-          try {
-            setLoadingAll(true);
-            await actions.loadMoreHistory({ all: true });
-          } catch (err) {
-            console.log("ERROR!", err);
-            actions.set_error(`${err}`);
-          } finally {
-            setLoadingAll(false);
-          }
-        }}
-      >
-        <Icon name="file-archive" /> All {loadingAll && <Spin />}
-      </Button>
-*/

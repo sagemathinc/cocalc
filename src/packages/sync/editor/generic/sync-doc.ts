@@ -2493,7 +2493,7 @@ export class SyncDoc extends EventEmitter {
     return start_seq > 1;
   };
 
-  hasLegacyHistory = async () => {
+  legacyHistoryExists = async () => {
     return !!(await this.legacy.getBlobId());
   };
 

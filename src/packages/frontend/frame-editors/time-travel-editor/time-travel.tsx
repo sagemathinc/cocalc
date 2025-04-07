@@ -65,6 +65,8 @@ export function TimeTravel(props: Props) {
   const firstVersion = useEditor("first_version") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
+  const loadedLegacyHistory = useEditor("loaded_legacy_history");
+  const legacyHistoryExists = useEditor("legacy_history_exists");
   const loading = useEditor("loading");
   const docpath = useEditor("docpath");
   const docext = useEditor("docext");
@@ -368,11 +370,16 @@ export function TimeTravel(props: Props) {
   };
 
   const renderLoadMoreHistory = () => {
-    if (gitMode || hasFullHistory) {
+    if (gitMode) {
       return;
     }
     return (
-      <LoadMoreHistory actions={props.actions} disabled={hasFullHistory} />
+      <LoadMoreHistory
+        actions={props.actions}
+        hasFullHistory={hasFullHistory}
+        loadedLegacyHistory={loadedLegacyHistory}
+        legacyHistoryExists={legacyHistoryExists}
+      />
     );
   };
 
