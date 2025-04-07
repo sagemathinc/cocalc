@@ -331,6 +331,22 @@ export class DStream<T = any> extends EventEmitter {
     return this.stream?.start_seq;
   }
 
+  // returns largest sequence number known to this client.
+  // not optimized to be super fast.
+  private getCurSeq = (): number | undefined => {
+    let s = 0;
+    if (this.raw.length > 0) {
+      s = Math.max(s, this.seq(this.raw.length - 1)!);
+    }
+    for (const t in this.saved) {
+      const x = parseInt(t);
+      if (x > s) {
+        s = x;
+      }
+    }
+    return s ? s : undefined;
+  };
+
   private updateInventory = asyncThrottle(
     async () => {
       if (this.stream == null || this.opts.noInventory) {
@@ -343,6 +359,10 @@ export class DStream<T = any> extends EventEmitter {
       const name = this.name;
       const { valueType } = this.opts;
       try {
+        const seq = this.getCurSeq();
+        if (!seq) {
+          return;
+        }
         const { account_id, project_id, desc, limits } = this.opts;
         const inv = await inventory({ account_id, project_id });
         if (this.stream == null) {
@@ -351,19 +371,30 @@ export class DStream<T = any> extends EventEmitter {
         if (!inv.needsUpdate({ name, type: "stream", valueType })) {
           return;
         }
+
+        const cur = inv.get({ type: "stream", name, valueType });
+        if (cur.seq != null && (this.start_seq ?? 0) > cur.seq) {
+          // not enough information to update inventory
+          return;
+        }
+
+        // [ ] TODO: need to take into account cur.seq in computing stats!
+
         const stats = this.stream?.stats();
         if (stats == null) {
           return;
         }
         const { count, bytes } = stats;
+
         inv.set({
           type: "stream",
           name,
+          valueType,
           count,
           bytes,
           desc,
-          valueType,
           limits,
+          seq,
         });
       } catch (err) {
         console.log(

@@ -10,7 +10,7 @@ i.ls()
 */
 
 import { dkv, type DKV } from "./dkv";
-import { dstream } from "./dstream";
+import { dstream, type DStream } from "./dstream";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
@@ -64,6 +64,10 @@ interface Item {
   valueType?: ValueType;
   // limits for purging old data
   limits?: KVLimits | FilteredStreamLimitOptions;
+  // for streams, the seq number up to which this data is valid, i.e.,
+  // this data is for all elements of the stream with sequence
+  // number <= seq.
+  seq?: number;
 }
 
 export class Inventory {
@@ -90,6 +94,7 @@ export class Inventory {
     desc,
     valueType,
     limits,
+    seq,
   }: {
     type: StoreType;
     name: string;
@@ -98,6 +103,7 @@ export class Inventory {
     desc?: JSONValue;
     valueType: ValueType;
     limits?: KVLimits | FilteredStreamLimitOptions;
+    seq?: number;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
@@ -114,6 +120,7 @@ export class Inventory {
       bytes,
       count,
       limits,
+      seq,
     });
   };
 
@@ -137,9 +144,9 @@ export class Inventory {
     this.dkv.delete(this.encodeKey({ name, type, valueType }));
   };
 
-  get = async (
+  get = (
     x: { name: string; type: StoreType; valueType?: ValueType } | string,
-  ) => {
+  ): Item & { type: StoreType; name: string } => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
@@ -160,17 +167,26 @@ export class Inventory {
         }
       }
     } else {
+      name = x.name;
       cur = this.dkv.get(this.encodeKey(x));
     }
     if (cur == null) {
       throw Error(`no ${type} named ${name}`);
     }
+    return { ...cur, type, name };
+  };
+
+  getStore = async (
+    x: { name: string; type: StoreType; valueType?: ValueType } | string,
+  ): Promise<DKV | DStream> => {
+    const cur = this.get(x);
+    const { desc, name, type } = cur;
     if (type == "kv") {
-      return await dkv({ name, ...this.location, desc: cur.desc });
+      return await dkv({ name, ...this.location, desc });
     } else if (type == "stream") {
-      return await dstream({ name, ...this.location, desc: cur.desc });
+      return await dstream({ name, ...this.location, desc });
     } else {
-      throw Error(`unknown type '${type}'`);
+      throw Error(`unknown store type '${type}'`);
     }
   };
 
