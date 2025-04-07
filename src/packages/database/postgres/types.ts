@@ -382,8 +382,6 @@ export interface PostgreSQL extends EventEmitter {
     cutoff?: Date;
     cb?: CB;
   });
-
-  unarchivePatches(string_id: string);
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

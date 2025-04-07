@@ -115,25 +115,7 @@ Table({
           project_id: true,
         },
         check_hook(db, obj, account_id, project_id, cb) {
-          return db._syncstrings_check(
-            obj,
-            account_id,
-            project_id,
-            async (err) => {
-              if (!err) {
-                try {
-                  // only calls cb once patch is unarchived, since new sync
-                  // rewrite doesn't use changefeed on database.
-                  await db.unarchivePatches(obj.string_id);
-                  cb();
-                } catch (err2) {
-                  cb(err2);
-                }
-              } else {
-                cb(err);
-              }
-            },
-          );
+          return db._syncstrings_check(obj, account_id, project_id, cb);
         },
       },
 
