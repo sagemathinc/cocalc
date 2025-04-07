@@ -1,3 +1,11 @@
+/*
+NOTE: If you need to send *very large responses* to a message or increase timeouts,
+see getLegacyTimeTravelPatches in db.ts.  You just have to allow the keys requestMany
+and timeout to the *first* argument of the function (which must be an object).
+The framework will then automatically allow large responses when the user sets
+requestMany:true.
+*/
+
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Purchases, purchases } from "./purchases";
 import { type System, system } from "./system";
@@ -35,10 +43,15 @@ export function initHubApi(callHubApi): HubApi {
       hubApi[group] = {};
     }
     for (const functionName in HubApiStructure[group]) {
-      hubApi[group][functionName] = async (...args) =>
-        handleErrorMessage(
-          await callHubApi({ name: `${group}.${functionName}`, args }),
-        );
+      hubApi[group][functionName] = async (...args) => {
+        const resp = await callHubApi({
+          name: `${group}.${functionName}`,
+          args,
+          requestMany: args[0]?.requestMany,
+          timeout: args[0]?.timeout,
+        });
+        return handleErrorMessage(resp);
+      };
     }
   }
   return hubApi as HubApi;

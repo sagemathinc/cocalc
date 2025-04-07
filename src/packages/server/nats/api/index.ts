@@ -10,7 +10,7 @@ To do development:
 NOTE: there's no way to turn the auth back on in the hub, so you'll have to restart
 your dev hub after doing the above.
 
-2. Run this script standalone:
+2. Run this script at the terminal:
 
     echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
 
@@ -35,7 +35,9 @@ itself or any clients.
 
 To view all requests (and replies) in realtime:
 
-    nats sub api.v2 --match-replies
+    nats sub 'hub.*.*.api' --match-replies
+
+And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 */
 
 import { JSONCodec } from "nats";
@@ -46,6 +48,7 @@ import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
+import { respondMany } from "@cocalc/nats/service/many";
 
 const logger = getLogger("server:nats:api");
 
@@ -76,7 +79,7 @@ export async function initAPI() {
         mesg.respond(jc.encode({ error: "only admin can terminate" }));
         continue;
       }
-      // TODO: should be part of handleApiRequest below, but done differently because
+      // TODO: could be part of handleApiRequest below, but done differently because
       // one case halts this loop
       const { service } = request.args[0] ?? {};
       logger.debug(`Terminate service '${service}'`);
@@ -99,12 +102,14 @@ export async function initAPI() {
         mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
       }
     } else {
-      handleApiRequest(request, mesg);
+      // we explicitly do NOT await this, since we want this hub server to handle
+      // potentially many messages at once, not one at a time!
+      handleApiRequest({ request, mesg, nc });
     }
   }
 }
 
-async function handleApiRequest(request, mesg) {
+async function handleApiRequest({ request, mesg, nc }) {
   let resp;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
@@ -118,7 +123,14 @@ async function handleApiRequest(request, mesg) {
   } catch (err) {
     resp = { error: `${err}` };
   }
-  mesg.respond(jc.encode(resp));
+  try {
+    await respondMany({ mesg, nc, data: jc.encode(resp) });
+  } catch (err) {
+    // there's nothing we can do here, e.g., maybe NATS just died.
+    logger.debug(
+      `WARNING: error responding to hub.api request (client will receive no response) -- ${err}`,
+    );
+  }
 }
 
 import * as purchases from "./purchases";

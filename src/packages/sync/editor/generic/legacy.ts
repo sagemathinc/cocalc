@@ -57,6 +57,8 @@ export class LegacyHistory {
       return { patches: [], users: [] };
     }
     const s = await this.db.getLegacyTimeTravelPatches({
+      requestMany: true, // since response may be large
+      timeout: 60000,
       uuid: info.uuid,
     });
     return { patches: JSON.parse(s).patches, users: info.users };

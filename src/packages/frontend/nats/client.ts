@@ -56,8 +56,11 @@ import {
 } from "@cocalc/nats/client";
 import type { ConnectionInfo } from "./types";
 import { fromJS } from "immutable";
+import { requestMany } from "@cocalc/nats/service/many";
 
 const NATS_STATS_INTERVAL = 2500;
+
+const DEFAULT_CALL_HUB_TIMEOUT = 5000;
 
 export class NatsClient extends EventEmitter {
   client: WebappClient;
@@ -205,24 +208,30 @@ export class NatsClient extends EventEmitter {
     service = "api",
     name,
     args = [],
-    timeout = 5000,
+    timeout = DEFAULT_CALL_HUB_TIMEOUT,
+    requestMany: requestMany0 = false,
   }: {
     service?: string;
     name: string;
     args: any[];
     timeout?: number;
+    // requestMany -- if true do a requestMany request, which is more complicated/slower, but
+    // supports arbitrarily large responses irregardless of the nats server max message size.
+    requestMany?: boolean;
   }) => {
     const { nc } = await this.getEnv();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {
-      const resp = await nc.request(
-        subject,
-        this.jc.encode({
-          name,
-          args,
-        }),
-        { timeout },
-      );
+      const data = this.jc.encode({
+        name,
+        args,
+      });
+      let resp;
+      if (requestMany0) {
+        resp = await requestMany({ nc, subject, data, maxWait: timeout });
+      } else {
+        resp = await nc.request(subject, data, { timeout });
+      }
       return this.jc.decode(resp.data);
     } catch (err) {
       err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
