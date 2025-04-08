@@ -46,11 +46,7 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-// I think this may be flaky in some cases? Not sure.  Not sure it is worth it.  I can
-// never tell the difference.  ALSO, we do so much to throttle the terminal to avoid
-// messing up the browser and/or using excessive bandwidth when people do dumb things,
-// that we can't really leverage this speed (or rather network is more of a limit).
-const ENABLE_WEBGL = false;
+const ENABLE_WEBGL = true;
 
 interface Path {
   file?: string;
