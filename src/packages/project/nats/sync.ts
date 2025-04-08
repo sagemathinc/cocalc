@@ -13,6 +13,10 @@ import {
   type OpenFiles,
   Entry as OpenFileEntry,
 } from "@cocalc/nats/sync/open-files";
+import {
+  inventory as createInventory,
+  type Inventory,
+} from "@cocalc/nats/sync/inventory";
 
 export type { Stream, DStream, KV, DKV, OpenFiles, OpenFileEntry };
 
@@ -38,4 +42,8 @@ export async function dko<T = any>(opts): Promise<DKO<T>> {
 
 export async function openFiles(): Promise<OpenFiles> {
   return await createOpenFiles({ env: await getEnv(), project_id });
+}
+
+export async function inventory(): Promise<Inventory> {
+  return await createInventory({ project_id });
 }

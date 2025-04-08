@@ -700,13 +700,26 @@ export class Stream<T = any> extends EventEmitter {
     this.raw.splice(0, index + 1);
   };
 
-  stats = (): { count: number; bytes: number } | undefined => {
+  // get stats for this stream using data we have already downloaded, BUT
+  // only considering messages with sequence >= start_seq.
+  stats = ({
+    start_seq = 1,
+  }: {
+    start_seq?: number;
+  }): { count: number; bytes: number } | undefined => {
     if (this.raw == null) {
       return;
     }
     let count = 0;
     let bytes = 0;
     for (const raw of this.raw) {
+      const seq = last(raw)?.seq;
+      if (seq == null) {
+        continue;
+      }
+      if (seq < start_seq) {
+        continue;
+      }
       count += 1;
       for (const r of raw) {
         bytes += r.data.length;

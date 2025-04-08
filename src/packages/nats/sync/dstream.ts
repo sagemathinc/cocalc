@@ -359,8 +359,9 @@ export class DStream<T = any> extends EventEmitter {
       const name = this.name;
       const { valueType } = this.opts;
       try {
-        const seq = this.getCurSeq();
-        if (!seq) {
+        const curSeq = this.getCurSeq();
+        if (!curSeq) {
+          // we know nothing
           return;
         }
         const { account_id, project_id, desc, limits } = this.opts;
@@ -373,14 +374,17 @@ export class DStream<T = any> extends EventEmitter {
         }
 
         const cur = inv.get({ type: "stream", name, valueType });
-        if (cur.seq != null && (this.start_seq ?? 0) > cur.seq) {
-          // not enough information to update inventory
-          return;
+        // last update gave info for everything up to and including seq.
+        const seq = cur?.seq ?? 0;
+        if (seq + 1 < (this.start_seq ?? 1)) {
+          // We know data starting at start_seq, but this is strictly
+          // too far along the sequence.
+          throw Error("not enough sequence data to update inventory");
         }
 
         // [ ] TODO: need to take into account cur.seq in computing stats!
 
-        const stats = this.stream?.stats();
+        const stats = this.stream?.stats({ start_seq: seq + 1 });
         if (stats == null) {
           return;
         }
@@ -390,16 +394,15 @@ export class DStream<T = any> extends EventEmitter {
           type: "stream",
           name,
           valueType,
-          count,
-          bytes,
+          count: count + (cur?.count ?? 0),
+          bytes: bytes + (cur?.bytes ?? 0),
           desc,
           limits,
-          seq,
+          seq: curSeq,
         });
       } catch (err) {
         console.log(
-          "WARNING: unable to update inventory for ",
-          this.opts.name,
+          `WARNING: unable to update inventory.  name='${this.opts.name}':`,
           err,
         );
       }

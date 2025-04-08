@@ -70,6 +70,11 @@ interface Item {
   seq?: number;
 }
 
+interface FullItem extends Item {
+  type: StoreType;
+  name: string;
+}
+
 export class Inventory {
   public location: Location;
   private dkv?: DKV<Item>;
@@ -146,7 +151,7 @@ export class Inventory {
 
   get = (
     x: { name: string; type: StoreType; valueType?: ValueType } | string,
-  ): Item & { type: StoreType; name: string } => {
+  ): (Item & { type: StoreType; name: string }) | undefined => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
@@ -171,23 +176,26 @@ export class Inventory {
       cur = this.dkv.get(this.encodeKey(x));
     }
     if (cur == null) {
-      throw Error(`no ${type} named ${name}`);
+      return;
     }
     return { ...cur, type, name };
   };
 
-  getStore = async (
-    x: { name: string; type: StoreType; valueType?: ValueType } | string,
-  ): Promise<DKV | DStream> => {
-    const cur = this.get(x);
-    const { desc, name, type } = cur;
-    if (type == "kv") {
-      return await dkv({ name, ...this.location, desc });
-    } else if (type == "stream") {
-      return await dstream({ name, ...this.location, desc });
-    } else {
-      throw Error(`unknown store type '${type}'`);
+  getStores = async ({ filter }: { filter?: string } = {}): Promise<
+    (DKV | DStream)[]
+  > => {
+    const v: (DKV | DStream)[] = [];
+    for (const x of this.getAll({ filter })) {
+      const { desc, name, type } = x;
+      if (type == "kv") {
+        v.push(await dkv({ name, ...this.location, desc }));
+      } else if (type == "stream") {
+        v.push(await dstream({ name, ...this.location, desc }));
+      } else {
+        throw Error(`unknown store type '${type}'`);
+      }
     }
+    return v;
   };
 
   needsUpdate = (x: {
@@ -208,11 +216,27 @@ export class Inventory {
     return true;
   };
 
-  getAll = () => {
+  getAll = ({ filter }: { filter?: string } = {}): FullItem[] => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    return this.dkv.getAll();
+    const all = this.dkv.getAll();
+    if (filter) {
+      filter = filter.toLowerCase();
+    }
+    const v: FullItem[] = [];
+    for (const key of Object.keys(all)) {
+      const { name, type, valueType } = this.decodeKey(key);
+      if (filter) {
+        const { desc } = all[key];
+        const s = `${desc ? JSON.stringify(desc) : ""} ${name}`.toLowerCase();
+        if (!s.includes(filter)) {
+          continue;
+        }
+      }
+      v.push({ ...all[key], name, type, valueType });
+    }
+    return v;
   };
 
   close = () => {
@@ -264,7 +288,10 @@ export class Inventory {
     path?: string;
     sort?: Sort;
   } = {}) => {
-    const all = this.getAll();
+    if (this.dkv == null) {
+      throw Error("not initialized");
+    }
+    const all = this.dkv.getAll();
     log(
       "╭──────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
