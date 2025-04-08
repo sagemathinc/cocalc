@@ -180,8 +180,12 @@ export const projects: string =
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 // if the directory secrets doesn't exist, create it (sync, during this load):
 if (!existsSync(secrets)) {
-  // Mode '0o700' allows read/write/execute only for the owner
-  mkdirSync(secrets, { recursive: true, mode: 0o700 });
+  try {
+    // Mode '0o700' allows read/write/execute only for the owner
+    mkdirSync(secrets, { recursive: true, mode: 0o700 });
+  } catch {
+    // non-fatal, e.g., maybe user doesn't even have write access to the secrets path
+  }
 }
 
 export const logs: string = process.env.LOGS ?? join(data, "logs");
@@ -191,7 +195,11 @@ export const blobstore: "disk" | "sqlite" =
 // NATS
 export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
 if (!existsSync(nats)) {
-  mkdirSync(nats, { recursive: true, mode: 0o700 });
+  try {
+    mkdirSync(nats, { recursive: true, mode: 0o700 });
+  } catch {
+    // nonfatal -- there are other ways to auth to nats
+  }
 }
 export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
