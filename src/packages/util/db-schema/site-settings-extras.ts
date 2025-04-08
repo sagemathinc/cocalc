@@ -321,7 +321,7 @@ export const EXTRAS: SettingsExtras = {
   },
   nats_auth_nseed: {
     name: "Nats Authentication Callout - Signing Private Key",
-    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
+    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SECRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
     default: "",
     password: true,
     tags: ["Nats"],

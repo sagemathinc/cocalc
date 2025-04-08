@@ -21,9 +21,9 @@ export async function loadNatsConfiguration() {
         "nats_password",
         "nats_auth_nseed",
         "nats_auth_xseed",
-        "nats_server",
         "nats_port",
         "nats_ws_port",
+        "nats_server",
       ],
     ],
   );

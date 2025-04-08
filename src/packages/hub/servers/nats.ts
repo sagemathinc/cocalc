@@ -18,12 +18,12 @@ import { natsWebsocketServer } from "@cocalc/backend/data";
 const logger = getLogger("hub:nats");
 
 export async function proxyNatsWebsocket(req, socket, head) {
-  logger.debug("nats proxy -- handling a connection");
   const target = natsWebsocketServer;
+  logger.debug(`nats proxy -- proxying a connection to ${target}`);
   const proxy = createProxyServer({
     ws: true,
     target,
-    timeout: 3000,
+    timeout: 5000,
   });
   proxy.ws(req, socket, head);
 }
