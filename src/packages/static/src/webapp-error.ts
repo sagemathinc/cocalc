@@ -126,7 +126,10 @@ function isWhitelisted({ error }): boolean {
       // get automatically fixed when we upgrade to codemirror 6.
       return true;
     }
-    if (error?.stack?.includes("jquery.js")) {
+    if (
+      error?.stack?.includes("jquery.js") ||
+      error?.stack?.includes("N.slice is not a function")
+    ) {
       // we can't do anything about errors deep in jquery...
       // e.g., one thing that causes this: https://sagemathcloud.zendesk.com/agent/tickets/17324
       // Steps to reproduce:
