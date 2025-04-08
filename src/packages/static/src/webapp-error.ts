@@ -126,6 +126,18 @@ function isWhitelisted({ error }): boolean {
       // get automatically fixed when we upgrade to codemirror 6.
       return true;
     }
+    if (error?.stack?.includes("jquery.js")) {
+      // we can't do anything about errors deep in jquery...
+      // e.g., one thing that causes this: https://sagemathcloud.zendesk.com/agent/tickets/17324
+      // Steps to reproduce:
+      // - Open any TeX document
+      // - Split vertically the view and set the right view to PDF - native
+      // - Enable "Build on save"
+      // - Make any edit to your latex file
+      // - Save
+      // - Move your mouse to the pdf view
+      return true;
+    }
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.
