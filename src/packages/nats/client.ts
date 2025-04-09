@@ -85,16 +85,27 @@ export class ClientWithState extends EventEmitter {
   };
 }
 
+// do NOT do this until some explicit use of nats is initiated, since we shouldn't
+// connect to nats until something tries to do so.
+let timeInitialized = false;
+function initTime() {
+  if (timeInitialized) {
+    return;
+  }
+  timeInitialized = true;
+  init();
+}
+
 let globalClient: null | ClientWithState = null;
 export function setNatsClient(client: Client) {
   globalClient = new ClientWithState(client);
-  setTimeout(init, 1);
 }
 
 export async function getEnv(): Promise<NatsEnv> {
   if (globalClient == null) {
     throw Error("must set the global NATS client");
   }
+  initTime();
   return await globalClient.getNatsEnv();
 }
 
@@ -102,6 +113,7 @@ export function getClient(): ClientWithState {
   if (globalClient == null) {
     throw Error("must set the global NATS client");
   }
+  initTime();
   return globalClient;
 }
 
