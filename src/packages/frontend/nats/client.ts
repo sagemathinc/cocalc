@@ -33,7 +33,6 @@ import {
 import { dstream, type DStream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
-import { Svcm } from "@nats-io/services";
 import { callNatsService, createNatsService } from "@cocalc/nats/service";
 import type {
   CallNatsServiceFunction,
@@ -555,13 +554,6 @@ export class NatsClient extends EventEmitter {
     //       throw Error("account client can't set limits on public stream");
     //     }
     return await dko<T>({ env: await this.getEnv(), ...opts });
-  };
-
-  microservices = async () => {
-    const { nc } = await this.getEnv();
-    // @ts-ignore
-    const svcm = new Svcm(nc);
-    return svcm.client();
   };
 
   listings = async (opts: {

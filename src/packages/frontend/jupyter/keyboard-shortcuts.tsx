@@ -203,9 +203,9 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       }
       const shortcut = evt_to_obj(e, "escape");
       // Is this shortcut already taken, either in escape mode or both modes?
-      let taken = prop_taken[json(evt_to_obj(e, "edit"))];
+      let taken = prop_taken[json(evt_to_obj(e, "edit"))!];
       if (taken == null) {
-        taken = prop_taken[json(shortcut)];
+        taken = prop_taken[json(shortcut)!];
       }
       set_value(shortcut_to_string(shortcut));
       set_shortcut(shortcut);
@@ -485,7 +485,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
             : isIntlMessage(m)
             ? intl.formatMessage(m)
             : m;
-          taken[json(s)] = title;
+          taken[json(s)!] = title;
         }
       }
     }

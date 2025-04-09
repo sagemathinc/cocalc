@@ -1,4 +1,4 @@
-import { fromJS } from "immutable";
+import { fromJS, type List } from "immutable";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import { filenameMode } from "@cocalc/frontend/file-associations";
 import parseIpynb from "@cocalc/jupyter/ipynb/parse";
@@ -55,10 +55,10 @@ export class ViewDocument implements Document {
     throw Error("not implemented");
   }
 
-  get(query?) {
+  get(query?): List<any> {
     const v = this.v;
     if (v == null) {
-      return [];
+      return fromJS([]);
     }
     if (query == null) {
       return fromJS(v);

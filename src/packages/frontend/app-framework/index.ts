@@ -350,7 +350,7 @@ function reduxPropsCheck(reduxProps: object) {
 */
 
 function compute_cache_key(data: { [key: string]: any }): string {
-  return json_stable(keys(data).sort());
+  return json_stable(keys(data).sort())!;
 }
 
 rclass = function (x: any) {
