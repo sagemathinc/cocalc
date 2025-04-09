@@ -38,7 +38,8 @@ export async function getCreds(): Promise<string | undefined> {
 let wait = 2000;
 let nc: NatsConnection | null = null;
 export const getConnection = reuseInFlight(async () => {
-  logger.debug("connecting to nats");
+  const servers = `${natsServer}:${natsPorts.server}`;
+  logger.debug("connecting to nats", { servers });
   while (nc == null) {
     try {
       //const creds = await getCreds();
@@ -47,11 +48,11 @@ export const getConnection = reuseInFlight(async () => {
         user: "cocalc",
         pass: natsPassword,
         inboxPrefix: inboxPrefix({}),
-        servers: `${natsServer}:${natsPorts.server}`,
+        servers,
       });
       logger.debug(`connected to ${nc.getServer()}`);
     } catch (err) {
-      logger.debug(`WARNING/ERROR: FAILED TO CONNECT TO nats-server: ${err}`);
+      logger.debug(`WARNING/ERROR: FAILED TO CONNECT TO ${servers}: ${err}`);
       logger.debug(`will retry in ${wait} ms`);
       await delay(wait);
       wait = Math.min(7500, 1.25 * wait);
