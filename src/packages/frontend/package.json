@@ -208,7 +208,7 @@
     "test": "npx jest i18n/ misc/",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules i18n/trans/*.compiled.json",
     "i18n:extract": "bash ./i18n/bin/extract.sh",
     "i18n:upload": "bash ./i18n/bin/upload.sh",
     "i18n:download": "bash ./i18n/bin/download.sh",

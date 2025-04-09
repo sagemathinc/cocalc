@@ -31,7 +31,7 @@
     "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && pnpm build && cd ../util && pnpm build",
     "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
-    "clean": "rm -rf node_modules .next dist",
+    "clean": "rm -rf node_modules .next dist software-inventory/*.json lib/software-inventory/*.json",
     "start": "unset PGHOST; pnpm exec next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
     "test": "NODE_ENV='dev' pnpm exec jest && NODE_ENV='production' pnpm exec jest ./lib/api/framework.test.ts",
