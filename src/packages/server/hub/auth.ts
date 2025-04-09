@@ -446,7 +446,7 @@ export class PassportManager {
           issuer: this.auth_url,
           requestIdExpirationPeriodMs: cachedMS,
           signatureAlgorithm: "sha256", // better than default sha1
-          validateInResponseTo: true,
+          validateInResponseTo: "never", // default
           wantAssertionsSigned: true,
           ...patch,
         };
@@ -770,6 +770,9 @@ export class PassportManager {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
       callbackURL: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
+      // node-saml v5 needs this as well
+      // https://github.com/node-saml/node-saml/blob/master/src/saml.ts#L95
+      callbackUrl: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
       ...extra_opts,
     } as const;
 
