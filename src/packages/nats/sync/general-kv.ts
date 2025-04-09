@@ -127,6 +127,8 @@ import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/nats/types";
 
+const PUBLISH_TIMEOUT = 15000;
+
 class RejectError extends Error {
   code: string;
   key: string;
@@ -770,10 +772,13 @@ export class GeneralKV<T = any> extends EventEmitter {
       await jetstreamPut(this.kv, key, val, {
         previousSeq: revision,
         headers: allHeaders,
+        timeout: PUBLISH_TIMEOUT,
       });
       // now save the other chunks somewhere.
       for (let i = 1; i < chunks.length; i++) {
-        await jetstreamPut(this.kv, chunkedKey({ key, chunk: i }), chunks[i]);
+        await jetstreamPut(this.kv, chunkedKey({ key, chunk: i }), chunks[i], {
+          timeout: PUBLISH_TIMEOUT,
+        });
       }
       if (chunks.length < (this.chunkCounts[key] ?? 0)) {
         // value previously had even more chunks, so we get rid of the extra chunks.
@@ -801,16 +806,14 @@ export class GeneralKV<T = any> extends EventEmitter {
             }
             allHeaders.append(k, v);
           }
-          await jetstreamPut(this.kv, key, val, {
-            previousSeq: revision,
-            headers: allHeaders,
-          });
         } else {
-          await this.kv.put(key, val, {
-            previousSeq: revision,
-            headers: options?.headers,
-          });
+          allHeaders = undefined;
         }
+        await jetstreamPut(this.kv, key, val, {
+          previousSeq: revision,
+          headers: allHeaders,
+          timeout: PUBLISH_TIMEOUT,
+        });
       } catch (err) {
         if (err.code == "MAX_PAYLOAD_EXCEEDED") {
           // nats rejects due to payload size
@@ -1010,6 +1013,10 @@ function parseChunkedKey(key: string): {
 // on top of lower level primitives.  However, if they do, we will
 // fork whatever part of NATS that does, and maintain it.  The code
 // is easy to work with and understand.
+
+// Second, the put function in nats.js doesn't support setting a timeout,
+// so that's another thing done below. Upstream:
+//        https://github.com/nats-io/nats.js/issues/268
 async function jetstreamPut(
   kv,
   k: string,
@@ -1019,7 +1026,7 @@ async function jetstreamPut(
   const ek = kv.encodeKey(k);
   kv.validateKey(ek);
 
-  const o = {} as any;
+  const o = { timeout: opts.timeout } as any;
   if (opts.previousSeq !== undefined) {
     const h = createHeaders();
     o.headers = h;

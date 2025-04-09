@@ -1235,7 +1235,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       parsed_content = JSON.parse(content);
     } catch (err) {
-      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
+      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing, or use TimeTravel to revert to a recent version.`;
       dbg(error);
       this.syncdb.set({ type: "fatal", error });
       throw Error(error);

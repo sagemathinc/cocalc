@@ -60,6 +60,8 @@ import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
 
+const PUBLISH_TIMEOUT = 15000;
+
 class PublishRejectError extends Error {
   code: string;
   mesg: any;
@@ -433,6 +435,7 @@ export class Stream<T = any> extends EventEmitter {
     for (let i = 0; i < chunks.length; i++) {
       try {
         resp = await this.js.publish(this.subject, chunks[i], {
+          timeout: PUBLISH_TIMEOUT,
           ...options,
           // if options contains a msgID, we must make it different for each chunk;
           // otherwise, all but the first chunk is discarded!
