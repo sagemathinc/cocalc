@@ -31,10 +31,10 @@
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/util": "workspace:*",
+    "@lydell/node-pty": "^1.1.0",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
     "lodash": "^4.17.21",
-    "node-pty": "^1.0.0",
     "primus": "^8.0.9"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/terminal",

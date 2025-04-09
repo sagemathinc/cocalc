@@ -11,7 +11,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
-import { spawn } from "node-pty";
+import { spawn } from "@lydell/node-pty";
 import { throttle } from "lodash";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";

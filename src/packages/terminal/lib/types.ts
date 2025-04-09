@@ -1,7 +1,7 @@
 import type { EventEmitter } from "events";
 import Primus from "primus";
 import type { Spark } from "primus";
-import type { IPty as IPty0 } from "node-pty";
+import type { IPty as IPty0 } from "@lydell/node-pty";
 
 // upstream typings not quite right
 export interface IPty extends IPty0 {

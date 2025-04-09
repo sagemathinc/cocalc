@@ -4,7 +4,7 @@ Terminal
 - using NATS
 */
 
-import { spawn } from "node-pty";
+import { spawn } from "@lydell/node-pty";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { path_split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
