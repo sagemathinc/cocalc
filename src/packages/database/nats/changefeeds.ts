@@ -144,7 +144,7 @@ const createChangefeed = reuseInFlight(
       jsonStableStringify({
         query,
         ...user,
-      }),
+      })!,
     );
     const now = Date.now();
     if (changefeedInterest[hash]) {
@@ -267,5 +267,5 @@ const createChangefeed = reuseInFlight(
       throw err;
     }
   },
-  { createKey: (args) => jsonStableStringify(args[0]) },
+  { createKey: (args) => jsonStableStringify(args[0])! },
 );
