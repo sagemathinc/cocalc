@@ -240,12 +240,14 @@ def install(args) -> None:
     if v == all_packages():
         print("install all packages -- fast special case")
         # much faster special case
-        cmd("cd packages && pnpm install")
+        # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
+        cmd("cd packages && pnpm install --config.confirmModulesPurge=false")
         return
 
     # Do "pnpm i" not in parallel
     for path in v:
-        c = "pnpm install "
+        # see https://github.com/pnpm/pnpm/issues/6778 about confirm option
+        c = "pnpm install --config.confirmModulesPurge=false "
         if args.prod:
             c += ' --prod '
         cmd(c, path)
