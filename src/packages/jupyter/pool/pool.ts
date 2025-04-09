@@ -78,7 +78,7 @@ function makeKey({ name, opts }) {
   delete opts0.cwd;
   opts0.env = { ...opts.env };
   delete opts0.env.COCALC_JUPYTER_FILENAME;
-  return json({ name, opts: opts0 });
+  return json({ name, opts: opts0 })!;
 }
 
 export default async function launchJupyterKernel(

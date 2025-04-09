@@ -44,6 +44,7 @@
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/json-stable-stringify": "^1.0.32",
     "@types/node-cleanup": "^2.1.2",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.8.1",

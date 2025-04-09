@@ -161,7 +161,7 @@ class SyncTableChannel {
       // will be denied anyways.
       this.ephemeral = true;
     }
-    this.query_string = stringify(query); // used only for logging
+    this.query_string = stringify(query)!; // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
       `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`,
@@ -489,7 +489,7 @@ class SyncTableChannel {
 const synctable_channels: { [name: string]: SyncTableChannel } = {};
 
 function createKey(args): string {
-  return stringify([args[3], args[4]]);
+  return stringify([args[3], args[4]])!;
 }
 
 function channel_name(query: any, options: any[]): string {
@@ -514,7 +514,7 @@ function channel_name(query: any, options: any[]): string {
     // that's fine - in this case, just make a key out of the query.
     q = query;
   }
-  const y = stringify([q, opts]);
+  const y = stringify([q, opts])!;
   const s = sha1(y);
   return `sync:${s}`;
 }

@@ -103,7 +103,7 @@ def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments,
     # but we use "tsc --build", which automatically builds deps if not built.
     v = [
-        'packages/',  # top level workspace
+        'packages/',  # top level workspace, e.g., typescript
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
@@ -245,12 +245,20 @@ def install(args) -> None:
         return
 
     # Do "pnpm i" not in parallel
+    print("v = ", v)
     for path in v:
+        print("path=", path)
         # see https://github.com/pnpm/pnpm/issues/6778 about confirm option
         c = "pnpm install --config.confirmModulesPurge=false "
         if args.prod:
             c += ' --prod '
-        cmd(c, path)
+        # doing "pnpm install" inside the subdirectories always install EVERYTHING!
+        # Instead we must use --filter like this.  If you touch this, make
+        # sure to try using --exclude  with next (say) and that next isn't
+        # still installed in packages/node_modules!  This is confusing, but it's
+        # crucial since installing everything is 2.5GB+, and we usually don't
+        # need everything.
+        cmd(c + ' --filter ./' + path)
 
 
 # Build all the packages that need to be built.

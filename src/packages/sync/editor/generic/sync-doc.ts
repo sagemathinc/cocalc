@@ -638,7 +638,7 @@ export class SyncDoc extends EventEmitter {
     await this.cursors_table.save();
   };
 
-  set_cursor_locs = throttle(
+  set_cursor_locs: typeof this.setCursorLocsNoThrottle = throttle(
     this.setCursorLocsNoThrottle,
     USE_NATS ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
     {
@@ -3499,7 +3499,10 @@ export class SyncDoc extends EventEmitter {
   // until the next "render loop" to avoid huge performance issues
   // with a nested for loop of sets.  Doing it this way, massively
   // simplifies client code.
-  emit_change_debounced = debounce(this.emit_change, 0);
+  emit_change_debounced: typeof this.emit_change = debounce(
+    this.emit_change,
+    0,
+  );
 
   private set_syncstring_table = async (obj, save = true) => {
     const value0 = this.syncstring_table_get_one();
