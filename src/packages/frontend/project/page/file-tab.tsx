@@ -542,6 +542,9 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
   // The "ltr" below is needed because of the direction 'rtl' in label_style, which
   // we have to compensate for in some situations, e.g., a file name "this is a file!"
   // will have the ! moved to the beginning by rtl.
+  // NOTE: the element with style direction='ltr' MUST be a div, not a span!!!
+  // Otherwise, e.g., the filename foo/matrix.ipynb will be rendered incorrectly
+  // (make tabs with files matrix.ipynb and foo/matrix.ipynb to see this).
   return (
     <div
       style={{
@@ -549,10 +552,10 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
         ...(label.includes("/") ? FULLPATH_LABEL_STYLE : undefined),
       }}
     >
-      <span style={{ direction: "ltr" }}>
+      <div style={{ direction: "ltr" }}>
         {label}
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
-      </span>
+      </div>
     </div>
   );
 }

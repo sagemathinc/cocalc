@@ -252,7 +252,7 @@ function ActionButton({
                 style={{ margin: "15px 0", maxWidth: "400px" }}
                 type="warning"
                 message={
-                  "This will delete the boot disk!  This does not touch the files in your project's home directory."
+                  "This will delete the boot disk!  This does not touch the files in your HOME BASE (what you see when not using a compute server).  This permanently deletes EVERYTHING stored on the compute server, especially in any fast local directories."
                 }
               />
             )}
