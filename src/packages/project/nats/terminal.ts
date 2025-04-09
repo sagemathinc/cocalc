@@ -35,7 +35,7 @@ const HISTORY_LIMIT_BYTES = 20000;
 const MAX_BYTES_PER_SECOND = 1 * 1000000;
 
 //   Limit number of messages per second (not doing this makes it easy to cause trouble to the server)
-const MAX_MSGS_PER_SECOND = 150;
+const MAX_MSGS_PER_SECOND = 250;
 
 const sessions: { [path: string]: Session } = {};
 
@@ -253,18 +253,18 @@ class Session {
     this.stream.on("reject", ({ err }) => {
       if (err.limit == "max_bytes_per_second") {
         // instead, send something small
-        this.throttledEllipses();
+        this.throttledEllipses("bytes");
       } else if (err.limit == "max_msgs_per_second") {
         // only sometimes send [...], because channel is already full and it
         // doesn't help to double the messages!
-        this.throttledEllipses();
+        this.throttledEllipses("messages");
       }
     });
   };
 
   private throttledEllipses = throttle(
-    () => {
-      this.stream?.publish(" [...(truncated)...] ");
+    (what) => {
+      this.stream?.publish(` [...(truncated ${what})...] `);
     },
     1000,
     { leading: true, trailing: true },
