@@ -53,7 +53,7 @@ function getUserId(subject: string): string {
 let sub: Subscription | null = null;
 export async function init(evaluate) {
   const { nc } = await getEnv();
-  sub = nc.subscribe(`${SUBJECT}.*.api`);
+  sub = nc.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
   listen(evaluate);
 }
 
