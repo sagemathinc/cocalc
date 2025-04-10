@@ -237,28 +237,29 @@ def banner(s: str) -> None:
 
 def install(args) -> None:
     v = packages(args)
-    if v == all_packages():
-        print("install all packages -- fast special case")
-        # much faster special case
-        # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
-        cmd("cd packages && pnpm install --config.confirmModulesPurge=false")
-        return
+    print("first install all packages")
+    # much faster special case
+    # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
+    c = "cd packages && pnpm install --config.confirmModulesPurge=false"
+    if args.prod:
+        args.dist_only = False
+        args.node_modules_only = True
+        args.parallel = True
+        clean(args)
+        c += " --prod"
+    cmd(c)
 
-    # Do "pnpm i" not in parallel
-    print("v = ", v)
-    for path in v:
-        print("path=", path)
-        # see https://github.com/pnpm/pnpm/issues/6778 about confirm option
-        c = "pnpm install --config.confirmModulesPurge=false "
-        if args.prod:
-            c += ' --prod '
-        # doing "pnpm install" inside the subdirectories always install EVERYTHING!
-        # Instead we must use --filter like this.  If you touch this, make
-        # sure to try using --exclude  with next (say) and that next isn't
-        # still installed in packages/node_modules!  This is confusing, but it's
-        # crucial since installing everything is 2.5GB+, and we usually don't
-        # need everything.
-        cmd(c + ' --filter ./' + path)
+    if v != all_packages():
+        print("remove packages from excluded directories")
+        # **remove node_modules** from all directories that are excluded.
+        # We have to do the full install above -- there's no way around
+        # that which works as far as I can tell.  Any use of --filter that
+        # works also ends up ignoring the lockfile.
+        for path in all_packages():
+            if path not in v:
+                print("removing packages from ", path)
+                shutil.rmtree(os.path.join(path, 'node_modules'),
+                              ignore_errors=True)
 
 
 # Build all the packages that need to be built.
