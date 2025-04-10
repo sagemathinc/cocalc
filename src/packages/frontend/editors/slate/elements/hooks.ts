@@ -15,7 +15,6 @@ import { Range } from "slate";
 import { path_split } from "@cocalc/util/misc";
 import { useSlateStatic as useSlateStatic0 } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
-import { initProcessLinksPlugin } from "@cocalc/frontend/misc/process-links/jquery";
 
 // Exactly like the normal useSlate hook, except return type is
 // SlateEditor, which we know since we're only using this in CoCalc
@@ -48,7 +47,6 @@ export const useProcessLinks = (
   useEffect(() => {
     if (ref.current == null) return;
     const elt = $(ReactDOM.findDOMNode(ref.current));
-    initProcessLinksPlugin();
     (elt as any).process_smc_links({
       project_id,
       file_path: path_split(path).head, // TODO: inefficient to compute this every time.

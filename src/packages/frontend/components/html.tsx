@@ -13,7 +13,6 @@ import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc/sanitize";
-import { initProcessLinksPlugin } from "@cocalc/frontend/misc/process-links/jquery"; // ensure jquery plugin defined.
 import $ from "jquery";
 
 export interface Props {
@@ -115,7 +114,6 @@ export function HTML({
     if (!isMountedRef.current) {
       return;
     }
-    initProcessLinksPlugin();
     jq()?.process_smc_links({
       project_id,
       file_path,
@@ -192,7 +190,6 @@ export function HTML({
       if (highlight_code) {
         elt.highlight_code();
       }
-      initProcessLinksPlugin();
       elt.process_smc_links({
         project_id,
         file_path,

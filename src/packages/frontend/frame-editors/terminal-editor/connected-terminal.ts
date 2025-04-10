@@ -39,7 +39,6 @@ import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { NatsTerminalConnection } from "./nats-terminal-connection";
 import { termPath } from "@cocalc/util/terminal/names";
-import { initProcessLinksPlugin } from "@cocalc/frontend/misc/process-links/jquery";
 
 declare const $: any;
 
@@ -835,7 +834,6 @@ function handleLink(_: MouseEvent, uri: string): void {
   // This horrendous code is because process-links is so "badly"
   // written, that its logic can only be used via jQuery...
   // and I don't want to rewrite it right now.
-  initProcessLinksPlugin();
   const e = $(`<div><a href='${uri}'>x</a></div>`);
   e.process_smc_links();
   e.find("a").click();

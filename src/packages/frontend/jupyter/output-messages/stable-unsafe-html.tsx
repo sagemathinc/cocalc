@@ -30,7 +30,6 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
 import { sha1 } from "@cocalc/util/misc";
 import TTL from "@isaacs/ttlcache";
-import { initProcessLinksPlugin } from "@cocalc/frontend/misc/process-links/jquery";
 
 // AFter this many seconds, an element that hasn't been in the react dom and whose
 // parent hasn't been scrolled, will get un-rendered.
@@ -207,7 +206,6 @@ export default function StableUnsafeHtml({
       const elt = $(
         `<div id="${globalKeyRef.current}" style="border:0;position:absolute;overflow:auto;z-index:${zIndex}"/>${html}</div>`,
       );
-      initProcessLinksPlugin();
       // @ts-ignore
       elt.process_smc_links();
       // @ts-ignore

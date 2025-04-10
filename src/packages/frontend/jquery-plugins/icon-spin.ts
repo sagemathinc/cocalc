@@ -7,23 +7,24 @@
 // rewrite those and get rid of this.
 
 import $ from "jquery";
-export const jQuery = $;
 
-// @ts-ignore
-$.fn.icon_spin = function (start: any, _disable: boolean = false) {
-  if (typeof start === "object") {
-    start = start.start;
-  }
-  this.each(function () {
-    // @ts-ignore
-    const elt = $(this);
-    if (start) {
-      elt.find(".fa-cocalc-ring").show();
-      elt.find(".primary-icon").hide();
-    } else {
-      elt.find(".fa-cocalc-ring").hide();
-      elt.find(".primary-icon").show();
+export function init() {
+  // @ts-ignore
+  $.fn.icon_spin = function (start: any, _disable: boolean = false) {
+    if (typeof start === "object") {
+      start = start.start;
     }
-  });
-  return this;
-};
+    this.each(function () {
+      // @ts-ignore
+      const elt = $(this);
+      if (start) {
+        elt.find(".fa-cocalc-ring").show();
+        elt.find(".primary-icon").hide();
+      } else {
+        elt.find(".fa-cocalc-ring").hide();
+        elt.find(".primary-icon").show();
+      }
+    });
+    return this;
+  };
+}

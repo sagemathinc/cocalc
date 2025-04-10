@@ -22,7 +22,7 @@ interface Options {
   doubleClick?: boolean;
 }
 
-export function initProcessLinksPlugin() {
+export function init() {
   // @ts-ignore
   if ($.fn.process_smc_links != null) {
     return;
@@ -41,5 +41,3 @@ export function initProcessLinksPlugin() {
     return this;
   };
 }
-
-initProcessLinksPlugin();

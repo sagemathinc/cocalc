@@ -27,6 +27,7 @@ import "./launch/actions";
 import "./jquery-plugins";
 
 // Initialize app stores, actions, etc.
+import { init as initJqueryPlugins } from "./jquery-plugins";
 import { init as initAccount } from "./account";
 import { init as initApp } from "./app/init";
 import { init as initProjects } from "./projects";
@@ -50,7 +51,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
-  await import("./jquery-plugins"); // ensure is loaded
+  initJqueryPlugins();
   initAccount(redux);
   initApp();
   initProjects();
