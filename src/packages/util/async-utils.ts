@@ -129,9 +129,15 @@ export async function once(
   event: string,
   timeout_ms: number = 0,
 ): Promise<any> {
+  if (obj == null) {
+    throw Error("once -- obj is undefined");
+  }
+  if (typeof obj.once != "function") {
+    throw Error("once -- obj.once must be a function");
+  }
   if (!(obj instanceof EventEmitter)) {
     // just in case typescript doesn't catch something:
-    throw Error("obj must be an EventEmitter");
+    console.warn("obj should be an EventEmitter");
   }
   if (timeout_ms > 0) {
     // just to keep both versions more readable...
