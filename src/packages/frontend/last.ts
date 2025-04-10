@@ -22,14 +22,6 @@ export function init() {
       e.preventDefault();
       e.stopPropagation(); // ?
     }
-    // hide popover on click
-    if (
-      $(e.target).data("toggle") !== "popover" &&
-      $(e.target).parents(".popover.in").length === 0
-    ) {
-      // @ts-ignore
-      return $('[data-toggle="popover"]').popover("hide");
-    }
   });
 
   if (webapp_client.hub_client.is_connected()) {
