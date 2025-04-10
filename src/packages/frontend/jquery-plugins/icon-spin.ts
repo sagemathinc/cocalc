@@ -6,9 +6,10 @@
 // TODO: this is used by the two jquery-based editors: sage worksheets and jupyter
 // rewrite those and get rid of this.
 
+import $ from "jquery";
 export const jQuery = $;
-declare var $: any;
 
+// @ts-ignore
 $.fn.icon_spin = function (start: any, _disable: boolean = false) {
   if (typeof start === "object") {
     start = start.start;

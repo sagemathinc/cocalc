@@ -22,7 +22,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 */
 
-declare var $;
+import $ from "jquery";
 
 export const FONT_SIZES = [
   "xx-small",

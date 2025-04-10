@@ -5,8 +5,7 @@
 
 // This should be the last code run on client application startup.
 
-declare var $: any;
-
+import $ from "jquery";
 declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
@@ -28,6 +27,7 @@ export function init() {
       $(e.target).data("toggle") !== "popover" &&
       $(e.target).parents(".popover.in").length === 0
     ) {
+      // @ts-ignore
       return $('[data-toggle="popover"]').popover("hide");
     }
   });
@@ -39,7 +39,7 @@ export function init() {
     if (webapp_client.hub_client.is_signed_in()) {
       webapp_client.emit(
         "signed_in",
-        webapp_client.hub_client.get_signed_in_mesg()
+        webapp_client.hub_client.get_signed_in_mesg(),
       );
     }
   }

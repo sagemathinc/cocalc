@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-declare var $: any;
+import $ from "jquery";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { redux } from "../app-framework";

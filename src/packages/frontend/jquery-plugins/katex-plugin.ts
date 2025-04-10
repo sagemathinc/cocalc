@@ -9,8 +9,8 @@ jQuery DOM tree.
 */
 
 import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/math/index";
+import $ from "jquery";
 export const jQuery = $;
-declare var $: any;
 import { tex2jax } from "./tex2jax";
 import { macros } from "./math-katex";
 

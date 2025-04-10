@@ -5,8 +5,7 @@
 
 import target from "@cocalc/frontend/client/handle-target";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
-
-declare var $: any;
+import $ from "jquery";
 
 /*
 Misc random code that I don't really know how to classify further.  It's misc

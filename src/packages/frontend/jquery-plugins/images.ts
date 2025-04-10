@@ -3,13 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import $ from "jquery";
 export const jQuery = $;
-declare var $: any;
 
 import { startswith } from "@cocalc/util/misc";
 
 // Force reload all images by appending random query param to their src URL.
 // But not for base64 data images -- https://github.com/sagemathinc/cocalc/issues/3141
+// @ts-ignore
 $.fn.reload_images = function () {
   this.each(function () {
     // @ts-ignore -- $(this)
@@ -27,6 +28,7 @@ $.fn.reload_images = function () {
 // Jupyter kernels for Sage worksheets.
 // See https://github.com/sagemathinc/cocalc/issues/1192 and
 //     https://github.com/sagemathinc/cocalc/issues/4421
+// @ts-ignore
 $.fn.smc_image_scaling = function () {
   this.each(function () {
     // @ts-ignore -- $(this)
@@ -38,19 +40,21 @@ $.fn.smc_image_scaling = function () {
         continue;
       }
       const img = y.get(0);
-      const scale_img = function () {
-        const width = img.naturalWidth;
-        const factor = parseFloat(img_scaling);
-        if (!isNaN(factor)) {
-          const new_width = width * factor;
-          y.css("width", `${new_width}px`);
-        } else {
-          // fallback that is better than nothing!
-          y.css("max-width", "800px");
-        }
-      };
-      scale_img();
-      img.onload = scale_img;
+      if (img != null) {
+        const scale_img = function () {
+          const width = img.naturalWidth;
+          const factor = parseFloat(img_scaling);
+          if (!isNaN(factor)) {
+            const new_width = width * factor;
+            y.css("width", `${new_width}px`);
+          } else {
+            // fallback that is better than nothing!
+            y.css("max-width", "800px");
+          }
+        };
+        scale_img();
+        img.onload = scale_img;
+      }
     }
   });
 };

@@ -6,8 +6,9 @@
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { createRoot } from "react-dom/client";
+import $ from "jquery";
 
-declare var $: any;
+// @ts-ignore
 $.fn.processIcons = function () {
   return this.each(function () {
     // @ts-ignore
@@ -17,7 +18,7 @@ $.fn.processIcons = function () {
         if (cls.startsWith("fa-")) {
           const root = createRoot(elt);
           root.render(
-            <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />
+            <Icon name={cls.slice(3) as any} spin={cls == "fa-cocalc-ring"} />
           );
           break;
         }
