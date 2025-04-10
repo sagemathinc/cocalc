@@ -11,8 +11,10 @@ import { init as initImages } from "./images";
 import { init as initCodemirror } from "./codemirror";
 import { init as initProcessLinks } from "../misc/process-links/jquery";
 import { init as initProcessIcons } from "./process-icons";
+import $ from "jquery";
 
 export function init() {
+  window.$ = $;
   initHeight();
   initIconSpin();
   initMisc();

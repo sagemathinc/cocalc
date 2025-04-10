@@ -10,6 +10,7 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import { Spin } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -21,7 +22,6 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
 import { IconName, Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
@@ -142,7 +142,7 @@ export const Page: React.FC = () => {
     if (!accountIsReady) {
       return (
         <div>
-          Account Status: <Loading />
+          <Spin delay={1000}/>
         </div>
       );
     }
@@ -361,7 +361,7 @@ export const Page: React.FC = () => {
     const loading_anon = (
       <div style={{ margin: "auto", textAlign: "center" }}>
         <h1 style={{ color: COLORS.GRAY }}>
-          <Loading />
+          <Spin delay={1000} />
         </h1>
         <div style={{ color: COLORS.GRAY, width: "50vw" }}>
           Please give <SiteName /> a couple of seconds to start your project and
