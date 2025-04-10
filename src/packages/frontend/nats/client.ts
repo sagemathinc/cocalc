@@ -43,7 +43,7 @@ import {
   computeServerManager,
   type Options as ComputeServerManagerOptions,
 } from "@cocalc/nats/compute/manager";
-import getTime, { getSkew } from "@cocalc/nats/time";
+import getTime, { getSkew, init as initTime } from "@cocalc/nats/time";
 import { llm } from "@cocalc/nats/llm/client";
 import { inventory } from "@cocalc/nats/sync/inventory";
 import { EventEmitter } from "events";
@@ -98,6 +98,7 @@ export class NatsClient extends EventEmitter {
         this.emit(state);
       }
     });
+    initTime();
   };
 
   getEnv = async () => await getEnv();

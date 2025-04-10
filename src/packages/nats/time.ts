@@ -67,7 +67,12 @@ export function close() {
   state = "closed";
 }
 
+let syncLoopStarted = false;
 async function syncLoop() {
+  if (syncLoopStarted) {
+    return;
+  }
+  syncLoopStarted = true;
   const client = getClient();
   while (state != "closed" && client.state != "closed") {
     try {
@@ -137,6 +142,7 @@ export async function getSkew(): Promise<number> {
 
 export default function getTime(): number {
   if (skew == null) {
+    init();
     throw Error("clock skew not known");
   }
   return Date.now() - skew;
