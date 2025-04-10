@@ -478,9 +478,17 @@ export class PassportManager {
     // node-saml>=5 renamed cert to idpCert (passport-saml dependency)
     // https://github.com/node-saml/node-saml/pull/343
     if (type === "saml" || type === "saml-v3" || type === "saml-v4") {
+      // https://github.com/node-saml/node-saml/blob/master/README.md#security-and-signatures
       if (typeof opts.cert === "string") {
         opts.idpCert = opts.cert;
         delete opts.cert;
+      }
+      // https://github.com/node-saml/node-saml/blob/master/README.md
+      // default is "never"
+      if (typeof opts.validateInResponseTo === "boolean") {
+        opts.validateInResponseTo = opts.validateInResponseTo
+          ? "ifPresent"
+          : "never";
       }
     }
 
