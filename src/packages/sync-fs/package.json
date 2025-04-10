@@ -13,7 +13,8 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
-    "clean": "rm -rf node_modules dist"
+    "clean": "rm -rf node_modules dist",
+    "test": "pnpm exec jest --forceExit --runInBand"
   },
   "author": "SageMath, Inc.",
   "keywords": ["cocalc", "jupyter"],
@@ -25,10 +26,9 @@
     "@cocalc/nats": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/lz4": "^0.6.3",
     "execa": "^8.0.1",
     "lodash": "^4.17.21",
-    "lz4": "^0.6.5",
+    "lz4-napi": "^2.8.0",
     "mkdirp": "^1.0.4",
     "tsimportlib": "^0.0.5"
   },

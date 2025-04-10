@@ -30,7 +30,7 @@ export default async function handleApiCall({
 
   let computeState;
   if (computeStateJson) {
-    computeState = fromCompressedJSON(await readFile(computeStateJson));
+    computeState = await fromCompressedJSON(await readFile(computeStateJson));
   } else {
     throw Error("not implemented");
   }

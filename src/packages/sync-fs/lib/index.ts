@@ -596,7 +596,7 @@ export class SyncFS {
     );
     await writeFile(
       join(this.lower, computeStateJson),
-      toCompressedJSON(computeState),
+      await toCompressedJSON(computeState),
     );
     this.reportState({
       state: "send-state-to-project",
