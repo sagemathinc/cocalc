@@ -1,6 +1,8 @@
 import jsonStableStringify from "json-stable-stringify";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import { is_array } from "@cocalc/util/misc";
+import { encode as encodeBase64, decode as decodeBase64 } from "js-base64";
+export { encodeBase64, decodeBase64 };
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 // export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {

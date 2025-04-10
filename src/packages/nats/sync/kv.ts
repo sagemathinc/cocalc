@@ -22,6 +22,7 @@ import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import type { ValueType } from "@cocalc/nats/types";
+import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
 
 export interface KVOptions extends Location {
   name: string;
@@ -46,7 +47,7 @@ export class KV<T = any> extends EventEmitter {
     if (env == null) {
       throw Error("env must be defined");
     }
-    this.prefix = btoa(this.name);
+    this.prefix = encodeBase64(this.name);
     this.generalKV = new GeneralKV({
       name: kvname,
       filter: `${this.prefix}.>`,
@@ -103,7 +104,7 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.delete(`${this.prefix}.${btoa(key)}`);
+    await this.generalKV.delete(`${this.prefix}.${encodeBase64(key)}`);
   };
 
   // delete everything
@@ -119,14 +120,16 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    return this.generalKV.time(key ? `${this.prefix}.${btoa(key)}` : undefined);
+    return this.generalKV.time(
+      key ? `${this.prefix}.${encodeBase64(key)}` : undefined,
+    );
   };
 
   get = (key: string): T | undefined => {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    return this.generalKV.get(`${this.prefix}.${btoa(key)}`);
+    return this.generalKV.get(`${this.prefix}.${encodeBase64(key)}`);
   };
 
   getAll = (): { [key: string]: T } => {
@@ -140,7 +143,7 @@ export class KV<T = any> extends EventEmitter {
       if (h?.key == null) {
         throw Error(`missing header for key ${k}`);
       }
-      const key = atob(h.key);
+      const key = decodeBase64(h.key);
       x[key] = obj[k];
     }
     return x;
@@ -150,8 +153,8 @@ export class KV<T = any> extends EventEmitter {
     if (this.generalKV == null) {
       throw Error("closed");
     }
-    await this.generalKV.set(`${this.prefix}.${btoa(key)}`, value, {
-      headers: { key: btoa(key) },
+    await this.generalKV.set(`${this.prefix}.${encodeBase64(key)}`, value, {
+      headers: { key: encodeBase64(key) },
     });
   };
 }

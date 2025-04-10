@@ -17,6 +17,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { type DKVOptions, getPrefix } from "./dkv";
 import { once } from "@cocalc/util/async-utils";
 import { jsName } from "@cocalc/nats/names";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 export class AKV<T = any> {
   private options: DKVOptions;
@@ -32,8 +33,12 @@ export class AKV<T = any> {
     });
   }
 
-  private encodeKey = (key) =>
-    key ? `${this.prefix}.${btoa(key)}` : this.prefix;
+  private encodeKey = (key) => {
+    if (typeof key != "string") {
+      key = `${key}`;
+    }
+    return key ? `${this.prefix}.${encodeBase64(key)}` : this.prefix;
+  };
 
   private getGeneralKVForOneKey = async (
     key: string,

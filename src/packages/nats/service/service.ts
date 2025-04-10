@@ -23,6 +23,7 @@ import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { requestMany, respondMany } from "./many";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -124,7 +125,7 @@ export function serviceSubject({
   path,
 }: ServiceDescription): string {
   let segments;
-  path = path ? btoa(path) : "_";
+  path = path ? encodeBase64(path) : "_";
   if (!project_id && !account_id) {
     segments = ["public", service];
   } else if (account_id) {

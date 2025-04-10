@@ -59,6 +59,7 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -913,7 +914,7 @@ export const cache = refCache<UserStreamOptions, Stream>({
     const { account_id, project_id, name } = options;
     const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
-    const filter = subjects.replace(">", btoa(name));
+    const filter = subjects.replace(">", encodeBase64(name));
     const stream = new Stream({
       ...options,
       name,

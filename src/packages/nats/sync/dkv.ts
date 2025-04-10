@@ -98,6 +98,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -308,13 +309,17 @@ export class DKV<T = any> extends EventEmitter {
   // There are NOT issues with key length though.  This same strategy of encoding
   // keys using base64 is used by Nats object store:
   //   https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-20.md#object-name
-  private encodeKey = (key) =>
-    key ? `${this.prefix}.${btoa(key)}` : this.prefix;
+  private encodeKey = (key) => {
+    if (typeof key != "string") {
+      key = `${key}`;
+    }
+    return key ? `${this.prefix}.${encodeBase64(key)}` : this.prefix;
+  };
 
   // decodeKey is the inverse of encodeKey
   private decodeKey = (encodedKey) => {
     const v = encodedKey.split(".");
-    return v[1] ? atob(v[1]) : "";
+    return v[1] ? decodeBase64(v[1]) : "";
   };
 
   has = (key: string): boolean => {
@@ -463,7 +468,9 @@ export class DKV<T = any> extends EventEmitter {
 // it determines where the data is actually stored.  If you change
 // it, then every user's data vanishes.
 export function getPrefix({ name, valueType, options }) {
-  return btoa(JSON.stringify([name, valueType, localLocationName(options)]));
+  return encodeBase64(
+    JSON.stringify([name, valueType, localLocationName(options)]),
+  );
 }
 
 export const cache = refCache<DKVOptions, DKV>({

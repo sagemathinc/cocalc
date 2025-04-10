@@ -39,6 +39,7 @@ s9.sparks['cb'].write('blah')
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { delay } from "awaiting";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 export type Role = "client" | "server";
 
@@ -88,8 +89,8 @@ function getSubjects({ subject, id, channel }) {
     serverChannel: `${subject}.channel.server`,
   };
   if (channel) {
-    // use btoa (base64 encoding) so channel can be any string.
-    const segment = btoa(channel);
+    // use base64 encoding so channel can be any string.
+    const segment = encodeBase64(channel);
     for (const k in subjects) {
       subjects[k] += `.${segment}`;
     }

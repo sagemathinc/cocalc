@@ -39,6 +39,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { inventory, THROTTLE_MS } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { getClient, type ClientWithState } from "@cocalc/nats/client";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 const MAX_PARALLEL = 250;
 
@@ -426,7 +427,7 @@ const cache = refCache<UserStreamOptions, DStream>({
     // of options unless it is backwards compatible, or all user data
     // involving streams will just go poof!
     const uniqueFilter = JSON.stringify([name, valueType]);
-    const filter = subjects.replace(">", btoa(uniqueFilter));
+    const filter = subjects.replace(">", encodeBase64(uniqueFilter));
     const dstream = new DStream({
       ...options,
       name,

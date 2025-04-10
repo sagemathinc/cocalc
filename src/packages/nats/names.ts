@@ -3,7 +3,7 @@ Names we use with nats.
 
 For Jetstream:
 
-project-{project_id}-{compute_server_id}[.-service][.-{btoa(path)}]
+project-{project_id}-{compute_server_id}[.-service][.-{encodeBase64(path)}]
 
 For Subjects:
 
@@ -13,6 +13,7 @@ For Subjects:
 
 import generateVouchers from "@cocalc/util/vouchers";
 import type { Location } from "./types";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 // nice alphanumeric string that can be used as nats subject, and very
 // unlikely to randomly collide with another browser tab from this account.
@@ -139,7 +140,7 @@ export function projectSubject({
     project_id,
     compute_server_id ?? "-",
     service ?? "-",
-    path ? btoa(path) : "-",
+    path ? encodeBase64(path) : "-",
   ];
   return segments.join(".");
 }
@@ -162,7 +163,7 @@ export function projectStreamName({
   if (service) {
     streamName += "-" + service;
     if (path) {
-      streamName += "-" + btoa(path);
+      streamName += "-" + encodeBase64(path);
     }
   }
   return streamName;
