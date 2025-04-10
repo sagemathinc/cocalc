@@ -189,8 +189,6 @@ if (!existsSync(secrets)) {
 }
 
 export const logs: string = process.env.LOGS ?? join(data, "logs");
-export const blobstore: "disk" | "sqlite" =
-  (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
 
 // NATS
 export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
@@ -311,11 +309,6 @@ function sanityChecks() {
   if (!projects.includes("[project_id]")) {
     throw Error(
       `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`,
-    );
-  }
-  if ((blobstore as any) != "sqlite" && (blobstore as any) != "disk") {
-    throw Error(
-      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'",
     );
   }
   checkApiServer(apiServer);

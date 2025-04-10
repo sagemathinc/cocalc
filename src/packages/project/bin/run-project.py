@@ -24,6 +24,13 @@ starts up and then JUST CRASHES for mysterious reasons.
 """
 
 import json, subprocess, os, sys
+from datetime import datetime, timezone
+
+
+def print_time():
+    current_time = datetime.now(timezone.utc)
+    formatted_time = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    print(formatted_time)
 
 
 def run_command_with_params(params):
@@ -41,6 +48,7 @@ def run_command_with_params(params):
     # Convert the environment dictionary to a list of key=value strings
     env_list = [f"{key}={value}" for key, value in env.items()]
 
+    print(" ".join([cmd] + args))
     try:
         # Run the command with the specified arguments and environment in the given cwd
         subprocess.run([cmd] + args,
@@ -57,10 +65,10 @@ if __name__ == "__main__":
         print(f"USAGE: {sys.argv[0]} /path/to/launch-params.json")
         sys.exit(1)
     try:
+        print_time()
         # Read the JSON data from the file
         with open(sys.argv[1], "r") as file:
             params = json.load(file)
-        print(params)
         run_command_with_params(params)
     except FileNotFoundError:
         print("File 'sys.argv[1]' not found.")
