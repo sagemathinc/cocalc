@@ -20,9 +20,17 @@
     "prepublishOnly": "pnpm test",
     "test": "echo 'see packages/backend/nats/tests instead'"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "nats", "cocalc"],
+  "keywords": [
+    "utilities",
+    "nats",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",
@@ -35,6 +43,7 @@
     "awaiting": "^3.0.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
+    "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21"
   },
