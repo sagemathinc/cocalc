@@ -50,6 +50,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  await import("./jquery-plugins"); // ensure is loaded
   initAccount(redux);
   initApp();
   initProjects();
