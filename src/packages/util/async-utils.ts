@@ -135,10 +135,6 @@ export async function once(
   if (typeof obj.once != "function") {
     throw Error("once -- obj.once must be a function");
   }
-  if (!(obj instanceof EventEmitter)) {
-    // just in case typescript doesn't catch something:
-    console.warn("obj should be an EventEmitter");
-  }
   if (timeout_ms > 0) {
     // just to keep both versions more readable...
     return once_with_timeout(obj, event, timeout_ms);
