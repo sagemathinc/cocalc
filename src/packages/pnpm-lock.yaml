@@ -48,9 +48,6 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
-      tsimportlib:
-        specifier: ^0.0.5
-        version: 0.0.5
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
