@@ -59,10 +59,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": [
-    "postgresql",
-    "cocalc"
-  ],
+  "keywords": ["postgresql", "cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

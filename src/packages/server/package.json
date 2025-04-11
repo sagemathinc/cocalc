@@ -62,7 +62,7 @@
     "@nats-io/nats-core": "3.0.0",
     "@nats-io/nkeys": "^2.0.3",
     "@nats-io/services": "3.0.0",
-    "@node-saml/passport-saml": "^4.0.4",
+    "@node-saml/passport-saml": "^5.0.1",
     "@passport-js/passport-twitter": "^1.0.8",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.4",

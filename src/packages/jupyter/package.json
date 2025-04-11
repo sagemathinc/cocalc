@@ -23,17 +23,9 @@
     "test": "pnpm exec jest",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",

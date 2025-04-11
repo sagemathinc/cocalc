@@ -145,7 +145,7 @@ saml20fn = join(curdir, "saml-idp-local.pem")
 
 if exists(saml20fn):
     print("Generating SAML 2.0 SSO strategy")
-    saml20cert: str = open(saml20fn, "r").read()
+    saml20cert: str = open(saml20fn, "r").read().strip()
     saml20: Entry = {
         "strategy": "saml20",
         "conf": {
