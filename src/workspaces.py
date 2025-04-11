@@ -237,29 +237,39 @@ def banner(s: str) -> None:
 
 def install(args) -> None:
     v = packages(args)
-    print("first install all packages")
-    # much faster special case
-    # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
-    c = "cd packages && pnpm install --config.confirmModulesPurge=false"
-    if args.prod:
-        args.dist_only = False
-        args.node_modules_only = True
-        args.parallel = True
-        clean(args)
-        c += " --prod"
-    cmd(c)
 
-    if v != all_packages():
-        print("remove packages from excluded directories")
-        # **remove node_modules** from all directories that are excluded.
-        # We have to do the full install above -- there's no way around
-        # that which works as far as I can tell.  Any use of --filter that
-        # works also ends up ignoring the lockfile.
-        for path in all_packages():
-            if path not in v:
-                print("removing packages from ", path)
-                shutil.rmtree(os.path.join(path, 'node_modules'),
-                              ignore_errors=True)
+    # The trick we use to build only a subset of the packages in a pnpm workspace
+    # is to temporarily modify packages/pnpm-workspace.yaml to explicitly remove
+    # the packages that we do NOT want to build.  This should be supported by
+    # pnpm via the --filter option but I can't figure that out in a way that doesn't
+    # break the global lockfile, so this is the hack we have for now.
+    ws = "packages/pnpm-workspace.yaml"
+    tmp = ws + ".tmp"
+    allp = all_packages()
+    try:
+        if v != allp:
+            shutil.copy(ws, tmp)
+            s = open(ws,'r').read() + '\n'
+            for package in allp:
+                if package not in v:
+                     s += '  - "!%s"\n'%package.split('/')[-1]
+
+            open(ws,'w').write(s)
+
+        print("install packages")
+        # much faster special case
+        # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
+        c = "cd packages && pnpm install --config.confirmModulesPurge=false"
+        if args.prod:
+            args.dist_only = False
+            args.node_modules_only = True
+            args.parallel = True
+            clean(args)
+            c += " --prod"
+        cmd(c)
+    finally:
+        if os.path.exists(tmp):
+            shutil.move(tmp, ws)
 
 
 # Build all the packages that need to be built.
