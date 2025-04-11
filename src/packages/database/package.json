@@ -41,6 +41,9 @@
   },
   "devDependencies": {
     "@types/node": "^18.16.14",
+    "@types/lodash": "^4.14.202",
+    "@types/pg": "^8.6.1",
+    "@types/uuid": "^8.3.1",
     "coffeescript": "^2.5.1"
   },
   "scripts": {

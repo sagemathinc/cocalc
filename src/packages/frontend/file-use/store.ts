@@ -88,22 +88,22 @@ export class FileUseStore extends Store<FileUseState> {
       user.account_id = account_id;
       user.last_edited = Math.max(
         user.edit != null ? user.edit : 0,
-        user.chat != null ? user.chat : 0
+        user.chat != null ? user.chat : 0,
       );
       if (user.chat != null) {
         newest_chat = Math.max(newest_chat, user.chat != null ? user.chat : 0);
       }
       user.last_read = Math.max(
         user.last_edited,
-        user.read != null ? user.read : 0
+        user.read != null ? user.read : 0,
       );
       user.last_seen = Math.max(
         Math.max(user.last_read, user.seen != null ? user.seen : 0),
-        user.chatseen != null ? user.chatseen : 0
+        user.chatseen != null ? user.chatseen : 0,
       );
       user.last_used = Math.max(
         user.last_edited,
-        user.open != null ? user.open : 0
+        user.open != null ? user.open : 0,
       );
       if (this._account_id === account_id) {
         you_last_seen = user.last_seen;
@@ -126,7 +126,7 @@ export class FileUseStore extends Store<FileUseState> {
       for (user of Array.from(y.users)) {
         y.last_edited = Math.max(
           y.last_edited != null ? y.last_edited : 0,
-          user.last_edited
+          user.last_edited,
         );
       }
     }
@@ -162,26 +162,14 @@ export class FileUseStore extends Store<FileUseState> {
     if (this._cache == null) {
       this._update_cache();
     }
-    return (this._cache != null
-      ? this._cache.sorted_file_use_list
-      : undefined) != null
-      ? this._cache != null
-        ? this._cache.sorted_file_use_list
-        : undefined
-      : [];
+    return this._cache?.sorted_file_use_list ?? [];
   }
 
   get_sorted_file_use_list2(): iList<any> {
     if (this._cache == null) {
       this._update_cache();
     }
-    return (this._cache != null
-      ? this._cache.sorted_file_use_immutable_list
-      : undefined) != null
-      ? this._cache != null
-        ? this._cache.sorted_file_use_immutable_list
-        : undefined
-      : iList();
+    return this._cache?.sorted_file_use_immutable_list ?? iList();
   }
 
   // Get latest processed info about a specific file as an object.
@@ -189,9 +177,7 @@ export class FileUseStore extends Store<FileUseState> {
     if (this._cache == null) {
       this._update_cache();
     }
-    return this._cache != null
-      ? this._cache.file_use_map[sha1(project_id, path)]
-      : undefined;
+    return this._cache?.file_use_map[sha1(project_id, path)];
   }
 
   // Get latest processed info about all use in a particular project.
@@ -203,9 +189,7 @@ export class FileUseStore extends Store<FileUseState> {
     for (const id in this._cache != null
       ? this._cache.file_use_map
       : undefined) {
-      const x = (this._cache != null ? this._cache.file_use_map : undefined)[
-        id
-      ];
+      const x = this._cache?.file_use_map?.[id];
       if (x.project_id === project_id) {
         v[id] = x;
       }
@@ -217,7 +201,7 @@ export class FileUseStore extends Store<FileUseState> {
     if (this._cache == null) {
       this._update_cache();
     }
-    return this._cache != null ? this._cache.file_use_map : undefined;
+    return this._cache?.file_use_map;
   }
 
   _update_cache() {
@@ -289,13 +273,13 @@ export class FileUseStore extends Store<FileUseState> {
   // See above for the definition of unread and unseen.
   get_all_unread(): any[] {
     return this.get_sorted_file_use_list().filter(
-      (x) => x != null && x.is_unread
+      (x) => x != null && x.is_unread,
     );
   }
 
   get_all_unseen(): any[] {
     return this.get_sorted_file_use_list().filter(
-      (x) => x != null && x.is_unseen
+      (x) => x != null && x.is_unseen,
     );
   }
 
