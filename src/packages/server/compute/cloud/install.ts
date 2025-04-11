@@ -41,9 +41,12 @@ const NODE_VERSION = "20";
 
 // see https://github.com/nvm-sh/nvm#install--update-script for this version:
 const NVM_VERSION = "0.40.2";
+// We delete nvm first, then install it.   Otherwise, when slightly older versions are
+// there things can get confusing and broken.  It's 170MB, so this isn't a killer.
 export function installNode() {
   return `
-mkdir -p /cocalc/nvm
+rm -rf /cocalc/nvm/
+mkdir  /cocalc/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | NVM_DIR=/cocalc/nvm PROFILE=/dev/null bash
 set +v
 source /cocalc/nvm/nvm.sh
