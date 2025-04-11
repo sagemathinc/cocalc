@@ -78,7 +78,7 @@
     "async": "^1.5.2",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
-    "axios": "^1.7.5",
+    "axios": "^1.8.2",
     "base62": "^2.0.1",
     "base64-js": "^1.5.1",
     "bottleneck": "^2.19.5",
