@@ -49,5 +49,12 @@
   "homepage": "https://github.com/sagemathinc/cocalc",
   "dependencies": {
     "lru-cache": "^7.18.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "websocketfs",
+      "websocket-sftp",
+      "@cocalc/fuse-native"
+    ]
   }
 }
