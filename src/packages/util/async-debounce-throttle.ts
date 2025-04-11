@@ -22,12 +22,17 @@ promises after the debounced function executes.
 integration of promises with `lodash` debounce.
 */
 
-import { debounce, throttle } from "lodash";
+import {
+  debounce,
+  throttle,
+  type DebounceSettings,
+  type ThrottleSettings,
+} from "lodash";
 
 export function asyncDebounce(
   func: (...args: any[]) => Promise<any>,
   wait: number,
-  options?: _.DebounceSettings,
+  options?: DebounceSettings,
 ): (...args: any[]) => Promise<any> {
   let resolveQueue: Array<() => void> = [];
 
@@ -52,7 +57,7 @@ export function asyncDebounce(
 export function asyncThrottle(
   func: (...args: any[]) => Promise<any>,
   wait: number,
-  options?: _.ThrottleSettings,
+  options?: ThrottleSettings,
 ): (...args: any[]) => Promise<any> {
   let resolveQueue: Array<() => void> = [];
 
