@@ -30,8 +30,9 @@
     "**/*.tsx",
     "software-inventory/*.json",
     "components/landing/*.json",
-    "locales/*/*.json"
-, "locales/en/common.ts"  ],
+    "locales/*/*.json",
+    "locales/en/common.ts"
+  ],
   "exclude": ["node_modules", "public", "styles", "dist"],
   "references": [
     { "path": "../backend" },
