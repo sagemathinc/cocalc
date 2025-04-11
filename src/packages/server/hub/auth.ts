@@ -446,7 +446,7 @@ export class PassportManager {
           issuer: this.auth_url,
           requestIdExpirationPeriodMs: cachedMS,
           signatureAlgorithm: "sha256", // better than default sha1
-          validateInResponseTo: true,
+          validateInResponseTo: "never", // default
           wantAssertionsSigned: true,
           ...patch,
         };
@@ -456,6 +456,7 @@ export class PassportManager {
   private get_extra_opts(name: string, conf: PassportStrategyDBConfig) {
     // "extra_opts" is passed to the passport.js "Strategy" constructor!
     // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
+    const { type } = conf;
     const extracted = _.omit(conf, [
       "type", // not needed, we use it to pick the constructor
       "name", // deprecated, this is in the metadata "info" now
@@ -469,10 +470,29 @@ export class PassportManager {
       "auth_opts", // we pass them as a separate parameter
     ]);
 
-    return {
+    const opts = {
       ...this.get_extra_default_opts({ name, type: conf.type }),
       ...extracted,
     };
+
+    // node-saml>=5 renamed cert to idpCert (passport-saml dependency)
+    // https://github.com/node-saml/node-saml/pull/343
+    if (type === "saml" || type === "saml-v3" || type === "saml-v4") {
+      // https://github.com/node-saml/node-saml/blob/master/README.md#security-and-signatures
+      if (typeof opts.cert === "string") {
+        opts.idpCert = opts.cert;
+        delete opts.cert;
+      }
+      // https://github.com/node-saml/node-saml/blob/master/README.md
+      // default is "never"
+      if (typeof opts.validateInResponseTo === "boolean") {
+        opts.validateInResponseTo = opts.validateInResponseTo
+          ? "ifPresent"
+          : "never";
+      }
+    }
+
+    return opts;
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
@@ -593,8 +613,8 @@ export class PassportManager {
         req.user.profile != null
           ? req.user.profile
           : req.user.attributes != null
-            ? req.user.attributes
-            : req.user;
+          ? req.user.attributes
+          : req.user;
 
       // there are cases, where profile is a JSON string (e.g. oauth2next)
       let profile: passport.Profile;
@@ -758,6 +778,9 @@ export class PassportManager {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
       callbackURL: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
+      // node-saml v5 needs this as well
+      // https://github.com/node-saml/node-saml/blob/master/src/saml.ts#L95
+      callbackUrl: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
       ...extra_opts,
     } as const;
 

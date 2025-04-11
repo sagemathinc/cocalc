@@ -362,7 +362,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async custom_software_reset(): Promise<void> {
     // 1. delete the sentinel file that marks copying over the accompanying files
     // 2. restart project. This isn't strictly necessary and a TODO for later, because
-    // this would have to do preciesly what kucalc's project init does.
+    // this would have to do precisely what kucalc's project init does.
     const sentinel = ".cocalc-project-init-done";
     await exec({
       timeout: 10,

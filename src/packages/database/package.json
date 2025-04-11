@@ -25,7 +25,7 @@
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^8.3.0",
+    "better-sqlite3": "^11.9.1",
     "debug": "^4.4.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
