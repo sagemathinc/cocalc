@@ -13,4 +13,8 @@ packages:
   - compute
   - nats
 
+onlyBuiltDependencies:
+  - '@cocalc/fuse-native'
+  - websocket-sftp
+  - websocketfs
 
