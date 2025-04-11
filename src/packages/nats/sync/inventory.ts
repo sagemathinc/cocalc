@@ -23,7 +23,7 @@ import { type KVLimits } from "./general-kv";
 import { type FilteredStreamLimitOptions } from "./stream";
 import { DKO_PREFIX } from "./dko";
 
-export const THROTTLE_MS = 5000;
+export const THROTTLE_MS = 10000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
 
 type Sort =
