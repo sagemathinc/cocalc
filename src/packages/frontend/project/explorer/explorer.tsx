@@ -507,6 +507,8 @@ const Explorer0 = rclass(
         );
       } else {
         if (project_is_running) {
+          // ensure directory listing starts getting computed.
+          redux.getProjectStore(this.props.project_id).get_listings();
           return (
             <div style={{ textAlign: "center" }}>
               <Loading theme={"medium"} />
