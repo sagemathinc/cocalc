@@ -91,7 +91,7 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src && npm install -g pnpm@9
+      - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
       - run: cd src && pnpm nats-server-daemon
       - run: cd src && pnpm run test
