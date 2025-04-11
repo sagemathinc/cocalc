@@ -971,6 +971,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       did_start = true;
     }
+
     // Wait until it is running
     await store.async_wait({
       timeout: 120,
@@ -983,6 +984,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
+
     return did_start;
   }
 

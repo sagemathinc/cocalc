@@ -143,6 +143,7 @@ export function StartButton() {
   function render_start_project_button() {
     const enabled =
       state == null ||
+      !state?.get("state") ||
       (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
 
