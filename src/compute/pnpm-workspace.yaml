@@ -1,14 +1,16 @@
 packages:
-  - "api-client"
-  - "backend"
-  - "comm"
-  - "jupyter"
-  - "nats"
-  - "project"
-  - "sync"
-  - "sync-fs"
-  - "sync-client"
-  - "util"
-  - "terminal"
-  - "compute"
-  - "nats"
+  - api-client
+  - backend
+  - comm
+  - jupyter
+  - nats
+  - project
+  - sync
+  - sync-fs
+  - sync-client
+  - util
+  - terminal
+  - compute
+  - nats
+
+

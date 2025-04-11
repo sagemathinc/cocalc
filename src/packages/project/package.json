@@ -67,7 +67,7 @@
     "tmp": "0.0.33",
     "uglify-js": "^3.14.1",
     "uuid": "^8.3.2",
-    "websocket-sftp": "^0.8.2",
+    "websocket-sftp": "^0.8.4",
     "which": "^2.0.2",
     "ws": "^8.18.0",
     "zeromq": "^5.2.8"
