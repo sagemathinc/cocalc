@@ -86,7 +86,16 @@ export class NatsClient extends EventEmitter {
     });
   }
 
-  private initNatsClient = () => {
+  private initNatsClient = async () => {
+    let d = 100;
+    // wait until you're signed in -- usually the account_id cookie ensures this,
+    // but if somehow it got deleted, the normal websocket sign in message from the
+    // hub also provides the account_id right now.  That will eventually go away,
+    // at which point this should become fatal.
+    while (!this.client.account_id) {
+      await delay(d);
+      d = Math.min(3000, d * 1.3);
+    }
     setNatsClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
