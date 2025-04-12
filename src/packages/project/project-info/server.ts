@@ -13,9 +13,7 @@ import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
-
 import { ProcessStats } from "@cocalc/backend/process-stats";
-import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
 import {
   CGroup,
@@ -67,15 +65,18 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   // for a process we know (pid, etc.) we try to map to cocalc specific information
-  private cocalc({
+  private async cocalc({
     pid,
     cmdline,
-  }: Pick<Process, "pid" | "cmdline">): CoCalcInfo | undefined {
+  }: Pick<Process, "pid" | "cmdline">): Promise<CoCalcInfo | undefined> {
     //this.dbg("classify", { pid, exe, cmdline });
     if (pid === process.pid) {
       return { type: "project" };
     }
-    // TODO use get_sage_path to get a path to a sagews
+    // SPEED: importing @cocalc/jupyter/kernel is slow, so it MUST NOT BE DONE
+    // on the top level, especially not in any code that is loaded during
+    // project startup
+    const { get_kernel_by_pid } = await import("@cocalc/jupyter/kernel");
     const jupyter_kernel = get_kernel_by_pid(pid);
     if (jupyter_kernel != null) {
       return { type: "jupyter", path: jupyter_kernel.get_path() };
@@ -98,11 +99,11 @@ export class ProjectInfoServer extends EventEmitter {
     }
   }
 
-  private lookupCoCalcInfo(processes: Processes) {
+  private async lookupCoCalcInfo(processes: Processes) {
     // iterate over all processes keys (pid) and call this.cocalc({pid, cmdline})
     // to update the processes coclc field
     for (const pid in processes) {
-      processes[pid].cocalc = this.cocalc({
+      processes[pid].cocalc = await this.cocalc({
         pid: parseInt(pid),
         cmdline: processes[pid].cmdline,
       });
@@ -206,7 +207,7 @@ export class ProjectInfoServer extends EventEmitter {
         this.disk_usage(),
       ]);
       const { procs, boottime, uptime } = processes;
-      this.lookupCoCalcInfo(procs);
+      await this.lookupCoCalcInfo(procs);
       const info: ProjectInfo = {
         timestamp,
         processes: procs,
