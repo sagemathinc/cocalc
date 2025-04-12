@@ -61,6 +61,8 @@ const CURSOR_THROTTLE_NATS_MS = 150;
 // Ignore file changes for this long after save to disk.
 const RECENT_SAVE_TO_DISK_MS = 2000;
 
+const PARALLEL_INIT = true;
+
 import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
@@ -647,7 +649,7 @@ export class SyncDoc extends EventEmitter {
     },
   );
 
-  private init_file_use_interval(): void {
+  private init_file_use_interval = (): void => {
     if (this.file_use_interval == null) {
       this.file_use_interval = 60 * 1000;
     }
@@ -686,7 +688,7 @@ export class SyncDoc extends EventEmitter {
     });
 
     this.on("user-change", this.throttled_file_use as any);
-  }
+  };
 
   private set_state = (state: State): void => {
     this.state = state;
@@ -1451,20 +1453,26 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed(
       "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
     );
-    //     await Promise.all([
-    //       this.init_patch_list(),
-    //       this.init_cursors(),
-    //       this.init_evaluator(),
-    //       this.init_ipywidgets(),
-    //     ]);
-    await this.init_patch_list();
-    this.assert_not_closed("initAll -- successful init_patch_list");
-    await this.init_cursors();
-    this.assert_not_closed("initAll -- successful init_patch_cursors");
-    await this.init_evaluator();
-    this.assert_not_closed("initAll -- successful init_evaluator");
-    await this.init_ipywidgets();
-    this.assert_not_closed("initAll -- successful init_ipywidgets");
+    if (PARALLEL_INIT) {
+      await Promise.all([
+        this.init_patch_list(),
+        this.init_cursors(),
+        this.init_evaluator(),
+        this.init_ipywidgets(),
+      ]);
+      this.assert_not_closed(
+        "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
+      );
+    } else {
+      await this.init_patch_list();
+      this.assert_not_closed("initAll -- successful init_patch_list");
+      await this.init_cursors();
+      this.assert_not_closed("initAll -- successful init_patch_cursors");
+      await this.init_evaluator();
+      this.assert_not_closed("initAll -- successful init_evaluator");
+      await this.init_ipywidgets();
+      this.assert_not_closed("initAll -- successful init_ipywidgets");
+    }
 
     this.init_table_close_handlers();
     this.assert_not_closed("initAll -- successful init_table_close_handlers");
