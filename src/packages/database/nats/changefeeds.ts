@@ -4,11 +4,10 @@
 
    await cc.client.nats_client.hub.system.terminate({service:'db'})
 
-2. Run this
+2. Run this line in nodejs right here:
 
    require("@cocalc/database/nats/changefeeds").init()
 
-   echo 'require("@cocalc/database/nats/changefeeds").init()' | node
 
 */
 
@@ -140,12 +139,11 @@ const createChangefeed = reuseInFlight(
     const query = opts.query;
     // the query *AND* the user making it define the thing:
     const user = { account_id: opts.account_id, project_id: opts.project_id };
-    const hash = sha1(
-      jsonStableStringify({
-        query,
-        ...user,
-      })!,
-    );
+    const desc = jsonStableStringify({
+      query,
+      ...user,
+    });
+    const hash = sha1(desc);
     const now = Date.now();
     if (changefeedInterest[hash]) {
       changefeedInterest[hash] = now;
@@ -156,7 +154,7 @@ const createChangefeed = reuseInFlight(
     const changes = uuid();
     changefeedHashes[changes] = hash;
     const env = { nc, jc, sha1 };
-    // If you change any settings below, you might also have to change them in
+    // If you change any settings below (i.e., atomic or immutable), you might also have to change them in
     //   src/packages/sync/table/changefeed-nats.ts
     const synctable = createSyncTable({
       query,

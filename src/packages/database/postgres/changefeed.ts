@@ -61,8 +61,6 @@ export class Changes extends EventEmitter {
     cb: Function,
   ) {
     super();
-    this.handle_change = this.handle_change.bind(this);
-
     this.db = db;
     this.table = table;
     this.select = select;
@@ -71,7 +69,7 @@ export class Changes extends EventEmitter {
     this.init(cb);
   }
 
-  async init(cb: Function): Promise<void> {
+  init = async (cb: Function): Promise<void> => {
     this.dbg("constructor")(
       `select=${misc.to_json(this.select)}, watch=${misc.to_json(
         this.watch,
@@ -112,23 +110,23 @@ export class Changes extends EventEmitter {
 
     this.db.once("connect", this.close);
     cb(undefined, this);
-  }
+  };
 
-  private dbg(f: string): Function {
+  private dbg = (f: string): Function => {
     return this.db._dbg(`Changes(table='${this.table}').${f}`);
-  }
+  };
 
   // this breaks the changefeed -- client must recreate it; nothing further will work at all.
-  private fail(err): void {
+  private fail = (err): void => {
     if (this.closed) {
       return;
     }
     this.dbg("_fail")(`err='${err}'`);
     this.emit("error", new Error(err));
     this.close();
-  }
+  };
 
-  public close(): void {
+  close = (): void => {
     if (this.closed) {
       return;
     }
@@ -141,9 +139,9 @@ export class Changes extends EventEmitter {
     }
     misc.close(this);
     this.closed = true;
-  }
+  };
 
-  public async insert(where): Promise<void> {
+  insert = async (where): Promise<void> => {
     const where0: { [field: string]: any } = {};
     for (const k in where) {
       const v = where[k];
@@ -169,16 +167,16 @@ export class Changes extends EventEmitter {
         this.emit("change", change);
       }
     }
-  }
+  };
 
-  public delete(where): void {
+  delete = (where): void => {
     // listener is meant to delete everything that *matches* the where, so
     // there is no need to actually do a query.
     const change: ChangeEvent = { action: "delete", old_val: where };
     this.emit("change", change);
-  }
+  };
 
-  private async handle_change(mesg): Promise<void> {
+  private handle_change = async (mesg): Promise<void> => {
     if (this.closed) {
       return;
     }
@@ -281,15 +279,15 @@ export class Changes extends EventEmitter {
 
     r = { action, new_val };
     this.emit("change", r);
-  }
+  };
 
-  private new_val_update(
+  private new_val_update = (
     primary_part: { [key: string]: any },
     this_val: { [key: string]: any },
     key: string,
   ):
     | { new_val: { [key: string]: any }; action: "insert" | "update" }
-    | undefined {
+    | undefined => {
     if (this.closed) {
       return;
     }
@@ -320,9 +318,9 @@ export class Changes extends EventEmitter {
       }
     }
     return { new_val, action: "update" };
-  }
+  };
 
-  private init_where(): void {
+  private init_where = (): void => {
     if (typeof this.where === "function") {
       // user provided function
       this.match_condition = this.where;
@@ -423,7 +421,7 @@ export class Changes extends EventEmitter {
 
                pg_where: [{ "$::UUID = ANY(owner_account_ids)": "account_id" }]
 
-            where we need to get the field(=owner_account_ids) and check that 
+            where we need to get the field(=owner_account_ids) and check that
             val(=account_id) is in it, at the javascript level.
             */
             if (k.includes("<") || k.includes(">")) {
@@ -503,5 +501,5 @@ export class Changes extends EventEmitter {
       }
       return true;
     };
-  }
+  };
 }

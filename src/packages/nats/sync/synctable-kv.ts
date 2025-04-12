@@ -78,20 +78,30 @@ export class SyncTableKV extends EventEmitter {
     return this.state;
   };
 
+  // WARNING: be *VERY* careful before changing how the name is
+  // derived from the query, since if you change this all the current
+  // data in NATS that caches the changefeeds is basically lost
+  // and users MUST refresh their browsers (and maybe projects restart?)
+  // to get new changefeeds, since they are watching something given
+  // by this name.  I.e., this name shouldn't ever be changed.
+  // The point of the name is that it uniquely identifies the
+  // changefeed query, so just using the query itself should be fine.
+  // A big choice here is the full name or just something short like the
+  // sha1 hash, but I've chosen the full name, since then it is always easy
+  // to know what the query was, i.e., use base64 decoding then you
+  // have the query.  It's less efficient though since the NATS subjects
+  // can be long, depending on the query.
+  // This way if we are just watching general NATS traffic and see something
+  // suspicious, even if we have no idea initially where it came from,
+  // we can easily see by decoding it.
+  // Including even the fields with no values distinguishes different
+  // changefeeds that pick off different columns from the database.
+  // PLAN: Longterm there's no doubt that changefeeds in postgresql will
+  // be eliminated from cocalc completely, and at that point situation
+  // will melt away.
   private getName = () => {
-    const primary: any = {};
     const spec = this.query[this.table][0];
-    for (const key of this.primaryKeys) {
-      const val = spec[key];
-      if (val != null) {
-        primary[key] = val;
-      }
-    }
-    if (Object.keys(primary).length == 0) {
-      return this.table;
-    } else {
-      return `${this.table}:${jsonStableStringify(primary)}`;
-    }
+    return `${this.table}:${jsonStableStringify(spec)}`;
   };
 
   init = async () => {

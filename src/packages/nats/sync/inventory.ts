@@ -278,13 +278,13 @@ export class Inventory {
   ls = ({
     log = console.log,
     filter,
-    notrunc,
+    noTrunc,
     path: path0,
     sort = "-last",
   }: {
     log?: Function;
     filter?: string;
-    notrunc?: boolean;
+    noTrunc?: boolean;
     path?: string;
     sort?: Sort;
   } = {}) => {
@@ -292,6 +292,11 @@ export class Inventory {
       throw Error("not initialized");
     }
     const all = this.dkv.getAll();
+    log(`
+Inventory for ${JSON.stringify(this.location)}`);
+    log(
+      "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'valueType'|'-last'|...})",
+    );
     log(
       "╭──────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
     );
@@ -311,7 +316,7 @@ export class Inventory {
         type = "kvobject";
         name = name.slice(DKO_PREFIX.length);
       }
-      if (!notrunc) {
+      if (!noTrunc) {
         name = trunc_middle(name, 50);
       }
       if (
