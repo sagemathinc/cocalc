@@ -85,6 +85,9 @@ export class FileUseStore extends Store<FileUseState> {
     let other_newest_edit_or_chat = 0;
     for (const account_id in users) {
       user = users[account_id];
+      for (const k in user) {
+        user[k] = new Date(user[k]);
+      }
       user.account_id = account_id;
       user.last_edited = Math.max(
         user.edit != null ? user.edit : 0,
@@ -308,7 +311,7 @@ export class FileUseStore extends Store<FileUseState> {
       // users for a particular file
       const t = this.get_file_info(opts.project_id, opts.path);
       if (t != null) {
-        files = { _: t }; // TODO: what does _ mean?
+        files = { _: t };
       }
     } else if (opts.project_id != null) {
       // a particular project
