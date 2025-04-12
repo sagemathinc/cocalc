@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.34.3",
+  "version": "1.40.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
