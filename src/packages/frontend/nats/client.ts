@@ -56,6 +56,8 @@ import {
 import type { ConnectionInfo } from "./types";
 import { fromJS } from "immutable";
 import { requestMany } from "@cocalc/nats/service/many";
+import Cookies from "js-cookie";
+import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 
 const NATS_STATS_INTERVAL = 2500;
 
@@ -92,9 +94,13 @@ export class NatsClient extends EventEmitter {
     // but if somehow it got deleted, the normal websocket sign in message from the
     // hub also provides the account_id right now.  That will eventually go away,
     // at which point this should become fatal.
-    while (!this.client.account_id) {
-      await delay(d);
-      d = Math.min(3000, d * 1.3);
+    if (!this.client.account_id) {
+      while (!this.client.account_id) {
+        await delay(d);
+        d = Math.min(3000, d * 1.3);
+      }
+      // we know the account_id, so set it so next time sign is faster.
+      Cookies.set(ACCOUNT_ID_COOKIE, this.client.account_id);
     }
     setNatsClient({
       account_id: this.client.account_id,

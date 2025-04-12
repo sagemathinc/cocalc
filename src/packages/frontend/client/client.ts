@@ -52,7 +52,7 @@ const log = debug("cocalc");
 // all the sync activity logging and everything that calls
 // client.dbg.
 
-const ACCOUNT_ID_COOKIE = decodeURIComponent(
+export const ACCOUNT_ID_COOKIE = decodeURIComponent(
   basePathCookieName({
     basePath: appBasePath,
     name: ACCOUNT_ID_COOKIE_NAME,
