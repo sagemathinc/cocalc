@@ -11,7 +11,6 @@ import {
 import { syncdb2 as new_syncdb } from "../generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { alert_message } from "@cocalc/frontend/alerts";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
 
@@ -43,14 +42,6 @@ export function create_jupyter_actions(
     ...SYNCDB_OPTIONS,
     project_id,
     path: syncdb_path,
-  });
-  enableSearchEmbeddings({
-    project_id,
-    path,
-    syncdb,
-    primaryKey: "id",
-    textColumn: "input",
-    metaColumns: ["cell_type"],
   });
 
   actions._init(project_id, path, syncdb, store, webapp_client);

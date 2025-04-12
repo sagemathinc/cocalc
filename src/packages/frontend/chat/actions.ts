@@ -19,7 +19,6 @@ import {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
@@ -73,23 +72,6 @@ export class ChatActions extends Actions<ChatState> {
   set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
-
-    enableSearchEmbeddings({
-      project_id: store.get("project_id")!,
-      path: store.get("path")!,
-      syncdb,
-      transform: (elt) => {
-        if (elt["event"] != "chat") return;
-        return {
-          date: elt["date"],
-          content: elt["history"]?.[0]?.content,
-          sender_id: elt["sender_id"],
-        };
-      },
-      primaryKey: "date",
-      textColumn: "content",
-      metaColumns: ["sender_id"],
-    });
   };
 
   // Initialize the state of the store from the contents of the syncdb.
@@ -517,7 +499,7 @@ export class ChatActions extends Actions<ChatState> {
     this.scrollToIndex(Number.MAX_SAFE_INTEGER);
   };
 
-// this scrolls the message with given date into view and sets it as the selected message.
+  // this scrolls the message with given date into view and sets it as the selected message.
   scrollToDate = (date) => {
     this.clearScrollRequest();
     this.frameTreeActions?.set_frame_data({

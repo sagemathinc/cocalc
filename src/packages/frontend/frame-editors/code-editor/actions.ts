@@ -46,7 +46,6 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -343,12 +342,6 @@ export class Actions<
             )}`,
           );
         }
-        enableSearchEmbeddings({
-          project_id: this.project_id,
-          path: this.path,
-          syncdb: this._syncstring,
-          ...this.searchEmbeddings,
-        });
       }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
