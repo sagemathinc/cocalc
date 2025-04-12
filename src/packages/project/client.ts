@@ -64,25 +64,27 @@ const winston = getLogger("client");
 
 const HOME = process.env.HOME ?? "/home/user";
 
-let DEBUG = false;
-// Easy way to enable debugging in any project anywhere.
-const DEBUG_FILE = join(HOME, ".smc-DEBUG");
-if (fs.existsSync(DEBUG_FILE)) {
-  DEBUG = true;
-} else if (kucalc.IN_KUCALC) {
-  // always make verbose in kucalc, since logs are taken care of by the k8s
-  // logging infrastructure...
-  DEBUG = true;
-} else {
-  winston.info(
-    "create this file to enable very verbose debugging:",
-    DEBUG_FILE,
-  );
-}
+let DEBUG = !!kucalc.IN_KUCALC;
 
-winston.info(`DEBUG = ${DEBUG}`);
-if (!DEBUG) {
-  winston.info(`create ${DEBUG_FILE} for much more verbose logging`);
+export function initDEBUG() {
+  if (DEBUG) {
+    return;
+  }
+  // // Easy way to enable debugging in any project anywhere.
+  const DEBUG_FILE = join(HOME, ".smc-DEBUG");
+  fs.access(DEBUG_FILE, (err) => {
+    if (err) {
+      // no file
+      winston.info(
+        "create this file to enable very verbose debugging:",
+        DEBUG_FILE,
+      );
+      return;
+    } else {
+      DEBUG = true;
+    }
+    winston.info(`DEBUG = ${DEBUG}`);
+  });
 }
 
 let client: Client | null = null;
