@@ -281,16 +281,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  private getFrameNodeGlobal = (id: string) => {
-    // log("getFrameNodeGlobal", id);
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node != null) return node;
-    }
-    throw Error(`BUG -- no node with id ${id}`);
-  };
-
   open_file = async (): Promise<void> => {
     // log("open_file");
     const actions = this.redux.getProjectActions(this.project_id);
@@ -298,18 +288,21 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   // Revert the live version of the document to a specific version */
-  revert = async (
-    id: string,
-    version: number,
-    doc: Document,
-  ): Promise<void> => {
+  revert = async ({
+    version,
+    doc,
+    gitMode,
+  }: {
+    version: number;
+    doc: Document;
+    gitMode?: boolean;
+  }): Promise<void> => {
     const { syncdoc } = this;
     if (syncdoc == null) {
       return;
     }
-    const node = this.getFrameNodeGlobal(id);
     syncdoc.commit();
-    if (node.get("git_mode")) {
+    if (gitMode) {
       syncdoc.from_str(doc.to_str());
     } else {
       syncdoc.revert(version);

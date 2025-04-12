@@ -400,9 +400,9 @@ export function TimeTravel(props: Props) {
     return (
       <RevertFile
         changesMode={changesMode}
+        gitMode={gitMode}
         actions={props.actions}
         version={version}
-        id={props.id}
         doc={doc}
       />
     );
