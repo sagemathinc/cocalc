@@ -27,6 +27,12 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
 > s = x.openDocs['z4.tasks']
 // now you can directly work with the syncdoc for a given file,
 // but from the perspective of the project, not the browser!
+//
+//
+
+OR:
+
+ echo "require('@cocalc/project/nats/open-files').init(); require('@cocalc/project/bug-counter').init()" | node
 
 COMPUTE SERVER:
 

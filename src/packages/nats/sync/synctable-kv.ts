@@ -101,6 +101,12 @@ export class SyncTableKV extends EventEmitter {
   // will melt away.
   private getName = () => {
     const spec = this.query[this.table][0];
+    if (spec.string_id) {
+      // special case -- the tables with a string_id never touch the database
+      // and are used with *different* spec at the same time to coordinate
+      // between browser and project, so we can't use the spec. 
+      return `${this.table}:${spec.string_id}`;
+    }
     return `${this.table}:${jsonStableStringify(spec)}`;
   };
 
