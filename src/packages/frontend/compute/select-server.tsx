@@ -170,6 +170,7 @@ export default function SelectServer({
             state: "",
             label: (
               <Tooltip
+                mouseEnterDelay={1}
                 title="The Home Base is the core of your project; it contains your primary files and has limited compute resources to work with them. You can upgrade it using a license.  For GPUs, high end CPUs, and root access use a compute server."
                 placement="right"
               >

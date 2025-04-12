@@ -18,12 +18,19 @@ import {
   createBrowserClient,
   SIZE_TIMEOUT_MS,
 } from "@cocalc/nats/service/terminal";
-import { project_id } from "@cocalc/project/data";
+import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
 
 const logger = getLogger("server:nats:terminal");
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
+
+// The printf at the end clears the line so the user doesn't see it. This took
+// way too long to figure out how to do. See
+//   https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+const COMPUTE_SERVER_PROMPT_MESSAGE =
+  `PS1="(\\h) \\w$ "; history -d $(history 1); printf '\\e[A\\e[K'\n`;
+
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
@@ -299,6 +306,11 @@ class Session {
       rows: this.size?.rows,
       cols: this.size?.cols,
     });
+    if (compute_server_id && command == "/bin/bash") {
+      // set the prompt to show the remote hostname explicitly,
+      // then clear the screen.
+      this.pty.write(COMPUTE_SERVER_PROMPT_MESSAGE);
+    }
     this.state = "running";
     logger.debug("creating stream");
     await this.createStream();
