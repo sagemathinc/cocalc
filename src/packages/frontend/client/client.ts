@@ -173,7 +173,6 @@ class Client extends EventEmitter implements WebappClient {
   sync_db: Function;
 
   server_time: Function; // TODO: make this () => Date and deal with the fallout
-  ping_test: Function;
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
@@ -255,7 +254,6 @@ class Client extends EventEmitter implements WebappClient {
 
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
-    this.ping_test = this.time_client.ping_test.bind(this.time_client);
 
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
@@ -297,18 +295,6 @@ class Client extends EventEmitter implements WebappClient {
     //          Use emitter.setMaxListeners() to increase limit.
     // every open file/table/sync db listens for connect event, which adds up.
     this.setMaxListeners(3000);
-
-    // start pinging -- not used/needed for primus,
-    // but *is* needed for getting information about
-    // server_time skew and showing ping time to user.
-    this.once("connected", async () => {
-      this.time_client.ping(true);
-      // Ping again a few seconds after connecting the first time,
-      // after things have settled down a little (to not throw off
-      // ping time).
-      await delay(5000);
-      this.time_client.ping(); // this will ping periodically
-    });
 
     this.init_global_cocalc();
 

@@ -109,7 +109,7 @@ const initDkv = reuseInFlight(async () => {
 
 // skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
-
+let rtt: number | null = null;
 export async function getSkew(): Promise<number> {
   if (dkv == null) {
     await initDkv();
@@ -125,7 +125,7 @@ export async function getSkew(): Promise<number> {
         dkv.removeListener("change", handle);
         const serverTime = dkv.time(key)?.valueOf();
         dkv.delete(key);
-        const rtt = end - start;
+        rtt = end - start;
         skew = start + rtt / 2 - serverTime;
         cb(undefined, skew);
       }
@@ -138,6 +138,14 @@ export async function getSkew(): Promise<number> {
     }, TIMEOUT);
   };
   return await callback(f);
+}
+
+// get last measured round trip time
+export function getLastPingTime(): number | null {
+  return rtt;
+}
+export function getLastSkew(): number | null {
+  return skew;
 }
 
 export default function getTime(): number {
