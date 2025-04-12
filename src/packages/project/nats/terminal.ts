@@ -209,6 +209,9 @@ class Session {
   };
 
   close = () => {
+    if (this.state != "off") {
+      this.stream?.publish(EXIT_MESSAGE);
+    }
     this.pty?.destroy();
     this.stream?.close();
     delete this.pty;

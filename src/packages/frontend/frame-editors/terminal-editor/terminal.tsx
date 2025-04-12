@@ -20,8 +20,9 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
-import { useRedux } from "@cocalc/frontend/app-framework";
 import useResizeObserver from "use-resize-observer";
+import useComputeServerId from "@cocalc/frontend/compute/file-hook";
+import { termPath } from "@cocalc/util/terminal/names";
 
 interface Props {
   actions: any;
@@ -54,14 +55,16 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
   );
-  const computeServerId = useRedux([
-    props.name,
-    "terminalComputeServerIds",
-  ])?.get(props.actions.terminals.get(props.id)?.term_path);
-  const requestedComputeServerId = useRedux([
-    props.name,
-    "terminalRequestedComputeServerIds",
-  ])?.get(props.actions.terminals.get(props.id)?.term_path);
+
+  const node = props.actions._get_frame_node(props.id);
+  const computeServerId = useComputeServerId({
+    project_id: props.project_id,
+    path: termPath({
+      path: props.path,
+      number: node.get("number"),
+      cmd: node.get("command"),
+    }),
+  });
 
   useEffect(() => {
     return delete_terminal; // clean up on unmount
@@ -184,12 +187,12 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   const backgroundColor = background_color(props.terminal.get("color_scheme"));
   /* 4px padding is consistent with CodeMirror */
+
   return (
     <div className={"smc-vfill"}>
-      {computeServerId != null && requestedComputeServerId != null && (
+      {computeServerId != null && (
         <ComputeServerDocStatus
           id={computeServerId}
-          requestedId={requestedComputeServerId}
           project_id={props.project_id}
         />
       )}
