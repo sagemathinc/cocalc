@@ -109,9 +109,12 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("NATs: get", { project_id, path, compute_server_id, url });
       const fileName = path_split(path).tail;
       if (req.query.download != null) {
+        const fileNameEncoded = encodeURIComponent(fileName)
+          .replace(/['()]/g, escape)
+          .replace(/\*/g, "%2A");
         res.setHeader(
           "Content-disposition",
-          "attachment; filename=" + fileName,
+          `attachment; filename*=UTF-8''${fileNameEncoded}`,
         );
       }
       res.setHeader("Content-type", mime.lookup(fileName));

@@ -394,7 +394,8 @@ export function walltime(t?: number): number {
 // encode a UNIX path, which might have # and % in it.
 // Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 export function encode_path(path) {
-  path = encodeURI(path); // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  path = encodeURI(path);
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 }
 

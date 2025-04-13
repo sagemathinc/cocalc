@@ -1834,44 +1834,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
   }
 
-  zip_files(opts) {
-    let id;
-    opts = defaults(opts, {
-      src: required,
-      dest: required,
-      zip_args: undefined,
-      path: undefined, // default to root of project
-      id: undefined,
-      cb: undefined,
+  zip_files = async ({ src, dest }: { src: string[]; dest: string }) => {
+    const args = ["-rq", dest, ...src];
+    const id = misc.uuid();
+    this.set_activity({
+      id,
+      status: `Creating ${dest} from ${src.length} ${misc.plural(
+        src.length,
+        "file",
+      )}`,
     });
-    const args = (opts.zip_args != null ? opts.zip_args : []).concat(
-      ["-rq"],
-      [opts.dest],
-      opts.src,
-    );
-    if (opts.cb == null) {
-      id = opts.id != null ? opts.id : misc.uuid();
-      this.set_activity({
-        id,
-        status: `Creating ${opts.dest} from ${opts.src.length} ${misc.plural(
-          opts.src.length,
-          "file",
-        )}`,
+    try {
+      this.log({ event: "file_action", action: "created", files: [dest] });
+      await webapp_client.exec({
+        project_id: this.project_id,
+        command: "zip",
+        args,
+        timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+        err_on_exit: true, // this should fail if exit_code != 0
+        compute_server_id: this.get_store()?.get("compute_server_id"),
+        filesystem: true,
       });
+    } catch (err) {
+      this.set_activity({ id, error: `${err}` });
+    } finally {
+      this.set_activity({ id, stop: "" });
+      this.fetch_directory_listing();
     }
-    this.log({ event: "file_action", action: "created", files: [opts.dest] });
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "zip",
-      args,
-      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
-      err_on_exit: true, // this should fail if exit_code != 0
-      path: opts.path,
-      cb: opts.cb != null ? opts.cb : this._finish_exec(id),
-      compute_server_id: this.get_store()?.get("compute_server_id"),
-      filesystem: true,
-    });
-  }
+  };
 
   // DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
   private _convert_to_displayed_path(path): string {
@@ -2534,34 +2524,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  public async download_file(opts): Promise<void> {
+  download_file = async ({
+    path,
+    log = false,
+    auto = true,
+    print = false,
+    compute_server_id,
+  }: {
+    path: string;
+    log?: boolean | string[];
+    auto?: boolean;
+    print?: boolean;
+    compute_server_id?: number;
+  }): Promise<void> => {
     let url;
-    opts = defaults(opts, {
-      path: required,
-      log: false,
-      auto: true,
-      print: false,
-      timeout: 45,
-    } as {
-      path: string;
-      log: boolean | string[];
-      auto: boolean;
-      print: boolean;
-      timeout: number;
-    });
-
+    compute_server_id = this.getComputeServerId(compute_server_id);
     if (
       !(await ensure_project_running(
         this.project_id,
-        `download the file '${opts.name}'`,
+        `download the file '${path}'`,
       ))
     ) {
       return;
     }
 
     // log could also be an array of strings to record all the files that were downloaded in a zip file
-    if (opts.log) {
-      const files = Array.isArray(opts.log) ? opts.log : [opts.path];
+    if (log) {
+      const files = Array.isArray(log) ? log : [path];
       this.log({
         event: "file_action",
         action: "downloaded",
@@ -2569,18 +2558,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
     }
 
-    if (opts.auto && !opts.print) {
-      url = download_href(this.project_id, opts.path);
+    if (auto && !print) {
+      url = download_href(this.project_id, path, compute_server_id);
       download_file(url);
     } else {
-      url = url_href(this.project_id, opts.path);
+      url = url_href(this.project_id, path, compute_server_id);
       const tab = open_new_tab(url);
-      if (tab != null && opts.print) {
+      if (tab != null && print) {
         // "?" since there might be no print method -- could depend on browser API
         tab.print?.();
       }
     }
-  }
+  };
 
   print_file(opts): void {
     opts.print = true;

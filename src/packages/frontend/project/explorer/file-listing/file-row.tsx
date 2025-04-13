@@ -307,7 +307,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           <>
             Download this {size} file
             <br />
-            to your own computer.
+            to your computer.
           </>
         }
       >
@@ -336,7 +336,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(props.actions.project_id, full_path(), props.computeServerId);
+  const url = url_href(
+    props.actions.project_id,
+    full_path(),
+    props.computeServerId,
+  );
 
   return (
     <Row

@@ -304,7 +304,12 @@ export function download_href(
   path: string,
   compute_server_id?: number,
 ): string {
-  return `${url_href(project_id, path, compute_server_id)}?download`;
+  const u = url_href(project_id, path, compute_server_id);
+  if (!compute_server_id) {
+    return `${u}?download`;
+  }
+  // there's already a ?id=[number], so use &.
+  return `${u}&download`;
 }
 
 export function in_snapshot_path(path: string): boolean {
