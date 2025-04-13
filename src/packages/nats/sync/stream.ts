@@ -84,7 +84,8 @@ const CONSUMER_MONITOR_INTERVAL = 60 * 1000;
 // means even if we drop from the internet for this time, the server
 // doesn't forget about our consumer's state.  But even if we are forgotten,
 // the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
-const EPHEMERAL_CONSUMER_THRESH = 60 * 60 * 1000;
+// upstream default -- 5 * 60 * 1000
+const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.
