@@ -27,6 +27,8 @@ export const system = {
 
   ping: true,
   exec: true,
+
+  signal: true,
 };
 
 export interface System {
@@ -58,4 +60,10 @@ export interface System {
   ping: () => Promise<{ now: number }>;
 
   exec: (opts: ExecuteCodeOptions) => Promise<ExecuteCodeOutput>;
+
+  signal: (opts: {
+    signal: number;
+    pids?: number[];
+    pid?: number;
+  }) => Promise<void>;
 }

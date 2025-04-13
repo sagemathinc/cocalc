@@ -74,3 +74,33 @@ export async function readTextFileFromProject({
 }): Promise<string> {
   return (await readFile(path)).toString();
 }
+
+export async function signal({
+  signal,
+  pids,
+  pid,
+}: {
+  signal: number;
+  pids?: number[];
+  pid?: number;
+}): Promise<void> {
+  const errors: Error[] = [];
+  const f = (pid) => {
+    try {
+      process.kill(pid, signal);
+    } catch (err) {
+      errors.push(err);
+    }
+  };
+  if (pid != null) {
+    f(pid);
+  }
+  if (pids != null) {
+    for (const pid of pids) {
+      f(pid);
+    }
+  }
+  if (errors.length > 0) {
+    throw errors[errors.length - 1];
+  }
+}
