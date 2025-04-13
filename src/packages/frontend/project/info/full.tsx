@@ -519,7 +519,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
   }
 
   return (
-    <div style={ROOT_STYLE}>
+    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       {render_not_running()}
       {render_error()}
       {render_body()}

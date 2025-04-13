@@ -372,7 +372,7 @@ export class API {
   };
 
   project_info = async (): Promise<Channel> => {
-    const channel_name = await this.call({ cmd: "project_info" }, 60000);
+    const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
     return await this.getChannel(channel_name);
   };
 

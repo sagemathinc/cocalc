@@ -60,10 +60,7 @@ const connections: { [key: string]: Primus } = {};
 export function getPrimusConnection(opts: PrimusOptions): Primus {
   const key = getKey(opts);
   if (connections[key] == null) {
-    console.log("getPrimus", key, "CREATING", opts);
     connections[key] = new Primus(opts);
-  } else {
-    console.log("getPrimus", key, "already have it", opts);
   }
   return connections[key];
 }

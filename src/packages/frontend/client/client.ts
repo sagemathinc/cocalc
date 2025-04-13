@@ -96,7 +96,6 @@ export interface WebappClient extends EventEmitter {
   createNatsService: CreateNatsServiceFunction;
   getNatsEnv: NatsEnvFunction;
   pubsub_nats: Function;
-  project_websocket: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
@@ -181,7 +180,6 @@ class Client extends EventEmitter implements WebappClient {
   createNatsService: CreateNatsServiceFunction;
   getNatsEnv: NatsEnvFunction;
   pubsub_nats: Function;
-  project_websocket: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
