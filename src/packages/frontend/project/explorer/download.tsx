@@ -43,7 +43,6 @@ export default function Download({}) {
     const file = checked_files.first();
     const isdir = redux.getProjectStore(project_id).get("displayed_listing")
       ?.file_map?.[path_split(file).tail]?.isdir;
-    console.log({ isdir });
     setArchiveMode(!!isdir);
     if (!isdir) {
       const store = actions?.get_store();

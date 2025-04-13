@@ -21,7 +21,7 @@ import { ProjectActions } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { url_href } from "../../utils";
+import { url_href } from "@cocalc/frontend/project/utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
@@ -52,7 +52,8 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   link_target?: string;
-  // if given, include a little 'server' tag in this color, and tooltip etc using id
+  // if given, include a little 'server' tag in this color, and tooltip etc using id.
+  // Also important for download and preview links!
   computeServerId?: number;
 }
 
@@ -290,7 +291,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  function render_download_button(url_href) {
+  function render_download_button(url) {
     if (student_project_functionality.disableActions) return;
     const size = misc.human_readable_size(props.size);
     // TODO: This really should not be in the size column...
@@ -313,7 +314,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         <Button
           size="small"
           type="link"
-          href={`${url_href}`}
+          href={url}
           onClick={handle_download_click}
           style={{ color: COLORS.GRAY, padding: 0 }}
         >
@@ -335,7 +336,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(props.actions.project_id, full_path());
+  const url = url_href(props.actions.project_id, full_path(), props.computeServerId);
 
   return (
     <Row
