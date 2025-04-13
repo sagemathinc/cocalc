@@ -2737,22 +2737,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
-    let output;
     try {
-      output = await webapp_client.exec({
-        project_id: this.project_id,
-        command: "cc-new-file",
-        timeout: 10,
-        args: [p],
-        err_on_exit: true,
-        compute_server_id,
-        filesystem: true,
-      });
+      await this.projectApi().editor.newFile(p);
     } catch (err) {
-      const stdout = output?.stdout ?? "";
-      const stderr = output?.stderr ?? "";
       this.setState({
-        file_creation_error: `${stdout} ${stderr} ${err}`,
+        file_creation_error: `${err}`,
       });
       return;
     }
@@ -3622,5 +3611,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // being created.
     await computeServerAssociations.save();
     return true;
+  };
+
+  projectApi = (opts?) => {
+    return webapp_client.nats_client.projectApi({
+      ...opts,
+      project_id: this.project_id,
+    });
   };
 }

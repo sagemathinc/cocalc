@@ -4,6 +4,7 @@ import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
 import type { KernelSpec } from "@cocalc/util/jupyter/types";
 
 export const editor = {
+  newFile: true,
   jupyterStripNotebook: true,
   jupyterNbconvert: true,
   jupyterRunNotebook: true,
@@ -13,6 +14,12 @@ export const editor = {
 };
 
 export interface Editor {
+  // Create a new file with the given name, possibly aware of templates.
+  // This was cc-new-file in the old smc_pyutils python library.  This
+  // is in editor, since it's meant to be for creating a file aware of the
+  // context of our editors.
+  newFile: (path: string) => Promise<void>;
+
   jupyterStripNotebook: (path_ipynb: string) => Promise<string>;
 
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
