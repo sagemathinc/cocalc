@@ -1834,7 +1834,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
   }
 
-  zip_files = async ({ src, dest }: { src: string[]; dest: string }) => {
+  zip_files = async ({
+    src,
+    dest,
+    path,
+  }: {
+    src: string[];
+    dest: string;
+    path?: string;
+  }) => {
     const args = ["-rq", dest, ...src];
     const id = misc.uuid();
     this.set_activity({
@@ -1854,9 +1862,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         err_on_exit: true, // this should fail if exit_code != 0
         compute_server_id: this.get_store()?.get("compute_server_id"),
         filesystem: true,
+        path,
       });
     } catch (err) {
       this.set_activity({ id, error: `${err}` });
+      throw err;
     } finally {
       this.set_activity({ id, stop: "" });
       this.fetch_directory_listing();

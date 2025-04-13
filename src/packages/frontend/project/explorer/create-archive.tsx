@@ -1,13 +1,12 @@
 import { Button, Card, Input, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { default_filename } from "@cocalc/frontend/account";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, path_to_file, plural } from "@cocalc/util/misc";
+import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
 export default function CreateArchive({}) {
@@ -40,13 +39,14 @@ export default function CreateArchive({}) {
     }
     try {
       setLoading(true);
+      const files = checked_files.toArray();
+      const path = store.get("current_path");
       await actions.zip_files({
-        src: checked_files.toArray(),
-        dest: path_to_file(store.get("current_path"), target + ".zip"),
+        src: path ? files.map((x) => x.slice(path.length + 1)) : files,
+        dest: target + ".zip",
+        path,
       });
-      await actions.fetch_directory_listing({
-        path: store.get("current_path"),
-      });
+      await actions.fetch_directory_listing({ path });
     } catch (err) {
       setLoading(false);
       setError(err);

@@ -78,8 +78,13 @@ export default function Download({}) {
       const files = checked_files.toArray();
       let dest;
       if (archiveMode) {
-        dest = path_to_file(store.get("current_path"), target + ".zip");
-        await actions.zip_files({ src: files, dest });
+        const path = store.get("current_path");
+        dest = path_to_file(path, target + ".zip");
+        await actions.zip_files({
+          src: path ? files.map((x) => x.slice(path.length + 1)) : files,
+          dest: target + ".zip",
+          path: store.get("current_path"),
+        });
       } else {
         dest = files[0];
       }
@@ -88,6 +93,7 @@ export default function Download({}) {
         path: store.get("current_path"),
       });
     } catch (err) {
+      console.log(err);
       setLoading(false);
       setError(err);
     } finally {
