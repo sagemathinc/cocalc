@@ -10,9 +10,9 @@ upstream SSO provider.
 */
 
 import getPool from "@cocalc/database/pool";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { checkRequiredSSO } from "./check-required-sso";
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 
 // The name should be something like "google-9999601658192", i.e., a key
 // of the passports field.
@@ -42,7 +42,7 @@ export default async function unlinkStrategy(opts: Options): Promise<void> {
   // if we can't find the strategy, we still let users unlink it – maybe no longer available?
   await pool.query(
     "UPDATE accounts SET passports = passports - $2 WHERE account_id=$1",
-    [account_id, name]
+    [account_id, name],
   );
 }
 
@@ -62,7 +62,7 @@ export async function isBlockedUnlinkStrategy(opts: Opts): Promise<boolean> {
 
   const emailQuery = await pool.query(
     "SELECT email_address FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   const email = emailQuery.rows[0].email_address;
   if (email) {
