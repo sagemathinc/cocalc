@@ -10,7 +10,7 @@ import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import { EnvData } from "./types";
 
 test("3 known software environments", () => {
-  expect(SOFTWARE_ENV_NAMES.length).toBe(4);
+  expect(SOFTWARE_ENV_NAMES.length).toBe(3);
 });
 
 describe("Download URLs", () => {
