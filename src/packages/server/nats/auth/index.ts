@@ -167,7 +167,7 @@ async function listen(api, xkp) {
     // our code isn't buggy, hence alert if this ever happens:
     adminAlert({
       subject: "NATS auth-callout service crashed",
-      body: `A nats auth callout service crashed with the following error:\n\n${err}\n\nWilliam thinks this is impossible and will never happen, so investigate.  This problem could cause all connections to cocalc to fail, and would be fixable by restarting the hubs.`,
+      body: `A nats auth callout service crashed with the following error:\n\n${err}\n\nWilliam thinks this is impossible and will never happen, so investigate.  This problem could cause all connections to cocalc to fail, and would be fixable by restarting certain hubs.`,
     });
   }
 }

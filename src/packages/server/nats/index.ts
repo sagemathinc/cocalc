@@ -18,7 +18,6 @@ export async function initNatsDatabaseServer() {
 export async function initNatsServer() {
   logger.debug("initializing nats cocalc hub server");
   await loadNatsConfiguration();
-  // do NOT await initAPI
   initAPI();
   await initAuth();
   await initLLM();

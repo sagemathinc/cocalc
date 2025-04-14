@@ -49,12 +49,40 @@ import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeed
 import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { respondMany } from "@cocalc/nats/service/many";
+import { delay } from "awaiting";
 
 const logger = getLogger("server:nats:api");
 
 const jc = JSONCodec();
 
-export async function initAPI() {
+export function initAPI() {
+  mainLoop();
+}
+
+async function mainLoop() {
+  let d = 3000;
+  let lastStart = 0;
+  while (true) {
+    try {
+      lastStart = Date.now();
+      await serve();
+    } catch (err) {
+      logger.debug(`hub nats api service error -- ${err}`);
+      if (Date.now() - lastStart >= 30000) {
+        // it ran for a while, so no delay
+        logger.debug(`will restart immediately`);
+        d = 3000;
+      } else {
+        // it crashed quickly, so delay!
+        d = Math.min(20000, d * 1.25 + Math.random());
+        logger.debug(`will restart in ${d}ms`);
+        await delay(d);
+      }
+    }
+  }
+}
+
+async function serve() {
   const subject = "hub.*.*.api";
   logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
