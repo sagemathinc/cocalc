@@ -148,9 +148,14 @@ export function getLastSkew(): number | null {
   return skew;
 }
 
-export default function getTime(): number {
+export default function getTime({
+  noError,
+}: { noError?: boolean } = {}): number {
   if (skew == null) {
     init();
+    if (noError) {
+      return Date.now();
+    }
     throw Error("clock skew not known");
   }
   return Date.now() - skew;

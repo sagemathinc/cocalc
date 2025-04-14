@@ -10,6 +10,12 @@ is not updated and limits are not enforced.  Of course chunking (storing large
 values properly) is supported.
 
 There is no need to close this because it is stateless.
+
+DEVELOPMENT:
+
+~/cocalc/src/packages/backend$ node
+> t =  require("@cocalc/backend/nats/sync").akv({name:'test'})
+
 */
 
 import { GeneralKV } from "./general-kv";

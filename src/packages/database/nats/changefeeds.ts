@@ -1,5 +1,23 @@
 /*
 
+What this does:
+
+A backend server gets a request that a given changefeed (e.g., "messages" or
+"projects" for a given user) needs to be managed. For a while, the server will
+watch the datϨabase and put entries in a NATS jetstream kv that represents the
+data. The browser also periodically pings the backend saying "I'm still
+interested in this changefeed" and the backend server keeps up watching postgres
+for changes. When the user is gone for long enough (5 minutes?) the backend
+stops watching and just leaves the data as is in NATS.
+
+When the user comes back, they immediately get the last version of the data
+straight from NATS, and their browser says "I'm interested in this changefeed".
+The changefeed then gets updated (hopefully 1-2 seconds later) and periodically
+updated after that.
+
+
+DEVELOPMENT:
+
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
    await cc.client.nats_client.hub.system.terminate({service:'db'})
@@ -28,6 +46,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
+import { Coordinator } from "./coordinator";
 
 const logger = getLogger("database:nats:changefeeds");
 
@@ -39,6 +58,7 @@ export async function init() {
   logger.debug(`init -- subject='${subject}', options=`, {
     queue: "0",
   });
+  const coordinator = new Coordinator();
   const nc = await getConnection();
 
   // @ts-ignore
@@ -46,14 +66,14 @@ export async function init() {
 
   const service = await svcm.add({
     name: "db-server",
-    version: "0.1.0",
+    version: "0.2.0",
     description: "CoCalc Database Service (changefeeds)",
   });
 
   api = service.addEndpoint("api", { subject });
 
   for await (const mesg of api) {
-    handleRequest(mesg, nc);
+    handleRequest({ mesg, nc, coordinator });
   }
 }
 
@@ -65,7 +85,7 @@ export function terminate() {
   cancelAllChangefeeds();
 }
 
-async function handleRequest(mesg, nc) {
+async function handleRequest({ mesg, nc, coordinator }) {
   let resp;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
@@ -79,7 +99,7 @@ async function handleRequest(mesg, nc) {
     //       project_id,
     //       name,
     //     });
-    resp = await getResponse({ name, args, account_id, project_id, nc });
+    resp = await getResponse({ name, args, account_id, project_id, nc, coordinator });
   } catch (err) {
     // logger.debug("ERROR", err);
     resp = { error: `${err}` };

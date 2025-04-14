@@ -11,7 +11,7 @@ import { getEnv } from "@cocalc/backend/nats/env";
 import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 export { inventory } from "@cocalc/nats/sync/inventory";
 
-export type { Stream, DStream, KV, DKV, DKO };
+export type { Stream, DStream, KV, DKV, DKO, AKV };
 
 export async function stream<T = any>(opts): Promise<Stream<T>> {
   return await createStream<T>({ env: await getEnv(), ...opts });
