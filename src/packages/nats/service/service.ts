@@ -187,19 +187,45 @@ export class NatsService extends EventEmitter {
     this.subject = serviceSubject(options);
   }
 
-  init = async () => {
-    const env = this.options.env ?? (await getEnv());
-    const svcm = new Svcm(env.nc);
+  init = () => {
+    // do NOT await this.
+    this.mainLoop();
+  };
 
-    const service = await svcm.add({
-      name: serviceName(this.options),
-      version: this.options.version ?? "0.0.1",
-      description: serviceDescription(this.options),
-      queue: this.options.all ? randomId() : "0",
-    });
-
-    this.api = service.addEndpoint("api", { subject: this.subject });
-    this.listen();
+  private mainLoop = async () => {
+    let d = 3000;
+    let lastStart = 0;
+    while (this.subject) {
+      lastStart = Date.now();
+      try {
+        const env = this.options.env ?? (await getEnv());
+        const svcm = new Svcm(env.nc);
+        const service = await svcm.add({
+          name: serviceName(this.options),
+          version: this.options.version ?? "0.0.1",
+          description: serviceDescription(this.options),
+          queue: this.options.all ? randomId() : "0",
+        });
+        if (!this.subject) {
+          return;
+        }
+        this.api = service.addEndpoint("api", { subject: this.subject });
+        await this.listen();
+      } catch (err) {
+        if (!this.subject) {
+          // closed
+          return;
+        }
+        if (Date.now() - lastStart >= 30000) {
+          // it ran for a while, so no delay
+          d = 3000;
+        } else {
+          // it crashed quickly, so delay!
+          d = Math.min(20000, d * 1.25 + Math.random());
+          await delay(d);
+        }
+      }
+    }
   };
 
   private listen = async () => {

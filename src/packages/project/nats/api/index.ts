@@ -65,7 +65,7 @@ import { delay } from "awaiting";
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
 
-export async function init() {
+export function init() {
   mainLoop();
 }
 
