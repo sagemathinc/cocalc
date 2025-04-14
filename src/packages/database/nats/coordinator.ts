@@ -36,7 +36,10 @@ import { akv, type AKV } from "@cocalc/backend/nats/sync";
 import { randomId } from "@cocalc/nats/names";
 import getTime from "@cocalc/nats/time";
 
-const now = () => getTime({ noError: true });
+//const TIMEOUT = 15000;
+const TIMEOUT = 3000;
+
+export const now = () => getTime({ noError: true });
 
 export class Coordinator {
   public readonly managerId: string;
@@ -44,7 +47,7 @@ export class Coordinator {
   public readonly timeout: number;
   private interval;
 
-  constructor({ timeout = 30000 }: { timeout?: number } = {}) {
+  constructor({ timeout = TIMEOUT }: { timeout?: number } = {}) {
     this.managerId = randomId();
     this.akv = akv({ name: "changefeeds" });
     this.timeout = timeout;
@@ -64,8 +67,8 @@ export class Coordinator {
     await this.akv.set(this.managerId, now());
   };
 
-  owner = async (id: string): Promise<string | undefined> => {
-    const managerId = await this.akv.get(id);
+  getManager = async (id: string): Promise<string | undefined> => {
+    const { managerId } = (await this.akv.get(id)) ?? {};
     if (!managerId) {
       return undefined;
     }
@@ -81,24 +84,25 @@ export class Coordinator {
 
   // use expresses interest in changefeed with given id,
   // which we may or may not be the manager of.
-  interest = async (id: string) => {
+  userInterest = async (id: string) => {
     const x = await this.akv.get(id);
     if (!x) {
       return;
     }
     x.time = now();
-    await this.akv.set(x);
+    await this.akv.set(id, x);
   };
 
-  take = async (id: string) => {
-    const cur = await this.owner(id);
+  lastUserInterest = async (id: string): Promise<number> => {
+    const { time } = (await this.akv.get(id)) ?? { time: 0 };
+    return time;
+  };
+
+  takeManagement = async (id: string) => {
+    const cur = await this.getManager(id);
     if (cur && cur != this.managerId) {
       throw Error(`${id} is locked by another manager`);
     }
-    await this.akv.set(id, this.managerId);
-  };
-
-  free = async (id: string) => {
-    await this.akv.delete(id);
+    await this.akv.set(id, { time: now(), managerId: this.managerId });
   };
 }
