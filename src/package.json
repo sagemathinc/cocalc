@@ -23,7 +23,7 @@
     "nats-server-daemon": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({daemon:true})\"",
     "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
     "nats-cli": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main()\"",
-    "nats-cli-sys": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main({user:'sys'})\"",
+    "nats-sys": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main({user:'sys'})\"",
     "local-ci": "./scripts/ci.sh"
   },
   "repository": {

@@ -19,6 +19,7 @@ function params({ user }) {
       NATS_PASSWORD: natsPassword,
       NATS_USER: user,
       HOME: process.env.HOME,
+      TERM: process.env.TERM,
       PS1: "\\w [nats-cli]$ ",
     },
   };
