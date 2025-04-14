@@ -41,7 +41,11 @@ import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import initNatsServer from "@cocalc/server/nats";
+import {
+  loadNatsConfiguration,
+  initNatsDatabaseServer,
+  initNatsServer,
+} from "@cocalc/server/nats";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
@@ -179,8 +183,16 @@ async function startServer(): Promise<void> {
     initIdleTimeout(projectControl);
   }
 
+  // all configuration MUST load nats configuration.  This loads
+  // credentials to use nats from the database, and is needed
+  // by many things.
+  await loadNatsConfiguration();
+
   if (program.natsServer) {
     await initNatsServer();
+  }
+  if (program.natsDatabaseServer) {
+    await initNatsDatabaseServer();
   }
 
   if (program.websocketServer) {
@@ -405,7 +417,14 @@ async function main(): Promise<void> {
       "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
     .option("--websocket-server", "run a websocket server in this process")
-    .option("--nats-server", "run a hub nats API server in this process")
+    .option(
+      "--nats-server",
+      "run a hub that servers standard nats microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+    )
+    .option(
+      "--nats-database-server",
+      "run NATS microservice to provide access (including changefeeds) to the database -- right now there should be exactly ONE of these.",
+    )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
       "--next-server",
@@ -505,6 +524,7 @@ async function main(): Promise<void> {
   if (program.all) {
     program.websocketServer =
       program.natsServer =
+      program.natsDatabaseServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =

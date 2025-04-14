@@ -5,13 +5,21 @@ import { init as initLLM } from "./llm";
 import { init as initAuth } from "./auth";
 import { loadNatsConfiguration } from "./configuration";
 
+export { loadNatsConfiguration };
+
 const logger = getLogger("server:nats");
 
-export default async function initNatsServer() {
+export async function initNatsDatabaseServer() {
+  await loadNatsConfiguration();
+  // do NOT await initDatabase
+  initDatabase();
+}
+
+export async function initNatsServer() {
   logger.debug("initializing nats cocalc hub server");
   await loadNatsConfiguration();
-  initAPI(); // do NOT await initAPI
-  initDatabase();
+  // do NOT await initAPI
+  initAPI();
   await initAuth();
   await initLLM();
 }
