@@ -693,7 +693,10 @@ export class GeneralKV<T = any> extends EventEmitter {
   private _set = async (
     key: string,
     value: T,
-    options?: { headers?: { [name: string]: string | null } },
+    options?: {
+      headers?: { [name: string]: string | null };
+      previousSeq?: number;
+    },
   ) => {
     if (!this.isValidKey(key)) {
       throw Error(
@@ -740,7 +743,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (value === undefined) {
       return await this.delete(key);
     }
-    const revision = this.revisions[key];
+    const revision = options?.previousSeq ?? this.revisions[key];
     let val = this.encode(value);
     if (
       this.limits.max_msg_size > -1 &&
