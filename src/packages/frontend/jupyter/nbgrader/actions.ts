@@ -197,7 +197,6 @@ export class NBGraderActions {
     // the student version is explicitly, and doesn't require any confirmation.
     const store = this.redux.getProjectStore(project_id);
     const listings = store.get_listings();
-    await listings.undelete(filename);
     await project_actions.open_file({ path: filename, foreground: true });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {
