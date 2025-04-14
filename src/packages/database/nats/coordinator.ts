@@ -113,5 +113,10 @@ export class Coordinator {
       },
       { previousSeq },
     );
+
+    const m = await this.getManager(id);
+    if (m != this.managerId) {
+      throw Error("unable to get lock");
+    }
   };
 }

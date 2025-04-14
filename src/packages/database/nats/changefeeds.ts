@@ -183,8 +183,16 @@ const createChangefeed = reuseInFlight(
     });
     const hash = sha1(desc);
     const manager = await coordinator.getManager(hash);
+    logger.debug("createChangefeed: hash = ", {
+      table: queryTable(query),
+      hash,
+      managerId: coordinator.managerId,
+      manager,
+    });
     if (manager && coordinator.managerId != manager) {
-      // somebody else owns it and they are active -- express interest
+      logger.debug(
+        "somebody else owns it and they are active -- express interest",
+      );
       await coordinator.userInterest(hash);
       return;
     }
