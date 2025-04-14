@@ -49,7 +49,9 @@ export class Coordinator {
 
   constructor({ timeout = TIMEOUT }: { timeout?: number } = {}) {
     this.managerId = randomId();
-    this.akv = akv({ name: "changefeeds" });
+    // noChunks true because we don't have any large values, and it is MASSIVELY
+    // more efficient.
+    this.akv = akv({ name: "changefeeds", noChunks: true });
     this.timeout = timeout;
     this.interval = setInterval(this.checkin, this.timeout / 2.5);
     this.checkin();

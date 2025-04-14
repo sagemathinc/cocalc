@@ -181,6 +181,7 @@ export class GeneralKV<T = any> extends EventEmitter {
   private revision: number = 0;
   public readonly valueType: ValueType;
   private noWatch: boolean;
+  private noGet: boolean;
 
   constructor({
     name,
@@ -190,6 +191,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     limits,
     valueType,
     noWatch,
+    noGet,
   }: {
     name: string;
     // filter: optionally restrict to subset of named kv store matching these subjects.
@@ -200,6 +202,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     limits?: Partial<KVLimits>;
     valueType?: ValueType;
     noWatch?: boolean;
+    noGet?: boolean;
   }) {
     super();
     this.limits = {
@@ -211,6 +214,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     };
 
     this.noWatch = !!noWatch;
+    this.noGet = !!noGet;
     this.env = env;
     this.name = name;
     this.options = options;
@@ -225,7 +229,6 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (this.all != null) {
       return;
     }
-
     const kvm = new Kvm(this.env.nc);
     this.kv = await kvm.create(this.name, {
       compression: true,
@@ -233,6 +236,17 @@ export class GeneralKV<T = any> extends EventEmitter {
     });
     this.kv.validateKey = validateKey;
     this.kv.validateSearchKey = validateSearchKey;
+    if (this.noGet) {
+      this.times = {};
+      this.revisions = {};
+      this.allHeaders = {};
+      this.chunkCounts = {};
+      this.sizes = {};
+      this.all = {};
+      this.revision = 0;
+      return;
+    }
+
     const { all, revisions, times, headers } = await getAllFromKv({
       kv: this.kv,
       key: this.filter,
@@ -521,6 +535,35 @@ export class GeneralKV<T = any> extends EventEmitter {
       }
     }
     return x;
+  };
+
+  // do not use cached this.all
+  // this is NOT implemented yet if there are chunks!
+  getDirect = async (key: string): Promise<T | undefined> => {
+    if (
+      this.all == null ||
+      this.revisions == null ||
+      this.times == null ||
+      this.sizes == null ||
+      this.allHeaders == null
+    ) {
+      throw Error("not initialized");
+    }
+    const x = await this.kv.get(key);
+    if (x == null) {
+      return;
+    }
+    const { value, revision, sm } = x;
+    const v = this.env.jc.decode(value);
+    this.all[key] = v;
+    this.revisions[key] = revision;
+    if (revision > this.revision) {
+      this.revision = revision;
+    }
+    this.times[key] = sm.time;
+    this.sizes[key] = value.length;
+    this.allHeaders[key] = sm.headers;
+    return v;
   };
 
   get = (key: string): T => {

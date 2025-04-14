@@ -28,9 +28,11 @@ import { encodeBase64 } from "@cocalc/nats/util";
 export class AKV<T = any> {
   private options: DKVOptions;
   private prefix: string;
+  private noChunks?: boolean;
 
-  constructor(options: DKVOptions) {
+  constructor({ noChunks, ...options }: DKVOptions & { noChunks?: boolean }) {
     this.options = options;
+    this.noChunks = noChunks;
     const { name, valueType = "json" } = options;
     this.prefix = getPrefix({
       name,
@@ -48,7 +50,7 @@ export class AKV<T = any> {
 
   private getGeneralKVForOneKey = async (
     key: string,
-    { noWatch }: { noWatch?: boolean } = {},
+    { noWatch = true }: { noWatch?: boolean } = {},
   ): Promise<GeneralKV<T>> => {
     const { valueType = "json", limits, account_id, project_id } = this.options;
     const filter = this.encodeKey(key);
@@ -60,6 +62,7 @@ export class AKV<T = any> {
       limits,
       valueType,
       noWatch,
+      noGet: noWatch && this.noChunks,
     });
     await kv.init();
     return kv;
@@ -70,8 +73,18 @@ export class AKV<T = any> {
   // will wait until that many ms for the key to get
   get = async (key: string, { timeout }: { timeout?: number } = {}) => {
     const start = Date.now();
-    const kv = await this.getGeneralKVForOneKey(key, { noWatch: !timeout });
+    let noWatch = true;
+    if (timeout) {
+      // there's a timeout so in this unusual nondefault case we will watch:
+      noWatch = false;
+    }
+    const kv = await this.getGeneralKVForOneKey(key, { noWatch });
     const filter = this.encodeKey(key);
+    if (noWatch && this.noChunks) {
+      const x = await kv.getDirect(filter);
+      await kv.close();
+      return x;
+    }
     try {
       let value = kv.get(filter);
       if (!timeout) {
@@ -93,23 +106,35 @@ export class AKV<T = any> {
   };
 
   headers = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key, { noWatch: true });
+    const kv = await this.getGeneralKVForOneKey(key);
     const filter = this.encodeKey(key);
+    if (this.noChunks) {
+      const x = await kv.getDirect(filter);
+      if (x === undefined) {
+        return;
+      }
+    }
     const h = kv.headers(filter);
     await kv.close();
     return h;
   };
 
   time = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key, { noWatch: true });
+    const kv = await this.getGeneralKVForOneKey(key);
     const filter = this.encodeKey(key);
+    if (this.noChunks) {
+      const x = await kv.getDirect(filter);
+      if (x === undefined) {
+        return;
+      }
+    }
     const t = kv.time(filter);
     await kv.close();
     return t;
   };
 
   delete = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key, { noWatch: true });
+    const kv = await this.getGeneralKVForOneKey(key);
     const filter = this.encodeKey(key);
     await kv.delete(filter);
     await kv.close();
@@ -132,7 +157,14 @@ export class AKV<T = any> {
 
   seq = async (key: string) => {
     const kv = await this.getGeneralKVForOneKey(key);
-    return kv.seq(this.encodeKey(key));
+    const filter = this.encodeKey(key);
+    if (this.noChunks) {
+      const x = await kv.getDirect(filter);
+      if (x === undefined) {
+        return;
+      }
+    }
+    return kv.seq(filter);
   };
 }
 
