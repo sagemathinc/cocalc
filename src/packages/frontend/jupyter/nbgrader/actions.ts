@@ -192,11 +192,6 @@ export class NBGraderActions {
     // filename, and modify by applying the assign transformations.
     const project_id = this.jupyter_actions.store.get("project_id");
     const project_actions = this.redux.getProjectActions(project_id);
-    // Be sure to explicitly undelete the student file, just in case it
-    // was manually deleted.  This is the right thing to do since generating
-    // the student version is explicitly, and doesn't require any confirmation.
-    const store = this.redux.getProjectStore(project_id);
-    const listings = store.get_listings();
     await project_actions.open_file({ path: filename, foreground: true });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {
