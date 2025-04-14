@@ -97,6 +97,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 18.04 (EndOfLife)",
     descr: "Reached end of life in August 2020",
     group: "Main",
+    hidden: true,
   },
   [DISMISS_IMG_2004]: {
     order: 1,
