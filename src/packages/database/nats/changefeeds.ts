@@ -70,7 +70,6 @@ export async function init() {
   });
 
   api = service.addEndpoint("api", { subject });
-  global.x = { coordinator };
 
   try {
     for await (const mesg of api) {

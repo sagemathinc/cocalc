@@ -36,8 +36,8 @@ import { akv, type AKV } from "@cocalc/backend/nats/sync";
 import { randomId } from "@cocalc/nats/names";
 import getTime from "@cocalc/nats/time";
 
-//const TIMEOUT = 15000;
-const TIMEOUT = 3000;
+const TIMEOUT = parseInt(process.env.COCALC_CHANGEFEED_TIMEOUT ?? "15000");
+//const TIMEOUT = 3000;
 
 export const now = () => getTime({ noError: true });
 
@@ -103,6 +103,7 @@ export class Coordinator {
     if (cur && cur != this.managerId) {
       throw Error(`${id} is locked by another manager`);
     }
+    // TODO: need to add sequence.
     await this.akv.set(id, { time: now(), managerId: this.managerId });
   };
 }
