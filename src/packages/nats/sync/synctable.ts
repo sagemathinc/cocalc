@@ -37,6 +37,7 @@ interface Options {
   limits?: Partial<KVLimits> | Partial<FilteredStreamLimitOptions>;
   desc?: any;
   start_seq?: number;
+  noInventory?: boolean;
 }
 
 function createObject(options: Options) {

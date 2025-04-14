@@ -43,6 +43,7 @@ export class SyncTableStream extends EventEmitter {
   private getHook: Function;
   private limits?: Partial<FilteredStreamLimitOptions>;
   private start_seq?: number;
+  private noInventory?: boolean;
 
   constructor({
     query,
@@ -52,6 +53,7 @@ export class SyncTableStream extends EventEmitter {
     immutable,
     limits,
     start_seq,
+    noInventory,
   }: {
     query;
     env: NatsEnv;
@@ -60,8 +62,10 @@ export class SyncTableStream extends EventEmitter {
     immutable?: boolean;
     limits?: Partial<FilteredStreamLimitOptions>;
     start_seq?: number;
+    noInventory?: boolean;
   }) {
     super();
+    this.noInventory = noInventory;
     this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
     this.env = env;
@@ -96,6 +100,7 @@ export class SyncTableStream extends EventEmitter {
       limits: this.limits,
       desc: { path: this.path },
       start_seq: this.start_seq,
+      noInventory: this.noInventory,
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

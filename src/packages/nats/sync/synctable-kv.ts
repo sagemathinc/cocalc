@@ -31,6 +31,7 @@ export class SyncTableKV extends EventEmitter {
   private getHook: Function;
   private limits?: Partial<KVLimits>;
   private desc?: JSONValue;
+  private noInventory?: boolean;
 
   constructor({
     query,
@@ -41,6 +42,7 @@ export class SyncTableKV extends EventEmitter {
     immutable,
     limits,
     desc,
+    noInventory,
   }: {
     query;
     env: NatsEnv;
@@ -50,8 +52,10 @@ export class SyncTableKV extends EventEmitter {
     immutable?: boolean;
     limits?: Partial<KVLimits>;
     desc?: JSONValue;
+    noInventory?: boolean;
   }) {
     super();
+    this.noInventory = noInventory;
     this.setMaxListeners(100);
     this.atomic = !!atomic;
     this.getHook = immutable ? fromJS : (x) => x;
@@ -104,7 +108,7 @@ export class SyncTableKV extends EventEmitter {
     if (spec.string_id) {
       // special case -- the tables with a string_id never touch the database
       // and are used with *different* spec at the same time to coordinate
-      // between browser and project, so we can't use the spec. 
+      // between browser and project, so we can't use the spec.
       return `${this.table}:${spec.string_id}`;
     }
     return `${this.table}:${jsonStableStringify(spec)}`;
@@ -120,6 +124,7 @@ export class SyncTableKV extends EventEmitter {
         env: this.env,
         limits: this.limits,
         desc: this.desc,
+        noInventory: this.noInventory,
       });
     } else {
       this.dkv = await createDko({
@@ -129,6 +134,7 @@ export class SyncTableKV extends EventEmitter {
         env: this.env,
         limits: this.limits,
         desc: this.desc,
+        noInventory: this.noInventory,
       });
     }
     // For some reason this one line confuses typescript and break building the compute server package (nothing else similar happens).

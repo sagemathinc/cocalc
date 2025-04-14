@@ -442,7 +442,7 @@ const cache = refCache<UserStreamOptions, DStream>({
 });
 
 export async function dstream<T>(
-  options: UserStreamOptions,
+  options: UserStreamOptions & { noAutosave?: boolean; noInventory?: boolean },
 ): Promise<DStream<T>> {
   return await cache(options);
 }
