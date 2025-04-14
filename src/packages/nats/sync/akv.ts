@@ -120,13 +120,19 @@ export class AKV<T = any> {
   set = async (
     key: string,
     value: T,
-    options?: { headers?: { [key: string]: string } },
+    options?: { headers?: { [key: string]: string }; previousSeq?: number },
   ) => {
     const kv = await this.getGeneralKVForOneKey(key);
     const filter = this.encodeKey(key);
     await kv.set(filter, value, {
+      ...options,
       headers: { ...options?.headers },
     });
+  };
+
+  seq = async (key: string) => {
+    const kv = await this.getGeneralKVForOneKey(key);
+    return kv.seq(this.encodeKey(key));
   };
 }
 

@@ -103,7 +103,15 @@ export class Coordinator {
     if (cur && cur != this.managerId) {
       throw Error(`${id} is locked by another manager`);
     }
-    // TODO: need to add sequence.
-    await this.akv.set(id, { time: now(), managerId: this.managerId });
+    const previousSeq = await this.akv.seq(id);
+    // console.log("takeManagement", { previousSeq });
+    await this.akv.set(
+      id,
+      {
+        time: now(),
+        managerId: this.managerId,
+      },
+      { previousSeq },
+    );
   };
 }

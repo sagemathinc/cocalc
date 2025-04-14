@@ -576,6 +576,13 @@ export class GeneralKV<T = any> extends EventEmitter {
     return false;
   };
 
+  seq = (key) => {
+    if (this.revisions == null) {
+      throw Error("not ready");
+    }
+    return this.revisions[key];
+  };
+
   delete = async (key: string, revision?: number) => {
     this.assertValidKey(key);
     if (
@@ -672,7 +679,10 @@ export class GeneralKV<T = any> extends EventEmitter {
   set = async (
     key: string,
     value: T,
-    options?: { headers?: { [name: string]: string | null } },
+    options?: {
+      headers?: { [name: string]: string | null };
+      previousSeq?: number;
+    },
   ) => {
     await this._set(key, value, options);
     if (this.all != null) {

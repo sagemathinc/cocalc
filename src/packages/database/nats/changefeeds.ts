@@ -189,7 +189,16 @@ const createChangefeed = reuseInFlight(
       return;
     }
     // take it
-    await coordinator.takeManagement(hash);
+    try {
+      await coordinator.takeManagement(hash);
+    } catch {
+      logger.debug(
+        "we failed to take management for ",
+        queryTable(query),
+        user,
+      );
+      return;
+    }
 
     if (changefeedInterest[hash]) {
       changefeedInterest[hash] = now();
