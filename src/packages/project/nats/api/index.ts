@@ -60,13 +60,42 @@ import { Svcm } from "@nats-io/services";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/nats/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/nats/files/write";
+import { delay } from "awaiting";
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
 
 export async function init() {
-  const subject = getSubject({ service: "api" });
+  mainLoop();
+}
+
+export async function mainLoop() {
+  let d = 3000;
+  let lastStart = 0;
+  while (true) {
+    try {
+      lastStart = Date.now();
+      await serve();
+    } catch (err) {
+      logger.debug(`project nats api service error -- ${err}`);
+      if (Date.now() - lastStart >= 30000) {
+        // it ran for a while, so no delay
+        logger.debug(`will restart immediately`);
+        d = 3000;
+      } else {
+        // it crashed quickly, so delay!
+        d = Math.min(20000, d * 1.25 + Math.random());
+        logger.debug(`will restart in ${d}ms`);
+        await delay(d);
+      }
+    }
+  }
+}
+
+async function serve() {
+  logger.debug("create project nats api service");
   const nc = await getConnection();
+  const subject = getSubject({ service: "api" });
   // @ts-ignore
   const svcm = new Svcm(nc);
   const name = `project-${project_id}`;
@@ -78,7 +107,7 @@ export async function init() {
   });
   const api = service.addEndpoint("api", { subject });
   logger.debug(`initAPI -- subscribed to subject='${subject}'`);
-  listen(api, subject);
+  await listen(api, subject);
 }
 
 async function listen(api, subject) {
