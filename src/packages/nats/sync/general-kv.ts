@@ -152,6 +152,7 @@ export interface KVLimits {
   max_msgs: number;
 
   // Maximum age of any key, expressed in milliseconds. 0 for unlimited.
+  // Age is updated whenever value of the key is changed.
   max_age: number;
 
   // The maximum number of bytes to store in this KV, which means

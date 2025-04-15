@@ -12,117 +12,147 @@ they are considered gone.
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/database/nats$ node
-> m1 = new (require('@cocalc/database/nats/coordinator').Coordinator)(); m2 = new (require('@cocalc/database/nats/coordinator').Coordinator)(); null
-null
-> await m1.owner('foo')
-undefined
-> await m1.take('foo')
-undefined
-> await m1.owner('foo')
-'l7ZjMufim9'
-> await m2.owner('foo')
-'l7ZjMufim9'
-> await m2.take('foo')
-Uncaught Error: foo is locked by another manager
-> await m1.free('foo')
-> await m2.take('foo')
-undefined
-> await m1.owner('foo')
-'So01mDRsbs'
 */
 
-import { akv, type AKV } from "@cocalc/backend/nats/sync";
+import { dkv, type DKV } from "@cocalc/backend/nats/sync";
 import { randomId } from "@cocalc/nats/names";
 import getTime from "@cocalc/nats/time";
 
-const TIMEOUT = parseInt(process.env.COCALC_CHANGEFEED_TIMEOUT ?? "15000");
-//const TIMEOUT = 3000;
+interface Entry {
+  // last time user expressed interest in this changefeed
+  user?: number;
+  // manager of this changefeed.
+  managerId?: string;
+  // last time manager updated lock on this changefeed
+  lock?: number;
+}
+
+function mergeTime(
+  a: number | undefined,
+  b: number | undefined,
+): number | undefined {
+  // time of interest should clearly always be the largest known value so far.
+  if (a == null && b == null) {
+    return undefined;
+  }
+  return Math.max(a ?? 0, b ?? 0);
+}
+
+function resolveMergeConflict(local: Entry, remote: Entry): Entry {
+  const user = mergeTime(remote?.user, local?.user);
+  let managerId = local.managerId ?? remote.managerId;
+  if (
+    local.managerId &&
+    remote.managerId &&
+    local.managerId != remote.managerId
+  ) {
+    // conflicting manager - winner is one with newest lock.
+    if ((local.lock ?? 0) > (remote.lock ?? 0)) {
+      managerId = local.managerId;
+    } else {
+      managerId = remote.managerId;
+    }
+  }
+  const lock = mergeTime(remote?.lock, local?.lock);
+  return { user, lock, managerId };
+}
 
 export const now = () => getTime({ noError: true });
 
+const LIMITS = {
+  // discard any keys that are 15 minutes old -- the lock and user interest
+  // updates are much more frequently than this, but this keeps memory usage down.
+  max_age: 1000 * 60 * 15,
+};
+
 export class Coordinator {
   public readonly managerId: string;
-  public readonly akv: AKV;
-  public readonly timeout: number;
-  private interval;
+  public dkv?: DKV<Entry>;
 
-  constructor({ timeout = TIMEOUT }: { timeout?: number } = {}) {
+  // if a manager hasn't update that it is managing this changefeed for timeout ms, then
+  // the lock is relinquished.
+  public readonly timeout: number;
+
+  constructor({ timeout }: { timeout: number }) {
     this.managerId = randomId();
-    // noChunks true because we don't have any large values, and it is MASSIVELY
-    // more efficient.
-    this.akv = akv({ name: "changefeeds", noChunks: true });
     this.timeout = timeout;
-    this.interval = setInterval(this.checkin, this.timeout / 2.5);
-    this.checkin();
   }
 
+  init = async () => {
+    this.dkv = await dkv({
+      name: "changefeed-manager",
+      limits: LIMITS,
+
+      merge: ({ local, remote }) => resolveMergeConflict(local, remote),
+    });
+  };
+
   close = async () => {
-    if (this.interval) {
-      clearInterval(this.interval);
-      delete this.interval;
-    }
-    await this.akv.delete(this.managerId);
+    await this.dkv?.close();
+    delete this.dkv;
   };
 
-  private checkin = async () => {
-    await this.akv.set(this.managerId, now());
-  };
-
-  getManager = async (id: string): Promise<string | undefined> => {
-    const { managerId } = (await this.akv.get(id)) ?? {};
-    if (!managerId) {
+  getManagerId = (id: string): string | undefined => {
+    if (this.dkv == null) {
+      throw Error("coordinator is closed");
+    }
+    const cur = this.dkv.get(id);
+    if (cur == null) {
+      return;
+    }
+    const { managerId, lock } = cur;
+    if (!managerId || !lock) {
       return undefined;
     }
-    const time = await this.akv.get(managerId);
-    if (!time) {
-      return undefined;
-    }
-    if (time < now() - this.timeout) {
+    if (lock < now() - this.timeout) {
+      // lock is too old
       return undefined;
     }
     return managerId;
   };
 
-  // use expresses interest in changefeed with given id,
-  // which we may or may not be the manager of.
-  userInterest = async (id: string) => {
-    const x = await this.akv.get(id);
-    if (!x) {
+  // update that this manager has the lock on this changefeed.
+  lock = (id: string) => {
+    if (this.dkv == null) {
+      throw Error("coordinator is closed");
+    }
+    const x: Entry = this.dkv.get(id) ?? {};
+    x.lock = now();
+    x.managerId = this.managerId;
+    this.dkv.set(id, x);
+  };
+
+  // ensure that this manager no longer has the lock
+  unlock = (id: string) => {
+    if (this.dkv == null) {
+      throw Error("coordinator is closed");
+    }
+    const x: Entry = this.dkv.get(id) ?? {};
+    if (x.managerId == this.managerId) {
+      // we are the manager
+      x.lock = 0;
+      x.managerId = "";
+      this.dkv.set(id, x);
       return;
     }
-    x.time = now();
-    await this.akv.set(id, x);
   };
 
-  lastUserInterest = async (id: string): Promise<number> => {
-    const { time } = (await this.akv.get(id)) ?? { time: 0 };
-    return time;
-  };
-
-  takeManagement = async (id: string) => {
-    const cur = await this.getManager(id);
-    if (cur && cur != this.managerId) {
-      throw Error(`${id} is locked by another manager`);
+  // user expresses interest in changefeed with given id,
+  // which we may or may not be the manager of.
+  updateUserInterest = (id: string) => {
+    if (this.dkv == null) {
+      throw Error("coordinator is closed");
     }
-    const previousSeq = await this.akv.seq(id);
-    // console.log("takeManagement", { previousSeq });
-    await this.akv.set(
-      id,
-      {
-        time: now(),
-        managerId: this.managerId,
-      },
-      { previousSeq },
-    );
-
-    const m = await this.getManager(id);
-    if (m != this.managerId) {
-      throw Error("unable to get lock");
-    }
+    const x: Entry = this.dkv.get(id) ?? {};
+    x.user = now();
+    this.dkv.set(id, x);
   };
 
-  stopManaging = async (id: string) => {
-    await this.akv.delete(id);
+  getUserInterest = (id: string): number => {
+    if (this.dkv == null) {
+      throw Error("coordinator is closed");
+    }
+    const { user } = this.dkv.get(id) ?? {};
+    return user ?? 0;
   };
 }
