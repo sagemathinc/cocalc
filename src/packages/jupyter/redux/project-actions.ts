@@ -185,7 +185,7 @@ export class JupyterActions extends JupyterActions0 {
       5000,
     );
     // Listen for changes...
-    this.syncdb.on("change", this._backend_syncdb_change.bind(this));
+    this.syncdb.on("change", this.backendSyncdbChange);
 
     this.setState({
       // used by the kernel_info function of this.jupyter_kernel
@@ -257,14 +257,13 @@ export class JupyterActions extends JupyterActions0 {
     this.init_file_watcher();
 
     this._state = "ready";
-    this.ensure_there_is_a_cell();
   };
 
-  _backend_syncdb_change = (changes: any) => {
+  private backendSyncdbChange = (changes: any) => {
     if (this.is_closed()) {
       return;
     }
-    const dbg = this.dbg("_backend_syncdb_change");
+    const dbg = this.dbg("backendSyncdbChange");
     if (changes != null) {
       changes.forEach((key) => {
         switch (key.get("type")) {

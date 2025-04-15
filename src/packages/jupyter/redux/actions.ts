@@ -1983,10 +1983,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  public async set_to_ipynb(
+  set_to_ipynb = async (
     ipynb: any,
     data_only: boolean = false,
-  ): Promise<void> {
+  ): Promise<void> => {
     /*
      * set_to_ipynb - set from ipynb object.  This is
      * mainly meant to be run on the backend in the project,
