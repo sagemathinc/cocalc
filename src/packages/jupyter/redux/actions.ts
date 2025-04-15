@@ -810,7 +810,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
-      await this.api().save_ipynb_file();
+      try {
+        await this.api({ timeout: 30000 }).save_ipynb_file();
+      } catch (err) {
+        console.log(err);
+        throw Error(
+          "There was a problem writing the ipynb file to disk.  Please try again later.  You might need to restart your project.",
+        );
+      }
       if (this._state === ("closed" as State)) return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
@@ -2089,7 +2096,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     await this.syncdb.save();
     this.ensure_backend_kernel_setup();
     this._state = "ready";
-  }
+  };
 
   public set_cell_slide(id: string, value: any): void {
     if (!value) {
