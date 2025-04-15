@@ -121,4 +121,8 @@ export class Coordinator {
       throw Error("unable to get lock");
     }
   };
+
+  stopManaging = async (id: string) => {
+    await this.akv.delete(id);
+  };
 }

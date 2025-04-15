@@ -554,6 +554,9 @@ export class GeneralKV<T = any> extends EventEmitter {
       return;
     }
     const { value, revision, sm } = x;
+    if (value.length == 0) {
+      return undefined;
+    }
     const v = this.env.jc.decode(value);
     this.all[key] = v;
     this.revisions[key] = revision;
@@ -636,7 +639,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     ) {
       throw Error("not ready");
     }
-    if (this.all[key] !== undefined) {
+    if (this.all[key] !== undefined || this.noGet || this.noWatch) {
       const cur = this.all[key];
       try {
         const newRevision = await this.kv.delete(key, {

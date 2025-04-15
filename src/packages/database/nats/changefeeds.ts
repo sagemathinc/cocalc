@@ -20,7 +20,7 @@ DEVELOPMENT:
 
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'db'})
+   await cc.client.nats_client.hub.system.termnate({service:'db'})
 
 2. Run this line in nodejs right here:
 
@@ -53,10 +53,11 @@ const logger = getLogger("database:nats:changefeeds");
 const jc = JSONCodec();
 
 let api: any | null = null;
+let coordinator: null | Coordinator = null;
 export async function init() {
   const subject = "hub.*.*.db";
   logger.debug(`init -- subject='${subject}', options=`);
-  const coordinator = new Coordinator();
+  coordinator = new Coordinator();
   const nc = await getConnection();
 
   // @ts-ignore
@@ -76,7 +77,9 @@ export async function init() {
       handleRequest({ mesg, nc, coordinator });
     }
   } finally {
+    cancelAllChangefeeds(coordinator);
     coordinator.close();
+    coordinator = null;
   }
 }
 
@@ -85,7 +88,7 @@ export function terminate() {
   api?.stop();
   api = null;
   // also, stop reporting data into the streams
-  cancelAllChangefeeds();
+  cancelAllChangefeeds(coordinator);
 }
 
 async function handleRequest({ mesg, nc, coordinator }) {
@@ -148,24 +151,25 @@ const changefeedHashes: { [id: string]: string } = {};
 const changefeedInterest: { [hash: string]: number } = {};
 const changefeedSynctables: { [hash: string]: any } = {};
 
-function cancelChangefeed(id) {
-  logger.debug("cancelChangefeed", { id });
-  const hash = changefeedHashes[id];
+function cancelChangefeed({ changes, coordinator }) {
+  logger.debug("cancelChangefeed", { changes });
+  const hash = changefeedHashes[changes];
   if (!hash) {
     // already canceled
     return;
   }
+  coordinator.stopManaging(hash);
   changefeedSynctables[hash]?.close();
   delete changefeedSynctables[hash];
   delete changefeedInterest[hash];
-  delete changefeedHashes[id];
-  db().user_query_cancel_changefeed({ id });
+  delete changefeedHashes[changes];
+  db().user_query_cancel_changefeed({ id: changes });
 }
 
-function cancelAllChangefeeds() {
+function cancelAllChangefeeds(coordinator) {
   logger.debug("cancelAllChangefeeds");
-  for (const id in changefeedHashes) {
-    cancelChangefeed(id);
+  for (const changes in changefeedHashes) {
+    cancelChangefeed({ changes, coordinator });
   }
 }
 
@@ -239,7 +243,7 @@ const createChangefeed = reuseInFlight(
     try {
       await synctable.init();
     } catch (err) {
-      cancelChangefeed(changes);
+      cancelChangefeed({ changes, coordinator });
     }
 
     //     if (global.z == null) {
@@ -282,7 +286,7 @@ const createChangefeed = reuseInFlight(
       } else if (action == "delete") {
         synctable.delete(old_val);
       } else if (action == "close") {
-        cancelChangefeed(changes);
+        cancelChangefeed({ changes, coordinator });
       }
     };
 
@@ -321,7 +325,7 @@ const createChangefeed = reuseInFlight(
                 "insufficient interest in the changefeed, so we stop it.",
                 query,
               );
-              cancelChangefeed(changes);
+              cancelChangefeed({ changes, coordinator });
               return;
             }
           }
@@ -333,7 +337,7 @@ const createChangefeed = reuseInFlight(
       return;
     } catch (err) {
       // if anything goes wrong, make sure we don't think the changefeed is working.
-      cancelChangefeed(changes);
+      cancelChangefeed({ changes, coordinator });
       throw err;
     }
   },
