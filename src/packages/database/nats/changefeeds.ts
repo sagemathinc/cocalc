@@ -299,19 +299,30 @@ const createChangefeed = reuseInFlight(
         cb(err ?? "missing result");
         return;
       }
-      const current = synctable.get();
-      const databaseKeys = new Set<string>();
-      for (const obj of rows) {
-        databaseKeys.add(synctable.getKey(obj));
-        synctable.set(obj);
-      }
-      for (const key in current) {
-        if (!databaseKeys.has(key)) {
-          // console.log("remove from synctable", key);
-          synctable.delete(key);
+      try {
+        if (synctable.get_state() != "connected") {
+          cb("not connected");
+          return;
         }
+        const current = synctable.get();
+        const databaseKeys = new Set<string>();
+        for (const obj of rows) {
+          databaseKeys.add(synctable.getKey(obj));
+          synctable.set(obj);
+        }
+        for (const key in current) {
+          if (!databaseKeys.has(key)) {
+            // console.log("remove from synctable", key);
+            synctable.delete(key);
+          }
+        }
+        cb();
+      } catch (err) {
+        logger.debug(`Error handling first changefeed output -- ${err}`, {
+          hash,
+        });
+        cb(err);
       }
-      cb();
     };
 
     const handleUpdate = ({ action, new_val, old_val }) => {
@@ -344,7 +355,12 @@ const createChangefeed = reuseInFlight(
             handleFirst({ cb, err, rows: x?.[synctable.table] });
             return;
           }
-          handleUpdate(x as any);
+          try {
+            handleUpdate(x as any);
+          } catch (err) {
+            logger.debug(`Error handling update: ${err}`, { hash });
+            cancelChangefeed({ changes });
+          }
         },
       });
     };
@@ -355,7 +371,7 @@ const createChangefeed = reuseInFlight(
       let done = false;
 
       const watchManagerState = async () => {
-        while (!done) {
+        while (!done && changefeedInterest[hash]) {
           await delay(LOCK_TIMEOUT_MS / 1.5);
           if (done) {
             return;
@@ -378,7 +394,7 @@ const createChangefeed = reuseInFlight(
 
       const watchUserInterest = async () => {
         // it's all setup and running.  If there's no interest for a while, stop watching
-        while (!done) {
+        while (!done && changefeedInterest[hash]) {
           await delay(CHANGEFEED_INTEREST_PERIOD_MS);
           if (done) {
             return;
