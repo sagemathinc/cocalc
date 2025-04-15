@@ -72,6 +72,16 @@ async function mainLoop() {
   logger.debug(`init -- subject='${subject}', options=`);
   coordinator = new Coordinator({ timeout: LOCK_TIMEOUT_MS });
   await coordinator.init();
+
+  //   global.x = {
+  //     coordinator,
+  //     terminate,
+  //     changefeedHashes,
+  //     changefeedChanges,
+  //     changefeedInterest,
+  //     changefeedSynctables,
+  //   };
+
   const nc = await getConnection();
 
   // @ts-ignore
