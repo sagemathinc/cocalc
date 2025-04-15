@@ -61,6 +61,13 @@ export class LegacyHistory {
       timeout: 60000,
       uuid: info.uuid,
     });
-    return { patches: JSON.parse(s).patches, users: info.users };
+    let patches;
+    const t = JSON.parse(s);
+    if (t?.patches) {
+      patches = t.patches;
+    } else {
+      patches = t;
+    }
+    return { patches, users: info.users };
   };
 }
