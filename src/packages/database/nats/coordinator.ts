@@ -12,6 +12,8 @@ they are considered gone.
 
 DEVELOPMENT:
 
+c = await require('@cocalc/database/nats/coordinator').coordinator({timeout:10000})
+
 */
 
 import { dkv, type DKV } from "@cocalc/backend/nats/sync";
@@ -65,6 +67,12 @@ const LIMITS = {
   max_age: 1000 * 60 * 15,
 };
 
+export async function coordinator(opts) {
+  const C = new Coordinator(opts);
+  await C.init();
+  return C;
+}
+
 export class Coordinator {
   public readonly managerId: string;
   public dkv?: DKV<Entry>;
@@ -82,7 +90,6 @@ export class Coordinator {
     this.dkv = await dkv({
       name: "changefeed-manager",
       limits: LIMITS,
-
       merge: ({ local, remote }) => resolveMergeConflict(local, remote),
     });
   };
@@ -116,10 +123,11 @@ export class Coordinator {
     if (this.dkv == null) {
       throw Error("coordinator is closed");
     }
-    const x: Entry = this.dkv.get(id) ?? {};
-    x.lock = now();
-    x.managerId = this.managerId;
-    this.dkv.set(id, x);
+    this.dkv.set(id, {
+      ...this.dkv.get(id),
+      lock: now(),
+      managerId: this.managerId,
+    });
   };
 
   // ensure that this manager no longer has the lock
@@ -130,9 +138,7 @@ export class Coordinator {
     const x: Entry = this.dkv.get(id) ?? {};
     if (x.managerId == this.managerId) {
       // we are the manager
-      x.lock = 0;
-      x.managerId = "";
-      this.dkv.set(id, x);
+      this.dkv.set(id, { ...x, lock: 0, managerId: "" });
       return;
     }
   };
@@ -143,9 +149,7 @@ export class Coordinator {
     if (this.dkv == null) {
       throw Error("coordinator is closed");
     }
-    const x: Entry = this.dkv.get(id) ?? {};
-    x.user = now();
-    this.dkv.set(id, x);
+    this.dkv.set(id, { ...this.dkv.get(id), user: now() });
   };
 
   getUserInterest = (id: string): number => {

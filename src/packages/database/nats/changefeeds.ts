@@ -52,8 +52,7 @@ const logger = getLogger("database:nats:changefeeds");
 
 const jc = JSONCodec();
 
-const LOCK_TIMEOUT_MS = 5000;
-//const LOCK_TIMEOUT_MS = 30000;
+const LOCK_TIMEOUT_MS = 30000;
 
 export async function init() {
   while (true) {
@@ -72,7 +71,6 @@ async function mainLoop() {
   const subject = "hub.*.*.db";
   logger.debug(`init -- subject='${subject}', options=`);
   coordinator = new Coordinator({ timeout: LOCK_TIMEOUT_MS });
-  global.z = coordinator;
   await coordinator.init();
   const nc = await getConnection();
 
@@ -248,7 +246,11 @@ const createChangefeed = reuseInFlight(
 
     if (changefeedInterest[hash]) {
       changefeedInterest[hash] = now();
-      logger.debug("use existing changefeed", hash, queryTable(query), user);
+      logger.debug("use existing changefeed", {
+        hash,
+        table: queryTable(query),
+        user,
+      });
       return;
     }
     logger.debug("create new changefeed", queryTable(query), user);
