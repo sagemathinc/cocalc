@@ -1042,17 +1042,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  clear_cell_run_state = (id: string, save = true) => {
-    this._set(
-      {
-        type: "cell",
-        id,
-        state: "done",
-      },
-      save,
-    );
-  };
-
   run_selected_cells = (): void => {
     this.deprecated("run_selected_cells");
   };
@@ -1067,12 +1056,24 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_cell_run_state = (): void => {
-    if (!this.store) {
+    const { store } = this;
+    if (!store) {
       return;
     }
-    this.store.get_cell_list().forEach((id) => {
-      this.clear_cell_run_state(id, false);
-    });
+    const cells = store.get("cells");
+    for (const id of store.get_cell_list()) {
+      const state = cells.getIn([id, "state"]);
+      if (state && state != "done") {
+        this._set(
+          {
+            type: "cell",
+            id,
+            state: "done",
+          },
+          false,
+        );
+      }
+    }
     this.save_asap();
   };
 
