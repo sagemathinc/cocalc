@@ -137,70 +137,89 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return await this.have_project(project_id);
   }
 
-  public async set_project_title(
+  set_project_title = async (
     project_id: string,
     title: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set title -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    if (store.get_title(project_id) === title) {
+    const before = store.get_title(project_id);
+    if (before === title) {
       // title is already set as requested; nothing to do
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, title });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      title,
-    });
-  }
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, title });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        title,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, title: before });
+      throw err;
+    }
+  };
 
-  public async set_project_description(
+  set_project_description = async (
     project_id: string,
     description: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set description -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    if (store.get_description(project_id) === description) {
+    const before = store.get_description(project_id);
+    if (before === description) {
       // description is already set as requested; nothing to do
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, description });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      description,
-    });
-  }
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, description });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        description,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, description: before });
+      throw err;
+    }
+  };
 
-  public async set_project_name(
+  set_project_name = async (
     project_id: string,
     name: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set project name -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, name });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      name,
-    });
-  }
+    const before = store.getIn(["project_map", project_id, "name"]);
+    if (before == name) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, name });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        name,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, name: before });
+      throw err;
+    }
+  };
 
   // creates and stores image as a blob in the database.
   // stores sha1 of that blog in projects map and also returns

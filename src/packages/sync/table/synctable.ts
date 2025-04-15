@@ -1107,8 +1107,8 @@ export class SyncTable extends EventEmitter {
   }
 
   private setError(error: string, query: Query): void {
+    console.warn("WARNING: Synctable error -- ", error);
     this.error = { error, query };
-    this.emit("error", this.error);
   }
 
   public clearError(): void {
