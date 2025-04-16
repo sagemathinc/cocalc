@@ -14,6 +14,7 @@ import { createWriteStream, createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";
 import { writeFile as fsWriteFile, readFile } from "fs/promises";
 import { sha1 } from "@cocalc/backend/sha1";
+import { delay } from "awaiting";
 
 describe("do a basic test that the file writing service works", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
@@ -54,6 +55,7 @@ describe("do a basic test that the file writing service works", () => {
   });
 
   it("confirm that the dest file is correct", async () => {
+    await delay(50);
     const d = (await readFile(dest)).toString();
     expect(d).toEqual(CONTENT);
   });

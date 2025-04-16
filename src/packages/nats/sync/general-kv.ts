@@ -126,6 +126,7 @@ import { delay } from "awaiting";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/nats/types";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -231,6 +232,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       return;
     }
     const kvm = new Kvm(this.env.nc);
+    await waitUntilConnected();
     this.kv = await kvm.create(this.name, {
       compression: true,
       ...this.options,
@@ -248,6 +250,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       return;
     }
 
+    await waitUntilConnected();
     const { all, revisions, times, headers } = await getAllFromKv({
       kv: this.kv,
       key: this.filter,
@@ -331,7 +334,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     this.revision = Math.max(0, ...Object.values(this.revisions));
     this.emit("connected");
     if (!this.noWatch) {
-      this.startWatch();
+      this.startWatchLoop();
       this.monitorWatch();
     }
 
@@ -352,17 +355,44 @@ export class GeneralKV<T = any> extends EventEmitter {
   };
 
   private restartWatch = () => {
-    // we make a new watch, starting AFTER the last revision we retrieved
-    this.watch?.stop(); // stop current watch
-    // make new watch:
-    const resumeFromRevision = this.revision ? this.revision + 1 : undefined;
-    this.startWatch({ resumeFromRevision });
+    this.watch?.stop();
+  };
+
+  private startWatchLoop = async () => {
+    let d = 1000;
+    let lastTime = 0;
+    while (this.all != null) {
+      if (Date.now() - lastTime > 60 * 1000) {
+        // reset delay if it has been a while -- delay is only to prevent frequent bursts
+        d = 1000;
+      }
+      try {
+        await waitUntilConnected();
+        if (this.all == null) {
+          return;
+        }
+        const resumeFromRevision = this.revision
+          ? this.revision + 1
+          : undefined;
+        await this.startWatch({ resumeFromRevision });
+        d = 1000;
+      } catch (err) {
+        console.log(`error watching NATS kv: ${err}`);
+      }
+      if (this.all == null) {
+        // closed
+        return;
+      }
+      d = Math.min(20000, d * 1.25) + Math.random();
+      // console.log(`waiting ${d}ms then reconnecting`);
+      await delay(d);
+    }
   };
 
   private startWatch = async ({
     resumeFromRevision,
   }: { resumeFromRevision?: number } = {}) => {
-    // watch for changes
+    // watch for changes, starting AFTER the last revision we retrieved
     this.watch = await this.kv.watch({
       ignoreDeletes: false,
       include: "updates",
@@ -511,12 +541,13 @@ export class GeneralKV<T = any> extends EventEmitter {
       // already closed
       return;
     }
-    this.watch?.stop();
-    delete this.watch;
     delete this.all;
+    delete this.watch;
     delete this.times;
     delete this.revisions;
     delete this.sizes;
+    delete this.kv;
+    this.watch?.stop();
     // @ts-ignore
     delete this.allHeaders;
     this.emit("closed");
@@ -1103,6 +1134,7 @@ async function jetstreamPut(
     }
   }
   try {
+    await waitUntilConnected();
     const pa = await kv.js.publish(kv.subjectForKey(ek, true), data, o);
     return pa.seq;
   } catch (err) {
