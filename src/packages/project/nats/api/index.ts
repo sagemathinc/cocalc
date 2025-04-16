@@ -123,6 +123,7 @@ async function serviceMonitor({ nc, api, subject }) {
     logger.debug(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms`);
     await delay(MONITOR_INTERVAL);
     try {
+      await waitUntilConnected();
       await nc.request(subject, jc.encode({ name: "ping" }), {
         timeout: 7500,
       });

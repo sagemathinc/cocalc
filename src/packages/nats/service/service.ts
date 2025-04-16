@@ -26,6 +26,7 @@ import { requestMany, respondMany } from "./many";
 import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 5000;
+const MONITOR_INTERVAL = 30000;
 
 export interface ServiceDescription extends Location {
   service: string;
@@ -212,6 +213,7 @@ export class NatsService extends EventEmitter {
           return;
         }
         this.api = service.addEndpoint("api", { subject: this.subject });
+        this.serviceMonitor();
         await this.listen();
       } catch (err) {
         if (!this.subject) {
@@ -230,6 +232,30 @@ export class NatsService extends EventEmitter {
     }
   };
 
+  private serviceMonitor = async () => {
+    while (this.subject && this.api) {
+      //       console.log(
+      //         `serviceMonitor: waiting ${MONITOR_INTERVAL}ms`,
+      //         this.options.description,
+      //       );
+      await delay(MONITOR_INTERVAL);
+      try {
+        if (this.api == null) return;
+        await callNatsService({ ...this.options, mesg: "ping", timeout: 7500 });
+        if (this.api == null) return;
+        // console.log("serviceMonitor: ping succeeded", this.options.description);
+      } catch (err) {
+        if (this.api == null) return;
+        //         console.log(
+        //           `serviceMonitor: ping failed, so restarting service -- ${err}`,
+        //           this.options.description,
+        //         );
+        this.api.stop();
+        return;
+      }
+    }
+  };
+
   private listen = async () => {
     const env = this.options.env ?? (await getEnv());
     const jc = env.jc;
@@ -238,10 +264,14 @@ export class NatsService extends EventEmitter {
 
       // console.log("handle nats service call", request);
       let resp;
-      try {
-        resp = await this.options.handler(request);
-      } catch (err) {
-        resp = { error: `${err}` };
+      if (request == "ping") {
+        resp = "pong";
+      } else {
+        try {
+          resp = await this.options.handler(request);
+        } catch (err) {
+          resp = { error: `${err}` };
+        }
       }
       try {
         const data = jc.encode(resp);
@@ -273,6 +303,7 @@ export class NatsService extends EventEmitter {
     this.emit("close");
     this.removeAllListeners();
     this.api?.stop();
+    delete this.api;
     // @ts-ignore
     delete this.subject;
     // @ts-ignore
