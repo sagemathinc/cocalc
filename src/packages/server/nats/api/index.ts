@@ -132,12 +132,12 @@ async function serve() {
     } else {
       // we explicitly do NOT await this, since we want this hub server to handle
       // potentially many messages at once, not one at a time!
-      handleApiRequest({ request, mesg, nc });
+      handleApiRequest({ request, mesg });
     }
   }
 }
 
-async function handleApiRequest({ request, mesg, nc }) {
+async function handleApiRequest({ request, mesg }) {
   let resp;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
@@ -152,7 +152,7 @@ async function handleApiRequest({ request, mesg, nc }) {
     resp = { error: `${err}` };
   }
   try {
-    await respondMany({ mesg, nc, data: jc.encode(resp) });
+    await respondMany({ mesg, data: jc.encode(resp) });
   } catch (err) {
     // there's nothing we can do here, e.g., maybe NATS just died.
     logger.debug(
