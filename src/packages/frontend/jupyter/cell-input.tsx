@@ -151,11 +151,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
       return (
         <CodeMirror
+          actions={
+            props.is_readonly ? undefined : props.actions
+            /* Do NOT pass in actions when read only, since having any actions *defines*
+            not read only for the codemirror editor; also, it will get created with
+            potentially the same id as a normal cell, hence get linked to it, and
+            then changing it, changes the original cell... causing timetravel
+            to "instantly revert". */
+          }
           complete={props.complete}
           getValueRef={getValueRef}
           value={value}
           options={options(type)}
-          actions={props.actions}
           id={props.cell.get("id")}
           is_focused={props.is_focused}
           is_current={props.is_current}
