@@ -50,6 +50,8 @@ import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { respondMany } from "@cocalc/nats/service/many";
 import { delay } from "awaiting";
+import { waitUntilConnected } from "@cocalc/nats/util";
+const MONITOR_INTERVAL = 30000;
 
 const logger = getLogger("server:nats:api");
 
@@ -59,10 +61,11 @@ export function initAPI() {
   mainLoop();
 }
 
+let terminate = false;
 async function mainLoop() {
   let d = 3000;
   let lastStart = 0;
-  while (true) {
+  while (!terminate) {
     try {
       lastStart = Date.now();
       await serve();
@@ -82,6 +85,26 @@ async function mainLoop() {
   }
 }
 
+async function serviceMonitor({ nc, api, subject }) {
+  while (!terminate) {
+    logger.debug(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms`);
+    await delay(MONITOR_INTERVAL);
+    try {
+      await waitUntilConnected();
+      await nc.request(subject, jc.encode({ name: "ping" }), {
+        timeout: 7500,
+      });
+      logger.debug("serviceMonitor: ping succeeded");
+    } catch (err) {
+      logger.debug(
+        `serviceMonitor: ping failed, so restarting service -- ${err}`,
+      );
+      api.stop();
+      return;
+    }
+  }
+}
+
 async function serve() {
   const subject = "hub.*.*.api";
   logger.debug(`initAPI -- subject='${subject}', options=`, {
@@ -91,6 +114,7 @@ async function serve() {
   // @ts-ignore
   const svcm = new Svcm(nc);
 
+  await waitUntilConnected();
   const service = await svcm.add({
     name: "hub-server",
     version: "0.1.0",
@@ -98,6 +122,11 @@ async function serve() {
   });
 
   const api = service.addEndpoint("api", { subject });
+  serviceMonitor({ api, subject, nc });
+  await listen({ api, subject });
+}
+
+async function listen({ api, subject }) {
   for await (const mesg of api) {
     const request = jc.decode(mesg.data) ?? ({} as any);
     if (request.name == "system.terminate") {
@@ -123,6 +152,7 @@ async function serve() {
         // special hook so admin can terminate handling. This is useful for development.
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
+        terminate = true;
         mesg.respond(jc.encode({ status: "terminated", service }));
         api.stop();
         return;
