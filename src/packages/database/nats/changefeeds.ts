@@ -47,12 +47,15 @@ import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
 import { Coordinator, now } from "./coordinator";
+import { parallelHandler } from "@cocalc/util/async-utils";
 
 const logger = getLogger("database:nats:changefeeds");
 
 const jc = JSONCodec();
 
 const LOCK_TIMEOUT_MS = 30000;
+
+const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "20");
 
 export async function init() {
   while (true) {
@@ -97,9 +100,11 @@ async function mainLoop() {
   api = service.addEndpoint("api", { subject });
 
   try {
-    for await (const mesg of api) {
-      handleRequest({ mesg, nc });
-    }
+    await parallelHandler({
+      iterable: api,
+      limit: PARALLEL_LIMIT,
+      handle: async (mesg) => await handleRequest({ mesg, nc }),
+    });
   } finally {
     cancelAllChangefeeds();
     try {
@@ -119,9 +124,12 @@ export function terminate() {
   cancelAllChangefeeds();
 }
 
+let numRunning = 0;
 async function handleRequest({ mesg, nc }) {
   let resp;
   try {
+    numRunning += 1;
+    logger.debug("handleRequest", { numRunning });
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
     //console.log(`got request: "${JSON.stringify({ name, args })}"`);
@@ -144,6 +152,8 @@ async function handleRequest({ mesg, nc }) {
   } catch (err) {
     logger.debug(`ERROR -- ${err}`);
     resp = { error: `${err}` };
+  } finally {
+    numRunning -= 1;
   }
   // logger.debug(`Responding with "${JSON.stringify(resp)}"`);
   mesg.respond(jc.encode(resp));

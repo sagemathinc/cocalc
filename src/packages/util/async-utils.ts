@@ -234,3 +234,29 @@ export async function mapParallelLimit(values, fn, max = 10) {
 
   return Promise.all(promises.values());
 }
+
+export async function parallelHandler({
+  iterable,
+  limit,
+  handle,
+}: {
+  iterable: AsyncIterable<any>;
+  limit: number;
+  handle: (any) => Promise<void>;
+}) {
+  const promiseQueue: Promise<void>[] = [];
+  for await (const mesg of iterable) {
+    const promise = handle(mesg).then(() => {
+      // Remove the promise from the promiseQueue once done
+      promiseQueue.splice(promiseQueue.indexOf(promise), 1);
+    });
+    promiseQueue.push(promise);
+    // If we reached the PARALLEL limit, wait for one of the
+    // promises to resolve
+    if (promiseQueue.length >= limit) {
+      await Promise.race(promiseQueue);
+    }
+  }
+  // Wait for all remaining promises to finish
+  await Promise.all(promiseQueue);
+}
