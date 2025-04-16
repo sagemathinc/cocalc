@@ -243,6 +243,7 @@ export class NatsClient extends EventEmitter {
         args,
       });
       let resp;
+      await waitUntilConnected();
       if (requestMany0) {
         resp = await requestMany({ nc, subject, data, maxWait: timeout });
       } else {
@@ -268,6 +269,7 @@ export class NatsClient extends EventEmitter {
     project_id: string;
     path?: string;
     compute_server_id?: number;
+    // IMPORTANT: this timeout is only AFTER user is connected.
     timeout?: number;
   }): ProjectApi => {
     if (!isValidUUID(project_id)) {
@@ -294,6 +296,7 @@ export class NatsClient extends EventEmitter {
         args,
       };
       try {
+        await waitUntilConnected();
         return await this.callProject(opts);
       } catch (err) {
         if (
@@ -302,6 +305,7 @@ export class NatsClient extends EventEmitter {
         ) {
           lastAddedPermission = Date.now();
           await this.addProjectPermissions([project_id]);
+          await waitUntilConnected();
           return await this.callProject(opts);
         } else {
           throw err;
@@ -334,11 +338,13 @@ export class NatsClient extends EventEmitter {
     });
     let resp;
     try {
+      await waitUntilConnected();
       resp = await nc.request(subject, mesg, { timeout });
     } catch (err) {
       if (err.code == "PERMISSIONS_VIOLATION") {
         // request update of our credentials to include this project, then try again
         await (nc as any).addProjectPermissions([project_id]);
+        await waitUntilConnected();
         resp = await nc.request(subject, mesg, { timeout });
       } else {
         throw err;
@@ -371,6 +377,7 @@ export class NatsClient extends EventEmitter {
       args,
     });
     // console.log("request to subject", { subject, name, args });
+    await waitUntilConnected();
     const resp = await nc.request(subject, mesg, { timeout });
     return this.jc.decode(resp.data);
   };
@@ -396,6 +403,7 @@ export class NatsClient extends EventEmitter {
 
   request = async (subject: string, data: string) => {
     const { nc } = await this.getEnv();
+    await waitUntilConnected();
     const resp = await nc.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
   };

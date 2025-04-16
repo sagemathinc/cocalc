@@ -69,10 +69,11 @@ export function init() {
   mainLoop();
 }
 
+let terminate = false;
 export async function mainLoop() {
   let d = 3000;
   let lastStart = 0;
-  while (true) {
+  while (!terminate) {
     try {
       lastStart = Date.now();
       await serve();
@@ -136,6 +137,7 @@ async function listen(api, subject) {
         continue;
       } else if (service == "api") {
         // special hook so admin can terminate handling. This is useful for development.
+        terminate = true;
         console.warn("TERMINATING listening on ", subject);
         logger.debug("TERMINATING listening on ", subject);
         mesg.respond(jc.encode({ status: "terminated", service }));

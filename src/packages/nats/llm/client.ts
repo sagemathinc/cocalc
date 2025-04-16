@@ -6,10 +6,9 @@ import { getEnv } from "@cocalc/nats/client";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 import { llmSubject } from "./server";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
-export async function llm(
-  options: ChatOptions,
-): Promise<string> {
+export async function llm(options: ChatOptions): Promise<string> {
   if (!options.system?.trim()) {
     // I noticed in testing that for some models they just fail, so let's be clear immediately.
     throw Error("the system prompt MUST be nonempty");
@@ -23,6 +22,7 @@ export async function llm(
   let lastSeq = -1;
   const { nc, jc } = await getEnv();
   let { stream, ...opts } = options;
+  await waitUntilConnected();
   for await (const resp of await nc.requestMany(subject, jc.encode(opts), {
     maxWait: opts.timeout ?? 1000 * 60 * 10,
   })) {

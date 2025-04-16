@@ -23,7 +23,7 @@ import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { requestMany, respondMany } from "./many";
-import { encodeBase64 } from "@cocalc/nats/util";
+import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -63,6 +63,7 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
   try {
     const data = jc.encode(opts.mesg);
+    await waitUntilConnected();
     if (opts.many) {
       resp = await requestMany({ nc, subject, data, maxWait: timeout });
     } else {
@@ -200,6 +201,7 @@ export class NatsService extends EventEmitter {
       try {
         const env = this.options.env ?? (await getEnv());
         const svcm = new Svcm(env.nc);
+        await waitUntilConnected();
         const service = await svcm.add({
           name: serviceName(this.options),
           version: this.options.version ?? "0.0.1",
@@ -341,6 +343,7 @@ export async function waitForNatsService({
   const start = Date.now();
   const getPing = async (m: number) => {
     try {
+      await waitUntilConnected();
       return await pingNatsService({ options, maxWait: m });
     } catch {
       // ping can fail, e.g, if not connected to nats at all or the ping
