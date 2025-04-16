@@ -6,8 +6,8 @@
 import { EventEmitter } from "events";
 import type { State } from "./changefeed";
 import { delay } from "awaiting";
-//import { CHANGEFEED_INTEREST_PERIOD_MS } from "@cocalc/nats/sync/synctable";
-const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
+import { CHANGEFEED_INTEREST_PERIOD_MS } from "@cocalc/nats/sync/synctable";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
 export class NatsChangefeed extends EventEmitter {
   private client;
@@ -51,25 +51,26 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   private interest = async () => {
-    let d = 10000;
-    await delay(d);
     while (this.state != "closed") {
-      // console.log("express interest in", this.query);
       try {
+        // console.log("changefeed:interest -- waiting for conn", this.query);
+        await waitUntilConnected();
+        // console.log("changefeed:interest -- sending interest", this.query);
         await this.client.nats_client.changefeedInterest(this.query);
-        d =
-          Math.min(CHANGEFEED_INTEREST_PERIOD_MS / 3, 1.3 * d) + Math.random();
+        await delay(CHANGEFEED_INTEREST_PERIOD_MS / 2.1);
       } catch (err) {
+        // console.log("changefeed:interest err", err, this.query);
         if (err.code != "TIMEOUT") {
           // it's normal for this to throw a TIMEOUT error whenever the browser isn't connected to NATS,
           // so we only log it to the console if it is unexpected.
-          console.log("WARNING: issue updating changefeed interest", err);
-        } else {
-          // reset to be more frequently since likely disconnected.
-          d = 10000;
+          // There could be a 503 error if the database backend service (e.g., hub-database)
+          // is entirely down and that would result in this log showing up.
+          console.log(
+            `WARNING: error updating changefeed (will retry soon) -- ${err}`,
+          );
         }
+        await delay(10000);
       }
-      await delay(d);
     }
   };
 

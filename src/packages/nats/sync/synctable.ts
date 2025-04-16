@@ -22,9 +22,10 @@ export type NatsSyncTableFunction = (
 ) => Promise<NatsSyncTable>;
 
 // When the database is watching tables for changefeeds, if it doesn't get a clear expression
-// of interest from a client every this much time, it automatically stops.
+// of interest from a client every this much time, it stops managing the changefeed to
+// save resources.
+
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
-//export const CHANGEFEED_INTEREST_PERIOD_MS = 6000;
 
 interface Options {
   query;
