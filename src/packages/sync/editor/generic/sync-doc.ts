@@ -3326,6 +3326,7 @@ export class SyncDoc extends EventEmitter {
     live version as a result.
   */
   private handle_patch_update = async (changed_keys): Promise<void> => {
+    // console.log("handle_patch_update", { changed_keys });
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
       return;

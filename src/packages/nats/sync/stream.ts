@@ -245,7 +245,10 @@ export class Stream<T = any> extends EventEmitter {
       // probably already exists, so try to modify to have the requested properties.
       this.stream = await this.jsm.streams.update(this.jsname, options);
     }
-    this.consumer = await this.fetchInitialData();
+    this.consumer = await this.fetchInitialData({
+      // do not broadcast initial load
+      noEmit: true,
+    });
     if (this.stream == null) {
       // closed *during* initial load
       return;
@@ -518,7 +521,13 @@ export class Stream<T = any> extends EventEmitter {
     return await js.consumers.get(this.jsname, name);
   };
 
-  private fetchInitialData = async (options?) => {
+  private fetchInitialData = async ({
+    options,
+    noEmit,
+  }: {
+    options?;
+    noEmit: boolean;
+  }) => {
     const consumer = await this.getConsumer(options);
     // grab the messages.  This should be very efficient since it
     // internally grabs them in batches.
@@ -550,7 +559,7 @@ export class Stream<T = any> extends EventEmitter {
               }
               if (v[0] == v[1]) {
                 // have all the chunks
-                this.handle(chunks, true);
+                this.handle(chunks, noEmit);
                 this.enforceLimits();
               }
             }
@@ -558,7 +567,7 @@ export class Stream<T = any> extends EventEmitter {
         }
         if (!isChunked) {
           // not chunked
-          this.handle([mesg], true);
+          this.handle([mesg], noEmit);
           this.enforceLimits();
         }
         const pending = mesg.info.pending;
@@ -623,7 +632,11 @@ export class Stream<T = any> extends EventEmitter {
       // make new one:
       const start_seq = this.last_seq + 1;
       try {
-        this.consumer = await this.fetchInitialData({ start_seq });
+        // noEmit = false since we DO want to emit an event for any changes at this point!!
+        this.consumer = await this.fetchInitialData({
+          options: { start_seq },
+          noEmit: false,
+        });
         if (this.stream == null) {
           // closed
           return;
