@@ -100,9 +100,9 @@ export class ComputeServerManager extends EventEmitter {
 
   private getDkv = () => {
     if (this.dkv == null) {
-      throw Error(
-        `compute server manager not initialized -- in state '${this.state}'`,
-      );
+      const message = `compute server manager not initialized -- in state '${this.state}'`;
+      console.warn(message);
+      throw Error(message);
     }
     return this.dkv;
   };

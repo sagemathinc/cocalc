@@ -351,8 +351,7 @@ export class API {
     // timer do the job, than have to wait for this generic timeout here,
     // since we want to at least get output for problems that ran.
     const api = this.getApi({
-      compute_server_id:
-        compute_server_id ?? this.getComputeServerId(opts.path),
+      compute_server_id,
       timeout: 60 + 2 * max_total_time_ms,
     });
     return await api.editor.jupyterRunNotebook(opts);
