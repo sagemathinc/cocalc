@@ -9,7 +9,6 @@ pnpm exec jest --forceExit "dko.test.ts"
 
 import { dko as createDko } from "@cocalc/backend/nats/sync";
 import { getMaxPayload } from "@cocalc/nats/util";
-import { getConnection } from "@cocalc/nats/client";
 
 describe("create a public dko and do a basic operation", () => {
   let kv;
@@ -77,7 +76,7 @@ describe("test a large value that requires chunking", () => {
     kv = await createDko({ name });
     expect(kv.getAll()).toEqual({});
 
-    const n = getMaxPayload(await getConnection());
+    const n = await getMaxPayload();
     const big = { foo: "b".repeat(n * 1.3) };
     kv.set("big", big);
     expect(kv.get("big")).toEqual(big);
@@ -88,4 +87,3 @@ describe("test a large value that requires chunking", () => {
     await kv.close();
   });
 });
-

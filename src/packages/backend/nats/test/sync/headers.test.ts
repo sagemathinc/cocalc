@@ -10,7 +10,6 @@ import "@cocalc/backend/nats"; // ensure client is setup
 import { getMaxPayload } from "@cocalc/nats/util";
 import { dstream, stream, dkv, kv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-import { getConnection } from "@cocalc/nats/client";
 
 describe("test headers with a stream", () => {
   let s;
@@ -29,7 +28,7 @@ describe("test headers with a stream", () => {
   });
 
   it("writes a large value to a stream that requires chunking and a header", async () => {
-    s.publish("y".repeat(getMaxPayload(await getConnection()) * 2), {
+    s.publish("y".repeat(await getMaxPayload() * 2), {
       headers: { large: "chunks", multiple: "keys" },
     });
     await once(s, "change");
@@ -128,7 +127,7 @@ describe("test headers with low level general kv", () => {
 
   it("writes a large value to a kv that requires chunking and a header", async () => {
     const key = `${s.prefix}.big`;
-    gkv.set(key, "x".repeat(getMaxPayload(await getConnection()) * 2), {
+    gkv.set(key, "x".repeat(await getMaxPayload() * 2), {
       headers: { the: "header" },
     });
     await once(gkv, "change");

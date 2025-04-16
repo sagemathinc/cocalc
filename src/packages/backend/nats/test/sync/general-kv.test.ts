@@ -139,7 +139,7 @@ describe("test using the binary value type", () => {
   });
 
   it("sets and gets a large binary value that requires chunking", async () => {
-    const m = getMaxPayload(env.nc);
+    const m = await getMaxPayload();
     const value = Buffer.from("x".repeat(1.5 * m));
     value[0] = 7;
     await kv.set("foo.big", value);

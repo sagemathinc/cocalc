@@ -15,7 +15,6 @@ about potentially having to fork NATS.
 
 import "@cocalc/backend/nats"; // ensure client is setup
 import { getMaxPayload } from "@cocalc/nats/util";
-import { getConnection } from "@cocalc/nats/client";
 import { createDstream } from "./util";
 import { dstream } from "@cocalc/backend/nats/sync";
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";
@@ -24,8 +23,7 @@ describe("create a dstream and a dkv and write a large chunk to each", () => {
   let maxPayload = 0;
 
   it("sanity check on the max payload", async () => {
-    const nc = await getConnection();
-    maxPayload = getMaxPayload(nc);
+    maxPayload = await getMaxPayload();
     expect(maxPayload).toBeGreaterThan(1000000);
   });
 

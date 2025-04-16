@@ -11,7 +11,6 @@ pnpm exec jest --forceExit "binary.test.ts"
 
 import "@cocalc/backend/nats"; // ensure client is setup
 import { getMaxPayload } from "@cocalc/nats/util";
-import { getConnection } from "@cocalc/nats/client";
 import { dstream, dkv } from "@cocalc/backend/nats/sync";
 
 describe("test binary data with a dstream", () => {
@@ -46,8 +45,7 @@ describe("test binary data with a dstream", () => {
 
   it("writes large binary data to the dstream to test chunking", async () => {
     s = await dstream({ name, valueType: "binary" });
-    const nc = await getConnection();
-    const maxPayload = getMaxPayload(nc);
+    const maxPayload = await getMaxPayload();
     const data = Uint8Array.from(Buffer.from("x".repeat(maxPayload * 1.5)));
     s.publish(data);
     expect(s.get(s.length - 1).length).toEqual(data.length);
@@ -100,8 +98,7 @@ describe("test binary data with a dkv", () => {
 
   it("writes large binary data to the dkv to test chunking", async () => {
     s = await dkv({ name, valueType: "binary" });
-    const nc = await getConnection();
-    const maxPayload = getMaxPayload(nc);
+    const maxPayload = await getMaxPayload();
     const data = Uint8Array.from(Buffer.from("x".repeat(maxPayload * 1.5)));
     s.y = data;
     expect(s.y.length).toEqual(data.length);

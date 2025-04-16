@@ -10,7 +10,6 @@ pnpm exec jest --forceExit "akv.test.ts"
 import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
 import { getMaxPayload } from "@cocalc/nats/util";
-import { getConnection } from "@cocalc/nats/client";
 
 describe("test basics with an akv", () => {
   let kv;
@@ -95,8 +94,7 @@ describe("testing writing and reading chunked data", () => {
   let maxPayload = 0;
 
   it("sanity check on the max payload", async () => {
-    const nc = await getConnection();
-    maxPayload = getMaxPayload(nc);
+    maxPayload = await getMaxPayload();
     expect(maxPayload).toBeGreaterThan(1000000);
   });
 
