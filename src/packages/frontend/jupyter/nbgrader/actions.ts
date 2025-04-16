@@ -9,7 +9,6 @@ import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { close, path_split } from "@cocalc/util/misc";
-
 import { JupyterActions } from "../browser-actions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
@@ -208,14 +207,19 @@ export class NBGraderActions {
     // The complicated map/filter thing below is just to grab
     // only the {type:?,id:?} parts of all the records.
     actions.jupyter_actions.syncdb.emit("change", "all");
-    await actions.jupyter_actions.save();
+
+    // Apply all the transformations.
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations(
       minimal_stubs,
     );
+    // now save to disk
     await actions.jupyter_actions.save();
   }
 
-  public apply_assign_transformations(minimal_stubs: boolean = false): void {
+  // public because above we call this... on a different object!
+  public apply_assign_transformations = (
+    minimal_stubs: boolean = false,
+  ): void => {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -251,8 +255,7 @@ export class NBGraderActions {
     this.assign_save_checksums(); // step 5
     // log("lock readonly cells");
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
-    this.jupyter_actions.save_asap();
-  }
+  };
 
   // merge in metadata to the global (not local to a cell) nbgrader
   // metadata for this notebook.  This is something I invented for

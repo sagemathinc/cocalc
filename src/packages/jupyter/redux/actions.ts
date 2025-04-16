@@ -809,6 +809,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // This "save" means save state to backend.
       await this.syncdb.save();
       if (this._state === "closed") return;
+
+      // At this point we know the document is fully saved to the network,
+      // but sadly we do not actually know it has been received and
+      // processed by the project.  The save to ipynb that happens
+      // on the backend assumes the document has been processed.
+      // TODO: as a very temporary stopgap, we are just going to
+      // wait a little.  Soon we'll change this to include a timestamp or
+      // as a parameter to save_ipynb_file. In practice this works fine
+      // since the save above is sent over the same channel as
+      // the save_ipynb_file below, so it's likely that one happens
+      // before the other (before NATS it always did).
+      // **THIS IS TEMPORARY THOUGH.**
+      await delay(500);
       // Export the ipynb file to disk.
       try {
         await this.api({ timeout: 30000 }).save_ipynb_file();
