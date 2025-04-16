@@ -61,6 +61,9 @@ import { compute_server_id, project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/nats/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/nats/files/write";
 import { delay } from "awaiting";
+import { waitUntilConnected } from "@cocalc/nats/util";
+
+const MONITOR_INTERVAL = 30000;
 
 const logger = getLogger("project:nats:api");
 const jc = JSONCodec();
@@ -77,6 +80,7 @@ export async function mainLoop() {
     try {
       lastStart = Date.now();
       await serve();
+      logger.debug("project nats api service ended");
     } catch (err) {
       logger.debug(`project nats api service error -- ${err}`);
       if (Date.now() - lastStart >= 30000) {
@@ -94,21 +98,43 @@ export async function mainLoop() {
 }
 
 async function serve() {
-  logger.debug("create project nats api service");
+  logger.debug("serve: create project nats api service");
+  await waitUntilConnected();
   const nc = await getConnection();
   const subject = getSubject({ service: "api" });
   // @ts-ignore
   const svcm = new Svcm(nc);
   const name = `project-${project_id}`;
-  logger.debug(`creating API microservice ${name}`);
+  logger.debug(`serve: creating API microservice ${name}`);
+  await waitUntilConnected();
   const service = await svcm.add({
     name,
     version: "0.1.0",
     description: `CoCalc ${compute_server_id ? "Compute Server" : "Project"}`,
   });
   const api = service.addEndpoint("api", { subject });
-  logger.debug(`initAPI -- subscribed to subject='${subject}'`);
+  serviceMonitor({ api, subject, nc });
+  logger.debug(`serve: subscribed to subject='${subject}'`);
   await listen(api, subject);
+}
+
+async function serviceMonitor({ nc, api, subject }) {
+  while (true) {
+    logger.debug(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms`);
+    await delay(MONITOR_INTERVAL);
+    try {
+      await nc.request(subject, jc.encode({ name: "ping" }), {
+        timeout: 7500,
+      });
+      logger.debug("serviceMonitor: ping succeeded");
+    } catch (err) {
+      logger.debug(
+        `serviceMonitor: ping failed, so restarting service -- ${err}`,
+      );
+      api.stop();
+      return;
+    }
+  }
 }
 
 async function listen(api, subject) {
@@ -155,12 +181,16 @@ async function listen(api, subject) {
 async function handleApiRequest(request, mesg) {
   let resp;
   const { name, args } = request as any;
-  try {
-    // logger.debug("handling project.api request:", { name });
-    resp = (await getResponse({ name, args })) ?? null;
-  } catch (err) {
-    logger.debug(`project.api request err = ${err}`, { name });
-    resp = { error: `${err}` };
+  if (name == "ping") {
+    resp = "pong";
+  } else {
+    try {
+      // logger.debug("handling project.api request:", { name });
+      resp = (await getResponse({ name, args })) ?? null;
+    } catch (err) {
+      logger.debug(`project.api request err = ${err}`, { name });
+      resp = { error: `${err}` };
+    }
   }
   mesg.respond(jc.encode(resp));
 }
