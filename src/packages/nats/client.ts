@@ -36,6 +36,7 @@ export class ClientWithState extends EventEmitter {
     super();
     // many things listen for these events -- way more than 10 things.
     this.setMaxListeners(500);
+    // this getNatsEnv only ever returns *ONE* connection
     this.getNatsEnv = reuseInFlight(async () => {
       if (this.state == "closed") {
         throw Error("client already closed");
@@ -117,6 +118,7 @@ export function getClient(): ClientWithState {
   return globalClient;
 }
 
+// this is a singleton
 export async function getConnection(): Promise<NatsConnection> {
   const { nc } = await getEnv();
   return nc;

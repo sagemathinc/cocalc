@@ -17,7 +17,7 @@ header isn't set to request many, then no extra messages get sent back.
 import { Empty, headers } from "@nats-io/nats-core";
 import { getMaxPayload } from "@cocalc/nats/util";
 
-export async function respondMany({ mesg, nc, data }) {
+export async function respondMany({ mesg, data }) {
   if (!hasRequestManyHeader(mesg)) {
     // console.log("respondMany: using NORMAL response");
     // header not set, so just send a normal response.
@@ -27,7 +27,7 @@ export async function respondMany({ mesg, nc, data }) {
   // console.log("respondMany: using CHUNKED response");
   // header set, so send response as multiple messages broken into
   // chunks followed by an Empty message to terminate.
-  const maxPayload = getMaxPayload(nc);
+  const maxPayload = await getMaxPayload();
   for (let i = 0; i < data.length; i += maxPayload) {
     const slice = data.slice(i, i + maxPayload);
     await mesg.respond(slice);

@@ -48,7 +48,14 @@ import {
 } from "@nats-io/jetstream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { jsName, streamSubject } from "@cocalc/nats/names";
-import { getMaxPayload, millis, nanos } from "@cocalc/nats/util";
+import {
+  getMaxPayload,
+  waitUntilConnected,
+  isConnected,
+  millis,
+  encodeBase64,
+  nanos,
+} from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { isNumericString } from "@cocalc/util/misc";
@@ -59,7 +66,6 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
-import { encodeBase64 } from "@cocalc/nats/util";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -74,18 +80,11 @@ const MAX_PARALLEL = 50;
 
 // confirm that ephemeral consumer still exists periodically.
 // In case of a long disconnect from the network, this is what
-// ensures we successfully get properly updated.  This is a lot
-// of traffic and in *most* cases it doesn't get used.  We
-// do have an explicit "reconnect" event as well that is emitted
-// and used instead.  This is a just-in-case fallback.
-const CONSUMER_MONITOR_INTERVAL = 60 * 1000;
+// ensures we successfully get properly updated.
+const CONSUMER_MONITOR_INTERVAL = 30 * 1000;
 
-// Have server keep ephemeral consumers alive for some time.  This
-// means even if we drop from the internet for this time, the server
-// doesn't forget about our consumer's state.  But even if we are forgotten,
-// the CONSUMER_MONITOR_INTERVAL ensures the event stream correctly works!
-// upstream default -- 5 * 60 * 1000
-const EPHEMERAL_CONSUMER_THRESH = 5 * 60 * 1000;
+// Making this long is very dangerous since it increases load on the server.
+const EPHEMERAL_CONSUMER_THRESH = 60 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.
@@ -166,6 +165,7 @@ export class Stream<T = any> extends EventEmitter {
   // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
   public readonly raw: JsMsg[][] = [];
   public readonly messages: T[] = [];
+  private consumer?;
 
   constructor({
     name,
@@ -245,14 +245,34 @@ export class Stream<T = any> extends EventEmitter {
       // probably already exists, so try to modify to have the requested properties.
       this.stream = await this.jsm.streams.update(this.jsname, options);
     }
-    const consumer = await this.fetchInitialData();
+    this.consumer = await this.fetchInitialData();
     if (this.stream == null) {
       // closed *during* initial load
       return;
     }
-    this.env.nc.on?.("reconnect", this.restartConsumer);
-    this.watchForNewData(consumer);
+    this.ensureConnected();
+    this.watchForNewData();
   });
+
+  private ensureConnected = async () => {
+    this.env.nc.on?.("reconnect", this.restartConsumer);
+    while (this.stream != null) {
+      if (!(await isConnected())) {
+        await this.restartConsumer();
+        continue;
+      }
+      try {
+        if (this.consumer == null) {
+          throw Error("no consumer");
+        }
+        await this.consumer.info();
+      } catch (err) {
+        console.log(`consumer.info failed -- ${err}`);
+        await this.restartConsumer();
+      }
+      await delay(CONSUMER_MONITOR_INTERVAL);
+    }
+  };
 
   get = (n?): T | T[] => {
     if (this.js == null) {
@@ -353,7 +373,8 @@ export class Stream<T = any> extends EventEmitter {
     const chunks: Buffer[] = [];
     const headers: ReturnType<typeof createHeaders>[] = [];
     // we subtract off from max_payload to leave space for headers (technically, 10 is enough)
-    const maxMessageSize = getMaxPayload(this.env.nc) - 1000;
+    await waitUntilConnected();
+    const maxMessageSize = (await getMaxPayload()) - 1000;
     //const maxMessageSize = 20; // DEV ONLY!!!
 
     const now = Date.now();
@@ -436,6 +457,7 @@ export class Stream<T = any> extends EventEmitter {
 
     for (let i = 0; i < chunks.length; i++) {
       try {
+        await waitUntilConnected();
         resp = await this.js.publish(this.subject, chunks[i], {
           timeout: PUBLISH_TIMEOUT,
           ...options,
@@ -547,19 +569,16 @@ export class Stream<T = any> extends EventEmitter {
     }
   };
 
-  private watchForNewData = async (consumer) => {
+  private watchForNewData = async () => {
     if (this.stream == null) {
       // closed *during* initial load
       return;
     }
-
-    this.monitorConsumer(consumer);
-
     // STAGE 2: Watch for new mesg.  It's the same consumer though,
     // so we are **guaranteed** not to miss anything.
     this.enforceLimits();
     this.emit("connected");
-    const consume = await consumer.consume();
+    const consume = await this.consumer.consume();
     this.watch = consume;
     let chunks: JsMsg[] = [];
     for await (const mesg of consume) {
@@ -591,28 +610,12 @@ export class Stream<T = any> extends EventEmitter {
     }
   };
 
-  private monitorConsumer = async (consumer) => {
-    while (this.stream != null) {
-      try {
-        await consumer.info();
-      } catch (err) {
-        // console.log(`monitorConsumer -- got err ${err}`);
-        if (
-          err.name == "ConsumerNotFoundError" ||
-          err.code == 10014 ||
-          err.message == "consumer not found"
-        ) {
-          // if it is a consumer not found error, we make a new consumer:
-          this.restartConsumer();
-          // return, because watchForNewData creates a new consumer monitor loop
-          return;
-        }
-      }
-      await delay(CONSUMER_MONITOR_INTERVAL);
+  // this does not throw an exception -- it keeps trying until success.
+  private restartConsumer = reuseInFlight(async (): Promise<void> => {
+    await waitUntilConnected();
+    if (this.stream == null) {
+      return;
     }
-  };
-
-  private restartConsumer = async (): Promise<void> => {
     // make a new consumer, starting AFTER the last event we retrieved
     let d = 250;
     while (true) {
@@ -620,19 +623,19 @@ export class Stream<T = any> extends EventEmitter {
       // make new one:
       const start_seq = this.last_seq + 1;
       try {
-        const consumer = await this.fetchInitialData({ start_seq });
+        this.consumer = await this.fetchInitialData({ start_seq });
         if (this.stream == null) {
           // closed
           return;
         }
-        this.watchForNewData(consumer);
+        this.watchForNewData();
         return;
       } catch (err) {
         d = Math.min(30000, d * 1.3) + Math.random();
         await delay(d);
       }
     }
-  };
+  });
 
   private decode = (raw: JsMsg[]) => {
     if (raw.length == 0) {

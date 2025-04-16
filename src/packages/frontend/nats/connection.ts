@@ -298,6 +298,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     while (true) {
       this.currStatus = this.conn.status();
       for await (const x of this.currStatus) {
+        this.emit("status", x);
         yield x;
       }
     }

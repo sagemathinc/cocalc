@@ -805,7 +805,7 @@ export class GeneralKV<T = any> extends EventEmitter {
       throw err;
     }
 
-    const maxMessageSize = getMaxPayload(this.env.nc) - 10000;
+    const maxMessageSize = (await getMaxPayload()) - 10000;
     // const maxMessageSize = 100;
 
     if (val.length > maxMessageSize) {

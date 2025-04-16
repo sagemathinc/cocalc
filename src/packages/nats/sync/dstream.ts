@@ -264,7 +264,7 @@ export class DStream<T = any> extends EventEmitter {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
         // [ ] TODO: I do not like silently not dealing with this error!
-        console.log("stream: attemptToSave failed", this.name, err);
+        console.log(`WARNING stream attemptToSave failed -- ${err}`, this.name);
       }
       if (!this.hasUnsavedChanges()) {
         return;

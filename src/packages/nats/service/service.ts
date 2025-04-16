@@ -244,7 +244,7 @@ export class NatsService extends EventEmitter {
       try {
         const data = jc.encode(resp);
         if (this.options.many) {
-          await respondMany({ mesg, nc: env.nc, data });
+          await respondMany({ mesg, data });
         } else {
           await mesg.respond(data);
         }
@@ -256,7 +256,7 @@ export class NatsService extends EventEmitter {
         // them hanging forever.
         const data = jc.encode({ error: `${err}` });
         if (this.options.many) {
-          await respondMany({ mesg, nc: env.nc, data });
+          await respondMany({ mesg, data });
         } else {
           await mesg.respond(data);
         }

@@ -3,6 +3,9 @@ import type { MsgHdrs } from "@nats-io/nats-core";
 import { is_array } from "@cocalc/util/misc";
 import { encode as encodeBase64, decode as decodeBase64 } from "js-base64";
 export { encodeBase64, decodeBase64 };
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { getConnection } from "./client";
+import { delay } from "awaiting";
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 // export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
@@ -121,9 +124,59 @@ export function toKey(x): string | undefined {
   }
 }
 
+export async function isConnected(nc?): Promise<boolean> {
+  nc = nc ?? (await getConnection());
+  // At least if this changes, things will be so broken, we'll quickly notice, hopefully.
+  // @ts-ignore
+  return nc.protocol?.connected;
+}
+
 // Returns the max payload size for messages for the NATS server
 // that we are connected to.  This is used for chunking by the kv
 // and stream to support arbitrarily large values.
-export function getMaxPayload(nc): number {
-  return nc.info.max_payload;
-}
+export const getMaxPayload = reuseInFlight(async () => {
+  const nc = await getConnection();
+  while (true) {
+    if (nc.info == null) {
+      await waitUntilConnected();
+      await delay(100);
+    } else {
+      return nc.info.max_payload;
+    }
+  }
+});
+
+export const waitUntilConnected = reuseInFlight(async () => {
+  const nc = await getConnection();
+  if (nc.protocol?.connected) {
+    // already connected
+    return;
+  }
+  if (nc.on != null) {
+    // frontend browser client has an event emitter, but swaps out underlying nc so that nc.status() can't
+    // be used, so instead we wait.
+    while (true) {
+      await once(nc, "status");
+      if (nc.isClosed()) {
+        console.log("waitUntilConnected: closed");
+        throw Error("NATS -- waitUntilConnected: closed");
+      }
+      if (nc.protocol?.connected) {
+        return;
+      }
+    }
+  }
+  // no event emitter:
+  // Either wait until it's connected or throw an error if it gets closed.
+  console.log("waitUntilConnected...");
+  for await (const status of nc.status()) {
+    console.log("NATS: got connection status update", status);
+    if (nc.isClosed()) {
+      console.log("waitUntilConnected: closed");
+      throw Error("NATS -- waitUntilConnected: closed");
+    }
+    if (nc.protocol?.connected) {
+      return;
+    }
+  }
+});
