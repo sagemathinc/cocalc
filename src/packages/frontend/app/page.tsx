@@ -49,6 +49,8 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 import Next from "@cocalc/frontend/components/next";
+import { ClientContext } from "@cocalc/frontend/client/context";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -142,7 +144,7 @@ export const Page: React.FC = () => {
     if (!accountIsReady) {
       return (
         <div>
-          <Spin delay={1000}/>
+          <Spin delay={1000} />
         </div>
       );
     }
@@ -353,6 +355,7 @@ export const Page: React.FC = () => {
     }
   }
 
+  let body;
   if (doing_anonymous_setup) {
     // Don't show the login screen or top navbar for a second
     // while creating their anonymous account, since that
@@ -369,50 +372,55 @@ export const Page: React.FC = () => {
         </div>
       </div>
     );
-    return <div style={PAGE_STYLE}>{loading_anon}</div>;
+    body = <div style={PAGE_STYLE}>{loading_anon}</div>;
+  } else {
+    // Children must define their own padding from navbar and screen borders
+    // Note that the parent is a flex container
+    body = (
+      <div
+        style={PAGE_STYLE}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={drop}
+      >
+        {insecure_test_mode && <InsecureTestModeBanner />}
+        {show_file_use && (
+          <div style={fileUseStyle} className="smc-vfill">
+            <FileUsePage />
+          </div>
+        )}
+        {show_connection && <ConnectionInfo />}
+        {new_version && <VersionWarning new_version={new_version} />}
+        {cookie_warning && <CookieWarning />}
+        {local_storage_warning && <LocalStorageWarning />}
+        {show_i18n && <I18NBanner />}
+        {show_verify_email && <VerifyEmail />}
+        {!fullscreen && (
+          <nav className="smc-top-bar" style={topBarStyle}>
+            <AppLogo size={pageStyle.height} />
+            {is_logged_in && render_project_nav_button()}
+            {!isNarrow ? (
+              <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+            ) : (
+              // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+              <div style={{ flex: "1 1 auto" }} />
+            )}
+            {render_right_nav()}
+          </nav>
+        )}
+        {fullscreen && render_fullscreen()}
+        {isNarrow && (
+          <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+        )}
+        <ActiveContent />
+        <PayAsYouGoModal />
+        <PopconfirmModal />
+        <SettingsModal />
+      </div>
+    );
+    return (
+      <ClientContext.Provider value={{ client: webapp_client }}>
+        {body}
+      </ClientContext.Provider>
+    );
   }
-
-  // Children must define their own padding from navbar and screen borders
-  // Note that the parent is a flex container
-  return (
-    <div
-      style={PAGE_STYLE}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={drop}
-    >
-      {insecure_test_mode && <InsecureTestModeBanner />}
-      {show_file_use && (
-        <div style={fileUseStyle} className="smc-vfill">
-          <FileUsePage />
-        </div>
-      )}
-      {show_connection && <ConnectionInfo />}
-      {new_version && <VersionWarning new_version={new_version} />}
-      {cookie_warning && <CookieWarning />}
-      {local_storage_warning && <LocalStorageWarning />}
-      {show_i18n && <I18NBanner />}
-      {show_verify_email && <VerifyEmail />}
-      {!fullscreen && (
-        <nav className="smc-top-bar" style={topBarStyle}>
-          <AppLogo size={pageStyle.height} />
-          {is_logged_in && render_project_nav_button()}
-          {!isNarrow ? (
-            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-          ) : (
-            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
-            <div style={{ flex: "1 1 auto" }} />
-          )}
-          {render_right_nav()}
-        </nav>
-      )}
-      {fullscreen && render_fullscreen()}
-      {isNarrow && (
-        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-      )}
-      <ActiveContent />
-      <PayAsYouGoModal />
-      <PopconfirmModal />
-      <SettingsModal />
-    </div>
-  );
 };

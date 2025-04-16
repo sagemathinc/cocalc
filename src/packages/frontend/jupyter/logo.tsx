@@ -11,6 +11,7 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, getRandomColor } from "@cocalc/util/misc";
 import { CSSProperties, useEffect, useState } from "react";
 import { Spin } from "antd";
+import useClientContext from "@cocalc/frontend/client/context";
 
 const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
 
@@ -27,12 +28,14 @@ export default function Logo({
   style,
   project_id,
 }: Props) {
+  const { client } = useClientContext();
   const fileContext = useFileContext();
-  const { client } = fileContext;
   if (project_id == null) {
     project_id = fileContext.project_id;
   }
+
   if (!kernel || !project_id || !client) {
+    // probably only happens on share server
     return <FallbackLogo kernel={kernel} size={size} style={style} />;
   } else {
     return (
@@ -81,10 +84,10 @@ function FallbackLogo({
 function KernelLogo({ kernel, size, project_id, style, client }) {
   const { src, error } = useLogo({ kernel, project_id, client });
 
-  if (error) {
+  if (error || src == "") {
     return <FallbackLogo kernel={kernel} size={size} title={error} />;
   }
-  if (!src) {
+  if (src == null) {
     return <Spin delay={1000} />;
   }
   return <img src={src} style={{ width: size, height: size, ...style }} />;
@@ -113,6 +116,10 @@ async function getLogo({
   const { filename, base64 } = await api.editor.jupyterKernelLogo(kernel, {
     noCache,
   });
+  if (!filename || !base64) {
+    // no known logo
+    return "";
+  }
   let type;
   if (filename.endsWith(".svg")) {
     type = "image/svg+xml";
@@ -126,7 +133,7 @@ async function getLogo({
 }
 
 function useLogo(opts: Options) {
-  const [src, setSrc] = useState<string>("");
+  const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   useEffect(() => {
     (async () => {

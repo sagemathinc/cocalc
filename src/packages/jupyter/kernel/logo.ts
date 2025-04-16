@@ -61,13 +61,18 @@ export async function logo(
   // sort in reverse alphabetical order
   files.sort((a, b) => b.localeCompare(a));
 
-  // select the first file
+  // select the first file, if any
   const selectedFile = files[0];
 
-  // Read the file and encode it in base64
-  const filePath = join(resource_dir, selectedFile);
-  const fileBuffer = await readFile(filePath);
-  const base64 = fileBuffer.toString("base64");
+  let base64;
+  if (selectedFile) {
+    // Read the file and encode it in base64
+    const filePath = join(resource_dir, selectedFile);
+    const fileBuffer = await readFile(filePath);
+    base64 = fileBuffer.toString("base64");
+  } else {
+    base64 = "";
+  }
 
   const x = { filename: selectedFile, base64 };
   cache.set(kernelName, x);
