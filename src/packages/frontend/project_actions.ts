@@ -3557,6 +3557,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }: {
     path: string;
   }): number | undefined => {
+    if (this.computeServerManager?.state != "connected") {
+      // don't know anything yet.
+      // TODO: maybe we should change this to be async and guarantee answer known -- not sure.
+      return;
+    }
     return this.computeServerManager?.get(canonicalPath(path));
   };
 

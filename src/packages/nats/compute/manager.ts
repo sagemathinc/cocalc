@@ -35,7 +35,7 @@ export function computeServerManager(options: Options) {
 export class ComputeServerManager extends EventEmitter {
   private dkv?: DKV<Info>;
   private options: Options;
-  private state: State = "init";
+  public state: State = "init";
 
   constructor(options: Options) {
     super();
