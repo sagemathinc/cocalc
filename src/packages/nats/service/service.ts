@@ -16,9 +16,9 @@ import {
   type ServiceStats,
   type ServiceIdentity,
 } from "@nats-io/services";
-import { type NatsEnv, type Location } from "@cocalc/nats/types";
+import { type Location } from "@cocalc/nats/types";
 import { trunc_middle } from "@cocalc/util/misc";
-import { getEnv } from "@cocalc/nats/client";
+import { getEnv, getLogger } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -27,6 +27,8 @@ import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 5000;
 const MONITOR_INTERVAL = 30000;
+
+const logger = getLogger("nats:service");
 
 export interface ServiceDescription extends Location {
   service: string;
@@ -40,7 +42,6 @@ export interface ServiceDescription extends Location {
 export interface ServiceCall extends ServiceDescription {
   mesg: any;
   timeout?: number;
-  env?: NatsEnv;
 
   // if true, call returns the raw response message, with no decoding or error wrapping.
   // (do not combine with many:true)
@@ -56,8 +57,8 @@ export interface ServiceCall extends ServiceDescription {
 }
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
-  // console.log("callNatsService", opts);
-  const env = opts.env ?? (await getEnv());
+  // console.logger.debug("callNatsService", opts);
+  const env = await getEnv();
   const { nc, jc } = env;
   const subject = serviceSubject(opts);
   let resp;
@@ -99,7 +100,6 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
 export type CallNatsServiceFunction = typeof callNatsService;
 
 export interface Options extends ServiceDescription {
-  env?: NatsEnv;
   description?: string;
   version?: string;
   handler: (mesg) => Promise<any>;
@@ -107,10 +107,8 @@ export interface Options extends ServiceDescription {
   many?: boolean;
 }
 
-export async function createNatsService(options: Options) {
-  const s = new NatsService(options);
-  await s.init();
-  return s;
+export function createNatsService(options: Options) {
+  return new NatsService(options);
 }
 
 export type CreateNatsServiceFunction = typeof createNatsService;
@@ -182,87 +180,92 @@ export class NatsService extends EventEmitter {
   private options: Options;
   private subject: string;
   private api?;
+  private name: string;
 
   constructor(options: Options) {
     super();
     this.options = options;
+    this.name = serviceName(this.options);
     this.subject = serviceSubject(options);
+    this.startMonitor();
+    this.startMainLoop();
   }
 
-  init = () => {
-    // do NOT await this.
-    this.mainLoop();
+  private log = (...args) => {
+    logger.debug(`service:'${this.name}' -- `, ...args);
   };
 
-  private mainLoop = async () => {
-    let d = 3000;
-    let lastStart = 0;
+  private startMainLoop = async () => {
     while (this.subject) {
-      lastStart = Date.now();
+      await this.runService();
+      await delay(5000);
+    }
+  };
+
+  // The service monitor checks every MONITOR_INTERVAL when
+  // connected that the service is definitely working and
+  // responding to pings.  If not, it calls restartService.
+  private startMonitor = async () => {
+    while (this.subject) {
+      this.log(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms...`);
+      await delay(MONITOR_INTERVAL);
+      if (this.subject == null) return;
+      await waitUntilConnected();
+      if (this.subject == null) return;
       try {
-        const env = this.options.env ?? (await getEnv());
-        const svcm = new Svcm(env.nc);
-        await waitUntilConnected();
-        const service = await svcm.add({
-          name: serviceName(this.options),
-          version: this.options.version ?? "0.0.1",
-          description: serviceDescription(this.options),
-          queue: this.options.all ? randomId() : "0",
-        });
-        if (!this.subject) {
-          return;
-        }
-        this.api = service.addEndpoint("api", { subject: this.subject });
-        this.serviceMonitor();
-        await this.listen();
+        this.log(`serviceMonitor: ping`);
+        await callNatsService({ ...this.options, mesg: "ping", timeout: 7500 });
+        if (this.subject == null) return;
+        this.log("serviceMonitor: ping SUCCESS");
       } catch (err) {
-        if (!this.subject) {
-          // closed
-          return;
-        }
-        if (Date.now() - lastStart >= 30000) {
-          // it ran for a while, so no delay
-          d = 3000;
-        } else {
-          // it crashed quickly, so delay!
-          d = Math.min(20000, d * 1.25 + Math.random());
-          await delay(d);
-        }
+        if (this.subject == null) return;
+        this.log(`serviceMonitor: ping FAILED -- ${err}`);
+        this.restartService();
       }
     }
   };
 
-  private serviceMonitor = async () => {
-    while (this.subject && this.api) {
-      //       console.log(
-      //         `serviceMonitor: waiting ${MONITOR_INTERVAL}ms`,
-      //         this.options.description,
-      //       );
-      await delay(MONITOR_INTERVAL);
-      try {
-        if (this.api == null) return;
-        await callNatsService({ ...this.options, mesg: "ping", timeout: 7500 });
-        if (this.api == null) return;
-        // console.log("serviceMonitor: ping succeeded", this.options.description);
-      } catch (err) {
-        if (this.api == null) return;
-        //         console.log(
-        //           `serviceMonitor: ping failed, so restarting service -- ${err}`,
-        //           this.options.description,
-        //         );
-        this.api.stop();
+  private restartService = () => {
+    if (this.api) {
+      this.api.stop();
+      delete this.api;
+    }
+    this.runService();
+  };
+
+  // create and run the service until something goes wrong, when this
+  // willl return. It does not throw an error.
+  private runService = async () => {
+    try {
+      this.emit("starting");
+      this.log("starting service");
+      const env = await getEnv();
+      const svcm = new Svcm(env.nc);
+      await waitUntilConnected();
+      const service = await svcm.add({
+        name: this.name,
+        version: this.options.version ?? "0.0.1",
+        description: serviceDescription(this.options),
+        queue: this.options.all ? randomId() : "0",
+      });
+      if (!this.subject) {
         return;
       }
+      this.api = service.addEndpoint("api", { subject: this.subject });
+      this.emit("running");
+      await this.listen();
+    } catch (err) {
+      this.log(`service stopping due to ${err}`);
     }
   };
 
   private listen = async () => {
-    const env = this.options.env ?? (await getEnv());
+    const env = await getEnv();
     const jc = env.jc;
     for await (const mesg of this.api) {
       const request = jc.decode(mesg.data) ?? ({} as any);
 
-      // console.log("handle nats service call", request);
+      // console.logger.debug("handle nats service call", request);
       let resp;
       if (request == "ping") {
         resp = "pong";
@@ -387,7 +390,10 @@ export async function waitForNatsService({
     d = Math.min(10000, d * 1.3);
     m = Math.min(1500, m * 1.3);
     if (Date.now() - start + d >= maxWait) {
-      console.log(`timeout waiting for ${serviceName(options)} to start...`, d);
+      logger.debug(
+        `timeout waiting for ${serviceName(options)} to start...`,
+        d,
+      );
       throw Error("timeout");
     }
     await delay(d);

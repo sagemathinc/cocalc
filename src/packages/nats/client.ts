@@ -20,9 +20,22 @@ interface Client {
   account_id?: string;
   project_id?: string;
   compute_server_id?: number;
+  getLogger?: (name) => Logger;
 }
 
 type State = "closed" | "connected" | "connecting" | "disconnected";
+
+interface Logger {
+  debug: Function;
+  info: Function;
+  warn: Function;
+}
+
+const FALLBACK_LOGGER = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+} as Logger;
 
 export class ClientWithState extends EventEmitter {
   getNatsEnv: NatsEnvFunction;
@@ -31,6 +44,7 @@ export class ClientWithState extends EventEmitter {
   compute_server_id?: number;
   state: State = "disconnected";
   env?: NatsEnv;
+  _getLogger?: (name) => Logger;
 
   constructor(client: Client) {
     super();
@@ -51,7 +65,16 @@ export class ClientWithState extends EventEmitter {
     this.account_id = client.account_id;
     this.project_id = client.project_id;
     this.compute_server_id = client.compute_server_id;
+    this._getLogger = client.getLogger;
   }
+
+  getLogger = (name): Logger => {
+    if (this._getLogger != null) {
+      return this._getLogger(name);
+    } else {
+      return FALLBACK_LOGGER;
+    }
+  };
 
   close = () => {
     this.env?.nc.close();
@@ -116,6 +139,31 @@ export function getClient(): ClientWithState {
   }
   initTime();
   return globalClient;
+}
+
+const tmpLogger = (s, name, logger) => {
+  return (...args) => {
+    if (globalClient == null) {
+      return;
+    }
+    const f = globalClient.getLogger(name);
+    for (const k in f) {
+      logger[k] = f[k];
+    }
+    logger[s](...args);
+  };
+};
+
+export function getLogger(name) {
+  if (globalClient == null) {
+    // make logger that starts working after global client is set
+    const logger: any = {};
+    for (const s of ["debug", "info", "warn"]) {
+      logger[s] = tmpLogger(s, name, logger);
+    }
+    return logger;
+  }
+  return globalClient.getLogger(name);
 }
 
 // this is a singleton

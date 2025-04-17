@@ -3,6 +3,7 @@ import getConnection from "./connection";
 import { JSONCodec } from "nats";
 import { setNatsClient } from "@cocalc/nats/client";
 import { compute_server_id, project_id } from "@cocalc/project/data";
+import { getLogger } from "@cocalc/project/logger";
 
 const jc = JSONCodec();
 export async function getEnv() {
@@ -11,6 +12,11 @@ export async function getEnv() {
 }
 
 export function init() {
-  setNatsClient({ getNatsEnv: getEnv, project_id, compute_server_id });
+  setNatsClient({
+    getNatsEnv: getEnv,
+    project_id,
+    compute_server_id,
+    getLogger,
+  });
 }
 init();

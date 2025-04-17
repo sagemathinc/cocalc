@@ -64,6 +64,8 @@ const NATS_STATS_INTERVAL = 2500;
 
 const DEFAULT_CALL_HUB_TIMEOUT = 5000;
 
+declare var DEBUG: boolean;
+
 export class NatsClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
@@ -106,6 +108,15 @@ export class NatsClient extends EventEmitter {
     setNatsClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
+      getLogger: DEBUG
+        ? (name) => {
+            return {
+              info: (args) => console.log(name, args),
+              debug: (args) => console.log(name, args),
+              warn: (args) => console.log(name, args),
+            };
+          }
+        : undefined,
     });
     this.clientWithState = getClientWithState();
     this.clientWithState.on("state", (state) => {
@@ -203,11 +214,11 @@ export class NatsClient extends EventEmitter {
   };
 
   callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService({ ...options, env: await this.getEnv() });
+    return await callNatsService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = async (options) => {
-    return createNatsService({ ...options, env: await this.getEnv() });
+  createNatsService: CreateNatsServiceFunction = (options) => {
+    return createNatsService(options);
   };
 
   // TODO: plan to deprecated...

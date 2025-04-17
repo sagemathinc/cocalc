@@ -2,25 +2,27 @@
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "service.test.ts"
+pnpm test --forceExit service.test.ts
 
 */
 
-import {
-  callNatsService,
-  createNatsService,
-} from "@cocalc/backend/nats/service";
-import { delay } from "awaiting";
+import { callNatsService, createNatsService } from "@cocalc/nats/service";
+import { once } from "@cocalc/util/async-utils";
+import "@cocalc/backend/nats";
 
 describe("create a service and test it out", () => {
   let s;
   it("creates a service", async () => {
-    s = await createNatsService({ service: "echo", handler: (mesg) => mesg });
-    await delay(0);
+    s = createNatsService({
+      service: "echo",
+      handler: (mesg) => mesg.repeat(2),
+    });
+    await once(s, "running");
     expect(await callNatsService({ service: "echo", mesg: "hello" })).toBe(
-      "hello",
+      "hellohello",
     );
   });
+
   it("closes the services", async () => {
     s.close();
 

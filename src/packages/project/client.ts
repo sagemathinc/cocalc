@@ -529,14 +529,13 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   };
 
   callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService({ ...options, env: await getNatsEnv() });
+    return await callNatsService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = async (options) => {
+  createNatsService: CreateNatsServiceFunction = (options) => {
     return createNatsService({
       ...options,
       project_id: this.project_id,
-      env: await getNatsEnv(),
     });
   };
 

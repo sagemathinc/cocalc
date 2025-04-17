@@ -18,7 +18,7 @@ import getConnection, {
 export { getConnection };
 
 export function init() {
-  setNatsClient({ getNatsEnv: getEnv });
+  setNatsClient({ getNatsEnv: getEnv, getLogger });
 }
 init();
 

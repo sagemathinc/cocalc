@@ -27,9 +27,9 @@ interface SyncFsApiClient {
 export function syncFsClientClient({
   compute_server_id,
   project_id,
-  // default is larger than 5s, because sync tends to take a
+  // default is large, because sync tends to take a
   // longer time, as does copying files around.
-  timeout = 60000,
+  timeout = 90000,
 }: {
   compute_server_id: number;
   project_id: string;
