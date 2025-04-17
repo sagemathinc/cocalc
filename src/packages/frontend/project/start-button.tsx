@@ -162,7 +162,7 @@ export function StartButton() {
         <Button
           type="primary"
           size="large"
-          disabled={!enabled || starting}
+          disabled={!enabled}
           onClick={async () => {
             try {
               await redux.getActions("projects").start_project(project_id);

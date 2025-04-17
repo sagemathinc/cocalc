@@ -26,7 +26,6 @@ import {
   defaults,
   is_valid_uuid_string,
   len,
-  server_minutes_ago,
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -923,40 +922,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  private current_action_request(project_id: string): string | undefined {
-    const action_request = store.getIn([
-      "project_map",
-      project_id,
-      "action_request",
-    ]);
-    if (action_request == null || action_request.get("action") == null) {
-      // definitely nothing going on now.
-      return undefined;
-    }
-    const request_time = new Date(action_request.get("time"));
-    if (action_request.get("finished") >= request_time) {
-      // also definitely nothing going on, since finished time is greater than
-      // when we requested an action.
-      return undefined;
-    }
-    if (request_time <= server_minutes_ago(10)) {
-      // action_requst is old; just ignore it.
-      return undefined;
-    }
-
-    return action_request.get("action");
-  }
-
   // return true, if it actually started the project
-  public async start_project(
+  start_project = async (
     project_id: string,
     options: { disablePayAsYouGo?: boolean } = {},
-  ): Promise<boolean> {
+  ): Promise<boolean> => {
     if (!(await allow_project_to_run(project_id))) {
-      return false;
-    }
-    const state = store.get_state(project_id);
-    if (state == "starting" || state == "running" || state == "stopping") {
       return false;
     }
     if (!options.disablePayAsYouGo) {
@@ -973,23 +944,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
 
-    let did_start = false;
     const t0 = webapp_client.server_time().getTime();
-    const action_request = this.current_action_request(project_id);
-    if (action_request == null || action_request != "start") {
-      // need to make an action request:
-      this.project_log(project_id, {
-        event: "project_start_requested",
-      });
-      await this.projects_table_set({
-        project_id,
-        action_request: {
-          action: "start",
-          time: webapp_client.server_time(),
-        },
-      });
-      did_start = true;
-    }
+    // make an action request:
+    this.project_log(project_id, {
+      event: "project_start_requested",
+    });
+    await this.projects_table_set({
+      project_id,
+      action_request: {
+        action: "start",
+        time: webapp_client.server_time(),
+      },
+    });
 
     // Wait until it is running
     await store.async_wait({
@@ -1004,29 +970,19 @@ export class ProjectsActions extends Actions<ProjectsState> {
       ...store.classify_project(project_id),
     });
 
-    return did_start;
-  }
+    return true;
+  };
 
-  // returns true, if it acutally stopped the project
-  public async stop_project(project_id: string): Promise<boolean> {
-    const state = store.get_state(project_id);
-    if (state == "stopping" || state == "opened" || state == "starting") {
-      return false;
-    }
-    let did_stop = false;
+  // returns true, if it actually stopped the project
+  stop_project = async (project_id: string): Promise<boolean> => {
     const t0 = webapp_client.server_time().getTime();
-    const action_request = this.current_action_request(project_id);
-    if (action_request == null || action_request != "stop") {
-      // need to do it!
-      this.project_log(project_id, {
-        event: "project_stop_requested",
-      });
-      await this.projects_table_set({
-        project_id,
-        action_request: { action: "stop", time: webapp_client.server_time() },
-      });
-      did_stop = true;
-    }
+    this.project_log(project_id, {
+      event: "project_stop_requested",
+    });
+    await this.projects_table_set({
+      project_id,
+      action_request: { action: "stop", time: webapp_client.server_time() },
+    });
 
     // Wait until it is no longer running or stopping.  We don't
     // wait for "opened" because something or somebody else could
@@ -1044,10 +1000,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
-    return did_stop;
-  }
+    return true;
+  };
 
-  public async restart_project(project_id: string, options?): Promise<void> {
+  restart_project = async (project_id: string, options?): Promise<void> => {
     if (!(await allow_project_to_run(project_id))) {
       return;
     }
@@ -1059,7 +1015,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       await this.stop_project(project_id);
     }
     await this.start_project(project_id, options);
-  }
+  };
 
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)
