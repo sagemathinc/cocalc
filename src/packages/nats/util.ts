@@ -6,7 +6,6 @@ export { encodeBase64, decodeBase64 };
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getConnection } from "./client";
 import { delay } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
 
 // Get the number of NON-deleted keys in a nats kv store, matching a given subject:
 // export async function numKeys(kv, x: string | string[] = ">"): Promise<number> {
@@ -150,53 +149,10 @@ export const getMaxPayload = reuseInFlight(async () => {
 export const waitUntilConnected = reuseInFlight(async () => {
   const nc = (await getConnection()) as any;
   if (nc.protocol?.connected) {
-    // already connected
     return;
   }
-  const log = (..._args) => {};
-  //const log = (...args) => console.log("waitUntilConnected to NATS:", ...args);
-
-  log();
-  while (true) {
-    try {
-      if (nc.on != null) {
-        // frontend browser client has an event emitter, but swaps out underlying nc so that nc.status() can't
-        // be used, so instead we wait.
-        while (true) {
-          log("waiting for status");
-          const status = await once(nc, "status");
-          log("got status", status);
-          if (nc.isClosed()) {
-            log("closed");
-            while (nc.isClosed()) {
-              // wait until it is not closed anymore
-              await delay(1000);
-            }
-          }
-          if (nc.protocol?.connected) {
-            log("connected");
-            return;
-          }
-        }
-      }
-      // no event emitter:
-      // Either wait until it's connected or throw an error if it gets closed.
-      log("waiting for status...");
-      for await (const status of nc.status()) {
-        log("got status", status);
-        while (nc.isClosed()) {
-          // wait until it is not closed anymore
-          await delay(1000);
-        }
-        if (nc.protocol?.connected) {
-          log("connected");
-          return;
-        }
-        log("waiting for status...");
-      }
-    } catch (err) {
-      console.log("issue checking if connected", err);
-      await delay(1000);
-    }
+  while (!nc.protocol?.connected) {
+    await delay(500);
   }
+  // console.log("NATS: connected");
 });
