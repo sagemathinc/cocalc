@@ -1423,9 +1423,10 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    return (...args) => {
-      logger.debug(this.path, f, ...args);
-    };
+    return (..._args) => {};
+    //     return (...args) => {
+    //       logger.debug(this.path, f, ...args);
+    //     };
   };
 
   private initAll = async (): Promise<void> => {
