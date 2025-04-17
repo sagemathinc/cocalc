@@ -15,7 +15,7 @@ There are definitely situations where the connection gets permanently closed
 and the close() function was not called, at least not by any of our code.
 I've given up on getting them to fix or understand their bugs in general:
 
-https://github.com/williamstein/nats-bugs
+https://github.com/williamstein/nats-bugs/issues/8
 
 We thus monitor the connection, and if it closed, we *swap out the protocol
 object*, which is an evil hack to reconnect. This seems to work fine with all
