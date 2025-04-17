@@ -62,7 +62,7 @@ import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
 
 const NATS_STATS_INTERVAL = 2500;
 
-const DEFAULT_CALL_HUB_TIMEOUT = 5000;
+const DEFAULT_TIMEOUT = 15000;
 
 declare var DEBUG: boolean;
 
@@ -222,7 +222,11 @@ export class NatsClient extends EventEmitter {
   };
 
   // TODO: plan to deprecated...
-  projectWebsocketApi = async ({ project_id, mesg, timeout = 5000 }) => {
+  projectWebsocketApi = async ({
+    project_id,
+    mesg,
+    timeout = DEFAULT_TIMEOUT,
+  }) => {
     const { nc } = await this.getEnv();
     const subject = projectSubject({ project_id, service: "browser-api" });
     const resp = await nc.request(subject, this.jc.encode(mesg), {
@@ -235,7 +239,7 @@ export class NatsClient extends EventEmitter {
     service = "api",
     name,
     args = [],
-    timeout = DEFAULT_CALL_HUB_TIMEOUT,
+    timeout = DEFAULT_TIMEOUT,
     requestMany: requestMany0 = false,
   }: {
     service?: string;
@@ -275,7 +279,7 @@ export class NatsClient extends EventEmitter {
     project_id,
     compute_server_id,
     path,
-    timeout,
+    timeout = DEFAULT_TIMEOUT,
   }: {
     project_id: string;
     path?: string;
@@ -332,7 +336,7 @@ export class NatsClient extends EventEmitter {
     compute_server_id,
     name,
     args = [],
-    timeout = 5000,
+    timeout = DEFAULT_TIMEOUT,
   }: {
     service?: string;
     project_id: string;
@@ -369,7 +373,7 @@ export class NatsClient extends EventEmitter {
     sessionId,
     name,
     args = [],
-    timeout = 5000,
+    timeout = DEFAULT_TIMEOUT,
   }: {
     service?: string;
     sessionId: string;
@@ -395,7 +399,7 @@ export class NatsClient extends EventEmitter {
 
   browserApi = ({
     sessionId,
-    timeout,
+    timeout = DEFAULT_TIMEOUT,
   }: {
     sessionId: string;
     timeout?: number;
