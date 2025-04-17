@@ -39,7 +39,7 @@
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/ws": "^8.5.9",
+    "@types/ws": "^8.18.1",
     "awaiting": "^3.0.0",
     "cookie": "^1.0.0",
     "debug": "^4.4.0",

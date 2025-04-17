@@ -6,6 +6,12 @@ settings:
 
 importers:
 
+  api-client: {}
+
+  backend: {}
+
+  comm: {}
+
   compute:
     dependencies:
       '@cocalc/api-client':
@@ -42,8 +48,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@types/ws':
-        specifier: ^8.5.9
-        version: 8.5.9
+        specifier: ^8.18.1
+        version: 8.18.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -69,6 +75,22 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
+
+  jupyter: {}
+
+  nats: {}
+
+  project: {}
+
+  sync: {}
+
+  sync-client: {}
+
+  sync-fs: {}
+
+  terminal: {}
+
+  util: {}
 
 packages:
 
@@ -170,8 +192,8 @@ packages:
   '@types/node@18.16.14':
     resolution: {integrity: sha512-+ImzUB3mw2c5ISJUq0punjDilUQ5GnUim0ZRvchHIWJmOC0G+p0kzhXBqj6cDjK0QdPFwzrHWgrJp3RPvCG5qg==}
 
-  '@types/ws@8.5.9':
-    resolution: {integrity: sha512-jbdrY0a8lxfdTp/+r7Z4CkycbOFN8WX+IOchLJr3juT/xzbJ8URyTVSJ/hvNdadTgM1mnedb47n+Y31GsFnQlg==}
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   awaiting@3.0.0:
     resolution: {integrity: sha512-19i4G7Hjxj9idgMlAM0BTRII8HfvsOdlr4D9cf3Dm1MZhvcKjBpzY8AMNEyIKyi+L9TIK15xZatmdcPG003yww==}
@@ -305,7 +327,7 @@ snapshots:
 
   '@types/node@18.16.14': {}
 
-  '@types/ws@8.5.9':
+  '@types/ws@8.18.1':
     dependencies:
       '@types/node': 18.16.14
 
