@@ -170,6 +170,7 @@ export interface UndoState {
 // be sure there is only reference, just be sure.
 
 const logger = getLogger("sync-doc");
+logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
   public readonly project_id: string; // project_id that contains the doc
@@ -1422,10 +1423,10 @@ export class SyncDoc extends EventEmitter {
   };
 
   // Used for internal debug logging
-  private dbg = (f: string = ""): Function => {
+  private dbg = (_f: string = ""): Function => {
     return (..._args) => {};
     //     return (...args) => {
-    //       logger.debug(this.path, f, ...args);
+    //       logger.debug(this.path, _f, ...args);
     //     };
   };
 
