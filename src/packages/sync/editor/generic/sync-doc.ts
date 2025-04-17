@@ -362,7 +362,9 @@ export class SyncDoc extends EventEmitter {
         //const t0 = new Date();
 
         log("initializing all tables...");
-        await waitUntilConnected();
+        if (this.useNats) {
+          await waitUntilConnected();
+        }
         await this.initAll();
         log("initAll succeeded");
         // got it!
