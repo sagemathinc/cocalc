@@ -89,6 +89,9 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.4
         version: 2.4.4
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -110,6 +113,9 @@ importers:
       nats:
         specifier: ^2.29.3
         version: 2.29.3
+      nats.ws:
+        specifier: ^1.30.2
+        version: 1.30.2
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -131,6 +137,9 @@ importers:
       underscore:
         specifier: ^1.12.1
         version: 1.13.7
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.1
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -1406,9 +1415,6 @@ importers:
       nats:
         specifier: ^2.29.3
         version: 2.29.3
-      nats.ws:
-        specifier: ^1.30.2
-        version: 1.30.2
       pidusage:
         specifier: ^1.2.0
         version: 1.2.0
@@ -4958,9 +4964,6 @@ packages:
 
   '@types/node@18.19.86':
     resolution: {integrity: sha512-fifKayi175wLyKyc5qUfyENhQ1dCNI1UNjp653d8kuYcPQN5JhX3dGuP/XmvPTg/xRBn1VTLpbmi+H/Mr7tLfQ==}
-
-  '@types/node@22.14.0':
-    resolution: {integrity: sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA==}
 
   '@types/node@9.6.61':
     resolution: {integrity: sha512-/aKAdg5c8n468cYLy2eQrcR5k6chlbNwZNGUj3TboyPa2hcO2QAJcfymlqPzMiRj8B6nYKXjzQz36minFE0RwQ==}
@@ -12208,9 +12211,6 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
   unicorn-magic@0.1.0:
     resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==}
     engines: {node: '>=18'}
@@ -12968,7 +12968,7 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.7.0(encoding@0.1.13)
+      node-fetch: 2.6.7(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -13506,7 +13506,7 @@ snapshots:
       agentkeepalive: 4.6.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.7.0(encoding@0.1.13)
+      node-fetch: 2.6.7(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -14060,7 +14060,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -14105,7 +14105,7 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       jest-mock: 29.7.0
 
   '@jest/expect-utils@29.7.0':
@@ -14123,7 +14123,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -14145,7 +14145,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.25
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
@@ -14371,7 +14371,7 @@ snapshots:
       '@lumino/polling': 2.1.4
       '@lumino/properties': 2.0.3
       '@lumino/signaling': 2.1.4
-      ws: 8.18.0
+      ws: 8.18.1
     transitivePeerDependencies:
       - bufferutil
       - react
@@ -15352,7 +15352,7 @@ snapshots:
       p-retry: 6.2.1
       webpack-dev-middleware: 7.4.2(webpack@5.99.5)
       webpack-dev-server: 5.2.0(webpack@5.99.5)
-      ws: 8.18.0
+      ws: 8.18.1
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -15526,7 +15526,7 @@ snapshots:
 
   '@types/bonjour@3.5.13':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/caseless@0.12.5': {}
 
@@ -15539,7 +15539,7 @@ snapshots:
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 4.19.0
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/connect@3.4.35':
     dependencies:
@@ -15722,7 +15722,7 @@ snapshots:
   '@types/glob@7.2.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/graceful-fs@4.1.9':
     dependencies:
@@ -15774,11 +15774,11 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/ldapjs@2.2.5':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/linkify-it@5.0.0': {}
 
@@ -15822,7 +15822,7 @@ snapshots:
 
   '@types/node-forge@1.3.11':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/node-zendesk@2.0.15':
     dependencies:
@@ -15844,10 +15844,6 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@22.14.0':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/node@9.6.61': {}
 
   '@types/nodemailer@6.4.17':
@@ -15858,7 +15854,7 @@ snapshots:
 
   '@types/oauth@0.9.6':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/parse5@6.0.3': {}
 
@@ -15924,13 +15920,13 @@ snapshots:
   '@types/request@2.48.12':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.3
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/retry@0.12.0': {}
 
@@ -15947,7 +15943,7 @@ snapshots:
   '@types/send@0.17.4':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/serve-index@1.9.4':
     dependencies:
@@ -15963,7 +15959,7 @@ snapshots:
 
   '@types/sockjs@0.3.36':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/stack-utils@2.0.3': {}
 
@@ -15997,15 +15993,15 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/xml-encryption@1.2.4':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/xml2js@0.4.14':
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
 
   '@types/yargs-parser@21.0.0': {}
 
@@ -20199,7 +20195,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.3
@@ -20348,7 +20344,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -20360,7 +20356,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -20418,7 +20414,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       jest-util: 29.7.0
 
   jest-pnp-resolver@1.2.3(jest-resolve@29.7.0):
@@ -20455,7 +20451,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -20483,7 +20479,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       chalk: 4.1.2
       cjs-module-lexer: 1.2.3
       collect-v8-coverage: 1.0.2
@@ -20548,7 +20544,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -20557,13 +20553,13 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.14.0
+      '@types/node': 18.19.86
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -22554,7 +22550,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 18.19.81
+      '@types/node': 18.19.86
       long: 5.3.1
 
   protocol-buffers-schema@3.6.0: {}
@@ -24604,8 +24600,6 @@ snapshots:
 
   undici-types@5.26.5: {}
 
-  undici-types@6.21.0: {}
-
   unicorn-magic@0.1.0: {}
 
   unified@10.1.2:
@@ -24984,7 +24978,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.2(webpack@5.99.5)
-      ws: 8.18.0
+      ws: 8.18.1
     optionalDependencies:
       webpack: 5.99.5
     transitivePeerDependencies:
@@ -25078,7 +25072,7 @@ snapshots:
       awaiting: 3.0.0
       debug: 4.4.0(supports-color@8.1.1)
       port-get: 1.0.4
-      ws: 8.18.0
+      ws: 8.18.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color

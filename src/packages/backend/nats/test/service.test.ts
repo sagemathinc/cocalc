@@ -10,11 +10,13 @@ import {
   callNatsService,
   createNatsService,
 } from "@cocalc/backend/nats/service";
+import { delay } from "awaiting";
 
 describe("create a service and test it out", () => {
   let s;
   it("creates a service", async () => {
     s = await createNatsService({ service: "echo", handler: (mesg) => mesg });
+    await delay(0);
     expect(await callNatsService({ service: "echo", mesg: "hello" })).toBe(
       "hello",
     );
@@ -32,4 +34,3 @@ describe("create a service and test it out", () => {
     expect(t).toContain("Not Available");
   });
 });
-

@@ -7,14 +7,15 @@ import {
 } from "@cocalc/backend/data";
 import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
-import { connect, type NatsConnection } from "nats";
 import { getEnv } from "./env";
 export { getEnv };
-import { delay } from "awaiting";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { inboxPrefix } from "@cocalc/nats/names";
 import { setNatsClient } from "@cocalc/nats/client";
+import getConnection, {
+  setConnectionOptions,
+} from "@cocalc/backend/nats/persistent-connection";
+
+export { getConnection };
 
 export function init() {
   setNatsClient({ getNatsEnv: getEnv });
@@ -35,28 +36,12 @@ export async function getCreds(): Promise<string | undefined> {
   }
 }
 
-let wait = 2000;
-let nc: NatsConnection | null = null;
-export const getConnection = reuseInFlight(async () => {
+setConnectionOptions(async () => {
   const servers = `${natsServer}:${natsPorts.server}`;
-  logger.debug("connecting to nats", { servers });
-  while (nc == null) {
-    try {
-      //const creds = await getCreds();
-      nc = await connect({
-        ...CONNECT_OPTIONS,
-        user: "cocalc",
-        pass: natsPassword,
-        inboxPrefix: inboxPrefix({}),
-        servers,
-      });
-      logger.debug(`connected to ${nc.getServer()}`);
-    } catch (err) {
-      logger.debug(`WARNING/ERROR: FAILED TO CONNECT TO ${servers}: ${err}`);
-      logger.debug(`will retry in ${wait} ms`);
-      await delay(wait);
-      wait = Math.min(7500, 1.25 * wait);
-    }
-  }
-  return nc as any;
+  return {
+    user: "cocalc",
+    pass: natsPassword,
+    inboxPrefix: inboxPrefix({}),
+    servers,
+  };
 });
