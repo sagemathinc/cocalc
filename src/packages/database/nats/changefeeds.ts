@@ -186,7 +186,7 @@ const changefeedInterest: { [hash: string]: number } = {};
 // changefeedSynctables maps hash to SyncTable
 const changefeedSynctables: { [hash: string]: any } = {};
 
-function cancelChangefeed({
+async function cancelChangefeed({
   hash,
   changes,
 }: {
@@ -207,12 +207,21 @@ function cancelChangefeed({
     return;
   }
   coordinator?.unlock(hash);
-  changefeedSynctables[hash]?.close();
+  const synctable = changefeedSynctables[hash];
   delete changefeedSynctables[hash];
   delete changefeedInterest[hash];
   delete changefeedHashes[changes];
   delete changefeedChanges[hash];
   db().user_query_cancel_changefeed({ id: changes });
+  if (synctable) {
+    try {
+      await synctable.close();
+    } catch (err) {
+      logger.debug(`WARNING: error closing changefeed synctable -- ${err}`, {
+        hash,
+      });
+    }
+  }
 }
 
 function cancelAllChangefeeds() {

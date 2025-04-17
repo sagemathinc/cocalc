@@ -170,8 +170,11 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (!this.noAutosave) {
       try {
         await this.save();
-      } catch {
-        // [ ] TODO: try localStorage or a file?!
+      } catch (err) {
+        // [ ] TODO: try localStorage or a file?!  throw?
+        console.log(
+          `WARNING: unable to save some data when closing a general-dkv -- ${err}`,
+        );
       }
       this.client?.removeListener("connected", this.save);
     }

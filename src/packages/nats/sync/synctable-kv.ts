@@ -207,11 +207,11 @@ export class SyncTableKV extends EventEmitter {
     await this.dkv?.save();
   };
 
-  close = () => {
+  close = async () => {
     if (this.state == "closed") return;
     this.set_state("closed");
     this.removeAllListeners();
-    this.dkv?.close();
+    await this.dkv?.close();
     delete this.dkv;
     // @ts-ignore
     delete this.env;
