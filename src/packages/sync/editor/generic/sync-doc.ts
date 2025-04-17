@@ -118,6 +118,8 @@ import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
+import { waitUntilConnected } from "@cocalc/nats/util";
+import { getLogger } from "@cocalc/nats/client";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -166,6 +168,8 @@ export interface UndoState {
 // not on the frontend.  Proper reference counted handling of this is done
 // at sync/client/sync-client.ts, or in some applications where you can easily
 // be sure there is only reference, just be sure.
+
+const logger = getLogger("sync-doc");
 
 export class SyncDoc extends EventEmitter {
   public readonly project_id: string; // project_id that contains the doc
@@ -351,26 +355,37 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("init");
     const log = this.dbg("init");
 
-    log("initializing all tables...");
-    try {
-      //const t0 = new Date();
-      await this.initAll();
-      //console.log(  // TODO remove at some point.
-      //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
-      //);
-    } catch (err) {
-      console.trace(err);
-      if (this.state == "closed") {
-        // completely normal that this could happen on frontend - it just means
-        // that we closed the file before finished opening it...
-        return;
+    let d = 3000;
+    while (this.state == "init") {
+      try {
+        //const t0 = new Date();
+
+        log("initializing all tables...");
+        await waitUntilConnected();
+        await this.initAll();
+        log("initAll succeeded");
+        // got it!
+        break;
+
+        //console.log(
+        //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
+        //);
+      } catch (err) {
+        const m = `WARNING: problem initializing ${this.path} -- ${err}`;
+        log(m);
+        // log always:
+        console.log(m);
+        // @ts-ignore
+        if (this.state == "closed") {
+          log("init", this.path, "state closed so exit");
+          // completely normal that this could happen on frontend - it just means
+          // that we closed the file before finished opening it...
+          return;
+        }
+        log(`wait ${d} then try again`);
+        await delay(d);
+        d = Math.min(d * 1.3, 15000);
       }
-      log(
-        `Error -- NOT caused by closing during the initAll, so we report it. ${err}`,
-      );
-      this.emit("error", err);
-      await this.close();
-      return;
     }
 
     // Success -- everything initialized with no issues.
@@ -1408,28 +1423,9 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    if (this.client == null) {
-      // dbg shouldn't be called after this synctable is closed, so in this
-      // case we clean up.  There's a tricky cases involving timetravel
-      // in two tabs at once that could trigger this.
-      // In particular, the following breaks this:
-      //  - open a.txt and timetravel in that frame
-      //  - shift click the timetravel button to open another time travel tab
-      //  - close the a.txt tab entirely
-      //  - close timetravel (thus all tabs closed)
-      //  - open a.txt again
-      //  - type something and the patch update queue and this dbg gets triggered.
-      // The real problem as explained in frontend/frame-editors/frame-tree/frame-tree.tsx
-      // about timetravel is that it's hacky.
-      return () => {};
-      //       return (...args) => {
-      //         console.warn(`BUG: use of a closed syncdoc -- SyncDoc.${f}`, ...args);
-      //       };
-    }
-    //     if (this.useNats) {
-    //       return (...args) => console.log(f, ...args);
-    //     }
-    return this.client.dbg(`SyncDoc('${this.path}').${f}`);
+    return (...args) => {
+      logger.debug(this.path, f, ...args);
+    };
   };
 
   private initAll = async (): Promise<void> => {

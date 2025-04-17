@@ -111,9 +111,9 @@ export class NatsClient extends EventEmitter {
       getLogger: DEBUG
         ? (name) => {
             return {
-              info: (args) => console.log(name, args),
-              debug: (args) => console.log(name, args),
-              warn: (args) => console.log(name, args),
+              info: (...args) => console.info(name, ...args),
+              debug: (...args) => console.log(name, ...args),
+              warn: (...args) => console.warn(name, ...args),
             };
           }
         : undefined,
