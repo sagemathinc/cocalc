@@ -15,6 +15,7 @@ overrides:
   katex@<0.16.9: ^0.16.10
   nanoid@<3.3.8: ^3.3.8
   tar-fs@2.1.1: 2.1.2
+  zeromq@<6.4.2: ^6.4.2
 
 importers:
 
@@ -1452,8 +1453,8 @@ importers:
         specifier: ^8.18.0
         version: 8.18.0
       zeromq:
-        specifier: ^5.2.8
-        version: 5.3.1
+        specifier: ^6.4.2
+        version: 6.4.2
     devDependencies:
       '@types/body-parser':
         specifier: ^1.19.5
@@ -6058,6 +6059,10 @@ packages:
     resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
     engines: {node: '>=6'}
 
+  cmake-ts@0.6.1:
+    resolution: {integrity: sha512-uUn2qGhf20j8W/sQ7+UnvvqO1zNccqgbLgwRJi7S23FsjMWJqxvKK80Vc+tvLNKfpJzwH0rgoQD1l24SMnX0yg==}
+    hasBin: true
+
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
@@ -9560,9 +9565,6 @@ packages:
     resolution: {integrity: sha512-at/ZndSy3xEGJ8i0ygALh8ru9qy7gWW1cmkaqBN29JmMlIvM//MEO9y1sk/avxuwnPcfhkejkLsuPxH81BrkSg==}
     engines: {node: '>=0.8.0'}
 
-  nan@2.17.0:
-    resolution: {integrity: sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ==}
-
   nan@2.20.0:
     resolution: {integrity: sha512-bk3gXBZDGILuuo/6sKtr0DQmSThYHLtNCdSdXk9YkxD/jK6X2vmCyyXBBxyqZ4XcnzTyYEAThfX3DCEnLf6igw==}
 
@@ -9667,6 +9669,10 @@ packages:
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
+  node-addon-api@8.3.1:
+    resolution: {integrity: sha512-lytcDEdxKjGJPTLEfW4mYMigRezMlyJY8W4wxJK8zE533Jlb8L8dRuObJFWg2P+AuOIxoCgKF+2Oq4d4Zd0OUA==}
+    engines: {node: ^18 || ^20 || >= 21}
+
   node-cjsx@2.0.0:
     resolution: {integrity: sha512-WstoLFETzse3jiXc7tcL9BI81k7L9Rgi4SjAWe691TZiooZRUpuCmIcZYcYzkDFtmg8FJkuK9WDFsz6llmBHcg==}
 
@@ -9698,10 +9704,6 @@ packages:
   node-forge@1.3.1:
     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
     engines: {node: '>= 6.13.0'}
-
-  node-gyp-build@4.5.0:
-    resolution: {integrity: sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==}
-    hasBin: true
 
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -12841,9 +12843,9 @@ packages:
     resolution: {integrity: sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==}
     engines: {node: '>=12.20'}
 
-  zeromq@5.3.1:
-    resolution: {integrity: sha512-4WDF9bNWWXe8OAI319bVw5dmG4BklEk8wzFGwRQxEzKb+0mgDU5J/jtyZPo0BEusVIU1+3mRQIEdT5LtQn+aAw==}
-    engines: {node: '>=6.0'}
+  zeromq@6.4.2:
+    resolution: {integrity: sha512-FnQlI4lEAewE4JexJ6kqQuBVzRf0Mg1n/qE3uXilfosf+X5lqJPiaYfdL/w4SzgAEVBTyqbMt9NbjwI5H89Yaw==}
+    engines: {node: '>= 12'}
 
   zlibjs@0.3.1:
     resolution: {integrity: sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==}
@@ -17122,6 +17124,8 @@ snapshots:
 
   clsx@1.2.1: {}
 
+  cmake-ts@0.6.1: {}
+
   co@4.6.0: {}
 
   codemirror@5.65.19: {}
@@ -20591,7 +20595,7 @@ snapshots:
   jmp@2.0.0:
     dependencies:
       uuid: 3.4.0
-      zeromq: 5.3.1
+      zeromq: 6.4.2
 
   jquery-focus-exit@1.0.1(jquery@3.7.1):
     dependencies:
@@ -21427,8 +21431,6 @@ snapshots:
       rimraf: 2.4.5
     optional: true
 
-  nan@2.17.0: {}
-
   nan@2.20.0: {}
 
   nanoid@3.3.8: {}
@@ -21551,6 +21553,8 @@ snapshots:
   node-addon-api@7.1.1:
     optional: true
 
+  node-addon-api@8.3.1: {}
+
   node-cjsx@2.0.0:
     dependencies:
       coffee-react-transform: 4.0.0
@@ -21573,8 +21577,6 @@ snapshots:
       encoding: 0.1.13
 
   node-forge@1.3.1: {}
-
-  node-gyp-build@4.5.0: {}
 
   node-int64@0.4.0: {}
 
@@ -25316,10 +25318,10 @@ snapshots:
 
   yocto-queue@1.2.1: {}
 
-  zeromq@5.3.1:
+  zeromq@6.4.2:
     dependencies:
-      nan: 2.17.0
-      node-gyp-build: 4.5.0
+      cmake-ts: 0.6.1
+      node-addon-api: 8.3.1
 
   zlibjs@0.3.1: {}
 

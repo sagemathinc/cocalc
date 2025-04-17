@@ -26,7 +26,8 @@
       "langchain": "^0.3.11",
       "katex@<0.16.9": "^0.16.10",
       "nanoid@<3.3.8": "^3.3.8",
-      "tar-fs@2.1.1": "2.1.2"
+      "tar-fs@2.1.1": "2.1.2",
+      "zeromq@<6.4.2": "^6.4.2"
     },
     "onlyBuiltDependencies": ["websocket-sftp", "websocketfs", "zeromq"]
   }
