@@ -65,8 +65,7 @@
     "uuid": "^8.3.2",
     "websocket-sftp": "^0.8.4",
     "which": "^2.0.2",
-    "ws": "^8.18.0",
-    "zeromq": "^6.4.2"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
