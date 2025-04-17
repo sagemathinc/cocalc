@@ -157,36 +157,46 @@ export const waitUntilConnected = reuseInFlight(async () => {
   //const log = (...args) => console.log("waitUntilConnected to NATS:", ...args);
 
   log();
-  if (nc.on != null) {
-    // frontend browser client has an event emitter, but swaps out underlying nc so that nc.status() can't
-    // be used, so instead we wait.
-    while (true) {
-      log("waiting for status");
-      const status = await once(nc, "status");
-      log("got status", status);
-      if (nc.isClosed()) {
-        log("closed");
-        throw Error("NATS -- waitUntilConnected: closed");
+  while (true) {
+    try {
+      if (nc.on != null) {
+        // frontend browser client has an event emitter, but swaps out underlying nc so that nc.status() can't
+        // be used, so instead we wait.
+        while (true) {
+          log("waiting for status");
+          const status = await once(nc, "status");
+          log("got status", status);
+          if (nc.isClosed()) {
+            log("closed");
+            while (nc.isClosed()) {
+              // wait until it is not closed anymore
+              await delay(1000);
+            }
+          }
+          if (nc.protocol?.connected) {
+            log("connected");
+            return;
+          }
+        }
       }
-      if (nc.protocol?.connected) {
-        log("connected");
-        return;
+      // no event emitter:
+      // Either wait until it's connected or throw an error if it gets closed.
+      log("waiting for status...");
+      for await (const status of nc.status()) {
+        log("got status", status);
+        while (nc.isClosed()) {
+          // wait until it is not closed anymore
+          await delay(1000);
+        }
+        if (nc.protocol?.connected) {
+          log("connected");
+          return;
+        }
+        log("waiting for status...");
       }
+    } catch (err) {
+      console.log("issue checking if connected", err);
+      await delay(1000);
     }
-  }
-  // no event emitter:
-  // Either wait until it's connected or throw an error if it gets closed.
-  log("waiting for status...");
-  for await (const status of nc.status()) {
-    log("got status", status);
-    if (nc.isClosed()) {
-      log("closed");
-      throw Error("NATS -- waitUntilConnected: closed");
-    }
-    if (nc.protocol?.connected) {
-      log("connected");
-      return;
-    }
-    log("waiting for status...");
   }
 });
