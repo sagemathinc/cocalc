@@ -106,6 +106,7 @@ export async function getNewConnection(): Promise<NatsConnection> {
       let connect;
       if (getServer(options.servers).startsWith("ws")) {
         // this is a workaround for a bug involving reconnect that I saw on some forum
+        // @ts-ignore
         global.WebSocket = WebSocket;
         connect = connectViaWebsocket;
       } else {
