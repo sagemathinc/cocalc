@@ -50,6 +50,7 @@ import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
 import { Coordinator, now } from "./coordinator";
 import { parallelHandler } from "@cocalc/util/async-utils";
+import { numSubscriptions } from "@cocalc/nats/client";
 
 const logger = getLogger("database:nats:changefeeds");
 
@@ -131,7 +132,10 @@ async function handleRequest({ mesg, nc }) {
   let resp;
   try {
     numRunning += 1;
-    logger.debug("handleRequest", { numRunning });
+    logger.debug("handleRequest", {
+      numRunning,
+      numSubscriptions: numSubscriptions(),
+    });
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
     //console.log(`got request: "${JSON.stringify({ name, args })}"`);

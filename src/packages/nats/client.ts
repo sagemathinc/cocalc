@@ -180,3 +180,10 @@ export const getConnection = reuseInFlight(
     return theConnection;
   },
 );
+
+export function numSubscriptions(): number {
+  if (theConnection == null) {
+    return 0;
+  }
+  return (theConnection as any).protocol.subscriptions.subs.size;
+}

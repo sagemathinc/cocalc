@@ -3,7 +3,7 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "dkv.test.ts"
+pnpm test dkv.test.ts
 
 */
 
@@ -392,5 +392,75 @@ describe("tests involving null/undefined values", () => {
     await kv1.close();
     await kv2.clear();
     await kv2.close();
+  });
+});
+
+import { numSubscriptions } from "@cocalc/nats/client";
+
+describe("ensure there are no NATS subscription leaks", () => {
+  // There is some slight slack at some point due to the clock stuff,
+  // inventory, etc.  It is constant and small, whereas we allocate
+  // a large number of kv's in the test.
+  const SLACK = 4;
+
+  it("creates and closes many kv's and checks there is no leak", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDkv({
+        name: `${Math.random()}`,
+        noAutosave: true,
+        noCache: true,
+      });
+    }
+    for (let i = 0; i < COUNT; i++) {
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  });
+
+  it("does another leak test, but with a set operation each time", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDkv({
+        name: `${Math.random()}`,
+        noAutosave: true,
+        noCache: true,
+      });
+      a[i].set(i, i);
+      await a[i].save();
+    }
+    for (let i = 0; i < COUNT; i++) {
+      a[i].clear();
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  });
+
+  it("does another leak test, but opening and immediately closing and doing a set operation each time", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDkv({
+        name: `${Math.random()}`,
+        noAutosave: true,
+        noCache: true,
+      });
+      a[i].set(i, i);
+      await a[i].save();
+      a[i].clear();
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
   });
 });
