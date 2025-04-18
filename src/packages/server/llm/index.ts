@@ -54,6 +54,7 @@ import { evaluateOllama } from "./ollama";
 import { evaluateOpenAILC } from "./openai-lc";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
+import { evaluateGoogleGenAILC } from "./google-lc";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 
@@ -177,7 +178,8 @@ async function evaluateImpl({
         if (!(client instanceof GoogleGenAIClient)) {
           throw new Error("Wrong client. This should never happen. [GenAI]");
         }
-        return await evaluateGoogleGenAI({ ...params, client });
+        //return await evaluateGoogleGenAI({ ...params, client });
+        return await evaluateGoogleGenAILC(params);
       } else if (isOpenAIModel(model)) {
         return await evaluateOpenAILC(params);
       } else {

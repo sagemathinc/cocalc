@@ -35,7 +35,7 @@ export async function getClient(
   const vendorName = model2vendor(model).name;
 
   switch (vendorName) {
-    case "openai":
+    case "openai": {
       const { openai_api_key: apiKey } = await getServerSettings();
       if (clientCache[apiKey]) {
         return clientCache[apiKey];
@@ -49,10 +49,12 @@ export async function getClient(
       const client = new OpenAI({ apiKey });
       clientCache[apiKey] = client;
       return client;
+    }
 
-    case "google":
-      const { google_vertexai_key } = await getServerSettings();
-      if (!google_vertexai_key) {
+    case "google": {
+      // This is a GenAI API key
+      const { google_vertexai_key: apiKey } = await getServerSettings();
+      if (!apiKey) {
         log.warn("requested google vertexai key, but it's not configured");
         throw Error("google vertexai not configured");
       }
@@ -62,7 +64,8 @@ export async function getClient(
       }
 
       // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
-      return new GoogleGenAIClient({ apiKey: google_vertexai_key }, model);
+      return new GoogleGenAIClient({ apiKey }, model);
+    }
 
     case "ollama":
       throw new Error("Use the getOllama function instead");
