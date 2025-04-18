@@ -62,7 +62,7 @@
     "@cocalc/frontend": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@openapitools/openapi-generator-cli": "^2.18.4",
+    "@openapitools/openapi-generator-cli": "^2.19.1",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
     "@vscode/vscode-languagedetection": "^1.0.22",
