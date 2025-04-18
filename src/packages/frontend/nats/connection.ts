@@ -159,6 +159,16 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return await webapp_client.nats_client.info(this.conn);
   };
 
+  numSubscriptions = () => {
+    // @ts-ignore
+    let subs = this.conn.protocol.subscriptions.subs.size;
+    for (const nc of this.prev) {
+      // @ts-ignore
+      subs += nc.protocol.subscriptions.subs.size;
+    }
+    return subs;
+  };
+
   addProjectPermissions = async (project_ids: string[]) => {
     this.permissionsCache.add(project_ids);
     await this.updateProjectPermissions();
@@ -305,7 +315,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   }
 
   // sum total of all data across *all* connections we've made here.
-  stats(): Stats {
+  stats(): Stats & { numSubscriptions: number } {
     // @ts-ignore: undocumented API
     let { inBytes, inMsgs, outBytes, outMsgs } = this.conn.stats();
     for (const conn of this.prev) {
@@ -316,7 +326,13 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       inMsgs += x.inMsgs;
       outMsgs += x.outMsgs;
     }
-    return { inBytes, inMsgs, outBytes, outMsgs };
+    return {
+      inBytes,
+      inMsgs,
+      outBytes,
+      outMsgs,
+      numSubscriptions: this.numSubscriptions(),
+    };
   }
 
   async rtt(): Promise<number> {

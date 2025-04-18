@@ -5,7 +5,7 @@
 
 import { Modal } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
+import { A } from "@cocalc/frontend/components/A";
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -79,7 +79,9 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         ) : undefined}
         <Row>
           <Col sm={3}>
-            <h4>NATS.io client</h4>
+            <h4>
+              <A href="https://nats.io/">NATS</A> client
+            </h4>
           </Col>
           {nats != null && (
             <Col sm={8}>
