@@ -41,7 +41,7 @@ export async function dko<T = any>(opts): Promise<DKO<T>> {
 }
 
 export async function openFiles(): Promise<OpenFiles> {
-  return await createOpenFiles({ env: await getEnv(), project_id });
+  return await createOpenFiles({ project_id });
 }
 
 export async function inventory(): Promise<Inventory> {

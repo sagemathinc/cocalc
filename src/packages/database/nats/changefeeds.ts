@@ -24,6 +24,8 @@ DEVELOPMENT:
 
 2. Run this line in nodejs right here:
 
+DEBUG_CONSOLE=yes DEBUG=cocalc:debug:database:nats:changefeeds
+
    require("@cocalc/database/nats/changefeeds").init()
 
 
@@ -412,30 +414,36 @@ const createChangefeed = reuseInFlight(
       };
 
       const watchUserInterest = async () => {
+        logger.debug("watchUserInterest", { hash });
         // it's all setup and running.  If there's no interest for a while, stop watching
         while (!done && changefeedInterest[hash]) {
           await delay(CHANGEFEED_INTEREST_PERIOD_MS);
           if (done) {
-            return;
+            break;
           }
           if (
             now() - changefeedInterest[hash] >
             CHANGEFEED_INTEREST_PERIOD_MS
           ) {
-            // we check both the local known interest *AND* interest recorded by any other servers!
+            logger.debug("watchUserInterest: no local interest", {
+              hash,
+            });
+            // we check both the local known interest *AND* interest recorded
+            // by any other servers!
             const last = coordinator?.getUserInterest(hash) ?? 0;
             if (now() - last >= CHANGEFEED_INTEREST_PERIOD_MS) {
-              logger.debug(
-                "insufficient interest in the changefeed, so we cancel it",
+              logger.debug("watchUserInterest: no interest, canceling", {
                 hash,
-                query,
-              );
+              });
               cancelChangefeed({ changes });
               done = true;
-              return;
+              break;
             }
           }
         }
+        logger.debug("watchUserInterest: stopped watching since done", {
+          hash,
+        });
       };
 
       // do not block on this.

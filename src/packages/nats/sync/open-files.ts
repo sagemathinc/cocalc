@@ -29,10 +29,11 @@ z.getAll()
 }
 */
 
-import { type NatsEnv, type State } from "@cocalc/nats/types";
+import { type State } from "@cocalc/nats/types";
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { EventEmitter } from "events";
 import getTime, { getSkew } from "@cocalc/nats/time";
+import { getEnv } from "@cocalc/nats/client";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
@@ -128,7 +129,6 @@ function mergeBackend(a: Backend | undefined, b: Backend | undefined) {
 }
 
 interface Options {
-  env: NatsEnv;
   project_id: string;
   noAutosave?: boolean;
   noCache?: boolean;
@@ -142,21 +142,16 @@ export async function createOpenFiles(opts: Options) {
 
 export class OpenFiles extends EventEmitter {
   private project_id: string;
-  private env: NatsEnv;
   private noCache?: boolean;
   private noAutosave?: boolean;
   private dkv?: DKV;
   public state: "disconnected" | "connected" | "closed" = "disconnected";
 
-  constructor({ env, project_id, noAutosave, noCache }: Options) {
+  constructor({ project_id, noAutosave, noCache }: Options) {
     super();
-    if (!env) {
-      throw Error("env must be specified");
-    }
     if (!project_id) {
       throw Error("project_id must be specified");
     }
-    this.env = env;
     this.project_id = project_id;
     this.noAutosave = noAutosave;
     this.noCache = noCache;
@@ -171,7 +166,7 @@ export class OpenFiles extends EventEmitter {
     const d = await dkv<KVEntry>({
       name: "open-files",
       project_id: this.project_id,
-      env: this.env,
+      env: await getEnv(),
       limits: {
         max_age: MAX_AGE_MS,
       },
@@ -200,8 +195,6 @@ export class OpenFiles extends EventEmitter {
     this.removeAllListeners();
     this.dkv.close();
     delete this.dkv;
-    // @ts-ignore
-    delete this.env;
     // @ts-ignore
     delete this.project_id;
   };

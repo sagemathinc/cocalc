@@ -26,6 +26,7 @@ export type NatsSyncTableFunction = (
 // save resources.
 
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
+// export const CHANGEFEED_INTEREST_PERIOD_MS = 3000;
 
 interface Options {
   query;

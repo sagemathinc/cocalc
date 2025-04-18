@@ -125,13 +125,13 @@ export function setNatsClient(client: Client) {
   globalClient = new ClientWithState(client);
 }
 
-export async function getEnv(): Promise<NatsEnv> {
+export const getEnv = reuseInFlight(async () => {
   if (globalClient == null) {
     throw Error("must set the global NATS client");
   }
   initTime();
   return await globalClient.getNatsEnv();
-}
+});
 
 export function getClient(): ClientWithState {
   if (globalClient == null) {
@@ -167,7 +167,16 @@ export function getLogger(name) {
 }
 
 // this is a singleton
-export async function getConnection(): Promise<NatsConnection> {
-  const { nc } = await getEnv();
-  return nc;
-}
+let theConnection: NatsConnection | null = null;
+export const getConnection = reuseInFlight(
+  async (): Promise<NatsConnection> => {
+    if (theConnection == null) {
+      const { nc } = await getEnv();
+      if (nc == null) {
+        throw Error("bug");
+      }
+      theConnection = nc;
+    }
+    return theConnection;
+  },
+);

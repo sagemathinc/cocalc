@@ -245,7 +245,7 @@ export class Stream<T = any> extends EventEmitter {
       // probably already exists, so try to modify to have the requested properties.
       this.stream = await this.jsm.streams.update(this.jsname, options);
     }
-    this.consumer = await this.fetchInitialData({
+    await this.fetchInitialData({
       // do not broadcast initial load
       noEmit: true,
     });
@@ -518,7 +518,12 @@ export class Stream<T = any> extends EventEmitter {
       ...options,
       ...startOptions,
     });
-    return await js.consumers.get(this.jsname, name);
+    if (this.consumer != null) {
+      this.consumer.delete();
+      delete this.consumer;
+    }
+    this.consumer = await js.consumers.get(this.jsname, name);
+    return this.consumer;
   };
 
   private fetchInitialData = async ({
@@ -685,6 +690,8 @@ export class Stream<T = any> extends EventEmitter {
     if (this.watch == null) {
       return;
     }
+    this.consumer?.delete();
+    delete this.consumer;
     this.watch.stop();
     delete this.watch;
     delete this.stream;

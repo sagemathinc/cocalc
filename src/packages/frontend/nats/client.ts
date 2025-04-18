@@ -504,7 +504,6 @@ export class NatsClient extends EventEmitter {
     if (this.openFilesCache[project_id] == null) {
       const openFiles = await createOpenFiles({
         project_id,
-        env: await this.getEnv(),
       });
       this.openFilesCache[project_id] = openFiles;
       openFiles.on("closed", () => {
