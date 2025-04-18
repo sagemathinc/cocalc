@@ -545,12 +545,14 @@ export class GeneralKV<T = any> extends EventEmitter {
       return;
     }
     delete this.all;
+
+    this.watch?.stop();
     delete this.watch;
+
     delete this.times;
     delete this.revisions;
     delete this.sizes;
     delete this.kv;
-    this.watch?.stop();
     // @ts-ignore
     delete this.allHeaders;
     this.emit("closed");

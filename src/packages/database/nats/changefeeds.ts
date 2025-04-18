@@ -78,14 +78,14 @@ async function mainLoop() {
   coordinator = new Coordinator({ timeout: LOCK_TIMEOUT_MS });
   await coordinator.init();
 
-  //   global.x = {
-  //     coordinator,
-  //     terminate,
-  //     changefeedHashes,
-  //     changefeedChanges,
-  //     changefeedInterest,
-  //     changefeedSynctables,
-  //   };
+  global.x = {
+    coordinator,
+    terminate,
+    changefeedHashes,
+    changefeedChanges,
+    changefeedInterest,
+    changefeedSynctables,
+  };
 
   const nc = await getConnection();
 

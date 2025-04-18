@@ -66,6 +66,7 @@ export async function getAllFromKv({
       }
     }
   }
+  watch.stop();
   // console.log("finished getAllFromKv", key, (Date.now() - t) / 1000, "seconds");
   return { all, revisions, times, headers };
 }
