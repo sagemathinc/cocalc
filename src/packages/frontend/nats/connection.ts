@@ -27,6 +27,18 @@ simpler.  We basically do that with primus.  The drawbacks:
 I generally "feel" like this should be the optimal approach given
 all the annoying constraints.  We will likely do something
 involving always including recent projects.
+
+---
+
+Subscription Leaks:
+
+This code in a browser is useful for monitoring the number of subscriptions:
+
+setInterval(()=>console.log(cc.redux.getStore('page').get('nats').toJS().data.numSubscriptions),1000)
+
+If things are off, look at
+
+cc.client.nats_client.refCacheInfo()
 */
 
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

@@ -314,6 +314,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.open_files.close();
     delete this.open_files;
+    this.computeServerManager?.close();
+    delete this.computeServerManager;
+    webapp_client.nats_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -3541,6 +3544,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
     this.computeServerManager?.close();
     delete this.computeServerManager;
+  };
+
+  computeServers = () => {
+    return this.computeServerManager;
   };
 
   private handleComputeServerManagerChange = ({ path, id }) => {

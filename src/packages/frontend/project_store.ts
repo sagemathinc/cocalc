@@ -228,6 +228,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       this.listings[id].close();
       delete this.listings[id];
     }
+    
   };
 
   // constructor binds this callback, such that "this.project_id" works!

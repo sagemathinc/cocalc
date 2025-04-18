@@ -533,6 +533,10 @@ export class NatsClient extends EventEmitter {
     return this.openFilesCache[project_id]!;
   });
 
+  closeOpenFiles = (project_id) => {
+    this.openFilesCache[project_id]?.close();
+  };
+
   pubsub = async ({
     project_id,
     path,
