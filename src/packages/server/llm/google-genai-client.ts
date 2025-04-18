@@ -107,7 +107,7 @@ export class GoogleGenAIClient {
     // This is a LangChain instance, we use it for chatting like we do with all the others
     // https://js.langchain.com/docs/integrations/chat/google_generativeai (also for safetey settings)
     const chat = new ChatGoogleGenerativeAI({
-      modelName,
+      model: modelName,
       apiKey: this.apiKey,
       maxOutputTokens: maxTokens,
       streaming: true,
