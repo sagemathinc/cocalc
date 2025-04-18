@@ -180,7 +180,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="uptime"
-        label={intl.formatMessage(labels.uptime)}
+        label="Uptime"
         style={rowStyle()}
         vertical={isFlyout}
       >
@@ -188,9 +188,9 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Icon name="clock" />{" "}
           <FormattedMessage
             id="project.settings.control.uptime.info"
-            defaultMessage={`project started <b>{ago}</b> ago`}
-            values={{ ago: <TimeElapsed start_ts={start_ts} /> }}
-          />
+            defaultMessage={"Project started"}
+          />{" "}
+          <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
         </span>
       </LabeledRow>
     );
