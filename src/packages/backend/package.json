@@ -63,6 +63,6 @@
   "devDependencies": {
     "@types/node": "^18.16.14",
     "expect": "^26.6.2",
-    "nyc": "^15.1.0"
+    "nyc": "^17.1.0"
   }
 }
