@@ -520,7 +520,12 @@ export class Stream<T = any> extends EventEmitter {
       ...startOptions,
     });
     if (this.consumer != null) {
-      this.consumer.delete();
+      try {
+        await this.consumer.delete();
+      } catch {
+        // this absolutely *can* throw an error if the consumer was already deleted
+        // automatically on the server for some reason!
+      }
       delete this.consumer;
     }
     this.consumer = await js.consumers.get(this.jsname, name);
@@ -691,8 +696,15 @@ export class Stream<T = any> extends EventEmitter {
     if (this.watch == null) {
       return;
     }
-    this.consumer?.delete();
-    delete this.consumer;
+    (async () => {
+      try {
+        await this.consumer?.delete();
+        delete this.consumer;
+      } catch {
+        // this absolutely *can* throw an error if the consumer was already deleted
+        // automatically on the server for some reason!
+      }
+    })();
     this.watch.stop();
     delete this.watch;
     delete this.stream;
