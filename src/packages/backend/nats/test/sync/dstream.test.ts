@@ -3,7 +3,7 @@ Testing basic ops with dsteam (distributed streams)
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "dstream.test.ts"
+pnpm test dstream.test.ts
 
 */
 
@@ -249,5 +249,53 @@ describe("dstream typescript test", () => {
     // this you should get a typescript error:
 
     // s.push({ foo: "bar" });
+  });
+});
+
+import { numSubscriptions } from "@cocalc/nats/client";
+
+describe("ensure there are no NATS subscription leaks", () => {
+  // There is some slight slack at some point due to the clock stuff,
+  // inventory, etc.  It is constant and small, whereas we allocate
+  // a large number of kv's in the test.
+  const SLACK = 4;
+
+  it("creates and closes many kv's and checks there is no leak", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+        noAutosave: true,
+      });
+    }
+    for (let i = 0; i < COUNT; i++) {
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  });
+
+  it("does another leak test, but with a set operation each time", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+        noAutosave: true,
+      });
+      a[i].publish(i);
+      await a[i].save();
+    }
+    for (let i = 0; i < COUNT; i++) {
+      await a[i].purge();
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
   });
 });
