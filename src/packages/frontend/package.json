@@ -37,7 +37,7 @@
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
     "@ant-design/compatible": "^5.1.1",
-    "@ant-design/icons": "^4.8.3",
+    "@ant-design/icons": "^6.0.0",
     "@cocalc/assets": "workspace:*",
     "@cocalc/cdn": "workspace:*",
     "@cocalc/comm": "workspace:*",
@@ -73,7 +73,7 @@
     "@use-gesture/react": "^10.2.24",
     "@zippytech/react-notify-resize": "^4.0.4",
     "anser": "^2.1.1",
-    "antd": "^5.21.1",
+    "antd": "^5.24.7",
     "antd-img-crop": "^4.21.0",
     "async": "^2.6.3",
     "audio-extensions": "^0.0.0",
@@ -134,7 +134,6 @@
     "mermaid": "^11.4.1",
     "nats.ws": "^1.30.2",
     "node-forge": "^1.0.0",
-    "nyc": "^15.1.0",
     "octicons": "^3.5.0",
     "onecolor": "^3.1.0",
     "pdfjs-dist": "^4.6.82",
@@ -198,6 +197,7 @@
     "coffeescript": "^2.5.1",
     "cspell": "^8.17.2",
     "mocha": "^10.0.0",
+    "nyc": "^17.1.0",
     "react-test-renderer": "^18.2.0",
     "type-fest": "^3.3.0"
   },
