@@ -141,6 +141,8 @@ export class SyncClient {
 }
 
 const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
+  name: "syncdb",
+
   createKey: ({ project_id, path }: SyncDBOpts) => {
     return JSON.stringify({ project_id, path });
   },
@@ -170,6 +172,7 @@ const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
 });
 
 const syncstringCache = refCacheSync<SyncOpts, SyncString>({
+  name: "syncstring",
   createKey: ({ project_id, path }: SyncOpts) => {
     const key = JSON.stringify({ project_id, path });
     return key;
