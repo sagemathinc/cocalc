@@ -59,6 +59,7 @@ import { requestMany } from "@cocalc/nats/service/many";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
+import { info as refCacheInfo } from "@cocalc/util/refcache";
 
 const NATS_STATS_INTERVAL = 2500;
 
@@ -651,6 +652,8 @@ export class NatsClient extends EventEmitter {
 
   isConnected = async () => await isConnected();
   waitUntilConnected = async () => await waitUntilConnected();
+
+  refCacheInfo = () => refCacheInfo();
 }
 
 function setDeleted({ project_id, path, deleted }) {

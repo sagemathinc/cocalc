@@ -4,6 +4,7 @@ import { SyncTableStream } from "./synctable-stream";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { type KVLimits } from "./general-kv";
 import { type FilteredStreamLimitOptions } from "./stream";
+import jsonStableStringify from "json-stable-stringify";
 
 export type NatsSyncTable = SyncTableStream | SyncTableKV;
 
@@ -52,6 +53,7 @@ function createObject(options: Options) {
 }
 
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
-  createKey: (opts) => JSON.stringify({ ...opts, env: undefined }),
+  name: "synctable",
+  createKey: (opts) => jsonStableStringify({ ...opts, env: undefined }),
   createObject,
 });

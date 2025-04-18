@@ -239,8 +239,9 @@ export class Inventory {
     return v;
   };
 
-  close = () => {
-    this.dkv?.close();
+  close = async () => {
+    await this.dkv?.close();
+    delete this.dkv;
   };
 
   private sortedKeys = (all, sort0: Sort) => {
@@ -358,6 +359,7 @@ function padRight(s: any, n) {
 }
 
 export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
+  name: "inventory",
   createObject: async (loc) => {
     const k = new Inventory(loc);
     await k.init();

@@ -224,6 +224,7 @@ export class DKO<T = any> extends EventEmitter {
 }
 
 export const cache = refCache<DKVOptions, DKO>({
+  name: "dko",
   createKey: userKvKey,
   createObject: async (opts) => {
     if (opts.env == null) {

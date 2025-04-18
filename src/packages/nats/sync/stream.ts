@@ -66,6 +66,7 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
+import jsonStableStringify from "json-stable-stringify";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -926,10 +927,11 @@ export function userStreamOptionsKey(options: UserStreamOptions) {
     throw Error("name must be specified");
   }
   const { env, ...x } = options;
-  return JSON.stringify(x);
+  return jsonStableStringify(x);
 }
 
 export const cache = refCache<UserStreamOptions, Stream>({
+  name: "stream",
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
     if (options.env == null) {

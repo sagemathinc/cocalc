@@ -23,6 +23,7 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import type { ValueType } from "@cocalc/nats/types";
 import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
+import jsonStableStringify from "json-stable-stringify";
 
 export interface KVOptions extends Location {
   name: string;
@@ -164,10 +165,11 @@ export function userKvKey(options: KVOptions) {
     throw Error("name must be specified");
   }
   const { env, ...x } = options;
-  return JSON.stringify(x);
+  return jsonStableStringify(x);
 }
 
 export const cache = refCache<KVOptions, KV>({
+  name: "kv",
   createKey: userKvKey,
   createObject: async (opts) => {
     if (opts.env == null) {
