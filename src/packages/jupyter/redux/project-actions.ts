@@ -56,6 +56,7 @@ export class JupyterActions extends JupyterActions0 {
   private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
   public blobs: DKV;
+  private computeServers?;
 
   private initBlobStore = async () => {
     this.blobs = await dkv(this.blobStoreOptions());
@@ -1540,19 +1541,25 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  getComputeServers = () => {
+    // we don't bother worrying about freeing this since it is only
+    // run in the project or compute server, which needs the underlying
+    // dkv for its entire lifetime anyways.
+    if (this.computeServers == null) {
+      this.computeServers = computeServerManager({
+        project_id: this.project_id,
+      });
+    }
+    return this.computeServers;
+  };
+
   getComputeServerIdSync = (): number => {
-    return (
-      computeServerManager({ project_id: this.project_id }).get(
-        this.syncdb.path,
-      ) ?? 0
-    );
+    const c = this.getComputeServers();
+    return c.get(this.syncdb.path) ?? 0;
   };
 
   getComputeServerId = async (): Promise<number> => {
-    return (
-      (await computeServerManager({
-        project_id: this.project_id,
-      }).getServerIdForPath(this.syncdb.path)) ?? 0
-    );
+    const c = this.getComputeServers();
+    return (await c.getServerIdForPath(this.syncdb.path)) ?? 0;
   };
 }
