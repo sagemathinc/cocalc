@@ -110,7 +110,7 @@ const initDkv = reuseInFlight(async () => {
 // skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
 let rtt: number | null = null;
-export async function getSkew(): Promise<number> {
+export const getSkew = reuseInFlight(async (): Promise<number> => {
   if (dkv == null) {
     await initDkv();
   }
@@ -138,6 +138,13 @@ export async function getSkew(): Promise<number> {
     }, TIMEOUT);
   };
   return await callback(f);
+});
+
+export async function waitUntilTimeAvailable() {
+  if (skew != null) {
+    return;
+  }
+  await getSkew();
 }
 
 // get last measured round trip time
