@@ -12,7 +12,7 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
-import { Alert, Button, Space } from "antd";
+import { Alert, Button, Space, Tooltip } from "antd";
 import { CSSProperties, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -34,7 +34,7 @@ const STYLE: CSSProperties = {
   color: COLORS.GRAY_M,
 } as const;
 
-export function StartButton() {
+export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const project_map = useTypedRedux("projects", "project_map");
@@ -150,7 +150,7 @@ export function StartButton() {
     const txt = intl.formatMessage(
       {
         id: "project.start-button.button.txt",
-        defaultMessage: `{starting, select, true {Starting project} other {Start project}}`,
+        defaultMessage: `{starting, select, true {Starting Project} other {Start Project}}`,
         description:
           "Label on a button, either to start the project or indicating the project is currently starting.",
       },
@@ -158,10 +158,18 @@ export function StartButton() {
     );
 
     return (
-      <div>
+      <Tooltip
+        title={
+          <div>
+            <ProjectState state={state} show_desc={allowed} />
+            {render_not_allowed()}
+          </div>
+        }
+      >
         <Button
           type="primary"
-          size="large"
+          size={minimal ? undefined : "large"}
+          style={minimal ? style : undefined}
           disabled={!enabled}
           onClick={async () => {
             try {
@@ -177,8 +185,12 @@ export function StartButton() {
             {txt}
           </Space>
         </Button>
-      </div>
+      </Tooltip>
     );
+  }
+
+  if (minimal) {
+    return render_start_project_button();
   }
 
   // In case user is admin viewing another user's project, we provide a
@@ -215,7 +227,7 @@ export function StartButton() {
             >
               <ProjectState state={state} show_desc={allowed} />
             </span>
-            {render_start_project_button()}
+            <div>{render_start_project_button()}</div>
             {render_not_allowed()}
           </>
         }
@@ -225,7 +237,7 @@ export function StartButton() {
   }
 
   return (
-    <div style={STYLE}>
+    <div style={{ ...STYLE, ...style }}>
       {state == null && redux.getStore("account")?.get("is_admin")
         ? render_admin_view()
         : render_normal_view()}
