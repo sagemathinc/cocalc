@@ -297,6 +297,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
+    this.initNatsPermissions();
     this.initComputeServers();
   }
 
@@ -3513,7 +3514,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     })();
   };
 
-  initComputeServers = () => {
+  private initComputeServers = () => {
     // table of information about all the compute servers in this project
     computeServers.init(this.project_id);
     // table mapping paths to the id of the compute server it is hosted on
@@ -3536,22 +3537,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
+  private initNatsPermissions = async () => {
+    try {
+      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+    } catch (err) {
+      console.log(
+        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
+      );
+    }
+  };
+
   private closeComputeServers = () => {
     computeServers.close(this.project_id);
     this.computeServerManager?.removeListener(
       "change",
       this.handleComputeServerManagerChange,
     );
-    // TODO: we are purposely letting this leak
-    // for now, until we audit through all of the
-    // places this.computeServers() is called
-    // and used, e.g., via frontend/client/project.ts
-    // The upshot is that for now when you close a project tab
-    // in your browser, it still listens on the compute
-    // server dkv until a browser refresh.  This is
-    // better than having UI behavior be broken.
-    // this.computeServerManager?.close();
-
+    this.computeServerManager?.close();
     delete this.computeServerManager;
   };
 

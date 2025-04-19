@@ -56,8 +56,7 @@ export class Listings extends EventEmitter {
         return;
       } catch (err) {
         console.log(
-          "WARNING: issue connecting to project listings service",
-          err,
+          `WARNING: temporary issue connecting to project listings service -- ${err}`,
         );
       }
       if (this.state == ("closed" as State)) return;
@@ -125,7 +124,7 @@ export class Listings extends EventEmitter {
           throw err;
         }
       } catch (err) {
-        console.log("WARNING: unable to update directory listing watcher", err);
+        console.log(`WARNING: unable to watch '${path}' -- ${err}`);
       }
     }
   };

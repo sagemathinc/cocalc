@@ -376,11 +376,11 @@ export class GeneralKV<T = any> extends EventEmitter {
           : undefined;
         await this.startWatch({ resumeFromRevision });
         d = 1000;
-      } catch (err) {
+      } catch (_err) {
         // expected to happen sometimes, e.g., when the connection closes temporarily
-        if (err.code != "CONNECTION_CLOSED") {
-          console.log(`error watching NATS kv: ${err}`);
-        }
+        //         if (err.code != "CONNECTION_CLOSED") {
+        //           console.log(`WARNING: getting watch on kv...`);
+        //         }
       }
       if (this.all == null) {
         // closed

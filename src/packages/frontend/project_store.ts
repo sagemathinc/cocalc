@@ -228,7 +228,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       this.listings[id].close();
       delete this.listings[id];
     }
-    
   };
 
   // constructor binds this callback, such that "this.project_id" works!
@@ -605,8 +604,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 await listingsTable.getListingDirectly(path),
               );
             } catch (err) {
-              console.warn(
-                `WARNING: problem getting directory listing ${err}; falling back`,
+              console.log(
+                `WARNING: temporary problem getting directory listing -- ${err}`,
               );
               files = await listingsTable.getForStore(path);
             }
