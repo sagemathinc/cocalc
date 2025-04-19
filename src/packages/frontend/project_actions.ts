@@ -3542,7 +3542,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       "change",
       this.handleComputeServerManagerChange,
     );
-    this.computeServerManager?.close();
+    // TODO: we are purposely letting this leak
+    // for now, until we audit through all of the
+    // places this.computeServers() is called
+    // and used, e.g., via frontend/client/project.ts
+    // The upshot is that for now when you close a project tab
+    // in your browser, it still listens on the compute
+    // server dkv until a browser refresh.  This is
+    // better than having UI behavior be broken.
+    // this.computeServerManager?.close();
+
     delete this.computeServerManager;
   };
 
