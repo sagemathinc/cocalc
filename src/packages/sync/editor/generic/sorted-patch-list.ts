@@ -142,8 +142,15 @@ export class SortedPatchList extends EventEmitter {
       // we make a shallow copy of the original patch, since this code
       // may shallow mutate it, e.g., filling in the snapshot info, and
       // we want to avoid any surprises/bugs (mainly with unit tests)
+      const t: number = originalPatch.time;
+      if (
+        !originalPatch.is_snapshot &&
+        (this.staging[t] != null || this.live[t] != null)
+      ) {
+        // we have already added this patch
+        continue;
+      }
       const x = { ...originalPatch };
-      const t: number = x.time;
       if (x.is_snapshot) {
         // it's a snapshot
         if (this.live[t] != null) {
@@ -182,48 +189,53 @@ export class SortedPatchList extends EventEmitter {
       this.staging[t] = x;
     }
 
-    const v: { [time: number]: Patch } = {};
-    const heads = getHeads(this.staging);
-    if (heads.length == 0) {
-      return;
-    }
-    const graph = { ...this.live, ...this.staging };
-    for (const head of heads) {
-      const times = getTimesWithHeads(graph, [head]);
-      let isComplete = true;
-      for (const t of times) {
-        const patch = graph[t];
-        if (isSnapshot(patch)) {
-          continue;
-        }
-        for (const parent of patch.parents ?? []) {
-          if (graph[parent] == null) {
-            // non-snapshot with a missing parent!
-            isComplete = false;
+    while (true) {
+      const v: { [time: number]: Patch } = {};
+      const heads = getHeads(this.staging);
+      if (heads.length == 0) {
+        return;
+      }
+      const graph = { ...this.live, ...this.staging };
+      for (const head of heads) {
+        const times = getTimesWithHeads(graph, [head]);
+        let isComplete = true;
+        for (const t of times) {
+          const patch = graph[t];
+          if (isSnapshot(patch)) {
+            continue;
+          }
+          for (const parent of patch.parents ?? []) {
+            if (graph[parent] == null) {
+              // non-snapshot with a missing parent!
+              isComplete = false;
+              break;
+            }
+          }
+          if (!isComplete) {
             break;
           }
         }
-        if (!isComplete) {
-          break;
-        }
-      }
-      if (isComplete) {
-        for (const t of times) {
-          if (this.live[t] == null) {
-            this.live[t] = this.staging[t];
-            v[t] = this.live[t];
-            delete this.staging[t];
+        if (isComplete) {
+          for (const t of times) {
+            if (this.live[t] == null) {
+              this.live[t] = this.staging[t];
+              v[t] = this.live[t];
+              delete this.staging[t];
+            }
           }
         }
       }
-    }
 
-    // This is O(n*log(n)) where n is the length of this.patches.
-    const newPatches = Object.values(v);
-    if (newPatches.length > 0) {
-      delete this.versions_cache;
-      this.patches = this.patches.concat(newPatches);
-      this.patches.sort(patch_cmp);
+      // This is O(n*log(n)) where n is the length of this.patches.
+      const newPatches = Object.values(v);
+      if (newPatches.length > 0) {
+        delete this.versions_cache;
+        this.patches = this.patches.concat(newPatches);
+        this.patches.sort(patch_cmp);
+      } else {
+        // nothing moved from staging to live, so **converged**.
+        return;
+      }
     }
   };
 

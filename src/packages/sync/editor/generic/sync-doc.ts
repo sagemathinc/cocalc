@@ -2237,9 +2237,7 @@ export class SyncDoc extends EventEmitter {
       x = fromJS(obj);
     }
     const y = this.processPatch({ x, patch, size: obj.patch.size });
-    if (y != null) {
-      this.patch_list.add([y]);
-    }
+    this.patch_list.add([y]);
     // Since *we* just made a definite change to the document, we're
     // active, so we check if we should make a snapshot. There is the
     // potential of a race condition where more than one clients make
