@@ -527,7 +527,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   languageModelGetLanguage(): string {
     return (
-      this.jupyter_actions.store.getIn(["kernel_info", "language"]) ?? "py"
+      this.jupyter_actions.store?.getIn(["kernel_info", "language"]) ?? "py"
     );
   }
 

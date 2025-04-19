@@ -3592,7 +3592,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // no need to set anything since we have what we want already
       return true;
     }
-    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
+    if (confirm) {
       // (currently we only confirm this jupyter and terminals, which are
       // the only supported file types with backend state).
       if (
