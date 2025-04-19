@@ -1048,6 +1048,17 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.versions();
   };
 
+  // newest version of any non-staging known patch on this client,
+  // including ones just made that might not be in patch_list yet.
+  newestVersion = (): number | undefined => {
+    return this.patch_list?.newest_patch_time();
+  };
+
+  hasVersion = (time: number): boolean => {
+    assertDefined(this.patch_list);
+    return this.patch_list.hasVersion(time);
+  };
+
   historyFirstVersion = () => {
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
@@ -2180,6 +2191,8 @@ export class SyncDoc extends EventEmitter {
       // above async waits could have resulted in state change.
       return;
     }
+    await this.handle_patch_update_queue();
+
     // Ensure all patches are saved to backend.
     // We do this after the above, so that creating the newest patch
     // happens immediately on save, which makes it possible for clients
@@ -2188,13 +2201,13 @@ export class SyncDoc extends EventEmitter {
     await this.patches_table.save();
   });
 
+  private timeOfLastCommit: number | undefined = undefined;
   private next_patch_time = (): number => {
     let time = this.client.server_time().valueOf();
-    assertDefined(this.patch_list);
-    const min_time = this.patch_list.newest_patch_time();
-    if (min_time != null && min_time >= time) {
-      time = min_time.valueOf() + 1;
+    if (time == this.timeOfLastCommit) {
+      time = this.timeOfLastCommit + 1;
     }
+    assertDefined(this.patch_list);
     time = this.patch_list.next_available_time(
       time,
       this.my_user_id,
@@ -2204,6 +2217,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private commit_patch = (time: number, patch: XPatch): void => {
+    this.timeOfLastCommit = time;
     this.assert_not_closed("commit_patch");
     assertDefined(this.patch_list);
     const obj: any = {

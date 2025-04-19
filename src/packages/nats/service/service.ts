@@ -63,8 +63,8 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
-  try {
-    const data = jc.encode(opts.mesg);
+  const data = jc.encode(opts.mesg);
+  const doRequest = async () => {
     await waitUntilConnected();
     if (opts.many) {
       resp = await requestMany({ nc, subject, data, maxWait: timeout });
@@ -76,12 +76,27 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     if (opts.raw) {
       return resp;
     }
+  };
+  // we just try to call the service
+  try {
+    return await doRequest();
   } catch (err) {
+    // it failed.
     if (err.name == "NatsError") {
+      // it's a nats problem
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
       if (err.code == "503") {
-        err.message = `Not Available: service ${p}${opts.service} is not available`;
-        throw err;
+        // it's actually just not ready, so
+        // wait for the service to be ready, then try again
+        await waitForNatsService({ options: opts, maxWait: timeout });
+        try {
+          return await doRequest();
+        } catch (err) {
+          if (err.code == "503") {
+            err.message = `Not Available: service ${p}${opts.service} is not available`;
+          }
+          throw err;
+        }
       } else if (err.code == "TIMEOUT") {
         throw Error(
           `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,

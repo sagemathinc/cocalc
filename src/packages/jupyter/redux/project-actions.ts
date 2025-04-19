@@ -1251,8 +1251,46 @@ export class JupyterActions extends JupyterActions0 {
     this.setState({ kernels });
   };
 
-  save_ipynb_file = async () => {
+  save_ipynb_file = async ({
+    version = 0,
+    timeout = 15000,
+  }: {
+    // if version is given, waits (up to timeout ms) for syncdb to
+    // contain that exact version before writing the ipynb to disk.
+    // This may be needed to ensure that ipynb saved to disk
+    // reflects given frontend state.  This comes up, e.g., in
+    // generating the nbgrader version of a document.
+    version?: number;
+    timeout?: number;
+  } = {}) => {
     const dbg = this.dbg("save_ipynb_file");
+    if (version && !this.syncdb.hasVersion(version)) {
+      dbg(`frontend needs ${version}, which we do not yet have`);
+      const start = Date.now();
+      while (true) {
+        if (this.is_closed()) {
+          return;
+        }
+        if (Date.now() - start >= timeout) {
+          dbg("timed out waiting");
+          break;
+        }
+        try {
+          dbg(`waiting for version ${version}`);
+          await once(this.syncdb, "change", timeout - (Date.now() - start));
+        } catch {
+          dbg("timed out waiting");
+          break;
+        }
+        if (this.syncdb.hasVersion(version)) {
+          dbg("now have the version");
+          break;
+        }
+      }
+    }
+    if (this.is_closed()) {
+      return;
+    }
     dbg("saving to file");
 
     // Check first if file was deleted, in which case instead of saving to disk,

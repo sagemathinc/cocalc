@@ -449,7 +449,8 @@ export class SortedPatchList extends EventEmitter {
 
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
-  patch = (time): Patch => {
+  // This doesn't includes patches in staging.
+  patch = (time: number): Patch => {
     const p = this.live[time];
     if (p == null) {
       throw Error(`no patch at ${time}`);
@@ -458,11 +459,15 @@ export class SortedPatchList extends EventEmitter {
   };
 
   versions = (): number[] => {
-    // Compute and cache result,then return it; result gets cleared when new patches added.
+    // Compute and cache result, then return it; result gets cleared when new patches added.
     if (this.versions_cache == null) {
       this.versions_cache = this.patches.map((x) => x.time);
     }
     return this.versions_cache;
+  };
+
+  hasVersion = (time: number): boolean => {
+    return this.live[time] != null;
   };
 
   // Show the history of this document; used mainly for debugging purposes.

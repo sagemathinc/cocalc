@@ -798,9 +798,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // can't save when readonly or deleted
       return;
     }
-    if (this.store.get("mode") === "edit") {
-      this._get_cell_input();
-    }
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
@@ -810,25 +807,16 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       await this.syncdb.save();
       if (this._state === "closed") return;
 
-      // At this point we know the document is fully saved to the network,
-      // but sadly we do not actually know it has been received and
-      // processed by the project.  The save to ipynb that happens
-      // on the backend assumes the document has been processed.
-      // TODO: as a very temporary stopgap, we are just going to
-      // wait a little.  Soon we'll change this to include a timestamp or
-      // as a parameter to save_ipynb_file. In practice this works fine
-      // since the save above is sent over the same channel as
-      // the save_ipynb_file below, so it's likely that one happens
-      // before the other (before NATS it always did).
-      // **THIS IS TEMPORARY THOUGH.**
-      await delay(500);
-      // Export the ipynb file to disk.
+      // Export the ipynb file to disk, being careful not to actually
+      // save it until the backend actually gets the given version and
+      // has processed it!
+      const version = this.syncdb.newestVersion();
       try {
-        await this.api({ timeout: 30000 }).save_ipynb_file();
+        await this.api({ timeout: 30000 }).save_ipynb_file({ version });
       } catch (err) {
         console.log(err);
         throw Error(
-          "There was a problem writing the ipynb file to disk.  Please try again later.  You might need to restart your project.",
+          `There was a problem writing the ipynb file to disk -- ${err}`,
         );
       }
       if (this._state === ("closed" as State)) return;
