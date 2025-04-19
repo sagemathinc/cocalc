@@ -6,12 +6,6 @@ settings:
 
 importers:
 
-  api-client: {}
-
-  backend: {}
-
-  comm: {}
-
   compute:
     dependencies:
       '@cocalc/api-client':
@@ -75,22 +69,6 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
-
-  jupyter: {}
-
-  nats: {}
-
-  project: {}
-
-  sync: {}
-
-  sync-client: {}
-
-  sync-fs: {}
-
-  terminal: {}
-
-  util: {}
 
 packages:
 
