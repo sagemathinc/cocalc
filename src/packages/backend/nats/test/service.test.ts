@@ -29,10 +29,10 @@ describe("create a service and test it out", () => {
     let t = "";
     // expect( ...).toThrow doesn't seem to work with this:
     try {
-      await callNatsService({ service: "echo", mesg: "hi" });
+      await callNatsService({ service: "echo", mesg: "hi", timeout: 1000 });
     } catch (err) {
       t = `${err}`;
     }
-    expect(t).toContain("Not Available");
+    expect(t).toContain("Error: timeout");
   });
 });

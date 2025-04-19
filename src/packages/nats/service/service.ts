@@ -64,6 +64,7 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
   const data = jc.encode(opts.mesg);
+
   const doRequest = async () => {
     await waitUntilConnected();
     if (opts.many) {
@@ -76,7 +77,13 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     if (opts.raw) {
       return resp;
     }
+    const result = jc.decode(resp.data);
+    if (result?.error) {
+      throw Error(result.error);
+    }
+    return result;
   };
+
   // we just try to call the service
   try {
     return await doRequest();
@@ -105,11 +112,6 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     }
     throw err;
   }
-  const result = jc.decode(resp.data);
-  if (result?.error) {
-    throw Error(result.error);
-  }
-  return result;
 }
 
 export type CallNatsServiceFunction = typeof callNatsService;
