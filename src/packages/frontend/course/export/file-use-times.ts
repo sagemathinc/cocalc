@@ -6,10 +6,10 @@
 import { StudentsMap, StudentRecord } from "../store";
 import {
   exec,
-  query,
   write_text_file_to_project,
 } from "../../frame-editors/generic/client";
 import { splitlines } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface PathUseTimes {
   edit_times: number[];
@@ -36,19 +36,18 @@ async function one_student_file_use_times(
   account_id = account_id;
   const times: { [path: string]: PathUseTimes } = {};
   for (const path of paths) {
-    const q = await query({
-      query: {
-        file_use_times: {
-          project_id,
-          account_id,
-          path,
-          access_times: null,
-          edit_times: null,
-        },
-      },
-      options: [{ limit }],
-    });
-    const { edit_times, access_times } = q.query.file_use_times;
+    const { edit_times, access_times } =
+      await webapp_client.nats_client.hub.db.fileUseTimes({
+        project_id,
+        path,
+        target_account_id: account_id,
+        limit,
+        edit_times: true,
+        access_times: true,
+      });
+    if (edit_times == null || access_times == null) {
+      throw Error("bug");
+    }
     times[path] = { edit_times, access_times };
   }
   return times;
