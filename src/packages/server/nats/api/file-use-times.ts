@@ -8,6 +8,8 @@ import type {
   FileUseTimesOptions,
   FileUseTimesResponse,
 } from "@cocalc/nats/hub-api/db";
+import { dstream } from "@cocalc/nats/sync/dstream";
+import { patchesStreamName } from "@cocalc/nats/sync/synctable-stream";
 
 export async function fileUseTimes({
   project_id,
@@ -41,30 +43,20 @@ export async function fileUseTimes({
   }
 
   if (edit_times) {
-    console.log("edit_times not supported");
-    resp.edit_times = [];
+    const name = patchesStreamName({ project_id, path });
+    // TODO: performance worries - this involves reading all data for the full history of editing
+    // this file, setting up a watch, etc., then removing it.... It is thus not optimized as
+    // much as possible.  Instead, probably we want to grab this data from somewhere else, e.g., some
+    // sort of "inventory" like index.
+    const s = await dstream({
+      project_id,
+      name,
+      noAutosave: true,
+      noInventory: true,
+    });
+    resp.edit_times = s.times().map((x) => x?.valueOf());
+    s.close();
   }
-
-  // This data is no longer recorded in the database, and can only be currently obtained
-  // via expensive access to NATS. Thus it is deprecated.
-
-  //   // The patches data
-  //   if (edit_times) {
-  //     const string_id = db.sha1(project_id, path);
-  //     const edit_times: { time: Date }[] = await query({
-  //       db,
-  //       table: "patches",
-  //       select: ["time"],
-  //       where: { string_id },
-  //       one: false,
-  //       order_by: "time desc",
-  //       limit: limit,
-  //     });
-  //     resp.edit_times = [];
-  //     for (const d of edit_times) {
-  //       resp.edit_times.push(d.time.valueOf());
-  //     }
-  //   }
 
   return resp;
 }

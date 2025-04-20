@@ -50,10 +50,11 @@ export interface FileUseTimesOptions {
   limit?: number; // at most this many timestamps
   access_times?: boolean; // (default:true) if true, include access times
   edit_times?: boolean; // (default:false) if true, return edit times.
+  timeout?: number;
 }
 
 export interface FileUseTimesResponse {
   target_account_id: string;
   access_times?: number[];
-  edit_times?: number[];
+  edit_times?: (number | undefined)[];
 }

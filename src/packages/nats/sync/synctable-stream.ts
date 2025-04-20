@@ -92,7 +92,7 @@ export class SyncTableStream extends EventEmitter {
   }
 
   init = async () => {
-    const name = `patches:${this.string_id}`;
+    const name = patchesStreamName({ string_id: this.string_id });
     this.dstream = await dstream({
       name,
       project_id: this.project_id,
@@ -215,4 +215,25 @@ export class SyncTableStream extends EventEmitter {
   has_uncommitted_changes = () => {
     return this.dstream?.hasUnsavedChanges();
   };
+}
+
+export function patchesStreamName({
+  project_id,
+  path,
+  string_id,
+}: {
+  project_id?: string;
+  path?: string;
+  string_id?: string;
+}): string {
+  if (!string_id) {
+    if (!project_id || !path) {
+      throw Error("one of string_id or both project_id and path must be given");
+    }
+    string_id = client_db.sha1(project_id, path);
+  }
+  if (!string_id) {
+    throw Error("bug");
+  }
+  return `patches:${string_id}`;
 }

@@ -192,6 +192,14 @@ export class DStream<T = any> extends EventEmitter {
     return new Date(millis(r?.info.timestampNanos));
   };
 
+  // all server assigned times of messages in the stream.
+  times = (): (Date | undefined)[] => {
+    if (this.stream == null) {
+      throw Error("not initialized");
+    }
+    return this.stream.times();
+  };
+
   get length(): number {
     return (
       this.messages.length +

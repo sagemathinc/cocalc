@@ -44,11 +44,15 @@ async function one_student_file_use_times(
         limit,
         edit_times: true,
         access_times: true,
+        timeout: 1000 * 60 * 15,
       });
     if (edit_times == null || access_times == null) {
       throw Error("bug");
     }
-    times[path] = { edit_times, access_times };
+    times[path] = {
+      edit_times: edit_times.filter((x) => !!x) as number[],
+      access_times,
+    };
   }
   return times;
 }
