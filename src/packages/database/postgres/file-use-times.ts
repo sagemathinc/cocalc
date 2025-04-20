@@ -21,7 +21,7 @@ type Response = { access_times?: number[]; edit_times?: number[] };
 
 export async function file_use_times(
   db: PostgreSQL,
-  opts: Options
+  opts: Options,
 ): Promise<Response> {
   if (!opts.access_times && !opts.edit_times) {
     // trivial edge case.
@@ -61,23 +61,26 @@ export async function file_use_times(
     }
   }
 
-  // The patches data
-  if (opts.edit_times) {
-    const string_id = db.sha1(opts.project_id, opts.path);
-    const edit_times: { time: Date }[] = await query({
-      db,
-      table: "patches",
-      select: ["time"],
-      where: { string_id },
-      one: false,
-      order_by: "time desc",
-      limit: opts.limit,
-    });
-    resp.edit_times = [];
-    for (const d of edit_times) {
-      resp.edit_times.push(d.time.valueOf());
-    }
-  }
+  // This data is no longer recorded in the database, and can only be currently obtained
+  // via expensive access to NATS. Thus it is deprecated.
+  
+  //   // The patches data
+  //   if (opts.edit_times) {
+  //     const string_id = db.sha1(opts.project_id, opts.path);
+  //     const edit_times: { time: Date }[] = await query({
+  //       db,
+  //       table: "patches",
+  //       select: ["time"],
+  //       where: { string_id },
+  //       one: false,
+  //       order_by: "time desc",
+  //       limit: opts.limit,
+  //     });
+  //     resp.edit_times = [];
+  //     for (const d of edit_times) {
+  //       resp.edit_times.push(d.time.valueOf());
+  //     }
+  //   }
 
   return resp;
 }
