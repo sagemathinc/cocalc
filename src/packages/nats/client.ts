@@ -141,7 +141,7 @@ export function getClient(): ClientWithState {
   return globalClient;
 }
 
-const tmpLogger = (s, name, logger) => {
+function tmpLogger(s, name, logger) {
   return (...args) => {
     if (globalClient == null) {
       return;
@@ -152,18 +152,22 @@ const tmpLogger = (s, name, logger) => {
     }
     logger[s](...args);
   };
-};
+}
 
 export function getLogger(name) {
-  if (globalClient == null) {
-    // make logger that starts working after global client is set
-    const logger: any = {};
-    for (const s of ["debug", "info", "warn"]) {
-      logger[s] = tmpLogger(s, name, logger);
+  // weird code since getLogger can get called very early, before
+  // globalClient is even initialized.
+  try {
+    if (globalClient != null) {
+      return globalClient.getLogger(name);
     }
-    return logger;
+  } catch {}
+  // make logger that starts working after global client is set
+  const logger: any = {};
+  for (const s of ["debug", "info", "warn"]) {
+    logger[s] = tmpLogger(s, name, logger);
   }
-  return globalClient.getLogger(name);
+  return logger;
 }
 
 // this is a singleton
