@@ -104,6 +104,9 @@ import {
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("dkv");
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -458,7 +461,7 @@ export class DKV<T = any> extends EventEmitter {
           limits: this.opts.limits,
         });
       } catch (err) {
-        console.warn(
+        logger.debug(
           "WARNING: unable to update inventory for ",
           this.opts?.name,
           err,

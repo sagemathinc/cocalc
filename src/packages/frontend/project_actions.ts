@@ -3223,11 +3223,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: normalize(full_path),
             });
           } catch (err) {
-            // e.g., project is not running?
-            alert_message({
-              type: "error",
-              message: `Error opening '${target}': ${err}`,
-            });
+            // TODO: e.g., project is not running?
+            // I've seen this, e.g., when trying to open a file when not running, and it just
+            // gets retried and works.
+            console.log(`Error opening '${target}' -- ${err}`);
             return;
           }
         } else {

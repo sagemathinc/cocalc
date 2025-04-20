@@ -40,6 +40,9 @@ import { inventory, THROTTLE_MS, type Inventory } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { getClient, type ClientWithState } from "@cocalc/nats/client";
 import { encodeBase64 } from "@cocalc/nats/util";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("dstream");
 
 const MAX_PARALLEL = 250;
 
@@ -403,7 +406,7 @@ export class DStream<T = any> extends EventEmitter {
           seq: curSeq,
         });
       } catch (err) {
-        console.log(
+        logger.debug(
           `WARNING: unable to update inventory.  name='${this.opts.name}':`,
           err,
         );

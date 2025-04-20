@@ -18,6 +18,9 @@ import {
 } from "@cocalc/nats/service/listings";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("listings");
 
 export const WATCH_THROTTLE_MS = MIN_INTEREST_INTERVAL_MS;
 
@@ -55,7 +58,7 @@ export class Listings extends EventEmitter {
         // success!
         return;
       } catch (err) {
-        console.log(
+        logger.debug(
           `WARNING: temporary issue connecting to project listings service -- ${err}`,
         );
       }
@@ -124,7 +127,9 @@ export class Listings extends EventEmitter {
           throw err;
         }
       } catch (err) {
-        console.log(`WARNING: unable to watch '${path}' -- ${err}`);
+        logger.debug(
+          `WARNING: not yet able to watch '${path}' in ${this.project_id} -- ${err}`,
+        );
       }
     }
   };

@@ -175,7 +175,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
             try {
               await redux.getActions("projects").start_project(project_id);
             } catch (err) {
-              // ui should show this some other way
+              // maybe ui should show this some other way
               console.warn("WARNING -- issue starting project ", err);
             }
           }}
