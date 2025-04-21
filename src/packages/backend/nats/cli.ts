@@ -23,7 +23,7 @@ function params({ user }) {
     command: "bash",
     args: ["--norc", "--noprofile"],
     env: {
-      ...natsCoCalcUserEnv(user),
+      ...natsCoCalcUserEnv({ user }),
       HOME: process.env.HOME,
       TERM: process.env.TERM,
       PS1: `\\w [nats-${user}]$ `,
