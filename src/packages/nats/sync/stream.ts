@@ -82,7 +82,7 @@ const MAX_PARALLEL = 50;
 // confirm that ephemeral consumer still exists periodically.
 // In case of a long disconnect from the network, this is what
 // ensures we successfully get properly updated.
-const CONSUMER_MONITOR_INTERVAL = 60 * 1000;
+const CONSUMER_MONITOR_INTERVAL = 5 * 60 * 1000;
 
 // Making this LONG is very dangerous since it increases load on the server.
 const EPHEMERAL_CONSUMER_THRESH = 60 * 1000;
