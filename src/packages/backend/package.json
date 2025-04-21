@@ -62,7 +62,6 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "@types/node": "^18.16.14",
-    "expect": "^26.6.2",
-    "nyc": "^17.1.0"
+    "expect": "^26.6.2"
   }
 }
