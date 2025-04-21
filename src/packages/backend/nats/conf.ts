@@ -28,6 +28,8 @@ import {
   natsAuthCalloutXSeed,
   setNatsAuthCalloutXSeed,
   natsAuthCalloutXSeedPath,
+  natsClusterName,
+  natsServerName,
 } from "@cocalc/backend/data";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
@@ -94,6 +96,7 @@ export async function configureNatsServer() {
   await writeFile(
     confPath,
     `
+server_name: ${natsServerName}
 listen: ${natsServer}:${natsPorts.server}
 
 max_payload:${max_payload}
@@ -109,6 +112,18 @@ websocket {
   no_tls: true
   token_cookie: "${REMEMBER_ME_COOKIE_NAME}"
 }
+
+# This does not work yet.  I guess a single node cluster
+# isn't possible.  Reload also isn't -- the only way we ever
+# grow to multiple nodes will require restarts.
+# cluster {
+#   name: "${natsClusterName}"
+#   listen: "${natsServer}:${natsPorts.cluster}"
+#   routes: ["${natsServer}:${natsPorts.cluster}"]
+#   compression: {
+#     mode: s2_auto
+#   }
+# }
 
 accounts {
   COCALC {
