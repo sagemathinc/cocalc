@@ -1,16 +1,22 @@
 import { executeCode } from "@cocalc/backend/execute-code";
 import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
-import { backupStream, backupKV, backupProject } from "./backup";
+import { backupStream, backupKV, backupLocation } from "./backup";
 import { restoreKV } from "./restore";
 
 export async function rmStream(name: string) {
   // TODO: probably this should be done via the API
-  await executeCode({
+  const { exit_code, stderr } = await executeCode({
     command: "nats",
     args: ["stream", "rm", "-f", name],
-    err_on_exit: true,
+    err_on_exit: false,
     env: natsCoCalcUserEnv(),
   });
+  if (exit_code) {
+    if (stderr.includes("stream not found")) {
+      return;
+    }
+    throw Error(stderr);
+  }
 }
 
 export async function archiveStream(name: string) {
@@ -21,12 +27,18 @@ export async function archiveStream(name: string) {
 
 export async function rmKV(name: string) {
   // TODO: probably this should be done via the API
-  await executeCode({
+  const { exit_code, stderr } = await executeCode({
     command: "nats",
     args: ["kv", "del", "-f", name],
-    err_on_exit: true,
+    err_on_exit: false,
     env: natsCoCalcUserEnv(),
   });
+  if (exit_code) {
+    if (stderr.includes("bucket not found")) {
+      return;
+    }
+    throw Error(stderr);
+  }
 }
 
 export async function archiveKV(name: string) {
@@ -35,9 +47,15 @@ export async function archiveKV(name: string) {
   return output;
 }
 
-export async function archiveProject({ project_id }: { project_id: string }) {
-  const output = await backupProject({ project_id });
-  const name = `project-${project_id}`;
+export async function archiveLocation({
+  user_id,
+  type,
+}: {
+  user_id: string;
+  type: "project" | "account";
+}) {
+  const output = await backupLocation({ user_id, type });
+  const name = `${type}-${user_id}`;
   await rmKV(name);
   try {
     await rmStream(name);
@@ -47,4 +65,12 @@ export async function archiveProject({ project_id }: { project_id: string }) {
     throw err;
   }
   return output;
+}
+
+export async function archiveProject({ project_id }: { project_id: string }) {
+  return await archiveLocation({ user_id: project_id, type: "project" });
+}
+
+export async function archiveAccount({ account_id }: { account_id: string }) {
+  return await archiveLocation({ user_id: account_id, type: "account" });
 }
