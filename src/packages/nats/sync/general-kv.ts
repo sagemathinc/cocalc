@@ -126,7 +126,7 @@ import { delay } from "awaiting";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/nats/types";
-import { waitUntilConnected } from "@cocalc/nats/util";
+import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -137,7 +137,7 @@ class RejectError extends Error {
 
 const MAX_PARALLEL = 250;
 
-const WATCH_MONITOR_INTERVAL = 5 * 60 * 1000;
+const CONNECTION_CHECK_INTERVAL = 5000;
 
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
@@ -498,44 +498,16 @@ export class GeneralKV<T = any> extends EventEmitter {
     }
   };
 
-  // For both the kv and streams as best I can tell we MUST periodically poll the
-  // server to see if the watch is still working.  If not we create a new one
-  // starting at the last revision we got.  The watch will of course stop working
-  // randomly sometimes because browsers disconnect and reconnect.
   private monitorWatch = async () => {
     this.env.nc.on?.("reconnect", this.restartWatch);
     while (this.revisions != null) {
-      await delay(WATCH_MONITOR_INTERVAL);
-      if (this.revisions == null) {
-        return;
+      if (!(await isConnected())) {
+        await waitUntilConnected();
+        //console.log("monitorWatch: not connected so restart", this.name);
+        await this.restartWatch();
       }
-      if (this.watch == null) {
-        continue;
-      }
-      // To see this happen, get the open files, then delete the consumer associated
-      // to the watch:
-      // This is in a browser with a project opened:
-      //
-      // o = await cc.client.nats_client.openFiles(cc.current().project_id)
-      // o.dkv.generalDKV.kv.watch._data.delete()
-      //
-      // Now observe that "await o.dkv.generalDKV.kv.watch._data.info()" fails as below,
-      // but within a few seconds everything is fine again.
-
-      try {
-        await this.watch._data.info();
-      } catch (err) {
-        if (this.revisions == null) {
-          return;
-        }
-        if (
-          err.name == "ConsumerNotFoundError" ||
-          err.code == 10014 ||
-          err.message == "consumer not found"
-        ) {
-          this.restartWatch();
-        }
-      }
+      //console.log("monitorWatch: wait", this.name);
+      await delay(CONNECTION_CHECK_INTERVAL);
     }
   };
 

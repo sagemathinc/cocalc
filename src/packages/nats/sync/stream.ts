@@ -79,10 +79,7 @@ class PublishRejectError extends Error {
 
 const MAX_PARALLEL = 50;
 
-// confirm that ephemeral consumer still exists periodically.
-// In case of a long disconnect from the network, this is what
-// ensures we successfully get properly updated.
-const CONSUMER_MONITOR_INTERVAL = 5 * 60 * 1000;
+const CONNECTION_CHECK_INTERVAL = 5000;
 
 // Making this LONG is very dangerous since it increases load on the server.
 const EPHEMERAL_CONSUMER_THRESH = 60 * 1000;
@@ -262,25 +259,11 @@ export class Stream<T = any> extends EventEmitter {
     this.env.nc.on?.("reconnect", this.restartConsumer);
     while (this.stream != null) {
       if (!(await isConnected())) {
-        await this.restartConsumer();
-        continue;
-      }
-      try {
-        if (this.consumer == null) {
-          throw Error("no consumer");
-        }
-        // NOTE: this blog post https://www.synadia.com/blog/jetstream-design-patterns-for-scale
-        // lists doing exactly what we are doing as the very first **JetStream Anti-Pattern**,
-        // saying "seems innocuous in a prototype or proof of concept, becomes very expensive across ten of
-        // thousands of clients. Using consumer info to check if a consumer exists is
-        // unnecessary. Instead, just call consumer create".  But they are assuming some
-        // sort of robustness of their clients/system, which I din't observe.
-        await this.consumer.info();
-      } catch (err) {
-        console.log(`consumer.info failed -- ${err}`);
+        //console.log("ensureConnected: restart", this.name);
         await this.restartConsumer();
       }
-      await delay(CONSUMER_MONITOR_INTERVAL);
+      //console.log("ensureConnected: delay", this.name);
+      await delay(CONNECTION_CHECK_INTERVAL);
     }
   };
 
