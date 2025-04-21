@@ -93,10 +93,17 @@ export async function configureNatsServer() {
     ISSUER_XKEY = publicKey(natsAuthCalloutXSeed);
   }
 
+  // problem with server_name -- this line
+  //   const user = fromPublic(userNkey);
+  // in server/nats/auth/index.ts fails.
+
   await writeFile(
     confPath,
     `
-server_name: ${natsServerName}
+# Amazingly, just setting the server_name breaks auth callout,
+# with it saying the nkey is invalid.  This may require a lot
+# "reverse engineering" work.
+# server_name: ${natsServerName}
 listen: ${natsServer}:${natsPorts.server}
 
 max_payload:${max_payload}
@@ -150,7 +157,7 @@ max_control_line 64KB
 authorization {
   # slightly longer timeout (than 2s default): probably not necessary, but db
   # queries involved (usually takes 50ms - 250ms)
-  timeout: 3
+  timeout: 7.5
   auth_callout {
     issuer: ${ISSUER_NKEY}
     xkey: ${ISSUER_XKEY}
