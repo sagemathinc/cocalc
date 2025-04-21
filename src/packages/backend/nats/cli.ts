@@ -26,7 +26,7 @@ function params({ user }) {
       ...natsCoCalcUserEnv(user),
       HOME: process.env.HOME,
       TERM: process.env.TERM,
-      PS1: "\\w [nats-cli]$ ",
+      PS1: `\\w [nats-${user}]$ `,
     },
   };
 }
