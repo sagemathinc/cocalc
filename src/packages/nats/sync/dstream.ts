@@ -36,10 +36,13 @@ import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
-import { inventory, THROTTLE_MS } from "./inventory";
+import { inventory, THROTTLE_MS, type Inventory } from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { getClient, type ClientWithState } from "@cocalc/nats/client";
 import { encodeBase64 } from "@cocalc/nats/util";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("dstream");
 
 const MAX_PARALLEL = 250;
 
@@ -187,6 +190,14 @@ export class DStream<T = any> extends EventEmitter {
       return;
     }
     return new Date(millis(r?.info.timestampNanos));
+  };
+
+  // all server assigned times of messages in the stream.
+  times = (): (Date | undefined)[] => {
+    if (this.stream == null) {
+      throw Error("not initialized");
+    }
+    return this.stream.times();
   };
 
   get length(): number {
@@ -359,6 +370,7 @@ export class DStream<T = any> extends EventEmitter {
       }
       const name = this.name;
       const { valueType } = this.opts;
+      let inv: null | Inventory = null;
       try {
         const curSeq = this.getCurSeq();
         if (!curSeq) {
@@ -366,7 +378,7 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { account_id, project_id, desc, limits } = this.opts;
-        const inv = await inventory({ account_id, project_id });
+        inv = await inventory({ account_id, project_id });
         if (this.stream == null) {
           return;
         }
@@ -402,10 +414,12 @@ export class DStream<T = any> extends EventEmitter {
           seq: curSeq,
         });
       } catch (err) {
-        console.log(
+        logger.debug(
           `WARNING: unable to update inventory.  name='${this.opts.name}':`,
           err,
         );
+      } finally {
+        await inv?.close();
       }
     },
     THROTTLE_MS,
@@ -413,7 +427,8 @@ export class DStream<T = any> extends EventEmitter {
   );
 }
 
-const cache = refCache<UserStreamOptions, DStream>({
+export const cache = refCache<UserStreamOptions, DStream>({
+  name: "dstream",
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
     if (options.env == null) {

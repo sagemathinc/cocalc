@@ -27,6 +27,18 @@ simpler.  We basically do that with primus.  The drawbacks:
 I generally "feel" like this should be the optimal approach given
 all the annoying constraints.  We will likely do something
 involving always including recent projects.
+
+---
+
+Subscription Leaks:
+
+This code in a browser is useful for monitoring the number of subscriptions:
+
+setInterval(()=>console.log(cc.redux.getStore('page').get('nats').toJS().data.numSubscriptions),1000)
+
+If things are off, look at
+
+cc.client.nats_client.refCacheInfo()
 */
 
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -157,6 +169,16 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
 
   getConnectionInfo = async () => {
     return await webapp_client.nats_client.info(this.conn);
+  };
+
+  numSubscriptions = () => {
+    // @ts-ignore
+    let subs = this.conn.protocol.subscriptions.subs.size;
+    for (const nc of this.prev) {
+      // @ts-ignore
+      subs += nc.protocol.subscriptions.subs.size;
+    }
+    return subs;
   };
 
   addProjectPermissions = async (project_ids: string[]) => {
@@ -305,7 +327,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   }
 
   // sum total of all data across *all* connections we've made here.
-  stats(): Stats {
+  stats(): Stats & { numSubscriptions: number } {
     // @ts-ignore: undocumented API
     let { inBytes, inMsgs, outBytes, outMsgs } = this.conn.stats();
     for (const conn of this.prev) {
@@ -316,7 +338,13 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       inMsgs += x.inMsgs;
       outMsgs += x.outMsgs;
     }
-    return { inBytes, inMsgs, outBytes, outMsgs };
+    return {
+      inBytes,
+      inMsgs,
+      outBytes,
+      outMsgs,
+      numSubscriptions: this.numSubscriptions(),
+    };
   }
 
   async rtt(): Promise<number> {

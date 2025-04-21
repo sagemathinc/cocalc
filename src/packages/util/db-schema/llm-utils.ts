@@ -153,6 +153,8 @@ export const GOOGLE_MODELS = [
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
   "gemini-1.5-pro", // works now with langchaing
+  "gemini-2.0-flash-8k",
+  "gemini-2.0-flash-lite-8k",
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -162,6 +164,8 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
   "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
   "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
+  "gemini-2.0-flash-8k": "gemini-2.0-flash",
+  "gemini-2.0-flash-lite-8k": "gemini-2.0-flash-lite",
 } as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
@@ -240,7 +244,10 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   google: GOOGLE_MODELS.filter(
     (m) =>
       // we only enable 1.5 pro and 1.5 flash with a limited context window.
-      m === "gemini-1.5-pro-8k" || m === "gemini-1.5-flash-8k",
+      m === "gemini-1.5-pro-8k" ||
+      //m === "gemini-1.5-flash-8k" ||
+      m === "gemini-2.0-flash-8k" ||
+      m === "gemini-2.0-flash-lite-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -590,7 +597,7 @@ export function service2model_core(
 }
 
 // NOTE: do not use this – instead use server_settings.default_llm
-export const DEFAULT_MODEL: LanguageModel = "gemini-1.5-flash-8k";
+export const DEFAULT_MODEL: LanguageModel = "gemini-2.0-flash-8k";
 
 interface LLMVendor {
   name: LLMServiceName;
@@ -727,6 +734,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
   "gemini-1.5-pro-8k": "Gemini 1.5 Pro",
   "gemini-1.5-flash-8k": "Gemini 1.5 Flash",
+  "gemini-2.0-flash-8k": "Gemini 2.0 Flash",
+  "gemini-2.0-flash-lite-8k": "Gemini 2.0 Flash Lite",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -781,6 +790,10 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
   "gemini-1.5-flash-8k":
     "Google's Gemini 1.5 Flash Generative AI model (8k token context)",
+  "gemini-2.0-flash-8k":
+    "Google's Gemini 2.0 Flash Generative AI model (8k token context)",
+  "gemini-2.0-flash-lite-8k":
+    "Google's Gemini 2.0 Flash Lite Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -1005,6 +1018,19 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "gemini-1.5-flash-8k": {
+    prompt_tokens: usd1Mtokens(0.075),
+    completion_tokens: usd1Mtokens(0.3),
+    max_tokens: 8_000,
+    free: true,
+  },
+  // https://ai.google.dev/gemini-api/docs/pricing?hl=de
+  "gemini-2.0-flash-8k": {
+    prompt_tokens: usd1Mtokens(0.1),
+    completion_tokens: usd1Mtokens(0.4),
+    max_tokens: 8_000,
+    free: true,
+  },
+  "gemini-2.0-flash-lite-8k": {
     prompt_tokens: usd1Mtokens(0.075),
     completion_tokens: usd1Mtokens(0.3),
     max_tokens: 8_000,

@@ -22,6 +22,7 @@ import type { ValueType } from "@cocalc/nats/types";
 import { type KVLimits } from "./general-kv";
 import { type FilteredStreamLimitOptions } from "./stream";
 import { DKO_PREFIX } from "./dko";
+import { waitUntilTimeAvailable } from "@cocalc/nats/time";
 
 export const THROTTLE_MS = 10000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
@@ -88,6 +89,7 @@ export class Inventory {
       name: INVENTORY_NAME,
       ...this.location,
     });
+    await waitUntilTimeAvailable();
   };
 
   // Set but with NO LIMITS and no MERGE conflict algorithm. Use with care!
@@ -239,8 +241,9 @@ export class Inventory {
     return v;
   };
 
-  close = () => {
-    this.dkv?.close();
+  close = async () => {
+    await this.dkv?.close();
+    delete this.dkv;
   };
 
   private sortedKeys = (all, sort0: Sort) => {
@@ -358,6 +361,7 @@ function padRight(s: any, n) {
 }
 
 export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
+  name: "inventory",
   createObject: async (loc) => {
     const k = new Inventory(loc);
     await k.init();

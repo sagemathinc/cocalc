@@ -66,6 +66,7 @@ import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
+import jsonStableStringify from "json-stable-stringify";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -268,6 +269,12 @@ export class Stream<T = any> extends EventEmitter {
         if (this.consumer == null) {
           throw Error("no consumer");
         }
+        // NOTE: this blog post https://www.synadia.com/blog/jetstream-design-patterns-for-scale
+        // lists doing exactly what we are doing as the very first **JetStream Anti-Pattern**,
+        // saying "seems innocuous in a prototype or proof of concept, becomes very expensive across ten of
+        // thousands of clients. Using consumer info to check if a consumer exists is
+        // unnecessary. Instead, just call consumer create".  But they are assuming some
+        // sort of robustness of their clients/system, which I din't observe.
         await this.consumer.info();
       } catch (err) {
         console.log(`consumer.info failed -- ${err}`);
@@ -326,6 +333,14 @@ export class Stream<T = any> extends EventEmitter {
       return;
     }
     return new Date(millis(r?.info.timestampNanos));
+  };
+
+  times = (): (Date | undefined)[] => {
+    const v: (Date | undefined)[] = [];
+    for (let i = 0; i < this.length; i++) {
+      v.push(this.time(i));
+    }
+    return v;
   };
 
   get length(): number {
@@ -519,7 +534,12 @@ export class Stream<T = any> extends EventEmitter {
       ...startOptions,
     });
     if (this.consumer != null) {
-      this.consumer.delete();
+      try {
+        await this.consumer.delete();
+      } catch {
+        // this absolutely *can* throw an error if the consumer was already deleted
+        // automatically on the server for some reason!
+      }
       delete this.consumer;
     }
     this.consumer = await js.consumers.get(this.jsname, name);
@@ -540,6 +560,10 @@ export class Stream<T = any> extends EventEmitter {
     // other things I tried ended too soon or hung. See also
     // comment in getAllFromKv about permissions.
     while (true) {
+      // https://www.synadia.com/blog/jetstream-design-patterns-for-scale says
+      // "Consumer info is also frequently misused as a method for clients to check
+      // for pending messages. Instead, get this metadata from the last message
+      // fetched to avoid the unnecessary overhead of consumer info."
       const info = await consumer.info();
       if (info.num_pending == 0) {
         return consumer;
@@ -690,8 +714,15 @@ export class Stream<T = any> extends EventEmitter {
     if (this.watch == null) {
       return;
     }
-    this.consumer?.delete();
-    delete this.consumer;
+    (async () => {
+      try {
+        await this.consumer?.delete();
+        delete this.consumer;
+      } catch {
+        // this absolutely *can* throw an error if the consumer was already deleted
+        // automatically on the server for some reason!
+      }
+    })();
     this.watch.stop();
     delete this.watch;
     delete this.stream;
@@ -850,6 +881,10 @@ export class Stream<T = any> extends EventEmitter {
       return;
     }
     const consumer = await this.getConsumer({ start_seq });
+    // https://www.synadia.com/blog/jetstream-design-patterns-for-scale says
+    // "Consumer info is also frequently misused as a method for clients to check
+    // for pending messages. Instead, get this metadata from the last message
+    // fetched to avoid the unnecessary overhead of consumer info."
     const info = await consumer.info();
     const fetch = await consumer.fetch();
     let i = 0;
@@ -926,10 +961,11 @@ export function userStreamOptionsKey(options: UserStreamOptions) {
     throw Error("name must be specified");
   }
   const { env, ...x } = options;
-  return JSON.stringify(x);
+  return jsonStableStringify(x);
 }
 
 export const cache = refCache<UserStreamOptions, Stream>({
+  name: "stream",
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
     if (options.env == null) {

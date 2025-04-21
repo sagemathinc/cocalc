@@ -5,6 +5,7 @@ import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export { userQuery };
+export { fileUseTimes } from "./file-use-times";
 
 export async function touch({
   account_id,

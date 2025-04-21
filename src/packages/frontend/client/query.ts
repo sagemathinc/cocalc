@@ -75,7 +75,8 @@ export class QueryClient {
           options: opts.options,
         });
 
-        if (query && !opts.options?.[0]?.["set"]) { // set thing isn't needed but doesn't hurt
+        if (query && !opts.options?.[0]?.["set"]) {
+          // set thing isn't needed but doesn't hurt
           // deal with timestamp versus Date and JSON using our schema.
           for (const table in query) {
             client_db.processDates({ table, rows: query[table] });

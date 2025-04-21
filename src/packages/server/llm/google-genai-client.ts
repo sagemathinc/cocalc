@@ -113,9 +113,9 @@ export class GoogleGenAIClient {
       streaming: true,
     });
 
-    // However, we also count tokens, and for that we use "gemini-pro" only
+    // However, we also count tokens, and for that we use "gemini-1.5-pro" only
     const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
-      model: "gemini-pro",
+      model: "gemini-1.5-pro",
     });
 
     const prompt = ChatPromptTemplate.fromMessages([

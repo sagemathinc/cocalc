@@ -95,10 +95,18 @@ import { userKvKey, type KVOptions } from "./kv";
 import { localLocationName } from "@cocalc/nats/names";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/nats/client";
-import { inventory, INVENTORY_NAME, THROTTLE_MS } from "./inventory";
+import {
+  inventory,
+  INVENTORY_NAME,
+  THROTTLE_MS,
+  type Inventory,
+} from "./inventory";
 import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("dkv");
 
 export interface DKVOptions extends KVOptions {
   merge?: MergeFunction;
@@ -428,8 +436,10 @@ export class DKV<T = any> extends EventEmitter {
       }
       const { valueType } = this.opts;
       const name = this.name;
+      let inv: null | Inventory = null;
+
       try {
-        const inv = await inventory(this.opts.location);
+        inv = await inventory(this.opts.location);
         if (this.generalDKV == null) {
           return;
         }
@@ -451,11 +461,13 @@ export class DKV<T = any> extends EventEmitter {
           limits: this.opts.limits,
         });
       } catch (err) {
-        console.log(
+        logger.debug(
           "WARNING: unable to update inventory for ",
           this.opts?.name,
           err,
         );
+      } finally {
+        await inv?.close();
       }
     },
     THROTTLE_MS,
@@ -474,6 +486,7 @@ export function getPrefix({ name, valueType, options }) {
 }
 
 export const cache = refCache<DKVOptions, DKV>({
+  name: "dkv",
   createKey: userKvKey,
   createObject: async (opts) => {
     if (opts.env == null) {

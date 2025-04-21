@@ -5,6 +5,18 @@ See example usage in nats/sync.
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import jsonStableStringify from "json-stable-stringify";
+const VERBOSE = false;
+
+export const caches: { [name: string]: any } = {};
+
+export function info() {
+  const x: any = {};
+  for (const name in caches) {
+    x[name] = caches[name].info();
+  }
+  return x;
+}
 
 export default function refCache<
   Options extends { noCache?: boolean },
@@ -16,13 +28,13 @@ export default function refCache<
 }: {
   createKey?: (opts: Options) => string;
   createObject: (opts: Options) => Promise<T>;
-  name?: string;
+  name: string;
 }) {
   const cache: { [key: string]: T } = {};
-  const count: { [key: number]: T } = {};
+  const count: { [key: string]: number } = {};
   const close: { [key: number]: Function } = {};
   if (createKey == null) {
-    createKey = JSON.stringify;
+    createKey = jsonStableStringify;
   }
   const createObjectReuseInFlight = reuseInFlight(createObject, {
     createKey: (args) => createKey(args[0]),
@@ -35,7 +47,7 @@ export default function refCache<
     const key = createKey(opts);
     if (cache[key] != undefined) {
       count[key] += 1;
-      if (name) {
+      if (VERBOSE) {
         console.log("refCache: cache hit", {
           name,
           key,
@@ -45,7 +57,7 @@ export default function refCache<
       return cache[key];
     }
     const obj = await createObjectReuseInFlight(opts);
-    if (name) {
+    if (VERBOSE) {
       console.log("refCache: create", { name, key });
     }
     if (cache[key] != null) {
@@ -58,23 +70,33 @@ export default function refCache<
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = () => {
+    obj.close = async () => {
       count[key] -= 1;
-      if (name) {
+      if (VERBOSE) {
         console.log("refCache: close", { name, key, count: count[key] });
       }
+      // make it so calling close again is a no-op
       if (count[key] <= 0) {
-        obj.close = close[key];
-        obj.close?.();
+        close[key]?.();
         delete cache[key];
         delete count[key];
         delete close[key];
+        if (count[key] < 0) {
+          console.warn(
+            "WARNING: bug called .close() too many times on an object",
+            { name, key },
+          );
+        }
       }
     };
 
     return obj;
   };
+  get.info = () => {
+    return { name, count: { ...count } };
+  };
 
+  caches[name] = get;
   return get;
 }
 
@@ -88,13 +110,13 @@ export function refCacheSync<
 }: {
   createKey?: (opts: Options) => string;
   createObject: (opts: Options) => T;
-  name?: string;
+  name: string;
 }) {
   const cache: { [key: string]: T } = {};
-  const count: { [key: number]: T } = {};
+  const count: { [key: string]: number } = {};
   const close: { [key: number]: Function } = {};
   if (createKey == null) {
-    createKey = JSON.stringify;
+    createKey = jsonStableStringify;
   }
   const get = (opts: Options): T => {
     if (opts.noCache) {
@@ -103,7 +125,7 @@ export function refCacheSync<
     const key = createKey(opts);
     if (cache[key] != undefined) {
       count[key] += 1;
-      if (name) {
+      if (VERBOSE) {
         console.log("refCacheSync: cache hit", {
           name,
           key,
@@ -113,29 +135,37 @@ export function refCacheSync<
       return cache[key];
     }
     const obj = createObject(opts);
-    if (name) {
+    if (VERBOSE) {
       console.log("refCacheSync: create", { name, key });
     }
     // we are *the* one setting things up.
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = () => {
+    obj.close = async () => {
       count[key] -= 1;
-      if (name) {
+      if (VERBOSE) {
         console.log("refCacheSync: close", { name, key, count: count[key] });
       }
       if (count[key] <= 0) {
-        obj.close = close[key];
-        obj.close?.();
+        await close[key]?.();
         delete cache[key];
         delete count[key];
         delete close[key];
+        if (count[key] < 0) {
+          console.warn(
+            "WARNING: bug called .close() too many times on an object",
+            { name, key },
+          );
+        }
       }
     };
 
     return obj;
   };
-
+  get.info = () => {
+    return { name, count: { ...count } };
+  };
+  caches[name] = get;
   return get;
 }

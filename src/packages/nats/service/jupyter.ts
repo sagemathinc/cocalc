@@ -10,7 +10,10 @@ const service = "api";
 export interface JupyterApi {
   signal: (signal: string) => Promise<void>;
 
-  save_ipynb_file: () => Promise<void>;
+  save_ipynb_file: (opts?: {
+    version?: number;
+    timeout?: number;
+  }) => Promise<void>;
 
   kernel_info: () => Promise<KernelInfo>;
 

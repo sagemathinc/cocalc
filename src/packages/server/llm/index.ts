@@ -13,6 +13,7 @@ High level summary:
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import OpenAI from "openai";
+
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -56,7 +57,6 @@ import { evaluateOllama } from "./ollama";
 import { evaluateOpenAILC } from "./openai-lc";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
-import { evaluateGoogleGenAILC } from "./google-lc";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 
@@ -193,8 +193,7 @@ async function evaluateImpl({
         if (!(client instanceof GoogleGenAIClient)) {
           throw new Error("Wrong client. This should never happen. [GenAI]");
         }
-        //return await evaluateGoogleGenAI({ ...params, client });
-        return await evaluateGoogleGenAILC(params);
+        return await evaluateGoogleGenAI({ ...params, client });
       } else if (isOpenAIModel(model)) {
         return await evaluateOpenAILC(params);
       } else {
@@ -325,7 +324,7 @@ export async function evaluateGoogleGenAI({
       await delay(1000);
     }
   }
-  throw Error("Google Vertex AI API called failed"); // this should never get reached.
+  throw Error("Google Gen AI API called failed"); // this should never get reached.
 }
 
 export async function evaluateOpenAI({

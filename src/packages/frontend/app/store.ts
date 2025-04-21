@@ -60,6 +60,7 @@ export interface PageState {
       outBytes?: number;
       outMsgs?: number;
     };
+    numConnections: number;
   }>;
 }
 

@@ -29,7 +29,6 @@ required = defaults.required
 {PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
-{file_use_times} = require('./postgres/file-use-times')
 {updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
@@ -1729,9 +1728,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Other functions that are needed to implement various use queries,
     # e.g., for virtual queries like file_use_times.
     # ASYNC FUNCTION with no callback.
-    file_use_times: (opts) =>  # for docs, see where this is imported from.
-        return await file_use_times(@, opts)
-
     updateRetentionData: (opts) =>
         return await updateRetentionData(opts)
 

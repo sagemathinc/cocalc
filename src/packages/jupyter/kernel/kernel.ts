@@ -915,9 +915,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return info;
   });
 
-  save_ipynb_file = async (): Promise<void> => {
+  save_ipynb_file = async (opts?): Promise<void> => {
     if (this._actions != null) {
-      await this._actions.save_ipynb_file();
+      await this._actions.save_ipynb_file(opts);
     } else {
       throw Error("save_ipynb_file -- ERROR: actions not known");
     }

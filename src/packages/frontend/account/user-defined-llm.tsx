@@ -260,7 +260,7 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
       case "mistralai":
         return "'open-mixtral-8x22b'";
       case "google":
-        return "'gemini-1.5-flash'";
+        return "'gemini-2.0-flash'";
       default:
         unreachable(service);
         return "'llama3:latest'";

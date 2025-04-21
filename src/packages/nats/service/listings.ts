@@ -189,6 +189,7 @@ export const listingsClient = refCache<
   ListingsOptions & { noCache?: boolean },
   ListingsClient
 >({
+  name: "listings",
   createObject: async (options: ListingsOptions) => {
     const C = new ListingsClient(options);
     await C.init();
