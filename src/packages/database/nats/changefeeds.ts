@@ -62,6 +62,9 @@ const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "20");
 
 export async function init() {
   while (true) {
+    if (terminated) {
+      return;
+    }
     try {
       await mainLoop();
     } catch (err) {
@@ -74,20 +77,13 @@ export async function init() {
 let api: any | null = null;
 let coordinator: null | Coordinator = null;
 async function mainLoop() {
+  if (terminated) {
+    return;
+  }
   const subject = "hub.*.*.db";
   logger.debug(`init -- subject='${subject}', options=`);
   coordinator = new Coordinator({ timeout: LOCK_TIMEOUT_MS });
   await coordinator.init();
-
-  global.x = {
-    coordinator,
-    terminate,
-    changefeedHashes,
-    changefeedChanges,
-    changefeedInterest,
-    changefeedSynctables,
-  };
-
   const nc = await getConnection();
 
   // @ts-ignore
@@ -119,8 +115,10 @@ async function mainLoop() {
   }
 }
 
+let terminated = false;
 export function terminate() {
   logger.debug("terminating service");
+  terminated = true;
   api?.stop();
   api = null;
   // also, stop reporting data into the streams
@@ -170,6 +168,7 @@ async function getResponse({ name, args, account_id, project_id, nc }) {
     const opts = { ...args[0], account_id, project_id };
     if (!opts.changes) {
       // a normal query
+      console.log("doing normal userQuery", opts);
       return await userQuery(opts);
     } else {
       return await createChangefeed(opts, nc);

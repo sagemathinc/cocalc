@@ -297,6 +297,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
+    this.initNatsPermissions();
     this.initComputeServers();
   }
 
@@ -314,6 +315,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.open_files.close();
     delete this.open_files;
+    this.computeServerManager?.close();
+    delete this.computeServerManager;
+    webapp_client.nats_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -1408,8 +1412,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-
-    this.fetch_directory_listing();
+    this.fetch_directory_listing({ path });
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -3219,11 +3222,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: normalize(full_path),
             });
           } catch (err) {
-            // e.g., project is not running?
-            alert_message({
-              type: "error",
-              message: `Error opening '${target}': ${err}`,
-            });
+            // TODO: e.g., project is not running?
+            // I've seen this, e.g., when trying to open a file when not running, and it just
+            // gets retried and works.
+            console.log(`Error opening '${target}' -- ${err}`);
             return;
           }
         } else {
@@ -3510,7 +3512,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     })();
   };
 
-  initComputeServers = () => {
+  private initComputeServers = () => {
     // table of information about all the compute servers in this project
     computeServers.init(this.project_id);
     // table mapping paths to the id of the compute server it is hosted on
@@ -3533,6 +3535,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
+  private initNatsPermissions = async () => {
+    try {
+      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+    } catch (err) {
+      console.log(
+        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
+      );
+    }
+  };
+
   private closeComputeServers = () => {
     computeServers.close(this.project_id);
     this.computeServerManager?.removeListener(
@@ -3541,6 +3553,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
     this.computeServerManager?.close();
     delete this.computeServerManager;
+  };
+
+  computeServers = () => {
+    return this.computeServerManager;
   };
 
   private handleComputeServerManagerChange = ({ path, id }) => {
@@ -3585,7 +3601,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // no need to set anything since we have what we want already
       return true;
     }
-    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
+    if (confirm) {
       // (currently we only confirm this jupyter and terminals, which are
       // the only supported file types with backend state).
       if (

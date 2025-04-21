@@ -43,16 +43,27 @@ export type { Datastore, EnvVars, EnvVarsRecord };
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
+  private getProjectTable = async () => {
+    const the_table = this.redux.getTable("projects");
+    if (the_table == null) {
+      return null;
+    }
+    const state = the_table._table.get_state();
+    if (state == "closed") {
+      return null;
+    }
+    if (state == "disconnected") {
+      await once(the_table._table, "connected");
+    }
+    return the_table;
+  };
+
   private async projects_table_set(
     obj: object,
     merge: "deep" | "shallow" | "none" | undefined = "deep",
   ): Promise<void> {
-    const the_table = this.redux.getTable("projects");
-    if (the_table == null) {
-      // silently ignore -- this could only happen maybe right when closing the page...?
-      return;
-    }
-    await the_table.set(obj, merge);
+    const table = await this.getProjectTable();
+    await table?.set(obj, merge);
   }
 
   // Set something in the projects table of the database directly
@@ -108,20 +119,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
   This may also trigger load_all_projects.
   */
   private async have_project(project_id: string): Promise<boolean> {
-    const t = this.redux.getTable("projects")?._table;
-    if (t == null) {
-      // called before initialization... -- shouldn't ever happen,
-      // but we don't have the project at this point:
+    const table = await this.getProjectTable();
+    if (!table) {
       return false;
     }
-    if (!t.is_ready()) {
-      if (t.get_state() == "closed") {
-        throw Error("can't use projects table after it is closed");
-      }
-      // table isn't ready to be used yet -- wait for it.
-      await once(t, "connected");
-    }
-    // now t is ready and we can query it.
+    const t = table._table;
     if (t.get(project_id) != null) {
       // we know this project
       return true;

@@ -92,7 +92,9 @@ Table({
           // Otherwise we touch the project just for seeing notifications or opening
           // the file, which is confusing and wastes a lot of resources.
           const x = obj.users != null ? obj.users[account_id] : undefined;
-          const recent = minutes_ago(3);
+          // edit/chat/open fields are now strings due to using nats and not auto
+          // autoconverting them to Dates at this point, hence comparing iso strings:
+          const recent = minutes_ago(3).toISOString();
           if (
             x != null &&
             (x.edit >= recent || x.chat >= recent || x.open >= recent)

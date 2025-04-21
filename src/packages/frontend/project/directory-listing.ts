@@ -139,8 +139,8 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
           );
           return { files };
         } catch (err) {
-          console.warn(
-            `WARNING: problem getting directory listing ${err}; falling back`,
+          console.log(
+            `WARNING: temporary problem getting directory listing -- ${err}`,
           );
         }
       } else {

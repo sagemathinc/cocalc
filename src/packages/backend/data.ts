@@ -28,6 +28,7 @@ import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
+import { hostname } from "os";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -202,7 +203,12 @@ if (!existsSync(nats)) {
 export const natsPorts = {
   server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
   ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
+  cluster: parseInt(process.env.COCALC_NATS_CLUSTER_PORT ?? "4248"),
 };
+
+export const natsServerName = process.env.COCALC_NATS_SERVER_NAME ?? hostname();
+export const natsClusterName =
+  process.env.COCALC_NATS_CLUSTER_NAME ?? "default";
 
 export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
 // note: natsWebsocketServer will be changed below if API_KEY and API_SERVER
@@ -230,6 +236,9 @@ try {
 export function setNatsPassword(password: string) {
   natsPassword = password;
 }
+
+export const natsBackup =
+  process.env.COCALC_NATS_BACKUP ?? join(nats, "backup");
 
 export const natsUser = "cocalc";
 

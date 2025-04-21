@@ -10,7 +10,6 @@ import {
 } from "@cocalc/jupyter/redux/store";
 import { syncdb2 as new_syncdb } from "../generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { alert_message } from "@cocalc/frontend/alerts";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
 
@@ -45,18 +44,6 @@ export function create_jupyter_actions(
   });
 
   actions._init(project_id, path, syncdb, store, webapp_client);
-
-  syncdb.once("init", (err) => {
-    if (err) {
-      const message = `Error opening '${path}' -- ${err}`;
-      console.warn(message);
-      alert_message({ type: "error", message });
-      return;
-    }
-    if (syncdb.count() === 0) {
-      actions._syncdb_change([]); // hack?  Needed?
-    }
-  });
 
   return actions;
 }

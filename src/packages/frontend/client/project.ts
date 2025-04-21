@@ -9,7 +9,6 @@ Functionality that mainly involves working with a specific project.
 
 import { join } from "path";
 import { redux } from "@cocalc/frontend/app-framework";
-import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
@@ -634,19 +633,23 @@ export class ProjectClient {
   }
 
   computeServers = (project_id) => {
-    return computeServers(project_id);
+    const cs = redux.getProjectActions(project_id)?.computeServers();
+    if (cs == null) {
+      throw Error("bug");
+    }
+    return cs;
   };
 
   getServerIdForPath = async ({
     project_id,
     path,
   }): Promise<number | undefined> => {
-    return await computeServers(project_id)?.getServerIdForPath(path);
+    return await this.computeServers(project_id)?.getServerIdForPath(path);
   };
 
   // will throw exception if compute servers dkv not yet initialized
   getServerIdForPathSync = ({ project_id, path }): number | undefined => {
-    return computeServers(project_id).get(path);
+    return this.computeServers(project_id).get(path);
   };
 }
 

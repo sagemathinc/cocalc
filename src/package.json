@@ -20,7 +20,7 @@
     "prettier-all": "cd packages/",
     "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
     "build-nats": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/util && pnpm install && pnpm build && cd ${COCALC_ROOT:=$INIT_CWD}/packages/nats && pnpm install && pnpm build && cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && pnpm install && pnpm build",
-    "nats-server-ci": "pnpm run build-nats && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
+    "nats-server-ci": "pnpm run build-nats && cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main()\"",
     "nats-server-daemon": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({daemon:true})\"",
     "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
     "nats-cli": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main()\"",

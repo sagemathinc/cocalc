@@ -1647,6 +1647,9 @@ importers:
       markdown-it:
         specifier: ^13.0.1
         version: 13.0.2
+      mkdirp:
+        specifier: ^1.0.4
+        version: 1.0.4
       ms:
         specifier: 2.1.2
         version: 2.1.2

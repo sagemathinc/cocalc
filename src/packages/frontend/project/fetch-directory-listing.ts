@@ -41,12 +41,6 @@ const fetchDirectoryListing = reuseInFlight(
     if (store == null) {
       return;
     }
-    if (!is_running_or_starting(actions.project_id)) {
-      // can't do anything if project isn't running
-      store.get_listings(); // call this to at least ensure listings info is loaded.
-      return;
-    }
-
     const { force } = opts;
     const path = getPath(actions, opts);
     const compute_server_id = getComputeServerId(actions, opts);

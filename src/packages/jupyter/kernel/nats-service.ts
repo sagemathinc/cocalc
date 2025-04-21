@@ -34,8 +34,8 @@ export async function initNatsService({
       getKernel(path)?.signal(signal);
     },
 
-    save_ipynb_file: async () => {
-      await getExistingKernel().save_ipynb_file();
+    save_ipynb_file: async (opts?) => {
+      await getExistingKernel().save_ipynb_file(opts);
     },
 
     kernel_info: async () => {
@@ -107,7 +107,6 @@ export async function initNatsService({
       }
       return { buffer64: bufferToBase64(buffer) };
     },
-
   };
   return await createNatsJupyterService({
     project_id,

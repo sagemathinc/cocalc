@@ -12,6 +12,7 @@ Access this in the browser for the project you have open:
 import { dkv, type DKV } from "@cocalc/nats/sync/dkv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { EventEmitter } from "events";
+import { delay } from "awaiting";
 
 type State = "init" | "connected" | "closed";
 
@@ -59,18 +60,23 @@ export class ComputeServerManager extends EventEmitter {
   };
 
   init = reuseInFlight(async () => {
-    try {
-      const d = await dkv<Info>({
-        name: "compute-server-manager",
-        ...this.options,
-      });
-      this.dkv = d;
-      d.on("change", this.handleChange);
-      this.setState("connected");
-    } catch (err) {
-      // console.log("WARNING: issue creating compute server manager", err);
-      this.close();
-      throw err;
+    let wait = 3000;
+    while (this.state == "init") {
+      try {
+        const d = await dkv<Info>({
+          name: "compute-server-manager",
+          ...this.options,
+        });
+        this.dkv = d;
+        d.on("change", this.handleChange);
+        this.setState("connected");
+      } catch (err) {
+        wait = Math.min(15000, wait * 1.3) + Math.random();
+        console.log(
+          `WARNING: temporary issue creating compute server manager -- ${err} -- will retry in ${Math.round(wait/1000)}s`,
+        );
+        await delay(wait);
+      }
     }
   });
 

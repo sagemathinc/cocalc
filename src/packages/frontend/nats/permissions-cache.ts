@@ -11,10 +11,12 @@ const MAX_PROJECT_PERMISSIONS = 250;
 const NORMAL_PROJECT_PERMISSIONS = 25;
 const CUTOFF = 1000 * 60 * 60 * 24 * 7; // 1 week ago
 
-// for dev/testing
-// const MAX_PROJECT_PERMISSIONS = 3;
-// const NORMAL_PROJECT_PERMISSIONS = 0;
-// const CUTOFF = 1000 * 60; // 1 minute ago
+// For dev/testing -- uncomment these to cause chaos as you click to open projects
+// and close them and if you open several at once there's no permissions.  then
+// test that things don't crash, but just keep trying, properly.
+// const MAX_PROJECT_PERMISSIONS = 4;
+// const NORMAL_PROJECT_PERMISSIONS = 1;
+// const CUTOFF = 1000 * 30;
 
 type NatsProjectCache = { [project_id: string]: number };
 

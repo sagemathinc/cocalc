@@ -10,14 +10,20 @@ import { join } from "path";
 import { spawnSync } from "node:child_process";
 import { natsServerUrl } from "./conf";
 
+export function natsCoCalcUserEnv({ user = natsUser }: { user?: string } = {}) {
+  return {
+    NATS_URL: natsServerUrl,
+    NATS_PASSWORD: natsPassword,
+    NATS_USER: user ?? natsUser,
+  };
+}
+
 function params({ user }) {
   return {
     command: "bash",
     args: ["--norc", "--noprofile"],
     env: {
-      NATS_URL: natsServerUrl,
-      NATS_PASSWORD: natsPassword,
-      NATS_USER: user,
+      ...natsCoCalcUserEnv(user),
       HOME: process.env.HOME,
       TERM: process.env.TERM,
       PS1: "\\w [nats-cli]$ ",

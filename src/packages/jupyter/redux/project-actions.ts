@@ -56,6 +56,7 @@ export class JupyterActions extends JupyterActions0 {
   private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
   public blobs: DKV;
+  private computeServers?;
 
   private initBlobStore = async () => {
     this.blobs = await dkv(this.blobStoreOptions());
@@ -1250,8 +1251,46 @@ export class JupyterActions extends JupyterActions0 {
     this.setState({ kernels });
   };
 
-  save_ipynb_file = async () => {
+  save_ipynb_file = async ({
+    version = 0,
+    timeout = 15000,
+  }: {
+    // if version is given, waits (up to timeout ms) for syncdb to
+    // contain that exact version before writing the ipynb to disk.
+    // This may be needed to ensure that ipynb saved to disk
+    // reflects given frontend state.  This comes up, e.g., in
+    // generating the nbgrader version of a document.
+    version?: number;
+    timeout?: number;
+  } = {}) => {
     const dbg = this.dbg("save_ipynb_file");
+    if (version && !this.syncdb.hasVersion(version)) {
+      dbg(`frontend needs ${version}, which we do not yet have`);
+      const start = Date.now();
+      while (true) {
+        if (this.is_closed()) {
+          return;
+        }
+        if (Date.now() - start >= timeout) {
+          dbg("timed out waiting");
+          break;
+        }
+        try {
+          dbg(`waiting for version ${version}`);
+          await once(this.syncdb, "change", timeout - (Date.now() - start));
+        } catch {
+          dbg("timed out waiting");
+          break;
+        }
+        if (this.syncdb.hasVersion(version)) {
+          dbg("now have the version");
+          break;
+        }
+      }
+    }
+    if (this.is_closed()) {
+      return;
+    }
     dbg("saving to file");
 
     // Check first if file was deleted, in which case instead of saving to disk,
@@ -1540,19 +1579,25 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  getComputeServers = () => {
+    // we don't bother worrying about freeing this since it is only
+    // run in the project or compute server, which needs the underlying
+    // dkv for its entire lifetime anyways.
+    if (this.computeServers == null) {
+      this.computeServers = computeServerManager({
+        project_id: this.project_id,
+      });
+    }
+    return this.computeServers;
+  };
+
   getComputeServerIdSync = (): number => {
-    return (
-      computeServerManager({ project_id: this.project_id }).get(
-        this.syncdb.path,
-      ) ?? 0
-    );
+    const c = this.getComputeServers();
+    return c.get(this.syncdb.path) ?? 0;
   };
 
   getComputeServerId = async (): Promise<number> => {
-    return (
-      (await computeServerManager({
-        project_id: this.project_id,
-      }).getServerIdForPath(this.syncdb.path)) ?? 0
-    );
+    const c = this.getComputeServers();
+    return (await c.getServerIdForPath(this.syncdb.path)) ?? 0;
   };
 }

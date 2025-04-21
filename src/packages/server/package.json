@@ -15,6 +15,7 @@
     "./nats": "./dist/nats/index.js",
     "./nats/api": "./dist/nats/api/index.js",
     "./nats/auth": "./dist/nats/auth/index.js",
+    "./nats/tiered-storage": "./dist/nats/tiered-storage/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",
@@ -25,10 +26,7 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -96,6 +94,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "markdown-it": "^13.0.1",
+    "mkdirp": "^1.0.4",
     "ms": "2.1.2",
     "nanoid": "^3.3.8",
     "nats": "^2.29.3",
