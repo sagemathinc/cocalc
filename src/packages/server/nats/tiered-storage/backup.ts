@@ -25,3 +25,9 @@ export async function backupStream(name: string) {
 export async function backupKV(name: string) {
   return await backupStream(`KV_${name}`);
 }
+
+export async function backupProject({ project_id }: { project_id: string }) {
+  const name = `project-${project_id}`;
+  await backupKV(name);
+  await backupStream(name);
+}
