@@ -1412,8 +1412,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-
-    this.fetch_directory_listing();
+    this.fetch_directory_listing({ path });
   };
 
   setComputeServerId = (compute_server_id: number) => {

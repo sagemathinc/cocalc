@@ -86,7 +86,7 @@ export class Listings extends EventEmitter {
   });
 
   // Watch directory for changes.
-  watch = async (path: string, force?): Promise<void> => {
+  watch = reuseInFlight(async (path: string, force?): Promise<void> => {
     if (this.state == "closed") {
       return;
     }
@@ -101,38 +101,23 @@ export class Listings extends EventEmitter {
       throw Error("listings not ready");
     }
     if (this.listingsClient == null) return;
-    try {
-      await this.listingsClient.watch(path, force);
-    } catch (err) {
+    while (this.state != ("closed" as any) && this.listingsClient != null) {
       try {
-        if (err.code == "503") {
-          if (this.listingsClient == null) return;
-          // The listings service isn't running in the project right now,
-          // e.g., maybe the project isn't running at all.
-          // So watch is a no-op, as it does nothing when listing
-          // server doesn't exist.  So we at least wait for a while
-          // e.g., maybe project is starting, then try once more.
-          await this.listingsClient.api.nats.waitFor({
-            maxWait: 15 * 1000 * 60,
-          });
-          if (this.listingsClient == null) return;
-          try {
-            await this.listingsClient.watch(path, force);
-          } catch (err) {
-            if (err.code != "503") {
-              throw err;
-            }
-          }
-        } else {
-          throw err;
-        }
+        await this.listingsClient.watch(path, force);
+        return;
       } catch (err) {
+        force = true;
         logger.debug(
           `WARNING: not yet able to watch '${path}' in ${this.project_id} -- ${err}`,
         );
+        try {
+          await this.listingsClient.api.nats.waitFor({
+            maxWait: 7.5 * 1000 * 60,
+          });
+        } catch {}
       }
     }
-  };
+  });
 
   get = async (
     path: string,
