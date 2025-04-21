@@ -78,7 +78,6 @@
     "@types/node": "^18.16.14",
     "@types/passport": "^1.0.9",
     "@types/react-dom": "^18.3.0",
-    "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "node-cjsx": "^2.0.0",
