@@ -237,6 +237,9 @@ export function setNatsPassword(password: string) {
   natsPassword = password;
 }
 
+export const natsBackup =
+  process.env.COCALC_NATS_BACKUP ?? join(nats, "backup");
+
 export const natsUser = "cocalc";
 
 // Secrets used for cryptography between the auth callout service and
