@@ -225,6 +225,16 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: GOOGLE_AI_COLOR,
     category: "ai",
   },
+  "google-gemini-2.0-flash-8k": {
+    display: LLM_USERNAMES["gemini-2.0-flash-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "google-gemini-2.0-flash-lite-8k": {
+    display: LLM_USERNAMES["gemini-2.0-flash-lite-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
   "anthropic-claude-3-opus": {
     display: LLM_USERNAMES["claude-3-opus"],
     color: "#181818",

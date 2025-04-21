@@ -13,6 +13,7 @@ High level summary:
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import OpenAI from "openai";
+
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -323,7 +324,7 @@ export async function evaluateGoogleGenAI({
       await delay(1000);
     }
   }
-  throw Error("Google Vertex AI API called failed"); // this should never get reached.
+  throw Error("Google Gen AI API called failed"); // this should never get reached.
 }
 
 export async function evaluateOpenAI({

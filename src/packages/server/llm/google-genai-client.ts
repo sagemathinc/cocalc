@@ -107,15 +107,15 @@ export class GoogleGenAIClient {
     // This is a LangChain instance, we use it for chatting like we do with all the others
     // https://js.langchain.com/docs/integrations/chat/google_generativeai (also for safetey settings)
     const chat = new ChatGoogleGenerativeAI({
-      modelName,
+      model: modelName,
       apiKey: this.apiKey,
       maxOutputTokens: maxTokens,
       streaming: true,
     });
 
-    // However, we also count tokens, and for that we use "gemini-pro" only
+    // However, we also count tokens, and for that we use "gemini-1.5-pro" only
     const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
-      model: "gemini-pro",
+      model: "gemini-1.5-pro",
     });
 
     const prompt = ChatPromptTemplate.fromMessages([

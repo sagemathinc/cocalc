@@ -3,7 +3,6 @@
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import {
   AnthropicModel,
-  GoogleModel,
   LanguageModelCore,
   // GoogleModel,
   MistralModel,
@@ -12,14 +11,14 @@ import {
   isMistralModel,
   isOpenAIModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { evaluateGoogleGenAI } from "..";
-import { getClient } from "../client";
 // import { evaluateMistral } from "../mistral";
 import { evaluateAnthropic } from "../anthropic";
 import { GoogleGenAIClient } from "../google-genai-client";
 import { evaluateMistral } from "../mistral";
 import { evaluateOpenAILC } from "../openai-lc";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
+import { evaluateGoogleGenAI } from "..";
+import { getClient } from "../client";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -57,6 +56,19 @@ async function llmOpenAI(model: LanguageModelCore) {
   checkAnswer(answer);
 }
 
+async function llmGoogle(model: LanguageModelCore) {
+  if (!isGoogleModel(model)) {
+    throw new Error(`model: ${model} is not a Google model`);
+  }
+  const client = (await getClient(model)) as GoogleGenAIClient;
+  const answer = await evaluateGoogleGenAI({
+    model,
+    client,
+    ...QUERY,
+  });
+  checkAnswer(answer);
+}
+
 // write a test in jest that fails
 test_llm("openai")("OpenAI", () => {
   test("gpt3.5 works", async () => {
@@ -85,27 +97,15 @@ test_llm("openai")("OpenAI", () => {
 
 // ATTN: does not work everywhere around, geolocation matters
 test_llm("google")("Google GenAI", () => {
-  const model: GoogleModel = "gemini-pro";
-
-  test("model", () => {
-    expect(isGoogleModel(model)).toBe(true);
+  test("gemini 1.5 pro works", async () => {
+    llmGoogle("gemini-1.5-pro");
   });
-
-  test(
-    "gemini works",
-    async () => {
-      const genAI = await getClient(model);
-      if (genAI == null) throw new Error("genAI is undefined");
-
-      const answer = await evaluateGoogleGenAI({
-        model,
-        client: genAI as any as GoogleGenAIClient,
-        ...QUERY,
-      });
-      checkAnswer(answer);
-    },
-    10 * 1000,
-  );
+  test("gemini 2.0 flash works", async () => {
+    llmGoogle("gemini-2.0-flash-8k");
+  });
+  test("gemini 2.0 flash lite works", async () => {
+    llmGoogle("gemini-2.0-flash-lite-8k");
+  });
 });
 
 test_llm("mistralai")("Mistral AI", () => {
