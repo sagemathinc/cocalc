@@ -137,7 +137,7 @@ class RejectError extends Error {
 
 const MAX_PARALLEL = 250;
 
-const WATCH_MONITOR_INTERVAL = 20 * 1000;
+const WATCH_MONITOR_INTERVAL = 60 * 1000;
 
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
