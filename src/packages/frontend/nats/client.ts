@@ -167,7 +167,11 @@ export class NatsClient extends EventEmitter {
   });
 
   reconnect = async () => {
-    await this.nc?.reconnect();
+    if (this.nc != null) {
+      this.standby();
+      await delay(50);
+      this.resume();
+    }
   };
 
   // if there is a connection, put it in standby

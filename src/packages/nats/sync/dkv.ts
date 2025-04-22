@@ -440,6 +440,7 @@ export class DKV<T = any> extends EventEmitter {
       let inv: null | Inventory = null;
 
       try {
+        await waitUntilConnected();
         inv = await inventory(this.opts.location);
         if (this.generalDKV == null) {
           return;

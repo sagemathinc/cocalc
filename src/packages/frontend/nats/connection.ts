@@ -107,7 +107,15 @@ const getNewNatsConn = reuseInFlight(async ({ cache, user }) => {
     servers: [server],
     inboxPrefix: inboxPrefix({ account_id }),
   };
-  return await natsConnect(options);
+  while (true) {
+    try {
+      console.log("Connecting to NATS...");
+      return await natsConnect(options);
+    } catch (err) {
+      console.log(`WARNING: failed to connect to NATS -- will retry -- ${err}`);
+      await delay(3000);
+    }
+  }
 });
 
 let cachedConnection: CoCalcNatsConnection | null = null;
@@ -153,12 +161,15 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     this.updateCache();
   }
 
-  standby = async () => {
+  standby = () => {
     if (this.standbyMode) {
       return;
     }
     this.standbyMode = true;
-    await this.conn.drain();
+    // standby is used when you are idle, so you should have nothing important to save.
+    // Also, we can't get rid of this.conn until we have a new connection, which would make
+    // no sense here.... so we do NOT use this.conn.drain().
+    this.conn.close();
     // @ts-ignore
     if (this.conn.protocol) {
       // @ts-ignore
@@ -167,18 +178,23 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   };
 
   resume = async () => {
+    console.log("nats connection: resume");
     if (!this.standbyMode) {
+      console.log("nats connection: not in standby mode");
       return;
     }
     this.standbyMode = false;
     // @ts-ignore
     if (this.conn.protocol?.connected) {
+      console.log("nats connection: already connected");
       return;
     }
+    console.log("nats connection: getNewNatsConn");
     const conn = await getNewNatsConn({
       cache: this.permissionsCache,
       user: this.user,
     });
+    console.log("nats connection: got conn");
     // @ts-ignore
     this.conn = conn;
     // @ts-ignore
@@ -415,7 +431,11 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   }
 
   async reconnect(): Promise<void> {
-    await this.conn.reconnect();
+    try {
+      await this.conn.reconnect();
+    } catch (err) {
+      console.warn(`NATS reconnect failed -- ${err}`);
+    }
   }
 
   get features() {

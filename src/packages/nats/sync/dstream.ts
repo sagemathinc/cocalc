@@ -379,6 +379,7 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { account_id, project_id, desc, limits } = this.opts;
+        await waitUntilConnected();
         inv = await inventory({ account_id, project_id });
         if (this.stream == null) {
           return;

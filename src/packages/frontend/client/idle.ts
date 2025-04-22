@@ -11,10 +11,11 @@ import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 import { disconnect_from_all_projects } from "../project/websocket/connect";
 
-const DELAY_DISCONNECT = 15 * 1000;
-
 // set to true when there are no load issues.
 const NEVER_TIMEOUT_VISIBLE = false;
+
+const CHECK_INTERVAL = 30 * 1000;
+//const CHECK_INTERVAL = 7 * 1000;
 
 export class IdleClient {
   private notification_is_visible: boolean = false;
@@ -44,7 +45,7 @@ export class IdleClient {
     }
 
     // Wait a little before setting this stuff up.
-    await delay(15 * 1000);
+    await delay(CHECK_INTERVAL / 3);
 
     this.idle_time = Date.now() + this.idle_timeout;
 
@@ -63,12 +64,12 @@ export class IdleClient {
 
     // There is no need to worry about cleaning this up, since the client survives
     // for the lifetime of the page.
-    setInterval(this.idle_check.bind(this), 60 * 1000);
+    setInterval(this.idle_check, CHECK_INTERVAL);
 
-    // Call this idle_reset like a function
-    // throttled, so will reset timer on *first* call and
-    // then every 15secs while being called
-    this.idle_reset = throttle(this.idle_reset.bind(this), 15 * 1000);
+    // Call this idle_reset like a throttled function
+    // so will reset timer on *first* call and
+    // then periodically while being called
+    this.idle_reset = throttle(this.idle_reset, CHECK_INTERVAL / 2);
 
     // activate a listener on our global body (universal sink for
     // bubbling events, unless stopped!)
@@ -82,7 +83,7 @@ export class IdleClient {
     );
 
     if (NEVER_TIMEOUT_VISIBLE) {
-      // Every 30s, if the document is visible right now, then we
+      // If the document is visible right now, then we
       // reset the idle timeout., just as if the mouse moved.  This means
       // that users never get the standby timeout if their current browser
       // tab is considered visible according to the Page Visibility API
@@ -92,26 +93,30 @@ export class IdleClient {
         if (!document.hidden) {
           this.idle_reset();
         }
-      }, 30 * 1000);
+      }, CHECK_INTERVAL / 2);
     }
   };
 
   private idle_check = (): void => {
     if (!this.idle_time) return;
-    const now = Date.now();
-    if (this.idle_time >= now) return;
+    const remaining = this.idle_time - Date.now();
+    if (remaining > 0) {
+      console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
+      return;
+    }
     this.show_notification();
     if (!this.delayed_disconnect) {
       // We actually disconnect 15s after appearing to
       // so that if the user sees the idle banner and immediately
       // dismisses it, then the experience is less disruptive.
       this.delayed_disconnect = setTimeout(() => {
+        console.log("Entering standby mode");
         this.standbyMode = true;
         // console.log("idle timeout: disconnect!");
         this.client.nats_client.standby();
         this.client.hub_client.disconnect();
         disconnect_from_all_projects();
-      }, DELAY_DISCONNECT);
+      }, CHECK_INTERVAL / 2);
     }
   };
 
@@ -125,9 +130,12 @@ export class IdleClient {
       this.delayed_disconnect = undefined;
     }
     // console.log("idle timeout: reconnect");
-    this.standbyMode = false;
-    this.client.nats_client.resume();
-    this.client.hub_client.reconnect();
+    if (this.standbyMode) {
+      this.standbyMode = false;
+      console.log("Leaving standby mode");
+      this.client.nats_client.resume();
+      this.client.hub_client.reconnect();
+    }
   };
 
   // Change the standby timeout to a particular time in minutes.
