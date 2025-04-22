@@ -1,4 +1,4 @@
-import type { Ollama } from "@langchain/community/llms/ollama";
+import type { Ollama } from "@langchain/ollama";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -60,8 +60,9 @@ export async function evaluateOllama(
     inputMessagesKey: "input",
     historyMessagesKey: "chat_history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } =
-        await transformHistoryToMessages(history);
+      const { messageHistory, tokens } = await transformHistoryToMessages(
+        history,
+      );
       historyTokens = tokens;
       return messageHistory;
     },

@@ -51,11 +51,15 @@
     "MDLG",
     "isdir",
     "mintime",
-    "PoweroffOutlined"
+    "PoweroffOutlined",
+    "immutablejs"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
   "allowCompoundWords": false,
   "ignoreRegExpList": ["/import\\s+.*?\\s+from\\s+['\"].*?['\"]/g"],
-  "import": ["@cspell/dict-typescript/cspell-ext.json"]
+  "import": [
+    "@cspell/dict-typescript/cspell-ext.json",
+    "./node_modules/@cspell/dict-typescript/cspell-ext.json"
+  ]
 }

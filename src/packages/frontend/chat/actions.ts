@@ -6,6 +6,7 @@
 import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
+
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -13,11 +14,13 @@ import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
+import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -38,24 +41,21 @@ import {
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { cmp, isValidUUID, uuid } from "@cocalc/util/misc";
+import { cmp, history_path, isValidUUID, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
+import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
 import type {
   ChatMessage,
   ChatMessageTyped,
   Feedback,
   MessageHistory,
 } from "./types";
-import { history_path } from "@cocalc/util/misc";
-import { initFromSyncDB, handleSyncDBChange, processSyncDBObj } from "./sync";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
-import Fragment from "@cocalc/frontend/misc/fragment-id";
-import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 
-const MAX_CHATSTREAM = 10;
+const MAX_CHAT_STREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -219,7 +219,7 @@ export class ChatActions extends Actions<ChatState> {
       this.isLanguageModelThread(reply_to)
     ) {
       // Note: don't mark it is a chat if it is with chatgpt,
-      // since no point in notifying all collabs of this.
+      // since no point in notifying all collaborators of this.
       action = "edit";
     } else {
       action = "chat";
@@ -643,7 +643,7 @@ export class ChatActions extends Actions<ChatState> {
       // We also do the check when replying.
       return;
     }
-    // if an llm is explicitly set, we only allow that for regenerate and we also check if it is enabled and selecable by the user
+    // if an llm is explicitly set, we only allow that for regenerate and we also check if it is enabled and selectable by the user
     if (typeof llm === "string") {
       if (tag !== "regenerate") {
         console.warn(`chat/llm: llm=${llm} is only allowed for tag=regenerate`);
@@ -653,7 +653,7 @@ export class ChatActions extends Actions<ChatState> {
     if (tag !== "regenerate" && !isValidUUID(message.history?.[0]?.author_id)) {
       // do NOT respond to a message that an LLM is sending,
       // because that would result in an infinite recursion.
-      // Note: LLMs do not use avalid UUID, but a special string.
+      // Note: LLMs do not use a valid UUID, but a special string.
       // For regenerate, we delete the last message, though…
       return;
     }
@@ -665,7 +665,7 @@ export class ChatActions extends Actions<ChatState> {
 
     let model: LanguageModel | false = false;
     if (llm != null) {
-      // This is a request to regerenate the last message with a specific model.
+      // This is a request to regenerate the last message with a specific model.
       // The message.tsx/RegenerateLLM component already checked if the LLM is enabled and selectable by the user.
       // ATTN: we trust that information!
       model = llm;
@@ -715,9 +715,9 @@ export class ChatActions extends Actions<ChatState> {
             }),
           };
 
-    if (this.chatStreams.size > MAX_CHATSTREAM) {
+    if (this.chatStreams.size > MAX_CHAT_STREAM) {
       console.trace(
-        `processLanguageModel called when ${MAX_CHATSTREAM} streams active`,
+        `processLanguageModel called when ${MAX_CHAT_STREAM} streams active`,
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
@@ -726,7 +726,7 @@ export class ChatActions extends Actions<ChatState> {
           history: [
             {
               author_id: sender_id,
-              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} language model responses being written. Please try again once one finishes.</span>\n\n`,
+              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHAT_STREAM} language model responses being written. Please try again once one finishes.</span>\n\n`,
               date,
             },
           ],
@@ -758,12 +758,9 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(
-      () => {
-        this.chatStreams.delete(id);
-      },
-      3 * 60 * 1000,
-    );
+    setTimeout(() => {
+      this.chatStreams.delete(id);
+    }, 3 * 60 * 1000);
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
@@ -921,7 +918,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   // the input and output for the thread ending in the
-  // given message, formatted for querying a langauge model, and heuristically
+  // given message, formatted for querying a language model, and heuristically
   // truncated to not exceed a limit in size.
   private getLLMHistory = (reply_to: Date): LanguageModelHistory => {
     const history: LanguageModelHistory = [];
@@ -1147,21 +1144,21 @@ function getLanguageModel(input?: string): false | LanguageModel {
   if (x.includes("account-id=chatgpt")) {
     return "gpt-3.5-turbo";
   }
-  // these prefexes should come from util/db-schema/openai::model2service
-  for (const vendorprefix of LANGUAGE_MODEL_PREFIXES) {
-    const prefix = `account-id=${vendorprefix}`;
+  // these prefixes should come from util/db-schema/openai::model2service
+  for (const vendorPrefix of LANGUAGE_MODEL_PREFIXES) {
+    const prefix = `account-id=${vendorPrefix}`;
     const i = x.indexOf(prefix);
     if (i != -1) {
       const j = x.indexOf(">", i);
       const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
       // for now, ollama must be prefixed – in the future, all model names should have a vendor prefix!
-      if (vendorprefix === OLLAMA_PREFIX) {
+      if (vendorPrefix === OLLAMA_PREFIX) {
         return toOllamaModel(model);
       }
-      if (vendorprefix === CUSTOM_OPENAI_PREFIX) {
+      if (vendorPrefix === CUSTOM_OPENAI_PREFIX) {
         return toCustomOpenAIModel(model);
       }
-      if (vendorprefix === USER_LLM_PREFIX) {
+      if (vendorPrefix === USER_LLM_PREFIX) {
         return `${USER_LLM_PREFIX}${model}`;
       }
       return model;
