@@ -70,6 +70,7 @@ import {
 } from "./permissions-cache";
 import { isEqual } from "lodash";
 import { alert_message } from "@cocalc/frontend/alerts";
+import jsonStable from "json-stable-stringify";
 
 const MAX_SUBSCRIPTIONS = 400;
 
@@ -101,7 +102,7 @@ const getNewNatsConn = reuseInFlight(async ({ cache, user }) => {
   const project_ids = cache.get();
   connectingMessage({ server, project_ids });
   const options = {
-    name: JSON.stringify(user),
+    name: jsonStable(user),
     user: `account-${account_id}`,
     ...CONNECT_OPTIONS,
     servers: [server],
@@ -260,6 +261,16 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return subs;
   };
 
+  subscriptionSubjects = () => {
+    const subjects: string[] = [];
+    // @ts-ignore
+    for (const sub of cc.client.nats_client.nc.conn.protocol.subscriptions
+      .subs) {
+      subjects.push(sub[1].subject);
+    }
+    return subjects;
+  };
+
   addProjectPermissions = async (project_ids: string[]) => {
     this.permissionsCache.add(project_ids);
     await this.updateProjectPermissions();
@@ -285,7 +296,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
       connectingMessage({ server, project_ids });
       const options = {
         // name: used to convey who we claim to be:
-        name: JSON.stringify(user),
+        name: jsonStable(user),
         // user: displayed in logs
         user: `account-${account_id}`,
         ...CONNECT_OPTIONS,
