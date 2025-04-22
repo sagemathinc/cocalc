@@ -30,13 +30,19 @@ export function versionCheckFails(req, res?): boolean {
     // since we'll pass it.
     return false;
   }
+  if (req.url?.includes("raw/.smc/ws")) {
+    // TODO: currently we do not do version checks on the websocket directly to a project,
+    // which is used by the compute server filesystem for sync.  We don't have a good
+    // way in place to automatically update those containers yet, etc.
+    return false;
+  }
   const cookies = new Cookies(req);
   /* NOTE: The name of the cookie $VERSION_COOKIE_NAME is
      also used in the frontend code file @cocalc/frontend/set-version-cookie.js
      but everybody imports it from @cocalc/util/consts.
   */
   const rawVal = cookies.get(versionCookieName(basePath));
-  if (rawVal == null) {
+  if (!rawVal) {
     // compute servers use this!  They don't set any version cookies.
     return false;
   }
