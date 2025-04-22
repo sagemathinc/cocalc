@@ -101,7 +101,7 @@ export class IdleClient {
     if (!this.idle_time) return;
     const remaining = this.idle_time - Date.now();
     if (remaining > 0) {
-      console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
+      // console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
       return;
     }
     this.show_notification();

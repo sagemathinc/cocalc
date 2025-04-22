@@ -49,7 +49,6 @@ import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Svcm } from "@nats-io/services";
 import { Coordinator, now } from "./coordinator";
-import { parallelHandler } from "@cocalc/util/async-utils";
 import { numSubscriptions } from "@cocalc/nats/client";
 
 const logger = getLogger("database:nats:changefeeds");
@@ -58,7 +57,8 @@ const jc = JSONCodec();
 
 const LOCK_TIMEOUT_MS = 30000;
 
-const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "20");
+// This is a limit on the numChangefeedsBeingCreatedAtOnce:
+const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
 
 export async function init() {
   while (true) {
@@ -99,11 +99,9 @@ async function mainLoop() {
   api = service.addEndpoint("api", { subject });
 
   try {
-    await parallelHandler({
-      iterable: api,
-      limit: PARALLEL_LIMIT,
-      handle: async (mesg) => await handleRequest({ mesg, nc }),
-    });
+    for await (const mesg of api) {
+      await handleRequest({ mesg, nc });
+    }
   } finally {
     cancelAllChangefeeds();
     try {
@@ -125,14 +123,16 @@ export function terminate() {
   cancelAllChangefeeds();
 }
 
-let numRunning = 0;
+let numRequestsAtOnce = 0;
+let numChangefeedsBeingCreatedAtOnce = 0;
 async function handleRequest({ mesg, nc }) {
   let resp;
   try {
-    numRunning += 1;
+    numRequestsAtOnce += 1;
     logger.debug("handleRequest", {
-      numRunning,
+      numRequestsAtOnce,
       numSubscriptions: numSubscriptions(),
+      numChangefeedsBeingCreatedAtOnce,
     });
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
@@ -157,7 +157,7 @@ async function handleRequest({ mesg, nc }) {
     logger.debug(`ERROR -- ${err}`);
     resp = { error: `${err}` };
   } finally {
-    numRunning -= 1;
+    numRequestsAtOnce -= 1;
   }
   // logger.debug(`Responding with "${JSON.stringify(resp)}"`);
   mesg.respond(jc.encode(resp));
@@ -285,34 +285,81 @@ const createChangefeed = reuseInFlight(
         table: queryTable(query),
         user,
       });
-      return;
+    } else {
+      // we create new changefeeed but do NOT block on this. While creating this
+      // if user calls again then changefeedInterest[hash] is set, so it'll just
+      // use the existing changefeed (the case above).  If things eventually go awry,
+      // changefeedInterest[hash] gets cleared.
+      createNewChangefeed({ query, user, nc, opts, hash });
     }
-    logger.debug("create new changefeed", queryTable(query), user);
-    const changes = uuid();
-    changefeedHashes[changes] = hash;
-    changefeedChanges[hash] = changes;
-    logger.debug(
-      "managing ",
-      Object.keys(changefeedHashes).length,
-      "changefeeds",
-    );
-    const env = { nc, jc, sha1 };
-    // If you change any settings below (i.e., atomic or immutable), you might also have to change them in
-    //   src/packages/sync/table/changefeed-nats.ts
-    const synctable = createSyncTable({
-      query,
-      env,
-      account_id: opts.account_id,
-      project_id: opts.project_id,
-      // atomic = false is just way too slow due to the huge number of distinct
-      // messages, which NATS is not as good with.
-      atomic: true,
-      immutable: false,
-    });
-    changefeedSynctables[hash] = synctable;
+  },
+  { createKey: (args) => jsonStableStringify(args[0])! },
+);
 
+const createNewChangefeed = async ({ query, user, nc, opts, hash }) => {
+  logger.debug("create new changefeed", queryTable(query), user);
+  changefeedInterest[hash] = now();
+  const changes = uuid();
+  changefeedHashes[changes] = hash;
+  changefeedChanges[hash] = changes;
+  logger.debug(
+    "managing ",
+    Object.keys(changefeedHashes).length,
+    "changefeeds",
+  );
+  const env = { nc, jc, sha1 };
+
+  let done = false;
+  // we start watching state immediately and updating it, since if it
+  // takes a while to setup the feed, we don't want somebody else to
+  // steal it.
+  const watchManagerState = async () => {
+    while (!done && changefeedInterest[hash]) {
+      await delay(LOCK_TIMEOUT_MS / 1.5);
+      if (done) {
+        return;
+      }
+      if (coordinator == null) {
+        done = true;
+        return;
+      }
+      const manager = coordinator.getManagerId(hash);
+      if (manager != coordinator.managerId) {
+        // we are no longer the manager
+        cancelChangefeed({ changes });
+        done = true;
+        return;
+      }
+      // update the lock
+      coordinator.lock(hash);
+    }
+  };
+  watchManagerState();
+
+  // If you change any settings below (i.e., atomic or immutable), you might also have to change them in
+  //   src/packages/sync/table/changefeed-nats.ts
+  const synctable = createSyncTable({
+    query,
+    env,
+    account_id: opts.account_id,
+    project_id: opts.project_id,
+    // atomic = false is just way too slow due to the huge number of distinct
+    // messages, which NATS is not as good with.
+    atomic: true,
+    immutable: false,
+  });
+  changefeedSynctables[hash] = synctable;
+
+  // before doing the HARD WORK, we wait until there aren't too many
+  // other "threads" doing hard work:
+  while (numChangefeedsBeingCreatedAtOnce >= PARALLEL_LIMIT) {
+    await delay(500);
+  }
+  try {
+    numChangefeedsBeingCreatedAtOnce += 1;
     try {
       await synctable.init();
+      logger.debug("successfully created synctable", queryTable(query), user);
     } catch (err) {
       logger.debug(`Error initializing changefeed -- ${err}`, { hash });
       cancelChangefeed({ changes });
@@ -392,29 +439,6 @@ const createChangefeed = reuseInFlight(
       await callback(f);
       // it's running successfully
       changefeedInterest[hash] = now();
-      let done = false;
-
-      const watchManagerState = async () => {
-        while (!done && changefeedInterest[hash]) {
-          await delay(LOCK_TIMEOUT_MS / 1.5);
-          if (done) {
-            return;
-          }
-          if (coordinator == null) {
-            done = true;
-            return;
-          }
-          const manager = coordinator.getManagerId(hash);
-          if (manager != coordinator.managerId) {
-            // we are no longer the manager
-            cancelChangefeed({ changes });
-            done = true;
-            return;
-          }
-          // update the lock
-          coordinator.lock(hash);
-        }
-      };
 
       const watchUserInterest = async () => {
         logger.debug("watchUserInterest", { hash });
@@ -448,16 +472,18 @@ const createChangefeed = reuseInFlight(
           hash,
         });
       };
-
       // do not block on this.
       watchUserInterest();
-      watchManagerState();
-      return;
     } catch (err) {
       // if anything goes wrong, make sure we don't think the changefeed is working.
       cancelChangefeed({ changes });
-      throw err;
+      logger.debug(
+        `WARNING: error creating changefeed -- ${err}`,
+        queryTable(query),
+        user,
+      );
     }
-  },
-  { createKey: (args) => jsonStableStringify(args[0])! },
-);
+  } finally {
+    numChangefeedsBeingCreatedAtOnce -= 1;
+  }
+};
