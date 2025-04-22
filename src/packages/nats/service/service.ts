@@ -25,8 +25,8 @@ import { EventEmitter } from "events";
 import { requestMany, respondMany } from "./many";
 import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 
-const DEFAULT_TIMEOUT = 5000;
-const MONITOR_INTERVAL = 30000;
+const DEFAULT_TIMEOUT = 10 * 1000;
+const MONITOR_INTERVAL = 90 * 1000;
 
 const logger = getLogger("nats:service");
 
