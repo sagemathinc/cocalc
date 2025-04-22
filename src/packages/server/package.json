@@ -26,7 +26,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -53,10 +56,10 @@
     "@google/generative-ai": "^0.14.0",
     "@isaacs/ttlcache": "^1.2.1",
     "@langchain/anthropic": "^0.3.18",
-    "@langchain/community": "^0.3.41",
     "@langchain/core": "^0.3.46",
     "@langchain/google-genai": "^0.2.4",
     "@langchain/mistralai": "^0.2.0",
+    "@langchain/ollama": "^0.2.0",
     "@langchain/openai": "^0.5.5",
     "@nats-io/jetstream": "3.0.0",
     "@nats-io/jwt": "0.0.10-5",

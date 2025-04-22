@@ -1,15 +1,18 @@
-import {
-  ChatPromptTemplate,
-  MessagesPlaceholder,
-} from "@langchain/core/prompts";
-import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { OpenAI as LCOpenAI, OpenAICallOptions } from "@langchain/openai";
 import getLogger from "@cocalc/backend/logger";
 import {
   fromCustomOpenAIModel,
   isCustomOpenAI,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
+import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import {
+  ChatOpenAI as ChatOpenAILC,
+  OpenAICallOptions,
+} from "@langchain/openai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 import { getCustomOpenAI } from "./client";
@@ -28,7 +31,7 @@ interface CustomOpenAIOpts {
 
 export async function evaluateCustomOpenAI(
   opts: Readonly<CustomOpenAIOpts>,
-  client?: LCOpenAI<OpenAICallOptions>,
+  client?: ChatOpenAILC<OpenAICallOptions>,
 ): Promise<ChatOutput> {
   if (client == null && !isCustomOpenAI(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
@@ -74,8 +77,12 @@ export async function evaluateCustomOpenAI(
 
   let output = "";
   for await (const chunk of chunks) {
-    output += chunk;
-    opts.stream?.(chunk);
+    const { content } = chunk;
+    if (typeof content !== "string") {
+      break;
+    }
+    output += content;
+    opts.stream?.(content);
   }
 
   // and an empty call when done
