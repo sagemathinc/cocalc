@@ -59,17 +59,8 @@ export class NatsChangefeed extends EventEmitter {
         await this.client.nats_client.changefeedInterest(this.query);
         await delay(CHANGEFEED_INTEREST_PERIOD_MS / 2.1);
       } catch (err) {
-        // console.log("changefeed:interest err", err, this.query);
-        if (err.code != "TIMEOUT") {
-          // it's normal for this to throw a TIMEOUT error whenever the browser isn't connected to NATS,
-          // so we only log it to the console if it is unexpected.
-          // There could be a 503 error if the database backend service (e.g., hub-database)
-          // is entirely down and that would result in this log showing up.
-          console.log(
-            `WARNING: error updating changefeed (will retry soon) -- ${err}`,
-          );
-        }
-        await delay(10000);
+        console.log(`WARNING: changefeed -- ${err}`, this.query);
+        await delay(Math.min(15000, CHANGEFEED_INTEREST_PERIOD_MS / 3.1));
       }
     }
   };
