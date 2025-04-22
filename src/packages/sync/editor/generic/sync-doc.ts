@@ -2365,8 +2365,16 @@ export class SyncDoc extends EventEmitter {
       max_size,
     );
     if (time != null) {
-      dbg("yes, make a snapshot at time", time);
-      await this.snapshot(time);
+      dbg("yes, try to make a snapshot at time", time);
+      try {
+        await this.snapshot(time);
+      } catch (err) {
+        // this is expected to happen sometimes, e.g., when sufficient information
+        // isn't known about the stream of patches.
+        console.log(
+          `WARNING: temporarily unable to make a snapshot of ${this.path}  -- ${err}`,
+        );
+      }
     } else {
       dbg("no need to make a snapshot yet");
     }
