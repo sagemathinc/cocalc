@@ -170,6 +170,15 @@ export class NatsClient extends EventEmitter {
     await this.nc?.reconnect();
   };
 
+  // if there is a connection, put it in standby
+  standby = () => {
+    this.nc?.standby();
+  };
+  // if there is a connection, resume it
+  resume = async () => {
+    await this.nc?.resume();
+  };
+
   // reconnect to nats with access to additional projects.
   // If you request projects that you're not actually a collaborator
   // on, then it will silently NOT give you permission to use them.

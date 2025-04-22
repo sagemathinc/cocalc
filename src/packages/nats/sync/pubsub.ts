@@ -5,6 +5,7 @@ Use NATS simple pub/sub to share state for something *ephemeral* in a project.
 import { projectSubject } from "@cocalc/nats/names";
 import { type NatsEnv, State } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
+import { isConnectedSync } from "@cocalc/nats/util";
 
 export class PubSub extends EventEmitter {
   private subject: string;
@@ -49,6 +50,10 @@ export class PubSub extends EventEmitter {
   };
 
   set = (obj) => {
+    if (!isConnectedSync()) {
+      // when disconnected, all state is dropped
+      return;
+    }
     this.env.nc.publish(this.subject, this.env.jc.encode(obj));
   };
 

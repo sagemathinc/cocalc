@@ -231,7 +231,7 @@ export class Stream<T = any> extends EventEmitter {
       subjects: this.subjects,
       compression: "s2",
       // our streams are relatively small so a longer duplicate window than 2 minutes seems ok.
-      duplicate_window: nanos(1000 * 60 * 15),
+      duplicate_window: nanos(1000 * 60 * 5),
       ...this.natsStreamOptions,
     };
     try {

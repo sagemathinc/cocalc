@@ -89,19 +89,13 @@ function connectingMessage({ server, project_ids }) {
   );
 }
 
-let cachedConnection: CoCalcNatsConnection | null = null;
-export const connect = reuseInFlight(async () => {
-  if (cachedConnection != null) {
-    return cachedConnection;
-  }
+const getNewNatsConn = reuseInFlight(async ({ cache, user }) => {
   const { account_id } = webapp_client;
   if (!account_id) {
     throw Error("you must be signed in before connecting to NATS");
   }
-  const cache = getPermissionsCache();
-  const project_ids = cache.get();
-  const user = { account_id, project_ids };
   const server = natsWebsocketUrl();
+  const project_ids = cache.get();
   connectingMessage({ server, project_ids });
   const options = {
     name: JSON.stringify(user),
@@ -110,7 +104,19 @@ export const connect = reuseInFlight(async () => {
     servers: [server],
     inboxPrefix: inboxPrefix({ account_id }),
   };
-  const nc = await natsConnect(options);
+  return await natsConnect(options);
+});
+
+let cachedConnection: CoCalcNatsConnection | null = null;
+export const connect = reuseInFlight(async () => {
+  if (cachedConnection != null) {
+    return cachedConnection;
+  }
+  const { account_id } = webapp_client;
+  const cache = getPermissionsCache();
+  const project_ids = cache.get();
+  const user = { account_id, project_ids };
+  const nc = await getNewNatsConn({ cache, user });
   cachedConnection = new CoCalcNatsConnection(nc, user, cache);
   return cachedConnection;
 });
@@ -121,7 +127,7 @@ export const connect = reuseInFlight(async () => {
 class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   conn: NatsConnection;
   prev: NatsConnection[] = [];
-
+  private standbyMode = false;
   info?: ServerInfo;
   protocol;
   options;
@@ -143,6 +149,43 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     this.permissionsCache = permissionsCache;
     this.updateCache();
   }
+
+  standby = async () => {
+    if(this.standbyMode) {
+      return;
+    }
+    this.standbyMode = true;
+    await this.conn.drain();
+    // @ts-ignore
+    if (this.conn.protocol) {
+      // @ts-ignore
+      this.conn.protocol.connected = false;
+    }
+  };
+
+  resume = async () => {
+    if(!this.standbyMode) {
+      return;
+    }
+    this.standbyMode = false;
+    // @ts-ignore
+    if (this.conn.protocol?.connected) {
+      return;
+    }
+    const conn = await getNewNatsConn({
+      cache: this.permissionsCache,
+      user: this.user,
+    });
+    // @ts-ignore
+    this.conn = conn;
+    // @ts-ignore
+    this.protocol = conn.protocol;
+    // @ts-ignore
+    this.info = conn.info;
+    // @ts-ignore
+    this.options = conn.options;
+    this.emit("reconnect");
+  };
 
   // gets *actual* projects that this connection has permission to access
   getProjectPermissions = async (): Promise<string[]> => {
@@ -291,7 +334,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   }
 
   async drain(): Promise<void> {
-    this.conn.drain();
+    await this.conn.drain();
   }
 
   isClosed(): boolean {

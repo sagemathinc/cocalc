@@ -41,6 +41,7 @@ import { asyncThrottle } from "@cocalc/util/async-utils";
 import { getClient, type ClientWithState } from "@cocalc/nats/client";
 import { encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
 const logger = getLogger("dstream");
 
@@ -431,6 +432,7 @@ export const cache = refCache<UserStreamOptions, DStream>({
   name: "dstream",
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
+    await waitUntilConnected();
     if (options.env == null) {
       options.env = await getEnv();
     }

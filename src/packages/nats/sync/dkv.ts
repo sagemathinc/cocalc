@@ -105,6 +105,7 @@ import { asyncThrottle } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
 const logger = getLogger("dkv");
 
@@ -489,6 +490,7 @@ export const cache = refCache<DKVOptions, DKV>({
   name: "dkv",
   createKey: userKvKey,
   createObject: async (opts) => {
+    await waitUntilConnected();
     if (opts.env == null) {
       opts.env = await getEnv();
     }

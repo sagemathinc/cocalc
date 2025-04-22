@@ -185,6 +185,10 @@ export const getConnection = reuseInFlight(
   },
 );
 
+export function getConnectionSync(): NatsConnection | null {
+  return theConnection;
+}
+
 export function numSubscriptions(): number {
   if (theConnection == null) {
     return 0;
