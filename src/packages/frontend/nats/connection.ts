@@ -69,6 +69,9 @@ import {
   type NatsProjectPermissionsCache,
 } from "./permissions-cache";
 import { isEqual } from "lodash";
+import { alert_message } from "@cocalc/frontend/alerts";
+
+const MAX_SUBSCRIPTIONS = 400;
 
 // When we create a new connection to change permissions (i.e., open a project
 // we have not opened in a while), we wait this long before draining the
@@ -151,7 +154,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   }
 
   standby = async () => {
-    if(this.standbyMode) {
+    if (this.standbyMode) {
       return;
     }
     this.standbyMode = true;
@@ -164,7 +167,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   };
 
   resume = async () => {
-    if(!this.standbyMode) {
+    if (!this.standbyMode) {
       return;
     }
     this.standbyMode = false;
@@ -214,12 +217,29 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return await webapp_client.nats_client.info(this.conn);
   };
 
+  private subscriptionPenalty = 20000;
   numSubscriptions = () => {
     // @ts-ignore
     let subs = this.conn.protocol.subscriptions.subs.size;
     for (const nc of this.prev) {
       // @ts-ignore
       subs += nc.protocol.subscriptions.subs.size;
+    }
+    if (subs >= MAX_SUBSCRIPTIONS) {
+      // For now, we put them in standby for a bit
+      // then resume.  This saves any work and disconnects them.
+      // They then get reconnected.  This might help.
+      console.warn(
+        `WARNING: Using ${subs} subscriptions which exceeds the limit of ${MAX_SUBSCRIPTIONS}.`,
+      );
+      alert_message({
+        type: "warning",
+        message:
+          "Your browser is using too many resources; refresh your browser or close some files.",
+      });
+      this.standby();
+      this.subscriptionPenalty *= 1.25;
+      setTimeout(this.resume, this.subscriptionPenalty);
     }
     return subs;
   };
