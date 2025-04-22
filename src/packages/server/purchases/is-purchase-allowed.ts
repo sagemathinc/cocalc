@@ -1,5 +1,6 @@
 import type { PoolClient } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import isBanned from "@cocalc/server/accounts/is-banned";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import {
   getMaxCost,
@@ -8,17 +9,17 @@ import {
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
+  DEFAULT_LLM_QUOTA,
   QUOTA_SPEC,
   Service,
   isPaygService,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency, round2up, round2down } from "@cocalc/util/misc";
+import { currency, round2down, round2up } from "@cocalc/util/misc";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
-import isBanned from "@cocalc/server/accounts/is-banned";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import { ALLOWED_SLACK } from "./shopping-cart-checkout";
 
 // Throws an exception if purchase is not allowed.  Code should
