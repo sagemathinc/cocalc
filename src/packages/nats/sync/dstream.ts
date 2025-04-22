@@ -417,8 +417,7 @@ export class DStream<T = any> extends EventEmitter {
         });
       } catch (err) {
         logger.debug(
-          `WARNING: unable to update inventory.  name='${this.opts.name}':`,
-          err,
+          `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
         );
       } finally {
         await inv?.close();

@@ -464,9 +464,7 @@ export class DKV<T = any> extends EventEmitter {
         });
       } catch (err) {
         logger.debug(
-          "WARNING: unable to update inventory for ",
-          this.opts?.name,
-          err,
+          `WARNING: unable to update inventory for ${this.opts?.name} -- ${err}`,
         );
       } finally {
         await inv?.close();
