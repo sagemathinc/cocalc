@@ -52,7 +52,8 @@
     "isdir",
     "mintime",
     "PoweroffOutlined",
-    "immutablejs"
+    "immutablejs",
+    "reuseinflight"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],

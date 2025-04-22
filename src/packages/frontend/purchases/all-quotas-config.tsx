@@ -23,7 +23,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
-import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
+import {
+  DEFAULT_LLM_QUOTA,
+  QUOTA_SPEC,
+  Service,
+} from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Cost from "./pay-as-you-go/cost";
@@ -74,17 +78,19 @@ export default function AllQuotasConfig() {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
       const llmModel = service2model_core(service);
-      if (llmModel != null) {
+      const isLLM = llmModel != null;
+      if (isLLM) {
         // We do not show those models, which can't be selected by users OR are free in the first place
         const cost = LLM_COST[llmModel];
         if (!selectableLLMs.includes(llmModel) || cost?.free === true) {
           continue;
         }
       }
+      const defaultQuota = isLLM ? DEFAULT_LLM_QUOTA : 0;
       w[service] = {
         current: charges[service] ?? 0,
         service: service as Service,
-        quota: services[service] ?? 0,
+        quota: services[service] ?? defaultQuota,
       };
     }
     try {
@@ -154,8 +160,8 @@ export default function AllQuotasConfig() {
       dataIndex: "quota",
       align: "center" as "center",
       render: (quota: number, _record: ServiceQuota, index: number) => {
-        const presets =
-          QUOTA_SPEC[_record.service]?.category === "ai" ? PRESETS_LLM : PRESETS;
+        const isLLM = QUOTA_SPEC[_record.service]?.category === "ai";
+        const presets = isLLM ? PRESETS_LLM : PRESETS;
 
         return (
           <Dropdown

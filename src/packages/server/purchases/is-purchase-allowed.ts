@@ -128,7 +128,9 @@ export async function isPurchaseAllowed({
       chargeAmount,
       reason:
         required < chargeAmount
-          ? `The minimum payment is ${currency(pay_as_you_go_min_payment)}, so a payment of ${currency(required)} is not allowed.`
+          ? `The minimum payment is ${currency(
+              pay_as_you_go_min_payment,
+            )}, so a payment of ${currency(required)} is not allowed.`
           : `Please pay ${currency(chargeAmount)}.`,
     };
   }
@@ -160,7 +162,9 @@ export async function isPurchaseAllowed({
     return {
       allowed: false,
       chargeAmount,
-      reason: `Please pay ${currency(round2up(chargeAmount))}${v.length > 0 ? ": " : ""} ${v.join(", ")}`,
+      reason: `Please pay ${currency(round2up(chargeAmount))}${
+        v.length > 0 ? ": " : ""
+      } ${v.join(", ")}`,
     };
   }
 
@@ -171,7 +175,9 @@ export async function isPurchaseAllowed({
   // This is a self-imposed limit by the user to control what they
   // explicitly authorized.
   if (!QUOTA_SPEC[service]?.noSet) {
-    const quotaForService = (services[service] ?? 0) + margin;
+    const isLLM = QUOTA_SPEC[service]?.category === "ai";
+    const defaultQuota = isLLM ? DEFAULT_LLM_QUOTA : 0;
+    const quotaForService = (services[service] ?? defaultQuota) + margin;
     if (quotaForService <= 0) {
       return {
         allowed: true,
@@ -194,7 +200,9 @@ export async function isPurchaseAllowed({
       return {
         allowed: true,
         discouraged: true,
-        reason: `This purchase may exceed your personal monthly spending budget of ${currency(quotaForService)} for "${
+        reason: `This purchase may exceed your personal monthly spending budget of ${currency(
+          quotaForService,
+        )} for "${
           QUOTA_SPEC[service]?.display ?? service
         }".  This month you have spent ${currency(chargesForService)} on ${
           QUOTA_SPEC[service]?.display ?? service
