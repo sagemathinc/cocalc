@@ -14,6 +14,7 @@ import { setNatsClient } from "@cocalc/nats/client";
 import getConnection, {
   setConnectionOptions,
 } from "@cocalc/backend/nats/persistent-connection";
+import { hostname } from "os";
 
 export { getConnection };
 
@@ -40,6 +41,7 @@ setConnectionOptions(async () => {
   const servers = `${natsServer}:${natsPorts.server}`;
   return {
     user: "cocalc",
+    name: hostname(),
     pass: natsPassword,
     inboxPrefix: inboxPrefix({}),
     servers,
