@@ -94,6 +94,10 @@ export class Coordinator {
     });
   };
 
+  save = async () => {
+    await this.dkv?.save();
+  };
+  
   close = async () => {
     await this.dkv?.close();
     delete this.dkv;

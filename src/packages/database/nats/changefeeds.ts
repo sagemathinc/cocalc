@@ -55,12 +55,20 @@ const logger = getLogger("database:nats:changefeeds");
 
 const jc = JSONCodec();
 
-const LOCK_TIMEOUT_MS = 30000;
+// How long until the manager's lock on changefeed expires.
+// It's good for this to be SHORT, since if a hub-database
+// terminates badly (without calling terminate explicitly), then
+// nothing else will take over until after this lock expires.
+// It's good for this to be LONG, since it reduces load on the system.
+// That said, if hubs are killed properly, they release their
+// locks on exit.
+const LOCK_TIMEOUT_MS = 60000;
 
 // This is a limit on the numChangefeedsBeingCreatedAtOnce:
 const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
 
 export async function init() {
+  setupExitHandler();
   while (true) {
     if (terminated) {
       return;
@@ -113,14 +121,57 @@ async function mainLoop() {
   }
 }
 
+// try very hard to call terminate properly, so can locks are freed
+// and clients don't have to wait for the locks to expire.
+function setupExitHandler() {
+  async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
+    try {
+      await terminate();
+    } catch (e) {
+      console.error("EXIT HANDLER ERROR", e);
+    }
+
+    process.exit(isNaN(+evtOrExitCodeOrError) ? 1 : +evtOrExitCodeOrError);
+  }
+  [
+    "beforeExit",
+    "uncaughtException",
+    "unhandledRejection",
+    "SIGHUP",
+    "SIGINT",
+    "SIGQUIT",
+    "SIGILL",
+    "SIGTRAP",
+    "SIGABRT",
+    "SIGBUS",
+    "SIGFPE",
+    "SIGUSR1",
+    "SIGSEGV",
+    "SIGUSR2",
+    "SIGTERM",
+    "exit",
+  ].forEach((evt) => process.on(evt, exitHandler));
+}
+
 let terminated = false;
-export function terminate() {
+export async function terminate() {
+  if (terminated) {
+    return;
+  }
+  console.log("changefeeds: TERMINATE");
   logger.debug("terminating service");
   terminated = true;
   api?.stop();
   api = null;
-  // also, stop reporting data into the streams
   cancelAllChangefeeds();
+  if (coordinator != null) {
+    console.log("about to try to async save");
+    await coordinator.save();
+    console.log(coordinator?.dkv?.hasUnsavedChanges());
+    await coordinator?.close();
+    console.log("coordinator successfully saved");
+    coordinator = null;
+  }
 }
 
 let numRequestsAtOnce = 0;

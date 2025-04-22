@@ -11,6 +11,7 @@ import { waitUntilConnected } from "@cocalc/nats/util";
 
 export class NatsChangefeed extends EventEmitter {
   private client;
+  private nc;
   private query;
   private options;
   private state: State = "disconnected";
@@ -27,6 +28,7 @@ export class NatsChangefeed extends EventEmitter {
   }
 
   connect = async () => {
+    await waitUntilConnected();
     this.natsSynctable = await this.client.nats_client.changefeed(this.query, {
       // atomic=false means less data transfer on changes, but simply does not scale up
       // well and is hence quite slow overall.
@@ -34,6 +36,8 @@ export class NatsChangefeed extends EventEmitter {
       immutable: false,
     });
     this.state = "connected";
+    this.nc = await this.client.nats_client.getConnection();
+    this.nc.on("reconnect", this.expressInterest);
     this.interest();
     this.startWatch();
     const v = this.natsSynctable.get();
@@ -41,6 +45,7 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   close = (): void => {
+    this.nc.removeListener("reconnect", this.expressInterest);
     this.natsSynctable?.close();
     this.state = "closed";
     this.emit("close"); // yes "close" not "closed" ;-(
@@ -50,18 +55,20 @@ export class NatsChangefeed extends EventEmitter {
     return this.state;
   };
 
+  private expressInterest = async () => {
+    console.log("expressInterest", this.query);
+    try {
+      await waitUntilConnected();
+      await this.client.nats_client.changefeedInterest(this.query);
+    } catch (err) {
+      console.log(`WARNING: changefeed -- ${err}`, this.query);
+    }
+  };
+
   private interest = async () => {
     while (this.state != "closed") {
-      try {
-        // console.log("changefeed:interest -- waiting for conn", this.query);
-        await waitUntilConnected();
-        // console.log("changefeed:interest -- sending interest", this.query);
-        await this.client.nats_client.changefeedInterest(this.query);
-        await delay(CHANGEFEED_INTEREST_PERIOD_MS / 2.1);
-      } catch (err) {
-        console.log(`WARNING: changefeed -- ${err}`, this.query);
-        await delay(Math.min(15000, CHANGEFEED_INTEREST_PERIOD_MS / 3.1));
-      }
+      await this.expressInterest();
+      await delay(CHANGEFEED_INTEREST_PERIOD_MS / 2.1);
     }
   };
 
