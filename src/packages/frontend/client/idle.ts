@@ -99,7 +99,6 @@ export class IdleClient {
   private idle_check = (): void => {
     if (!this.idle_time) return;
     const now = Date.now();
-    console.log({ idle_time: this.idle_time, now, d: this.idle_time - now });
     if (this.idle_time >= now) return;
     this.show_notification();
     if (!this.delayed_disconnect) {
