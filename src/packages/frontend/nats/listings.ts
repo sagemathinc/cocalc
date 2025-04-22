@@ -114,7 +114,10 @@ export class Listings extends EventEmitter {
           await this.listingsClient.api.nats.waitFor({
             maxWait: 7.5 * 1000 * 60,
           });
-        } catch {}
+        } catch (err) {
+          console.log(`WARNING -- waiting for directory listings -- ${err}`);
+          await delay(3000);
+        }
       }
     }
   });

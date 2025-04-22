@@ -28,6 +28,14 @@ import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 const DEFAULT_TIMEOUT = 10 * 1000;
 const MONITOR_INTERVAL = 90 * 1000;
 
+// switching this is awkward since it would have to be changed in projects
+// and frontends or things would hang. I'm making it toggleable just for
+// dev purposes so we can benchmark.
+// Using the service framework gives us no real gain and cost a massive amount
+// in terms of subscriptions -- basically there's a whole bunch for every file, etc.
+// **In short: Do NOT enable this by default.**
+const ENABLE_SERVICE_FRAMEWORK = false;
+
 const logger = getLogger("nats:service");
 
 export interface ServiceDescription extends Location {
@@ -37,6 +45,9 @@ export interface ServiceDescription extends Location {
 
   // if true and multiple servers are setup in same "location", then they ALL get to respond (sender gets first response).
   all?: boolean;
+
+  // DEFAULT: ENABLE_SERVICE_FRAMEWORK
+  enableServiceFramework?: boolean;
 }
 
 export interface ServiceCall extends ServiceDescription {
@@ -54,10 +65,15 @@ export interface ServiceCall extends ServiceDescription {
   // the jupyter api, since large output gets returned when you click on
   // "Fetch more output".
   many?: boolean;
+
+  // if it fails with NatsError, we wait for service to be ready and try again,
+  // unless this is set -- e.g., when waiting for the service in the first
+  // place we set this to avoid an infinite loop.
+  noRetry?: boolean;
 }
 
 export async function callNatsService(opts: ServiceCall): Promise<any> {
-  // console.logger.debug("callNatsService", opts);
+  // console.log("callNatsService", opts);
   const env = await getEnv();
   const { nc, jc } = env;
   const subject = serviceSubject(opts);
@@ -89,7 +105,7 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     return await doRequest();
   } catch (err) {
     // it failed.
-    if (err.name == "NatsError") {
+    if (err.name == "NatsError" && !opts.noRetry) {
       // it's a nats problem
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
       if (err.code == "503") {
@@ -257,18 +273,22 @@ export class NatsService extends EventEmitter {
       this.emit("starting");
       this.log("starting service");
       const env = await getEnv();
-      const svcm = new Svcm(env.nc);
-      await waitUntilConnected();
-      const service = await svcm.add({
-        name: this.name,
-        version: this.options.version ?? "0.0.1",
-        description: serviceDescription(this.options),
-        queue: this.options.all ? randomId() : "0",
-      });
-      if (!this.subject) {
-        return;
+      if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
+        const svcm = new Svcm(env.nc);
+        await waitUntilConnected();
+        const service = await svcm.add({
+          name: this.name,
+          version: this.options.version ?? "0.0.1",
+          description: serviceDescription(this.options),
+          queue: this.options.all ? randomId() : "0",
+        });
+        if (!this.subject) {
+          return;
+        }
+        this.api = service.addEndpoint("api", { subject: this.subject });
+      } else {
+        this.api = env.nc.subscribe(this.subject);
       }
-      this.api = service.addEndpoint("api", { subject: this.subject });
       this.emit("running");
       await this.listen();
     } catch (err) {
@@ -341,7 +361,23 @@ export async function pingNatsService({
   options,
   maxWait = 500,
   id,
-}: ServiceClientOpts): Promise<ServiceIdentity[]> {
+}: ServiceClientOpts): Promise<(ServiceIdentity | string)[]> {
+  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
+//     console.log(
+//       `pingNatsService: ${options.service}.${options.description ?? ""} -- using fallback ping`,
+//     );
+    const pong = await callNatsService({
+      ...options,
+      mesg: "ping",
+      timeout: Math.max(3000, maxWait),
+      // set no-retry to avoid infinite loop
+      noRetry: true,
+    });
+//     console.log(
+//       `pingNatsService: ${options.service}.${options.description ?? ""} -- success`,
+//     );
+    return [pong];
+  }
   const env = await getEnv();
   const svc = new Svcm(env.nc);
   const m = svc.client({ maxWait, strategy: "stall" });
@@ -357,6 +393,9 @@ export async function natsServiceInfo({
   maxWait = 500,
   id,
 }: ServiceClientOpts): Promise<ServiceInfo[]> {
+  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
+    throw Error(`service framework not enabled for ${options.service}`);
+  }
   const env = await getEnv();
   const svc = new Svcm(env.nc);
   const m = svc.client({ maxWait, strategy: "stall" });
@@ -372,6 +411,9 @@ export async function natsServiceStats({
   maxWait = 500,
   id,
 }: ServiceClientOpts): Promise<ServiceStats[]> {
+  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
+    throw Error(`service framework not enabled for ${options.service}`);
+  }
   const env = await getEnv();
   const svc = new Svcm(env.nc);
   const m = svc.client({ maxWait, strategy: "stall" });
@@ -389,7 +431,7 @@ export async function waitForNatsService({
   options: ServiceDescription;
   maxWait?: number;
 }) {
-  let d = 100;
+  let d = 1000;
   let m = 100;
   const start = Date.now();
   const getPing = async (m: number) => {

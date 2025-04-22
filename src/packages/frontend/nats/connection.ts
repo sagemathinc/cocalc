@@ -261,11 +261,10 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
     return subs;
   };
 
-  subscriptionSubjects = () => {
+  getSubscriptions = (): string[] => {
     const subjects: string[] = [];
     // @ts-ignore
-    for (const sub of cc.client.nats_client.nc.conn.protocol.subscriptions
-      .subs) {
+    for (const sub of this.conn.protocol.subscriptions.subs) {
       subjects.push(sub[1].subject);
     }
     return subjects;

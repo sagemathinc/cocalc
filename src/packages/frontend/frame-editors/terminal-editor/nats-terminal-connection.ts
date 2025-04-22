@@ -174,14 +174,19 @@ export class NatsTerminalConnection extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
-        await this.api.nats.waitFor({ maxWait });
         if ((this.state as State) == "closed") {
           return;
         }
         await this.api.create(this.options);
         return;
-      } catch (err) {
-        maxWait = Math.min(15000, 1.3 * maxWait);
+      } catch {
+        try {
+          await this.api.nats.waitFor({ maxWait });
+        } catch (err) {
+          maxWait = Math.min(15000, 1.3 * maxWait);
+          console.log(`WARNING -- waiting for terminal server -- ${err}`);
+          await delay(3000);
+        }
       }
     }
   });
