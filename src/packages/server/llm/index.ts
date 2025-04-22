@@ -367,6 +367,10 @@ export function normalizeOpenAIModel(model): OpenAIModel {
     model = "o1-mini";
   } else if (model.startsWith("o1")) {
     model = "o1";
+  } else if (model.startsWith("gpt-4.1-mini")) {
+    model = "gpt-4.1-mini";
+  } else if (model.startsWith("gpt-4.1")) {
+    model = "gpt-4.1";
   }
   if (!isOpenAIModel(model)) {
     throw new Error(`Internal problem normalizing OpenAI model name: ${model}`);

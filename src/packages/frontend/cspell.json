@@ -51,7 +51,8 @@
     "MDLG",
     "isdir",
     "mintime",
-    "PoweroffOutlined"
+    "PoweroffOutlined",
+    "immutablejs"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],

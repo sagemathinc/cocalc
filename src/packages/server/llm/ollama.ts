@@ -1,4 +1,4 @@
-import type { Ollama } from "@langchain/community/llms/ollama";
+import type { Ollama } from "@langchain/ollama";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,

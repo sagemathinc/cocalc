@@ -115,6 +115,8 @@ export const MODELS_OPENAI = [
   "gpt-4-turbo-8k", // Released 2024-04-11
   "gpt-4-turbo",
   "gpt-4",
+  "gpt-4.1",
+  "gpt-4.1-mini",
   "gpt-4-32k",
   "gpt-3.5-turbo-16k",
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
@@ -229,7 +231,9 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-4" ||
       m === "gpt-4-turbo-preview-8k" ||
       m === "gpt-4o-8k" ||
-      m === "gpt-4o-mini-8k",
+      m === "gpt-4o-mini-8k" ||
+      m === "gpt-4.1" ||
+      m === "gpt-4.1-mini",
 
     // ATTN: there is code for o1 and o1-mini, but it does not work yet.
     // The API changed, there is no support for streaming, and it took
@@ -715,6 +719,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4o-8k": "GPT-4o",
   "gpt-4o-mini": "GPT-4o Mini 128k",
   "gpt-4o-mini-8k": "GPT-4o Mini",
+  "gpt-4.1": "GPT-4.1",
+  "gpt-4.1-mini": "GPT-4.1 Mini",
   "o1-mini-8k": "OpenAI o1-mini",
   "o1-8k": "OpenAI o1",
   "o1-mini": "OpenAI o1-mini",
@@ -749,6 +755,8 @@ export const LLM_DESCR: LLM2String = {
     "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4":
     "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+  "gpt-4.1":
+    "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4-32k": "",
   "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
@@ -763,6 +771,7 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
   "gpt-4o-mini-8k":
     "Most cost-efficient small model (OpenAI, 8k token context)",
+  "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "o1-8k": "Spends more time thinking (8k token context)",
@@ -923,6 +932,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
+  },
+  "gpt-4.1": {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(8),
+    max_tokens: 8192,
+    free: false,
+  },
+  "gpt-4.1-mini": {
+    prompt_tokens: usd1Mtokens(0.4),
+    completion_tokens: usd1Mtokens(1.6),
+    max_tokens: 8192,
+    free: true,
   },
   "gpt-4o-8k": {
     prompt_tokens: usd1Mtokens(2.5),

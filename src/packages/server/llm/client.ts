@@ -4,8 +4,8 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
-import { Ollama } from "@langchain/community/llms/ollama";
-import { OpenAI as LCOpenAI } from "@langchain/openai";
+import { Ollama } from "@langchain/ollama";
+import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
 import { omit } from "lodash";
 import OpenAI from "openai";
 
@@ -171,7 +171,7 @@ export async function getCustomOpenAI(model: string) {
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
   const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
   const customOpenAIConfig = {
-    configuration: { baseURL }, // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
+    configuration: { baseURL }, // https://js.langchain.com/docs/integrations/chat/openai/#custom-urls
     model: config.model ?? model,
     ...other,
   };
@@ -181,7 +181,7 @@ export async function getCustomOpenAI(model: string) {
     omit(customOpenAIConfig, ["apiKey", "openAIApiKey", "azureOpenAIApiKey"]),
   );
 
-  // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
-  const client = new LCOpenAI(customOpenAIConfig);
+  // https://js.langchain.com/docs/integrations/chat/openai/
+  const client = new ChatOpenAILC(customOpenAIConfig);
   return client;
 }
