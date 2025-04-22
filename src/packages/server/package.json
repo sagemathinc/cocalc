@@ -54,7 +54,7 @@
     "@isaacs/ttlcache": "^1.2.1",
     "@langchain/anthropic": "^0.3.18",
     "@langchain/community": "^0.3.41",
-    "@langchain/core": "^0.3.45",
+    "@langchain/core": "^0.3.46",
     "@langchain/google-genai": "^0.2.4",
     "@langchain/mistralai": "^0.2.0",
     "@langchain/openai": "^0.5.5",
