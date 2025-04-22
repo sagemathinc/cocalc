@@ -68,7 +68,9 @@ const LOCK_TIMEOUT_MS = 60000;
 const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
 
 export async function init() {
-  setupExitHandler();
+  if (process.env.COCALC_TERMINATE_CHANGEFEEDS_ON_EXIT) {
+    setupExitHandler();
+  }
   while (true) {
     if (terminated) {
       return;

@@ -56,7 +56,6 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   private expressInterest = async () => {
-    console.log("expressInterest", this.query);
     try {
       await waitUntilConnected();
       await this.client.nats_client.changefeedInterest(this.query);

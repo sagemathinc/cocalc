@@ -35,7 +35,8 @@ export default function init(
     const url = stripBasePath(req.url);
 
     if (url == "/nats") {
-      return proxyNatsWebsocket(req, socket, head);
+      proxyNatsWebsocket(req, socket, head);
+      return;
     }
 
     if (!req.url.match(re)) {

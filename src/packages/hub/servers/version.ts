@@ -11,14 +11,14 @@ export default async function init() {
   let version_recommended_browser: number = 0; // first time.
   const update = () => {
     if (
-      settings.version["version_recommended_browser"] ==
+      settings.version.version_recommended_browser ==
       version_recommended_browser
     ) {
       // version did not change
       return;
     }
     version_recommended_browser =
-      settings.version["version_recommended_browser"];
+      settings.version.version_recommended_browser ?? 0;
     for (const id in clients) {
       const client = clients[id];
       if (client.smc_version < version_recommended_browser) {
