@@ -44,7 +44,7 @@ Type ".help" for more information.
 */
 
 import { dkv as createDkv } from "@cocalc/nats/sync/dkv";
-import { getClient, getEnv } from "@cocalc/nats/client";
+import { getClient, getEnv, reconnect } from "@cocalc/nats/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { randomId } from "@cocalc/nats/names";
 import { callback, delay } from "awaiting";
@@ -56,7 +56,10 @@ const TIMEOUT = 3 * 1000;
 
 // sync clock this frequently once it has sync'd once
 const INTERVAL_GOOD = 15 * 1000 * 60;
-const INTERVAL_BAD = 15 * 1000;
+const INTERVAL_BAD = 5 * 1000;
+
+// If clock fails to sync this many times in a row, we reconnect to nats.
+const MAX_FAILS = 3;
 
 export function init() {
   syncLoop();
@@ -74,18 +77,32 @@ async function syncLoop() {
   }
   syncLoopStarted = true;
   const client = getClient();
+  let fails = 0;
   while (state != "closed" && client.state != "closed") {
     try {
       await getSkew();
       if (state == "closed") return;
+      fails = 0;
       await delay(INTERVAL_GOOD);
     } catch (err) {
       if (client.state != "connected") {
         await once(client, "connected");
         continue;
       }
-      console.log("WARNING: failed to sync clock ", err);
+      console.log(`WARNING: failed to sync clock -- ${err}`);
+      fails += 1;
+      console.log({ fails, MAX_FAILS, state });
       if (state == "closed") return;
+      if (fails >= MAX_FAILS) {
+        // something is very very wrong -- reconnect
+        console.log("WARNING: something is wrong with NATS connection");
+        fails = 0;
+        try {
+          await reconnect();
+        } catch (err) {
+          console.log(`WARNING: reconnect failed -- ${err}`);
+        }
+      }
       await delay(INTERVAL_BAD);
     }
   }

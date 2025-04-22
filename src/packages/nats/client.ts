@@ -21,6 +21,8 @@ interface Client {
   project_id?: string;
   compute_server_id?: number;
   getLogger?: (name) => Logger;
+  // if defined, causes a client-defined version of reconnecting.
+  reconnect?: () => Promise<void>;
 }
 
 type State = "closed" | "connected" | "connecting" | "disconnected";
@@ -45,6 +47,7 @@ export class ClientWithState extends EventEmitter {
   state: State = "disconnected";
   env?: NatsEnv;
   _getLogger?: (name) => Logger;
+  _reconnect?: () => Promise<void>;
 
   constructor(client: Client) {
     super();
@@ -66,7 +69,12 @@ export class ClientWithState extends EventEmitter {
     this.project_id = client.project_id;
     this.compute_server_id = client.compute_server_id;
     this._getLogger = client.getLogger;
+    this._reconnect = client.reconnect;
   }
+
+  reconnect = async () => {
+    await this._reconnect?.();
+  };
 
   getLogger = (name): Logger => {
     if (this._getLogger != null) {
@@ -123,6 +131,10 @@ function initTime() {
 let globalClient: null | ClientWithState = null;
 export function setNatsClient(client: Client) {
   globalClient = new ClientWithState(client);
+}
+
+export async function reconnect() {
+  await globalClient?.reconnect();
 }
 
 export const getEnv = reuseInFlight(async () => {

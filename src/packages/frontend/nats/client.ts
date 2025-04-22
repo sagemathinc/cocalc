@@ -109,6 +109,7 @@ export class NatsClient extends EventEmitter {
     setNatsClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
+      reconnect: this.reconnect,
       getLogger: DEBUG
         ? (name) => {
             return {
@@ -168,6 +169,7 @@ export class NatsClient extends EventEmitter {
 
   reconnect = async () => {
     if (this.nc != null) {
+      console.log("NATS connection: reconnecting...");
       this.standby();
       await delay(50);
       this.resume();
