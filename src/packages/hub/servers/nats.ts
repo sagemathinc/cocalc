@@ -27,7 +27,7 @@ export async function proxyNatsWebsocket(req, socket, head) {
   logger.debug(`nats proxy -- proxying a connection to ${target}`);
   // todo -- allowing no cookie, since that's used by projects and compute servers!
   // do NOT disable this until compute servers all set a cookie... which could be a long time.
-  if (versionCheckFails(req, undefined, true)) {
+  if (versionCheckFails(req)) {
     logger.debug("NATS client failed version check -- closing");
     socket.destroy();
     return;
@@ -40,7 +40,7 @@ export async function proxyNatsWebsocket(req, socket, head) {
   proxy.ws(req, socket, head);
 
   while (socket.readyState !== socket.CLOSED) {
-    if (versionCheckFails(req, undefined, true)) {
+    if (versionCheckFails(req)) {
       logger.debug("NATS client failed version check -- closing");
       setTimeout(() => socket.end(), 10 * 1000);
       return;

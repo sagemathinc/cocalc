@@ -24,7 +24,7 @@ export async function init(): Promise<void> {
 // Returns true if the version check **fails**
 // If res is not null, sends a message. If it is
 // null, just returns true but doesn't send a response.
-export function versionCheckFails(req, res?, allowNoCookie = false): boolean {
+export function versionCheckFails(req, res?): boolean {
   if (minVersion == 0) {
     // If no minimal version is set, no need to do further work,
     // since we'll pass it.
@@ -37,10 +37,8 @@ export function versionCheckFails(req, res?, allowNoCookie = false): boolean {
   */
   const rawVal = cookies.get(versionCookieName(basePath));
   if (rawVal == null) {
-    if (allowNoCookie) {
-      return false;
-    }
-    return true;
+    // compute servers use this!  They don't set any version cookies.
+    return false;
   }
   const version = parseInt(rawVal);
   logger.debug("version check", { version, minVersion });
