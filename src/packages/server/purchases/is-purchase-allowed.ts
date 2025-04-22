@@ -9,7 +9,6 @@ import {
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
-  DEFAULT_LLM_QUOTA,
   QUOTA_SPEC,
   Service,
   isPaygService,
@@ -115,7 +114,8 @@ export async function isPurchaseAllowed({
     return { allowed: false, reason: `cost must be positive` };
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
-  const { pay_as_you_go_min_payment } = await getServerSettings();
+  const { pay_as_you_go_min_payment, llm_default_quota } =
+    await getServerSettings();
 
   if (!isPaygService(service)) {
     // for non-PAYG, we only allow credit toward a purchase if your balance is positive.
@@ -177,7 +177,7 @@ export async function isPurchaseAllowed({
   // explicitly authorized.
   if (!QUOTA_SPEC[service]?.noSet) {
     const isLLM = QUOTA_SPEC[service]?.category === "ai";
-    const defaultQuota = isLLM ? DEFAULT_LLM_QUOTA : 0;
+    const defaultQuota = isLLM ? llm_default_quota : 0;
     const quotaForService = (services[service] ?? defaultQuota) + margin;
     if (quotaForService <= 0) {
       return {

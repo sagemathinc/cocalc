@@ -5,7 +5,6 @@
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { DEFAULT_LLM_QUOTA } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "../accounts/create-account";
@@ -231,6 +230,7 @@ describe("test checking whether or not purchase is allowed under various conditi
 
   it("default quota for LLMs is about 10", async () => {
     const minBalance = await getPurchaseQuota(account_id, "openai-o1");
-    expect(minBalance).toBe(DEFAULT_LLM_QUOTA);
+    const { llm_default_quota } = await getServerSettings();
+    expect(minBalance).toBe(llm_default_quota);
   });
 });

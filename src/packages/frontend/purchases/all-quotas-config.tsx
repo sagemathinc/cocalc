@@ -23,11 +23,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
-import {
-  DEFAULT_LLM_QUOTA,
-  QUOTA_SPEC,
-  Service,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Cost from "./pay-as-you-go/cost";
@@ -57,6 +53,9 @@ export default function AllQuotasConfig() {
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  // The 10 is just for the initial rollout, the value is customizable
+  const llm_default_quota =
+    useTypedRedux("customize", "llm_default_quota") ?? 10;
 
   const getQuotas = async () => {
     let quotas, charges;
@@ -86,7 +85,7 @@ export default function AllQuotasConfig() {
           continue;
         }
       }
-      const defaultQuota = isLLM ? DEFAULT_LLM_QUOTA : 0;
+      const defaultQuota: number = isLLM ? llm_default_quota : 0;
       w[service] = {
         current: charges[service] ?? 0,
         service: service as Service,

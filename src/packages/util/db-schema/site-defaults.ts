@@ -71,6 +71,7 @@ export type SiteSettingsKeys =
   | "selectable_llms"
   | "default_llm"
   | "user_defined_llm"
+  | "llm_default_quota"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -862,6 +863,15 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     to_val: to_bool,
     valid: only_booleans,
+    tags: ["AI LLM"],
+  },
+  llm_default_quota: {
+    name: "Default Quota for LLMs",
+    desc: "We do not want to send users messages about LLM usage, if they didn't bother to set their quotas to >0. This is the default quota for LLMs. Integer val >=0",
+    default: "10",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_commercial,
     tags: ["AI LLM"],
   },
   neural_search_enabled: {

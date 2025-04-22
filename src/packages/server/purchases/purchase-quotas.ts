@@ -1,11 +1,8 @@
 import getPool from "@cocalc/database/pool";
-import {
-  Service,
-  QUOTA_SPEC,
-  DEFAULT_LLM_QUOTA,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import getMinBalance from "./get-min-balance";
 import type { PoolClient } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings";
 
 export async function setPurchaseQuota({
   account_id,
@@ -73,10 +70,12 @@ export async function getPurchaseQuotas(
     "SELECT service, value FROM purchase_quotas WHERE account_id=$1",
     [account_id],
   );
+
   const services: { [service: string]: number } = {};
   for (const { service, value } of rows) {
     const isLLM = QUOTA_SPEC[service]?.category === "ai";
-    services[service] = value ?? (isLLM ? DEFAULT_LLM_QUOTA : 0);
+    const { llm_default_quota } = await getServerSettings();
+    services[service] = value ?? (isLLM ? llm_default_quota : 0);
   }
   const minBalance = await getMinBalance(account_id, client);
   return { services, minBalance };
@@ -93,5 +92,10 @@ export async function getPurchaseQuota(
     [account_id, service],
   );
   const isLLM = QUOTA_SPEC[service]?.category === "ai";
-  return rows[0]?.value ?? (isLLM ? DEFAULT_LLM_QUOTA : null);
+  if (isLLM) {
+    const { llm_default_quota } = await getServerSettings();
+    return rows[0]?.value ?? llm_default_quota;
+  } else {
+    return rows[0]?.value ?? null;
+  }
 }

@@ -37,9 +37,6 @@ export function isPaygService(service: Service): boolean {
   return IS_PAYG[category ?? ""] ?? false;
 }
 
-// if not set, we default to $10 instead of $0 for LLMs
-export const DEFAULT_LLM_QUOTA = 10
-
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
   color: "#10a37f",
