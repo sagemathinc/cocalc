@@ -63,13 +63,13 @@ IN A LIVE RUNNING PROJECT IN KUCALC:
 Ssh in to the project itself.  You can use a terminal because that very terminal will be broken by
 doing this!  Then:
 
-/cocalc/github/src/packages/project$ . /cocalc/nvm/nvm.sh 
+/cocalc/github/src/packages/project$ . /cocalc/nvm/nvm.sh
 /cocalc/github/src/packages/project$ COCALC_PROJECT_ID=... COCALC_SECRET_TOKEN="/secrets/secret-token/token"  NATS_SERVER=nats-server node
 Welcome to Node.js v20.19.0.
 Type ".help" for more information.
 > x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
 [ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
-> 
+>
 
 
 */
@@ -110,12 +110,26 @@ import { chdir } from "node:process";
 
 const logger = getLogger("project:nats:open-files");
 
-const FILE_DELETION_CHECK_INTERVAL_MS = 3000;
+// we check all files we are currently managing this frequently to
+// see if they exist on the filesystem:
+const FILE_DELETION_CHECK_INTERVAL = 5000;
+
+// once we determine that a file does not exist for some reason, we
+// wait this long and check *again* just to be sure.  If it is still missing,
+// then we close the file in memory and set the file as deleted in the
+// shared openfile state.
+const FILE_DELETION_GRACE_PERIOD = 2000;
+
+// We NEVER check a file for deletion for this long after first opening it.
+// This is VERY important, since some documents, e.g., jupyter notebooks,
+// can take a while to get created on disk the first time.
+const FILE_DELETION_INITIAL_DELAY = 15000;
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
 const openDocs: { [path: string]: SyncDoc | NatsService } = {};
 let computeServers: ComputeServerManager | null = null;
+const openTimes: { [path: string]: number } = {};
 
 export async function init() {
   logger.debug("init");
@@ -294,6 +308,9 @@ async function checkForFileDeletion(path: string) {
   if (openFiles == null) {
     return;
   }
+  if (Date.now() - (openTimes[path] ?? 0) <= FILE_DELETION_INITIAL_DELAY) {
+    return;
+  }
   const id = computeServerId(path);
   if (id != compute_server_id) {
     // not our concern
@@ -319,13 +336,16 @@ async function checkForFileDeletion(path: string) {
       return;
     }
     const fullPath = join(process.env.HOME, entry.path);
-    // if file doesn't exist and still doesn't exist in 1 second,
+    // if file doesn't exist and still doesn't exist in a while,
     // mark deleted, which also causes a close.
     if (await exists(fullPath)) {
       return;
     }
-    // doesn't exist
-    await delay(250);
+    // still doesn't exist?
+    // We must give things a reasonable amount of time, e.g., otherwise
+    // creating a file (e.g., jupyter notebook) might take too long and
+    // we randomly think it is deleted before we even make it!
+    await delay(FILE_DELETION_GRACE_PERIOD);
     if (await exists(fullPath)) {
       return;
     }
@@ -349,7 +369,7 @@ async function checkForFileDeletion(path: string) {
 
 async function watchForFileDeletionLoop() {
   while (openFiles != null && openFiles.state == "connected") {
-    await delay(FILE_DELETION_CHECK_INTERVAL_MS);
+    await delay(FILE_DELETION_CHECK_INTERVAL);
     if (openFiles?.state != "connected") {
       return;
     }
@@ -375,6 +395,7 @@ const closeDoc = reuseInFlight(async (path: string) => {
       return;
     }
     delete openDocs[path];
+    delete openTimes[path];
     try {
       await doc.close();
     } catch (err) {
@@ -395,6 +416,7 @@ const openDoc = reuseInFlight(async (path: string) => {
     if (doc != null) {
       return;
     }
+     openTimes[path] = Date.now();
 
     if (path.endsWith(".term")) {
       const service = await createTerminalService(path);
