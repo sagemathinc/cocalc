@@ -10,36 +10,40 @@ See also @cocalc/server/nats/tiered-storage.
 import { getEnv, getLogger } from "@cocalc/nats/client";
 import { type Subscription, Empty } from "@nats-io/nats-core";
 import { isValidUUID } from "@cocalc/util/misc";
+import { type Location } from "@cocalc/nats/types";
 
 const logger = getLogger("tiered-storage:server");
 
 export type State = "archived" | "restoring" | "ready";
 
-export interface Stats {
+export interface Info {
   bytes: number;
 }
-
-export interface User0 {
-  user_id: string;
-  type: "project" | "account";
-}
-type User = User0 | { type: "hub" };
 
 export const SUBJECT = "tiered-storage";
 
 export interface TieredStorage {
-  state: (user: User) => Promise<State>;
-  restore: (user: User) => Promise<Stats>;
-  archive: (user: User) => Promise<Stats>;
+  state: (location: Location) => Promise<State>;
+  restore: (location: Location) => Promise<Info>;
+  archive: (location: Location) => Promise<Info>;
 }
 
-export function tieredStorageSubject(user: User) {
+export type Command = "state" | "restore" | "archive";
+
+export function tieredStorageSubject({ account_id, project_id }: Location) {
   if (account_id) {
+    if (project_id) {
+      throw Error(
+        "location for tiered storage must specify exactly one of account_id or project_id, but it specifies both",
+      );
+    }
     return `${SUBJECT}.account-${account_id}.api`;
   } else if (project_id) {
     return `${SUBJECT}.project-${project_id}.api`;
   } else {
-    return `${SUBJECT}.hub.api`;
+    throw Error(
+      "location for tiered storage must specify exactly one of account_id or project_id, but it specifies neither",
+    );
   }
 }
 
@@ -103,7 +107,7 @@ async function handleMessage(mesg, tieredStorage: TieredStorage) {
   try {
     const { jc } = await getEnv();
     const user = getUser(mesg.subject);
-    const command = jc.decode(mesg.data);
+    const { command } = jc.decode(mesg.data);
     if (command == "state") {
       resp = await tieredStorage.state(user);
     } else if (command == "restore") {
