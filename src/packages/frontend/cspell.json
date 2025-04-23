@@ -33,7 +33,9 @@
     "undeleting",
     "tolerations",
     "rtypes",
-    "rclass"
+    "rclass",
+    "ipython",
+    "Miniterm"
   ],
   "ignoreWords": [
     "LLMs",

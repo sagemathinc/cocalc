@@ -105,7 +105,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
       mouseLeaveDelay: delayHide / 1000,
     };
 
-    props.overlayStyle = Object.assign({}, popover_style);
+    props.styles = { root: Object.assign({}, popover_style) };
 
     if (tip) {
       return (
