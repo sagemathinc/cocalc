@@ -4,7 +4,7 @@ import { Table } from "./types";
 import { deep_copy, minutes_ago } from "../misc";
 import { SCHEMA as schema } from "./index";
 
-export const DEFAULT_SNAPSHOT_INTERVAL = 150;
+export const DEFAULT_SNAPSHOT_INTERVAL = 300;
 
 Table({
   name: "syncstrings",

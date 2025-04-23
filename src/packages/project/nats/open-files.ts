@@ -63,6 +63,7 @@ IN A LIVE RUNNING PROJECT IN KUCALC:
 Ssh in to the project itself.  You can use a terminal because that very terminal will be broken by
 doing this!  Then:
 
+/cocalc/github/src/packages/project$ . /cocalc/nvm/nvm.sh 
 /cocalc/github/src/packages/project$ COCALC_PROJECT_ID=... COCALC_SECRET_TOKEN="/secrets/secret-token/token"  NATS_SERVER=nats-server node
 Welcome to Node.js v20.19.0.
 Type ".help" for more information.
