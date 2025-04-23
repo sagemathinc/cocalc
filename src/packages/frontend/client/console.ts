@@ -45,6 +45,7 @@ export function setup_global_cocalc(client): void {
 
   const cocalc: any = window.cc ?? {};
   cocalc.client = client;
+  cocalc.nats = client.nats_client;
   cocalc.misc = require("@cocalc/util/misc");
   cocalc.immutable = require("immutable");
   cocalc.done = cocalc.misc.done;

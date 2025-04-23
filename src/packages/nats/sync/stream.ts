@@ -67,6 +67,7 @@ import type { JSONValue } from "@cocalc/util/types";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
+import { asyncDebounce } from "@cocalc/util/async-utils";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -81,8 +82,12 @@ const MAX_PARALLEL = 50;
 
 const CONNECTION_CHECK_INTERVAL = 5000;
 
-// Making this LONG is very dangerous since it increases load on the server.
-const EPHEMERAL_CONSUMER_THRESH = 60 * 1000;
+// Making this too LONG is very dangerous since it increases load on the server.
+// Making it too short means it has to get recreated whenever the network connection drops.
+const EPHEMERAL_CONSUMER_THRESH = 45 * 1000;
+
+//console.log("!!! ALERT: USING VERY SHORT CONSUMERS FOR TESTING!");
+//const EPHEMERAL_CONSUMER_THRESH = 3 * 1000;
 
 // We re-implement exactly the same stream-wide limits that NATS has,
 // but instead, these are for the stream **with the given filter**.
@@ -94,7 +99,9 @@ const EPHEMERAL_CONSUMER_THRESH = 60 * 1000;
 
 // Significant throttling is VERY, VERY important, since purging old messages frequently
 // seems to put a very significant load on NATS!
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 30000;
+export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
+  ? 100
+  : 45000;
 
 export interface FilteredStreamLimitOptions {
   // How many messages may be in a Stream, oldest messages will be removed
@@ -256,14 +263,76 @@ export class Stream<T = any> extends EventEmitter {
   });
 
   private ensureConnected = async () => {
-    this.env.nc.on?.("reconnect", this.restartConsumer);
+    if (this.env.nc.on != null) {
+      this.env.nc.on("reconnect", this.restartConsumer);
+      this.env.nc.on("status", ({ type }) => {
+        if (type == "reconnect") {
+          this.ensureConsumerIsValid();
+        }
+      });
+    } else {
+      this.checkConsumerOnReconnect();
+    }
     while (this.stream != null) {
       if (!(await isConnected())) {
-        //console.log("ensureConnected: restart", this.name);
         await this.restartConsumer();
       }
-      //console.log("ensureConnected: delay", this.name);
       await delay(CONNECTION_CHECK_INTERVAL);
+    }
+  };
+
+  // We can't do this all the time due to efficiency
+  // (see https://www.synadia.com/blog/jetstream-design-patterns-for-scale)
+  // but we **MUST do it around connection events**
+  // no matter what the docs say or otherwise!!!!
+  // At least with the current nats.js drivers.
+  // Often nats does recreate the consumer, but sometimes it doesn't.
+  // I can't nail down which is which.
+  private ensureConsumerIsValid = asyncDebounce(
+    async () => {
+      await waitUntilConnected();
+      await delay(2000);
+      const isValid = await this.isConsumerStillValid();
+      if (!isValid) {
+        if (this.stream == null) {
+          return;
+        }
+        console.log(
+          `nats stream: ${this.name} -- consumer not valid, so recreating`,
+        );
+        await this.restartConsumer();
+      }
+    },
+    3000,
+    { leading: false, trailing: true },
+  );
+
+  private checkConsumerOnReconnect = async () => {
+    while (this.stream != null) {
+      try {
+        for await (const { type } of await this.env.nc.status()) {
+          if (type == "reconnect") {
+            await this.ensureConsumerIsValid();
+          }
+        }
+      } catch {
+        await delay(15000);
+        await this.ensureConsumerIsValid();
+      }
+    }
+  };
+
+  private isConsumerStillValid = async () => {
+    await waitUntilConnected();
+    if (this.consumer == null || this.stream == null) {
+      return false;
+    }
+    try {
+      await this.consumer.info();
+      return true;
+    } catch (err) {
+      console.log(`nats: consumer.info error -- ${err}`);
+      return false;
     }
   };
 
