@@ -2308,6 +2308,13 @@ export class SyncDoc extends EventEmitter {
   /* Create and store in the database a snapshot of the state
      of the string at the given point in time.  This should
      be the time of an existing patch.
+
+     The point of a snapshot is that if you load all patches recorded
+     >= this point in time, then you don't need any earlier ones to
+     reconstruct the document, since otherwise, why have the snapshot at
+     all, as it does not good.  Due to potentially long offline users
+     putting old data into history, this can fail. However, in the usual
+     case we should never record a snapshot with this bad property.
   */
   private snapshot = reuseInFlight(async (time: number): Promise<void> => {
     assertDefined(this.patch_list);
@@ -2372,7 +2379,7 @@ export class SyncDoc extends EventEmitter {
         // this is expected to happen sometimes, e.g., when sufficient information
         // isn't known about the stream of patches.
         console.log(
-          `WARNING: temporarily unable to make a snapshot of ${this.path}  -- ${err}`,
+          `(expected) WARNING: client temporarily unable to make a snapshot of ${this.path}  -- ${err}`,
         );
       }
     } else {

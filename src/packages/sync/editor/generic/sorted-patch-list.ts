@@ -513,7 +513,11 @@ export class SortedPatchList extends EventEmitter {
       );
       const s = this.value({ time: x.time, noCache });
       log(
-        x.snapshot ? "(SNAPSHOT) " : "           ",
+        x.snapshot
+          ? "(SNAPSHOT) "
+          : (x.parents?.length ?? 0) > 1
+            ? "(MERGE)    "
+            : "           ",
         JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
       );
       i += 1;
@@ -551,11 +555,82 @@ export class SortedPatchList extends EventEmitter {
      gets committed, a new snapshot would get made until no
      more need to be made.  This isn't maximally efficient, in that
      several extra snapshots might get made, but maybe that is OK.
+
+     RULE 3: The collection of all known patches >= snapshot time
+     should have exactly one tail, which is the snapshot time.
+     In particular, this sort of situation is not allowed:
+        time=10: snapshot
+        time=11: parents=[10]
+        time=12: parents=[11,9]  <--- very bad
+     The above would be bad, because the tails are 10 *and* 9.
+     The easiest way to think about this is that if you take the subgraph
+     of all patches >= snapshot_time, then the node at snapshot_time
+     is the ONLY one that is allowed to point to nodes <= snapshot_time.
      */
+  private neverSnapshotTimes = new Set<number>();
   time_of_unmade_periodic_snapshot = (
     interval: number,
     max_size: number,
   ): number | undefined => {
+    // This satisfies rules 1 and 2.
+    let i = this.canidateSnapshotIndex({ interval, max_size });
+    if (i == null) {
+      return;
+    }
+    return this.nextValidSnapshotTime({ interval, i });
+  };
+
+  // this implements rule 3 above, namely checking that the data starting
+  // with the given snapshot is valid graph.
+  private nextValidSnapshotTime = ({
+    // length of interval that we target for making snapshot
+    interval,
+    // index into patch list
+    i,
+  }: {
+    interval: number;
+    i: number;
+  }) => {
+    const minAge = Math.min(interval, 5);
+    while (
+      i < this.patches.length - minAge &&
+      this.neverSnapshotTimes.has(this.patches[i].time)
+    ) {
+      i += 1;
+    }
+    if (i >= this.patches.length - minAge) {
+      return;
+    }
+    // try successive patches up to MAX_ATTEMPTS for one that can be snapshotted.
+    const MAX_ATTEMPTS = 10;
+    const graph: { [time: number]: Patch } = {};
+    for (const patch of this.patches.slice(i)) {
+      graph[patch.time] = patch;
+    }
+    for (
+      let attempts = 0;
+      attempts < MAX_ATTEMPTS && i < this.patches.length - minAge;
+      attempts++
+    ) {
+      let time = this.patches[i].time;
+      // Does time also satisfy rule 3?  If so, we use it. If not, we
+      // wait until a new option comes along.
+      const missing = getMissingNodes(graph);
+      if (missing.length != 1) {
+        this.neverSnapshotTimes.add(time);
+        delete graph[time];
+        i += 1;
+      } else {
+        // it satisfies rule 3 as well!
+        return time;
+      }
+    }
+  };
+
+  private canidateSnapshotIndex = ({
+    interval,
+    max_size,
+  }): number | undefined => {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
@@ -571,7 +646,7 @@ export class SortedPatchList extends EventEmitter {
         if (i + 2 * interval <= n) {
           // Time to make a snapshot, based purely on the number
           // of patches made since the last snapshot (or beginning of time).
-          return this.patches[i + interval].time;
+          return i + interval;
         }
         // No reason to make snapshot based on number of patches.  What about size?
         if (cur_size > max_size) {
@@ -584,7 +659,7 @@ export class SortedPatchList extends EventEmitter {
           for (let j = is_snapshot ? i + 1 : i; j <= n; j++) {
             cnt_size += this.patches[j].size;
             if (cnt_size > max_size) {
-              return this.patches[j].time;
+              return j;
             }
           }
           return; // this should be unreachable
@@ -778,4 +853,19 @@ function getTimesWithHeads(
   }
 
   return visited;
+}
+
+function getMissingNodes(graph: { [time: number]: Patch }): number[] {
+  // missing are the nodes that are pointed out by nodes of the graph,
+  // but aren't in our graph.
+  const missing = new Set<number>();
+  for (const patch of Object.values(graph)) {
+    for (const t of patch.parents ?? []) {
+      if (graph[t] == null) {
+        // ut oh.
+        missing.add(t);
+      }
+    }
+  }
+  return Array.from(missing);
 }
