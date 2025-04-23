@@ -127,6 +127,7 @@ import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/nats/types";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
+import { ENFORCE_LIMITS_THROTTLE_MS } from "./stream";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -142,10 +143,6 @@ const CONNECTION_CHECK_INTERVAL = 5000;
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
 // own KV store limit naming.
-
-// Significant throttling is VERY, VERY important, since purging old messages frequently
-// seems to put a very significant load on NATS!
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 30000;
 
 export interface KVLimits {
   // How many keys may be in the KV store. Oldest keys will be removed
