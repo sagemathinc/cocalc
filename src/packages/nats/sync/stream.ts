@@ -271,7 +271,7 @@ export class Stream<T = any> extends EventEmitter {
         }
       });
     } else {
-      this.checkConsumerOnStatusChanges();
+      this.checkConsumerOnReconnect();
     }
     while (this.stream != null) {
       if (!(await isConnected())) {
@@ -307,7 +307,7 @@ export class Stream<T = any> extends EventEmitter {
     { leading: false, trailing: true },
   );
 
-  private checkConsumerOnStatusChanges = async () => {
+  private checkConsumerOnReconnect = async () => {
     while (this.stream != null) {
       try {
         for await (const { type } of await this.env.nc.status()) {
@@ -331,7 +331,7 @@ export class Stream<T = any> extends EventEmitter {
       await this.consumer.info();
       return true;
     } catch (err) {
-      console.log(`consumer.info error -- ${err}`);
+      console.log(`nats: consumer.info error -- ${err}`);
       return false;
     }
   };
