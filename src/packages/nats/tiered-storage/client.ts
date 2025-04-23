@@ -2,24 +2,31 @@
 Client for the tiered server.
 */
 
-import type { State, User, Info, Command } from "./server";
+import type { State, Info, Command } from "./server";
 import { tieredStorageSubject } from "./server";
 import { getEnv } from "@cocalc/nats/client";
+import { type Location } from "@cocalc/nats/types";
 
-export async function state(user: User): Promise<State> {
-  return (await call("state", user)) as State;
+export async function state(location: Location): Promise<State> {
+  return (await call("state", location)) as State;
 }
 
-export async function restore(user: User): Promise<Info> {
-  return (await call("restore", user)) as Info;
+export async function restore(location: Location): Promise<Info> {
+  return (await call("restore", location)) as Info;
 }
 
-export async function archive(user: User): Promise<Info> {
-  return (await call("archive", user)) as Info;
+export async function archive(location: Location): Promise<Info> {
+  return (await call("archive", location)) as Info;
 }
 
-async function call(command: Command, user: User) {
-  const subject = tieredStorageSubject(user);
+async function call(command: Command, location: Location) {
+  const subject = tieredStorageSubject(location);
   const { nc, jc } = await getEnv();
-  return await nc.requestMany(subject, jc.encode({ command }));
+  const resp = await nc.request(subject, jc.encode({ command }));
+  const x = jc.decode(resp.data);
+  if (x?.error) {
+    throw Error(x.error);
+  } else {
+    return x;
+  }
 }
