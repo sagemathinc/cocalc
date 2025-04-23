@@ -3,20 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
+import { Alert, Radio, Space, Tooltip } from "antd";
 import * as immutable from "immutable";
+import * as _ from "lodash";
 import React from "react";
 import { FormattedMessage } from "react-intl";
-import * as underscore from "underscore";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
-  TypedMap,
   project_redux_name,
   rclass,
   redux,
   rtypes,
+  TypedMap,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import {
@@ -41,6 +41,7 @@ import {
 } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
+import { unreachable } from "@cocalc/util/misc";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { AccessErrors } from "./access-errors";
@@ -48,7 +49,8 @@ import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
-import { default_ext } from "./file-listing/utils";
+import { TerminalModeDisplay } from "./file-listing/terminal-mode-display";
+import { default_ext, TERM_MODE_CHAR } from "./file-listing/utils";
 import { MiniTerminal } from "./mini-terminal";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
@@ -148,11 +150,10 @@ export function Explorer() {
 const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     newFileRef = React.createRef<any>();
-    searchBarRef = React.createRef<any>();
+    searchAndTerminalBar = React.createRef<any>();
     fileListingRef = React.createRef<any>();
     currentDirectoryRef = React.createRef<any>();
     miscButtonsRef = React.createRef<any>();
-    miniterminalRef = React.createRef<any>();
 
     static reduxProps = ({ name }) => {
       return {
@@ -412,7 +413,7 @@ const Explorer0 = rclass(
       return (
         <ActivityDisplay
           trunc={80}
-          activity={underscore.values(this.props.activity)}
+          activity={_.values(this.props.activity)}
           on_clear={() => this.props.actions.clear_all_activity()}
           style={{ top: "100px" }}
         />
@@ -565,10 +566,17 @@ const Explorer0 = rclass(
             flexFlow: IS_MOBILE ? undefined : "row wrap",
             justifyContent: "space-between",
             alignItems: "stretch",
+            marginBottom: "15px",
           }}
         >
-          <div>
-            <div style={{ display: "flex" }}>
+          <div
+            style={{
+              flex: "3 1 auto",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ display: "flex", flex: "1 1 auto" }}>
               <SelectComputeServerForFileExplorer
                 project_id={this.props.project_id}
                 key="compute-server"
@@ -603,7 +611,6 @@ const Explorer0 = rclass(
               style={{
                 flex: "0 1 auto",
                 margin: "0 10px",
-                marginBottom: "15px",
               }}
               className="cc-project-files-create-dropdown"
             >
@@ -611,59 +618,25 @@ const Explorer0 = rclass(
             </div>
           )}
           {!IS_MOBILE && (
-            <div
-              ref={this.searchBarRef}
-              style={{
-                flex: "1 0 20%",
-                minWidth: "15em",
-              }}
-            >
-              <SearchBar
-                project_id={this.props.project_id}
-                key={this.props.current_path}
-                file_search={this.props.file_search}
-                actions={this.props.actions}
-                current_path={this.props.current_path}
-                selected_file={
-                  visible_listing != undefined
-                    ? visible_listing[this.props.selected_file_index || 0]
-                    : undefined
-                }
-                selected_file_index={this.props.selected_file_index}
-                file_creation_error={this.props.file_creation_error}
-                num_files_displayed={
-                  visible_listing != undefined
-                    ? visible_listing.length
-                    : undefined
-                }
-                create_file={this.create_file}
-                create_folder={this.create_folder}
-              />
-            </div>
+            <SearchTerminalBar
+              ref={this.searchAndTerminalBar}
+              actions={this.props.actions}
+              current_path={this.props.current_path}
+              file_search={this.props.file_search}
+              visible_listing={visible_listing}
+              selected_file_index={this.props.selected_file_index}
+              file_creation_error={this.props.file_creation_error}
+              create_file={this.create_file}
+              create_folder={this.create_folder}
+            />
           )}
-          <>
-            <div
-              style={{
-                flex: "0 1 auto",
-                marginBottom: "15px",
-              }}
-            >
-              <UsersViewing project_id={this.props.project_id} />
-            </div>
-            {!IS_MOBILE && (
-              <div
-                ref={this.miniterminalRef}
-                style={{ flex: "1 0 auto", marginBottom: "15px" }}
-              >
-                <MiniTerminal
-                  current_path={this.props.current_path}
-                  project_id={this.props.project_id}
-                  actions={this.props.actions}
-                  show_close_x={true}
-                />
-              </div>
-            )}
-          </>
+          <div
+            style={{
+              flex: "0 1 auto",
+            }}
+          >
+            <UsersViewing project_id={this.props.project_id} />
+          </div>
         </div>
       );
     }
@@ -714,6 +687,11 @@ const Explorer0 = rclass(
         />
       );
     }
+    render_terminal_mode() {
+      if (this.props.file_search[0] === TERM_MODE_CHAR) {
+        return <TerminalModeDisplay />;
+      }
+    }
 
     render() {
       let project_is_running: boolean,
@@ -763,7 +741,7 @@ const Explorer0 = rclass(
         alignItems: "stretch",
       };
 
-      // be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
+      // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
       return (
         <div className={"smc-vfill"}>
           <div
@@ -777,6 +755,7 @@ const Explorer0 = rclass(
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(visible_listing)}
+            {this.render_terminal_mode()}
             {this.props.ext_selection != null && (
               <AskNewFilename project_id={this.props.project_id} />
             )}
@@ -806,6 +785,7 @@ const Explorer0 = rclass(
               <Row>{this.render_files_action_box(file_map)}</Row>
             ) : undefined}
           </div>
+
           <div
             ref={this.fileListingRef}
             className="smc-vfill"
@@ -832,14 +812,108 @@ const Explorer0 = rclass(
             open={this.props.explorerTour}
             project_id={this.props.project_id}
             newFileRef={this.newFileRef}
-            searchBarRef={this.searchBarRef}
+            searchAndTerminalBar={this.searchAndTerminalBar}
             fileListingRef={this.fileListingRef}
             currentDirectoryRef={this.currentDirectoryRef}
             miscButtonsRef={this.miscButtonsRef}
-            miniterminalRef={this.miniterminalRef}
           />
         </div>
       );
     }
+  },
+);
+
+const SearchTerminalBar = React.forwardRef(
+  (
+    {
+      current_path,
+      file_search,
+      actions,
+      visible_listing,
+      selected_file_index,
+      file_creation_error,
+      create_file,
+      create_folder,
+    }: {
+      ref: React.Ref<any>;
+      current_path: string;
+      file_search: string;
+      actions: ProjectActions;
+      visible_listing: ListingItem[] | undefined;
+      selected_file_index?: number;
+      file_creation_error?: string;
+      create_file: (ext?: string, switch_over?: boolean) => void;
+      create_folder: (switch_over?: boolean) => void;
+    },
+    ref: React.LegacyRef<HTMLDivElement> | undefined,
+  ) => {
+    const [mode, setMode] = React.useState<"search" | "terminal">("search");
+
+    function renderTerminal() {
+      return (
+        <MiniTerminal
+          current_path={current_path}
+          actions={actions}
+          show_close_x={true}
+        />
+      );
+    }
+
+    function renderSearch() {
+      return (
+        <SearchBar
+          key={current_path}
+          file_search={file_search}
+          actions={actions}
+          current_path={current_path}
+          selected_file={
+            visible_listing != undefined
+              ? visible_listing[selected_file_index || 0]
+              : undefined
+          }
+          selected_file_index={selected_file_index}
+          file_creation_error={file_creation_error}
+          num_files_displayed={
+            visible_listing != undefined ? visible_listing.length : undefined
+          }
+          create_file={create_file}
+          create_folder={create_folder}
+        />
+      );
+    }
+
+    function renderBar() {
+      switch (mode) {
+        case "search":
+          return renderSearch();
+        case "terminal":
+          return renderTerminal();
+        default:
+          unreachable(mode);
+      }
+    }
+
+    return (
+      <Space.Compact style={{ flex: "1 1 auto" }}>
+        <Radio.Group
+          ref={ref}
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+          style={{ whiteSpace: "nowrap" }}
+        >
+          <Tooltip title="Click to change the input box to filter files by their name and open them with return.">
+            <Radio.Button value="search">
+              <Icon name="search" />
+            </Radio.Button>
+          </Tooltip>
+          <Tooltip title="Click to change the input box to run commands.">
+            <Radio.Button value="terminal" style={{ borderRadius: 0 }}>
+              <Icon name="terminal" />
+            </Radio.Button>
+          </Tooltip>
+        </Radio.Group>
+        {renderBar()}
+      </Space.Compact>
+    );
   },
 );
