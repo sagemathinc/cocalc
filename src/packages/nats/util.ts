@@ -159,8 +159,9 @@ export const waitUntilConnected = reuseInFlight(async () => {
   if (nc.protocol?.connected) {
     return;
   }
+  console.log("NATS waitUntilConnected: waiting...");
   while (!nc.protocol?.connected) {
     await delay(500);
   }
-  // console.log("NATS: connected");
+  console.log("NATS waitUntilConnected: connected");
 });
