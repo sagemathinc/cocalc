@@ -255,6 +255,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   async save(explicit: boolean = true): Promise<void> {
+    if (this._state == "closed") return;
     explicit = explicit; // not used yet -- might be used for "strip trailing whitespace"
 
     // Copy state from live codemirror editor into syncdb
@@ -265,17 +266,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       a.save_input_editor();
     }
 
-    if (!this.jupyter_actions.syncdb.has_unsaved_changes()) return;
+    if (!this.jupyter_actions.syncdb?.has_unsaved_changes()) {
+      return;
+    }
 
     // Do the save itself, using try/finally to ensure proper
     // setting of is_saving.
     try {
       this.setState({ is_saving: true });
       await this.jupyter_actions.save();
+      if (this._state == "closed") {
+        return;
+      }
       syncAllComputeServers(this.project_id);
     } catch (err) {
       console.warn("save_to_disk", this.path, "ERROR", err);
-      if (this._state == "closed") return;
+      if (this._state == "closed") {
+        return;
+      }
       this.set_error(`error saving file to disk -- ${err}`);
     } finally {
       this.setState({ is_saving: false });
