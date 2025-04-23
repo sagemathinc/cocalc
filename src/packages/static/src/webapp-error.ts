@@ -141,6 +141,10 @@ function isWhitelisted({ error }): boolean {
       // - Move your mouse to the pdf view
       return true;
     }
+    if (error?.stack?.includes("xterm-addon-webgl")) {
+      // ranodmly happens sometimes with webgl based terminal, but then it still works fine.
+      return true;
+    }
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.
