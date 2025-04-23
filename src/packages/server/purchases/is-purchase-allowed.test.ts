@@ -3,17 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { uuid } from "@cocalc/util/misc";
+import createAccount from "../accounts/create-account";
+import createPurchase from "./create-purchase";
 import {
   assertPurchaseAllowed,
   isPurchaseAllowed,
 } from "./is-purchase-allowed";
-import createPurchase from "./create-purchase";
-import createAccount from "../accounts/create-account";
-import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { setPurchaseQuota } from "./purchase-quotas";
-import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { getPurchaseQuota, setPurchaseQuota } from "./purchase-quotas";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -154,10 +154,10 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(x.allowed).toBe(false);
   });
 
-  it("allows but DISCOURAGES purchase for service with a quota even though our balance is large, since the quota default is 0... but ", async () => {
+  it("allows but DISCOURAGES purchase for service with a quota even though our balance is large, since the quota default is 0", async () => {
     const { allowed, reason, discouraged } = await isPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
@@ -165,15 +165,24 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(reason).toMatch("may exceed your personal monthly spending budget");
   });
 
+  it("allows and does not DISCOURAGES purchase for an LLM with a quota even though our balance is large, since the quota default is 10 ", async () => {
+    const { allowed } = await isPurchaseAllowed({
+      account_id,
+      service: "openai-gpt-4.1",
+      cost: 0.5,
+    });
+    expect(allowed).toBe(true);
+  });
+
   it("raise the quota and now purchase *is* not discouraged", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       value: 2,
     });
     const { allowed, discouraged } = await isPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
@@ -183,12 +192,12 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("raise the quota and now purchase *is* allowed BUT ONLY UP TO A POINT", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       value: 5000,
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       cost: 5000,
     });
     expect(allowed).toBe(false); // because balance
@@ -197,12 +206,12 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("raise the quota to well beyond the purchase limit, and now purchase *is* not allowed because of purchase limit", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       value: 10 * MAX_COST,
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4",
+      service: "compute-server",
       cost: MAX_COST,
     });
     expect(allowed).toBe(false); // because balance
@@ -213,9 +222,15 @@ describe("test checking whether or not purchase is allowed under various conditi
       async () =>
         await assertPurchaseAllowed({
           account_id,
-          service: "openai-gpt-4",
+          service: "compute-server",
           cost: 100000,
         }),
     ).rejects.toThrow();
+  });
+
+  it("default quota for LLMs is about 10", async () => {
+    const minBalance = await getPurchaseQuota(account_id, "openai-o1");
+    const { llm_default_quota } = await getServerSettings();
+    expect(minBalance).toBe(llm_default_quota);
   });
 });

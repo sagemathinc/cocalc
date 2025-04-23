@@ -167,14 +167,14 @@ export class NatsClient extends EventEmitter {
     return this.nc;
   });
 
-  reconnect = async () => {
+  reconnect = reuseInFlight(async () => {
     if (this.nc != null) {
       console.log("NATS connection: reconnecting...");
       this.standby();
       await delay(50);
-      this.resume();
+      await this.resume();
     }
-  };
+  });
 
   // if there is a connection, put it in standby
   standby = () => {

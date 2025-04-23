@@ -270,12 +270,12 @@ export class NatsService extends EventEmitter {
   // willl return. It does not throw an error.
   private runService = async () => {
     try {
+      await waitUntilConnected();
       this.emit("starting");
       this.log("starting service");
       const env = await getEnv();
       if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
         const svcm = new Svcm(env.nc);
-        await waitUntilConnected();
         const service = await svcm.add({
           name: this.name,
           version: this.options.version ?? "0.0.1",
@@ -363,9 +363,9 @@ export async function pingNatsService({
   id,
 }: ServiceClientOpts): Promise<(ServiceIdentity | string)[]> {
   if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
-//     console.log(
-//       `pingNatsService: ${options.service}.${options.description ?? ""} -- using fallback ping`,
-//     );
+    //     console.log(
+    //       `pingNatsService: ${options.service}.${options.description ?? ""} -- using fallback ping`,
+    //     );
     const pong = await callNatsService({
       ...options,
       mesg: "ping",
@@ -373,9 +373,9 @@ export async function pingNatsService({
       // set no-retry to avoid infinite loop
       noRetry: true,
     });
-//     console.log(
-//       `pingNatsService: ${options.service}.${options.description ?? ""} -- success`,
-//     );
+    //     console.log(
+    //       `pingNatsService: ${options.service}.${options.description ?? ""} -- success`,
+    //     );
     return [pong];
   }
   const env = await getEnv();

@@ -53,6 +53,9 @@ export default function AllQuotasConfig() {
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  // The 10 is just for the initial rollout, the value is customizable
+  const llm_default_quota =
+    useTypedRedux("customize", "llm_default_quota") ?? 10;
 
   const getQuotas = async () => {
     let quotas, charges;
@@ -74,17 +77,19 @@ export default function AllQuotasConfig() {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
       const llmModel = service2model_core(service);
-      if (llmModel != null) {
+      const isLLM = llmModel != null;
+      if (isLLM) {
         // We do not show those models, which can't be selected by users OR are free in the first place
         const cost = LLM_COST[llmModel];
         if (!selectableLLMs.includes(llmModel) || cost?.free === true) {
           continue;
         }
       }
+      const defaultQuota: number = isLLM ? llm_default_quota : 0;
       w[service] = {
         current: charges[service] ?? 0,
         service: service as Service,
-        quota: services[service] ?? 0,
+        quota: services[service] ?? defaultQuota,
       };
     }
     try {
@@ -154,8 +159,8 @@ export default function AllQuotasConfig() {
       dataIndex: "quota",
       align: "center" as "center",
       render: (quota: number, _record: ServiceQuota, index: number) => {
-        const presets =
-          QUOTA_SPEC[_record.service]?.category === "ai" ? PRESETS_LLM : PRESETS;
+        const isLLM = QUOTA_SPEC[_record.service]?.category === "ai";
+        const presets = isLLM ? PRESETS_LLM : PRESETS;
 
         return (
           <Dropdown
