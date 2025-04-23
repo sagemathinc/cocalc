@@ -58,6 +58,19 @@ project_id = '00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'; path = '2025-03-21-100921.i
 redux = require("@cocalc/jupyter/redux/app").redux;  a = redux.getEditorActions(project_id, path); s = redux.getEditorStore(project_id, path); 0;
 
 
+IN A LIVE RUNNING PROJECT IN KUCALC:
+
+Ssh in to the project itself.  You can use a terminal because that very terminal will be broken by
+doing this!  Then:
+
+/cocalc/github/src/packages/project$ COCALC_PROJECT_ID=... COCALC_SECRET_TOKEN="/secrets/secret-token/token"  NATS_SERVER=nats-server node
+Welcome to Node.js v20.19.0.
+Type ".help" for more information.
+> x = await require("@cocalc/project/nats/open-files").init(); Object.keys(x)
+[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
+> 
+
+
 */
 
 import {
