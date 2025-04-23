@@ -5,6 +5,7 @@ import mkdirp from "mkdirp";
 import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
 import { rmKV, rmStream } from "./archive";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import type { LocationType } from "./types";
 
 export async function restoreStream(name: string) {
   if (!(await exists(join(natsBackup, name, "backup.json")))) {
@@ -33,7 +34,7 @@ export async function restoreLocation({
   force,
 }: {
   user_id: string;
-  type: "account" | "project";
+  type: LocationType;
   force?: boolean;
 }) {
   const name = `${type}-${user_id}`;

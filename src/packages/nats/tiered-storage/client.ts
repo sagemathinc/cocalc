@@ -19,6 +19,14 @@ export async function archive(location: Location): Promise<Info> {
   return (await call("archive", location)) as Info;
 }
 
+export async function backup(location: Location): Promise<Info> {
+  return (await call("backup", location)) as Info;
+}
+
+export async function info(location: Location): Promise<Info> {
+  return (await call("info", location)) as Info;
+}
+
 async function call(command: Command, location: Location) {
   const subject = tieredStorageSubject(location);
   const { nc, jc } = await getEnv();
