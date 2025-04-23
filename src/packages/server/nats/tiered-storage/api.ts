@@ -52,9 +52,9 @@ class TieredStorage implements TieredStorageInterface {
   state = async (location: Location): Promise<State> => {
     const type = getType(location);
     if (type == "account") {
-      return await getAccountState(location);
+      return await getAccountState(location as { account_id: string });
     } else if (type == "project") {
-      return await getProjectState(location);
+      return await getProjectState(location as { project_id: string });
     }
     throw Error("invalid type");
   };
@@ -62,9 +62,9 @@ class TieredStorage implements TieredStorageInterface {
   info = async (location: Location): Promise<Info> => {
     const type = getType(location);
     if (type == "account") {
-      return await getAccountInfo(location);
+      return await getAccountInfo(location as { account_id: string });
     } else if (type == "project") {
-      return await getProjectInfo(location);
+      return await getProjectInfo(location as { project_id: string });
     }
     throw Error("invalid type");
   };
@@ -72,9 +72,9 @@ class TieredStorage implements TieredStorageInterface {
   restore = async (location: Location): Promise<void> => {
     const type = getType(location);
     if (type == "account") {
-      return await restoreAccount(location);
+      return await restoreAccount(location as { account_id: string });
     } else if (type == "project") {
-      return await restoreProject(location);
+      return await restoreProject(location as { project_id: string });
     }
     throw Error("invalid type");
   };
@@ -82,9 +82,9 @@ class TieredStorage implements TieredStorageInterface {
   archive = async (location: Location): Promise<void> => {
     const type = getType(location);
     if (type == "account") {
-      return await archiveAccount(location);
+      return await archiveAccount(location as { account_id: string });
     } else if (type == "project") {
-      return await archiveProject(location);
+      return await archiveProject(location as { project_id: string });
     }
     throw Error("invalid type");
   };
@@ -92,9 +92,9 @@ class TieredStorage implements TieredStorageInterface {
   backup = async (location: Location): Promise<void> => {
     const type = getType(location);
     if (type == "account") {
-      return await backupAccount(location);
+      return await backupAccount(location as { account_id: string });
     } else if (type == "project") {
-      return await backupProject(location);
+      return await backupProject(location as { project_id: string });
     }
     throw Error("invalid type");
   };

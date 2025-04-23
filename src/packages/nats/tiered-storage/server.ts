@@ -8,7 +8,7 @@ See also @cocalc/server/nats/tiered-storage.
 */
 
 import { getEnv, getLogger } from "@cocalc/nats/client";
-import { type Subscription, Empty } from "@nats-io/nats-core";
+import { type Subscription } from "@nats-io/nats-core";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Location } from "@cocalc/nats/types";
 import { delay } from "awaiting";
@@ -18,7 +18,9 @@ const logger = getLogger("tiered-storage:server");
 export type State = "archived" | "restoring" | "ready";
 
 export interface Info {
-  bytes: number;
+  bytesStream: number;
+  bytesKv: number;
+  state: State;
   location: Location;
 }
 
@@ -44,8 +46,14 @@ export function tieredStorageSubject({ account_id, project_id }: Location) {
         "location for tiered storage must specify exactly one of account_id or project_id, but it specifies both",
       );
     }
+    if (!isValidUUID(account_id)) {
+      throw Error("invalid account_id");
+    }
     return `${SUBJECT}.account-${account_id}.api`;
   } else if (project_id) {
+    if (!isValidUUID(project_id)) {
+      throw Error("invalid project_id");
+    }
     return `${SUBJECT}.project-${project_id}.api`;
   } else {
     throw Error(
@@ -54,27 +62,24 @@ export function tieredStorageSubject({ account_id, project_id }: Location) {
   }
 }
 
-function getUser(subject: string): User {
+function getLocation(subject: string): Location {
   if (subject.startsWith(`${SUBJECT}.account-`)) {
     return {
-      user_id: subject.slice(
+      account_id: subject.slice(
         `${SUBJECT}.account-`.length,
         `${SUBJECT}.account-`.length + 36,
       ),
-      type: "account",
     };
   }
   if (subject.startsWith(`${SUBJECT}.project-`)) {
     return {
-      user_id: subject.slice(
+      project_id: subject.slice(
         `${SUBJECT}.project-`.length,
         `${SUBJECT}.project-`.length + 36,
       ),
-      type: "project",
     };
   }
-
-  return { type: "hub" };
+  throw Error(`invalid subject -- ${subject}`);
 }
 
 let tieredStorage: TieredStorage | null = null;
@@ -127,24 +132,24 @@ async function listen(sub) {
 
 async function handleMessage(mesg) {
   let resp;
+  const { jc } = await getEnv();
 
   try {
-    const { jc } = await getEnv();
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
-    const user = getUser(mesg.subject);
+    const location = getLocation(mesg.subject);
     const { command } = jc.decode(mesg.data);
     if (command == "state") {
-      resp = await tieredStorage.state(user);
+      resp = await tieredStorage.state(location);
     } else if (command == "restore") {
-      resp = await tieredStorage.restore(user);
+      resp = await tieredStorage.restore(location);
     } else if (command == "archive") {
-      resp = await tieredStorage.archive(user);
+      resp = await tieredStorage.archive(location);
     } else if (command == "backup") {
-      resp = await tieredStorage.backup(user);
+      resp = await tieredStorage.backup(location);
     } else if (command == "info") {
-      resp = await tieredStorage.info(user);
+      resp = await tieredStorage.info(location);
     } else {
       throw Error(`unknown command '${command}'`);
     }
