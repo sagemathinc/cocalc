@@ -21,7 +21,7 @@ export async function backupStream(name: string) {
       join(natsBackup, name),
     ],
     err_on_exit: false,
-    env: natsCoCalcUserEnv(),
+    env: { ...process.env, ...natsCoCalcUserEnv() },
   });
   if (exit_code) {
     if (stderr.includes("stream not found")) {
