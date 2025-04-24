@@ -62,7 +62,9 @@ const jc = JSONCodec();
 // It's good for this to be LONG, since it reduces load on the system.
 // That said, if hubs are killed properly, they release their
 // locks on exit.
-const LOCK_TIMEOUT_MS = 60000;
+const LOCK_TIMEOUT_MS = 90000;
+
+const MAX_MANAGER_CONFLICTS = parseInt(process.env.COCALC_MAX_MANAGER_CONFLICTS ?? "3");
 
 // This is a limit on the numChangefeedsBeingCreatedAtOnce:
 const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
@@ -243,6 +245,7 @@ const changefeedChanges: { [hash: string]: string } = {};
 const changefeedInterest: { [hash: string]: number } = {};
 // changefeedSynctables maps hash to SyncTable
 const changefeedSynctables: { [hash: string]: any } = {};
+const changefeedManagerConflicts: { [id: string]: number } = {};
 
 async function cancelChangefeed({
   hash,
@@ -270,6 +273,7 @@ async function cancelChangefeed({
   delete changefeedInterest[hash];
   delete changefeedHashes[changes];
   delete changefeedChanges[hash];
+  delete changefeedManagerConflicts[hash];
   db().user_query_cancel_changefeed({ id: changes });
   if (synctable) {
     try {
@@ -318,12 +322,19 @@ const createChangefeed = reuseInFlight(
       manager,
     });
     if (manager && coordinator.managerId != manager) {
-      logger.debug("somebody else is the manager", { hash });
+      logger.debug(`somebody else ${manager} is the manager`, { hash });
       if (changefeedInterest[hash]) {
-        logger.debug("we are also managing it right now, so cancel it", {
-          hash,
-        });
-        cancelChangefeed({ hash });
+        changefeedManagerConflicts[hash] =
+          (changefeedManagerConflicts[hash] ?? 0) + 1;
+        logger.debug(
+          `both us (${coordinator.managerId}) and ${manager} we are also managing changefeed`,
+          {
+            hash,
+          },
+        );
+        if (changefeedManagerConflicts[hash] >= MAX_MANAGER_CONFLICTS) {
+          cancelChangefeed({ hash });
+        }
         return;
       }
       return;
