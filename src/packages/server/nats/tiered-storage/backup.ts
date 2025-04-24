@@ -9,7 +9,7 @@ const logger = getLogger("tiered-storage:backup");
 
 export async function backupStream(name: string) {
   logger.debug("backup stream", { name });
-  await mkdirp(natsBackup);
+  await mkdirp(join(natsBackup, name));
   const { stdout, stderr, exit_code } = await executeCode({
     command: "nats",
     args: [
@@ -25,8 +25,7 @@ export async function backupStream(name: string) {
   });
   if (exit_code) {
     if (stderr.includes("stream not found")) {
-      // empty -- never created
-      await mkdirp(join(natsBackup, name));
+      return;
     } else {
       throw Error(stderr);
     }
