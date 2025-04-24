@@ -64,7 +64,9 @@ const jc = JSONCodec();
 // locks on exit.
 const LOCK_TIMEOUT_MS = 90000;
 
-const MAX_MANAGER_CONFLICTS = parseInt(process.env.COCALC_MAX_MANAGER_CONFLICTS ?? "3");
+const MAX_MANAGER_CONFLICTS = parseInt(
+  process.env.COCALC_MAX_MANAGER_CONFLICTS ?? "9999",
+);
 
 // This is a limit on the numChangefeedsBeingCreatedAtOnce:
 const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
@@ -188,6 +190,8 @@ async function handleRequest({ mesg, nc }) {
       numRequestsAtOnce,
       numSubscriptions: numSubscriptions(),
       numChangefeedsBeingCreatedAtOnce,
+      numChangefeedsBeingManaging: Object.keys(changefeedHashes).length,
+      numCanceledSinceStart,
     });
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = jc.decode(mesg.data) ?? ({} as any);
@@ -247,6 +251,7 @@ const changefeedInterest: { [hash: string]: number } = {};
 const changefeedSynctables: { [hash: string]: any } = {};
 const changefeedManagerConflicts: { [id: string]: number } = {};
 
+let numCanceledSinceStart = 0;
 async function cancelChangefeed({
   hash,
   changes,
@@ -255,6 +260,7 @@ async function cancelChangefeed({
   changes?: string;
 }) {
   logger.debug("cancelChangefeed", { changes, hash });
+  numCanceledSinceStart += 1;
   if (changes && !hash) {
     hash = changefeedHashes[changes];
   } else if (hash && !changes) {
@@ -330,6 +336,8 @@ const createChangefeed = reuseInFlight(
           `both us (${coordinator.managerId}) and ${manager} we are also managing changefeed`,
           {
             hash,
+            count: changefeedManagerConflicts[hash],
+            max: MAX_MANAGER_CONFLICTS,
           },
         );
         if (changefeedManagerConflicts[hash] >= MAX_MANAGER_CONFLICTS) {
