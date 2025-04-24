@@ -34,6 +34,7 @@ function getUserId(subject: string): string {
 let terminated = false;
 let sub: Subscription | null = null;
 export async function init(db) {
+  logger.debug("starting changefeed server");
   while (!terminated) {
     await waitUntilConnected();
     const { nc } = await getEnv();
@@ -68,12 +69,13 @@ async function listen(db) {
   }
 }
 
+let numChangefeeds = 0;
+
 async function handleMessage(mesg, db) {
   const { jc } = await getEnv();
   const request = jc.decode(mesg.data);
   const account_id = getUserId(mesg.subject);
   const changes = uuid();
-  global.z = { mesg };
 
   let seq = 0;
   const respond = (error, resp?) => {
@@ -91,11 +93,15 @@ async function handleMessage(mesg, db) {
     }
   };
 
+  numChangefeeds += 1;
   let done = false;
   const end = () => {
-    if (done) return;
-    db().user_query_cancel_changefeed({ id: changes });
+    if (done) {
+      return;
+    }
     done = true;
+    numChangefeeds -= 1;
+    db().user_query_cancel_changefeed({ id: changes });
     // end response stream with empty payload.
     mesg.respond(Empty);
   };
@@ -105,6 +111,7 @@ async function handleMessage(mesg, db) {
     if (!isValidUUID(account_id)) {
       throw Error("account_id must be a valid uuid");
     }
+    logger.debug("changefeed status", { numChangefeeds });
     db().user_query({
       ...request,
       account_id,

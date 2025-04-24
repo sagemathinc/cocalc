@@ -7,7 +7,6 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { changefeedSubject } from "./server";
 import { waitUntilConnected } from "@cocalc/nats/util";
 
-
 export async function* changefeed({
   account_id,
   query,

@@ -6,7 +6,7 @@
 import { is_array } from "@cocalc/util/misc";
 import { validate_client_query } from "@cocalc/util/schema-validate";
 import { CB } from "@cocalc/util/types/database";
-import { NatsChangefeed } from "@cocalc/sync/table/changefeed-nats";
+import { NatsChangefeed } from "@cocalc/sync/table/changefeed-nats2";
 import { uuid } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/schema";
 
@@ -48,13 +48,13 @@ export class QueryClient {
       let changefeed;
       try {
         changefeed = new NatsChangefeed({
-          client: this.client,
-          query: opts.query, // todo: regarding options
+          account_id: this.client.account_id,
+          query: opts.query,
+          options: opts.options,
         });
         // id for canceling this changefeed
         const id = uuid();
-        const rows = await changefeed.connect();
-        const query = { [Object.keys(opts.query)[0]]: rows };
+        const query = await changefeed.connect();
         this.changefeeds[id] = changefeed;
         cb(undefined, { query, id });
         changefeed.on("update", (change) => {

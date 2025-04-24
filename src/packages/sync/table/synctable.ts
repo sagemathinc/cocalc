@@ -38,7 +38,7 @@ import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Changefeed } from "./changefeed";
-import { NatsChangefeed } from "./changefeed-nats";
+import { NatsChangefeed } from "./changefeed-nats2";
 import { parse_query, to_key } from "./util";
 import { isTestClient } from "@cocalc/sync/editor/generic/util";
 
@@ -729,7 +729,7 @@ export class SyncTable extends EventEmitter {
         !this.project_id
       ) {
         this.changefeed = new NatsChangefeed({
-          client: this.client,
+          account_id: this.client.client_id?.()!,
           query: this.query,
           options: this.options,
         });

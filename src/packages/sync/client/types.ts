@@ -23,6 +23,7 @@ export interface Client extends EventEmitter {
   is_deleted: (path: string, project_id: string) => true | false | undefined;
   callNatsService?: CallNatsServiceFunction;
   createNatsService?: CreateNatsServiceFunction;
+  client_id?: () => string | undefined;
 }
 
 export interface ClientFs extends Client {
