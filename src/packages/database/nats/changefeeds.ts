@@ -430,7 +430,7 @@ const createNewChangefeed = async ({ query, user, nc, opts, hash }) => {
   // other "threads" doing hard work:
   while (numChangefeedsBeingCreatedAtOnce >= PARALLEL_LIMIT) {
     // TODO: This is STUPID
-    await delay(50);
+    await delay(25);
   }
   try {
     numChangefeedsBeingCreatedAtOnce += 1;
