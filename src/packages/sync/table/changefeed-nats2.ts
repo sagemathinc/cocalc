@@ -71,8 +71,7 @@ export class NatsChangefeed extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    // TODO: not sure how to cancel -- not implemented yet
-    //this.natsSynctable?.close();
+    this.kill();
     this.state = "closed";
     this.emit("close"); // yes "close" not "closed" ;-(
   };
@@ -108,6 +107,19 @@ export class NatsChangefeed extends EventEmitter {
         return;
       }
       await delay(HEARTBEAT / 2);
+    }
+  };
+
+  // try to free resources on the server
+  private kill = async () => {
+    if (this.id) {
+      try {
+        await renew({
+          account_id: this.account_id,
+          id: this.id,
+          lifetime: -1,
+        });
+      } catch {}
     }
   };
 

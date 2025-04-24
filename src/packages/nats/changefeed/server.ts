@@ -92,8 +92,14 @@ async function listenRenew() {
 }
 
 const endOfLife: { [id: string]: number } = {};
-global.z = endOfLife;
 function getLifetime({ lifetime }): number {
+  if (lifetime === -1) {
+    // special case of -1 used for cancel
+    return lifetime;
+  }
+  if (!lifetime) {
+    return DEFAULT_LIFETIME;
+  }
   lifetime = parseFloat(lifetime);
   if (lifetime > MAX_LIFETIME) {
     return MAX_LIFETIME;
@@ -146,6 +152,10 @@ async function listen(db) {
 let numChangefeeds = 0;
 const numChangefeedsPerAccount: { [account_id: string]: number } = {};
 
+function metrics() {
+  logger.debug("changefeeds", { numChangefeeds });
+}
+
 async function handleMessage(mesg, db) {
   const { jc } = await getEnv();
   const request = jc.decode(mesg.data);
@@ -171,6 +181,7 @@ async function handleMessage(mesg, db) {
   };
 
   numChangefeeds += 1;
+  metrics();
   let done = false;
   const end = () => {
     if (done) {
@@ -179,6 +190,7 @@ async function handleMessage(mesg, db) {
     done = true;
     delete endOfLife[id];
     numChangefeeds -= 1;
+    metrics();
     db().user_query_cancel_changefeed({ id });
     // end response stream with empty payload.
     mesg.respond(Empty);
@@ -200,7 +212,7 @@ async function handleMessage(mesg, db) {
 
   async function lifetimeLoop() {
     while (!done) {
-      await delay(10000);
+      await delay(7500);
       if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
         end();
         return;
@@ -235,7 +247,6 @@ async function handleMessage(mesg, db) {
     }
     // send the id first
     respond(undefined, { id, lifetime });
-    logger.debug("changefeeds", { numChangefeeds });
     db().user_query({
       ...request,
       account_id,

@@ -8,6 +8,8 @@ Turn off nats-server handling for the hub for changefeeds by sending this messag
 
 In a node session:
 
+DEBUG=cocalc*changefeed* DEBUG_CONSOLE=yes node
+
     require('@cocalc/backend/nats'); require('@cocalc/database/nats/changefeed-api').init()
 
 In another session:
