@@ -1,11 +1,21 @@
 /*
 Changefeed client
+
+
+changefeed(...) -- returns async iterator that outputs:
+
+  - {id:string} -- defines id of the changefeed
+  - '' -- heartbeats
+  - standard changefeed messages exactly from the database
+
+renew({id, lifetime}) -- keeps the changefeed alive for at least lifetime more ms.
 */
 
 import { getEnv } from "@cocalc/nats/client";
 import { isValidUUID } from "@cocalc/util/misc";
-import { changefeedSubject } from "./server";
+import { changefeedSubject, renewSubject } from "./server";
 import { waitUntilConnected } from "@cocalc/nats/util";
+export { DEFAULT_LIFETIME } from "./server";
 
 export async function* changefeed({
   account_id,
@@ -54,4 +64,20 @@ export async function* changefeed({
     lastSeq = seq;
     yield resp;
   }
+}
+
+export async function renew({
+  account_id,
+  id,
+  lifetime,
+}: {
+  account_id: string;
+  id: string;
+  lifetime?: number;
+}) {
+  const subject = renewSubject({ account_id });
+  const { nc, jc } = await getEnv();
+  await waitUntilConnected();
+  const resp = await nc.request(subject, jc.encode({ id, lifetime }));
+  return jc.decode(resp.data);
 }

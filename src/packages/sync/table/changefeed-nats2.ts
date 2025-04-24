@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from "events";
-import { changefeed } from "@cocalc/nats/changefeed/client";
+import { changefeed, renew } from "@cocalc/nats/changefeed/client";
 import { delay } from "awaiting";
 
 const HEARTBEAT = 7500;
@@ -16,6 +16,8 @@ export class NatsChangefeed extends EventEmitter {
   private state: "disconnected" | "connected" | "closed" = "disconnected";
   private natsSynctable?;
   private last_hb = 0;
+  private id?: string;
+  private lifetime?: number;
 
   constructor({
     account_id,
@@ -44,6 +46,14 @@ export class NatsChangefeed extends EventEmitter {
     // @ts-ignore
     if (this.state == "closed") return;
     this.state = "connected";
+    const {
+      value: { id, lifetime },
+    } = await this.natsSynctable.next();
+    this.id = id;
+    this.lifetime = lifetime;
+    console.log("got changefeed", { id, lifetime });
+    this.startRenewLoop();
+
     // @ts-ignore
     while (this.state != "closed") {
       const { value } = await this.natsSynctable.next();
@@ -98,6 +108,19 @@ export class NatsChangefeed extends EventEmitter {
         return;
       }
       await delay(HEARTBEAT / 2);
+    }
+  };
+
+  private startRenewLoop = async () => {
+    while (this.state != "closed" && this.lifetime && this.id) {
+      await delay(this.lifetime / 3);
+      try {
+        await renew({
+          account_id: this.account_id,
+          id: this.id,
+          lifetime: this.lifetime,
+        });
+      } catch {}
     }
   };
 }

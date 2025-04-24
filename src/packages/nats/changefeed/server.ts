@@ -9,8 +9,9 @@ import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 
-export const DEFAULT_LIFETIME = 15 * 1000 * 60;
+export const DEFAULT_LIFETIME = 5 * 1000 * 60;
 export const MAX_LIFETIME = 60 * 1000 * 60;
+export const MIN_LIFETIME = 1000 * 60;
 export const MIN_HEARTBEAT = 5000;
 export const MAX_HEARTBEAT = 120000;
 export const MAX_CHANGEFEEDS_PER_ACCOUNT = parseInt(
@@ -27,6 +28,10 @@ export function changefeedSubject({ account_id }: { account_id: string }) {
   return `${SUBJECT}.account-${account_id}.api`;
 }
 
+export function renewSubject({ account_id }: { account_id: string }) {
+  return `${SUBJECT}.account-${account_id}.renew`;
+}
+
 function getUserId(subject: string): string {
   if (subject.startsWith(`${SUBJECT}.account-`)) {
     return subject.slice(
@@ -41,6 +46,11 @@ let terminated = false;
 let sub: Subscription | null = null;
 export async function init(db) {
   logger.debug("starting changefeed server");
+  changefeedMainLoop(db);
+  renewMainLoop();
+}
+
+async function changefeedMainLoop(db) {
   while (!terminated) {
     await waitUntilConnected();
     const { nc } = await getEnv();
@@ -48,19 +58,77 @@ export async function init(db) {
     try {
       await listen(db);
     } catch (err) {
-      logger.debug(`WARNING: main listen loop error -- ${err}`);
+      logger.debug(`WARNING: changefeedMainLoop error -- ${err}`);
     }
     await delay(15000);
   }
 }
 
-export async function terminate() {
-  terminated = true;
-  if (sub == null) {
+let renew: Subscription | null = null;
+async function renewMainLoop() {
+  while (!terminated) {
+    await waitUntilConnected();
+    const { nc } = await getEnv();
+    renew = nc.subscribe(`${SUBJECT}.*.renew`);
+    try {
+      await listenRenew();
+    } catch (err) {
+      logger.debug(`WARNING: renewMainLoop error -- ${err}`);
+    }
+    await delay(15000);
+  }
+}
+
+async function listenRenew() {
+  if (renew == null) {
+    throw Error("must call init first");
+  }
+  for await (const mesg of renew) {
+    if (terminated) {
+      return;
+    }
+    handleRenew(mesg);
+  }
+}
+
+const endOfLife: { [id: string]: number } = {};
+global.z = endOfLife;
+function getLifetime({ lifetime }): number {
+  lifetime = parseFloat(lifetime);
+  if (lifetime > MAX_LIFETIME) {
+    return MAX_LIFETIME;
+  }
+  if (lifetime < MIN_LIFETIME) {
+    return MIN_LIFETIME;
+  }
+  return lifetime;
+}
+
+async function handleRenew(mesg) {
+  const { jc } = await getEnv();
+  const request = jc.decode(mesg.data);
+  if (!request) {
     return;
   }
-  sub.drain();
-  sub = null;
+  let { id } = request;
+  if (endOfLife[id]) {
+    // it's ours so we respond
+    const lifetime = getLifetime(request);
+    endOfLife[id] = Date.now() + lifetime;
+    mesg.respond(jc.encode({ status: "ok" }));
+  }
+}
+
+export async function terminate() {
+  terminated = true;
+  if (sub != null) {
+    sub.drain();
+    sub = null;
+  }
+  if (renew != null) {
+    renew.drain();
+    renew = null;
+  }
 }
 
 async function listen(db) {
@@ -82,7 +150,7 @@ async function handleMessage(mesg, db) {
   const { jc } = await getEnv();
   const request = jc.decode(mesg.data);
   const account_id = getUserId(mesg.subject);
-  const changes = uuid();
+  const id = uuid();
 
   let seq = 0;
   let lastSend = 0;
@@ -109,8 +177,9 @@ async function handleMessage(mesg, db) {
       return;
     }
     done = true;
+    delete endOfLife[id];
     numChangefeeds -= 1;
-    db().user_query_cancel_changefeed({ id: changes });
+    db().user_query_cancel_changefeed({ id });
     // end response stream with empty payload.
     mesg.respond(Empty);
   };
@@ -122,13 +191,23 @@ async function handleMessage(mesg, db) {
     return;
   }
 
-  let { heartbeat, lifetime = DEFAULT_LIFETIME } = request;
+  let { heartbeat } = request;
+  const lifetime = getLifetime(request);
   delete request.lifetime;
   delete request.heartbeat;
-  if (lifetime > MAX_LIFETIME) {
-    lifetime = MAX_LIFETIME;
+
+  endOfLife[id] = Date.now() + lifetime;
+
+  async function lifetimeLoop() {
+    while (!done) {
+      await delay(10000);
+      if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
+        end();
+        return;
+      }
+    }
   }
-  setTimeout(end, lifetime);
+  lifetimeLoop();
 
   async function heartbeatLoop() {
     let hb = parseFloat(heartbeat);
@@ -154,11 +233,13 @@ async function handleMessage(mesg, db) {
     if (!isValidUUID(account_id)) {
       throw Error("account_id must be a valid uuid");
     }
+    // send the id first
+    respond(undefined, { id, lifetime });
     logger.debug("changefeeds", { numChangefeeds });
     db().user_query({
       ...request,
       account_id,
-      changes,
+      changes: id,
       cb: respond,
     });
 
