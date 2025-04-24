@@ -10,11 +10,14 @@ import { join } from "path";
 import { spawnSync } from "node:child_process";
 import { natsServerUrl } from "./conf";
 
+const natsBin = join(data, "nats", "bin");
+
 export function natsCoCalcUserEnv({ user = natsUser }: { user?: string } = {}) {
   return {
     NATS_URL: natsServerUrl,
     NATS_PASSWORD: natsPassword,
     NATS_USER: user ?? natsUser,
+    PATH: `${natsBin}:${process.env.PATH}`,
   };
 }
 
@@ -37,17 +40,16 @@ function params({ user }) {
 
 export function main({ user = natsUser }: { user?: string } = {}) {
   let { command, args, env } = params({ user });
-  const PATH0 = join(data, "nats", "bin");
   console.log("# Use CoCalc config of NATS (nats and nsc) via this subshell:");
   console.log(
     JSON.stringify(
-      { ...env, NATS_PASSWORD: "xxx", PATH: PATH0 + ":..." },
+      { ...env, NATS_PASSWORD: "xxx", PATH: natsBin + ":..." },
       undefined,
       2,
     ),
   );
   spawnSync(command, args, {
-    env: { ...env, PATH: `${PATH0}:${process.env.PATH}` },
+    env: { ...env, PATH: `${natsBin}:${process.env.PATH}` },
     stdio: "inherit",
   });
 }

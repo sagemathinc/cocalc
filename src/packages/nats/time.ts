@@ -55,7 +55,7 @@ import { once } from "@cocalc/util/async-utils";
 const TIMEOUT = 3 * 1000;
 
 // sync clock this frequently once it has sync'd once
-const INTERVAL_GOOD = 15 * 1000 * 60;
+const INTERVAL_GOOD = 1000 * 60;
 const INTERVAL_BAD = 5 * 1000;
 
 // If clock fails to sync this many times in a row, we reconnect to nats.
@@ -63,6 +63,7 @@ const MAX_FAILS = 3;
 
 export function init() {
   syncLoop();
+  monitorLoop();
 }
 
 let state = "running";
@@ -108,6 +109,25 @@ async function syncLoop() {
   }
 }
 
+// periodically check if the client thinks we are connected, but
+// the clock isn't updating.  If so, reconnect.
+async function monitorLoop() {
+  if (process.env.COCALC_TEST_MODE) {
+    return;
+  }
+  const client = getClient();
+  while (state != "closed" && client.state != "closed") {
+    await delay(5000);
+    if (
+      client.state == "connected" &&
+      Date.now() - lastUpdated > 1.2 * INTERVAL_GOOD
+    ) {
+      console.log("WARNING: clock isn't updating, so reconnecting");
+      await reconnect();
+    }
+  }
+}
+
 let dkv: any = null;
 const initDkv = reuseInFlight(async () => {
   const { account_id, project_id } = getClient();
@@ -127,6 +147,7 @@ const initDkv = reuseInFlight(async () => {
 // skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
 let rtt: number | null = null;
+let lastUpdated = Date.now();
 export const getSkew = reuseInFlight(async (): Promise<number> => {
   if (dkv == null) {
     await initDkv();
@@ -144,6 +165,7 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
         dkv.delete(key);
         rtt = end - start;
         skew = start + rtt / 2 - serverTime;
+        lastUpdated = Date.now();
         cb(undefined, skew);
       }
     };

@@ -48,6 +48,7 @@ import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
+import { terminate as terminateTieredStorage } from "@cocalc/server/nats/tiered-storage/api";
 import { respondMany } from "@cocalc/nats/service/many";
 import { delay } from "awaiting";
 import { waitUntilConnected } from "@cocalc/nats/util";
@@ -147,6 +148,10 @@ async function listen({ api, subject }) {
         continue;
       } else if (service == "auth") {
         terminateAuth();
+        mesg.respond(jc.encode({ status: "terminated", service }));
+        continue;
+      } else if (service == "tiered-storage") {
+        terminateTieredStorage();
         mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {

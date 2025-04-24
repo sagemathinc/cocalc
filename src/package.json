@@ -25,6 +25,7 @@
     "nats-server-verbose": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/install').main()\" && node -e \"require('@cocalc/backend/nats/conf').main()\" && node -e \"require('@cocalc/backend/nats/server').main({verbose:true})\"",
     "nats-cli": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main()\"",
     "nats-sys": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/nats/cli').main({user:'sys'})\"",
+    "nats-tiered-storage": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/server && DEBUG=cocalc:* DEBUG_CONSOLE=yes node -e \"require('@cocalc/server/nats/tiered-storage').init()\"",
     "local-ci": "./scripts/ci.sh"
   },
   "repository": {

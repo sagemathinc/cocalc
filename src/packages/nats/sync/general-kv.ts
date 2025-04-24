@@ -127,6 +127,9 @@ import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/nats/types";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
+import { ENFORCE_LIMITS_THROTTLE_MS } from "./stream";
+import { asyncDebounce } from "@cocalc/util/async-utils";
+import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -142,10 +145,6 @@ const CONNECTION_CHECK_INTERVAL = 5000;
 // Note that the limit options are named in exactly the same was as for streams,
 // which is convenient for consistency.  This is not consistent with NATS's
 // own KV store limit naming.
-
-// Significant throttling is VERY, VERY important, since purging old messages frequently
-// seems to put a very significant load on NATS!
-const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE ? 100 : 30000;
 
 export interface KVLimits {
   // How many keys may be in the KV store. Oldest keys will be removed
@@ -231,6 +230,7 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (this.all != null) {
       return;
     }
+    await waitUntilReady(this.name);
     const kvm = new Kvm(this.env.nc);
     await waitUntilConnected();
     this.kv = await kvm.create(this.name, {
@@ -355,6 +355,9 @@ export class GeneralKV<T = any> extends EventEmitter {
   };
 
   private restartWatch = () => {
+    // this triggers the end of the "for await (const x of this.watch) {"
+    // loop in startWatch, which results in another watch starting,
+    // assuming the object isn't closed.
     this.watch?.stop();
   };
 
@@ -499,7 +502,16 @@ export class GeneralKV<T = any> extends EventEmitter {
   };
 
   private monitorWatch = async () => {
-    this.env.nc.on?.("reconnect", this.restartWatch);
+    if (this.env.nc.on != null) {
+      this.env.nc.on("reconnect", this.restartWatch);
+      this.env.nc.on("status", ({ type }) => {
+        if (type == "reconnect") {
+          this.ensureWatchIsValid();
+        }
+      });
+    } else {
+      this.checkWatchOnReconnect();
+    }
     while (this.revisions != null) {
       if (!(await isConnected())) {
         await waitUntilConnected();
@@ -508,6 +520,52 @@ export class GeneralKV<T = any> extends EventEmitter {
       }
       //console.log("monitorWatch: wait", this.name);
       await delay(CONNECTION_CHECK_INTERVAL);
+    }
+  };
+
+  private ensureWatchIsValid = asyncDebounce(
+    async () => {
+      await waitUntilConnected();
+      await delay(2000);
+      const isValid = await this.isWatchStillValid();
+      if (!isValid) {
+        if (this.kv == null) {
+          return;
+        }
+        console.log(`nats kv: ${this.name} -- watch not valid, so recreating`);
+        await this.restartWatch();
+      }
+    },
+    3000,
+    { leading: false, trailing: true },
+  );
+
+  private isWatchStillValid = async () => {
+    await waitUntilConnected();
+    if (this.kv == null || this.watch == null) {
+      return false;
+    }
+    try {
+      await this.watch._data.info();
+      return true;
+    } catch (err) {
+      console.log(`nats: watch info error -- ${err}`);
+      return false;
+    }
+  };
+
+  private checkWatchOnReconnect = async () => {
+    while (this.kv != null) {
+      try {
+        for await (const { type } of await this.env.nc.status()) {
+          if (type == "reconnect") {
+            await this.ensureWatchIsValid();
+          }
+        }
+      } catch {
+        await delay(15000);
+        await this.ensureWatchIsValid();
+      }
     }
   };
 

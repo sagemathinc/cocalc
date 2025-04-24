@@ -37,7 +37,7 @@ export class NatsChangefeed extends EventEmitter {
     });
     this.state = "connected";
     this.nc = await this.client.nats_client.getConnection();
-    this.nc.on("reconnect", this.expressInterest);
+    this.nc.on?.("reconnect", this.expressInterest);
     this.interest();
     this.startWatch();
     const v = this.natsSynctable.get();
@@ -45,7 +45,7 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   close = (): void => {
-    this.nc.removeListener("reconnect", this.expressInterest);
+    this.nc?.removeListener?.("reconnect", this.expressInterest);
     this.natsSynctable?.close();
     this.state = "closed";
     this.emit("close"); // yes "close" not "closed" ;-(

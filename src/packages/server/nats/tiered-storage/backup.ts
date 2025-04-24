@@ -3,9 +3,13 @@ import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
 import mkdirp from "mkdirp";
 import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("tiered-storage:backup");
 
 export async function backupStream(name: string) {
-  await mkdirp(natsBackup);
+  logger.debug("backup stream", { name });
+  await mkdirp(join(natsBackup, name));
   const { stdout, stderr, exit_code } = await executeCode({
     command: "nats",
     args: [
@@ -17,12 +21,11 @@ export async function backupStream(name: string) {
       join(natsBackup, name),
     ],
     err_on_exit: false,
-    env: natsCoCalcUserEnv(),
+    env: { ...process.env, ...natsCoCalcUserEnv() },
   });
   if (exit_code) {
     if (stderr.includes("stream not found")) {
-      // empty -- never created
-      await mkdirp(join(natsBackup, name));
+      return;
     } else {
       throw Error(stderr);
     }

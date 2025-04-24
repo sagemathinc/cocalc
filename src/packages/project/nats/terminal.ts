@@ -28,8 +28,11 @@ const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 // The printf at the end clears the line so the user doesn't see it. This took
 // way too long to figure out how to do. See
 //   https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+// const COMPUTE_SERVER_PROMPT_MESSAGE =
+//   `PS1="(\\h) \\w$ "; history -d $(history 1); printf '\\e[A\\e[K'\n`;
+
 const COMPUTE_SERVER_PROMPT_MESSAGE =
-  `PS1="(\\h) \\w$ "; history -d $(history 1); printf '\\e[A\\e[K'\n`;
+  'PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n';
 
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;

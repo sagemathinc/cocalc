@@ -60,6 +60,7 @@ import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
+import * as tieredStorage from "@cocalc/nats/tiered-storage/client";
 
 const NATS_STATS_INTERVAL = 2500;
 
@@ -673,6 +674,8 @@ export class NatsClient extends EventEmitter {
   waitUntilConnected = async () => await waitUntilConnected();
 
   refCacheInfo = () => refCacheInfo();
+
+  tieredStorage = tieredStorage;
 }
 
 function setDeleted({ project_id, path, deleted }) {
