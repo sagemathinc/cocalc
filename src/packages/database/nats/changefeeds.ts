@@ -40,7 +40,7 @@ import { callback } from "awaiting";
 import { db } from "@cocalc/database";
 import {
   createSyncTable,
-  CHANGEFEED_INTEREST_PERIOD_MS,
+  CHANGEFEED_INTEREST_PERIOD_MS as CHANGEFEED_INTEREST_PERIOD_MS_USERS,
 } from "@cocalc/nats/sync/synctable";
 import { sha1 } from "@cocalc/backend/misc_node";
 import jsonStableStringify from "json-stable-stringify";
@@ -70,6 +70,10 @@ const MAX_MANAGER_CONFLICTS = parseInt(
 
 // This is a limit on the numChangefeedsBeingCreatedAtOnce:
 const PARALLEL_LIMIT = parseInt(process.env.COCALC_PARALLEL_LIMIT ?? "15");
+
+const CHANGEFEED_INTEREST_PERIOD_MS = parseInt(
+  process.env.COCALC_CHANGEFEED_INTEREST_PERIOD_MS ?? `${CHANGEFEED_INTEREST_PERIOD_MS_USERS}`,
+);
 
 export async function init() {
   if (process.env.COCALC_TERMINATE_CHANGEFEEDS_ON_EXIT) {
@@ -425,7 +429,8 @@ const createNewChangefeed = async ({ query, user, nc, opts, hash }) => {
   // before doing the HARD WORK, we wait until there aren't too many
   // other "threads" doing hard work:
   while (numChangefeedsBeingCreatedAtOnce >= PARALLEL_LIMIT) {
-    await delay(500);
+    // TODO: This is STUPID
+    await delay(50);
   }
   try {
     numChangefeedsBeingCreatedAtOnce += 1;
