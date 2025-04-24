@@ -9,7 +9,13 @@ import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 
-export const CHANGEFEED_TIMEOUT = 15 * 1000 * 60;
+export const DEFAULT_LIFETIME = 15 * 1000 * 60;
+export const MAX_LIFETIME = 60 * 1000 * 60;
+export const MIN_HEARTBEAT = 5000;
+export const MAX_HEARTBEAT = 120000;
+export const MAX_CHANGEFEEDS_PER_ACCOUNT = parseInt(
+  process.env.COCALC_MAX_CHANGEFEEDS_PER_ACCOUNT ?? "150",
+);
 
 const logger = getLogger("changefeed:server");
 
@@ -70,6 +76,7 @@ async function listen(db) {
 }
 
 let numChangefeeds = 0;
+const numChangefeedsPerAccount: { [account_id: string]: number } = {};
 
 async function handleMessage(mesg, db) {
   const { jc } = await getEnv();
@@ -78,10 +85,12 @@ async function handleMessage(mesg, db) {
   const changes = uuid();
 
   let seq = 0;
+  let lastSend = 0;
   const respond = (error, resp?) => {
     if (terminated) {
       end();
     }
+    lastSend = Date.now();
     if (resp?.action == "close") {
       end();
     } else {
@@ -105,19 +114,57 @@ async function handleMessage(mesg, db) {
     // end response stream with empty payload.
     mesg.respond(Empty);
   };
-  setTimeout(end, CHANGEFEED_TIMEOUT);
+
+  if (numChangefeedsPerAccount[account_id] > MAX_CHANGEFEEDS_PER_ACCOUNT) {
+    respond(
+      `There is a limit of ${MAX_CHANGEFEEDS_PER_ACCOUNT} changefeeds per account`,
+    );
+    return;
+  }
+
+  let { heartbeat, lifetime = DEFAULT_LIFETIME } = request;
+  delete request.lifetime;
+  delete request.heartbeat;
+  if (lifetime > MAX_LIFETIME) {
+    lifetime = MAX_LIFETIME;
+  }
+  setTimeout(end, lifetime);
+
+  async function heartbeatLoop() {
+    let hb = parseFloat(heartbeat);
+    if (hb < MIN_HEARTBEAT) {
+      hb = MIN_HEARTBEAT;
+    } else if (hb > MAX_HEARTBEAT) {
+      hb = MAX_HEARTBEAT;
+    }
+    await delay(hb);
+    while (!done) {
+      const timeSinceLast = Date.now() - lastSend;
+      if (timeSinceLast < hb) {
+        // no neeed to send hearbeat yet
+        await delay(hb - timeSinceLast);
+        continue;
+      }
+      respond(undefined, "");
+      await delay(hb);
+    }
+  }
 
   try {
     if (!isValidUUID(account_id)) {
       throw Error("account_id must be a valid uuid");
     }
-    logger.debug("changefeed status", { numChangefeeds });
+    logger.debug("changefeeds", { numChangefeeds });
     db().user_query({
       ...request,
       account_id,
       changes,
       cb: respond,
     });
+
+    if (heartbeat) {
+      heartbeatLoop();
+    }
   } catch (err) {
     if (!done) {
       respond(`${err}`);

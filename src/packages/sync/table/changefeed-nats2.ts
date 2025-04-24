@@ -5,6 +5,9 @@
 
 import { EventEmitter } from "events";
 import { changefeed } from "@cocalc/nats/changefeed/client";
+import { delay } from "awaiting";
+
+const HEARTBEAT = 7500;
 
 export class NatsChangefeed extends EventEmitter {
   private account_id: string;
@@ -12,6 +15,7 @@ export class NatsChangefeed extends EventEmitter {
   private options;
   private state: "disconnected" | "connected" | "closed" = "disconnected";
   private natsSynctable?;
+  private last_hb = 0;
 
   constructor({
     account_id,
@@ -34,13 +38,23 @@ export class NatsChangefeed extends EventEmitter {
       account_id: this.account_id,
       query: this.query,
       options: this.options,
+      heartbeat: HEARTBEAT,
     });
+    this.last_hb = Date.now();
     // @ts-ignore
     if (this.state == "closed") return;
     this.state = "connected";
-    const { value } = await this.natsSynctable.next();
-    this.startWatch();
-    return value[Object.keys(value)[0]];
+    // @ts-ignore
+    while (this.state != "closed") {
+      const { value } = await this.natsSynctable.next();
+      this.last_hb = Date.now();
+      if (value) {
+        // got first non-heartbeat value (the first query might take LONGER than heartbeats)
+        this.startWatch();
+        this.startHeartbeatMonitor();
+        return value[Object.keys(value)[0]];
+      }
+    }
   };
 
   close = (): void => {
@@ -67,10 +81,23 @@ export class NatsChangefeed extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
-        this.emit("update", x);
+        this.last_hb = Date.now();
+        if (x) {
+          this.emit("update", x);
+        }
       }
     } catch {
       this.close();
+    }
+  };
+
+  private startHeartbeatMonitor = async () => {
+    while (this.state != "closed") {
+      if (this.last_hb && Date.now() - this.last_hb > 2 * HEARTBEAT) {
+        this.close();
+        return;
+      }
+      await delay(HEARTBEAT / 2);
     }
   };
 }

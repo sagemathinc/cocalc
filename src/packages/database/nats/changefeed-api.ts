@@ -14,8 +14,8 @@ In another session:
 
     require('@cocalc/backend/nats'); c = require('@cocalc/nats/changefeed/client');
     account_id = '6aae57c6-08f1-4bb5-848b-3ceb53e61ede';
-    cf = await  c.changefeed({account_id,query:{accounts:[{account_id, first_name:null}]}});
-    for await (const x of cf) { console.log(x); }
+    cf = await  c.changefeed({account_id,query:{accounts:[{account_id, first_name:null}]}, heartbeat:5000, lifetime:30000});
+    for await (const x of cf) { console.log(new Date(), {x}); }
 */
 
 import { init as initChangefeedServer } from "@cocalc/nats/changefeed/server";
