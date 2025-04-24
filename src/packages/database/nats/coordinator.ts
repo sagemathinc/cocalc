@@ -40,12 +40,13 @@ function mergeTime(
   return Math.max(a ?? 0, b ?? 0);
 }
 
-function resolveMergeConflict(local: Entry, remote: Entry): Entry {
+// TODO: note -- local or remote may be null -- fix this!
+function resolveMergeConflict(local?: Entry, remote?: Entry): Entry {
   const user = mergeTime(remote?.user, local?.user);
-  let managerId = local.managerId ?? remote.managerId;
+  let managerId = local?.managerId ?? remote?.managerId;
   if (
-    local.managerId &&
-    remote.managerId &&
+    local?.managerId &&
+    remote?.managerId &&
     local.managerId != remote.managerId
   ) {
     // conflicting manager - winner is one with newest lock.
@@ -97,7 +98,7 @@ export class Coordinator {
   save = async () => {
     await this.dkv?.save();
   };
-  
+
   close = async () => {
     await this.dkv?.close();
     delete this.dkv;
