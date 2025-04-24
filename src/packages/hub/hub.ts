@@ -44,6 +44,7 @@ import initExpressApp from "./servers/express-app";
 import {
   loadNatsConfiguration,
   initNatsDatabaseServer,
+  initNatsTieredStorage,
   initNatsServer,
 } from "@cocalc/server/nats";
 import initHttpRedirect from "./servers/http-redirect";
@@ -193,6 +194,11 @@ async function startServer(): Promise<void> {
   }
   if (program.natsDatabaseServer) {
     await initNatsDatabaseServer();
+  }
+  if (program.natsTieredStorage) {
+    // currently there must be exactly ONE of these, running on the same
+    // node as the nats-server.  E.g., for development it's just part of the server.
+    await initNatsTieredStorage();
   }
 
   if (program.websocketServer) {
@@ -525,6 +531,7 @@ async function main(): Promise<void> {
     program.websocketServer =
       program.natsServer =
       program.natsDatabaseServer =
+      program.natsTieredStorage =
       program.proxyServer =
       program.nextServer =
       program.mentions =

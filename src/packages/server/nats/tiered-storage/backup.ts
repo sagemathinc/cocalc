@@ -3,8 +3,12 @@ import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
 import mkdirp from "mkdirp";
 import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("tiered-storage:backup");
 
 export async function backupStream(name: string) {
+  logger.debug("backup stream", { name });
   await mkdirp(natsBackup);
   const { stdout, stderr, exit_code } = await executeCode({
     command: "nats",

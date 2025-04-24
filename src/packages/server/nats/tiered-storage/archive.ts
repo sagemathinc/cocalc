@@ -3,6 +3,9 @@ import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
 import { backupStream, backupKV, backupLocation } from "./backup";
 import { restoreKV } from "./restore";
 import type { LocationType } from "./types";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("tiered-storage:archive");
 
 export async function rmStream(name: string) {
   // TODO: probably this should be done via the API
@@ -21,6 +24,7 @@ export async function rmStream(name: string) {
 }
 
 export async function archiveStream(name: string) {
+  logger.debug("archive", { name });
   const output = await backupStream(name);
   await rmStream(name);
   return output;
@@ -62,6 +66,12 @@ export async function archiveLocation({
     await rmStream(name);
   } catch (err) {
     // try to roll back to valid state:
+    logger.debug(
+      `unexpected error archiving -- attempting roll back -- ${err} `,
+      {
+        name,
+      },
+    );
     await restoreKV(name);
     throw err;
   }

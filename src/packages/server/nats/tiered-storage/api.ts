@@ -3,6 +3,13 @@ Our tiered storage code as a server on the nats network.
 
 DEVELOPMENT:
 
+If you're running a dev server, turn off the tiered storage service running in it by sending this message from a browser as an admin:
+
+   await cc.client.nats_client.hub.system.terminate({service:'tiered-storage'})
+
+
+To start this service:
+
 > a = require('@cocalc/server/nats/tiered-storage'); a.init()
 
 or
@@ -10,7 +17,7 @@ or
     echo "require('@cocalc/server/nats/tiered-storage').init()" | node
 
 
-In another terminal:
+To *USE* this service in another terminal:
 
 > require('@cocalc/backend/nats'); c = require('@cocalc/nats/tiered-storage/client')
 {

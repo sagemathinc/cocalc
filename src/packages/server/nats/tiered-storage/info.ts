@@ -18,7 +18,7 @@ export async function getStreamManager(): Promise<JetStreamManager> {
   return jsm;
 }
 
-async function getNatsStreamInfo(stream: string): Promise<StreamInfo | null> {
+export async function getNatsStreamInfo(stream: string): Promise<StreamInfo | null> {
   const jsm = await getStreamManager();
   try {
     return await jsm.streams.info(stream);
@@ -39,7 +39,7 @@ export async function getKvManager(): Promise<Kvm> {
   return kvm;
 }
 
-async function getNatsKvInfo(bucket: string): Promise<StreamInfo | null> {
+export async function getNatsKvInfo(bucket: string): Promise<StreamInfo | null> {
   const kvm = await getKvManager();
   try {
     const kv = await kvm.open(bucket);

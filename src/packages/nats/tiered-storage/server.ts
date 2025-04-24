@@ -161,6 +161,6 @@ async function handleMessage(mesg) {
   } catch (err) {
     resp = { error: `${err}` };
   }
-  logger.debug("handleMessage -- resp", { location, command, resp });
+  //logger.debug("handleMessage -- resp", { location, command, resp });
   mesg.respond(jc.encode(resp));
 }

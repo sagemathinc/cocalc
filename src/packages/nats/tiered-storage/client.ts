@@ -52,30 +52,36 @@ function lastActive(info: Info): number {
 //   return Math.min(toTime(info.backup.stream?.ts), toTime(info.backup.kv?.ts));
 // }
 
-function stringToLocation(s: string): Location {
+function stringToLocation(s: string): Location | null {
   if (s.startsWith("account-")) {
     return { account_id: s.slice("account-".length) };
   } else if (s.startsWith("project-")) {
     return { project_id: s.slice("project-".length) };
   }
-  throw Error(`invalid location string '${s}'`);
+  return null;
 }
 
 export const waitUntilReady = reuseInFlight(
-  async (location: Location | string): Promise<void> => {
+  async (location: Location | string | null): Promise<void> => {
+    if(location == null) {
+      return;
+    }
     if (typeof location == "string") {
-      location = stringToLocation(location) as Location;
+      location = stringToLocation(location);
+      if (location == null) {
+        return;
+      }
     }
     if (process.env.COCALC_TEST_MODE) {
       // no tiered storage in test mode
       return;
     }
-    logger.debug("waitUntilReady", location);
     const key = tieredStorageSubject(location);
     if (readyUntilAtLeast[key] >= Date.now()) {
       // definitely available
       return;
     }
+    logger.debug("waitUntilReady", location);
     let d = 1000;
     while (true) {
       await waitUntilConnected();
@@ -103,7 +109,7 @@ export const waitUntilReady = reuseInFlight(
         // one wins.
         d = Math.min(30000, d * 1.25 + Math.random());
         logger.debug(
-          `WARNING: problem restoring archived nats data -- will retry in ${d}ms -- ${err}`,
+          `waitUntilReady -- WARNING: problem restoring archived nats data -- will retry in ${d}ms -- ${err}`,
         );
         await delay(d);
         continue;
