@@ -46,6 +46,7 @@ import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
 import { getConnection } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
+import { terminate as terminateChangefeedServer } from "@cocalc/nats/changefeed/server";
 import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { terminate as terminateTieredStorage } from "@cocalc/server/nats/tiered-storage/api";
@@ -152,6 +153,10 @@ async function listen({ api, subject }) {
         continue;
       } else if (service == "tiered-storage") {
         terminateTieredStorage();
+        mesg.respond(jc.encode({ status: "terminated", service }));
+        continue;
+      } else if (service == "changefeeds") {
+        terminateChangefeedServer();
         mesg.respond(jc.encode({ status: "terminated", service }));
         continue;
       } else if (service == "api") {

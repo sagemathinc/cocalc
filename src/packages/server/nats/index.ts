@@ -1,6 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import { initAPI } from "./api";
 import { init as initDatabase } from "@cocalc/database/nats/changefeeds";
+import { init as initChangefeedServer } from "@cocalc/database/nats/changefeed-api";
 import { init as initLLM } from "./llm";
 import { init as initAuth } from "./auth";
 import { init as initTieredStorage } from "./tiered-storage/api";
@@ -14,6 +15,12 @@ export async function initNatsDatabaseServer() {
   await loadNatsConfiguration();
   // do NOT await initDatabase
   initDatabase();
+}
+
+export async function initNatsChangefeedServer() {
+  await loadNatsConfiguration();
+  // do NOT await initDatabase
+  initChangefeedServer();
 }
 
 export async function initNatsTieredStorage() {
