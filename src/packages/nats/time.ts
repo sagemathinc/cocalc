@@ -112,6 +112,9 @@ async function syncLoop() {
 // periodically check if the client thinks we are connected, but
 // the clock isn't updating.  If so, reconnect.
 async function monitorLoop() {
+  if (process.env.COCALC_TEST_MODE) {
+    return;
+  }
   const client = getClient();
   while (state != "closed" && client.state != "closed") {
     await delay(5000);
