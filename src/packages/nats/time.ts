@@ -61,9 +61,13 @@ const INTERVAL_BAD = 5 * 1000;
 // If clock fails to sync this many times in a row, we reconnect to nats.
 const MAX_FAILS = 3;
 
+const RECONNECT_LOGIC = false;
+
 export function init() {
   syncLoop();
-  monitorLoop();
+  if (RECONNECT_LOGIC) {
+    monitorLoop();
+  }
 }
 
 let state = "running";
@@ -91,17 +95,19 @@ async function syncLoop() {
         continue;
       }
       console.log(`WARNING: failed to sync clock -- ${err}`);
-      fails += 1;
-      console.log({ fails, MAX_FAILS, state });
-      if (state == "closed") return;
-      if (fails >= MAX_FAILS) {
-        // something is very very wrong -- reconnect
-        console.log("WARNING: something is wrong with NATS connection");
-        fails = 0;
-        try {
-          await reconnect();
-        } catch (err) {
-          console.log(`WARNING: reconnect failed -- ${err}`);
+      if (RECONNECT_LOGIC) {
+        fails += 1;
+        console.log({ fails, MAX_FAILS, state });
+        if (state == "closed") return;
+        if (fails >= MAX_FAILS) {
+          // something is very very wrong -- reconnect
+          console.log("WARNING: something is wrong with NATS connection");
+          fails = 0;
+          try {
+            await reconnect();
+          } catch (err) {
+            console.log(`WARNING: reconnect failed -- ${err}`);
+          }
         }
       }
       await delay(INTERVAL_BAD);
