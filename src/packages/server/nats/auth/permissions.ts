@@ -105,13 +105,14 @@ function projectPermissions(project_id: string) {
   pub.allow.push(`*.project-${project_id}.>`);
   sub.allow.push(`*.project-${project_id}.>`);
 
-  // The unique project-wide jetstream key:value store
+  // The unique project-wide kv store:
   pub.allow.push(`$JS.*.*.*.KV_project-${project_id}`);
   pub.allow.push(`$JS.*.*.*.KV_project-${project_id}.>`);
+
   // this FC is needed for "flow control" - without this, you get random hangs forever at scale!
   pub.allow.push(`$JS.FC.KV_project-${project_id}.>`);
 
-  // The unique project-wide jetstream stream:
+  // The unique project-wide stream:
   pub.allow.push(`$JS.*.*.*.project-${project_id}`);
   pub.allow.push(`$JS.*.*.*.project-${project_id}.>`);
   pub.allow.push(`$JS.*.*.*.*.project-${project_id}.>`);
@@ -123,15 +124,17 @@ function accountPermissions(account_id: string) {
   sub.allow.push(`*.account-${account_id}.>`);
   pub.allow.push(`*.account-${account_id}.>`);
 
-  // the account-specific kv stores
+  // the account-specific kv store:
   pub.allow.push(`$JS.*.*.*.KV_account-${account_id}`);
   pub.allow.push(`$JS.*.*.*.KV_account-${account_id}.>`);
 
   // the account-specific stream:
+  // (not used yet at all!)
   pub.allow.push(`$JS.*.*.*.account-${account_id}`);
   pub.allow.push(`$JS.*.*.*.account-${account_id}.>`);
   pub.allow.push(`$JS.*.*.*.*.account-${account_id}`);
   pub.allow.push(`$JS.*.*.*.*.account-${account_id}.>`);
+
   sub.allow.push(`account.${account_id}.>`);
   pub.allow.push(`account.${account_id}.>`);
 

@@ -1,3 +1,5 @@
+export { init } from "./api";
+
 export { backupStream, backupKV, backupProject, backupAccount } from "./backup";
 export {
   restoreStream,

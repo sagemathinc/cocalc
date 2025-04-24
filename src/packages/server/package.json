@@ -63,6 +63,7 @@
     "@langchain/openai": "^0.5.5",
     "@nats-io/jetstream": "3.0.0",
     "@nats-io/jwt": "0.0.10-5",
+    "@nats-io/kv": "3.0.0",
     "@nats-io/nats-core": "3.0.0",
     "@nats-io/nkeys": "^2.0.3",
     "@nats-io/services": "3.0.0",

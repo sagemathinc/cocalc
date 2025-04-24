@@ -1,5 +1,29 @@
 /*
-Tie our tiered storage code as a server on the nats network.
+Our tiered storage code as a server on the nats network.
+
+DEVELOPMENT:
+
+> a = require('@cocalc/server/nats/tiered-storage'); a.init()
+
+or
+
+    echo "require('@cocalc/server/nats/tiered-storage').init()" | node
+
+
+In another terminal:
+
+> require('@cocalc/backend/nats'); c = require('@cocalc/nats/tiered-storage/client')
+{
+  state: [AsyncFunction: state],
+  restore: [AsyncFunction: restore],
+  archive: [AsyncFunction: archive],
+  backup: [AsyncFunction: backup],
+  info: [AsyncFunction: info]
+}
+> await c.info({project_id:'27cf0030-a9c8-4168-bc03-d0efb3d2269e'})
+{
+  subject: 'tiered-storage.project-27cf0030-a9c8-4168-bc03-d0efb3d2269e.api'
+}
 */
 
 import {
@@ -17,10 +41,15 @@ import { archiveProject, archiveAccount } from "./archive";
 import { getProjectState, getAccountState } from "./state";
 import { getProjectInfo, getAccountInfo } from "./info";
 import { isValidUUID } from "@cocalc/util/misc";
+import "@cocalc/backend/nats";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("tiered-storage:api");
 
 export { terminate };
 
 export async function init() {
+  logger.debug("init");
   const ts = new TieredStorage();
   initServer(ts);
 }

@@ -84,7 +84,8 @@ function getLocation(subject: string): Location {
 
 let tieredStorage: TieredStorage | null = null;
 export function init(ts: TieredStorage) {
-  if (ts != null) {
+  logger.debug("init");
+  if (tieredStorage != null) {
     throw Error("tiered-storage: init already called");
   }
   tieredStorage = ts;
@@ -93,6 +94,7 @@ export function init(ts: TieredStorage) {
 
 let terminated = false;
 export async function terminate() {
+  logger.debug("terminate");
   if (terminated) {
     return;
   }
@@ -105,11 +107,13 @@ export async function terminate() {
 
 async function mainLoop() {
   while (!terminated) {
+    logger.debug("mainLoop: running...");
     try {
       await run();
     } catch (err) {
-      logger.debug(`WARNING: run error (will restart) -- ${err}`);
-      await delay(5000);
+      const DELAY = 5000;
+      logger.debug(`WARNING: run error (will restart in ${DELAY}ms) -- ${err}`);
+      await delay(DELAY);
     }
   }
 }
@@ -117,11 +121,14 @@ async function mainLoop() {
 let sub: Subscription | null = null;
 export async function run() {
   const { nc } = await getEnv();
-  sub = nc.subscribe(`${SUBJECT}.*.api`, { queue: "0" });
+  const subject = `${SUBJECT}.*.api`;
+  logger.debug(`run: listening on '${subject}'`);
+  sub = nc.subscribe(subject, { queue: "0" });
   await listen(sub);
 }
 
 async function listen(sub) {
+  logger.debug("listen");
   for await (const mesg of sub) {
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
@@ -133,13 +140,14 @@ async function listen(sub) {
 async function handleMessage(mesg) {
   let resp;
   const { jc } = await getEnv();
+  const location = getLocation(mesg.subject);
+  const { command } = jc.decode(mesg.data);
 
   try {
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
-    const location = getLocation(mesg.subject);
-    const { command } = jc.decode(mesg.data);
+    logger.debug("handleMessage", { location, command });
     if (command == "state") {
       resp = await tieredStorage.state(location);
     } else if (command == "restore") {
@@ -156,5 +164,6 @@ async function handleMessage(mesg) {
   } catch (err) {
     resp = { error: `${err}` };
   }
+  logger.debug("handleMessage -- resp", { location, command, resp });
   mesg.respond(jc.encode(resp));
 }
