@@ -4,7 +4,7 @@ import {
   type JetStreamManager,
   type StreamInfo,
 } from "@nats-io/jetstream";
-import { Kvm, type KvStatus } from "@nats-io/kv";
+import { Kvm } from "@nats-io/kv";
 import { getConnection } from "@cocalc/nats/client";
 import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
@@ -39,7 +39,7 @@ export async function getKvManager(): Promise<Kvm> {
   return kvm;
 }
 
-async function getNatsKvInfo(bucket: string): Promise<KvStatus | null> {
+async function getNatsKvInfo(bucket: string): Promise<StreamInfo | null> {
   const kvm = await getKvManager();
   try {
     const kv = await kvm.open(bucket);

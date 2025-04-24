@@ -12,22 +12,21 @@ import { type Subscription } from "@nats-io/nats-core";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Location } from "@cocalc/nats/types";
 import { delay } from "awaiting";
+import { type StreamInfo } from "@nats-io/jetstream";
 
 const logger = getLogger("tiered-storage:server");
 
 export type State = "archived" | "restoring" | "ready";
 
 export interface Info {
-  bytesStream: number;
-  bytesKv: number;
-  state: State;
+  nats: { stream: null | StreamInfo; kv: null | StreamInfo };
+  backup: { stream: null | StreamInfo; kv: null | StreamInfo };
   location: Location;
 }
 
 export const SUBJECT = "tiered-storage";
 
 export interface TieredStorage {
-  state: (location: Location) => Promise<State>;
   info: (location: Location) => Promise<Info>;
   restore: (location: Location) => Promise<void>;
   archive: (location: Location) => Promise<void>;
@@ -37,7 +36,7 @@ export interface TieredStorage {
   close: () => Promise<void>;
 }
 
-export type Command = "state" | "restore" | "archive" | "backup" | "info";
+export type Command = "restore" | "archive" | "backup" | "info";
 
 export function tieredStorageSubject({ account_id, project_id }: Location) {
   if (account_id) {
@@ -148,9 +147,7 @@ async function handleMessage(mesg) {
       throw Error("tiered storage not available");
     }
     logger.debug("handleMessage", { location, command });
-    if (command == "state") {
-      resp = await tieredStorage.state(location);
-    } else if (command == "restore") {
+    if (command == "restore") {
       resp = await tieredStorage.restore(location);
     } else if (command == "archive") {
       resp = await tieredStorage.archive(location);

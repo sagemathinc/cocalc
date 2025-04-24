@@ -28,7 +28,6 @@ In another terminal:
 
 import {
   type TieredStorage as TieredStorageInterface,
-  type State,
   type Info,
   init as initServer,
   terminate,
@@ -38,7 +37,6 @@ import { type LocationType } from "./types";
 import { backupProject, backupAccount } from "./backup";
 import { restoreProject, restoreAccount } from "./restore";
 import { archiveProject, archiveAccount } from "./archive";
-import { getProjectState, getAccountState } from "./state";
 import { getProjectInfo, getAccountInfo } from "./info";
 import { isValidUUID } from "@cocalc/util/misc";
 import "@cocalc/backend/nats";
@@ -78,16 +76,6 @@ function getType({ account_id, project_id }: Location): LocationType {
 }
 
 class TieredStorage implements TieredStorageInterface {
-  state = async (location: Location): Promise<State> => {
-    const type = getType(location);
-    if (type == "account") {
-      return await getAccountState(location as { account_id: string });
-    } else if (type == "project") {
-      return await getProjectState(location as { project_id: string });
-    }
-    throw Error("invalid type");
-  };
-
   info = async (location: Location): Promise<Info> => {
     const type = getType(location);
     if (type == "account") {

@@ -68,6 +68,7 @@ import { headers as createHeaders } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
+import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -241,6 +242,7 @@ export class Stream<T = any> extends EventEmitter {
       duplicate_window: nanos(1000 * 60 * 5),
       ...this.natsStreamOptions,
     };
+    await waitUntilReady(this.jsname);
     try {
       this.stream = await this.jsm.streams.add({
         name: this.jsname,
