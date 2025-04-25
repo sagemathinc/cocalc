@@ -1,22 +1,28 @@
 /*
 Multiresponse request/response NATS changefeed server.
+
+- Chunking to arbitrarily large data
+- Lifetimes that can be extended
+- Heartbeats
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription, Empty } from "@nats-io/nats-core";
+import { type Subscription, Empty, headers } from "@nats-io/nats-core";
 import { isValidUUID, uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
+import { getMaxPayload } from "@cocalc/nats/util";
 
-export const DEFAULT_LIFETIME = 5 * 1000 * 60;
-export const MAX_LIFETIME = 60 * 1000 * 60;
-export const MIN_LIFETIME = 1000 * 60;
+export const DEFAULT_LIFETIME = 2 * 1000 * 60;
+export const MAX_LIFETIME = 15 * 1000 * 60;
+export const MIN_LIFETIME = 30 * 1000;
 export const MIN_HEARTBEAT = 5000;
 export const MAX_HEARTBEAT = 120000;
 export const MAX_CHANGEFEEDS_PER_ACCOUNT = parseInt(
   process.env.COCALC_MAX_CHANGEFEEDS_PER_ACCOUNT ?? "150",
 );
+export const LAST_CHUNK = "last-chunk";
 
 const logger = getLogger("changefeed:server");
 
@@ -156,6 +162,28 @@ function metrics() {
   logger.debug("changefeeds", { numChangefeeds });
 }
 
+async function send({ jc, mesg, resp }) {
+  const maxPayload = (await getMaxPayload()) - 1000; // slack for header
+  const data = jc.encode(resp);
+  const chunks: Buffer[] = [];
+  for (let i = 0; i < data.length; i += maxPayload) {
+    const slice = data.slice(i, i + maxPayload);
+    chunks.push(slice);
+  }
+  if (chunks.length > 1) {
+    logger.debug(`sending message with ${chunks.length} chunks`);
+  }
+  for (let i = 0; i < chunks.length; i++) {
+    if (i == chunks.length - 1) {
+      const h = headers();
+      h.append(LAST_CHUNK, "true");
+      mesg.respond(chunks[i], { headers: h });
+    } else {
+      mesg.respond(chunks[i]);
+    }
+  }
+}
+
 async function handleMessage(mesg, db) {
   const { jc } = await getEnv();
   const request = jc.decode(mesg.data);
@@ -164,7 +192,7 @@ async function handleMessage(mesg, db) {
 
   let seq = 0;
   let lastSend = 0;
-  const respond = (error, resp?) => {
+  const respond = async (error, resp?) => {
     if (terminated) {
       end();
     }
@@ -172,7 +200,7 @@ async function handleMessage(mesg, db) {
     if (resp?.action == "close") {
       end();
     } else {
-      mesg.respond(jc.encode({ resp, error, seq }));
+      await send({ jc, mesg, resp: { resp, error, seq } });
       seq += 1;
       if (error) {
         end();

@@ -7,7 +7,7 @@ import { EventEmitter } from "events";
 import { changefeed, renew } from "@cocalc/nats/changefeed/client";
 import { delay } from "awaiting";
 
-const HEARTBEAT = 7500;
+const HEARTBEAT = 15000;
 
 export class NatsChangefeed extends EventEmitter {
   private account_id: string;
@@ -51,7 +51,7 @@ export class NatsChangefeed extends EventEmitter {
     } = await this.natsSynctable.next();
     this.id = id;
     this.lifetime = lifetime;
-    console.log("got changefeed", { id, lifetime });
+    // console.log("got changefeed", { id, lifetime, query: this.query });
     this.startRenewLoop();
 
     // @ts-ignore

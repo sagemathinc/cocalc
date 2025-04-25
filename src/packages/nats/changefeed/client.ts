@@ -13,7 +13,7 @@ renew({id, lifetime}) -- keeps the changefeed alive for at least lifetime more m
 
 import { getEnv } from "@cocalc/nats/client";
 import { isValidUUID } from "@cocalc/util/misc";
-import { changefeedSubject, renewSubject } from "./server";
+import { changefeedSubject, renewSubject, LAST_CHUNK } from "./server";
 import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
 
@@ -45,6 +45,7 @@ export async function* changefeed({
   let lastSeq = -1;
   const { nc, jc } = await getEnv();
   await waitUntilConnected();
+  const chunks: Uint8Array[] = [];
   for await (const mesg of await nc.requestMany(
     subject,
     jc.encode({ query, options, heartbeat, lifetime }),
@@ -54,7 +55,13 @@ export async function* changefeed({
       // done
       return;
     }
-    const { error, resp, seq } = jc.decode(mesg.data);
+    chunks.push(mesg.data);
+    if (!isLastChunk(mesg)) {
+      continue;
+    }
+    const data = Buffer.concat(chunks);
+    chunks.length = 0;
+    const { error, resp, seq } = jc.decode(data);
     if (error) {
       throw Error(error);
     }
@@ -64,6 +71,15 @@ export async function* changefeed({
     lastSeq = seq;
     yield resp;
   }
+}
+
+function isLastChunk(mesg) {
+  for (const [key, _] of mesg.headers ?? []) {
+    if (key == LAST_CHUNK) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export async function renew({

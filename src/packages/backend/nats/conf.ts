@@ -53,7 +53,7 @@ export const natsAccountName = "cocalc";
 // 1MB is the global NATS default
 // const max_payload = "1MB";
 // Note that 64MB is the max allowed.
-const max_payload = "8MB";
+const max_payload = process.env.COCALC_NATS_MAX_PAYLOAD ?? "8MB";
 // However, using anything big means messages can take longer to send
 // messages and risk timing out.  I've also implemented chunking,
 // *everywhere* it is needed.
