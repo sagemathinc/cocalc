@@ -65,6 +65,7 @@ export interface CellInputProps {
   cell_toolbar?: string;
   trust?: boolean;
   is_readonly: boolean;
+  input_is_readonly: boolean;
   is_scrolling?: boolean;
   id: string;
   index: number;
@@ -103,14 +104,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             actions={props.actions}
             id={props.id}
             dragHandle={props.dragHandle}
-            read_only={props.is_readonly}
+            read_only={props.input_is_readonly}
           />
         </HiddenXS>
       );
     }
 
     function handle_md_double_click(): void {
-      if (props.is_readonly) {
+      if (props.input_is_readonly) {
         return;
       }
       frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
@@ -132,7 +133,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           opt = opt.set("foldGutter", false);
           break;
       }
-      if (props.is_readonly) {
+      if (props.input_is_readonly) {
         opt = opt.set("readOnly", true);
       }
       if (props.cell.get("line_numbers") != null) {
@@ -152,7 +153,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return (
         <CodeMirror
           actions={
-            props.is_readonly ? undefined : props.actions
+            props.input_is_readonly ? undefined : props.actions
             /* Do NOT pass in actions when read only, since having any actions *defines*
             not read only for the codemirror editor; also, it will get created with
             potentially the same id as a normal cell, hence get linked to it, and
@@ -189,7 +190,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       if (
         props.actions == null ||
         props.cell.getIn(["metadata", "editable"]) === false ||
-        props.is_readonly
+        props.input_is_readonly
       ) {
         return;
       }
@@ -244,7 +245,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           <MostlyStaticMarkdown
             value={value}
             onChange={(value) => {
-              if (props.is_readonly) {
+              if (props.input_is_readonly) {
                 return;
               }
               // user checked a checkbox.
@@ -430,6 +431,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           cell={props.cell}
           is_current={props.is_current}
           is_readonly={props.is_readonly}
+          input_is_readonly={props.input_is_readonly}
           computeServerId={props.computeServerId}
           llmTools={props.llmTools}
           haveLLMCellTools={haveLLMCellTools}
@@ -490,6 +492,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.font_size !== cur.font_size ||
       next.complete !== cur.complete ||
       next.is_readonly !== cur.is_readonly ||
+      next.input_is_readonly !== cur.input_is_readonly ||
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
       (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||

@@ -41,6 +41,7 @@ interface Props {
   haveLLMCellTools: boolean; // decides if we show the LLM Tools, depends on student project in a course, etc.
   index: number;
   is_readonly: boolean;
+  input_is_readonly?: boolean;
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -67,9 +68,11 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     llmTools,
     index,
     is_readonly,
+    input_is_readonly,
     haveLLMCellTools,
   }: Props) => {
     const intl = useIntl();
+    console.log("CellButtonBar", { is_readonly, input_is_readonly });
 
     const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
