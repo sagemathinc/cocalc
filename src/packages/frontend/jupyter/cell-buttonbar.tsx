@@ -72,7 +72,6 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     haveLLMCellTools,
   }: Props) => {
     const intl = useIntl();
-    console.log("CellButtonBar", { is_readonly, input_is_readonly });
 
     const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
@@ -184,7 +183,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
     function renderCodeBarFormatButton() {
       // Should only show formatter button if there is a way to format this code.
-      if (is_readonly || actions == null) return;
+      if (is_readonly || actions == null || input_is_readonly) return;
       return (
         <Tooltip
           title={intl.formatMessage({
@@ -232,7 +231,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
         {renderCodeBarFormatButton()}
-        {!is_readonly && (
+        {!is_readonly && !input_is_readonly && (
           <CodeBarDropdownMenu
             actions={actions}
             frameActions={frameActions}
