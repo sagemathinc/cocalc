@@ -9,6 +9,11 @@ import { delay } from "awaiting";
 
 const HEARTBEAT = 15000;
 
+// this should be significantly shorter than HEARTBEAT.
+// if user closes browser and comes back, then this is the time they may have to wait
+// for their changefeeds to reconnect, since clock jumps forward...
+const HEARTBEAT_CHECK_DELAY = 3000;
+
 export class NatsChangefeed extends EventEmitter {
   private account_id: string;
   private query;
@@ -106,7 +111,7 @@ export class NatsChangefeed extends EventEmitter {
         this.close();
         return;
       }
-      await delay(HEARTBEAT / 2);
+      await delay(HEARTBEAT_CHECK_DELAY);
     }
   };
 
