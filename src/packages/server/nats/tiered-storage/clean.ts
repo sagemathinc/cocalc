@@ -42,7 +42,10 @@ export async function getOldKvs({
   const kvm = await getKvManager();
   const names: string[] = [];
   for await (const { si } of kvm.list()) {
-    const name = si.config.name;
+    if (!si.config.name.startsWith("KV_")) {
+      continue;
+    }
+    const name = si.config.name.slice("KV_".length);
     if (!isProjectOrAccount(name)) {
       continue;
     }
