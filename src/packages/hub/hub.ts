@@ -433,7 +433,11 @@ async function main(): Promise<void> {
     )
     .option(
       "--nats-database-server",
-      "run NATS microservice to provide access (including changefeeds) to the database -- right now there should be exactly ONE of these.",
+      "run NATS microservice to provide access (including changefeeds) to the database",
+    )
+    .option(
+      "--nats-changefeed-server",
+      "run NATS microservice to provide postgres based changefeeds; there must be AT LEAST one of these.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
