@@ -534,7 +534,6 @@ async function main(): Promise<void> {
   if (program.all) {
     program.websocketServer =
       program.natsServer =
-      program.natsDatabaseServer =
       program.natsChangefeedServer =
       program.natsTieredStorage =
       program.proxyServer =
