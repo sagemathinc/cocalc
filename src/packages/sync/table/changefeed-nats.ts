@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// DEPRECATED!!! DELETE THIS!!!
+
 import { EventEmitter } from "events";
 import type { State } from "./changefeed";
 import { delay } from "awaiting";

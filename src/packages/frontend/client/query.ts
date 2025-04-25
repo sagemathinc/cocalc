@@ -54,7 +54,10 @@ export class QueryClient {
         });
         // id for canceling this changefeed
         const id = uuid();
-        const query = await changefeed.connect();
+        const initval = await changefeed.connect();
+        const query = {
+          [Object.keys(opts.query)[0]]: initval,
+        };
         this.changefeeds[id] = changefeed;
         cb(undefined, { query, id });
         changefeed.on("update", (change) => {
