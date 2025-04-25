@@ -65,7 +65,6 @@ export default function IFrame(props: Props) {
       </div>
     );
   }
-
   if (!src?.startsWith("blob:") && (props.cacheid == null || !props.trust)) {
     return <NonCachedIFrame src={src} />;
   } else {
@@ -116,9 +115,25 @@ function NonCachedIFrame({ src }) {
     return <div>Failed to load iframe contents</div>;
   }
 
+  if (!src) {
+    return;
+  }
+  let srcDoc: undefined | string = undefined;
+  if (
+    !(
+      src.startsWith("https:") ||
+      src.startsWith("http:") ||
+      src.startsWith("blob:")
+    )
+  ) {
+    srcDoc = src;
+    src = undefined;
+  }
+
   return (
     <iframe
       src={src}
+      srcDoc={srcDoc}
       ref={iframeRef}
       onError={load_error}
       style={{ border: 0, width: WIDTH, minHeight: HEIGHT }}
