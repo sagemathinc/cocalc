@@ -6,13 +6,15 @@
 import { EventEmitter } from "events";
 import { changefeed, renew } from "@cocalc/nats/changefeed/client";
 import { delay } from "awaiting";
+import { waitUntilConnected } from "@cocalc/nats/util";
 
+const LIFETIME = 90000;
 const HEARTBEAT = 15000;
-const HEARTBEAT_MISS_THRESH = 5000;
+const HEARTBEAT_MISS_THRESH = 7500;
 
 // this should be significantly shorter than HEARTBEAT.
-// if user closes browser and comes back, then this is the time they may have to wait
-// for their changefeeds to reconnect, since clock jumps forward...
+// if user closes browser and comes back, then this is the time they may have
+// to wait for their changefeeds to reconnect, since clock jumps forward...
 const HEARTBEAT_CHECK_DELAY = 3000;
 
 const MAX_CHANGEFEED_LIFETIME = 1000 * 60 * 60 * 8;
@@ -51,7 +53,7 @@ export class NatsChangefeed extends EventEmitter {
   }
 
   connect = async () => {
-    log("creating new changefeed; xxxx", this.query);
+    log("creating new changefeed", this.query);
     if (this.state == "closed") return;
     this.natsSynctable = await changefeed({
       account_id: this.account_id,
@@ -59,6 +61,7 @@ export class NatsChangefeed extends EventEmitter {
       options: this.options,
       heartbeat: HEARTBEAT,
       maxActualLifetime: MAX_CHANGEFEED_LIFETIME,
+      lifetime: LIFETIME,
     });
     // @ts-ignore
     if (this.state == "closed") return;
@@ -124,6 +127,7 @@ export class NatsChangefeed extends EventEmitter {
   private startHeartbeatMonitor = async () => {
     while (this.state != "closed") {
       await delay(HEARTBEAT_CHECK_DELAY);
+      await waitUntilConnected();
       // @ts-ignore
       if (this.state == "closed") {
         return;

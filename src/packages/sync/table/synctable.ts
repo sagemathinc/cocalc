@@ -757,7 +757,7 @@ export class SyncTable extends EventEmitter {
         }
         // This can happen because we might suddenly NOT be ready
         // to query db immediately after we are ready...
-        console.log(
+        console.warn(
           `WARNING: ${this.table} -- failed to create changefeed connection -- ${err}; will retry`,
         );
         await delay(delay_ms);
