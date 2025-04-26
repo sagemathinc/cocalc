@@ -5,11 +5,16 @@
 
 // Show a file listing.
 
+// cSpell:ignore issymlink
+
+import { Alert, Spin } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
+import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { Alert, Spin } from "antd";
+
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
   Rendered,
@@ -21,14 +26,11 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import * as misc from "@cocalc/util/misc";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
-import { TerminalModeDisplay } from "./terminal-mode-display";
 import { TERM_MODE_CHAR } from "./utils";
-import * as misc from "@cocalc/util/misc";
-import { FormattedMessage } from "react-intl";
-import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -166,7 +168,9 @@ export const FileListing: React.FC<Props> = ({
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  const lastSelectedFileIndexRef = useRef<undefined | number>(selected_file_index);
+  const lastSelectedFileIndexRef = useRef<undefined | number>(
+    selected_file_index,
+  );
 
   useEffect(() => {
     if (selected_file_index == null) {
@@ -230,12 +234,6 @@ export const FileListing: React.FC<Props> = ({
         configuration_main={configuration_main}
       />
     );
-  }
-
-  function render_terminal_mode(): Rendered {
-    if (file_search[0] === TERM_MODE_CHAR) {
-      return <TerminalModeDisplay />;
-    }
   }
 
   if (!isRunning && listing.length == 0) {
@@ -310,7 +308,6 @@ export const FileListing: React.FC<Props> = ({
           flexDirection: "column",
         }}
       >
-        {render_terminal_mode()}
         {listing.length > 0 && (
           <ListingHeader
             active_file_sort={active_file_sort}

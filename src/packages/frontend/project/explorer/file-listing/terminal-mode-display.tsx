@@ -4,8 +4,9 @@
  */
 
 import { Alert } from "antd";
-import { A } from "@cocalc/frontend/components/A";
 import { useState } from "react";
+
+import { A } from "@cocalc/frontend/components/A";
 
 export function TerminalModeDisplay() {
   const [extra, setExtra] = useState<boolean>(false);

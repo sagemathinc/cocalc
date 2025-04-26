@@ -3,20 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Alert, Flex } from "antd";
 import React from "react";
+import { useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
-import { Alert } from "antd";
+import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
-import { output_style_searchbox } from "./mini-terminal";
+import { outputMinitermStyle } from "./mini-terminal";
 import { ListingItem } from "./types";
-import { useIntl } from "react-intl";
 
 interface Props {
-  project_id: string; // Added by miniterm functionality
   file_search: string;
   current_path?: string;
   actions: ProjectActions;
@@ -34,7 +35,6 @@ interface Props {
 // Search WARNING to find the line in this class.
 export const SearchBar = React.memo((props: Props) => {
   const {
-    project_id,
     file_search = "",
     current_path,
     actions,
@@ -49,6 +49,7 @@ export const SearchBar = React.memo((props: Props) => {
   } = props;
 
   const intl = useIntl();
+  const { project_id } = useProjectContext();
 
   // edit → run → edit
   // TODO use "state" to show a progress spinner while a command is running
@@ -155,7 +156,7 @@ export const SearchBar = React.memo((props: Props) => {
           file_search.length - 1,
         )}`;
       } else {
-        text = `Showing files matching ${file_search}`;
+        text = `Showing files matching "${file_search}"`;
       }
       return (
         <Alert
@@ -277,7 +278,7 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   return (
-    <span>
+    <Flex style={{ flex: "1 0 auto" }} vertical={true}>
       <SearchInput
         autoFocus
         autoSelect
@@ -295,13 +296,13 @@ export const SearchBar = React.memo((props: Props) => {
       />
       {render_file_creation_error()}
       {render_help_info()}
-      <div style={{ ...output_style_searchbox, width: "100%", left: 0 }}>
+      <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {
           color: "darkred",
           margin: 0,
         })}
         {render_output(stdout, { margin: 0 })}
       </div>
-    </span>
+    </Flex>
   );
 });
