@@ -8,11 +8,22 @@ import { changefeed, renew } from "@cocalc/nats/changefeed/client";
 import { delay } from "awaiting";
 
 const HEARTBEAT = 15000;
+const HEARTBEAT_MISS_THRESH = 5000;
 
 // this should be significantly shorter than HEARTBEAT.
 // if user closes browser and comes back, then this is the time they may have to wait
 // for their changefeeds to reconnect, since clock jumps forward...
 const HEARTBEAT_CHECK_DELAY = 3000;
+
+const MAX_CHANGEFEED_LIFETIME = 1000 * 60 * 60 * 8;
+
+// low level debugging of changefeeds
+const LOW_LEVEL_DEBUG = false;
+const log = LOW_LEVEL_DEBUG
+  ? (...args) => {
+      console.log("changefeed: ", ...args);
+    }
+  : (..._args) => {};
 
 export class NatsChangefeed extends EventEmitter {
   private account_id: string;
@@ -40,23 +51,26 @@ export class NatsChangefeed extends EventEmitter {
   }
 
   connect = async () => {
+    log("creating new changefeed", this.query);
     if (this.state == "closed") return;
     this.natsSynctable = await changefeed({
       account_id: this.account_id,
       query: this.query,
       options: this.options,
       heartbeat: HEARTBEAT,
+      maxActualLifetime: MAX_CHANGEFEED_LIFETIME,
     });
-    this.last_hb = Date.now();
     // @ts-ignore
     if (this.state == "closed") return;
+    this.last_hb = Date.now();
+    this.startHeartbeatMonitor();
     this.state = "connected";
     const {
       value: { id, lifetime },
     } = await this.natsSynctable.next();
     this.id = id;
     this.lifetime = lifetime;
-    // console.log("got changefeed", { id, lifetime, query: this.query });
+    log("got changefeed", { id, lifetime, query: this.query });
     this.startRenewLoop();
 
     // @ts-ignore
@@ -64,9 +78,7 @@ export class NatsChangefeed extends EventEmitter {
       const { value } = await this.natsSynctable.next();
       this.last_hb = Date.now();
       if (value) {
-        // got first non-heartbeat value (the first query might take LONGER than heartbeats)
         this.startWatch();
-        this.startHeartbeatMonitor();
         return value[Object.keys(value)[0]];
       }
     }
@@ -97,7 +109,10 @@ export class NatsChangefeed extends EventEmitter {
         }
         this.last_hb = Date.now();
         if (x) {
+          log("got message ", this.query, x);
           this.emit("update", x);
+        } else {
+          log("got heartbeat", this.query);
         }
       }
     } catch {
@@ -107,11 +122,19 @@ export class NatsChangefeed extends EventEmitter {
 
   private startHeartbeatMonitor = async () => {
     while (this.state != "closed") {
-      if (this.last_hb && Date.now() - this.last_hb > 2 * HEARTBEAT) {
+      await delay(HEARTBEAT_CHECK_DELAY);
+      if (
+        this.last_hb &&
+        Date.now() - this.last_hb > HEARTBEAT + HEARTBEAT_MISS_THRESH
+      ) {
+        log("heartbeat failed", this.query, {
+          last_hb: this.last_hb,
+          diff: Date.now() - this.last_hb,
+          thresh: HEARTBEAT + HEARTBEAT_MISS_THRESH,
+        });
         this.close();
         return;
       }
-      await delay(HEARTBEAT_CHECK_DELAY);
     }
   };
 
@@ -130,7 +153,9 @@ export class NatsChangefeed extends EventEmitter {
 
   private startRenewLoop = async () => {
     while (this.state != "closed" && this.lifetime && this.id) {
-      await delay(this.lifetime / 3);
+      // max to avoid weird situation bombarding server or infinite loop
+      await delay(Math.max(7500, this.lifetime / 3));
+      log("renewing with lifetime ", this.lifetime, this.query);
       try {
         await renew({
           account_id: this.account_id,

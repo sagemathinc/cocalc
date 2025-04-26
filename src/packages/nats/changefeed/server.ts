@@ -260,7 +260,7 @@ async function handleMessage(mesg, db) {
     while (!done) {
       const timeSinceLast = Date.now() - lastSend;
       if (timeSinceLast < hb) {
-        // no neeed to send hearbeat yet
+        // no neeed to send heartbeat yet
         await delay(hb - timeSinceLast);
         continue;
       }
