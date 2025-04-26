@@ -51,7 +51,7 @@ export class NatsChangefeed extends EventEmitter {
   }
 
   connect = async () => {
-    log("creating new changefeed", this.query);
+    log("creating new changefeed; xxxx", this.query);
     if (this.state == "closed") return;
     this.natsSynctable = await changefeed({
       account_id: this.account_id,
@@ -90,6 +90,7 @@ export class NatsChangefeed extends EventEmitter {
     }
     this.kill();
     this.state = "closed";
+    log("firing close event for ", this.query);
     this.emit("close"); // yes "close" not "closed" ;-(
   };
 
@@ -123,6 +124,10 @@ export class NatsChangefeed extends EventEmitter {
   private startHeartbeatMonitor = async () => {
     while (this.state != "closed") {
       await delay(HEARTBEAT_CHECK_DELAY);
+      // @ts-ignore
+      if (this.state == "closed") {
+        return;
+      }
       if (
         this.last_hb &&
         Date.now() - this.last_hb > HEARTBEAT + HEARTBEAT_MISS_THRESH

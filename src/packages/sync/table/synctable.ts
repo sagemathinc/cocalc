@@ -530,6 +530,7 @@ export class SyncTable extends EventEmitter {
       // already closed
       return;
     }
+    this.dbg("close")({ fatal });
     if (!fatal) {
       // do a last attempt at a save (so we don't lose data),
       // then really close.
@@ -689,18 +690,19 @@ export class SyncTable extends EventEmitter {
     let initval;
     try {
       initval = await this.create_changefeed_connection();
+      if (!initval) {
+        throw Error("closed while creating changefeed");
+      }
     } catch (err) {
       dbg("failed to create changefeed", err.toString());
       // Typically this happens if synctable closed while
       // creating the connection...
       this.close();
-      throw err;
     }
     if (this.state == "closed") {
       return;
     }
     dbg("got changefeed, now initializing table data");
-    this.init_changefeed_handlers();
     const changed_keys = this.update_all(initval);
     dbg("setting state to connected");
     this.set_state("connected");
@@ -733,12 +735,20 @@ export class SyncTable extends EventEmitter {
           query: this.query,
           options: this.options,
         });
+        // This init_changefeed_handlers MUST be initialized here since this.changefeed might
+        // get closed very soon, and missing a close event would be very, very bad.
+        this.init_changefeed_handlers();
       } else {
         this.changefeed = new Changefeed(this.changefeed_options());
+        this.init_changefeed_handlers();
+        await this.wait_until_ready_to_query_db();
       }
-      await this.wait_until_ready_to_query_db();
       try {
-        return await this.changefeed.connect();
+        const initval = await this.changefeed.connect();
+        if (this.changefeed.get_state() == "closed" || !initval) {
+          throw Error("closed during creation");
+        }
+        return initval;
       } catch (err) {
         if (is_fatal(err.toString())) {
           console.warn("FATAL creating initial changefeed", this.table, err);
@@ -751,7 +761,7 @@ export class SyncTable extends EventEmitter {
           `WARNING: ${this.table} -- failed to create changefeed connection -- ${err}; will retry`,
         );
         await delay(delay_ms);
-        if (delay_ms < 8000) {
+        if (delay_ms < 7000) {
           delay_ms *= 1.3;
         }
       }
@@ -814,6 +824,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private changefeed_on_close(): void {
+    this.dbg("changefeed_on_close")();
     this.set_state("disconnected");
     this.create_changefeed();
   }
