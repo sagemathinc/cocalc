@@ -94,7 +94,7 @@ function connectingMessage({ server, project_ids }) {
 }
 
 const getNewNatsConn = reuseInFlight(async ({ cache, user }) => {
-  const { account_id } = webapp_client;
+  const account_id = await getAccountId();
   if (!account_id) {
     throw Error("you must be signed in before connecting to NATS");
   }
@@ -119,12 +119,23 @@ const getNewNatsConn = reuseInFlight(async ({ cache, user }) => {
   }
 });
 
+// This is a hack to get around circular import during initial page load.
+// TODO: properly clean up the import order
+async function getAccountId() {
+  try {
+    return webapp_client.account_id;
+  } catch {
+    await delay(1);
+    return webapp_client.account_id;
+  }
+}
+
 let cachedConnection: CoCalcNatsConnection | null = null;
 export const connect = reuseInFlight(async () => {
   if (cachedConnection != null) {
     return cachedConnection;
   }
-  const { account_id } = webapp_client;
+  const account_id = await getAccountId();
   const cache = getPermissionsCache();
   const project_ids = cache.get();
   const user = { account_id, project_ids };
@@ -283,7 +294,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
         // nothing to do
         return;
       }
-      const { account_id } = webapp_client;
+      const account_id = await getAccountId();
       if (!account_id) {
         throw Error("you must be signed in before connecting to NATS");
       }
