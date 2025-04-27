@@ -20,8 +20,13 @@ export const MIN_LIFETIME = 30 * 1000;
 export const MIN_HEARTBEAT = 5000;
 export const MAX_HEARTBEAT = 120000;
 export const MAX_CHANGEFEEDS_PER_ACCOUNT = parseInt(
-  process.env.COCALC_MAX_CHANGEFEEDS_PER_ACCOUNT ?? "150",
+  process.env.MAX_CHANGEFEEDS_PER_ACCOUNT ?? "100",
 );
+
+export const MAX_CHANGEFEEDS_PER_SERVER = parseInt(
+  process.env.MAX_CHANGEFEEDS_PER_SERVER ?? "5000",
+);
+
 export const LAST_CHUNK = "last-chunk";
 
 const logger = getLogger("changefeed:server");
@@ -52,6 +57,16 @@ let terminated = false;
 let sub: Subscription | null = null;
 export async function init(db) {
   logger.debug("starting changefeed server");
+  logger.debug({
+    DEFAULT_LIFETIME,
+    MAX_LIFETIME,
+    MIN_LIFETIME,
+    MIN_HEARTBEAT,
+    MAX_HEARTBEAT,
+    MAX_CHANGEFEEDS_PER_ACCOUNT,
+    MAX_CHANGEFEEDS_PER_SERVER,
+    SUBJECT,
+  });
   changefeedMainLoop(db);
   renewMainLoop();
 }
@@ -227,6 +242,18 @@ async function handleMessage(mesg, db) {
   if (numChangefeedsPerAccount[account_id] > MAX_CHANGEFEEDS_PER_ACCOUNT) {
     respond(
       `There is a limit of ${MAX_CHANGEFEEDS_PER_ACCOUNT} changefeeds per account`,
+    );
+    return;
+  }
+  if (numChangefeeds >= MAX_CHANGEFEEDS_PER_SERVER) {
+    logger.debug("numChangefeeds >= MAX_CHANGEFEEDS_PER_SERVER", {
+      numChangefeeds,
+      MAX_CHANGEFEEDS_PER_SERVER,
+    });
+    // this will just cause the client to make another attempt, hopefully
+    // to another server
+    respond(
+      `There is a limit of ${MAX_CHANGEFEEDS_PER_SERVER} changefeeds per server`,
     );
     return;
   }
