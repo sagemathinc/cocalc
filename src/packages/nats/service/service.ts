@@ -26,7 +26,7 @@ import { requestMany, respondMany } from "./many";
 import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 10 * 1000;
-const MONITOR_INTERVAL = 90 * 1000;
+const MONITOR_INTERVAL = 45 * 1000;
 
 // switching this is awkward since it would have to be changed in projects
 // and frontends or things would hang. I'm making it toggleable just for
@@ -272,8 +272,18 @@ export class NatsService extends EventEmitter {
     try {
       await waitUntilConnected();
       this.emit("starting");
+
       this.log("starting service");
       const env = await getEnv();
+
+      // close any subscriptions by this client to the subject, which might be left from previous runs of this service.
+      // @ts-ignore
+      for (const sub of env.nc.protocol.subscriptions.subs) {
+        if (sub[1].subject == this.subject) {
+          sub[1].close();
+        }
+      }
+
       if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
         const svcm = new Svcm(env.nc);
         const service = await svcm.add({

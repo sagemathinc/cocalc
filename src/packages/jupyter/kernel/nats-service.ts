@@ -108,7 +108,7 @@ export async function initNatsService({
       return { buffer64: bufferToBase64(buffer) };
     },
   };
-  return await createNatsJupyterService({
+   return await createNatsJupyterService({
     project_id,
     path,
     impl,

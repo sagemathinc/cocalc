@@ -33,6 +33,7 @@ import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
 import { computeServerManager } from "@cocalc/nats/compute/manager";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
@@ -216,15 +217,20 @@ export class JupyterActions extends JupyterActions0 {
     );
   }
 
-  private initNatsApi = async () => {
-    const service = await initNatsService({
+  private natsService?;
+  private initNatsApi = reuseInFlight(async () => {
+    if (this.natsService != null) {
+      this.natsService.close();
+      this.natsService = null;
+    }
+    const service = (this.natsService = await initNatsService({
       project_id: this.project_id,
       path: this.path,
-    });
+    }));
     this.syncdb.on("closed", () => {
       service.close();
     });
-  };
+  });
 
   private _first_load = async () => {
     const dbg = this.dbg("_first_load");

@@ -28,7 +28,6 @@ const MAX_BLOB_STORE_SIZE = 100 * 1000000;
 
 declare const localStorage: any;
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import * as immutable from "immutable";
 import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
@@ -50,6 +49,7 @@ import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
 import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
 import { type AKV, akv } from "@cocalc/nats/sync/akv";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { close, required, defaults } = misc;
 
