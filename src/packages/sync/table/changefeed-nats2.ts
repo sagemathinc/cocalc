@@ -8,7 +8,7 @@ import { changefeed, renew } from "@cocalc/nats/changefeed/client";
 import { delay } from "awaiting";
 import { waitUntilConnected } from "@cocalc/nats/util";
 
-const LIFETIME = 90000;
+const LIFETIME = 60000;
 const HEARTBEAT = 15000;
 const HEARTBEAT_MISS_THRESH = 7500;
 

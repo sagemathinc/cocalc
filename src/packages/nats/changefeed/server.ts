@@ -14,7 +14,7 @@ import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { getMaxPayload } from "@cocalc/nats/util";
 
-export const DEFAULT_LIFETIME = 2 * 1000 * 60;
+export const DEFAULT_LIFETIME = 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
 export const MIN_LIFETIME = 30 * 1000;
 export const MIN_HEARTBEAT = 5000;
@@ -240,8 +240,15 @@ async function handleMessage(mesg, db) {
   };
 
   if (numChangefeedsPerAccount[account_id] > MAX_CHANGEFEEDS_PER_ACCOUNT) {
+    logger.debug(
+      `numChangefeedsPerAccount[${account_id}] >= MAX_CHANGEFEEDS_PER_ACCOUNT`,
+      {
+        numChangefeedsPerAccountThis: numChangefeedsPerAccount[account_id],
+        MAX_CHANGEFEEDS_PER_ACCOUNT,
+      },
+    );
     respond(
-      `There is a limit of ${MAX_CHANGEFEEDS_PER_ACCOUNT} changefeeds per account`,
+      `This server has a limit of ${MAX_CHANGEFEEDS_PER_ACCOUNT} changefeeds per account`,
     );
     return;
   }
@@ -253,7 +260,7 @@ async function handleMessage(mesg, db) {
     // this will just cause the client to make another attempt, hopefully
     // to another server
     respond(
-      `There is a limit of ${MAX_CHANGEFEEDS_PER_SERVER} changefeeds per server`,
+      `This server has a limit of ${MAX_CHANGEFEEDS_PER_SERVER} changefeeds`,
     );
     return;
   }
