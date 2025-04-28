@@ -1,9 +1,6 @@
 /*
-Code for testing for memory leaks.
-
-  - just doing queries doesn't leak
-  - as of this writing, creating the changefeed does leak.
-
+Code for testing for memory leaks.  As of this commit, nothing tested for here
+leaks memory in my dev setup.
 
 USAGE:
 
@@ -11,7 +8,7 @@ Run with an account_id from your dev server and pass the expose-gc flag so the
 gc command is defined:
 
 
-ACCOUNT_ID="6aae57c6-08f1-4bb5-848b-3ceb53e61ede"  node  --expose-gc
+ACCOUNT_ID="6aae57c6-08f1-4bb5-848b-3ceb53e61ede" DEBUG=cocalc:* DEBUG_CONSOLE=yes node  --expose-gc
 
 Then do this
 
@@ -19,12 +16,28 @@ Then do this
    await a.testQueryOnly(50)
    await a.testChangefeed(50)
 
+Do a test multiple times to see if there is a real leak, e.g., the following is GOOD:
 
+  > a.testChangefeed(50)
+  Promise {
+    <pending>,
+    [Symbol(async_id_symbol)]: 47,
+    [Symbol(trigger_async_id_symbol)]: 6
+  }
+  > leaked 5.209536 MB
+
+  > a.testChangefeed(50)
+  Promise {
+    <pending>,
+    [Symbol(async_id_symbol)]: 3167,
+    [Symbol(trigger_async_id_symbol)]: 6
+  }
+  > leaked -0.029184 MB  <--- GOOD!
 */
 
 import { db } from "@cocalc/database";
 import { uuid } from "@cocalc/util/misc";
-//import { delay } from "awaiting";
+import { delay } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
 
 // set env variable to an account_id on your dev server with lots of projects.
@@ -52,12 +65,16 @@ export function cancel(id) {
 }
 
 let pre: any = { heapUsed: 0 };
-function before() {
+async function before() {
+  gc?.();
+  await delay(500);
   gc?.();
   pre = process.memoryUsage();
 }
 
-function after() {
+async function after() {
+  gc?.();
+  await delay(500);
   gc?.();
   const post = process.memoryUsage();
   const leak = (post.heapUsed - pre.heapUsed) / 10 ** 6;
@@ -67,18 +84,18 @@ function after() {
 
 // This leaks horribly
 export async function testChangefeed(n) {
-  before();
+  await before();
   for (let i = 0; i < n; i++) {
     const id = uuid();
     await callback2(create, { id });
     cancel(id);
   }
-  return after();
+  return await after();
 }
 
 // query only does NOT leak
 export async function testQueryOnly(n) {
-  before();
+  await before();
   for (let i = 0; i < n; i++) {
     const d = db();
     await callback2(d.user_query, {
@@ -90,5 +107,5 @@ export async function testQueryOnly(n) {
       account_id: "6aae57c6-08f1-4bb5-848b-3ceb53e61ede",
     });
   }
-  return after();
+  return await after();
 }
