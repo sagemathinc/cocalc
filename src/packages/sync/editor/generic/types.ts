@@ -12,17 +12,43 @@
 import { SyncTable } from "@cocalc/sync/table/synctable";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+import type {
+  CallNatsServiceFunction,
+  CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
 
 export interface Patch {
-  time: Date; // timestamp of when patch made
-  patch: CompressedPatch /* compressed format patch (stored as a
-                   JSON *string* in database, but array/object here) */;
+  time: number; // timestamp of when patch made -- ms since the epoch
+  patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
-  snapshot?: string; // to_str() applied to the document at this point in time
-  sent?: Date; // when patch actually sent, which may be later than when made
-  prev?: Date; // timestamp of previous patch sent from this session
   size: number; // size of the patch (by defn length of string representation)
+
+  is_snapshot?: boolean;
+  snapshot?: string; // to_str() applied to the document at this point in time
+  seq_info?: {
+    // seq = sequence number of the message with the patch/timestamp of the snapshot.
+    // Load with start_seq = seq to get all patch info back to this snapshot.
+    seq: number;
+    // prev_seq = sequence numbrer of *previous* snapshot patch.
+    // Load with start_seq = prev_seq to get all info about timetravel
+    // back to previous snapshot.  That previous snapshot will itself
+    // have a prev_seq, etc., making it possible to incremental load
+    // patches back in time.
+    prev_seq?: number;
+  };
+
+  // The set of all patches forms a directed acyclic graph.
+  // There is an edge from the patch to its parents, which were all source
+  // vertices that were *known* when the patch was made.
+  // Right now, creating a new patch always
+  // involves merging all parents known to this client.  However, that's not
+  // required by this data structure: instead parents could just be the branches
+  // that we are merging.  I.e., we might only add something when
+  // the user wants to manually do a merge.  That's for later...
+  parents?: number[];
+
+  version?: number;
 }
 
 export interface Document {
@@ -95,6 +121,11 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
+  synctable_nats: (query: any, obj?) => Promise<any>;
+  pubsub_nats: (query: any, obj?) => Promise<any>;
+  callNatsService?: CallNatsServiceFunction;
+  createNatsService?: CreateNatsServiceFunction;
+
   // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
@@ -113,21 +144,21 @@ export interface ProjectClient extends EventEmitter {
 }
 
 export interface Client extends ProjectClient {
-  log_error: (opts: {
+  log_error?: (opts: {
     project_id: string;
     path: string;
     string_id: string;
     error: any;
   }) => void;
 
-  mark_file: (opts: {
+  mark_file?: (opts: {
     project_id: string;
     path: string;
     action: string;
     ttl: number;
   }) => void;
 
-  synctable_database: (
+  synctable_database?: (
     query: any,
     options: any,
     throttle_changes?: number,
@@ -136,6 +167,8 @@ export interface Client extends ProjectClient {
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
+
+  touchOpenFile?: (opts: { project_id: string; path: string }) => Promise<void>;
 }
 
 export interface DocType {

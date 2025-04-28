@@ -1,10 +1,8 @@
 import { dynamicImport } from "tsimportlib";
-import { readdir, rm } from "fs/promises";
+import { readdir, rm, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { createEncoderStream } from "lz4";
-import { Readable } from "stream";
-import { createWriteStream } from "fs";
+import { compressFrame } from "lz4-napi";
 
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
@@ -154,31 +152,16 @@ export async function remove(paths: string[], rel?: string) {
   }
 }
 
+// Write a utf8 string to file with lz4 compression.
+// We are not using streaming because lz4-napi doesn't
+// support streams: https://github.com/antoniomuso/lz4-napi/issues/429
+// But our actual use of this is for files that are fairly small,
+// which got sent via an api call.
 export async function writeFileLz4(path: string, contents: string) {
-  // We use a stream instead of blocking in process for compression
-  // because this code is likely to run in the project's daemon,
-  // and blocking here would block interactive functionality such
-  // as terminals.
-
-  // Create readable stream from the input.
-  const input = new Readable({
-    read() {
-      this.push(contents);
-      this.push(null);
-    },
-  });
-  // lz4 compression encoder
-  const encoder = createEncoderStream();
-  const output = createWriteStream(path);
-  // start writing
-  input.pipe(encoder).pipe(output);
-  // wait until done
-  const waitForFinish = new Promise((resolve, reject) => {
-    encoder.on("error", reject);
-    output.on("finish", resolve);
-    output.on("error", reject);
-  });
-  await waitForFinish;
+  // lz4-napi has no docs, but compressFrame works to create a file
+  // that the lz4 command can decompress, but "compress" does not.
+  const compressed = await compressFrame(Buffer.from(contents));
+  await writeFile(path, compressed);
 }
 
 /*

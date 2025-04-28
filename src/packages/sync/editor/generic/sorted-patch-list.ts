@@ -8,39 +8,96 @@ Sorted list of patches applied to a starting string/object.
 */
 
 import { EventEmitter } from "events";
-import { isEqual } from "lodash";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
-import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
-import { Entry, PatchValueCache } from "./patch-value-cache";
+import { close, deep_copy, trunc_middle } from "@cocalc/util/misc";
+// import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import LRU from "lru-cache";
 
-// Make this bigger to make things faster... at the
-// cost of using more memory.
-const MAX_PATCHLIST_CACHE_SIZE = 20;
+const MAX_PATCHLIST_CACHE_SIZE = 100;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
+  //private loadMoreHistory?: () => Promise<boolean>;
+
   private patches: Patch[] = [];
 
-  // the patches indexed by time
-  private times: { [time: string]: Patch } = {};
+  // Messages that we have NOT yet merged into our pristine and
+  // always valid this.live.
+  private heldSnapshots: { [time: number]: Patch } = {};
+  private staging: { [time: number]: Patch } = {};
 
-  private versions_cache: Date[] | undefined;
+  // this.live = All patches indexed by time that we consider when defining the
+  // current state of the document.  Any code changing this.live can only
+  // add new patches to it (or modify a patch to be a snapshot) and must
+  // *always* synchronously leave it having the following property:
+  //     Property: all tails are snapshots.
+  // This property ensures that it is possible to meaningfully define
+  // an immutable value at every key of this.live.
+  private live: { [time: number]: Patch } = {};
 
-  private cache: PatchValueCache = new PatchValueCache();
+  private versions_cache: number[] | undefined;
 
-  // all the times when there are snapshots.
-  private all_snapshot_times: { [time: string]: boolean } = {};
+  // should we use size?  most versions have the same size, so might not matter much.
+  private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
+    max: MAX_PATCHLIST_CACHE_SIZE,
+  });
 
-  constructor(from_str) {
+  private oldestSnapshot?: Patch;
+
+  constructor({
+    from_str,
+    // loadMoreHistory,
+  }: {
+    from_str: (s: string) => Document;
+    //loadMoreHistory?: () => Promise<boolean>;
+  }) {
     super();
     this.from_str = from_str;
+    //this.loadMoreHistory = loadMoreHistory;
   }
 
-  public close(): void {
+  close = (): void => {
     this.removeAllListeners();
+    this.cache.clear();
     close(this);
-  }
+  };
+
+  needsMoreHistory = () => {
+    if (this.hasFullHistory()) {
+      return false;
+    }
+    for (const _ in this.staging) {
+      return true;
+    }
+  };
+
+  hasFullHistory = () => {
+    const p = this.patches[0];
+    if (p == null) {
+      // no patches
+      for (const _ in this.staging) {
+        return false;
+      }
+      // and nothing in staging
+      return true;
+    }
+    // is p the first every patch?
+    return !p.is_snapshot && (p.parents ?? []).length == 0;
+  };
+
+  lastVersion = () => {
+    const n = this.patches.length;
+    return this.patches[n - 1]?.version ?? n;
+  };
+
+  firstVersion = () => {
+    return this.patches[0]?.version ?? 1;
+  };
+
+  versionNumber = (time: number): undefined | number => {
+    return this.live[time]?.version;
+  };
 
   /* Choose the next available time in ms that is congruent to
      m modulo n.  The congruence condition is so that any time
@@ -48,341 +105,309 @@ export class SortedPatchList extends EventEmitter {
      document with themselves -- two different users are
      guaranteed to not collide.  Note: even if there is a
      collision, it will automatically fix itself very quickly. */
-  public next_available_time(
-    time: Date | number,
+  next_available_time = (
+    time: number,
     m: number = 0,
-    n: number = 1
-  ): Date {
-    let t: number;
-    if (typeof time === "number") {
-      t = time;
-    } else {
-      t = time.valueOf();
-    }
-
+    n: number = 1,
+  ): number => {
     if (n <= 0) {
       n = 1;
     }
-    let a = m - (t % n);
+    let a = m - (time % n);
     if (a < 0) {
       a += n;
     }
-    t += a; // now t = m (mod n)
-    while (this.times[t] != null) {
-      t += n;
+    time += a; // now time = m (mod n)
+    while (this.live[time] != null) {
+      time += n;
     }
-    return new Date(t);
-  }
+    return time;
+  };
 
-  public add(patches: Patch[]): void {
+  // Add patches to the patch list.  This *CAN* be already in the patch
+  // list, can be replicated, and they will get put in the right place
+  // with any new information they contain merged in.  Snapshot info
+  // also is handled properly.
+  add = (patches: Patch[]): void => {
     if (patches.length === 0) {
       // nothing to do
       return;
     }
-    const v: Patch[] = [];
-    let oldest: Date | undefined = undefined;
-    let x: Patch;
-    for (x of patches) {
-      const t: number = x.time.valueOf();
-      const cur = this.times[t];
-      if (cur != null) {
-        // Hmm -- We already have a patch with this time.
-        if (
-          isEqual(cur.patch, x.patch) &&
-          cur.user_id === x.user_id &&
-          cur.snapshot === x.snapshot &&
-          cmp_Date(cur.prev, x.prev) === 0
-        ) {
-          // re-inserting a known patch; nothing at all to do
-          continue;
-        } else {
-          // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
-          // remove patch with same timestamp from the sorted list of patches
-          this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
-          this.emit("overwrite", t);
-        }
-      }
-      v.push(x);
-      this.times[t] = x;
-      if (oldest == null || oldest > x.time) {
-        oldest = x.time;
-      }
-      if (x.snapshot != null) {
-        this.all_snapshot_times[t] = true;
-      }
-    }
 
-    if (oldest != null) {
-      // invalidate anything cached back to oldest.
-      this.cache.invalidate(oldest);
-    }
-
-    // This is O(n*log(n)) where n is the length of this.patches.
-    // TODO: Better would probably be an insertion sort, which
-    // would be O(m*log(n)) where m=patches.length...
-    if (v.length > 0) {
-      delete this.versions_cache;
-      this.patches = this.patches.concat(v);
-      this.patches.sort(patch_cmp);
-    }
-  }
-
-  private newest_snapshot_time(): Date {
-    let t0 = 0;
-    let t: string;
-    for (t in this.all_snapshot_times) {
-      const d: number = parseInt(t);
-      if (d > t0) {
-        t0 = d;
-      }
-    }
-    return new Date(t0);
-  }
-
-  /*
-    value: Return the value of the document at the given (optional)
-    point in time.  If the time is given, only include patches up
-    to (and including) the given time; otherwise, return the current
-    (newest) value.
-
-    If force is true, doesn't use snapshot at given input time, even if
-    there is one; this is used to update snapshots in case of offline changes
-    getting inserted into the changelog.
-
-    If without_times is defined, it must be an array of Date objects; in that case
-    the current value of the string is computed, but with all the patches
-    at the given times in "without_times" ignored.  This is used elsewhere
-    as a building block to implement undo.  We do not assume that
-    without_times is sorted.
-  */
-  public value(time?: Date, force?: boolean, without_times?: Date[]): Document {
-    // oldest time that is skipped:
-    let oldest_without_time: Date | undefined = undefined;
-    // all skipped times.
-    let without_times_set: { [time_since_epoch: number]: true } = {};
-
-    if (without_times != null) {
-      // Process without_times to get a map from time numbers to true.
-      if (without_times.length > 0) {
-        for (const x of without_times) {
-          // convert x to number (then string as key)
-          without_times_set[x.valueOf()] = true;
-          if (oldest_without_time == null || x < oldest_without_time) {
-            oldest_without_time = x;
-          }
-        }
-        if (
-          time != null &&
-          oldest_without_time != null &&
-          time < oldest_without_time
-        ) {
-          // requesting value at time before any oldest_without_time, so
-          // is not relevant, so ignore.
-          oldest_without_time = undefined;
-          without_times = undefined;
-          without_times_set = {};
-        }
-      }
-    }
-
-    // we do not discard patch due to prev if prev is before this.
-    const prev_cutoff: Date = this.newest_snapshot_time();
-
-    // Determine oldest cached value (undefined if nothing cached)
-    const oldest_cached_time: Date | undefined = this.cache.oldest_time();
-
-    let value: Document;
-    // If the oldest cached value exists and is at least as old as
-    // the requested point in time, use it as a base.
-    if (
-      oldest_cached_time != null &&
-      (time == null || time >= oldest_cached_time) &&
-      (oldest_without_time == null || oldest_without_time > oldest_cached_time)
-    ) {
-      // There is something in the cache, and it is at least as
-      // far back in time as the value we want to compute now or
-      // any without skips.
-      let entry: Entry | undefined;
-      if (oldest_without_time != null) {
-        // true makes "at most" strict, so <.
-        entry = this.cache.newest_value_at_most(oldest_without_time, true);
-      } else {
-        entry = this.cache.newest_value_at_most(time);
-      }
-      if (entry === undefined) {
-        throw Error("BUG -- cache should contain a value, but doesn't");
-      }
-      let { start, time: cache_time } = entry;
-      value = entry.value;
-      let x: Patch;
-      for (x of this.patches.slice(start, this.patches.length)) {
-        // all patches starting with the cached one
-        if (time != null && x.time > time) {
-          // We are done -- no more patches need to be applied
-          break;
-        }
-        if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
-        ) {
-          if (
-            oldest_without_time == null ||
-            (oldest_without_time != null &&
-              !without_times_set[x.time.valueOf()])
-          ) {
-            // apply patch x to update value to be closer to what we want
-            value = value.apply_patch(x.patch);
-          }
-        }
-        // also record the time of the last patch we applied:
-        cache_time = x.time;
-        start += 1;
-      }
+    // This implementation is complicated because it can't make any assumptions
+    // about uniqueness, etc., and also the snapshot info gets added later
+    // long after the patch is initially made; it's done as a message later
+    // in the stream.
+    for (const originalPatch of patches) {
+      // we make a shallow copy of the original patch, since this code
+      // may shallow mutate it, e.g., filling in the snapshot info, and
+      // we want to avoid any surprises/bugs (mainly with unit tests)
+      const t: number = originalPatch.time;
       if (
-        oldest_without_time == null &&
-        (time == null || start - entry.start >= 10)
+        !originalPatch.is_snapshot &&
+        (this.staging[t] != null || this.live[t] != null)
       ) {
-        // Newest -- or at least 10 patches needed to be applied -- so cache result
-        this.cache.include(cache_time, value, start);
-        this.cache.prune(MAX_PATCHLIST_CACHE_SIZE); // TODO: include info about size of docs?
+        // we have already added this patch
+        continue;
       }
-    } else {
-      // Cache is empty or doesn't have anything sufficiently old to be useful.
-      // Find the newest snapshot at a time that is <= time.
-      value = this.from_str(""); // default in case no snapshots
-      let start: number = 0;
-      for (let i = this.patches.length - 1; i >= 0; i--) {
-        if (
-          (time == null || this.patches[i].time <= time) &&
-          this.patches[i].snapshot != null
-        ) {
-          const x = this.patches[i];
-          if (x.snapshot == null) {
-            throw Error("to satisfy typescript");
-          }
-          if (force && cmp_Date(x.time, time) === 0) {
-            // If force is true we do NOT want to use the existing snapshot, since
-            // the whole point is to force recomputation of it, as it is wrong.
-            // Instead, we'll use the previous snapshot.
+      const x = { ...originalPatch };
+      if (x.is_snapshot) {
+        // it's a snapshot
+        if (this.live[t] != null) {
+          // The corresponding patch was already loaded, so edit
+          // the snapshot field of that patch.
+          this.live[t].is_snapshot = true;
+          this.live[t].snapshot = x.snapshot;
+          this.live[t].seq_info = x.seq_info;
+        } else if (this.staging[t] != null) {
+          this.staging[t].is_snapshot = true;
+          this.staging[t].snapshot = x.snapshot;
+          this.staging[t].seq_info = x.seq_info;
+        } else {
+          // The corresponding patch was NOT yet loaded, so just
+          // store this for later, in case it is loaded later.
+          this.heldSnapshots[t] = x;
+        }
+        if (this.oldestSnapshot == null || this.oldestSnapshot.time > t) {
+          this.oldestSnapshot = x;
+        }
+        // never include a snapshot message -- these just change patches,
+        // and are not patches themselves.
+        continue;
+      } else {
+        // not a snapshot, but maybe it's a patch for a snapshot that
+        // was already loaded or just a new patch
+        if (this.heldSnapshots[t] != null) {
+          // It is for a snapshot, so merge in that snapshot info to x,
+          // then handle x as normal below.
+          x.is_snapshot = true;
+          x.snapshot = this.heldSnapshots[t].snapshot;
+          x.seq_info = this.heldSnapshots[t].seq_info;
+          delete this.heldSnapshots[t];
+        }
+      }
+      this.staging[t] = x;
+    }
+
+    while (true) {
+      const v: { [time: number]: Patch } = {};
+      const heads = getHeads(this.staging);
+      if (heads.length == 0) {
+        return;
+      }
+      const graph = { ...this.live, ...this.staging };
+      for (const head of heads) {
+        const times = getTimesWithHeads(graph, [head]);
+        let isComplete = true;
+        for (const t of times) {
+          const patch = graph[t];
+          if (isSnapshot(patch)) {
             continue;
           }
-          // Found a patch with known snapshot that is as old as the time.
-          // This is the base on which we will apply other patches to move forward
-          // to the requested time.
-          value = this.from_str(x.snapshot);
-          start = i + 1;
-          break;
+          for (const parent of patch.parents ?? []) {
+            if (graph[parent] == null) {
+              // non-snapshot with a missing parent!
+              isComplete = false;
+              break;
+            }
+          }
+          if (!isComplete) {
+            break;
+          }
         }
-      }
-
-      // Apply each of the patches we need to get from
-      // value (the last snapshot) to time.
-      let cache_time: Date | undefined = undefined;
-      let cache_start: number = start;
-      let x: Patch;
-      for (x of this.patches.slice(start, this.patches.length)) {
-        if (time != null && x.time > time) {
-          // Done -- no more patches need to be applied
-          break;
-        }
-        // Apply a patch to move us forward.
-        //console.log("applying patch #{i}")
-        if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
-        ) {
-          if (
-            oldest_without_time == null ||
-            (oldest_without_time != null &&
-              !without_times_set[x.time.valueOf()])
-          ) {
-            try {
-              value = value.apply_patch(x.patch);
-            } catch (err) {
-              // See https://github.com/sagemathinc/cocalc/issues/3191
-              // This apply_patch *can* fail in practice due to
-              // a horrible massively nested data structure that appears
-              // due to a bug.  This happened with #3191.  It's better
-              // just skip the patch than to make the project and all
-              // files basically be massively broken!
-              console.warn(
-                "WARNING: unable to apply a patch -- skipping it",
-                err
-              );
+        if (isComplete) {
+          for (const t of times) {
+            if (this.live[t] == null) {
+              this.live[t] = this.staging[t];
+              v[t] = this.live[t];
+              delete this.staging[t];
             }
           }
         }
-        cache_time = x.time;
-        cache_start += 1;
       }
-      if (
-        cache_time != null &&
-        oldest_without_time == null &&
-        (time == null || cache_start - start >= 10)
-      ) {
-        // Newest -- or at least 10 patches needed to be applied -- so
-        // update the cache with our new known value
-        this.cache.include(cache_time, value, cache_start);
-        this.cache.prune(MAX_PATCHLIST_CACHE_SIZE); // TODO: use info about size of docs?
+
+      // This is O(n*log(n)) where n is the length of this.patches.
+      const newPatches = Object.values(v);
+      if (newPatches.length > 0) {
+        delete this.versions_cache;
+        this.patches = this.patches.concat(newPatches);
+        this.patches.sort(patch_cmp);
+      } else {
+        // nothing moved from staging to live, so **converged**.
+        return;
+      }
+    }
+  };
+
+  /*
+  value: Return the value of the document at the given (optional)
+  point in time.  If the time is given, we include exactly the patches
+  that were known at that point in time, applied in time order.
+  If time is not given, we compute the current value of the document,
+  which is the result of applying all *known* patches in time order.
+  In particular, there are multiple heads, this is the result of
+  merging them.
+
+  If without_times is defined, it must be an array of Date objects; in that case
+  the current value of the string is computed, but with all the patches
+  at the given times in "without_times" ignored.  This is used elsewhere
+  as a building block to implement undo.  We do not assume that
+  without_times is sorted.
+
+  CACHING: value({time}) does NOT depend in any way on patches that
+  may be received in the future -- if even they are for past points in
+  time (!) --, so we can safely cache it!  Patches for a past point in
+  time received in the future would be part of a different branch (different
+  component of the DAG), so we never have to consider them.
+  If without_times is given, we restrict it to times <= time, and only if
+  that is empty, then we can use cached values.
+  */
+  value = ({
+    time,
+    without_times,
+    noCache,
+    verbose,
+  }: {
+    time?: number;
+    without_times?: number[];
+    noCache?: boolean;
+    verbose?: boolean;
+  } = {}) => {
+    if (time != null && this.live[time] == null) {
+      throw Error(`unknown time: ${time}`);
+    }
+    const key = time;
+    let without;
+    if (without_times == null) {
+      without = null;
+    } else {
+      let w = without_times;
+      if (key != null) {
+        w = w.filter((x) => x <= key);
+      }
+      without = new Set<number>(w);
+    }
+    if (!noCache && (without?.size ?? 0) > 0) {
+      // do not use cache if without is relevant.
+      noCache = true;
+    }
+
+    if (!noCache && key != null) {
+      const v = this.getCache(key);
+      if (v != null) {
+        if (verbose) {
+          console.log("value: done -- is in the cache");
+        }
+        return v;
       }
     }
 
-    // Use the following only for testing/debugging,
-    // since it will make everything VERY slow.
-    /*
-    if (value != null && !value.is_equal(this.value_no_cache(time))) {
-        console.warn(`value for time ${time} is wrong!`)
+    // get all times that were known at the given time
+    let k: Set<number>;
+    if (key != null) {
+      k = this.knownTimes([key]);
+    } else {
+      const heads = this.getHeads();
+      if (heads.length == 0) {
+        k = new Set<number>();
+      } else {
+        if (heads.length == 1 && !noCache) {
+          const v = this.getCache(heads[0]);
+          if (v != null) {
+            return v;
+          }
+        }
+        k = this.knownTimes(heads);
+      }
     }
-    */
 
-    return value;
-  }
+    if (verbose) {
+      console.log("value: known times", k);
+    }
 
-  // VERY Slow -- only for consistency checking purposes and debugging.
-  // If snapshots=false, don't use snapshots.
-  public value_no_cache(time?: Date, snapshots: boolean = true): Document {
-    let value: Document = this.from_str(""); // default in case no snapshots
-    let start: number = 0;
-    const prev_cutoff: Date = this.newest_snapshot_time();
-    if (snapshots && this.patches.length > 0) {
-      for (let i = this.patches.length - 1; i >= 0; i--) {
-        const x: Patch = this.patches[i];
-        if ((time == null || x.time <= time) && x.snapshot != null) {
-          // Found a patch with known snapshot that is as old as the time.
-          // This is the base on which we will apply other patches to move
-          // forward to the requested time.
-          value = this.from_str(x.snapshot);
-          start = i + 1;
+    if (k.size == 0) {
+      const value = this.from_str("");
+      if (key != null) {
+        this.setCache(key, value, 0);
+      }
+      return value;
+    }
+
+    // We are *not* using the cache to compute the value at the requested time.
+    // The value is by definition the result of applying all patches in
+    // the set k of times in sorted order.
+
+    let v = Array.from(k).sort();
+    let value: Document | null = null;
+    if (!noCache) {
+      // It may be possible to initialize using the cache, which would avoid a lot of work.
+      for (let i = v.length - 1; i >= 0; i--) {
+        const t = v[i];
+        const x = this.getCache(t, i + 1);
+        if (x != null) {
+          v = v.slice(i + 1);
+          value = x;
+          if (verbose) {
+            console.log("value: initialized using cached value", {
+              value,
+              time: t,
+            });
+          }
           break;
         }
       }
     }
-    // Apply each of the patches we need to get from
-    // value (the last snapshot) to time.
-    let x: Patch;
-    for (x of this.patches.slice(start, this.patches.length)) {
-      if (time != null && x.time > time) {
-        // Done -- no more patches need to be applied
-        break;
-      }
-      if (
-        x.prev == null ||
-        this.times[x.prev.valueOf()] ||
-        x.prev <= prev_cutoff
-      ) {
-        value = value.apply_patch(x.patch);
+    if (value == null) {
+      const patch = this.live[v[0]];
+      if (patch.snapshot != null) {
+        value = this.from_str(patch.snapshot);
+        v.shift();
       } else {
-        console.log("skipping patch due to prev", x);
+        value = this.from_str("");
       }
     }
+    if (verbose) {
+      console.log({ value: value.to_str() });
+    }
+    for (const t of v) {
+      if (without != null && without.has(t)) {
+        continue;
+      }
+      const { patch } = this.live[t];
+      value = value.apply_patch(patch);
+      if (verbose) {
+        console.log("value", { patch, value: value.to_str() });
+      }
+    }
+    if (key != null && (without == null || without.size == 0)) {
+      this.setCache(key, value, k.size);
+    }
     return value;
-  }
+  };
+
+  private setCache = (time: number, doc: Document, numTimes: number) => {
+    this.cache.set(time, { doc, numTimes });
+  };
+
+  private getCache = (
+    time: number,
+    numTimes?: number,
+  ): Document | undefined => {
+    const v = this.cache.get(time);
+    if (v == null) {
+      return;
+    }
+    if (numTimes == null) {
+      return v.doc;
+    }
+    if (v.numTimes == numTimes) {
+      return v.doc;
+    }
+  };
 
   // For testing/debugging.  Go through the complete patch history and
   // verify that all snapshots are correct (or not -- in which case say so).
-  public validate_snapshots(): void {
+  validate_snapshots = (): void => {
     if (this.patches.length === 0) {
       return;
     }
@@ -410,70 +435,70 @@ export class SortedPatchList extends EventEmitter {
       }
       i += 1;
     }
-  }
+  };
 
   // integer index of user who made the patch at given point in time.
   // Throws an exception if there is no patch at that point in time.
-  public user_id(time): number {
+  user_id = (time): number => {
     const x = this.patch(time);
     if (x == null) {
       throw Error(`no patch at ${time}`);
     }
     return x.user_id;
-  }
-
-  // Returns time when patch was sent out, or undefined.  This is
-  // ONLY set if the patch was sent at a significantly different
-  // time than when it was created, e.g., due to it being offline.
-  // Throws an exception if there is no patch at that point in time.
-  public time_sent(time): Date | undefined {
-    return this.patch(time).sent;
-  }
+  };
 
   // Patch at a given point in time.
   // Throws an exception if there is no patch at that point in time.
-  public patch(time): Patch {
-    const p = this.times[time.valueOf()];
+  // This doesn't includes patches in staging.
+  patch = (time: number): Patch => {
+    const p = this.live[time];
     if (p == null) {
       throw Error(`no patch at ${time}`);
     }
     return p;
-  }
+  };
 
-  public versions(): Date[] {
-    // Compute and cache result,then return it; result gets cleared when new patches added.
+  versions = (): number[] => {
+    // Compute and cache result, then return it; result gets cleared when new patches added.
     if (this.versions_cache == null) {
       this.versions_cache = this.patches.map((x) => x.time);
     }
     return this.versions_cache;
-  }
+  };
+
+  hasVersion = (time: number): boolean => {
+    return this.live[time] != null;
+  };
 
   // Show the history of this document; used mainly for debugging purposes.
-  public show_history({
-    milliseconds,
+  show_history = ({
+    milliseconds = true,
     trunc,
-    log,
+    log: log0,
+    noCache,
   }: {
     milliseconds?: boolean;
     trunc?: number;
     log?: Function;
-  } = {}) {
+    noCache?: boolean;
+  } = {}) => {
     if (milliseconds === undefined) {
       milliseconds = false;
     }
     if (trunc === undefined) {
       trunc = trunc ? trunc : 80;
     }
-    if (log === undefined) {
-      log = console.log;
+    if (log0 === undefined) {
+      log0 = console.log;
     }
-    let i: number = 0;
-    let s: Document | undefined;
-    const prev_cutoff: Date = this.newest_snapshot_time();
+    let output = "\n";
+    const log = (...args) => {
+      output += args.join(" ") + "\n";
+    };
+    let i: number = 1;
     let x: Patch;
-    let first_time: boolean = true;
     for (x of this.patches) {
-      const tm: Date = x.time;
+      const tm: Date = new Date(x.time);
       const tm_show: number | string = milliseconds
         ? tm.valueOf()
         : tm.toLocaleString();
@@ -481,35 +506,29 @@ export class SortedPatchList extends EventEmitter {
         "-----------------------------------------------------\n",
         i,
         x.user_id,
+        x.version,
         tm_show,
-        trunc_middle(JSON.stringify(x.patch), trunc)
+        JSON.stringify(x.parents),
+        trunc_middle(JSON.stringify(x.patch), trunc),
       );
-      if (s === undefined) {
-        s = this.from_str(x.snapshot != null ? x.snapshot : "");
-      }
-      if (first_time && x.snapshot != null) {
-        // do not apply patch no matter what.
-      } else {
-        if (
-          x.prev == null ||
-          this.times[x.prev.valueOf()] ||
-          x.prev <= prev_cutoff
-        ) {
-          s = s.apply_patch(x.patch);
-        } else {
-          log(
-            `prev=${x.prev.valueOf()} is missing, so not applying this patch`
-          );
-        }
-      }
-      first_time = false;
+      const s = this.value({ time: x.time, noCache });
       log(
-        x.snapshot ? "(SNAPSHOT) " : "           ",
-        trunc_middle(s.to_str(), trunc).trim()
+        x.snapshot
+          ? "(SNAPSHOT) "
+          : (x.parents?.length ?? 0) > 1
+            ? "(MERGE)    "
+            : "           ",
+        JSON.stringify(trunc_middle(s.to_str(), trunc).trim()),
       );
       i += 1;
     }
-  }
+    output +=
+      "\n\nCurrent: " +
+      JSON.stringify(
+        trunc_middle(this.value({ noCache }).to_str(), trunc).trim(),
+      );
+    log0(output);
+  };
 
   /* This function does not MAKE a snapshot; it just
      returns the time at which we must plan to make a snapshot.
@@ -536,15 +555,86 @@ export class SortedPatchList extends EventEmitter {
      gets committed, a new snapshot would get made until no
      more need to be made.  This isn't maximally efficient, in that
      several extra snapshots might get made, but maybe that is OK.
+
+     RULE 3: The collection of all known patches >= snapshot time
+     should have exactly one tail, which is the snapshot time.
+     In particular, this sort of situation is not allowed:
+        time=10: snapshot
+        time=11: parents=[10]
+        time=12: parents=[11,9]  <--- very bad
+     The above would be bad, because the tails are 10 *and* 9.
+     The easiest way to think about this is that if you take the subgraph
+     of all patches >= snapshot_time, then the node at snapshot_time
+     is the ONLY one that is allowed to point to nodes <= snapshot_time.
      */
-  public time_of_unmade_periodic_snapshot(
+  private neverSnapshotTimes = new Set<number>();
+  time_of_unmade_periodic_snapshot = (
     interval: number,
-    max_size: number
-  ): Date | undefined {
+    max_size: number,
+  ): number | undefined => {
+    // This satisfies rules 1 and 2.
+    let i = this.canidateSnapshotIndex({ interval, max_size });
+    if (i == null) {
+      return;
+    }
+    return this.nextValidSnapshotTime({ interval, i });
+  };
+
+  // this implements rule 3 above, namely checking that the data starting
+  // with the given snapshot is valid graph.
+  private nextValidSnapshotTime = ({
+    // length of interval that we target for making snapshot
+    interval,
+    // index into patch list
+    i,
+  }: {
+    interval: number;
+    i: number;
+  }) => {
+    const minAge = Math.min(interval, 5);
+    while (
+      i < this.patches.length - minAge &&
+      this.neverSnapshotTimes.has(this.patches[i].time)
+    ) {
+      i += 1;
+    }
+    if (i >= this.patches.length - minAge) {
+      return;
+    }
+    // try successive patches up to MAX_ATTEMPTS for one that can be snapshotted.
+    const MAX_ATTEMPTS = 10;
+    const graph: { [time: number]: Patch } = {};
+    for (const patch of this.patches.slice(i)) {
+      graph[patch.time] = patch;
+    }
+    for (
+      let attempts = 0;
+      attempts < MAX_ATTEMPTS && i < this.patches.length - minAge;
+      attempts++
+    ) {
+      let time = this.patches[i].time;
+      // Does time also satisfy rule 3?  If so, we use it. If not, we
+      // wait until a new option comes along.
+      const missing = getMissingNodes(graph);
+      if (missing.length != 1) {
+        this.neverSnapshotTimes.add(time);
+        delete graph[time];
+        i += 1;
+      } else {
+        // it satisfies rule 3 as well!
+        return time;
+      }
+    }
+  };
+
+  private canidateSnapshotIndex = ({
+    interval,
+    max_size,
+  }): number | undefined => {
     const n = this.patches.length - 1;
     let cur_size: number = 0;
     for (let i = n; i >= 0; i--) {
-      const is_snapshot: boolean = this.patches[i].snapshot != null;
+      const is_snapshot = isSnapshot(this.patches[i]);
       if (!is_snapshot) {
         // add this patch to our size count.  NOTE -- we do not
         // include the snapshot in the size count, since the
@@ -556,7 +646,7 @@ export class SortedPatchList extends EventEmitter {
         if (i + 2 * interval <= n) {
           // Time to make a snapshot, based purely on the number
           // of patches made since the last snapshot (or beginning of time).
-          return this.patches[i + interval].time;
+          return i + interval;
         }
         // No reason to make snapshot based on number of patches.  What about size?
         if (cur_size > max_size) {
@@ -569,7 +659,7 @@ export class SortedPatchList extends EventEmitter {
           for (let j = is_snapshot ? i + 1 : i; j <= n; j++) {
             cnt_size += this.patches[j].size;
             if (cnt_size > max_size) {
-              return this.patches[j].time;
+              return j;
             }
           }
           return; // this should be unreachable
@@ -580,34 +670,202 @@ export class SortedPatchList extends EventEmitter {
         }
       }
     }
-  }
-
-  // Times of all snapshots in memory on this client; these are
-  // the only ones we need to worry about for offline patches...
-  public snapshot_times(): Date[] {
-    const v: Date[] = [];
-    let t: string;
-    for (t in this.all_snapshot_times) {
-      v.push(new Date(parseInt(t)));
-    }
-    v.sort(cmp_Date);
-    return v;
-  }
+  };
 
   /* Return the most recent time of a patch, or undefined if
      there are no patches. */
-  public newest_patch_time(): Date | undefined {
+  newest_patch_time = (): number | undefined => {
     if (this.patches.length === 0) {
       return;
     }
     return this.patches[this.patches.length - 1].time;
-  }
+  };
 
-  public count(): number {
+  count = (): number => {
     return this.patches.length;
+  };
+
+  export = (): Patch[] => {
+    return deep_copy(this.patches);
+  };
+
+  // get oldest snapshot, or undefined if the oldest "snapshot"
+  // is "beginning of time" and we have it.
+  // This is ONLY used for loading more patches by using the
+  // sequence number data recorded in the snapshot.
+  getOldestSnapshot = (): Patch | undefined => {
+    if (this.hasFullHistory()) {
+      return undefined;
+    }
+    return this.oldestSnapshot;
+  };
+
+  getHeads = (): number[] => {
+    return getHeads(this.live);
+  };
+
+  private getTails = (): number[] => {
+    return getTails(this.live);
+  };
+
+  // if true, then it is necessary to load more history before computing
+  // all values.  For some value computations, an error would be raised
+  // due to missing history.
+  nonSnapshotTails = () => {
+    const tails = this.getTails();
+    const nonSnapshotTails: number[] = [];
+    for (const t of tails) {
+      const patch = this.live[t];
+      if (patch.parents == null || patch.parents.length == 0) {
+        // start of editing, so is a snapshot
+      } else if (patch.snapshot != null) {
+        // is a snapshot
+      } else {
+        // not a snapshot
+        nonSnapshotTails.push(t);
+      }
+    }
+    return nonSnapshotTails;
+  };
+
+  //   private ensureTailsAreSnapshots = reuseInFlight(async () => {
+  //     if (this.loadMoreHistory == null) {
+  //       // functionality is not available (e.g., when unit testing we might not enable this)
+  //       return;
+  //     }
+  //     while (true) {
+  //       const nsTails = this.nonSnapshotTails();
+  //       if (nsTails.length == 0) {
+  //         return;
+  //       }
+  //       const hasMore = await this.loadMoreHistory();
+  //       if (!hasMore) {
+  //         return;
+  //       }
+  //     }
+  //   });
+
+  private knownTimes = (heads: number[]): Set<number> => {
+    return getTimesWithHeads(this.live, heads, true);
+  };
+}
+
+// a patch is a snapshot if it is an actual patch (not
+// just a message adding snapshot info) and it is either
+// an actual snapshot or a patch with no parents, i.e.,
+// which should only be the first ever patch when the
+// document was initialized by a file on disk.
+function isSnapshot(patch: Patch): boolean {
+  return (
+    patch.patch != null &&
+    (patch.is_snapshot || (patch.parents ?? []).length == 0)
+  );
+}
+
+function getHeads(graph: { [time: number]: Patch }): number[] {
+  const X = new Set<number>(Object.keys(graph).map((x) => parseInt(x)));
+  if (X.size == 0) {
+    return [];
+  }
+  for (const patch of Object.values(graph)) {
+    if (patch.parents != null) {
+      for (const s of patch.parents) {
+        X.delete(s);
+        if (X.size <= 1) {
+          // since this is a DAG, there has to be *at least* one
+          // head so we can shortcut out at this point, rather
+          // than spend  alot of time deleting things that are
+          // already removed.
+          return Array.from(X).sort();
+        }
+      }
+    }
+  }
+  return Array.from(X).sort();
+}
+
+function getTails(graph: { [time: number]: Patch }): number[] {
+  // the tails are the nodes with no parents in the DAG.
+  const tails: number[] = [];
+  for (const patch of Object.values(graph)) {
+    if (patch.parents == null || patch.parents.length == 0) {
+      tails.push(patch.time);
+    } else {
+      let isTail = true;
+      for (const t of patch.parents) {
+        if (graph[t] != null) {
+          isTail = false;
+          break;
+        }
+      }
+      if (isTail) {
+        tails.push(patch.time);
+      }
+    }
+  }
+  return tails;
+}
+
+// Iterative version using a stack to find the components of a node
+// This is fast enough, e.g. 100K nodes in 50ms and scales linearly.
+// ** This stops at snapshots, i.e., it's the component containing the
+// node with given time, but when we hit any snasphot not we stop
+// going further.**
+function getTimesWithHeads(
+  graph: { [time: number]: Patch },
+  heads: number[],
+  verify = false,
+): Set<number> {
+  const visited = new Set<number>([]);
+  const stack: number[] = [...heads];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current == null || visited.has(current)) {
+      continue;
+    }
+    const patch = graph[current];
+    if (patch == null) {
+      if (visited.size == 0) {
+        if (verify) {
+          throw Error(`there is no patch at time ${current}`);
+        }
+      }
+      if (verify) {
+        // If this happens, it means that there is a tail in the DAG
+        // that is NOT a snapshot, which means it is impossible to
+        // properly compute all known times or the value of the document
+        // with the given heads without loading more history.
+        throw Error(
+          `incomplete patch data at time ${current}: load more history`,
+        );
+      }
+    }
+    // patch is loaded so add it to our list
+    visited.add(current);
+    if (patch?.parents != null && !patch.is_snapshot) {
+      for (const s of patch.parents) {
+        if (!visited.has(s)) {
+          stack.push(s);
+        }
+      }
+    }
   }
 
-  public export(): Patch[] {
-    return deep_copy(this.patches);
+  return visited;
+}
+
+function getMissingNodes(graph: { [time: number]: Patch }): number[] {
+  // missing are the nodes that are pointed out by nodes of the graph,
+  // but aren't in our graph.
+  const missing = new Set<number>();
+  for (const patch of Object.values(graph)) {
+    for (const t of patch.parents ?? []) {
+      if (graph[t] == null) {
+        // ut oh.
+        missing.add(t);
+      }
+    }
   }
+  return Array.from(missing);
 }

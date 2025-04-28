@@ -46,7 +46,6 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -270,7 +269,8 @@ export class Actions<
     }
   }
 
-  // Init setting of value whenever syncstring changes -- only used in derived classes
+  // Init setting of value whenever syncstring changes --
+  // this value in the store is used in derived classes (i.e., other frame editors)
   protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
       if (!this._syncstring) {
@@ -342,12 +342,6 @@ export class Actions<
             )}`,
           );
         }
-        enableSearchEmbeddings({
-          project_id: this.project_id,
-          path: this.path,
-          syncdb: this._syncstring,
-          ...this.searchEmbeddings,
-        });
       }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
@@ -355,9 +349,7 @@ export class Actions<
 
     this._syncstring.once("ready", (err) => {
       if (err) {
-        this.set_error(
-          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`,
-        );
+        this.set_error(`${err}\nFix this, then try opening the file again.`);
         return;
       }
       if (!this._syncstring || this.isClosed()) {
@@ -402,9 +394,7 @@ export class Actions<
     });
 
     this._syncstring.once("error", (err) => {
-      this.set_error(
-        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}\nFix this, then try opening the file again.`);
     });
 
     this._syncstring.once("closed", () => {
@@ -463,9 +453,7 @@ export class Actions<
       file_use_interval: 0, // disable file use, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", (err) => {
-      this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}.\nFix this, then try opening the file again.`);
     });
 
     this._syncdb.once("closed", () => {
@@ -1814,6 +1802,7 @@ export class Actions<
     // this gets a CM editor, which will eventually
     // exist because there's a cm frame.
     let cm = this._get_cm(frameId);
+    const start = Date.now();
     // This is ugly -- react will render the frame with the
     // editor in it, and after that happens the CodeMirror
     // editor that was created gets registered, and finally
@@ -1821,12 +1810,12 @@ export class Actions<
     // we find it (but for way less than a second).  This sort
     // of crappy code is OK here, since it's just for moving the
     // buffer to a line.
-    for (let i = 0; cm == null && i < 10; i++) {
+    while (Date.now() - start <= 15000 && cm == null) {
       cm = this._get_cm(frameId);
       if (cm == null) {
-        await delay(25);
+        await delay(50);
+        if (this.isClosed()) return;
       }
-      if (this.isClosed()) return;
     }
     if (cm == null) {
       // still failed -- give up.
@@ -1834,6 +1823,13 @@ export class Actions<
     }
 
     const doc = cm.getDoc();
+    // there is a moment between when the editor exists and the actual document
+    // is loaded into it.
+    while (line >= doc.lineCount() && Date.now() - start <= 15000) {
+      if (this.isClosed()) return;
+      await delay(50);
+    }
+
     if (line > doc.lineCount()) {
       line = doc.lineCount();
     }
@@ -1845,8 +1841,6 @@ export class Actions<
     }
     if (cursor) {
       doc.setCursor(pos);
-      // TODO: this is VERY CRAPPY CODE -- wait after,
-      // so cm gets state/value fully set.
       await delay(100);
       if (this.isClosed()) {
         return;
@@ -2136,8 +2130,14 @@ export class Actions<
 
   async ensure_latest_changes_are_saved(): Promise<boolean> {
     this.set_status("Ensuring your latest changes are saved...");
-    this.set_syncstring_to_codemirror();
-    return await this.ensure_syncstring_is_saved();
+    let success = false;
+    for (let i = 0; i < 2; i++) {
+      // TODO: looping/delay is clearly a hack, which I do not think works sufficiently well.
+      this.set_syncstring_to_codemirror();
+      success = await this.ensure_syncstring_is_saved();
+      await delay(25);
+    }
+    return success;
   }
 
   async ensure_syncstring_is_saved(): Promise<boolean> {
@@ -2214,10 +2214,13 @@ export class Actions<
     // because it can be called via a keyboard shortcut.  That's why we gracefully
     // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
     const s = this.redux.getProjectStore(this.project_id);
-    if (s == null) return;
+    if (s == null) {
+      return;
+    }
     // TODO: Using any here since TypeMap is just not working right...
-    const af: any = s.get("available_features");
-    if (!this.has_format_support(id, af)) return;
+    if (!this.has_format_support(id, s.get("available_features"))) {
+      return;
+    }
 
     // Definitely have format support
     cm.focus();
@@ -2227,6 +2230,7 @@ export class Actions<
       syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
+      lastChanged: this._syncstring.last_changed(),
     };
 
     this.set_status("Running code formatter...");
@@ -2252,6 +2256,9 @@ export class Actions<
   }
 
   setFormatError(formatError: string, formatInput: string = "") {
+    while (formatError.startsWith("Error: ")) {
+      formatError = formatError.slice("Error: ".length);
+    }
     this.setState({ formatError, formatInput });
   }
 
@@ -2373,10 +2380,10 @@ export class Actions<
 
   _init_settings(): void {
     const settings = this._syncstring.get_settings();
-    this.setState({ settings: settings });
+    this.setState({ settings });
 
     if (this._spellcheck_is_supported) {
-      if (!settings.get("spell")) {
+      if (!settings?.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
         // Use browser spellcheck **by default** if that option is
         // is configured, otherwise default backend spellcheck.
@@ -2389,18 +2396,18 @@ export class Actions<
     }
 
     this._syncstring.on("settings-change", (settings) => {
-      this.setState({ settings: settings });
+      this.setState({ settings });
     });
   }
 
   set_title(id: string, title: string): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, title: title });
+    this.set_frame_tree({ id, title });
   }
 
   set_connection_status(id: string, status?: ConnectionStatus): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, connection_status: status });
+    this.set_frame_tree({ id, connection_status: status });
   }
 
   connection_status(_: string): void {

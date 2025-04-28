@@ -9,8 +9,7 @@ jQuery DOM tree.
 */
 
 import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/math/index";
-export const jQuery = $;
-declare var $: any;
+import $ from "jquery";
 import { tex2jax } from "./tex2jax";
 import { macros } from "./math-katex";
 
@@ -23,12 +22,14 @@ declare global {
   }
 }
 
-$.fn.katex = function (opts?: { preProcess?: boolean }) {
-  this.each((i) => {
-    katex_plugin($(this[i]), opts?.preProcess);
-  });
-  return this;
-};
+export function init() {
+  $.fn.katex = function (opts?: { preProcess?: boolean }) {
+    this.each((i) => {
+      katex_plugin($(this[i]), opts?.preProcess);
+    });
+    return this;
+  };
+}
 
 function katex_plugin(elt, preProcess): void {
   // Run Mathjax's processor on this DOM node.

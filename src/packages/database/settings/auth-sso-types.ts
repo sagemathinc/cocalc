@@ -5,21 +5,10 @@
 
 import { PostgreSQL } from "@cocalc/database/postgres/types";
 
-// see @hub/sign-in
-interface RecordSignInOpts {
-  ip_address: string;
-  successful: boolean;
-  database: PostgreSQL;
-  email_address?: string;
-  account_id?: string;
-  remember_me: boolean;
-}
-
 export interface PassportLoginOpts {
   passports: { [k: string]: PassportStrategyDB };
   database: PostgreSQL;
   strategyName: string;
-  record_sign_in: (opts: RecordSignInOpts) => void; // a function of that old "hub/sign-in" module
   profile: any; // complex object
   id: string; // id is required. e.g. take the email address – see create_passport in postgres-server-queries.coffee
   first_name?: string;
@@ -112,6 +101,8 @@ export interface PassportStrategyDBConfig {
   userinfoURL?: string; // OAuth2, to get a profile
   login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
   auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
+  cert?: string; // passport-saml<5
+  idpCert?: string; // passport-saml>=5  https://github.com/node-saml/node-saml/pull/343
 }
 
 /**

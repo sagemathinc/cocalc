@@ -11,6 +11,7 @@ export type GPU = {
   num?: number; // usualy 1, to set nvidia.com/gpu=1, 0 means "disabled"
   toleration?: string; // e.g. gpu=cocalc for key=value
   nodeLabel?: string; // e.g. gpu=cocalc for key=value
+  resource?: string; // default: $GPU_DEFAULT_RESOURCE
 };
 
 export interface SiteLicenseQuota {

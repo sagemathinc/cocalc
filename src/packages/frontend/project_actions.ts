@@ -54,6 +54,7 @@ import {
   log_file_open,
   log_opened_time,
   open_file,
+  canonicalPath,
 } from "@cocalc/frontend/project/open-file";
 import { OpenFiles } from "@cocalc/frontend/project/open-files";
 import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
@@ -103,6 +104,10 @@ import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/nats/compute/manager";
 
 const { defaults, required } = misc;
 
@@ -284,6 +289,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private new_filename_generator;
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
+  private computeServerManager?: ComputeServerManager;
 
   constructor(name, b) {
     super(name, b);
@@ -291,7 +297,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
-    computeServers.init(this.project_id);
+    this.initNatsPermissions();
+    this.initComputeServers();
   }
 
   public async api(): Promise<API> {
@@ -300,14 +307,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   destroy = (): void => {
     if (this.open_files == null) return;
+    this.closeComputeServers();
     must_define(this.redux);
     this.close_all_files();
     for (const table in QUERIES) {
       this.remove_table(table);
     }
     this.open_files.close();
-    computeServers.close(this.project_id);
     delete this.open_files;
+    this.computeServerManager?.close();
+    delete this.computeServerManager;
+    webapp_client.nats_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -362,7 +372,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async custom_software_reset(): Promise<void> {
     // 1. delete the sentinel file that marks copying over the accompanying files
     // 2. restart project. This isn't strictly necessary and a TODO for later, because
-    // this would have to do preciesly what kucalc's project init does.
+    // this would have to do precisely what kucalc's project init does.
     const sentinel = ".cocalc-project-init-done";
     await exec({
       timeout: 10,
@@ -963,18 +973,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  public async open_file(opts: OpenFileOpts): Promise<void> {
+  open_file = async (opts: OpenFileOpts): Promise<void> => {
     await open_file(this, opts);
-  }
+  };
 
   /* Initialize the redux store and react component for editing
      a particular file.
   */
-  async initFileRedux(
+  initFileRedux = async (
     path: string,
     is_public: boolean = false,
     ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> {
+  ): Promise<string | undefined> => {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
     await import("./editors/register-all");
@@ -989,13 +999,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext,
     );
     return name;
-  }
+  };
 
-  private async init_file_react_redux(
+  private init_file_react_redux = async (
     path: string,
     is_public: boolean,
     ext?: string,
-  ): Promise<{ name: string | undefined; Editor: any }> {
+  ): Promise<{ name: string | undefined; Editor: any }> => {
     const name = await this.initFileRedux(path, is_public, ext);
 
     // Make the Editor react component
@@ -1010,9 +1020,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Log that we opened the file.
     log_file_open(this.project_id, path);
     return { name, Editor };
-  }
+  };
 
-  get_scroll_saver_for(path: string) {
+  get_scroll_saver_for = (path: string) => {
     if (path != null) {
       return (scroll_position) => {
         const store = this.get_store();
@@ -1030,7 +1040,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return scroll_position;
       };
     }
-  }
+  };
 
   // Moves to the given fragment if the gotoFragment action is implemented and accepted,
   // and the file actions exist already (e.g. file was opened).
@@ -1402,8 +1412,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-
-    this.fetch_directory_listing();
+    this.fetch_directory_listing({ path });
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1451,67 +1460,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     await computeServerAssociations.save();
   };
 
-  //   getComputeServerIdForFile = async ({
-  //     path,
-  //     compute_server_id,
-  //   }: {}): Promise<number | undefined> => {
-  //     const computeServerAssociations =
-  //       webapp_client.project_client.computeServers(this.project_id);
-  //     return await computeServerAssociations.getServerIdForPath(path);
-  //   };
-
-  // in case of confirmation, returns true on success or false if user says "no"
-  setComputeServerIdForFile = async ({
-    path,
-    compute_server_id,
-    confirm,
-  }: {
-    path: string;
-    compute_server_id?: number;
-    confirm?: boolean;
-  }): Promise<boolean> => {
-    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    // this is what is currently configured:
-    const currentId =
-      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
-    if (currentId == selectedComputeServerId) {
-      // no need to set anything since we have what we want already
-      return true;
-    }
-    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
-      // (currently we only confirm this jupyter and terminals, which are
-      // the only supported file types with backend state).
-      if (
-        !(await redux.getActions("page").popconfirm(
-          modalParams({
-            current: currentId,
-            target: selectedComputeServerId,
-            path,
-          }),
-        ))
-      ) {
-        return false;
-      }
-    }
-    // Explicitly set the compute server id to what we want.
-    computeServerAssociations.connectComputeServerToPath({
-      id: selectedComputeServerId,
-      path,
-    });
-    // Now we save: why?
-    // Because we need to be sure the backend actually knows we want to use the compute
-    // server for the file before opening it; otherwise, it'll first get opened
-    // in the project, then later on the compute server, which is potentially VERY
-    // disconcerting and annoying, especially if the file doesn't exist.  It does
-    // work without doing this (because our design is robust to switching compute servers
-    // at any time), but it ends up with a blank file for a moment, and lots of empty files
-    // being created.
-    await computeServerAssociations.save();
-    return true;
-  };
-
   set_file_search(search): void {
     this.setState({
       file_search: search,
@@ -1549,7 +1497,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         directory_listings: directory_listings.set(compute_server_id, listing),
       });
     } catch (err) {
-      console.warn(`Unable to fetch all files -- "${err}"`);
+      console.warn(`Unable to fetch directory listing -- "${err}"`);
     }
   }
 
@@ -1889,44 +1837,44 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
   }
 
-  zip_files(opts) {
-    let id;
-    opts = defaults(opts, {
-      src: required,
-      dest: required,
-      zip_args: undefined,
-      path: undefined, // default to root of project
-      id: undefined,
-      cb: undefined,
+  zip_files = async ({
+    src,
+    dest,
+    path,
+  }: {
+    src: string[];
+    dest: string;
+    path?: string;
+  }) => {
+    const args = ["-rq", dest, ...src];
+    const id = misc.uuid();
+    this.set_activity({
+      id,
+      status: `Creating ${dest} from ${src.length} ${misc.plural(
+        src.length,
+        "file",
+      )}`,
     });
-    const args = (opts.zip_args != null ? opts.zip_args : []).concat(
-      ["-rq"],
-      [opts.dest],
-      opts.src,
-    );
-    if (opts.cb == null) {
-      id = opts.id != null ? opts.id : misc.uuid();
-      this.set_activity({
-        id,
-        status: `Creating ${opts.dest} from ${opts.src.length} ${misc.plural(
-          opts.src.length,
-          "file",
-        )}`,
+    try {
+      this.log({ event: "file_action", action: "created", files: [dest] });
+      await webapp_client.exec({
+        project_id: this.project_id,
+        command: "zip",
+        args,
+        timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+        err_on_exit: true, // this should fail if exit_code != 0
+        compute_server_id: this.get_store()?.get("compute_server_id"),
+        filesystem: true,
+        path,
       });
+    } catch (err) {
+      this.set_activity({ id, error: `${err}` });
+      throw err;
+    } finally {
+      this.set_activity({ id, stop: "" });
+      this.fetch_directory_listing();
     }
-    this.log({ event: "file_action", action: "created", files: [opts.dest] });
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "zip",
-      args,
-      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
-      err_on_exit: true, // this should fail if exit_code != 0
-      path: opts.path,
-      cb: opts.cb != null ? opts.cb : this._finish_exec(id),
-      compute_server_id: this.get_store()?.get("compute_server_id"),
-      filesystem: true,
-    });
-  }
+  };
 
   // DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
   private _convert_to_displayed_path(path): string {
@@ -2310,19 +2258,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const api = await this.api();
         if (opts.src_compute_server_id) {
           // from compute server to project
-          await api.copyFromComputeServerToProject({
+          await api.copyFromComputeServerToHomeBase({
             compute_server_id: opts.src_compute_server_id,
             paths: opts.src,
             dest: opts.dest,
-            timeout: 60 * 15,
+            timeout: 60 * 15 * 1000,
           });
         } else if (opts.dest_compute_server_id) {
           // from project to compute server
-          await api.copyFromProjectToComputeServer({
+          await api.copyFromHomeBaseToComputeServer({
             compute_server_id: opts.dest_compute_server_id,
             paths: opts.src,
             dest: opts.dest,
-            timeout: 60 * 15,
+            timeout: 60 * 15 * 1000,
           });
         } else {
           // Not implemented between two distinct compute servers yet.
@@ -2589,34 +2537,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  public async download_file(opts): Promise<void> {
+  download_file = async ({
+    path,
+    log = false,
+    auto = true,
+    print = false,
+    compute_server_id,
+  }: {
+    path: string;
+    log?: boolean | string[];
+    auto?: boolean;
+    print?: boolean;
+    compute_server_id?: number;
+  }): Promise<void> => {
     let url;
-    opts = defaults(opts, {
-      path: required,
-      log: false,
-      auto: true,
-      print: false,
-      timeout: 45,
-    } as {
-      path: string;
-      log: boolean | string[];
-      auto: boolean;
-      print: boolean;
-      timeout: number;
-    });
-
+    compute_server_id = this.getComputeServerId(compute_server_id);
     if (
       !(await ensure_project_running(
         this.project_id,
-        `download the file '${opts.name}'`,
+        `download the file '${path}'`,
       ))
     ) {
       return;
     }
 
     // log could also be an array of strings to record all the files that were downloaded in a zip file
-    if (opts.log) {
-      const files = Array.isArray(opts.log) ? opts.log : [opts.path];
+    if (log) {
+      const files = Array.isArray(log) ? log : [path];
       this.log({
         event: "file_action",
         action: "downloaded",
@@ -2624,18 +2571,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
     }
 
-    if (opts.auto && !opts.print) {
-      url = download_href(this.project_id, opts.path);
+    if (auto && !print) {
+      url = download_href(this.project_id, path, compute_server_id);
       download_file(url);
     } else {
-      url = url_href(this.project_id, opts.path);
+      url = url_href(this.project_id, path, compute_server_id);
       const tab = open_new_tab(url);
-      if (tab != null && opts.print) {
+      if (tab != null && print) {
         // "?" since there might be no print method -- could depend on browser API
         tab.print?.();
       }
     }
-  }
+  };
 
   print_file(opts): void {
     opts.print = true;
@@ -2719,13 +2666,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
-  async create_file(opts: {
+  create_file = async (opts: {
     name: string;
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
     compute_server_id?: number;
-  }) {
+  }) => {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2792,42 +2739,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "cc-new-file",
-      timeout: 10,
-      args: [p],
-      err_on_exit: true,
-      compute_server_id,
-      filesystem: true,
-      cb: (err, output) => {
-        if (!err) {
-          this.log({ event: "file_action", action: "created", files: [p] });
-        }
-        if (err) {
-          const stdout = output?.stdout ?? "";
-          const stderr = output?.stderr ?? "";
-          this.setState({
-            file_creation_error: `${stdout} ${stderr} ${err}`,
-          });
-        } else if (opts.switch_over) {
-          this.open_file({
-            path: p,
-            // so opens on current compute server, and because switch_over is only something
-            // we do when user is explicitly opening the file
-            explicit: true,
-          });
-        } else {
-          this.fetch_directory_listing();
-        }
-      },
-    });
-  }
+    try {
+      await this.projectApi().editor.newFile(p);
+    } catch (err) {
+      this.setState({
+        file_creation_error: `${err}`,
+      });
+      return;
+    }
+    this.log({ event: "file_action", action: "created", files: [p] });
+    if (opts.switch_over) {
+      this.open_file({
+        path: p,
+        // so opens on current compute server, and because switch_over is only something
+        // we do when user is explicitly opening the file
+        explicit: true,
+        compute_server_id,
+      });
+    } else {
+      this.fetch_directory_listing();
+    }
+  };
 
-  private async new_file_from_web(
+  private new_file_from_web = async (
     url: string,
     current_path: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     let d = current_path;
     if (d === "") {
       d = "root directory of project";
@@ -2851,12 +2788,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ downloading_file: false });
       this.set_active_tab("files", { update_file_listing: false });
     }
-  }
+  };
 
   /*
    * Actions for PUBLIC PATHS
    */
-  public async set_public_path(
+  set_public_path = async (
     path,
     opts: {
       description?: string;
@@ -2868,7 +2805,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       jupyter_api?: boolean;
       redirect?: string;
     },
-  ) {
+  ) => {
     if (
       this.checkForSandboxError(
         "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
@@ -2966,7 +2903,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         redirect: obj.get("redirect"),
       });
     }
-  }
+  };
 
   // Make a database query to set the name of a
   // public path.  Because this can error due to
@@ -2974,19 +2911,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // changing the public_paths table.  This function
   // will throw an exception if anything goes wrong setting
   // the name.
-  public async setPublicPathName(path: string, name: string): Promise<void> {
+  setPublicPathName = async (path: string, name: string): Promise<void> => {
     const id = client_db.sha1(this.project_id, path);
     const query = {
       public_paths: { project_id: this.project_id, path, name, id },
     };
     await webapp_client.async_query({ query });
-  }
+  };
 
   /*
    * Actions for Project Search
    */
 
-  toggle_search_checkbox_subdirectories() {
+  toggle_search_checkbox_subdirectories = () => {
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -2996,9 +2933,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_subdirectories", subdirectories);
-  }
+  };
 
-  toggle_search_checkbox_case_sensitive() {
+  toggle_search_checkbox_case_sensitive = () => {
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -3008,7 +2945,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_case_sensitive", case_sensitive);
-  }
+  };
 
   toggle_search_checkbox_hidden_files() {
     const store = this.get_store();
@@ -3285,11 +3222,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: normalize(full_path),
             });
           } catch (err) {
-            // e.g., project is not running...
-            alert_message({
-              type: "error",
-              message: `Error opening '${target}': ${err}`,
-            });
+            // TODO: e.g., project is not running?
+            // I've seen this, e.g., when trying to open a file when not running, and it just
+            // gets retried and works.
+            console.log(`Error opening '${target}' -- ${err}`);
             return;
           }
         } else {
@@ -3546,6 +3482,161 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     setServerTab(this.project_id, name);
     this.set_active_tab("servers", {
       change_history: true,
+    });
+  };
+
+  // time = 0 to undelete
+  setRecentlyDeleted = (path: string, time: number) => {
+    const store = this.get_store();
+    if (store == null) return;
+    let recentlyDeletedPaths = store.get("recentlyDeletedPaths") ?? Map();
+    if (time == (recentlyDeletedPaths.get(path) ?? 0)) {
+      // already done
+      return;
+    }
+    recentlyDeletedPaths = recentlyDeletedPaths.set(path, time);
+    this.setState({ recentlyDeletedPaths });
+  };
+
+  setNotDeleted = (path: string) => {
+    const store = this.get_store();
+    if (store == null) return;
+    this.setRecentlyDeleted(path, 0);
+    (async () => {
+      try {
+        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        o.setNotDeleted(path);
+      } catch (err) {
+        console.log("WARNING: issue undeleting file", err);
+      }
+    })();
+  };
+
+  private initComputeServers = () => {
+    // table of information about all the compute servers in this project
+    computeServers.init(this.project_id);
+    // table mapping paths to the id of the compute server it is hosted on
+    this.computeServerManager = computeServerManager({
+      project_id: this.project_id,
+    });
+    this.computeServerManager.on("connected", () => {
+      if (this.computeServerManager == null) {
+        return;
+      }
+      const compute_server_ids = this.computeServerManager.getAll() as any;
+      for (let path in compute_server_ids) {
+        compute_server_ids[path] = compute_server_ids[path].id;
+      }
+      this.setState({ compute_server_ids });
+    });
+    this.computeServerManager.on(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
+  };
+
+  private initNatsPermissions = async () => {
+    try {
+      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+    } catch (err) {
+      console.log(
+        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
+      );
+    }
+  };
+
+  private closeComputeServers = () => {
+    computeServers.close(this.project_id);
+    this.computeServerManager?.removeListener(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
+    this.computeServerManager?.close();
+    delete this.computeServerManager;
+  };
+
+  computeServers = () => {
+    return this.computeServerManager;
+  };
+
+  private handleComputeServerManagerChange = ({ path, id }) => {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const compute_servers_ids: any =
+      store.get("compute_server_ids") ?? fromJS({});
+    this.setState({ compute_server_ids: compute_servers_ids.set(path, id) });
+  };
+
+  // undefined if not specified or not known
+  getComputeServerIdForFile = ({
+    path,
+  }: {
+    path: string;
+  }): number | undefined => {
+    if (this.computeServerManager?.state != "connected") {
+      // don't know anything yet.
+      // TODO: maybe we should change this to be async and guarantee answer known -- not sure.
+      return;
+    }
+    return this.computeServerManager?.get(canonicalPath(path));
+  };
+
+  // in case of confirmation, returns true on success or false if user says "no"
+  setComputeServerIdForFile = async ({
+    path,
+    compute_server_id,
+    confirm,
+  }: {
+    path: string;
+    compute_server_id?: number;
+    confirm?: boolean;
+  }): Promise<boolean> => {
+    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const currentId =
+      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
+    if (currentId == selectedComputeServerId) {
+      // no need to set anything since we have what we want already
+      return true;
+    }
+    if (confirm) {
+      // (currently we only confirm this jupyter and terminals, which are
+      // the only supported file types with backend state).
+      if (
+        !(await redux.getActions("page").popconfirm(
+          modalParams({
+            current: currentId,
+            target: selectedComputeServerId,
+            path,
+          }),
+        ))
+      ) {
+        return false;
+      }
+    }
+    // Explicitly set the compute server id to what we want.
+    computeServerAssociations.connectComputeServerToPath({
+      id: selectedComputeServerId,
+      path,
+    });
+    // Now we save: why?
+    // Because we need to be sure the backend actually knows we want to use the compute
+    // server for the file before opening it; otherwise, it'll first get opened
+    // in the project, then later on the compute server, which is potentially VERY
+    // disconcerting and annoying, especially if the file doesn't exist.  It does
+    // work without doing this (because our design is robust to switching compute servers
+    // at any time), but it ends up with a blank file for a moment, and lots of empty files
+    // being created.
+    await computeServerAssociations.save();
+    return true;
+  };
+
+  projectApi = (opts?) => {
+    return webapp_client.nats_client.projectApi({
+      ...opts,
+      project_id: this.project_id,
     });
   };
 }

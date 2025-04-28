@@ -36,7 +36,6 @@ import {
   useProjectContextProvider,
 } from "../context";
 import { ProjectWarningBanner } from "../project-banner";
-import { StartButton } from "../start-button";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
@@ -54,11 +53,14 @@ import {
 } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import Tabs, {
+import ProjectTabs, {
   FIXED_TABS_BG_COLOR,
   VerticalFixedTabs,
 } from "./vertical-fixed-tabs";
 import { throttle } from "lodash";
+import { StartButton } from "@cocalc/frontend/project/start-button";
+
+const START_BANNER = false;
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -295,8 +297,9 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           width={homePageButtonWidth}
         />
         {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <Tabs project_id={project_id} />
+        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+          <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
+          <ProjectTabs project_id={project_id} />
         </div>
       </div>
     );
@@ -366,7 +369,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           overflowX: "auto",
         }}
       >
-        <StartButton />
+        {START_BANNER && <StartButton />}
         {renderEditorContent()}
         {render_project_content()}
         {render_project_modal()}

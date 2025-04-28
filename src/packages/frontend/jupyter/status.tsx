@@ -131,7 +131,7 @@ export function Kernel({
     if (project_id == null) {
       return;
     }
-    return <Logo kernel={kernel} kernel_info_known={kernel_info != null} />;
+    return <Logo kernel={kernel} />;
   }
 
   // this renders the name of the kernel, if known, or a button to change to a similar but known one
@@ -552,8 +552,8 @@ export function Kernel({
           <Tooltip
             title={
               <>
-                Percent of code cells that have been run since the
-                kernel started.
+                Percent of code cells that have been run since the kernel
+                started.
               </>
             }
           >

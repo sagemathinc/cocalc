@@ -10,26 +10,33 @@ This can be used both on the frontend and the backend.
 
 // This was 10000 for a while and that caused regular noticeable problems:
 //    https://github.com/sagemathinc/cocalc/issues/4590
-const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
+const DEFAULT_MAX_OUTPUT_LENGTH = 250000;
+//const DEFAULT_MAX_OUTPUT_LENGTH = 1000;
+
+// Maximum number of output messages total.  If nmore, you have to click
+// "Fetch additional output" to see them.
+export const MAX_OUTPUT_MESSAGES = 500;
+//export const MAX_OUTPUT_MESSAGES = 5;
+
+// Limit blob store to 100 MB. This means you can have at most this much worth
+// of recents images displayed in notebooks.  E.g, if you had a single
+// notebook with more than this much in images, the oldest ones would
+// start vanishing from output.  Also, this impacts time travel.
+// WARNING: It is *not* at all difficult to hit fairly large sizes, e.g., 50MB+
+// when working with a notebook, by just drawing a bunch of large plots.
+const MAX_BLOB_STORE_SIZE = 100 * 1000000;
 
 declare const localStorage: any;
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import * as immutable from "immutable";
 import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
-import {
-  JupyterStore,
-  JupyterStoreState,
-  show_kernel_selector_reasons,
-} from "@cocalc/jupyter/redux/store";
+import { JupyterStore, JupyterStoreState } from "@cocalc/jupyter/redux/store";
 import { Cell, KernelInfo } from "@cocalc/jupyter/types";
-import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
-import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import {
@@ -39,13 +46,12 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
-import { once } from "@cocalc/util/async-utils";
 import latexEnvs from "@cocalc/util/latex-envs";
+import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
+import { type AKV, akv } from "@cocalc/nats/sync/akv";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { close, required, defaults } = misc;
-
-// local cache: map project_id (string) -> kernels (immutable)
-let jupyter_kernels = immutable.Map<string, Kernels>();
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -55,6 +61,8 @@ underlying synchronized state.
 // no worries, they don't break react rendering even when they escape
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
+
+type State = "init" | "load" | "ready" | "closed";
 
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public is_project: boolean;
@@ -69,8 +77,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected set_save_status: any;
   protected _client: Client;
   protected _file_watcher: any;
-  protected _state: any;
+  protected _state: State;
   protected restartKernelOnClose?: (...args: any[]) => void;
+  public asyncBlobStore: AKV;
 
   public _complete_request?: number;
   public store: JupyterStore;
@@ -119,7 +128,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         this.syncdb.commit();
       });
     }
-
     this.is_compute_server = client.is_compute_server();
 
     let directory: any;
@@ -144,13 +152,22 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("close", this.close);
 
-    if (!this.is_project) {
-      this.fetch_jupyter_kernels();
-    }
+    this.asyncBlobStore = akv(this.blobStoreOptions());
 
     // Hook for additional initialization.
     this.init2();
   }
+
+  protected blobStoreOptions = () => {
+    return {
+      name: `jupyter:${this.path}`,
+      project_id: this.project_id,
+      valueType: "binary",
+      limits: {
+        max_bytes: MAX_BLOB_STORE_SIZE,
+      },
+    } as const;
+  };
 
   // default is to do nothing, but e.g., frontend browser client
   // does overload this to do a lot of additional init.
@@ -163,23 +180,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.redux.getEditorActions(this.project_id, this.path);
   }
 
-  protected async set_kernel_after_load(): Promise<void> {
-    // Browser Client: Wait until the .ipynb file has actually been parsed into
-    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
-    // then set the kernel, if necessary.
-    try {
-      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
-    } catch (err) {
-      if (this._state != "ready") {
-        // Probably user just closed the notebook before it finished
-        // loading, so we don't need to set the kernel.
-        return;
-      }
-      throw Error("error waiting for ipynb file to load");
-    }
-    this._syncdb_init_kernel();
-  }
-
   sync_read_only = (): void => {
     if (this._state == "closed") return;
     const a = this.store.get("read_only");
@@ -190,70 +190,15 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  private apiCallHandler: {
-    id: number; // this is a sequential id used for request/response pairing
-    // when get response from computer server, one of these callbacks gets called:
-    responseCallbacks: { [id: number]: (err: any, response?: any) => void };
-  } | null = null;
-
-  private initApiCallHandler = () => {
-    this.apiCallHandler = { id: 0, responseCallbacks: {} };
-    const { responseCallbacks } = this.apiCallHandler;
-    this.syncdb.on("message", (data) => {
-      const cb = responseCallbacks[data.id];
-      if (cb != null) {
-        delete responseCallbacks[data.id];
-        if (data.response?.event == "error") {
-          cb(data.response.message ?? "error");
-        } else {
-          cb(undefined, data.response);
-        }
-      }
+  protected api = (opts: { timeout?: number } = {}) => {
+    return jupyterApiClient({
+      project_id: this.project_id,
+      path: this.path,
+      timeout: opts.timeout,
     });
   };
 
-  protected async api_call(
-    endpoint: string,
-    query?: any,
-    timeout_ms?: number,
-  ): Promise<any> {
-    if (this._state === "closed" || this.syncdb == null) {
-      throw Error("closed -- jupyter actions -- api_call");
-    }
-    if (this.syncdb.get_state() == "init") {
-      await once(this.syncdb, "ready");
-    }
-    if (this.apiCallHandler == null) {
-      this.initApiCallHandler();
-    }
-    if (this.apiCallHandler == null) {
-      throw Error("bug");
-    }
-
-    this.apiCallHandler.id += 1;
-    const { id, responseCallbacks } = this.apiCallHandler;
-    await this.syncdb.sendMessageToProject({
-      event: "api-request",
-      id,
-      path: this.path,
-      endpoint,
-      query,
-    });
-    const waitForResponse = (cb) => {
-      if (timeout_ms) {
-        setTimeout(() => {
-          if (responseCallbacks[id] == null) return;
-          cb("timeout");
-          delete responseCallbacks[id];
-        }, timeout_ms);
-      }
-      responseCallbacks[id] = cb;
-    };
-    const resp = await callback(waitForResponse);
-    return resp;
-  }
-
-  protected dbg = (f: string) => {
+  protected dbg(f: string) {
     if (this.is_closed()) {
       // calling dbg after the actions are closed is possible; this.store would
       // be undefined, and then this log message would crash, which sucks.  It happened to me.
@@ -261,7 +206,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return (..._) => {};
     }
     return this._client.dbg(`JupyterActions("${this.path}").${f}`);
-  };
+  }
 
   protected close_client_only(): void {
     // no-op: this can be defined in a derived class. E.g., in the frontend, it removes
@@ -310,56 +255,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public close_project_only() {
     // real version is in derived class that project runs.
   }
-
-  fetch_jupyter_kernels = async (): Promise<void> => {
-    let data;
-    const f = async () => {
-      data = await this.api_call("kernels", undefined, 5000);
-      if (this._state === "closed") {
-        return;
-      }
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 15, // up to 15 seconds
-        start_delay: 500,
-        max_delay: 5000,
-        f,
-        desc: "jupyter:fetch_jupyter_kernels",
-      });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
-    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
-    const kernels = immutable
-      .fromJS(data ?? [])
-      .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
-    const key: string = await this.store.jupyter_kernel_key();
-    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
-    this.setState({ kernels });
-    // We must also update the kernel info (e.g., display name), now that we
-    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
-    this.setState({ kernel_info });
-    await this.update_select_kernel_data(); // e.g. "kernel_selection" is drived from "kernels"
-    this.check_select_kernel();
-  };
-
-  set_jupyter_kernels = async () => {
-    if (this.store == null) return;
-    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
-    if (kernels != null) {
-      this.setState({ kernels });
-    } else {
-      await this.fetch_jupyter_kernels();
-    }
-    await this.update_select_kernel_data();
-    this.check_select_kernel();
-  };
 
   set_error = (err: any): void => {
     if (this._state === "closed") return;
@@ -599,14 +494,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  private syncdb_cell_change(id: string, new_cell: any): boolean {
+  private syncdb_cell_change = (id: string, new_cell: any): boolean => {
     const cells: immutable.Map<
       string,
       immutable.Map<string, any>
     > = this.store.get("cells");
-    if (cells == null) throw Error("BUG -- cells must have been initialized!");
+    if (cells == null) {
+      throw Error("BUG -- cells must have been initialized!");
+    }
+
     let cell_list_needs_recompute = false;
-    //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
+    //this.dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
     if (new_cell == null) {
       // delete cell
@@ -621,8 +519,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (new_cell.equals(old_cell)) {
         return false; // nothing to do
       }
-      if (old_cell != null && new_cell.get("start") !== old_cell.get("start")) {
-        // cell re-evaluated so any more output is no longer valid.
+      if (
+        old_cell != null &&
+        new_cell.get("start") > old_cell.get("start") &&
+        !this.is_project &&
+        !this.is_compute_server
+      ) {
+        // cell re-evaluated so any more output is no longer valid -- clear frontend state
         this.reset_more_output(id);
       }
       if (old_cell == null || old_cell.get("pos") !== new_cell.get("pos")) {
@@ -643,7 +546,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
-  }
+  };
 
   _syncdb_change = (changes: any) => {
     if (this.syncdb == null) return;
@@ -824,49 +727,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     throw Error("define in a derived class.");
   }
 
-  private _syncdb_init_kernel(): void {
-    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
-    if (this.store.get("kernel") == null) {
-      // Creating a new notebook with no kernel set
-      if (!this.is_project && !this.is_compute_server) {
-        // we either let the user select a kernel, or use a stored one
-        let using_default_kernel = false;
-
-        const account_store = this.redux.getStore("account") as any;
-        const editor_settings = account_store.get("editor_settings") as any;
-        if (
-          editor_settings != null &&
-          !editor_settings.get("ask_jupyter_kernel")
-        ) {
-          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
-          // TODO: check if kernel is actually known
-          if (default_kernel != null) {
-            this.set_kernel(default_kernel);
-            using_default_kernel = true;
-          }
-        }
-
-        if (!using_default_kernel) {
-          // otherwise we let the user choose a kernel
-          this.show_select_kernel("bad kernel");
-        }
-        // we also finalize the kernel selection check, because it doesn't switch to true
-        // if there is no kernel at all.
-        this.setState({ check_select_kernel_init: true });
-      }
-    } else {
-      // Opening an existing notebook
-      const default_kernel = this.store.get_default_kernel();
-      if (default_kernel == null && this.store.get("kernel")) {
-        // But user has no default kernel, since they never before explicitly set one.
-        // So we set it.  This is so that a user's default
-        // kernel is that of the first ipynb they
-        // opened, which is very sensible in courses.
-        this.set_default_kernel(this.store.get("kernel"));
-      }
-    }
-  }
-
   /*
   WARNING: Changes via set that are made when the actions
   are not 'ready' or the syncdb is not ready are ignored.
@@ -876,7 +736,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   */
   _set = (obj: any, save: boolean = true) => {
     if (
-      this._state !== "ready" ||
+      // _set is called during initialization, so don't
+      // require this._state to be 'ready'!
+      this._state === "closed" ||
       this.store.get("read_only") ||
       (this.syncdb != null && this.syncdb.get_state() != "ready")
     ) {
@@ -936,9 +798,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // can't save when readonly or deleted
       return;
     }
-    if (this.store.get("mode") === "edit") {
-      this._get_cell_input();
-    }
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
@@ -947,13 +806,24 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // This "save" means save state to backend.
       await this.syncdb.save();
       if (this._state === "closed") return;
-      // Export the ipynb file to disk.
-      await this.api_call("save_ipynb_file", {});
-      if (this._state === "closed") return;
+
+      // Export the ipynb file to disk, being careful not to actually
+      // save it until the backend actually gets the given version and
+      // has processed it!
+      const version = this.syncdb.newestVersion();
+      try {
+        await this.api({ timeout: 30000 }).save_ipynb_file({ version });
+      } catch (err) {
+        console.log(err);
+        throw Error(
+          `There was a problem writing the ipynb file to disk -- ${err}`,
+        );
+      }
+      if (this._state === ("closed" as State)) return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
-      if (this._state === "closed") return;
+      if (this._state === ("closed" as State)) return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -1161,7 +1031,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   clear_cell = (id: string, save = true) => {
     const cell = this.store.getIn(["cells", id]);
 
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -1175,17 +1045,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         output: null,
         exec_count: null,
         collapsed: null,
-      },
-      save,
-    );
-  };
-
-  clear_cell_run_state = (id: string, save = true) => {
-    return this._set(
-      {
-        type: "cell",
-        id,
-        state: "done",
       },
       save,
     );
@@ -1205,10 +1064,24 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_cell_run_state = (): void => {
-    if (!this.store) return;
-    this.store.get_cell_list().forEach((id) => {
-      this.clear_cell_run_state(id, false);
-    });
+    const { store } = this;
+    if (!store) {
+      return;
+    }
+    const cells = store.get("cells");
+    for (const id of store.get_cell_list()) {
+      const state = cells.getIn([id, "state"]);
+      if (state && state != "done") {
+        this._set(
+          {
+            type: "cell",
+            id,
+            state: "done",
+          },
+          false,
+        );
+      }
+    }
     this.save_asap();
   };
 
@@ -1611,36 +1484,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: string | null) => {
-    if (this.syncdb.get_state() != "ready") {
-      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
-      return;
-    }
-    if (this.store.get("kernel") !== kernel) {
-      this._set({
-        type: "settings",
-        kernel,
-      });
-      // clear error when changing the kernel
-      this.set_error(null);
-    }
-    if (this.store.get("show_kernel_selector") || kernel === "") {
-      this.hide_select_kernel();
-    }
-    if (kernel === "") {
-      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
-    }
-  };
-
-  public show_history_viewer(): void {
-    const project_actions = this.redux.getProjectActions(this.project_id);
-    if (project_actions == null) return;
-    project_actions.open_file({
-      path: misc.history_path(this.path),
-      foreground: true,
-    });
-  }
-
   // Attempt to fetch completions for give code and cursor_pos
   // If successful, the completions are put in store.get('completions') and looks like
   // this (as an immutable map):
@@ -1686,7 +1529,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const start = new Date();
     let complete;
     try {
-      complete = await this.api_call("complete", {
+      complete = await this.api().complete({
         code,
         cursor_pos,
       });
@@ -1843,7 +1686,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     let introspect;
     try {
-      introspect = await this.api_call("introspect", {
+      introspect = await this.api().introspect({
         code,
         cursor_pos,
         level,
@@ -1870,9 +1713,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {
-    // TODO: more setStates, awaits, and UI to reflect this happening...
+    const api = this.api({ timeout: 5000 });
     try {
-      await this.api_call("signal", { signal }, 5000);
+      await api.signal(signal);
     } catch (err) {
       this.set_error(err);
     }
@@ -1917,9 +1760,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   });
 
   public shutdown = reuseInFlight(async (): Promise<void> => {
-    if (this._state === "closed") return;
+    if (this._state === ("closed" as State)) {
+      return;
+    }
     await this.signal("SIGKILL");
-    if (this._state === "closed") return;
+    if (this._state === ("closed" as State)) {
+      return;
+    }
     this.clear_all_cell_run_state();
     await this.save_asap();
   });
@@ -1929,7 +1776,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    if (this.isCellRunner() && (this.is_project || this.is_compute_server)) {
+    if (this.is_project || this.is_compute_server) {
       const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
       if (
         this.jupyter_kernel == null ||
@@ -1969,9 +1816,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") {
         return;
       }
-      const data = await this.api_call("kernel_info", {});
+      const data = await this.api().kernel_info();
       this.setState({
-        backend_kernel_info: data,
+        backend_kernel_info: immutable.fromJS(data),
         // this is when the server for this doc started, not when kernel last started!
         start_time: data.start_time,
       });
@@ -2042,10 +1889,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  async fetch_more_output(id: string): Promise<void> {
+  fetch_more_output = async (id: string): Promise<void> => {
     const time = this._client.server_time().valueOf();
     try {
-      const more_output = await this.api_call("more_output", { id: id }, 60000);
+      const more_output = await this.api({ timeout: 60000 }).more_output(id);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
         // make output area scrolled, since there is going to be a lot of output
         this.toggle_output(id, "scrolled");
@@ -2054,7 +1901,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     } catch (err) {
       this.set_error(err);
     }
-  }
+  };
 
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {
@@ -2138,16 +1985,16 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     value: any,
   ): Promise<void> => {
     try {
-      await this.api_call("store", { key, value });
+      await this.api().store({ key, value });
     } catch (err) {
       this.set_error(err);
     }
   };
 
-  public async set_to_ipynb(
+  set_to_ipynb = async (
     ipynb: any,
     data_only: boolean = false,
-  ): Promise<void> {
+  ): Promise<void> => {
     /*
      * set_to_ipynb - set from ipynb object.  This is
      * mainly meant to be run on the backend in the project,
@@ -2217,10 +2064,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       ipynb,
       existing_ids,
       new_id: this.new_id.bind(this),
-      process_attachment:
-        this.jupyter_kernel != null
-          ? this.jupyter_kernel.process_attachment.bind(this.jupyter_kernel)
-          : undefined,
       output_handler:
         this.jupyter_kernel != null
           ? this._output_handler.bind(this)
@@ -2254,7 +2097,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     await this.syncdb.save();
     this.ensure_backend_kernel_setup();
     this._state = "ready";
-  }
+  };
 
   public set_cell_slide(id: string, value: any): void {
     if (!value) {
@@ -2548,7 +2391,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public set_raw_ipynb(): void {
+  set_raw_ipynb(): void {
     if (this._state != "ready") {
       // lies otherwise...
       return;
@@ -2556,60 +2399,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
-    });
-  }
-
-  protected check_select_kernel(): void {
-    const kernel = this.store?.get("kernel");
-    if (kernel == null) return;
-    let unknown_kernel = false;
-    if (kernel === "") {
-      unknown_kernel = false; // it's the "no kernel" kernel
-    } else if (this.store.get("kernels") != null) {
-      unknown_kernel = this.store.get_kernel_info(kernel) == null;
-    }
-
-    // a kernel is set, but we don't know it
-    if (unknown_kernel) {
-      this.show_select_kernel("bad kernel");
-    } else {
-      // we got a kernel, close dialog if not requested by user
-      if (
-        this.store.get("show_kernel_selector") &&
-        this.store.get("show_kernel_selector_reason") === "bad kernel"
-      ) {
-        this.hide_select_kernel();
-      }
-    }
-
-    // also in the case when the kernel is "" we have to set this to true
-    this.setState({ check_select_kernel_init: true });
-  }
-
-  async update_select_kernel_data(): Promise<void> {
-    if (this.store == null) return;
-    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
-    if (kernels == null) return;
-    const kernel_selection = this.store.get_kernel_selection(kernels);
-    const [kernels_by_name, kernels_by_language] =
-      get_kernels_by_name_or_language(kernels);
-    const default_kernel = this.store.get_default_kernel();
-    // do we have a similar kernel?
-    let closestKernel: Kernel | undefined = undefined;
-    const kernel = this.store.get("kernel");
-    const kernel_info = this.store.get_kernel_info(kernel);
-    // unknown kernel, we try to find a close match
-    if (kernel_info == null && kernel != null && kernel !== "") {
-      // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
-      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
-    }
-    this.setState({
-      kernel_selection,
-      kernels_by_name,
-      kernels_by_language,
-      default_kernel,
-      closestKernel,
     });
   }
 
@@ -2624,42 +2413,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public blur(): void {
     this.deprecated("blur");
   }
-
-  async show_select_kernel(
-    reason: show_kernel_selector_reasons,
-  ): Promise<void> {
-    await this.update_select_kernel_data();
-    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
-    // the select dialog will show a loading spinner
-    this.setState({
-      show_kernel_selector_reason: reason,
-      show_kernel_selector: true,
-    });
-  }
-
-  hide_select_kernel = (): void => {
-    this.setState({
-      show_kernel_selector_reason: undefined,
-      show_kernel_selector: false,
-    });
-  };
-
-  select_kernel = (kernel_name: string | null): void => {
-    this.set_kernel(kernel_name);
-    if (kernel_name != null && kernel_name !== "") {
-      this.set_default_kernel(kernel_name);
-    }
-    this.focus(true);
-    this.hide_select_kernel();
-  };
-
-  kernel_dont_ask_again = (dont_ask: boolean): void => {
-    // why is "as any" necessary?
-    const account_table = this.redux.getTable("account") as any;
-    account_table.set({
-      editor_settings: { ask_jupyter_kernel: !dont_ask },
-    });
-  };
 
   public check_edit_protection(id: string, reason?: string): boolean {
     if (!this.store.is_cell_editable(id)) {
@@ -2687,22 +2440,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     throw Error("define this in derived class");
   }
 
-  // Return id of ACTIVE remote compute server, if one is connected, or 0
-  // if none is connected.
-  getComputeServerId = (): number => {
-    return this.syncdb.getComputeServerId();
-  };
-
-  protected isCellRunner = (): boolean => {
-    return false;
-  };
-
   set_kernel_error = (err) => {
-    // anybody can *clear* error, but only cell runner can set it, since
-    // only they should know.
-    if (err && !this.isCellRunner()) {
-      return;
-    }
     this._set({
       type: "settings",
       kernel_error: `${err}`,

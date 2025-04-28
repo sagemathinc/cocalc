@@ -8,7 +8,6 @@ import { delay } from "awaiting";
 import { alert_message } from "../alerts";
 import { StripeClient } from "./stripe";
 import { ProjectCollaborators } from "./project-collaborators";
-import { SupportTickets } from "./support";
 import { Messages } from "./messages";
 import { QueryClient } from "./query";
 import { TimeClient } from "./time";
@@ -22,13 +21,24 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
+import { NatsClient } from "@cocalc/frontend/nats/client";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
-import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
+import Cookies from "js-cookie";
+import { basePathCookieName } from "@cocalc/util/misc";
+import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import type {
+  CallNatsServiceFunction,
+  CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
+import type { NatsEnvFunction } from "@cocalc/nats/types";
+import { randomId } from "@cocalc/nats/names";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -42,14 +52,20 @@ const log = debug("cocalc");
 // all the sync activity logging and everything that calls
 // client.dbg.
 
+export const ACCOUNT_ID_COOKIE = decodeURIComponent(
+  basePathCookieName({
+    basePath: appBasePath,
+    name: ACCOUNT_ID_COOKIE_NAME,
+  }),
+);
+
 export type AsyncCall = (opts: object) => Promise<any>;
 
 export interface WebappClient extends EventEmitter {
   account_id?: string;
-
+  browser_id: string;
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -63,6 +79,7 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -74,7 +91,11 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  project_websocket: Function;
+  synctable_nats: NatsSyncTableFunction;
+  callNatsService: CallNatsServiceFunction;
+  createNatsService: CreateNatsServiceFunction;
+  getNatsEnv: NatsEnvFunction;
+  pubsub_nats: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
@@ -125,10 +146,10 @@ Connection events:
 */
 
 class Client extends EventEmitter implements WebappClient {
-  account_id?: string;
+  account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
+  browser_id: string = randomId();
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
   messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
@@ -142,6 +163,7 @@ class Client extends EventEmitter implements WebappClient {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
+  nats_client: NatsClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -150,11 +172,14 @@ class Client extends EventEmitter implements WebappClient {
   sync_db: Function;
 
   server_time: Function; // TODO: make this () => Date and deal with the fallout
-  ping_test: Function;
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  project_websocket: Function;
+  synctable_nats: NatsSyncTableFunction;
+  callNatsService: CallNatsServiceFunction;
+  createNatsService: CreateNatsServiceFunction;
+  getNatsEnv: NatsEnvFunction;
+  pubsub_nats: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
@@ -185,7 +210,6 @@ class Client extends EventEmitter implements WebappClient {
 
   constructor() {
     super();
-
     if (DEBUG) {
       this.dbg = this.dbg.bind(this);
     } else {
@@ -193,7 +217,6 @@ class Client extends EventEmitter implements WebappClient {
         return (..._) => {};
       };
     }
-
     this.hub_client = bind_methods(new HubClient(this));
     this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
     this.is_connected = this.hub_client.is_connected.bind(this.hub_client);
@@ -205,9 +228,6 @@ class Client extends EventEmitter implements WebappClient {
     this.project_collaborators = bind_methods(
       new ProjectCollaborators(this.async_call.bind(this)),
     );
-    this.support_tickets = bind_methods(
-      new SupportTickets(this.async_call.bind(this)),
-    );
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
@@ -218,30 +238,27 @@ class Client extends EventEmitter implements WebappClient {
     this.sync_string = this.sync_client.sync_string;
     this.sync_db = this.sync_client.sync_db;
 
-    this.admin_client = bind_methods(
-      new AdminClient(this.async_call.bind(this)),
-    );
+    this.admin_client = bind_methods(new AdminClient(this));
     this.openai_client = bind_methods(new LLMClient(this));
-    //this.purchases_client = bind_methods(new PurchasesClient(this));
-    this.purchases_client = bind_methods(new PurchasesClient());
+    this.purchases_client = bind_methods(new PurchasesClient(this));
     this.jupyter_client = bind_methods(
       new JupyterClient(this.async_call.bind(this)),
     );
-    this.users_client = bind_methods(
-      new UsersClient(this.call.bind(this), this.async_call.bind(this)),
-    );
+    this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
+    this.nats_client = bind_methods(new NatsClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
     this.idle_client = bind_methods(new IdleClient(this));
 
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
-    this.ping_test = this.time_client.ping_test.bind(this.time_client);
 
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
     this.exec = this.project_client.exec.bind(this.project_client);
-    this.touch_project = this.project_client.touch_project.bind(this.project_client);
+    this.touch_project = this.project_client.touch_project.bind(
+      this.project_client,
+    );
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
@@ -252,6 +269,11 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_project = this.sync_client.synctable_project.bind(
       this.sync_client,
     );
+    this.synctable_nats = this.nats_client.synctable;
+    this.pubsub_nats = this.nats_client.pubsub;
+    this.callNatsService = this.nats_client.callNatsService;
+    this.createNatsService = this.nats_client.createNatsService;
+    this.getNatsEnv = this.nats_client.getEnv;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);
@@ -272,19 +294,6 @@ class Client extends EventEmitter implements WebappClient {
     // every open file/table/sync db listens for connect event, which adds up.
     this.setMaxListeners(3000);
 
-    // start pinging -- not used/needed for primus,
-    // but *is* needed for getting information about
-    // server_time skew and showing ping time to user.
-    this.once("connected", async () => {
-      this.time_client.ping(true);
-      // Ping again a few seconds after connecting the first time,
-      // after things have settled down a little (to not throw off
-      // ping time).
-      await delay(5000);
-      this.time_client.ping(); // this will ping periodically
-    });
-
-    this.init_prom_client();
     this.init_global_cocalc();
 
     bind_methods(this);
@@ -293,10 +302,6 @@ class Client extends EventEmitter implements WebappClient {
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
     setup_global_cocalc(this);
-  }
-
-  private init_prom_client(): void {
-    this.on("start_metrics", start_metrics);
   }
 
   public dbg(f): Function {
@@ -340,6 +345,25 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
+
+  touchOpenFile = async ({
+    project_id,
+    path,
+    setNotDeleted,
+    // id
+  }: {
+    project_id: string;
+    path: string;
+    id?: number;
+    // if file is deleted, this explicitly undeletes it.
+    setNotDeleted?: boolean;
+  }) => {
+    const x = await this.nats_client.openFiles(project_id);
+    if (setNotDeleted) {
+      x.setNotDeleted(path);
+    }
+    x.touch(path);
+  };
 }
 
 export const webapp_client = new Client();

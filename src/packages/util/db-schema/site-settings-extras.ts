@@ -92,9 +92,6 @@ const compute_servers_google_enabled = (conf: SiteSettings) =>
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
 
-const neural_search_enabled = (conf: SiteSettings) =>
-  openai_enabled(conf) && to_bool(conf.neural_search_enabled);
-
 const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
 
@@ -187,6 +184,14 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
+  | "nats_heading"
+  | "nats_server"
+  | "nats_port"
+  | "nats_ws_port"
+  | "nats_password"
+  | "nats_auth_nseed"
+  | "nats_auth_xseed"
+  | "nats_project_server"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -210,9 +215,6 @@ export type SiteSettingsExtrasKeys =
   | "custom_openai_configuration"
   | "mistral_api_key"
   | "anthropic_api_key"
-  | "qdrant_section"
-  | "qdrant_api_key"
-  | "qdrant_cluster_url"
   | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
@@ -274,6 +276,64 @@ const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  nats_heading: {
+    name: "NATS Configuration",
+    desc: "Configuration of [NATS server](https://nats.io/), which CoCalc uses extensively for communication.",
+    default: "",
+    type: "header",
+    tags: ["Nats"],
+  },
+  // Nats config is loaded in packages/server/nats/credentials.ts
+  nats_server: {
+    name: "Nats Server",
+    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability.)",
+    default: "localhost",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_port: {
+    name: "Nats TCP Port",
+    desc: "Port that NATS is serving on.  Defaults to 4222 or `$COCALC_NATS_PORT` if not specified here.",
+    default: "4222",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_ws_port: {
+    name: "Nats Websocket Port",
+    desc: "Port that NATS websocket server is serving on.  Defaults to 8443 or `$COCALC_NATS_WS_PORT` if not specified here.  This gets proxied to browser clients.",
+    default: "8443",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_project_server: {
+    name: "Nats Project Server",
+    desc: "Name of the NATS server that projects should connect to.  This should be either `hostname:port` for TCP or one of `ws://hostname:port` or `wss://hostname:port` for a WebSocket.  Do not include the basepath for the websocket address.  If not given, the tcp NATS server and port specified above is used.",
+    default: "",
+    password: false,
+    tags: ["Nats"],
+  },
+  nats_password: {
+    name: "Nats Password",
+    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists. IMPORTANT: the nseed and xseed secrets must also exist in order for the authentication microservice to communicate with nats-server and authenticate users.",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+  nats_auth_nseed: {
+    name: "Nats Authentication Callout - Signing Private Key",
+    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SECRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+  nats_auth_xseed: {
+    name: "Nats Authentication Callout - Encryption Private Key",
+    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_xseed` (or `$COCALC_ROOT/data/secrets/nats_auth_xseed`) is used, if it exists.  This is a *curve* private nkey used by the auth callout service to encrypt responses to the server: `nk -gen curve`",
+    default: "",
+    password: true,
+    tags: ["Nats"],
+  },
+
   openai_section: {
     name: "Language Model Configuration",
     desc: "",
@@ -336,27 +396,6 @@ export const EXTRAS: SettingsExtras = {
     valid: custom_llm_valid,
     to_display: custom_llm_display,
     tags: ["AI LLM"],
-  },
-  qdrant_section: {
-    name: "DEPRECATED - Qdrant Configuration",
-    desc: "",
-    default: "",
-    show: neural_search_enabled,
-    type: "header",
-  },
-  qdrant_cluster_url: {
-    name: "DEPRECATED - Qdrant Cluster URL (needed for OpenAI Neural Search)",
-    desc: "Your [Qdrant](https://qdrant.tech/) server from https://cloud.qdrant.io/ or you can also run Qdrant locally.  This is needed to support functionality that uses Neural Search.",
-    default: "",
-    show: neural_search_enabled,
-  },
-  qdrant_api_key: {
-    name: "DEPRECATED - Qdrant API key (needed for OpenAI Neural Search)",
-    desc: "Your [Qdrant](https://qdrant.tech/) API key, which is needed to connect to your Qdrant server.  See https://qdrant.tech/documentation/cloud/cloud-quick-start/#authentication",
-    default: "",
-    password: true,
-    show: neural_search_enabled,
-    tags: ["OpenAI"],
   },
   salesloft_section: {
     name: "Salesloft Configuration",

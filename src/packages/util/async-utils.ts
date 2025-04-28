@@ -19,6 +19,8 @@ import * as awaiting from "awaiting";
 
 import { reuseInFlight } from "./reuse-in-flight";
 
+export { asyncDebounce, asyncThrottle } from "./async-debounce-throttle";
+
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
 // awaiting.callback, but for our functions that take opts.
@@ -37,17 +39,6 @@ export function callback_opts(f: Function) {
     }
     return await awaiting.callback(g);
   };
-}
-
-/**
- * convert the given error to a string, by either serializing the object or returning the string as it is
- */
-function err2str(err: any): string {
-  if (typeof err === "string") {
-    return err;
-  } else {
-    return JSON.stringify(err);
-  }
 }
 
 /* retry_until_success keeps calling an async function f with
@@ -80,10 +71,7 @@ export async function retry_until_success<T>(
 
   // Return nonempty string if time or tries exceeded.
   function check_done(): string {
-    if (
-      opts.max_time &&
-      next_delay + Date.now() - start_time > opts.max_time
-    ) {
+    if (opts.max_time && next_delay + Date.now() - start_time > opts.max_time) {
       return "maximum time exceeded";
     }
     if (opts.max_tries && tries >= opts.max_tries) {
@@ -109,9 +97,7 @@ export async function retry_until_success<T>(
         // yep -- game over, throw an error
         let e;
         if (last_exc) {
-          e = Error(
-            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`,
-          );
+          e = Error(`${err} -- last error was '${last_exc}' -- ${opts.desc}`);
         } else {
           e = Error(`${err} -- ${opts.desc}`);
         }
@@ -143,9 +129,11 @@ export async function once(
   event: string,
   timeout_ms: number = 0,
 ): Promise<any> {
-  if (!(obj instanceof EventEmitter)) {
-    // just in case typescript doesn't catch something:
-    throw Error("obj must be an EventEmitter");
+  if (obj == null) {
+    throw Error("once -- obj is undefined");
+  }
+  if (typeof obj.once != "function") {
+    throw Error("once -- obj.once must be a function");
   }
   if (timeout_ms > 0) {
     // just to keep both versions more readable...
@@ -245,4 +233,30 @@ export async function mapParallelLimit(values, fn, max = 10) {
   }
 
   return Promise.all(promises.values());
+}
+
+export async function parallelHandler({
+  iterable,
+  limit,
+  handle,
+}: {
+  iterable: AsyncIterable<any>;
+  limit: number;
+  handle: (any) => Promise<void>;
+}) {
+  const promiseQueue: Promise<void>[] = [];
+  for await (const mesg of iterable) {
+    const promise = handle(mesg).then(() => {
+      // Remove the promise from the promiseQueue once done
+      promiseQueue.splice(promiseQueue.indexOf(promise), 1);
+    });
+    promiseQueue.push(promise);
+    // If we reached the PARALLEL limit, wait for one of the
+    // promises to resolve
+    if (promiseQueue.length >= limit) {
+      await Promise.race(promiseQueue);
+    }
+  }
+  // Wait for all remaining promises to finish
+  await Promise.all(promiseQueue);
 }

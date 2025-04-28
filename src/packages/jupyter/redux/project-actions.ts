@@ -18,7 +18,10 @@ import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
 import { debounce } from "lodash";
-import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
+import {
+  JupyterActions as JupyterActions0,
+  MAX_OUTPUT_MESSAGES,
+} from "@cocalc/jupyter/redux/actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
@@ -26,22 +29,23 @@ import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
-import {
-  decodeUUIDtoNum,
-  isEncodedNumUUID,
-} from "@cocalc/util/compute/manager";
-import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
-import { callback } from "awaiting";
-import { get_blob_store } from "@cocalc/jupyter/blobs";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
+import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
+import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
+import { computeServerManager } from "@cocalc/nats/compute/manager";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
 const MAX_OUTPUT_SAVE_DELAY = 30000;
+
+// refuse to open an ipynb that is bigger than this:
+const MAX_SIZE_IPYNB_MB = 150;
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
   private _backend_state: BackendState = "init";
+  private lastSavedBackendState?: BackendState;
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
   private _manager_run_cell_queue: any;
@@ -52,13 +56,26 @@ export class JupyterActions extends JupyterActions0 {
   private running_manager_run_cell_process_queue: boolean = false;
   private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
+  public blobs: DKV;
+  private computeServers?;
+
+  private initBlobStore = async () => {
+    this.blobs = await dkv(this.blobStoreOptions());
+  };
+
+  // uncomment for verbose logging of everything here to the console.
+  //   dbg(f: string) {
+  //     return (...args) => console.log(f, args);
+  //   }
 
   public run_cell(
     id: string,
     save: boolean = true,
     no_halt: boolean = false,
   ): void {
-    if (this.store.get("read_only")) return;
+    if (this.store.get("read_only")) {
+      return;
+    }
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       // it is trivial to run a cell that does not exist -- nothing needs to be done.
@@ -113,42 +130,36 @@ export class JupyterActions extends JupyterActions0 {
     }
     this._backend_state = backend_state;
 
-    if (this.isCellRunner()) {
-      const stored_backend_state = this.syncdb
-        .get_one({ type: "settings" })
-        ?.get("backend_state");
+    if (this.lastSavedBackendState != backend_state) {
+      this._set({
+        type: "settings",
+        backend_state,
+        last_backend_state: Date.now(),
+      });
+      this.save_asap();
+      this.lastSavedBackendState = backend_state;
+    }
 
-      if (stored_backend_state != backend_state) {
+    // The following is to clear kernel_error if things are working only.
+    if (backend_state == "running") {
+      // clear kernel error if kernel successfully starts and stays
+      // in running state for a while.
+      this.clear_kernel_error = setTimeout(() => {
         this._set({
           type: "settings",
-          backend_state,
-          last_backend_state: Date.now(),
+          kernel_error: "",
         });
-        this.save_asap();
-      }
-
-      // The following is to clear kernel_error if things are working only.
-      if (backend_state == "running") {
-        // clear kernel error if kernel successfully starts and stays
-        // in running state for a while.
-        this.clear_kernel_error = setTimeout(() => {
-          this._set({
-            type: "settings",
-            kernel_error: "",
-          });
-        }, 3000);
-      } else {
-        // change to a different state; cancel attempt to clear kernel error
-        if (this.clear_kernel_error) {
-          clearTimeout(this.clear_kernel_error);
-          delete this.clear_kernel_error;
-        }
+      }, 3000);
+    } else {
+      // change to a different state; cancel attempt to clear kernel error
+      if (this.clear_kernel_error) {
+        clearTimeout(this.clear_kernel_error);
+        delete this.clear_kernel_error;
       }
     }
   }
 
   set_kernel_state = (state: any, save = false) => {
-    if (!this.isCellRunner()) return;
     this._kernel_state = state;
     this._set({ type: "settings", kernel_state: state }, save);
   };
@@ -164,13 +175,19 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     this._initialize_manager_already_done = true;
 
+    dbg("initialize Jupyter NATS api handler");
+    await this.initNatsApi();
+
+    dbg("initializing blob store");
+    await this.initBlobStore();
+
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
       5000,
     );
     // Listen for changes...
-    this.syncdb.on("change", this._backend_syncdb_change.bind(this));
+    this.syncdb.on("change", this.backendSyncdbChange);
 
     this.setState({
       // used by the kernel_info function of this.jupyter_kernel
@@ -196,16 +213,26 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.syncdb.ipywidgets_state.on(
       "change",
-      this.handle_ipywidgets_state_change.bind(this),
+      this.handle_ipywidgets_state_change,
     );
-
-    this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
-
-    // initialize the websocket api
-    this.initWebsocketApi();
   }
 
-  private async _first_load() {
+  private natsService?;
+  private initNatsApi = reuseInFlight(async () => {
+    if (this.natsService != null) {
+      this.natsService.close();
+      this.natsService = null;
+    }
+    const service = (this.natsService = await initNatsService({
+      project_id: this.project_id,
+      path: this.path,
+    }));
+    this.syncdb.on("closed", () => {
+      service.close();
+    });
+  });
+
+  private _first_load = async () => {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
     if (this.is_closed()) {
@@ -225,25 +252,25 @@ export class JupyterActions extends JupyterActions0 {
     }
     dbg("loading worked");
     this._init_after_first_load();
-  }
+  };
 
-  private _init_after_first_load() {
+  private _init_after_first_load = () => {
     const dbg = this.dbg("_init_after_first_load");
 
     dbg("initializing");
-    this.ensure_backend_kernel_setup(); // this may change the syncdb.
+    // this may change the syncdb.
+    this.ensure_backend_kernel_setup();
 
     this.init_file_watcher();
 
     this._state = "ready";
-    this.ensure_there_is_a_cell();
-  }
+  };
 
-  _backend_syncdb_change = (changes: any) => {
+  private backendSyncdbChange = (changes: any) => {
     if (this.is_closed()) {
       return;
     }
-    const dbg = this.dbg("_backend_syncdb_change");
+    const dbg = this.dbg("backendSyncdbChange");
     if (changes != null) {
       changes.forEach((key) => {
         switch (key.get("type")) {
@@ -295,8 +322,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   // ensure_backend_kernel_setup ensures that we have a connection
-  // to the proper type of kernel.
-  // If running is true, starts the kernel and waits until running.
+  // to the selected Jupyter kernel, if any.
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     if (this.isDeleted()) {
@@ -305,13 +331,22 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     const kernel = this.store.get("kernel");
+    dbg("ensure_backend_kernel_setup", { kernel });
 
     let current: string | undefined = undefined;
     if (this.jupyter_kernel != null) {
       current = this.jupyter_kernel.name;
-      if (current == kernel && this.jupyter_kernel.get_state() != "closed") {
-        dbg("everything is properly setup and working");
-        return;
+      if (current == kernel) {
+        const state = this.jupyter_kernel.get_state();
+        if (state == "error") {
+          dbg("kernel is broken");
+          // nothing to do -- let user ponder the error they should see.
+          return;
+        }
+        if (state != "closed") {
+          dbg("everything is properly setup and working");
+          return;
+        }
       }
     }
 
@@ -348,6 +383,7 @@ export class JupyterActions extends JupyterActions0 {
       // to satisfy typescript.
       throw Error("jupyter_kernel must be defined");
     }
+    dbg("kernel created -- installing handlers");
 
     // save so gets reported to frontend, and surfaced to user:
     // https://github.com/sagemathinc/cocalc/issues/4847
@@ -355,8 +391,17 @@ export class JupyterActions extends JupyterActions0 {
       this.set_kernel_error(error);
     });
 
-    // Since we just made a new kernel, clearly no cells are running on the backend.
+    // Since we just made a new kernel, clearly no cells are running on the backend:
     this._running_cells = {};
+
+    const toStart: string[] = [];
+    this.store?.get_cell_list().forEach((id) => {
+      if (this.store.getIn(["cells", id, "state"]) == "start") {
+        toStart.push(id);
+      }
+    });
+
+    dbg("clear cell run state");
     this.clear_all_cell_run_state();
 
     this.restartKernelOnClose = () => {
@@ -401,7 +446,17 @@ export class JupyterActions extends JupyterActions0 {
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
     this.handle_all_cell_attachments();
+    dbg("ready");
     this.set_backend_state("ready");
+
+    // Run cells that the user explicitly set to be running before the
+    // kernel actually had finished starting up.
+    // This must be done after the state is ready.
+    if (toStart.length > 0) {
+      for (const id of toStart) {
+        this.run_cell(id);
+      }
+    }
   };
 
   set_connection_file = () => {
@@ -441,7 +496,9 @@ export class JupyterActions extends JupyterActions0 {
       dbg("done getting kernel info");
     }
     const is_running = (s): boolean => {
-      if (this._state === "closed") return true;
+      if (this._state === "closed") {
+        return true;
+      }
       const t = s.get_one({ type: "settings" });
       if (t == null) {
         dbg("no settings");
@@ -469,8 +526,7 @@ export class JupyterActions extends JupyterActions0 {
 
     if (
       new_cell?.get("state") === "start" &&
-      old_cell?.get("state") !== "start" &&
-      this.isCellRunner()
+      old_cell?.get("state") !== "start"
     ) {
       this.manager_run_cell_enqueue(id);
       // attachments below only happen for markdown cells, which don't get run,
@@ -486,18 +542,16 @@ export class JupyterActions extends JupyterActions0 {
 
   protected __syncdb_change_post_hook(doInit: boolean) {
     if (doInit) {
-      if (this.isCellRunner()) {
-        // Since just opening the actions in the project, definitely the kernel
-        // isn't running so set this fact in the shared database.  It will make
-        // things always be in the right initial state.
-        this.syncdb.set({
-          type: "settings",
-          backend_state: "init",
-          kernel_state: "idle",
-          kernel_usage: { memory: 0, cpu: 0 },
-        });
-        this.syncdb.commit();
-      }
+      // Since just opening the actions in the project, definitely the kernel
+      // isn't running so set this fact in the shared database.  It will make
+      // things always be in the right initial state.
+      this.syncdb.set({
+        type: "settings",
+        backend_state: "init",
+        kernel_state: "idle",
+        kernel_usage: { memory: 0, cpu: 0 },
+      });
+      this.syncdb.commit();
 
       // Also initialize the execution manager, which runs cells that have been
       // requested to run.
@@ -516,10 +570,6 @@ export class JupyterActions extends JupyterActions0 {
     if (this.store == null || this._state !== "ready") {
       // not initialized, so we better not
       // mess with cell state (that is somebody else's responsibility).
-      return;
-    }
-    //  we are not the cell runner
-    if (!this.isCellRunner()) {
       return;
     }
 
@@ -653,8 +703,8 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   // returns new output handler for this cell.
-  protected _output_handler(cell: any) {
-    const dbg = this.dbg(`handler(id='${cell.id}')`);
+  protected _output_handler(cell) {
+    const dbg = this.dbg(`_output_handler(id='${cell.id}')`);
     if (
       this.jupyter_kernel == null ||
       this.jupyter_kernel.get_state() == "closed"
@@ -666,6 +716,7 @@ export class JupyterActions extends JupyterActions0 {
     const handler = new OutputHandler({
       cell,
       max_output_length: this.store.get("max_output_length"),
+      max_output_messages: MAX_OUTPUT_MESSAGES,
       report_started_ms: 250,
       dbg,
     });
@@ -899,33 +950,26 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  reset_more_output = (id: any) => {
+  reset_more_output = (id: string) => {
     if (id == null) {
-      delete this.store._more_output;
+      this.store._more_output = {};
     }
-    if (
-      (this.store._more_output != null
-        ? this.store._more_output[id]
-        : undefined) != null
-    ) {
-      return delete this.store._more_output[id];
+    if (this.store._more_output[id] != null) {
+      delete this.store._more_output[id];
     }
   };
 
-  set_more_output = (id: any, mesg: any, length: any): void => {
-    if (this.store._more_output == null) {
-      this.store._more_output = {};
+  set_more_output = (id: string, mesg: object, length: number): void => {
+    if (this.store._more_output[id] == null) {
+      this.store._more_output[id] = {
+        length: 0,
+        messages: [],
+        lengths: [],
+        discarded: 0,
+        truncated: 0,
+      };
     }
-    const output =
-      this.store._more_output[id] != null
-        ? this.store._more_output[id]
-        : (this.store._more_output[id] = {
-            length: 0,
-            messages: [],
-            lengths: [],
-            discarded: 0,
-            truncated: 0,
-          });
+    const output = this.store._more_output[id];
 
     output.length += length;
     output.lengths.push(length);
@@ -937,15 +981,12 @@ export class JupyterActions extends JupyterActions0 {
       let did_truncate = false;
 
       // check if there is a text field, which we can truncate
-      let len =
-        output.messages[0].text != null
-          ? output.messages[0].text.length
-          : undefined;
+      let len = output.messages[0].text?.length;
       if (len != null) {
         need = output.length - goal_length + 50;
         if (len > need) {
           // Instead of throwing this message away, let's truncate its text part.  After
-          // doing this, the message is at least need shorter than it was before.
+          // doing this, the message is at least shorter than it was before.
           output.messages[0].text = misc.trunc(
             output.messages[0].text,
             len - need,
@@ -988,7 +1029,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  private init_file_watcher() {
+  private init_file_watcher = () => {
     const dbg = this.dbg("file_watcher");
     dbg();
     this._file_watcher = this._client.watch_file({
@@ -997,9 +1038,6 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this._file_watcher.on("change", async () => {
-      if (!this.isCellRunner()) {
-        return;
-      }
       dbg("change");
       try {
         await this.loadFromDiskIfNewer();
@@ -1007,7 +1045,7 @@ export class JupyterActions extends JupyterActions0 {
         dbg("failed to load on change", err);
       }
     });
-  }
+  };
 
   /*
     * Unfortunately, though I spent two hours on this approach... it just doesn't work,
@@ -1171,7 +1209,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       content = await callback2(this._client.path_read, {
         path,
-        maxsize_MB: 50,
+        maxsize_MB: MAX_SIZE_IPYNB_MB,
       });
     } catch (err) {
       // possibly file doesn't exist -- set notebook to empty.
@@ -1203,7 +1241,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       parsed_content = JSON.parse(content);
     } catch (err) {
-      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
+      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing, or use TimeTravel to revert to a recent version.`;
       dbg(error);
       this.syncdb.set({ type: "fatal", error });
       throw Error(error);
@@ -1213,10 +1251,50 @@ export class JupyterActions extends JupyterActions0 {
     this.set_last_load(true);
   };
 
-  save_ipynb_file = async () => {
+  private fetch_jupyter_kernels = async () => {
+    const data = await get_kernel_data();
+    const kernels = immutable.fromJS(data as any);
+    this.setState({ kernels });
+  };
+
+  save_ipynb_file = async ({
+    version = 0,
+    timeout = 15000,
+  }: {
+    // if version is given, waits (up to timeout ms) for syncdb to
+    // contain that exact version before writing the ipynb to disk.
+    // This may be needed to ensure that ipynb saved to disk
+    // reflects given frontend state.  This comes up, e.g., in
+    // generating the nbgrader version of a document.
+    version?: number;
+    timeout?: number;
+  } = {}) => {
     const dbg = this.dbg("save_ipynb_file");
-    if (!this.isCellRunner()) {
-      dbg("not cell runner, so NOT saving ipynb file to disk");
+    if (version && !this.syncdb.hasVersion(version)) {
+      dbg(`frontend needs ${version}, which we do not yet have`);
+      const start = Date.now();
+      while (true) {
+        if (this.is_closed()) {
+          return;
+        }
+        if (Date.now() - start >= timeout) {
+          dbg("timed out waiting");
+          break;
+        }
+        try {
+          dbg(`waiting for version ${version}`);
+          await once(this.syncdb, "change", timeout - (Date.now() - start));
+        } catch {
+          dbg("timed out waiting");
+          break;
+        }
+        if (this.syncdb.hasVersion(version)) {
+          dbg("now have the version");
+          break;
+        }
+      }
+    }
+    if (this.is_closed()) {
       return;
     }
     dbg("saving to file");
@@ -1254,7 +1332,8 @@ export class JupyterActions extends JupyterActions0 {
     let ipynb = this.store.get_ipynb(blob_store);
     if (this.store.get("kernel")) {
       // if a kernel is set, check that it was sufficiently known that
-      // we can fill in data about it -- see https://github.com/sagemathinc/cocalc/issues/7286
+      // we can fill in data about it --
+      //   see https://github.com/sagemathinc/cocalc/issues/7286
       if (ipynb?.metadata?.kernelspec?.name == null) {
         dbg("kernelspec not known -- try loading kernels again");
         await this.fetch_jupyter_kernels();
@@ -1295,7 +1374,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const cells = this.store.get("cells");
-    if (cells == null || (cells.size === 0 && this.isCellRunner())) {
+    if (cells == null || cells.size === 0) {
       this._set({
         type: "cell",
         id: this.new_id(),
@@ -1356,7 +1435,7 @@ export class JupyterActions extends JupyterActions0 {
   // object changes, e.g., in response to a user moving a slider in the browser.
   // It crafts a comm message that is sent to the running Jupyter kernel telling
   // it about this change by calling send_comm_message_to_kernel.
-  private handle_ipywidgets_state_change(keys): void {
+  private handle_ipywidgets_state_change = (keys): void => {
     if (this.is_closed()) {
       return;
     }
@@ -1418,12 +1497,14 @@ export class JupyterActions extends JupyterActions0 {
         );
         */
       } else {
-        throw Error(`invalid synctable state -- unknown type '${type}'`);
+        const m = `Jupyter: unknown type '${type}'`;
+        console.warn(m);
+        dbg(m);
       }
     }
-  }
+  };
 
-  public async process_comm_message_from_kernel(mesg: any): Promise<void> {
+  async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // serializing the full message could cause enormous load on the server, since
     // the mesg may contain large buffers.  Only do for low level debugging!
@@ -1436,14 +1517,14 @@ export class JupyterActions extends JupyterActions0 {
     await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
   }
 
-  public capture_output_message(mesg: any): boolean {
+  capture_output_message(mesg: any): boolean {
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
     return this.syncdb.ipywidgets_state.capture_output_message(mesg);
   }
 
-  public close_project_only() {
+  close_project_only() {
     const dbg = this.dbg("close_project_only");
     dbg();
     if (this.run_all_loop) {
@@ -1460,293 +1541,18 @@ export class JupyterActions extends JupyterActions0 {
         dbg("WARNING -- issue removing jupyter redux", err);
       }
     })();
+
+    this.blobs?.close();
   }
 
   // not actually async...
-  public async signal(signal = "SIGINT"): Promise<void> {
+  async signal(signal = "SIGINT"): Promise<void> {
     this.jupyter_kernel?.signal(signal);
   }
 
-  public handle_nbconvert_change(oldVal, newVal): void {
+  handle_nbconvert_change(oldVal, newVal): void {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
-
-  protected isCellRunner = (): boolean => {
-    if (this.is_closed()) {
-      // it's closed, so obviously not the cell runner.
-      return false;
-    }
-    const dbg = this.dbg("isCellRunner");
-    let id;
-    try {
-      id = this.getComputeServerId();
-    } catch (_) {
-      // normal since debounced,
-      // and anyways if anything like syncdb that getComputeServerId
-      // depends on doesn't work, then we are clearly
-      // not the cell runner
-      return false;
-    }
-    dbg("id = ", id);
-    if (id == 0 && this.is_project) {
-      dbg("yes we are the cell runner (the project)");
-      // when no remote compute servers are configured, the project is
-      // responsible for evaluating code.
-      return true;
-    }
-    if (this.is_compute_server) {
-      // a remote compute server is supposed to be responsible. Are we it?
-      try {
-        const myId = decodeUUIDtoNum(this.syncdb.client_id());
-        const isRunner = myId == id;
-        dbg(isRunner ? "Yes, we are cell runner" : "NOT cell runner");
-        return isRunner;
-      } catch (err) {
-        dbg(err);
-      }
-    }
-    dbg("NO we are not the cell runner");
-    return false;
-  };
-
-  private lastComputeServerId = 0;
-  private checkForComputeServerStateChange = (client_id) => {
-    if (this.is_closed()) {
-      return;
-    }
-    if (!isEncodedNumUUID(client_id)) {
-      return;
-    }
-    const id = this.getComputeServerId();
-    if (id != this.lastComputeServerId) {
-      // reset all run state
-      this.halt();
-      this.clear_all_cell_run_state();
-    }
-    this.lastComputeServerId = id;
-  };
-
-  /*
-  WebSocket API
-
-  1. Handles api requests from the user via the generic websocket message channel
-     provided by the syncdb.
-
-  2. In case a remote compute server connects and registers to handle api messages,
-     then those are proxied to the remote server, handled there, and proxied back.
-  */
-
-  private initWebsocketApi = () => {
-    if (this.is_project) {
-      // only the project receives these messages from clients.
-      this.syncdb.on("message", this.handleMessageFromClient);
-    } else if (this.is_compute_server) {
-      // compute servers receive messages from the project,
-      // proxying an api request from a client.
-      this.syncdb.on("message", this.handleMessageFromProject);
-    }
-  };
-
-  private remoteApiHandler: null | {
-    spark: any; // the spark channel connection between project and compute server
-    id: number; // this is a sequential id used for request/response pairing
-    // when get response from computer server, one of these callbacks gets called:
-    responseCallbacks: { [id: number]: (err: any, response: any) => void };
-  } = null;
-
-  private handleMessageFromClient = async ({ data, spark }) => {
-    // This is call in the project to handle api requests.
-    // It either handles them directly, or if there is a remote
-    // compute server, it forwards them to the remote compute server,
-    // then proxies the response back to the client.
-
-    const dbg = this.dbg("handleMessageFromClient");
-    dbg();
-    // WARNING: potentially very verbose
-    dbg(data);
-    switch (data.event) {
-      case "register-to-handle-api": {
-        if (this.remoteApiHandler?.spark?.id == spark.id) {
-          dbg(
-            "register-to-handle-api -- it's the current one so nothing to do",
-          );
-          return;
-        }
-        if (this.remoteApiHandler?.spark != null) {
-          dbg("register-to-handle-api -- remove existing handler");
-          this.remoteApiHandler.spark.removeAllListeners();
-          this.remoteApiHandler.spark.end();
-          this.remoteApiHandler = null;
-        }
-        // a compute server client is volunteering to handle all api requests until they disconnect
-        this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
-        dbg("register-to-handle-api -- spark.id = ", spark.id);
-        spark.on("end", () => {
-          dbg(
-            "register-to-handle-api -- spark ended, spark.id = ",
-            spark.id,
-            " and this.remoteApiHandler?.spark.id=",
-            this.remoteApiHandler?.spark.id,
-          );
-          if (this.remoteApiHandler?.spark.id == spark.id) {
-            this.remoteApiHandler = null;
-          }
-        });
-        return;
-      }
-
-      case "api-request": {
-        // browser client made an api request.  This will get handled
-        // either locally or via a remote compute server, depending on
-        // whether this.remoteApiHandler is set (via the
-        // register-to-handle-api event above).
-        const response = await this.handleApiRequest(data);
-        spark.write({
-          event: "message",
-          data: { event: "api-response", response, id: data.id },
-        });
-        return;
-      }
-
-      case "api-response": {
-        // handling api request that we proxied to a remote compute server.
-        // We are handling the response from the remote compute server.
-        if (this.remoteApiHandler == null) {
-          dbg("WARNING: api-response event but there is no remote api handler");
-          // api-response event can't be handled because no remote api handler is registered
-          // This should only happen if the requesting spark just disconnected, so there's no way to
-          // responsd anyways.
-          return;
-        }
-        const cb = this.remoteApiHandler.responseCallbacks[data.id];
-        if (cb != null) {
-          delete this.remoteApiHandler.responseCallbacks[data.id];
-          cb(undefined, data);
-        } else {
-          dbg("WARNING: api-response event for unknown id", data.id);
-        }
-        return;
-      }
-
-      case "save-blob-to-project": {
-        if (!this.is_project) {
-          throw Error(
-            "message save-blob-to-project should only be sent to the project",
-          );
-        }
-        // A compute server sent the project a blob to store
-        // in the local blob store.
-        const blobStore = await get_blob_store();
-        blobStore.save(data.data, data.type, data.ipynb);
-        return;
-      }
-
-      default: {
-        // unknown event so send back error
-        spark.write({
-          event: "message",
-          data: {
-            event: "error",
-            message: `unknown event ${data.event}`,
-            id: data.id,
-          },
-        });
-      }
-    }
-  };
-
-  // this should only be called on a compute server.
-  public saveBlobToProject = (data: string, type: string, ipynb?: string) => {
-    if (!this.is_compute_server) {
-      throw Error(
-        "saveBlobToProject should only be called on a compute server",
-      );
-    }
-    const dbg = this.dbg("saveBlobToProject");
-    if (this.is_closed()) {
-      dbg("called AFTER closed");
-      return;
-    }
-    // This is call on a compute server whenever something is
-    // written to its local blob store.  TODO: We do not wait for
-    // confirmation that blob was sent yet though.
-    dbg();
-    this.syncdb.sendMessageToProject({
-      event: "save-blob-to-project",
-      data,
-      type,
-      ipynb,
-    });
-  };
-
-  private handleMessageFromProject = async (data) => {
-    const dbg = this.dbg("handleMessageFromProject");
-    if (this.is_closed()) {
-      dbg("called AFTER closed");
-      return;
-    }
-    // This is call on the remote compute server to handle api requests.
-    dbg();
-    // output could be very BIG:
-    // dbg(data);
-    if (data.event == "api-request") {
-      const response = await this.handleApiRequest(data.request);
-      try {
-        await this.syncdb.sendMessageToProject({
-          event: "api-response",
-          id: data.id,
-          response,
-        });
-      } catch (err) {
-        // this happens when the websocket is disconnected
-        dbg(`WARNING -- issue responding to message ${err}`);
-      }
-      return;
-    }
-  };
-
-  private handleApiRequest = async (data) => {
-    if (this.remoteApiHandler != null) {
-      return await this.handleApiRequestViaRemoteApiHandler(data);
-    }
-    const dbg = this.dbg("handleApiRequest");
-    const { path, endpoint, query } = data;
-    dbg("handling request in project", path);
-    try {
-      return await handleApiRequest(path, endpoint, query);
-    } catch (err) {
-      dbg("error -- ", err.message);
-      return { event: "error", message: err.message };
-    }
-  };
-
-  private handleApiRequestViaRemoteApiHandler = async (data) => {
-    const dbg = this.dbg("handleApiRequestViaRemoteApiHandler");
-    dbg(data?.path);
-    try {
-      if (!this.is_project) {
-        throw Error("BUG -- remote api requests only make sense in a project");
-      }
-      if (this.remoteApiHandler == null) {
-        throw Error("BUG -- remote api handler not registered");
-      }
-      // Send a message to the remote asking it to handle this api request,
-      // which calls the function handleMessageFromProject from above in that remote process.
-      const { id, spark, responseCallbacks } = this.remoteApiHandler;
-      spark.write({
-        event: "message",
-        data: { event: "api-request", request: data, id },
-      });
-      const waitForResponse = (cb) => {
-        responseCallbacks[id] = cb;
-      };
-      this.remoteApiHandler.id += 1; // increment sequential protocol message tracker id
-      return (await callback(waitForResponse)).response;
-    } catch (err) {
-      dbg("error -- ", err.message);
-      return { event: "error", message: err.message };
-    }
-  };
 
   // Handle transient cell messages.
   handleTransientUpdate = (mesg) => {
@@ -1778,5 +1584,26 @@ export class JupyterActions extends JupyterActions0 {
       this.syncdb.commit();
     }
   };
-  // End Websocket API
+
+  getComputeServers = () => {
+    // we don't bother worrying about freeing this since it is only
+    // run in the project or compute server, which needs the underlying
+    // dkv for its entire lifetime anyways.
+    if (this.computeServers == null) {
+      this.computeServers = computeServerManager({
+        project_id: this.project_id,
+      });
+    }
+    return this.computeServers;
+  };
+
+  getComputeServerIdSync = (): number => {
+    const c = this.getComputeServers();
+    return c.get(this.syncdb.path) ?? 0;
+  };
+
+  getComputeServerId = async (): Promise<number> => {
+    const c = this.getComputeServers();
+    return (await c.getServerIdForPath(this.syncdb.path)) ?? 0;
+  };
 }

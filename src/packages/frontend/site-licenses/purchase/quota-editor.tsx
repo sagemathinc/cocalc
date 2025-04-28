@@ -4,14 +4,15 @@
  */
 
 /*
-
 Editing a quota
 
  - shows user rows for cpu, ram, disk, member, and always_running: optional
  - they can edit all the rows.
  - optional: also shows rows for support and network that can't be edited
-
 */
+
+// cSpell: ignore jsonpatch requiresMemberhosting
+
 import {
   Button,
   Checkbox,
@@ -44,14 +45,15 @@ import {
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import {
-  COSTS,
-  CostMap,
-} from "@cocalc/util/licenses/purchase/consts";
+import { COSTS, CostMap } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
-import { extract_gpu, process_gpu_quota } from "@cocalc/util/types/gpu";
+import {
+  extract_gpu,
+  GPU_DEFAULT_RESOURCE,
+  process_gpu_quota,
+} from "@cocalc/util/types/gpu";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { DEDICATED_VM_ONPREM_MACHINE } from "@cocalc/util/upgrades/consts";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
@@ -529,7 +531,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Paragraph>
         <Paragraph>
           In particular, the pod will get the following resource limit:{" "}
-          <code>nvidia.com/gpu: 1</code>.
+          <code>nvidia.com/gpu: 1</code>, where the specific GPU resource name
+          can be configured.
         </Paragraph>
         <Paragraph>
           On top of that, you can optionally specify a{" "}
@@ -565,9 +568,17 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   }
 
   function render_gpu(): JSX.Element {
-    const { num = 0, toleration = "", nodeLabel = "" } = extract_gpu(quota);
+    const {
+      num = 0,
+      toleration = "",
+      nodeLabel = "",
+      resource = GPU_DEFAULT_RESOURCE,
+    } = extract_gpu(quota);
 
     const debug = process_gpu_quota(quota);
+
+    // edit text and save button on the same row
+    const style: CSS = { display: "inline-flex", gap: "5px" } as const;
 
     return (
       <Row style={ROW_STYLE}>
@@ -583,6 +594,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
                     num: e.target.checked ? Math.max(1, num) : 0,
                     toleration,
                     nodeLabel,
+                    resource,
                   },
                 })
               }
@@ -600,10 +612,32 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
                 size={"small"}
                 value={num}
                 onChange={(num: number) =>
-                  onChange({ gpu: { num, toleration, nodeLabel } })
+                  onChange({ gpu: { num, toleration, nodeLabel, resource } })
                 }
               />{" "}
               (usually "1")
+            </Paragraph>
+            <Paragraph>
+              <Text strong>GPU Resource</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(resource) =>
+                  onChange({
+                    gpu: {
+                      resource: resource.trim(),
+                      toleration,
+                      num,
+                      nodeLabel,
+                    },
+                  })
+                }
+                style={style}
+                text={resource}
+              />{" "}
+              (optional, default "{GPU_DEFAULT_RESOURCE}", alternatively e.g.
+              "nvidia.com/mig-1g.5gb")
             </Paragraph>
             <Paragraph>
               <Text strong>Node selector:</Text>{" "}
@@ -613,10 +647,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
                 type={"text"}
                 on_change={(label) =>
                   onChange({
-                    gpu: { nodeLabel: label.trim(), toleration, num },
+                    gpu: { nodeLabel: label.trim(), toleration, num, resource },
                   })
                 }
-                style={{ display: "inline-block" }}
+                style={style}
                 text={nodeLabel}
               />{" "}
               (optional, [1])
@@ -628,9 +662,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
                 disabled={disabled}
                 type={"text"}
                 on_change={(tol) =>
-                  onChange({ gpu: { toleration: tol.trim(), nodeLabel, num } })
+                  onChange({
+                    gpu: { toleration: tol.trim(), nodeLabel, num, resource },
+                  })
                 }
-                style={{ display: "inline-block" }}
+                style={style}
                 text={toleration}
               />{" "}
               (optional, [1])
@@ -639,7 +675,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               [1] format: <code>key=value</code> or for taints, also{" "}
               <code>key</code> to tolerate the key regardless of value. Keep the
               field empty if you do not use label selectors or taints. Specify
-              mulitple ones via a "," comma. Below is a "debug" view.
+              multiple ones via a "," comma. Below is a "debug" view.
             </Paragraph>
             <pre style={{ fontSize: "85%" }}>
               {JSON.stringify(debug, null, 2)}

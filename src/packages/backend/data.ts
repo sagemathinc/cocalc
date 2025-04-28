@@ -26,8 +26,9 @@ const DEFINITION = `CoCalc Environment Variables:
 
 import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
-import { readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
+import { hostname } from "os";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -47,7 +48,7 @@ interface CoCalcSSLEnvConfig extends Dict<string> {
   SMC_DB_SSL_CA_FILE?: string;
   SMC_DB_SSL_CLIENT_CERT_FILE?: string;
   SMC_DB_SSL_CLIENT_KEY_FILE?: string;
-  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?:string;
+  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?: string;
 }
 
 // This interface is used to specify environment variables to be passed to the "psql" command for
@@ -75,11 +76,14 @@ export interface PsqlSSLEnvConfig {
 // We extend the existing ConnectionOptions interface to include certificate file paths, since these
 // are used when connecting to Postgres outside of Node (e.g., for raw psql queries).
 //
-export type SSLConfig = ConnectionOptions & {
-  caFile?: string;
-  clientCertFile?: string;
-  clientKeyFile?: string;
-} | boolean | undefined;
+export type SSLConfig =
+  | (ConnectionOptions & {
+      caFile?: string;
+      clientCertFile?: string;
+      clientKeyFile?: string;
+    })
+  | boolean
+  | undefined;
 
 /**
  * Converts an environment-variable-driven SSLEnvConfig into a superset of the SSL context expected
@@ -87,7 +91,9 @@ export type SSLConfig = ConnectionOptions & {
  *
  * @param env
  */
-export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): SSLConfig {
+export function sslConfigFromCoCalcEnv(
+  env: CoCalcSSLEnvConfig = process.env,
+): SSLConfig {
   const sslConfig: SSLConfig = {};
 
   if (env.SMC_DB_SSL_CA_FILE) {
@@ -101,7 +107,7 @@ export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): S
   }
 
   if (env.SMC_DB_SSL_CLIENT_KEY_FILE) {
-    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE
+    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE;
     sslConfig.key = readFileSync(env.SMC_DB_SSL_CLIENT_KEY_FILE);
   }
 
@@ -109,7 +115,9 @@ export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): S
     sslConfig.passphrase = env.SMC_DB_SSL_CLIENT_KEY_PASSPHRASE;
   }
 
-  return isEmpty(sslConfig) ? (env.SMC_DB_SSL?.toLowerCase() === "true") : sslConfig;
+  return isEmpty(sslConfig)
+    ? env.SMC_DB_SSL?.toLowerCase() === "true"
+    : sslConfig;
 }
 
 /**
@@ -171,12 +179,122 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+// if the directory secrets doesn't exist, create it (sync, during this load):
+if (!existsSync(secrets)) {
+  try {
+    // Mode '0o700' allows read/write/execute only for the owner
+    mkdirSync(secrets, { recursive: true, mode: 0o700 });
+  } catch {
+    // non-fatal, e.g., maybe user doesn't even have write access to the secrets path
+  }
+}
+
 export const logs: string = process.env.LOGS ?? join(data, "logs");
-export const blobstore: "disk" | "sqlite" =
-  (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
+
+// NATS
+export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
+if (!existsSync(nats)) {
+  try {
+    mkdirSync(nats, { recursive: true, mode: 0o700 });
+  } catch {
+    // nonfatal -- there are other ways to auth to nats
+  }
+}
+export const natsPorts = {
+  server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
+  ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
+  cluster: parseInt(process.env.COCALC_NATS_CLUSTER_PORT ?? "4248"),
+};
+
+export const natsServerName = process.env.COCALC_NATS_SERVER_NAME ?? hostname();
+export const natsClusterName =
+  process.env.COCALC_NATS_CLUSTER_NAME ?? "default";
+
+export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
+// note: natsWebsocketServer will be changed below if API_KEY and API_SERVER
+// are set, but COCALC_NATS_SERVER is not set.
+export let natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+
+export function setNatsPort(port) {
+  natsPorts.server = parseInt(port);
+}
+export function setNatsWebsocketPort(port) {
+  natsPorts.ws = parseInt(port);
+  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+export function setNatsServer(server) {
+  natsServer = server;
+  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+
+// Password used to connect to the nats server
+export let natsPassword = "";
+export const natsPasswordPath = join(secrets, "nats_password");
+try {
+  natsPassword = readFileSync(natsPasswordPath).toString().trim();
+} catch {}
+export function setNatsPassword(password: string) {
+  natsPassword = password;
+}
+
+export const natsBackup =
+  process.env.COCALC_NATS_BACKUP ?? join(nats, "backup");
+
+export const natsUser = "cocalc";
+
+// Secrets used for cryptography between the auth callout service and
+// and the nats server.   The *secret keys* are only needed by
+// the auth callout service, and the corresponding public keys are
+// only needed by the nats server, but right now (and since password is already
+// known to both), we are just making the private keys available to both.
+// These keys make it so if somebody tries to listen in on nats traffic
+// between the server and auth callout, they can't impersonate users, etc.
+// In particular:
+//      - nseed = account key - used by server to sign message to the auth callout
+//      - xseed = curve key - used by auth callout to encrypt response
+// These are both arbitrary elliptic curve ed25519 secrets (nkeys),
+// which are the "seed" generated using https://www.npmjs.com/package/@nats-io/nkeys
+// or https://github.com/nats-io/nkeys?tab=readme-ov-file#installation
+// E.g.,
+//    ~/cocalc/src/data/secrets$ go get github.com/nats-io/nkeys
+//    ~/cocalc/src/data/secrets$ nk -gen account > nats_auth_nseed
+//    ~/cocalc/src/data/secrets$ nk -gen curve > nats_auth_xseed
+
+export let natsAuthCalloutNSeed = "";
+export const natsAuthCalloutNSeedPath = join(secrets, "nats_auth_nseed");
+try {
+  natsAuthCalloutNSeed = readFileSync(natsAuthCalloutNSeedPath)
+    .toString()
+    .trim();
+} catch {}
+export function setNatsAuthCalloutNSeed(auth_callout: string) {
+  natsAuthCalloutNSeed = auth_callout;
+}
+export let natsAuthCalloutXSeed = "";
+export const natsAuthCalloutXSeedPath = join(secrets, "nats_auth_xseed");
+try {
+  natsAuthCalloutXSeed = readFileSync(natsAuthCalloutXSeedPath)
+    .toString()
+    .trim();
+} catch {}
+export function setNatsAuthCalloutXSeed(auth_callout: string) {
+  natsAuthCalloutXSeed = auth_callout;
+}
+
+// API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
+if (
+  process.env.API_KEY &&
+  process.env.API_SERVER &&
+  !process.env.COCALC_NATS_SERVER
+) {
+  // the nats server was not set via env variables, but the api server is set,
+  // along with the api key. This happens for compute servers, and in this case
+  // we also set the nats server by default to the same as the api server.
+  natsWebsocketServer = "ws" + apiServer.slice(4) + "/nats";
+}
 
 // Delete API_KEY from environment to reduce chances of it leaking, e.g., to
 // spawned terminal subprocess.
@@ -200,11 +318,6 @@ function sanityChecks() {
   if (!projects.includes("[project_id]")) {
     throw Error(
       `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`,
-    );
-  }
-  if ((blobstore as any) != "sqlite" && (blobstore as any) != "disk") {
-    throw Error(
-      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'",
     );
   }
   checkApiServer(apiServer);

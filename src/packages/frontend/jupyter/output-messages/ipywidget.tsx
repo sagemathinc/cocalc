@@ -8,6 +8,10 @@ import { Alert, Button } from "antd";
 import type { JupyterActions } from "../browser-actions";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { once } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
+
+const MAX_WAIT = 5000;
 
 // TODO: it would be better if somehow this were in @cocalc/jupyter, to 100% ensure css stays aligned.
 require("@jupyter-widgets/controls/css/widgets.css");
@@ -42,9 +46,61 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
   //      not, due to bad code  [no idea if this is true anymore, given that we switched to upstream k3d.]
   //  (2) efficiency.
   const { isVisible } = useFrameContext();
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const valueRef = useRef<any>(value);
+
+  // We have to wait a bit for ipywidgets_state.getSerializedModelState(id)
+  // to be defined, since state of the notebook and state of widgets are
+  // done in parallel, hence unpredicatable order, over the network
+  // (since using NATS instead of a single socket).
+  useEffect(() => {
+    (async () => {
+      const ipywidgets_state = actions?.widget_manager?.ipywidgets_state;
+      if (ipywidgets_state == null) {
+        setIsReady(true);
+        return;
+      }
+      const start = Date.now();
+      const id = value.get("model_id");
+      while (Date.now() - start <= MAX_WAIT) {
+        if (!valueRef.current.equals(value)) {
+          // let new function take over
+          return;
+        }
+        if (ipywidgets_state.getSerializedModelState(id) != null) {
+          /*
+          Without the delay, this fails the first time usually.  I think
+          the delay just allows ipywidegts_state to process the batch of
+          messages that have arrived defining the state, rather than just
+          the first message:
+
+%matplotlib ipympl
+import matplotlib.pyplot as plt
+import numpy as np
+fig, ax = plt.subplots()
+x = np.linspace(0, 2*np.pi, 100)
+y = np.sin(3*x)
+ax.plot(x, y)
+          */
+          await delay(1);
+          setIsReady(true);
+          return;
+        } else {
+          setIsReady(false);
+        }
+        try {
+          await once(ipywidgets_state, "change", MAX_WAIT);
+        } catch {
+          setIsReady(true);
+          return;
+        }
+      }
+      setIsReady(true);
+    })();
+  }, [value]);
 
   useEffect(() => {
-    if (actions == null || !isVisible) {
+    if (actions == null || !isVisible || !isReady) {
       // console.log("IpyWidget: not rendering due to actions=null");
       return;
     }
@@ -76,10 +132,10 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
     return () => {
       $(div).empty();
     };
-  }, [isVisible]);
+  }, [isVisible, isReady]);
 
   if (unknown) {
-    const msg = "Run cell to load widget.";
+    const msg = "Run cell to load widget";
     return (
       <Alert
         showIcon

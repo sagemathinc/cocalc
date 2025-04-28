@@ -16,7 +16,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
 import { Avatar } from "./avatar";
 
-// How frequently all UsersViewing componenents are completely updated.
+// How frequently all UsersViewing components are completely updated.
 // This is only needed to ensure that faces fade out; any newly added faces
 // will still be displayed instantly.  Also, updating more frequently updates
 // the line positions in the tooltip.

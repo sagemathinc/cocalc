@@ -1,5 +1,4 @@
 /*
-User management of the v1 API key associated to an account.
 This supports three actions:
 
 - get: get the already created keys associated to an account or project
@@ -12,8 +11,6 @@ they have no password, then the provided one is ignored.
 */
 
 import getPool from "@cocalc/database/pool";
-import isPasswordCorrect from "@cocalc/server/auth/is-password-correct";
-import hasPassword from "@cocalc/server/auth/has-password";
 import { generate } from "random-key";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import passwordHash, {
@@ -22,7 +19,10 @@ import passwordHash, {
 import { getLogger } from "@cocalc/backend/logger";
 import base62 from "base62/lib/ascii";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import type { ApiKey as ApiKeyType } from "@cocalc/util/db-schema/api-keys";
+import type {
+  ApiKey as ApiKeyType,
+  Action as ApiKeyAction,
+} from "@cocalc/util/db-schema/api-keys";
 import isBanned from "@cocalc/server/accounts/is-banned";
 
 const log = getLogger("server:api:manage");
@@ -31,9 +31,6 @@ const log = getLogger("server:api:manage");
 // Since we use a separate key per compute server, and definitely want some users
 // to create 5K compute servers at once, don't make this too small.
 const MAX_API_KEYS = 100000;
-
-// regenerate is only for the legacy api keys
-type Action = "get" | "delete" | "regenerate" | "create" | "edit";
 
 // Converts any 32-bit nonnegative integer as a 6-character base-62 string.
 function encode62(n: number): string {
@@ -49,7 +46,7 @@ function decode62(s: string): number {
 
 interface Options {
   account_id: string;
-  action: Action;
+  action: ApiKeyAction;
   project_id?: string;
   name?: string;
   expire?: Date;
@@ -267,7 +264,7 @@ async function doManageApiKeys({
 }
 
 /*
-Get the account (account_id or project_id!) that has the given api key,
+Get the account ({account_id} or {project_id}!) that has the given api key,
 or returns undefined if there is no such account, or if the account
 that owns the api key is banned.
 
@@ -278,7 +275,11 @@ Record that access happened by updating last_active.
 */
 export async function getAccountWithApiKey(
   secret: string,
-): Promise<string | undefined> {
+): Promise<
+  | { account_id: string; project_id?: undefined }
+  | { account_id?: undefined; project_id: string }
+  | undefined
+> {
   log.debug("getAccountWithApiKey");
   const pool = getPool("medium");
 
@@ -296,7 +297,7 @@ export async function getAccountWithApiKey(
       }
       // it's a valid account api key
       log.debug("getAccountWithApiKey: valid api key for ", account_id);
-      return account_id;
+      return { account_id };
     }
   }
 
@@ -329,66 +330,12 @@ export async function getAccountWithApiKey(
 
     // Yes, caller definitely has a valid key.
     await pool.query("UPDATE api_keys SET last_active=NOW() WHERE id=$1", [id]);
-    return rows[0].project_id ?? rows[0].account_id;
+    if (rows[0].project_id) {
+      return { project_id: rows[0].project_id };
+    }
+    if (rows[0].account_id) {
+      return { account_id: rows[0].account_id };
+    }
   }
   return undefined;
-}
-
-// Management of the OLD LEGACY API KEYS.
-
-export async function legacyManageApiKey({
-  account_id,
-  password,
-  action,
-}: {
-  account_id: string;
-  password?: string;
-  action: Action;
-}): Promise<string | undefined> {
-  // Check if the user has a password
-  if (await hasPassword(account_id)) {
-    if (!password) {
-      throw Error("password must be provided");
-    }
-    // verify password is correct
-    if (!(await isPasswordCorrect({ account_id, password }))) {
-      throw Error("invalid password");
-    }
-  } else if (!(await isValidAccount(account_id))) {
-    throw Error("account_id is not a valid account");
-  }
-
-  // Now we allow the action.
-  const pool = getPool();
-  switch (action) {
-    case "get":
-      const { rows } = await pool.query(
-        "SELECT api_key FROM accounts WHERE account_id=$1::UUID",
-        [account_id],
-      );
-      if (rows.length == 0) {
-        throw Error("no such account");
-      }
-      return rows[0].api_key;
-    case "delete":
-      await pool.query(
-        "UPDATE accounts SET api_key=NULL WHERE account_id=$1::UUID",
-        [account_id],
-      );
-      return;
-    case "regenerate":
-      // There is a unique index on api_key, so there is a small probability
-      // that this query fails.  However, it's probably smaller than the probability
-      // that the database connection is broken, so if it were to ever happen, then
-      // the user could just retry.  For context, for the last few years, this query
-      // happened on cocalc.com only a few thousand times *total*.
-      const api_key = `sk_${generate()}`;
-      await pool.query(
-        "UPDATE accounts SET api_key=$1 WHERE account_id=$2::UUID",
-        [api_key, account_id],
-      );
-      return api_key;
-    default:
-      throw Error(`unknown action="${action}"`);
-  }
 }

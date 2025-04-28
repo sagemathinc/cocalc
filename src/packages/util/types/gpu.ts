@@ -2,6 +2,8 @@
 
 import { SiteLicenseQuota } from "./site-licenses";
 
+export const GPU_DEFAULT_RESOURCE = "nvidia.com/gpu"
+
 export function extract_gpu(quota: SiteLicenseQuota = {}) {
   const { gpu } = quota;
   if (gpu == null) return { num: 0 };
@@ -10,7 +12,11 @@ export function extract_gpu(quota: SiteLicenseQuota = {}) {
 }
 
 type GPUQuotaInfo = {
-  resources?: { limits: { "nvidia.com/gpu": number } };
+  resources?: {
+    limits: {
+      [resource: string]: number; // resource default: $GPU_DEFAULT_RESOURCE
+    };
+  };
   nodeSelector?: { [key: string]: string };
   tolerations?: (
     | {
@@ -28,31 +34,38 @@ type GPUQuotaInfo = {
 };
 
 export function process_gpu_quota(quota: SiteLicenseQuota = {}): GPUQuotaInfo {
-  const { num = 0, toleration = "", nodeLabel = "" } = extract_gpu(quota);
+  const {
+    num = 0,
+    toleration = "",
+    nodeLabel = "",
+    resource = GPU_DEFAULT_RESOURCE,
+  } = extract_gpu(quota);
 
-  const debug: GPUQuotaInfo = {};
+  const info: GPUQuotaInfo = {};
   if (num > 0) {
-    debug.resources = { limits: { "nvidia.com/gpu": num } };
+    info.resources = { limits: { [resource]: num } };
+
     if (nodeLabel) {
-      debug.nodeSelector = {};
+      info.nodeSelector = {};
       for (const label of nodeLabel.split(",")) {
         const [key, val] = label.trim().split("=");
-        debug.nodeSelector[key] = val;
+        info.nodeSelector[key] = val;
       }
     }
+
     if (toleration) {
-      debug.tolerations = [];
+      info.tolerations = [];
       for (const tol of toleration.split(",")) {
         const [key, val] = tol.trim().split("=");
         if (val) {
-          debug.tolerations.push({
+          info.tolerations.push({
             key,
             operator: "Equal",
             value: val,
             effect: "NoSchedule",
           });
         } else {
-          debug.tolerations.push({
+          info.tolerations.push({
             key,
             operator: "Exists",
             effect: "NoSchedule",
@@ -61,5 +74,5 @@ export function process_gpu_quota(quota: SiteLicenseQuota = {}): GPUQuotaInfo {
       }
     }
   }
-  return debug;
+  return info;
 }

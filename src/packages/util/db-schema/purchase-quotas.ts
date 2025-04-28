@@ -69,6 +69,17 @@ const GPT_OMNI_MINI_8K: Spec = {
   display: "OpenAI GPT-4o Mini",
 } as const;
 
+const GPT_41_8K: Spec = {
+  display: "OpenAI GPT-4.1",
+  color: "#10a37f",
+  category: "ai",
+} as const;
+
+const GPT_41_MINI_8K: Spec = {
+  ...GPT_41_8K,
+  display: "OpenAI GPT-4.1 Mini",
+} as const;
+
 const GPT_O1_8K: Spec = {
   ...GPT_OMNI_128k,
   display: "OpenAI o1",
@@ -178,6 +189,8 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4o-8k": GPT_OMNI_8K,
   "openai-gpt-4o-mini": GPT_OMNI_MINI_128k,
   "openai-gpt-4o-mini-8k": GPT_OMNI_MINI_8K,
+  "openai-gpt-4.1": GPT_41_8K,
+  "openai-gpt-4.1-mini": GPT_41_MINI_8K,
   "openai-o1-mini-8k": GPT_O1_8K,
   "openai-o1-8k": GPT_O1_MINI_8K,
   "openai-o1-mini": GPT_O1_8K,
@@ -222,6 +235,16 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "google-gemini-1.5-pro": {
     display: LLM_USERNAMES["gemini-1.5-pro"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "google-gemini-2.0-flash-8k": {
+    display: LLM_USERNAMES["gemini-2.0-flash-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "google-gemini-2.0-flash-lite-8k": {
+    display: LLM_USERNAMES["gemini-2.0-flash-lite-8k"],
     color: GOOGLE_AI_COLOR,
     category: "ai",
   },

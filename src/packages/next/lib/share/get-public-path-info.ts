@@ -115,6 +115,7 @@ export default async function getPublicPathInfo({
         contents: await getContents(
           rows[0].project_id,
           join(rows[0].path, relativePath),
+          rows[0].unlisted,
         ),
         projectTitle: title,
         projectAvatarImage: avatar_image_full,

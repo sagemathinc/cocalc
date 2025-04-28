@@ -52,6 +52,16 @@ export interface PageState {
   };
 
   settingsModal?: string;
+  nats?: TypedMap<{
+    state: ConnectionStatus;
+    data: {
+      inBytes?: number;
+      inMsgs?: number;
+      outBytes?: number;
+      outMsgs?: number;
+    };
+    numConnections: number;
+  }>;
 }
 
 export class PageStore extends Store<PageState> {}

@@ -19,12 +19,7 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
-import {
-  filename_extension,
-  keys,
-  path_split,
-  meta_file,
-} from "@cocalc/util/misc";
+import { filename_extension, path_split } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
@@ -37,8 +32,12 @@ import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const EXTENSION = ".time-travel";
+
+// const log = (...args) => console.log("time-travel", ...args);
 
 // We use a global cache so if user closes and opens file
 // later it is fast.
@@ -50,18 +49,23 @@ const gitShowCache = new LRUCache<string, string>({
 });
 
 /*interface FrameState {
+  // date.valueOf() in non-range mode
   version: number;
+  // date of left handle in range mode
   version0: number;
+  // date of right handle in range mode
   version1: number;
   changes_mode: boolean;
   git_mode: boolean;
 }*/
 
 export interface TimeTravelState extends CodeEditorState {
-  versions: List<Date>;
-  git_versions: List<Date>;
+  versions: List<number>;
+  git_versions: List<number>;
   loading: boolean;
   has_full_history: boolean;
+  legacy_history_exists?: boolean;
+  loaded_legacy_history?: boolean;
   docpath: string;
   docext: string;
   // true if in a git repo
@@ -69,6 +73,8 @@ export interface TimeTravelState extends CodeEditorState {
   //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
   // timetravel has own error state
   error: string;
+  // first loaded versions. This changes when you load more.
+  first_version: number;
 }
 
 export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
@@ -89,10 +95,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (head != "") {
       this.docpath = head + "/" + this.docpath;
     }
+    // log("init", { path: this.path });
     this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
     if (this.docext == "ipynb") {
-      this.syncpath = meta_file(this.docpath, "jupyter2");
+      this.syncpath = syncdbPath(this.docpath);
     }
     this.setState({
       versions: List([]),
@@ -108,6 +115,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   _raw_default_frame_tree(): FrameTree {
     return { type: "time_travel" };
   }
+
+  init_frame_tree = () => {};
+
+  close = (): void => {
+    if (this.syncdoc != null) {
+      this.syncdoc.close();
+      delete this.syncdoc;
+    }
+    super.close();
+  };
 
   set_error = (error) => {
     this.setState({ error });
@@ -125,80 +142,67 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (this.syncdoc.get_state() != "ready") {
       await once(this.syncdoc, "ready");
     }
+    if (this.syncdoc == null) return;
+    // cause initial load -- we could be plugging into an already loaded syncdoc,
+    // so there wouldn't be any change event, so we have to trigger this.
+    this.syncdoc_changed();
     this.syncdoc.on("close", () => {
       // in our code we don't check if the state is closed, but instead
       // that this.syncdoc is not null.
       delete this.syncdoc;
     });
+
     this.setState({
       loading: false,
-      has_full_history: this.syncdoc.has_full_history(),
+      has_full_history: this.syncdoc.hasFullHistory(),
     });
+    this.setLegacy();
   };
 
-  init_frame_tree = () => {
-    this.ensureSelectedVersionsAreConsistent();
-  };
-
-  ensureSelectedVersionsAreConsistent = ({
-    versions,
-    git_versions,
-  }: {
-    versions?;
-    git_versions?;
-  } = {}): void => {
-    if (versions == null) {
-      if (this.syncdoc == null || this.syncdoc.get_state() != "ready") return;
-      versions =
-        this.store.get("versions") ?? List<Date>(this.syncdoc.all_versions());
-    }
-    if (git_versions == null) {
-      git_versions = this.store.get("git_versions");
-    }
-    // make sure all the version and version ranges are valid...
-    const max = versions.size - 1;
-    const max_git = git_versions != null ? git_versions.size - 1 : Infinity;
-    for (const actions of [this.ambient_actions, this]) {
-      if (actions == null) continue;
-      for (const id in actions._get_leaf_ids()) {
-        const node = actions._get_frame_node(id);
-        if (node?.get("type") != "time_travel") {
-          continue;
-        }
-        const m = node.get("git_mode") ? max_git : max;
-        for (const x of ["version", "version0", "version1"]) {
-          let n: number | undefined = node.get(x);
-          if (n == null || n > m || n < 0) {
-            // make it m except in the case of "version0"
-            // when we want it to be one less than version1, which
-            // will be m.
-            // Also for git mode when m=Infinity, use 0 since there is no other option.
-            if (m == Infinity) {
-              n = 0;
-            } else {
-              n = x == "version0" ? Math.max(0, m - 1) : m;
-            }
-            actions.set_frame_tree({ id, [x]: n });
-          }
-        }
+  private setLegacy = async () => {
+    let legacy_history_exists;
+    if (
+      isProjectOldEnoughToHaveLegacyHistory({
+        redux: this.redux,
+        project_id: this.project_id,
+      })
+    ) {
+      try {
+        legacy_history_exists = await this.syncdoc?.legacyHistoryExists();
+      } catch {
+        return;
       }
+    } else {
+      legacy_history_exists = false;
     }
+    this.setState({ legacy_history_exists });
   };
 
-  loadFullHistory = async (): Promise<void> => {
+  loadMoreHistory = async (): Promise<void> => {
+    // log("loadMoreHistory");
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
-      this.store.get("git_mode")
+      this.store.get("git_mode") ||
+      this.syncdoc == null
     ) {
       return;
     }
-    await this.syncdoc.load_full_history();
-    this.setState({ has_full_history: true });
+    await this.syncdoc.loadMoreHistory();
+    this.setState({ has_full_history: this.syncdoc.hasFullHistory() });
     this.syncdoc_changed(); // load new versions list.
   };
 
+  loadLegacyHistory = reuseInFlight(async () => {
+    if (this.store.get("loaded_legacy_history")) {
+      return;
+    }
+    await this.syncdoc?.loadLegacyHistory();
+    this.setState({ loaded_legacy_history: true });
+  });
+
   private syncdoc_changed = (): void => {
+    //  log("syncdoc_changed");
     if (this.syncdoc == null) return;
     if (this.syncdoc?.get_state() != "ready") {
       return;
@@ -206,254 +210,122 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     let versions;
     try {
       // syncdoc_changed -- can get called at any time, so have to be extra careful
-      versions = List<Date>(this.syncdoc.all_versions());
+      versions = List<number>(this.syncdoc.versions());
     } catch (err) {
       this.setState({ versions: List([]) });
       return;
     }
-    this.ensure_versions_are_stable(versions);
-    this.setState({ versions });
+    const first_version = this.syncdoc.historyFirstVersion();
+    this.setState({ versions, first_version });
     if (this.first_load) {
       this.first_load = false;
-      this.ensureSelectedVersionsAreConsistent({ versions });
     }
   };
 
-  // For each store version in a frame node, check to see
-  // if the Date changes from the current versions to the new
-  // ones and if so, fix it. We do this because if you're looking
-  // at time t at position p, and somebody inserts a new version
-  // before position p ... then suddenly position p is no longer
-  // time t, which would be confusing.
-  private ensure_versions_are_stable = (new_versions): void => {
-    // TODO
-    new_versions = new_versions;
+  versionNumber = (version: number): number | undefined => {
+    return this.syncdoc?.historyVersionNumber(version);
   };
 
   // Get the given version of the document.
-  get_doc = (version: Date): Document | undefined => {
-    if (this.syncdoc == null) return;
+  get_doc = (version: number): Document | undefined => {
+    // log("get_doc", version);
+    if (this.syncdoc == null) {
+      return;
+    }
     const state = this.syncdoc.get_state();
-    if (state != "ready") return;
-    return this.syncdoc.version(version);
+    if (state != "ready") {
+      return;
+    }
+    try {
+      return this.syncdoc.version(version);
+    } catch (_) {
+      console.log(
+        "TimeTravel: unknown or not loaded version",
+        new Date(version),
+      );
+      return;
+    }
   };
 
   get_account_ids = (version0: number, version1: number): string[] => {
-    if (this.syncdoc == null) return [];
-    const versions = this.store.get("versions");
-    if (versions == null || versions.size == 0) return [];
-    const account_ids: { [account_id: string]: boolean } = {};
-    for (let version = version0; version <= version1; version++) {
-      const date = versions.get(version);
-      if (date == null) continue;
+    //    log("get_account_ids", version0, version1);
+    if (this.syncdoc == null) {
+      return [];
+    }
+    const account_ids = new Set<string>();
+    for (const version of Array.from(new Set([version0, version1]))) {
+      if (version == null) {
+        continue;
+      }
       try {
-        account_ids[this.syncdoc.account_id(date)] = true;
+        const account_id = this.syncdoc.account_id(version);
+        if (account_id) {
+          account_ids.add(account_id);
+        }
       } catch (err) {
         // fails if version is not actually known.
         continue;
       }
     }
-    return keys(account_ids);
+    return Array.from(account_ids);
   };
 
-  private getFrameNodeGlobal = (id: string) => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node != null) return node;
-    }
-    throw Error(`BUG -- no node with id ${id}`);
-  };
-
-  set_version = (id: string, version: number): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null || actions._get_frame_node(id) == null) continue;
-      if (typeof version != "number") {
-        // be extra careful
-        throw Error("version must be a number");
-      }
-      const node = actions._get_frame_node(id);
-      if (node == null) {
-        return;
-      }
-      const versions = node.get("git_mode")
-        ? this.store.get("git_versions")
-        : this.store.get("versions");
-      if (versions == null || versions.size == 0) return;
-      if (version == -1 || version >= versions.size) {
-        version = versions.size - 1;
-      } else if (version < 0) {
-        version = 0;
-      }
-      actions.set_frame_tree({ id, version });
+  getUser = (version: number): number | undefined => {
+    if (this.syncdoc == null) {
       return;
     }
-  };
-
-  setNewestVersion = (id: string) => {
-    const node = this.getFrameNodeGlobal(id);
-    const versions = node?.get("git_mode")
-      ? this.store.get("git_versions")
-      : this.store.get("versions");
-    const v = (versions?.size ?? 0) - 1;
-    if (v >= 0) {
-      this.set_version(id, v);
-    }
-  };
-
-  step = (id: string, delta: number): void => {
-    const node = this.getFrameNodeGlobal(id);
-    if (node.get("changes_mode")) {
-      this.setVersions(
-        id,
-        node.get("version0") + delta,
-        node.get("version1") + delta,
-      );
-      return;
-    }
-    const versions = node.get("git_mode")
-      ? this.store.get("git_versions")
-      : this.store.get("versions");
-    if (versions == null || versions.size == 0) return;
-    let version = node.get("version");
-    if (version == null) {
-      // no current version, so just init it.
-      this.set_version(id, -1);
-      return;
-    }
-    version = (version + delta) % versions.size;
-    if (version < 0) {
-      version += versions.size;
-    }
-    this.set_version(id, version);
-  };
-
-  set_changes_mode = (id: string, changes_mode: boolean): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      changes_mode = !!changes_mode;
-      actions.set_frame_tree({ id, changes_mode });
-      if (
-        changes_mode &&
-        (node.get("version0") == null || node.get("version1") == null)
-      ) {
-        let version1 = node.get("version");
-        if (version1 == null) {
-          const versions = this.store.get("versions");
-          version1 = versions.size - 1;
-        }
-        let version0 = version1 - 1;
-        if (version0 < 0) {
-          version0 += 1;
-          version1 += 1;
-        }
-        actions.set_frame_tree({ id, version0, version1 });
-      }
-      return;
-    }
-  };
-
-  setTextMode = (id: string, text_mode: boolean): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      text_mode = !!text_mode;
-      actions.set_frame_tree({ id, text_mode });
-      break;
-    }
-  };
-
-  setGitMode = async (id: string, git_mode: boolean) => {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      const cur = !!node.get("git_mode");
-      git_mode = !!git_mode;
-      if (cur != git_mode) {
-        // actually changing it
-        actions.set_frame_tree({ id, git_mode });
-        let versions;
-        if (git_mode) {
-          // also set version to newest on change to git mode
-          versions =
-            this.store.get("git_versions") ?? (await this.updateGitVersions());
-        } else {
-          // set version to newest on change from git mode to time travel
-          versions = this.store.get("versions");
-        }
-        if (versions != null) {
-          actions.set_frame_tree({ id, version: versions.size - 1 });
-        }
-      }
-      break;
-    }
-  };
-
-  setVersions = (id: string, version0: number, version1: number): void => {
-    for (const actions of [this, this.ambient_actions]) {
-      const node = actions?._get_frame_node(id);
-      if (node == null) {
-        continue;
-      }
-      const versions = node.get("git_mode")
-        ? this.store.get("git_versions")
-        : this.store.get("versions");
-      if (versions == null) {
-        // not configured.
-        return;
-      }
-      if (version0 >= version1) {
-        version0 = version1 - 1;
-      }
-      if (version0 >= versions.size) {
-        version0 = versions.size - 1;
-      }
-      if (version0 < 0) {
-        version0 = 0;
-      }
-      if (version1 >= versions.size) {
-        version1 = versions.size - 1;
-      }
-      if (version1 < 0) {
-        version1 = 0;
-      }
-      actions?.set_frame_tree({ id, version0, version1 });
+    try {
+      return this.syncdoc.user_id(version);
+    } catch {
       return;
     }
   };
 
   open_file = async (): Promise<void> => {
+    // log("open_file");
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path: this.docpath, foreground: true });
   };
 
   // Revert the live version of the document to a specific version */
-  revert = async (id: string, version: Date, doc: Document): Promise<void> => {
+  revert = async ({
+    version,
+    doc,
+    gitMode,
+  }: {
+    version: number;
+    doc: Document;
+    gitMode?: boolean;
+  }): Promise<void> => {
     const { syncdoc } = this;
     if (syncdoc == null) {
       return;
     }
-    const node = this.getFrameNodeGlobal(id);
     syncdoc.commit();
-    if (node.get("git_mode")) {
+    if (gitMode) {
       syncdoc.from_str(doc.to_str());
     } else {
       syncdoc.revert(version);
     }
-    await syncdoc.commit();
+    await syncdoc.commit(true);
+
+    // Some editors, e.g., the code text editor, only update Codemirror when
+    // "after-change" is emitted (not just "change"), and commit does NOT result
+    // in an after-change on this client (because usually you don't want that).
+    // So we do it manually here.  Without this, revert when editing code would
+    // not work.
+    syncdoc.emit("after-change");
+
     await this.open_file();
-    syncdoc.emit("change");
   };
 
   open_snapshots = (): void => {
+    // log("open_snapshots");
     this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
   };
 
   exportEditHistory = async (): Promise<string> => {
+    // log("exportEditHistory");
     const path = await export_to_json(
       this.syncdoc,
       this.docpath,
@@ -470,6 +342,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   // async programmatical_goto_line() {}
 
   private gitCommand = async (args: string[], commit?: string) => {
+    // log("gitCommand", { args, commit });
     const { head, tail } = path_split(this.docpath);
     return await exec({
       command: "git",
@@ -481,6 +354,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   updateGitVersions = async () => {
+    // log("updateGitVersions");
     // versions is an ordered list of Date objects, one for each commit that involves this file.
     try {
       const { stdout } = await this.gitCommand([
@@ -509,12 +383,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         versions.push(new Date(t));
       }
       versions.reverse();
-      const git_versions = List<Date>(versions);
+      const git_versions = List<number>(versions.map((x) => x.valueOf()));
       this.setState({
         git: versions.length > 0,
         git_versions,
       });
-      this.ensureSelectedVersionsAreConsistent({ git_versions });
       return git_versions;
     } catch (_err) {
       // Do NOT report error -- instead, disable git mode.  This should
@@ -524,8 +397,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  private gitShow = async (version: Date): Promise<string | undefined> => {
-    const h = this.gitLog[version.valueOf()]?.hash;
+  private gitShow = async (version: number): Promise<string | undefined> => {
+    // log("gitShow", { version });
+    const h = this.gitLog[version]?.hash;
     if (h == null) {
       return;
     }
@@ -543,13 +417,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  gitNames = (version0: number, version1: number): string[] => {
-    const versions = this.store.get("git_versions");
-    if (versions == null) {
-      return [];
-    }
-    const v0 = versions.get(version0)?.valueOf();
-    const v1 = versions.get(version1)?.valueOf();
+  gitNames = (v0: number | undefined, v1: number | undefined): string[] => {
+    // log("gitNames", { version0, version1 });
     if (v0 == null || v1 == null) {
       return [];
     }
@@ -572,15 +441,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   gitSubject = (version: number): string | undefined => {
-    const versions = this.store.get("git_versions");
-    if (versions == null) {
-      return;
-    }
-    const t = versions.get(version)?.valueOf();
-    return this.gitLog[`${t}`]?.subject;
+    return this.gitLog[version]?.subject;
   };
 
-  gitDoc = async (version: Date): Promise<ViewDocument | undefined> => {
+  gitDoc = async (version: number): Promise<ViewDocument | undefined> => {
+    // log("gitDoc", { version });
     const str = await this.gitShow(version);
     if (str == null) {
       return undefined;
@@ -590,3 +455,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 }
 
 export { TimeTravelActions as Actions };
+
+// in any project created after this point, there can't be any legacy
+// timetravel data.
+const LEGACY_CUTOFF = new Date("2025-05-01T00:00:00.000Z");
+function isProjectOldEnoughToHaveLegacyHistory({
+  redux,
+  project_id,
+}: {
+  redux;
+  project_id: string;
+}): boolean {
+  const created = redux
+    .getProjectsStore()
+    .getIn(["project_map", project_id, "created"]);
+  return created == null || created <= LEGACY_CUTOFF;
+}

@@ -524,7 +524,7 @@ export const labels = defineMessages({
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
-    defaultMessage: "Select a kernel",
+    defaultMessage: "Select a Kernel",
     description: "A kernel in a Jupyter Notebook",
   },
   invited: {
@@ -640,7 +640,7 @@ export const labels = defineMessages({
   },
   message_plural: {
     id: "labels.message.plural",
-    defaultMessage: "{num, plural, one {message} other {messages}}",
+    defaultMessage: "{num, plural, one {Message} other {Messages}}",
   },
   reconnect: {
     id: "labels.reconnect",
@@ -846,6 +846,11 @@ export const labels = defineMessages({
     id: "labels.n_of_m",
     defaultMessage: "{n} of {m}",
     description: "item n in a list of m items.",
+  },
+  balance: {
+    id: "labels.balance",
+    defaultMessage: "Balance",
+    description: "Short label for a monetary balance on an account",
   },
 });
 
@@ -1175,7 +1180,7 @@ export const jupyter = {
     confirm_restart_body: {
       id: "jupyter.editor.confirm_restart.body",
       defaultMessage:
-        "Do you want to restart the kernel? All variable values will be lost.",
+        "Do you want to restart the kernel? All variable values will be lost.  If you are restarted to detect a new package, restart *twice* due to the kernel pool.",
     },
     confirm_halt_kernel_title: {
       id: "jupyter.editor.confirm_halt_kernel.title",

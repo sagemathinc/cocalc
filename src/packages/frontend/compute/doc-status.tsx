@@ -33,7 +33,7 @@ import { SpendLimitStatus } from "./spend-limit";
 interface Props {
   project_id: string;
   id: number;
-  requestedId: number;
+  requestedId?: number;
   noSync?: boolean;
   standalone?: boolean;
 }
@@ -45,6 +45,9 @@ export function ComputeServerDocStatus({
   noSync,
   standalone,
 }: Props) {
+  if (requestedId == null) {
+    requestedId = id;
+  }
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");

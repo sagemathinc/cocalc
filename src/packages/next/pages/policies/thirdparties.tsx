@@ -34,293 +34,331 @@ export default function TermsOfService({ customize }) {
             <div style={{ fontSize: "12pt" }}>
               <p>
                 CoCalc uses a number of third party providers and services. For
-                each of them, we link to further policies, explain the purpose
-                and use case, and which data is shared.{" "}
+                each of them, we explain the purpose and use case, which
+                Personally Identifiable Information (PII) of our users is
+                shared, and give links to their privacy policies.{" "}
+              </p>
+              <h2>Essential Services</h2>
+              <p>
+                These services support CoCalc's infrastructure. You are likely
+                using them implicitly whenever you are using CoCalc.
               </p>
               <ul>
                 <li>
-                  <A href="https://cloud.google.com/">Google Cloud Platform</A>{" "}
-                  by Google Inc.
+                  <A href="https://www.backblaze.com/">Backblaze</A>
+                  <ul>
+                    <li>Usage: backups accessible to admins only.</li>
+                    <li>
+                      Shared PII: everything. Backblaze does not process these
+                      data for its own purposes.
+                    </li>
+                    <li>
+                      <A href="https://www.backblaze.com/company/privacy.html">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.backblaze.com/company/dpa.html">
+                        Data Processing Addendum
+                      </A>
+                    </li>
+                  </ul>
                 </li>
-                <ul>
-                  <li>
-                    Google Compute Engine: running the online service (
-                    <A href="https://cloud.google.com/terms/data-processing-terms">
-                      data processing and security terms
-                    </A>
-                    )
-                  </li>
-                  <li>
-                    Google Cloud Storage: saving various files, project
-                    archives, and backup
-                  </li>
-                  <li>
-                    part of{" "}
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt000000001L5AAI">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>Google Analytics by Google Inc.</li>
-                <ul>
-                  <li>
-                    usage: basically sets a cookie to help understand usage
-                  </li>
-                  <li>
-                    <A href="https://marketingplatform.google.com/about/analytics/terms/us/">
-                      terms of service
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://support.google.com/analytics/answer/181881?hl=en">
-                      opt-out plugin
-                    </A>
-                  </li>
-                </ul>
+                <li>
+                  <A href="https://www.cloudflare.com/">Cloudflare</A>
+                  <ul>
+                    <li>Usage: DDOS protection, data traffic management.</li>
+                    <li>
+                      Shared PII: IP address necessary to establish the
+                      connection.
+                    </li>
+                    <li>
+                      <A href="https://www.cloudflare.com/privacypolicy/">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.cloudflare.com/cloudflare-customer-dpa/">
+                        Data Processing Addendum
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <A href="https://cloud.google.com/">Google Cloud Platform</A>
+                  <ul>
+                    <li>
+                      Usage: cloud hosting, compute and storage resources.
+                    </li>
+                    <li>
+                      Shared PII: everything. Google does not process these data
+                      for its own purposes.
+                    </li>
+                    <li>
+                      <A href="https://cloud.google.com/terms/cloud-privacy-notice">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://cloud.google.com/terms/data-processing-addendum">
+                        Data Processing Addendum
+                      </A>
+                    </li>
+                  </ul>
+                </li>
                 <li>
                   <A href={"https://www.google.com/recaptcha/about/"}>
                     reCAPTCHA
                   </A>
-                </li>
-                <ul>
-                  <li>usage: fraud and abuse protection</li>
-                  <li>
-                    <A href={"https://policies.google.com/terms"}>
-                      Terms of Usage
-                    </A>
-                  </li>
-                  <li>
-                    <A href={"https://policies.google.com/privacy"}>
-                      Privacy Policy
-                    </A>
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://www.zendesk.com/">Zendesk</A>
-                </li>
-                <ul>
-                  <li>usage: support tickets</li>
-                  <li>shared: name, email address, account id</li>
-                  <li>
-                    <A href="https://www.zendesk.com/company/customers-partners/privacy-policy/">
-                      privacy policy
-                    </A>{" "}
-                    and{" "}
-                    <A href="https://www.zendesk.com/company/customers-partners/eu-data-protection/">
-                      eu data protection
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt0000000TOjeAAG">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://stripe.com">Stripe, Inc.</A>
-                </li>
-                <ul>
-                  <li>usage: payment processor</li>
-                  <li>
-                    shared: name, email address, subscription data, account id
-                  </li>
-                  <li>
-                    <A href="https://stripe.com/us/privacy">privacy policy</A>{" "}
-                    and{" "}
-                    <A href="https://stripe.com/privacy-shield-policy">
-                      privacy shield information
-                    </A>
-                  </li>
-                  <li>
-                    Credit card information and associated data is only stored
-                    by Stripe
-                  </li>
-                  <li>
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt0000000TQOUAA4">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://meet.jit.si/">Jitsi Video Conferencing</A>
-                </li>
-                <ul>
-                  <li>usage: embedded video conferencing</li>
-                  <li>shared: no personal data is shared</li>
-                  <li>
-                    <A href="https://jitsi.org/meet/terms">privacy policy</A>,
-                    the service is run by Atlassian
-                  </li>
-                  <li>
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt00000008RdQAAU">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://gravatar.com/">Gravatar by Automattic</A>
-                </li>
-                <ul>
-                  <li>usage: avatar images</li>
-                  <li>shared: email address</li>
-                  <li>
-                    NOT used by CoCalc in any way unless user explicitly
-                    requests it.
-                  </li>
-                  <li>
-                    <A href="https://automattic.com/privacy/">privacy policy</A>
-                  </li>
-                  <li>
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt0000000CbqcAAC">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>Google GSuite</li>
-                <ul>
-                  <li>usage: email communication</li>
-                  <li>
-                    <A href="https://gsuite.google.com/intl/en/security/">
-                      GSuite security
-                    </A>
-                  </li>
-                  <li>
-                    shared: name, email address for emails sent or received by
-                    SageMath, Inc.
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://www.cloudflare.com/">Cloudflare</A>
-                </li>
-                <ul>
-                  <li>
-                    usage: DDOS protection, i.e. manages data traffic from and
-                    to the cocalc.com service
-                  </li>
-                  <li>shared: no structured user data is shared with them</li>
-                  <li>
-                    <A href="https://www.cloudflare.com/gdpr/introduction/">
-                      GDPR info
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://www.privacyshield.gov/participant?id=a2zt0000000GnZKAA0">
-                      us/eu privacy shield
-                    </A>
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://www.backblaze.com/">Backblaze</A>
-                </li>
-                <ul>
-                  <li>usage: additional backup for emergency situations</li>
-                  <li>
-                    <A href="https://www.backblaze.com/company/privacy.html">
-                      Backblaze Privacy Notice
-                    </A>{" "}
-                    and{" "}
-                    <A href="https://www.backblaze.com/company/dpa.html">
-                      Data Processing Addendum
-                    </A>{" "}
-                  </li>
-                </ul>
-                <li>
-                  <A href="https://www.salesloft.com/">Salesloft</A>
                   <ul>
-                    <li>usage: onboarding emails, sales, marketing</li>
+                    <li>Usage: fraud and abuse protection.</li>
+                    <li>Shared PII: none directly.</li>
+                  </ul>
+                </li>
+              </ul>
+              <h2>Payment Processor</h2>
+              <p>
+                <A href="https://stripe.com">Stripe, Inc.</A> processes payments
+                on CoCalc's behalf. Credit card information and associated data
+                is only stored by Stripe. We do not have access to full account
+                numbers.
+              </p>
+              <ul>
+                <li>Usage: payment processor.</li>
+                <li>
+                  Shared PII: name, email address, purchase data, account id.
+                </li>
+                <li>
+                  <A href="https://stripe.com/us/privacy">Privacy Policy</A> and{" "}
+                  <A href="https://stripe.com/legal/dpa">
+                    Data Processing Agreement
+                  </A>
+                </li>
+              </ul>
+              <h2>Communication Services</h2>
+              <p>
+                These services facilitate interaction between you and CoCalc's
+                team.
+              </p>
+              <ul>
+                <li>
+                  <A href="https://aws.amazon.com/">Amazon Web Services</A>
+                  <ul>
+                    <li>Usage: secondary email backend.</li>
+                    <li>Shared PII: name, email address.</li>
                     <li>
-                      <A href="https://www.salesloft.com/security-compliance">
-                        Security and Compliance
+                      <A href="https://aws.amazon.com/privacy/">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf">
+                        Data Processing Addendum
                       </A>
                     </li>
                   </ul>
                 </li>
                 <li>
-                  <A href="https://sendgrid.com/">Sendgrid (twilio)</A>
+                  <A href="https://workspace.google.com/">Google Workspace</A>
+                  <ul>
+                    <li>Usage: email communication.</li>
+                    <li>Shared PII: name, email address.</li>
+                    <li>
+                      <A href="https://cloud.google.com/terms/cloud-privacy-notice">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://cloud.google.com/terms/data-processing-addendum">
+                        Data Processing Addendum
+                      </A>
+                    </li>
+                  </ul>
                 </li>
-                <ul>
-                  <li>
-                    usage: email backend (transactional, e.g. welcome, password
-                    resets, ...)
-                  </li>
-                  <li>shared: email address</li>
-                  <li>
-                    <A href="https://www.twilio.com/legal/privacy">
-                      Privacy Policy
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://sendgrid.com/resource/general-data-protection-regulation-2/">
-                      GDPR Information
-                    </A>{" "}
-                  </li>
-                </ul>
                 <li>
-                  <A href="https://aws.amazon.com/">Amazon AWS</A>
+                  <A href="https://sendgrid.com/">Twilio SendGrid</A>
+                  <ul>
+                    <li>Usage: email backend.</li>
+                    <li>Shared PII: name, email address.</li>
+                    <li>
+                      <A href="https://www.twilio.com/legal/privacy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.twilio.com/legal/data-protection-addendum">
+                        Data Protection Addendum
+                      </A>
+                    </li>
+                  </ul>
                 </li>
-                <ul>
-                  <li>
-                    usage: secondary email backend (transactional, e.g. welcome,
-                    password resets, ...)
-                  </li>
-                  <li>shared: email address</li>
-                  <li>
-                    <A href="https://aws.amazon.com/compliance/data-privacy-faq/">
-                      Data Privacy Notice
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://aws.amazon.com/compliance/gdpr-center/">
-                      GDPR Information
-                    </A>{" "}
-                  </li>
-                </ul>
+                <li>
+                  <A href="https://www.zendesk.com/">Zendesk</A>
+                  <ul>
+                    <li>Usage: support tickets.</li>
+                    <li>Shared PII: name, email address, account id.</li>
+                    <li>
+                      <A href="https://www.zendesk.com/company/agreements-and-terms/privacy-notice/">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.zendesk.com/company/data-processing-form/">
+                        Data Processing Agreement
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <h2>Extra Services</h2>
+              <p>
+                These services provide additional functionality in CoCalc. If
+                you are not using respective features, you are not using these
+                services.
+              </p>
+              <ul>
+                <li>
+                  <A href="https://gravatar.com/">Gravatar by Automattic</A>
+                  <ul>
+                    <li>Usage: avatar images.</li>
+                    <li>Shared PII: email address.</li>
+                    <li>
+                      <A href="https://automattic.com/privacy/">
+                        Privacy Policy
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <A href="https://www.hyperstack.cloud/">Hyperstack</A>
+                  <ul>
+                    <li>Usage: compute servers.</li>
+                    <li>
+                      Shared PII: any files that the user chooses to process on
+                      Hyperstack.
+                    </li>
+                    <li>
+                      <A href="https://www.hyperstack.cloud/privacy-policy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.hyperstack.cloud/data-processing">
+                        Data Processing Agreement
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <A href="https://meet.jit.si/">Jitsi Video Conferencing</A>
+                  <ul>
+                    <li>Usage: embedded video conferencing.</li>
+                    <li>Shared PII: IP address to establish connection.</li>
+                    <li>
+                      <A href="https://jitsi.org/meet-jit-si-privacy/">
+                        Privacy Policy
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <h2>AI Services</h2>
+              <p>
+                Despite thorough integration of the AI Assistant in CoCalc's
+                interface, it does not use any "background" AI services. You
+                have to explicitly initiate any AI interaction and you control
+                what exactly will be sent to AI models. No other PII is shared.
+              </p>
+              <ul>
+                <li>
+                  <A href="https://www.anthropic.com/">Anthropic</A>
+                  <ul>
+                    <li>
+                      <A href="https://www.anthropic.com/legal/commercial-terms">
+                        Terms of Service
+                      </A>
+                    </li>
+                    <li>
+                      <A href="https://www.anthropic.com/legal/privacy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://www.anthropic.com/legal/commercial-terms">
+                        Data Processing Agreement
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <A href="https://ai.google.dev/">Google AI</A>
+                  <ul>
+                    <li>
+                      <A href="https://ai.google.dev/gemini-api/terms">
+                        Gemini API Additional Terms of Service
+                      </A>
+                    </li>
+                    <li>
+                      <A href="https://policies.google.com/privacy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://business.safety.google/processorterms/">
+                        Data Processing Addendum
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <A href="https://mistral.ai/">Mistral AI</A>
+                  <ul>
+                    <li>
+                      <A href="https://mistral.ai/terms">Terms of Service</A>
+                    </li>
+                    <li>
+                      <A href="https://mistral.ai/terms#privacy-policy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://mistral.ai/terms#data-processing-agreement">
+                        Data Processing Agreement
+                      </A>
+                    </li>
+                  </ul>
+                </li>
                 <li>
                   <A href="https://openai.com/">OpenAI</A>
                   <ul>
                     <li>
-                      Answer questions about CoCalc functionality on the landing
-                      pages.
-                    </li>
-                    <li>
-                      Internal cocalc chat that explicitly mentions @chatgpt.
-                    </li>
-                    <li>
                       <A href="https://openai.com/policies/terms-of-use">
-                        GDPR Information
+                        Terms of Use
                       </A>
                     </li>
                     <li>
-                      <A href="https://openai.com/policies/privacy-policy">
-                        Data Privacy
-                      </A>
-                    </li>
-                    <li>
-                      The{" "}
-                      <A href="https://openai.com/policies/api-data-usage-policies">
-                        OpenAI data usage policy
+                      <A href="https://openai.com/policies/privacy-policy/">
+                        Privacy Policy
                       </A>{" "}
-                      says "OpenAI will not use data submitted by customers via
-                      our API to train or improve our models, unless you
-                      explicitly decide to share your data with us for this
-                      purpose." CoCalc does not share the data submitted by
-                      customers via the API with OpenAI to train or improve
-                      their models. Their retention policy is "Any data sent
-                      through the API will be retained for abuse and misuse
-                      monitoring purposes for a maximum of 30 days, after which
-                      it will be deleted (unless otherwise required by law)."
+                      and{" "}
+                      <A href="https://openai.com/policies/data-processing-addendum/">
+                        Data Processing Addendum
+                      </A>
                     </li>
                   </ul>
                 </li>
+              </ul>
+              <h2>Marketing</h2>
+              <p>
+                These services help us to reach out to current and potential
+                customers, letting them know about new useful features. We do
+                not sell or share our users data for marketing purposes.
+              </p>
+              <ul>
                 <li>
-                  <A href="https://ai.google.dev/terms">Google AI</A>
+                  <A href="https://www.salesloft.com/">Salesloft</A>
                   <ul>
+                    <li>Usage: onboarding emails, sales, marketing.</li>
                     <li>
-                      <A href="https://ai.google.dev/terms">
-                        Google Generative AI Terms of Service
+                      Shared PII: name, email address, purchasing activity.
+                    </li>
+                    <li>
+                      <A href="https://www.salesloft.com/legal/privacy-notice">
+                        Privacy Policy
                       </A>{" "}
-                      is relevant when you use the "Gemini" language model in
-                      CoCalc.
+                      and{" "}
+                      <A href="https://www.salesloft.com/legal/data-processing-addendum">
+                        Data Processing Addendum
+                      </A>
                     </li>
                   </ul>
                 </li>
@@ -333,9 +371,15 @@ export default function TermsOfService({ customize }) {
               </p>
               <h1>Changes</h1>
               <ul>
-                <li>March 16, 2023: added openai.</li>
                 <li>
-                  September 15, 2021: removed appear.in, which we no longer use.
+                  February 19, 2025: Removed Google Analytics, which we no
+                  longer use. Broke content into categories. Unified formatting
+                  and updated links to companies, Privacy Policies, and DPAs.
+                  Added Anthropic, Hyperstack, Mistral AI.
+                </li>
+                <li>March 16, 2023: Added openai.</li>
+                <li>
+                  September 15, 2021: Removed appear.in, which we no longer use.
                 </li>
               </ul>
             </div>

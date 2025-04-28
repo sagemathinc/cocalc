@@ -10,7 +10,6 @@ import getProfile from "@cocalc/server/accounts/profile/get";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   AccountProfileInputSchema,

@@ -5,7 +5,6 @@
 
 import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
-
 import {
   redux,
   Redux,
@@ -82,7 +81,9 @@ function App({ children }) {
   };
 
   return (
-    <AppContext.Provider value={{ ...appState, ...timeAgo }}>
+    <AppContext.Provider
+      value={{ ...appState, ...timeAgo }}
+    >
       {children}
     </AppContext.Provider>
   );

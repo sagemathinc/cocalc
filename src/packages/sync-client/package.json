@@ -33,7 +33,6 @@
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/primus": "^7.3.9",
     "cookie": "^1.0.0",
     "debug": "^4.4.0",
     "primus": "^8.0.9",
@@ -46,6 +45,8 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.6.0",
-    "@types/node": "^18.16.14"
+    "@types/debug": "^4.1.12",
+    "@types/node": "^18.16.14",
+    "@types/primus": "^7.3.9"
   }
 }

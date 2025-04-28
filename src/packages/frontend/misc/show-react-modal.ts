@@ -5,8 +5,7 @@
 
 import { callback } from "awaiting";
 import { createRoot } from "react-dom/client";
-
-declare var $: any;
+import $ from "jquery";
 
 /*
 Show a modal defined in React somehow completely outside of any

@@ -3,204 +3,61 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
+import getTime, { getLastSkew, getLastPingTime } from "@cocalc/nats/time";
 
-import {
-  get_local_storage,
-  set_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import * as message from "@cocalc/util/message";
+const PING_INTERVAL_MS = 10000;
 
 export class TimeClient {
-  private client: any;
-  private ping_interval_ms: number = 30000; // interval in ms between pings
-  private last_ping: Date = new Date(0);
-  private last_pong?: { server: Date; local: Date };
-  private clock_skew_ms?: number;
-  private last_server_time?: Date;
+  private client;
   private closed: boolean = false;
+  private interval;
+  private lastPingtime: number | null = null;
 
   constructor(client: any) {
     this.client = client;
+    this.interval = setInterval(this.emitPingTime, PING_INTERVAL_MS);
   }
 
   close(): void {
+    if (this.closed) {
+      return;
+    }
+    if (this.interval) {
+      clearInterval(this.interval);
+      delete this.interval;
+    }
     this.closed = true;
   }
 
-  // Ping server and also use the ping to determine clock skew.
-  public async ping(noLoop: boolean = false): Promise<void> {
-    if (this.closed) return;
-    const start = (this.last_ping = new Date());
-    let pong;
+  // everything related to sync should directly use nats' getTime, which
+  // throws an error if it doesn't know the correct server time.
+  server_time = (): Date => {
     try {
-      pong = await this.client.async_call({
-        allow_post: false,
-        message: message.ping(),
-        timeout: 10, // CRITICAL that this timeout be less than the @_ping_interval
-      });
-    } catch (err) {
-      if (!noLoop) {
-        // try again **sooner**
-        setTimeout(this.ping.bind(this), this.ping_interval_ms / 2);
-      }
-      return;
+      return new Date(getTime());
+    } catch {
+      return new Date();
     }
-    const now = new Date();
-    // Only record something if success, got a pong, and the round trip is short!
-    // If user messes with their clock during a ping and we don't do this, then
-    // bad things will happen.
-    if (
-      pong?.event == "pong" &&
-      now.valueOf() - this.last_ping.valueOf() <= 1000 * 15
-    ) {
-      if (pong.now == null) {
-        console.warn("pong must have a now field");
-      } else {
-        this.last_pong = { server: pong.now, local: now };
-        // See the function server_time below; subtract this.clock_skew_ms from local
-        // time to get a better estimate for server time.
-        this.clock_skew_ms =
-          this.last_ping.valueOf() +
-          (this.last_pong.local.valueOf() - this.last_ping.valueOf()) / 2 -
-          this.last_pong.server.valueOf();
-        set_local_storage("clock_skew", `${this.clock_skew_ms}`);
-      }
-    }
+  };
 
-    this.emit_latency(now.valueOf() - start.valueOf());
-
-    if (!noLoop) {
-      // periodically ping the server, to ensure clocks stay in sync.
-      setTimeout(this.ping.bind(this), this.ping_interval_ms);
-    }
-  }
-
-  private emit_latency(latency: number) {
+  private emitPingTime = () => {
     if (!window.document.hasFocus()) {
       // console.log("latency: not in focus")
       return;
     }
-    // networking/pinging slows down when browser not in focus...
-    if (latency > 10000) {
-      // console.log("latency: discarding huge latency", latency)
+    const ping = getLastPingTime();
+    if (ping == null || ping == this.lastPingtime) {
+      return;
+    }
+    this.lastPingtime = ping;
+    // networking/pinging slows down a lot when browser not in focus...
+    if (ping > 10000) {
+      // console.log("ping: discarding huge ping", ping)
       // We get some ridiculous values from Primus when the browser
       // tab gains focus after not being in focus for a while (say on ipad but on many browsers)
       // that throttle.  Just discard them, since otherwise they lead to ridiculous false
       // numbers displayed in the browser.
       return;
     }
-    this.client.emit("ping", latency, this.clock_skew_ms);
-  }
-
-  // Returns (approximate) time in ms since epoch on the server.
-  // NOTE:
-  //     Once the clock has synced ever with the server, this is guaranteed
-  //     to be an *increasing* function, with an arbitrary
-  //     ms added on in case of multiple calls at once, to guarantee uniqueness.
-  //     Also, if the user changes their clock back a little, this will still
-  //     increase... very slowly until things catch up.  This avoids
-  //     weird random re-ordering of patches within a given session.
-  //     NOTE: we do not force this to be increasing until sync, since this
-  //     gets called immediately during startup, and forcing it to increase
-  //     would make cocalc-with-a-broken-clock be completely broken until
-  //     the user refreshes their browser.
-  public server_time(): Date {
-    let t = this.unskewed_server_time();
-    const last = this.last_server_time;
-    if (last != null && last >= t) {
-      // That's annoying -- time is not marching forward... let's fake it until it does.
-      t = new Date(last.valueOf() + 1);
-    }
-    if (
-      this.last_pong != null &&
-      Date.now() - this.last_pong.local.valueOf() < 5 * this.ping_interval_ms
-    ) {
-      // We have synced the clock **recently successfully**, so
-      // we now ensure the time is increasing.
-      // This first sync should happen with ms of the user connecting.
-      // We do NOT trust if the sync was a long time ago, e.g., due to
-      // a long network outage or laptop suspend/resume.
-      this.last_server_time = t;
-    } else {
-      delete this.last_server_time;
-    }
-    return t;
-  }
-
-  private unskewed_server_time(): Date {
-    // Add clock_skew_ms to our local time to get a better estimate of the actual time on the server.
-    // This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
-    // or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
-    // some algorithms including sync which uses time.  Getting the clock right up to a small multiple
-    // of ping times is fine for our application.
-    if (this.clock_skew_ms == null) {
-      const x = get_local_storage("clock_skew");
-      if (x != null) {
-        this.clock_skew_ms = typeof x === "string" ? parseFloat(x) : 0;
-      }
-    }
-    if (this.clock_skew_ms != null) {
-      return new Date(Date.now() - this.clock_skew_ms);
-    } else {
-      return new Date();
-    }
-  }
-
-  public async ping_test(opts: {
-    packets?: number;
-    timeout?: number; // any ping that takes this long in seconds is considered a fail
-    delay_ms?: number; // wait this long between doing pings
-    log?: Function; // if set, use this to log output
-  }) {
-    if (opts.packets == null) opts.packets = 20;
-    if (opts.timeout == null) opts.timeout = 5;
-    if (opts.delay_ms == null) opts.delay_ms = 200;
-
-    /*
-        Use like this in a the console:
-
-            smc.client.time_client.ping_test(delay_ms:100, packets:40, log:print)
-        */
-    const ping_times: number[] = [];
-    const do_ping: (i: number) => Promise<void> = async (i) => {
-      const t = new Date();
-      const heading = `${i}/${opts.packets}: `;
-      let bar, mesg, pong, ping_time;
-      try {
-        pong = await this.client.async_call({
-          message: message.ping(),
-          timeout: opts.timeout,
-        });
-        ping_time = Date.now() - t.valueOf();
-        bar = "";
-        for (let j = 0; j <= Math.floor(ping_time / 10); j++) {
-          bar += "*";
-        }
-        mesg = `${heading}time=${ping_time}ms`;
-      } catch (err) {
-        bar = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-        mesg = `${heading}Request error -- ${err}, ${JSON.stringify(pong)}`;
-        ping_time = Infinity;
-      }
-
-      while (mesg.length < 40) {
-        mesg += " ";
-      }
-      mesg += bar;
-      if (opts.log != null) {
-        opts.log(mesg);
-      } else {
-        console.log(mesg);
-      }
-      ping_times.push(ping_time);
-      await delay(opts.delay_ms);
-    };
-
-    for (let i = 0; i < opts.packets; i++) {
-      await do_ping.bind(this)(i);
-    }
-
-    return ping_times;
-  }
+    this.client.emit("ping", ping, getLastSkew());
+  };
 }

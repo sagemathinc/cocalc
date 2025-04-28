@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore isdir
+
 import { Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
@@ -20,6 +22,7 @@ import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import ConfigureShare from "@cocalc/frontend/share/config";
@@ -60,14 +63,9 @@ interface ReactProps {
 export function ActionBox(props: ReactProps) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
+  const runQuota = useRunQuota(project_id, null);
   const get_user_type: () => string = useRedux("account", "get_user_type");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-  const get_total_project_quotas: (
-    project_id: string,
-  ) => { network: boolean } | undefined = useRedux([
-    "projects",
-    "get_total_project_quotas",
-  ]);
 
   const [copy_destination_directory, set_copy_destination_directory] =
     useState<string>("");
@@ -117,9 +115,11 @@ export function ActionBox(props: ReactProps) {
   }
 
   function delete_click(): void {
-    props.actions.delete_files({
-      paths: props.checked_files.toArray(),
-    });
+    const paths = props.checked_files.toArray();
+    for (const path of paths) {
+      props.actions.close_tab(path);
+    }
+    props.actions.delete_files({ paths });
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
     props.actions.fetch_directory_listing();
@@ -550,9 +550,6 @@ export function ActionBox(props: ReactProps) {
       // directory listing not loaded yet... (will get re-rendered when loaded)
       return <Loading />;
     }
-    const total_quotas = get_total_project_quotas(props.project_id) || {
-      network: undefined,
-    };
     return (
       <ConfigureShare
         project_id={props.project_id}
@@ -566,7 +563,7 @@ export function ActionBox(props: ReactProps) {
         close={cancel_action}
         action_key={action_key}
         set_public_path={(opts) => props.actions.set_public_path(path, opts)}
-        has_network_access={total_quotas.network}
+        has_network_access={!!runQuota.network}
       />
     );
   }

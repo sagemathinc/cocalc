@@ -6,7 +6,7 @@
 import daemonizeProcess from "daemonize-process";
 
 import { init as initBugCounter } from "./bug-counter";
-import { init as initClient } from "./client";
+import { init as initClient, initDEBUG } from "./client";
 import initInfoJson from "./info-json";
 import initKucalc from "./init-kucalc";
 import { getOptions } from "./init-program";
@@ -51,4 +51,5 @@ export async function main() {
   await initServers();
   logger.info("create public paths watcher...");
   initPublicPaths();
+  initDEBUG();
 }

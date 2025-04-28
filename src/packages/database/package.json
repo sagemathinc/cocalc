@@ -5,6 +5,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./accounts/*": "./dist/accounts/*.js",
+    "./nats/*": "./dist/nats/*.js",
     "./pool": "./dist/pool/index.js",
     "./pool/*": "./dist/pool/*.js",
     "./postgres/*": "./dist/postgres/*.js",
@@ -19,18 +20,20 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
+    "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/lodash": "^4.14.202",
     "@types/pg": "^8.11.10",
     "@types/uuid": "^8.3.1",
+    "@nats-io/services": "3.0.0",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^8.3.0",
     "debug": "^4.4.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "nats": "^2.29.3",
     "node-fetch": "2.6.7",
     "pg": "^8.13.0",
     "random-key": "^0.3.2",
@@ -41,6 +44,9 @@
   },
   "devDependencies": {
     "@types/node": "^18.16.14",
+    "@types/lodash": "^4.14.202",
+    "@types/pg": "^8.6.1",
+    "@types/uuid": "^8.3.1",
     "coffeescript": "^2.5.1"
   },
   "scripts": {
@@ -56,10 +62,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": [
-    "postgresql",
-    "cocalc"
-  ],
+  "keywords": ["postgresql", "cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

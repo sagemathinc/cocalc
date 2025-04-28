@@ -9,11 +9,11 @@ This avoids a major race condition, e.g., when creating multiple
 jupyter notebooks at nearly the same time.
 */
 
-import { promisify } from "util";
+import { promisify } from "node:util";
 import { getPorts as getPorts0 } from "portfinder";
 import LRU from "lru-cache";
 
-const getPortsUnsafe = promisify(getPorts0);
+const getPortsUnsafe = promisify(getPorts0 as any);
 
 const cache = new LRU<number, true>({
   ttl: 60000,

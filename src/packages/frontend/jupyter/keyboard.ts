@@ -66,7 +66,7 @@ export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
 }
 
 function evt_to_shortcut(evt: any, mode: NotebookMode): string {
-  return json(evt_to_obj(evt, mode));
+  return json(evt_to_obj(evt, mode))!;
 }
 
 export function create_key_handler(
@@ -96,7 +96,7 @@ export function create_key_handler(
       // TODO: remove this when we switch from using event.which to event.key!
       s = copy_without(s, ["key"]);
     }
-    shortcut_to_command[json(s)] = { name, val };
+    shortcut_to_command[json(s)!] = { name, val };
     if (s.alt) {
       s = copy_without(s, "alt");
       s.meta = true;

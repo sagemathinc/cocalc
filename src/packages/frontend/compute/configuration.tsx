@@ -47,7 +47,7 @@ export default function Configuration({
           }}
         >
           Most configuration can only be changed when the server is off, and
-          some things can only be changed if you deprevision the server (which
+          some things can only be changed if you deprovision the server (which
           deletes the disk).
           {configuration?.cloud == "google-cloud" ? (
             <b>

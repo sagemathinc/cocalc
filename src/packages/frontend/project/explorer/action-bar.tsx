@@ -3,16 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Space } from "antd";
 import * as immutable from "immutable";
 import { throttle } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import {
-  Button,
-  ButtonGroup,
-  ButtonToolbar,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
@@ -22,6 +19,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+
 import { useProjectContext } from "../context";
 
 const ROW_INFO_STYLE = {
@@ -301,9 +299,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       action_buttons = [...ACTION_BUTTONS_MULTI];
     }
     return (
-      <ButtonGroup>
+      <Space.Compact>
         {action_buttons.map((v) => render_action_button(v))}
-      </ButtonGroup>
+      </Space.Compact>
     );
   }
 
@@ -318,7 +316,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
         return;
       }
       return (
-        <ButtonGroup>
+        <Space.Compact>
           <CustomSoftwareInfo
             project_id={props.project_id}
             images={props.images}
@@ -328,7 +326,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             show_custom_software_reset={!!props.show_custom_software_reset}
             project_is_running={!!props.project_is_running}
           />
-        </ButtonGroup>
+        </Space.Compact>
       );
     } else {
       return render_action_buttons();
@@ -341,9 +339,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     <div style={{ flex: "1 0 auto" }}>
       <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <ButtonGroup>
+          <Space.Compact>
             {props.project_is_running ? render_check_all_button() : undefined}
-          </ButtonGroup>
+          </Space.Compact>
           {render_button_area()}
         </ButtonToolbar>
       </div>

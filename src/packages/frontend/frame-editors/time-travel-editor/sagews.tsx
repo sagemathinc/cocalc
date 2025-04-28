@@ -18,7 +18,7 @@ import { parse_sagews } from "../../sagews/parse-sagews";
 
 interface Props {
   syncdoc: SyncDoc; // syncdoc corresponding to a Sage worksheet
-  version: Date;
+  version: number;
 }
 
 export function SageWorksheetHistory({ syncdoc, version }: Props) {

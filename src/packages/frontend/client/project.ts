@@ -8,13 +8,10 @@ Functionality that mainly involves working with a specific project.
 */
 
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
-import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
-import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { API } from "@cocalc/frontend/project/websocket/api";
@@ -56,6 +53,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
+import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -69,19 +67,48 @@ export class ProjectClient {
     return await this.client.async_call({ message });
   }
 
-  public async write_text_file(opts: {
+  private natsApi = (project_id: string) => {
+    return this.client.nats_client.projectApi({ project_id });
+  };
+
+  // This can write small text files in one message.
+  public async write_text_file({
+    project_id,
+    path,
+    content,
+  }: {
     project_id: string;
     path: string;
     content: string;
   }): Promise<void> {
-    return await this.call(message.write_text_file_to_project(opts));
+    await this.natsApi(project_id).system.writeTextFileToProject({
+      path,
+      content,
+    });
   }
 
-  public async read_text_file(opts: {
+  // writeFile -- easily write **arbitrarily large text or binary files**
+  // to a project from a readable stream or a string!
+  writeFile = async (
+    opts: WriteFileOptions & { content?: string },
+  ): Promise<{ bytes: number; chunks: number }> => {
+    if (opts.content != null) {
+      // @ts-ignore -- typescript doesn't like this at all, but it works fine.
+      opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
+    }
+    return await writeFile(opts);
+  };
+
+  public async read_text_file({
+    project_id,
+    path,
+  }: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): Promise<string> {
-    return (await this.call(message.read_text_file_from_project(opts))).content;
+    return await this.natsApi(project_id).system.readTextFileFromProject({
+      path,
+    });
   }
 
   // Like "read_text_file" above, except the callback
@@ -90,13 +117,21 @@ export class ProjectClient {
   public read_file(opts: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
+    compute_server_id?: number;
   }): string {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = HOME_ROOT + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
+    let url = join(
+      base_path,
+      `${opts.project_id}/files/${encode_path(opts.path)}`,
+    );
+    if (opts.compute_server_id) {
+      url += `?id=${opts.compute_server_id}`;
+    }
+    return url;
   }
 
   public async copy_path_between_projects(opts: {
@@ -184,9 +219,9 @@ export class ProjectClient {
     return await connection_to_project(project_id);
   }
 
-  public async api(project_id: string): Promise<API> {
+  api = async (project_id: string): Promise<API> => {
     return (await this.websocket(project_id)).api;
-  }
+  };
 
   /*
     Execute code in a given project or associated compute server.
@@ -317,13 +352,6 @@ export class ProjectClient {
       opts.compute_server_id,
     );
     return { files: listing };
-  }
-
-  public async public_get_text_file(opts: {
-    project_id: string;
-    path: string;
-  }): Promise<string> {
-    return (await this.call(message.public_get_text_file(opts))).data;
   }
 
   public async find_directories(opts: {
@@ -457,7 +485,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.call(message.touch_project({ project_id }));
+      await this.client.nats_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
@@ -502,19 +530,17 @@ export class ProjectClient {
     description: string;
     image?: string;
     start?: boolean;
-    license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
-    noPool?: boolean; // never use pool
+    // "license_id1,license_id2,..." -- if given, create project with these licenses applied
+    license?: string;
+    // never use pool
+    noPool?: boolean;
   }): Promise<string> {
-    const { project_id } = await this.client.async_call({
-      allow_post: false, // since gets called for anonymous and cookie not yet set.
-      message: message.create_project(opts),
-    });
-
+    const project_id =
+      await this.client.nats_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
     });
-
     return project_id;
   }
 
@@ -585,17 +611,7 @@ export class ProjectClient {
       path: string,
       model_id: string,
       buffer_path: string,
-      useHttp?: boolean, // ONLY works for home base, NOT compute servers!
     ): Promise<ArrayBuffer> => {
-      if (useHttp) {
-        const url = ipywidgetsGetBufferUrl(
-          project_id,
-          path,
-          model_id,
-          buffer_path,
-        );
-        return await (await fetch(url)).arrayBuffer();
-      }
       const actions = redux.getEditorActions(project_id, path);
       return await actions.jupyter_actions.ipywidgetsGetBuffer(
         model_id,
@@ -613,31 +629,27 @@ export class ProjectClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    if (this.client.account_id == null) {
-      throw Error("must be logged in");
-    }
-    if (!is_valid_uuid_string(opts.project_id)) {
-      throw Error("project_id must be a valid uuid");
-    }
-    if (opts.project_id == null && !opts.password) {
-      throw Error("must provide password for non-project api key");
-    }
-    // because message always uses id, so we have to use something else!
-    const opts2: any = { ...opts };
-    delete opts2.id;
-    opts2.key_id = opts.id;
-    return (await this.call(message.api_keys(opts2))).response;
+    return await this.client.nats_client.hub.system.manageApiKeys(opts);
   }
 
   computeServers = (project_id) => {
-    return computeServers(project_id);
+    const cs = redux.getProjectActions(project_id)?.computeServers();
+    if (cs == null) {
+      throw Error("bug");
+    }
+    return cs;
   };
 
   getServerIdForPath = async ({
     project_id,
     path,
   }): Promise<number | undefined> => {
-    return await computeServers(project_id)?.getServerIdForPath(path);
+    return await this.computeServers(project_id)?.getServerIdForPath(path);
+  };
+
+  // will throw exception if compute servers dkv not yet initialized
+  getServerIdForPathSync = ({ project_id, path }): number | undefined => {
+    return this.computeServers(project_id).get(path);
   };
 }
 

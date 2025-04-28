@@ -136,7 +136,7 @@ export function useTable({
         const x = { id: "" };
         const q = getQuery(query, hiddenFields, search);
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
-          sortOptions(sortFields)
+          sortOptions(sortFields),
         );
         setLoading(true);
         webapp_client.query_client.query({
@@ -187,7 +187,7 @@ export function useTable({
         };
       },
     },
-    [disconnectCounter, sortFields, hiddenFields, limit, search]
+    [disconnectCounter, sortFields, hiddenFields, limit, search],
   );
 
   const refresh = incDisconnectCounter;

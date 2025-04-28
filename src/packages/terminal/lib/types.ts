@@ -1,7 +1,7 @@
 import type { EventEmitter } from "events";
 import Primus from "primus";
 import type { Spark } from "primus";
-import type { IPty as IPty0 } from "node-pty";
+import type { IPty as IPty0 } from "@lydell/node-pty";
 
 // upstream typings not quite right
 export interface IPty extends IPty0 {
@@ -20,7 +20,6 @@ export interface Options {
 
 export interface PrimusChannel extends EventEmitter {
   write: (data: object | string) => void;
-  forEach: (cb: (spark, id, connections) => void) => void;
   destroy: () => void;
   // createSpark is not on the real PrimusChannel, but it's part of our mock version for
   // unit testing in support.ts

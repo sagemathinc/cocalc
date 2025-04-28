@@ -147,12 +147,12 @@ export function Full(props: Readonly<Props>): JSX.Element {
       <>
         {render_details()}
         <SignalButtons
-          chan={chan}
           selected={selected}
           set_selected={set_selected}
           loading={loading}
           disabled={disabled}
           processes={info.processes}
+          project_actions={project_actions}
         />
       </>
     );
@@ -519,7 +519,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
   }
 
   return (
-    <div style={ROOT_STYLE}>
+    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       {render_not_running()}
       {render_error()}
       {render_body()}

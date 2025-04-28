@@ -7,14 +7,15 @@
 Handle iframe output messages involving a src doc.
 */
 
+import { Spin } from "antd";
 import { delay } from "awaiting";
 import { useEffect, useRef, useState } from "react";
+import useBlob from "./use-blob";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import { get_blob_url } from "../server-urls";
 import HTML from "./mime-types/html";
-
+import ShowError from "@cocalc/frontend/components/error";
 // This impact loading the iframe data from the backend project (via the sha1 hash).
 // Doing retries is useful, e.g., since the project might not be running.
 const MAX_ATTEMPTS = 10;
@@ -22,34 +23,69 @@ const MAX_WAIT = 5000;
 const BACKOFF = 1.3;
 
 const HEIGHT = "70vh";
-const WIDTH = "100vw";
+const WIDTH = "70vw";
 
 interface Props {
   sha1: string;
-  project_id: string;
-  cacheId?: string;
+  actions?;
+  cacheid?: string;
   index?: number;
   trust?: boolean;
 }
 
 export default function IFrame(props: Props) {
-  // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
-  if (props.cacheId == null || !props.trust) {
-    return <NonCachedIFrame {...props} />;
+  const [error, setError] = useState<string>("");
+  const src = useBlob({
+    sha1: props.sha1,
+    actions: props.actions,
+    type: "text/html",
+    setError,
+    leaveAsString: (content: string) => {
+      if (!props.trust) {
+        // never leave as string when not trusted -- iframes are safer.
+        return false;
+      }
+      return !isLikelyIframe(content);
+    },
+  });
+
+  if (error) {
+    return (
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ margin: "5px 0" }}
+      />
+    );
+  }
+  if (!src) {
+    return (
+      <div>
+        <Spin delay={1000} />
+      </div>
+    );
+  }
+  if (!src?.startsWith("blob:") && (props.cacheid == null || !props.trust)) {
+    return <NonCachedIFrame src={src} />;
   } else {
-    const src = get_blob_url(props.project_id, "html", props.sha1);
+    // we only use cached iframe if the iframecontext is setup, e.g., it is in
+    // Jupyter notebooks, but not in whiteboards.
     return (
       <HTML
-        id={props.cacheId}
+        id={props.cacheid}
         index={props.index}
         trust={props.trust}
-        value={`<iframe src="${src}" style="border:0;height:${HEIGHT};width:${WIDTH}"/>`}
+        value={
+          src?.startsWith("blob:")
+            ? `<iframe src="${src}" style="border:0;height:${HEIGHT};width:${WIDTH}"/>`
+            : src
+        }
       />
     );
   }
 }
 
-function NonCachedIFrame({ sha1, project_id }: Props) {
+function NonCachedIFrame({ src }) {
   const { val: attempts, inc: incAttempts } = useCounter();
   const [failed, setFailed] = useState<boolean>(false);
   const delayRef = useRef<number>(500);
@@ -79,12 +115,57 @@ function NonCachedIFrame({ sha1, project_id }: Props) {
     return <div>Failed to load iframe contents</div>;
   }
 
+  if (!src) {
+    return;
+  }
+  let srcDoc: undefined | string = undefined;
+  if (
+    !(
+      src.startsWith("https:") ||
+      src.startsWith("http:") ||
+      src.startsWith("blob:")
+    )
+  ) {
+    srcDoc = src;
+    src = undefined;
+  }
+
   return (
     <iframe
+      src={src}
+      srcDoc={srcDoc}
       ref={iframeRef}
-      src={get_blob_url(project_id, "html", sha1) + `&attempts=${attempts}`}
       onError={load_error}
       style={{ border: 0, width: WIDTH, minHeight: HEIGHT }}
     />
   );
+}
+
+// see https://github.com/sagemathinc/cocalc/issues/4322
+const MAX_HTML_SIZE = 10 ** 6;
+
+export function isLikelyIframe(content: string): boolean {
+  if (!content) {
+    return false;
+  }
+  content = content.toLowerCase();
+  if (
+    content.includes("https://bokeh.org") &&
+    content.includes("bk-notebook-logo")
+  ) {
+    // Do NOT use an iframe for bokeh no matter what, since this won't work properly.
+    // Hopefully the above heuristic is sufficiently robust to detect but not overdetect.
+    return false;
+  }
+  if (content.includes("<!doctype html>") || content.includes("<html>")) {
+    // plotly wraps its output in <html>, which strongly suggests it wants to
+    // be in an iframe.  It's not valid to put <html> as a child of a div, so really
+    // the only valid way to render an <html> string is as an iframe.
+    return true;
+  }
+  if (content.length >= MAX_HTML_SIZE) {
+    // it'll just break anyways if we don't use an iframe -- if we do, there is hope.
+    return true;
+  }
+  return content.startsWith("<iframe");
 }

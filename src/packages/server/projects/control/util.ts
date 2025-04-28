@@ -6,10 +6,11 @@ import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import base_path from "@cocalc/backend/base-path";
-import { blobstore, root } from "@cocalc/backend/data";
+import { natsPorts, natsServer, root } from "@cocalc/backend/data";
 import getLogger from "@cocalc/backend/logger";
 import { getUid, homePath } from "@cocalc/backend/misc";
 import { db } from "@cocalc/database";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { callback2 } from "@cocalc/util/async-utils";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
@@ -104,14 +105,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = [
-    "cocalc-project",
-    "--daemon",
-    "--init",
-    "project_init.sh",
-    "--blobstore",
-    blobstore,
-  ];
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
@@ -243,6 +237,19 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   return env2 as { [key: string]: string };
 }
 
+async function natsWebsocketServer() {
+  const { nats_project_server } = await getServerSettings();
+  if (nats_project_server) {
+    if (nats_project_server.startsWith("ws")) {
+      if (base_path.length <= 1) {
+        return nats_project_server;
+      }
+      return `${nats_project_server}${base_path}/nats`;
+    }
+  }
+  return `${natsServer}:${natsPorts.server}`;
+}
+
 export async function getEnvironment(
   project_id: string,
 ): Promise<{ [key: string]: any }> {
@@ -272,6 +279,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      // url of the NATS websocket server the project will connect to:
+      NATS_SERVER: await natsWebsocketServer(),
     },
   };
 }

@@ -118,7 +118,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
     const [error, set_error] = useState<JSX.Element | null>(null);
     const [modal, set_modal] = useState<string | Process | undefined>(
-      undefined
+      undefined,
     );
     const [show_long_loading, set_show_long_loading] = useState(false);
 
@@ -172,8 +172,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           const data = info_sync.get();
           if (data != null) {
             set_info({ ...data.toJS(), ...DEV } as ProjectInfoType);
-          } else {
-            console.warn("got no data from info_sync.get()");
           }
         };
 
@@ -209,7 +207,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
         set_error(
           <>
             <strong>Project information setup problem:</strong> {`${err}`}
-          </>
+          </>,
         );
         return;
       }
@@ -306,7 +304,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     }
 
     function val_max_value(
-      index: "cpu_pct" | "cpu_tot" | "mem" | "pid"
+      index: "cpu_pct" | "cpu_tot" | "mem" | "pid",
     ): number {
       switch (index) {
         case "pid":
@@ -346,7 +344,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     // to avoid misunderstandings due to data not being shown…
     function onCellProps(
       index: "cpu_pct" | "cpu_tot" | "mem",
-      to_str?: (val) => Rendered
+      to_str?: (val) => Rendered,
     ) {
       const cell_val = (val, proc): number => {
         // we have to check for length==0, because initally rows are all expanded but
@@ -494,5 +492,5 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           />
         );
     }
-  }
+  },
 );

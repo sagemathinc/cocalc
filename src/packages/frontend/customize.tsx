@@ -177,10 +177,13 @@ export interface CustomizeState {
   selectable_llms: List<string>;
   default_llm?: string;
   user_defined_llm: boolean;
+  llm_default_quota?: number;
 
   insecure_test_mode?: boolean;
 
   i18n?: List<Locale>;
+
+  user_tracking?: string;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

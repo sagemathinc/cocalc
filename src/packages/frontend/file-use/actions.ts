@@ -53,7 +53,9 @@ export class FileUseActions<T = FileUseState> extends Actions<
     this.setState({
       errors: this.get_store()
         .get_errors()
-        .push(fromJS({ time: webapp_client.server_time(), err: `${err}` }) as any),
+        .push(
+          fromJS({ time: webapp_client.server_time(), err: `${err}` }) as any,
+        ),
     });
   }
 
@@ -78,7 +80,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
           0,
           false,
           undefined,
-          true
+          true,
         );
     }
   }
@@ -103,7 +105,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
     ttl: number | "default" = "default", // ttl in units of ms
     fix_path: boolean = true,
     timestamp: Date | undefined = undefined,
-    force: boolean = false
+    force: boolean = false,
   ): Promise<void> {
     if (
       !force &&
@@ -192,7 +194,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
     action: string,
     project_id: string,
     path: string,
-    timestamp: Date
+    timestamp: Date,
   ): Promise<void> {
     const obj: any = {
       id: sha1(project_id, path),

@@ -47,10 +47,9 @@ export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
               textDecoration: "underline",
             }}
           >
-            RELOAD THIS PAGE
+            REFRESH THIS PAGE
           </a>
-          <Gap /> IMMEDIATELY OR YOU WILL BE DISCONNECTED. Sorry for the
-          inconvenience.
+          <Gap /> IMMEDIATELY. Sorry for the inconvenience.
         </div>
       );
     }

@@ -4,15 +4,13 @@
  */
 
 /*
-Generate the "secret_token" file if it does not already exist.
+Generate the "secret_token" if it does not already exist.
 */
 
 import { callback } from "awaiting";
 import { randomBytes } from "crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
-
 import { secretToken as secretTokenPath } from "@cocalc/project/data";
-
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("secret-token");
 

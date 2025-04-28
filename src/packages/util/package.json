@@ -40,7 +40,6 @@
     "@ant-design/colors": "^6.0.0",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.2.1",
-    "@types/debug": "^4.1.12",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.11",
@@ -71,6 +70,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
@@ -80,7 +80,6 @@
     "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
-    "nyc": "^15.1.0",
     "seedrandom": "^3.0.5",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
