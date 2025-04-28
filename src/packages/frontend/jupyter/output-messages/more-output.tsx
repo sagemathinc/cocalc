@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import React from "react";
 import { Map } from "immutable";
@@ -24,27 +24,32 @@ export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
   (props: MoreOutputProps) => {
     const { id, message, actions } = props;
 
-    function show_more_output(): void {
-      actions?.fetch_more_output(id);
-    }
-
     if (actions == null || message.get("expired")) {
       return (
-        <Button bsStyle="info" disabled>
+        <Button style={{ marginTop: "5px" }} disabled>
           <Icon name="eye-slash" /> Additional output not available
         </Button>
       );
     } else if (actions.fetch_more_output == null) {
       // e.g., on the share server, at least until we implement fetching additional output
       // there, which does make sense to do.
-      return <div style={{margin:'15px', fontSize:'12pt'}}>Large output truncated: edit to see additional output</div>;
+      return (
+        <div style={{ margin: "15px", fontSize: "12pt" }}>
+          Large output truncated: edit to see additional output
+        </div>
+      );
     } else {
       return (
-        <Button onClick={show_more_output} bsStyle="info">
+        <Button
+          onClick={() => {
+            actions?.fetch_more_output(id);
+          }}
+          style={{ marginTop: "5px" }}
+        >
           <Icon name="eye" /> Fetch additional output...
         </Button>
       );
     }
   },
-  should_memoize
+  should_memoize,
 );

@@ -29,7 +29,6 @@ required = defaults.required
 {PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
-{file_use_times} = require('./postgres/file-use-times')
 {updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
@@ -1365,6 +1364,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if pg_changefeed == 'projects'
                     tracker_add = (project_id) => feed.insert({project_id:project_id})
                     tracker_remove = (project_id) => feed.delete({project_id:project_id})
+
+                    # Any tracker error means this changefeed is now broken and
+                    # has to be recreated.
+                    tracker_error = () => changes.cb("tracker error - ${err}")
+
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
                             # Check that this is a project we have read access to
@@ -1382,11 +1386,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         init_tracker : (tracker) =>
                             tracker.on "add_user_to_project-#{account_id}", tracker_add
                             tracker.on "remove_user_from_project-#{account_id}", tracker_remove
+                            tracker.once 'error', tracker_error
+
 
                         free_tracker : (tracker) =>
                             dbg("freeing project tracker events")
                             tracker.removeListener("add_user_to_project-#{account_id}", tracker_add)
                             tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
+                            tracker.removeListener("error", tracker_error)
 
 
                 else if pg_changefeed == 'news'
@@ -1424,6 +1431,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         return
                     tracker_add = (collab_id) => feed.insert({account_id:collab_id})
                     tracker_remove = (collab_id) => feed.delete({account_id:collab_id})
+                    tracker_error = () => changes.cb("tracker error - ${err}")
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
                         where : (obj) ->  # test of "is a collab with me"
@@ -1432,10 +1440,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             shared_tracker = tracker
                             tracker.on "add_collaborator-#{account_id}", tracker_add
                             tracker.on "remove_collaborator-#{account_id}", tracker_remove
+                            tracker.once 'error', tracker_error
                         free_tracker : (tracker) =>
                             dbg("freeing collab tracker events")
                             tracker.removeListener("add_collaborator-#{account_id}", tracker_add)
                             tracker.removeListener("remove_collaborator-#{account_id}", tracker_remove)
+                            tracker.removeListener("error", tracker_error)
 
 
                 x = pg_changefeed(@, account_id)
@@ -1472,10 +1482,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     where  : where
                     watch  : watch
                     cb     : (err, _feed) =>
+                        # there *is* a glboal variable feed that we set here:
+                        feed = _feed
                         if err
                             cb(err)
                             return
-                        feed = _feed
                         feed.on 'change', (x) ->
                             process(x)
                             changes.cb(undefined, x)
@@ -1485,16 +1496,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             if tracker? and free_tracker?
                                 dbg("free_tracker")
                                 free_tracker(tracker)
-                            dbg("do NOT free_tracker")
+                            else
+                                dbg("do NOT free_tracker")
                         feed.on 'error', (err) ->
                             changes.cb("feed error - #{err}")
                         @_changefeeds ?= {}
                         @_changefeeds[changes.id] = feed
                         init_tracker?(tracker)
-                        # Any tracker error means this changefeed is now broken and
-                        # has to be recreated.
-                        tracker?.once 'error', (err) ->
-                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 
@@ -1729,9 +1737,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Other functions that are needed to implement various use queries,
     # e.g., for virtual queries like file_use_times.
     # ASYNC FUNCTION with no callback.
-    file_use_times: (opts) =>  # for docs, see where this is imported from.
-        return await file_use_times(@, opts)
-
     updateRetentionData: (opts) =>
         return await updateRetentionData(opts)
 

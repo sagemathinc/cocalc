@@ -10,7 +10,6 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
-import bodyParser from "body-parser";
 import compression from "compression";
 import express from "express";
 import { createServer } from "http";
@@ -24,13 +23,10 @@ import initSyncFs from "../sync-fs";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
 import { getOptions } from "@cocalc/project/init-program";
-import initJupyter from "@cocalc/project/jupyter/http-server";
 import * as kucalc from "@cocalc/project/kucalc";
 import { getLogger } from "@cocalc/project/logger";
-import initUpload from "@cocalc/project/upload";
 import { once } from "@cocalc/util/async-utils";
 import initRootSymbolicLink from "./root-symlink";
-import initStaticServer from "./static";
 
 const winston = getLogger("browser-http-server");
 
@@ -64,12 +60,6 @@ export default async function init(): Promise<void> {
   // suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
   app.use(compression());
 
-  // Needed for POST file to custom path, which is used for uploading files to projects.
-  // parse application/x-www-form-urlencoded
-  app.use(bodyParser.urlencoded({ extended: true }));
-  // parse application/json
-  app.use(bodyParser.json());
-
   winston.info("creating root symbolic link");
   await initRootSymbolicLink();
 
@@ -84,21 +74,6 @@ export default async function init(): Promise<void> {
   // for the deprecated public access to a project?  If so, we can get rid of all of that.
   winston.info("initializing directory listings server (DEPRECATED)");
   app.use(base, initDirectoryListing());
-
-  // Setup the jupyter/... server, which is used by our jupyter server for blobs, etc.
-  winston.info("initializing Jupyter support HTTP server");
-  (async () => {
-    // if the BlobStore isn't available immediately, this will take a while to initialize, and
-    // we don't want to block the remainder of this setup...
-    app.use(base, await initJupyter());
-  })();
-
-  // Setup the upload POST endpoint
-  winston.info("initializing file upload server");
-  app.use(base, initUpload());
-
-  winston.info("initializing static server");
-  initStaticServer(app, base);
 
   const options = getOptions();
   server.listen(options.browserPort, options.hostname);

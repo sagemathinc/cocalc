@@ -3,32 +3,47 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
   date: Date;
   number: number;
-  max: number;
+  user?: number;
 }
 
-export function Version({ date, number, max }: Props) {
-  if (max == 0) return <span />;
+export function Version({ date, number, user }: Props) {
   return (
     <span>
-      <span
-        style={{
-          fontWeight: "bold",
-          fontSize: "12pt",
-          color: "#666",
-          whiteSpace: "nowrap",
-        }}
+      <Tooltip
+        title={
+          <>
+            You are looking at <b>the exact document</b> that the author was
+            editing at <TimeAgo date={date} time_ago_absolute />. Version
+            numbers are unique within a given branch, and the letter code after
+            the number indicates the user.
+          </>
+        }
       >
-        <TimeAgo date={date} />
-      </span>
-      ,{" "}
-      <span style={{ whiteSpace: "nowrap" }}>
-        revision {number} (of {max})
-      </span>
+        <span
+          style={{
+            fontWeight: "bold",
+            fontSize: "12pt",
+            color: "#666",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <TimeAgo date={date} />
+        </span>
+        ,{" "}
+        <span style={{ whiteSpace: "nowrap" }}>
+          Revision{" "}
+          <b>
+            {number}
+            {toLetterCode(user)}
+          </b>
+        </span>
+      </Tooltip>
     </span>
   );
 }
@@ -36,16 +51,30 @@ export function Version({ date, number, max }: Props) {
 interface RangeProps {
   version0: number;
   version1: number;
-  max: number;
+  user0?: number;
+  user1?: number;
 }
 
-export function VersionRange({ version0, version1, max }: RangeProps) {
-  if (max == 0) {
-    return <span />;
-  }
+export function VersionRange({ version0, version1, user0, user1 }: RangeProps) {
   return (
     <span style={{ whiteSpace: "nowrap" }}>
-      Versions {version0 + 1} to {version1 + 1} (of {max})
+      Versions{" "}
+      <b>
+        {version0}
+        {toLetterCode(user0)}
+      </b>{" "}
+      to{" "}
+      <b>
+        {version1}
+        {toLetterCode(user1)}
+      </b>
     </span>
   );
+}
+
+function toLetterCode(user?: number): string {
+  if (user == null) {
+    return "";
+  }
+  return String.fromCharCode(97 + (user % 26));
 }

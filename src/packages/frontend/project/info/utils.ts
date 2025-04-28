@@ -115,9 +115,14 @@ function args(proc: Process) {
   }
 }
 
-// convert the flat raw data into nested (forest) process rows for the table
+// Harald: convert the flat raw data into nested (forest) process rows for the table
 // I bet there are better algos, but our usual case is less than 10 procs with little nesting
 // we intentionally ignore PID 1 (tini) and the main shell script (pointless)
+
+// William: I personally find this tree structure as the default and only option
+// annoying.  When I look at the processes it is to identify the worst offender via sorting
+// and watch or kill it.  This obfuscates that goal.
+
 export function process_tree(
   procs: Processes,
   parentid: number,

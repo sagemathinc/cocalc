@@ -17,7 +17,6 @@ if (typeof window !== "undefined" && window !== null) {
 
 import * as immutable from "immutable";
 
-import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
   project_redux_name,
@@ -27,10 +26,7 @@ import {
   TypedMap,
 } from "@cocalc/frontend/app-framework";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import {
-  Listings,
-  listings,
-} from "@cocalc/frontend/project/websocket/listings";
+import { Listings, listings } from "@cocalc/frontend/nats/listings";
 import {
   FILE_ACTIONS,
   ProjectActions,
@@ -41,7 +37,6 @@ import {
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
@@ -60,6 +55,7 @@ import {
 } from "./project/page/flyouts/utils";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -116,6 +112,8 @@ export interface ProjectStoreState {
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
+  // paths that were deleted
+  recentlyDeletedPaths?: immutable.Map<string, number>;
 
   // Project Log
   project_log?: ProjectLogMap;
@@ -176,6 +174,8 @@ export interface ProjectStoreState {
   // Default compute server id to use when browsing and
   // working with files.
   compute_server_id: number;
+  // Map from path to the id of the compute server that the file is supposed to opened on right now.
+  compute_server_ids?: TypedMap<{ [path: string]: number }>;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -559,10 +559,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  get_raw_link = (path) => {
-    let url = document.URL;
-    url = url.slice(0, url.indexOf("/projects/"));
-    return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
+  fileURL = (path, compute_server_id?: number) => {
+    return fileURL({
+      project_id: this.project_id,
+      path,
+      compute_server_id: compute_server_id ?? this.get("compute_server_id"),
+    });
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension
@@ -584,66 +586,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return this.getIn(["open_files", path, "component"])?.Editor != null;
   }
 
-  private close_deleted_file(path: string): void {
-    const cur = this.get("current_path");
-    if (path == cur || misc.startswith(cur, path + "/")) {
-      // we are deleting the current directory, so let's cd to HOME.
-      const actions = redux.getProjectActions(this.project_id);
-      if (actions != null) {
-        actions.set_current_path("");
-      }
-    }
-    const all_paths = deleted_file_variations(path);
-    for (const file of this.get("open_files").keys()) {
-      if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
-        if (!this.has_file_been_viewed(file)) {
-          // Hasn't even been viewed yet; when user clicks on the tab
-          // they get a dialog to undelete the file.
-          continue;
-        }
-        const actions = redux.getProjectActions(this.project_id);
-        if (actions != null) {
-          actions.close_tab(file);
-          alert_message({
-            type: "info",
-            message: `Closing '${file}' since it was deleted or moved.`,
-          });
-        }
-      } else {
-        const actions: any = redux.getEditorActions(this.project_id, file);
-        if (actions?.close_frames_with_path != null) {
-          // close subframes with given path.
-          if (actions.close_frames_with_path(path)) {
-            alert_message({
-              type: "info",
-              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
-            });
-          }
-        }
-      }
-    }
-  }
-
   public get_listings(compute_server_id: number | null = null): Listings {
     const computeServerId = compute_server_id ?? this.get("compute_server_id");
     if (this.listings[computeServerId] == null) {
       const listingsTable = listings(this.project_id, computeServerId);
       this.listings[computeServerId] = listingsTable;
       listingsTable.watch(this.get("current_path") ?? "", true);
-      listingsTable.on("deleted", async (paths) => {
-        for (const path of paths) {
-          if (this.listings[0] == null) return; // shouldn't happen
-          const deleted = await listingsTable.getDeleted(path);
-          if (deleted != null) {
-            for (let filename of deleted) {
-              if (path != "") {
-                filename = path + "/" + filename;
-              }
-              this.close_deleted_file(filename);
-            }
-          }
-        }
-      });
       listingsTable.on("change", async (paths) => {
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??
@@ -656,8 +604,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 await listingsTable.getListingDirectly(path),
               );
             } catch (err) {
-              console.warn(
-                `WARNING: problem getting directory listing ${err}; falling back`,
+              console.log(
+                `WARNING: temporary problem getting directory listing -- ${err}`,
               );
               files = await listingsTable.getForStore(path);
             }

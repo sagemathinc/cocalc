@@ -3,90 +3,108 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import * as message from "@cocalc/util/message";
 import { is_array } from "@cocalc/util/misc";
 import { validate_client_query } from "@cocalc/util/schema-validate";
 import { CB } from "@cocalc/util/types/database";
+import { NatsChangefeed } from "@cocalc/sync/table/changefeed-nats2";
+import { uuid } from "@cocalc/util/misc";
+import { client_db } from "@cocalc/util/schema";
 
 declare const $: any; // jQuery
 
 export class QueryClient {
   private client: any;
+  private changefeeds: { [id: string]: NatsChangefeed } = {};
 
   constructor(client: any) {
     this.client = client;
   }
 
-  private async call(message: object, timeout: number): Promise<any> {
-    return await this.client.async_call({
-      message,
-      timeout,
-      allow_post: false, // since that would happen via this.post_query
-    });
-  }
-
   // This works like a normal async function when
   // opts.cb is NOT specified.  When opts.cb is specified,
-  // it works like a cb and returns nothing.  For changefeeds
+  // it works like a cb and returns nothing.    For changefeeds
   // you MUST specify opts.cb, but can always optionally do so.
   public async query(opts: {
     query: object;
-    changes?: boolean;
     options?: object[]; // if given must be an array of objects, e.g., [{limit:5}]
-    standby?: boolean; // if true and use HTTP post, then will use standby server (so must be read only)
-    timeout?: number; // default: 30
-    no_post?: boolean; // DEPRECATED -- didn't turn out to be worth it.
-    ignore_response?: boolean; // if true, be slightly efficient by not waiting for any response or
-    // error (just assume it worked; don't care about response)
-    cb?: CB; // used for changefeed outputs if changes is true
+    changes?: boolean;
+    cb?: CB; // support old cb interface
   }): Promise<any> {
+    // Deprecation warnings:
+    for (const field of ["standby", "timeout", "no_post", "ignore_response"]) {
+      if (opts[field] != null) {
+        console.trace(`WARNING: passing '${field}' to query is deprecated`);
+      }
+    }
     if (opts.options != null && !is_array(opts.options)) {
       // should never happen...
       throw Error("options must be an array");
     }
-    if (opts.changes && opts.cb == null) {
-      throw Error("for changefeed, must specify opts.cb");
-    }
-
-    const err = validate_client_query(opts.query, this.client.account_id);
-    if (err) {
-      throw Error(err);
-    }
-    const mesg = message.query({
-      query: opts.query,
-      options: opts.options,
-      changes: opts.changes,
-      multi_response: !!opts.changes,
-    });
-    if (opts.timeout == null) {
-      opts.timeout = 30;
-    }
-    if (mesg.multi_response) {
-      if (opts.cb == null) {
-        throw Error("changefeed requires cb callback");
+    if (opts.changes) {
+      const { cb } = opts;
+      if (cb == null) {
+        throw Error("for changefeed, must specify opts.cb");
       }
-      this.client.call({
-        allow_post: false,
-        message: mesg,
-        error_event: true,
-        timeout: opts.timeout,
-        cb: opts.cb,
-      });
+      let changefeed;
+      try {
+        changefeed = new NatsChangefeed({
+          account_id: this.client.account_id,
+          query: opts.query,
+          options: opts.options,
+        });
+        // id for canceling this changefeed
+        const id = uuid();
+        const initval = await changefeed.connect();
+        const query = {
+          [Object.keys(opts.query)[0]]: initval,
+        };
+        this.changefeeds[id] = changefeed;
+        cb(undefined, { query, id });
+        changefeed.on("update", (change) => {
+          cb(undefined, change);
+        });
+      } catch (err) {
+        cb(`${err}`);
+        return;
+      }
     } else {
-      if (opts.cb != null) {
-        try {
-          const result = await this.call(mesg, opts.timeout);
-          opts.cb(undefined, result);
-        } catch (err) {
-          opts.cb(typeof err == "string" ? err : err.message ?? err);
+      try {
+        const err = validate_client_query(opts.query, this.client.account_id);
+        if (err) {
+          throw Error(err);
         }
-      } else {
-        return await this.call(mesg, opts.timeout);
+        const query = await this.client.nats_client.hub.db.userQuery({
+          query: opts.query,
+          options: opts.options,
+        });
+
+        if (query && !opts.options?.[0]?.["set"]) {
+          // set thing isn't needed but doesn't hurt
+          // deal with timestamp versus Date and JSON using our schema.
+          for (const table in query) {
+            client_db.processDates({ table, rows: query[table] });
+          }
+        }
+
+        if (opts.cb == null) {
+          return { query };
+        } else {
+          opts.cb(undefined, { query });
+        }
+      } catch (err) {
+        if (opts.cb == null) {
+          throw err;
+        } else {
+          opts.cb(err);
+        }
       }
     }
   }
 
+  // cancel a changefeed created above.  This is ONLY used
+  // right now by the CRM code.
   public async cancel(id: string): Promise<void> {
-    await this.call(message.query_cancel({ id }), 30);
+    this.changefeeds[id]?.close();
+    delete this.changefeeds[id];
   }
 }

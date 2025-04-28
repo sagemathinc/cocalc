@@ -48,7 +48,7 @@ export async function createRememberMeCookie(
 // delete the remember me database entry for the given hash
 export async function deleteRememberMe(hash: string): Promise<void> {
   const pool = getPool();
-  await pool.query("DELETE FROM remember_me WHERE hash=$1::TEXT", [
+  await pool.query("DELETE FROM remember_me WHERE hash=$1::CHAR(127)", [
     hash.slice(0, 127),
   ]);
 }
@@ -67,6 +67,12 @@ export function getRememberMeHash(req: Request): string | undefined {
   if (!rememberMe) {
     return;
   }
+  return getRememberMeHashFromCookieValue(rememberMe);
+}
+
+export function getRememberMeHashFromCookieValue(
+  rememberMe: string,
+): string | undefined {
   const x: string[] = rememberMe.split("$");
   if (x.length !== 4) {
     throw Error("badly formatted remember_me cookie");

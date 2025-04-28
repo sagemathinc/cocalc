@@ -12,19 +12,16 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
-import { Alert, Button, Space } from "antd";
+import { Alert, Button, Space, Tooltip } from "antd";
 import { CSSProperties, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
-  Delay,
   Icon,
   ProjectState,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { labels } from "@cocalc/frontend/i18n";
 import { server_seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
@@ -37,11 +34,9 @@ const STYLE: CSSProperties = {
   color: COLORS.GRAY_M,
 } as const;
 
-export function StartButton() {
+export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
-  const project_websockets = useTypedRedux("projects", "project_websockets");
-  const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
   const allowed = useAllowedFreeProjectToRun(project_id);
@@ -87,37 +82,7 @@ export function StartButton() {
   }, [project_map]);
 
   if (state?.get("state") === "running") {
-    if (connected) {
-      return <></>;
-    } else {
-      // Show a "Connecting..." banner after a few seconds.
-      // We don't show it immediately, since it can appear intermittently
-      // for second, which is annoying and not helpful.
-      // NOTE: if the project changed to a NOT running state a few seconds ago, then we do
-      // show Connecting immediately, since then it's useful and not "flashy".
-      const last = lastNotRunningRef.current;
-      return (
-        <Delay delayMs={last != null && Date.now() - last < 60000 ? 0 : 3000}>
-          <Alert
-            banner={true}
-            type="info"
-            style={STYLE}
-            showIcon={false}
-            message={
-              <span
-                style={{
-                  fontSize: "20pt",
-                  color: COLORS.GRAY_M,
-                }}
-              >
-                {intl.formatMessage(labels.connecting)}...{" "}
-                <Icon name="cocalc-ring" spin />
-              </span>
-            }
-          />
-        </Delay>
-      );
-    }
+    return null;
   }
 
   function render_not_allowed() {
@@ -178,13 +143,14 @@ export function StartButton() {
   function render_start_project_button() {
     const enabled =
       state == null ||
+      !state?.get("state") ||
       (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
 
     const txt = intl.formatMessage(
       {
         id: "project.start-button.button.txt",
-        defaultMessage: `{starting, select, true {Starting project} other {Start project}}`,
+        defaultMessage: `{starting, select, true {Starting Project} other {Start Project}}`,
         description:
           "Label on a button, either to start the project or indicating the project is currently starting.",
       },
@@ -192,16 +158,24 @@ export function StartButton() {
     );
 
     return (
-      <div>
+      <Tooltip
+        title={
+          <div>
+            <ProjectState state={state} show_desc={allowed} />
+            {render_not_allowed()}
+          </div>
+        }
+      >
         <Button
           type="primary"
-          size="large"
-          disabled={!enabled || starting}
+          size={minimal ? undefined : "large"}
+          style={minimal ? style : undefined}
+          disabled={!enabled}
           onClick={async () => {
             try {
               await redux.getActions("projects").start_project(project_id);
             } catch (err) {
-              // ui should show this some other way
+              // maybe ui should show this some other way
               console.warn("WARNING -- issue starting project ", err);
             }
           }}
@@ -211,8 +185,12 @@ export function StartButton() {
             {txt}
           </Space>
         </Button>
-      </div>
+      </Tooltip>
     );
+  }
+
+  if (minimal) {
+    return render_start_project_button();
   }
 
   // In case user is admin viewing another user's project, we provide a
@@ -249,7 +227,7 @@ export function StartButton() {
             >
               <ProjectState state={state} show_desc={allowed} />
             </span>
-            {render_start_project_button()}
+            <div>{render_start_project_button()}</div>
             {render_not_allowed()}
           </>
         }
@@ -259,7 +237,7 @@ export function StartButton() {
   }
 
   return (
-    <div style={STYLE}>
+    <div style={{ ...STYLE, ...style }}>
       {state == null && redux.getStore("account")?.get("is_admin")
         ? render_admin_view()
         : render_normal_view()}

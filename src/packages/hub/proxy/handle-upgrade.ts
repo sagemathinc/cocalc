@@ -3,12 +3,12 @@
 import { createProxyServer } from "http-proxy";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
-
 import getLogger from "@cocalc/hub/logger";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { getTarget } from "./target";
 import { stripBasePath } from "./util";
 import { versionCheckFails } from "./version";
+import { proxyNatsWebsocket } from "@cocalc/hub/servers/nats";
 
 const logger = getLogger("proxy:handle-upgrade");
 
@@ -32,6 +32,13 @@ export default function init(
       logger.silly(req.url, ...args);
     };
     dbg("got upgrade request from url=", req.url);
+    const url = stripBasePath(req.url);
+
+    if (url == "/nats") {
+      proxyNatsWebsocket(req, socket, head);
+      return;
+    }
+
     if (!req.url.match(re)) {
       throw Error(`url=${req.url} does not support upgrade`);
     }
@@ -43,8 +50,6 @@ export default function init(
     if (versionCheckFails(req)) {
       throw Error("client version check failed");
     }
-
-    const url = stripBasePath(req.url);
 
     let remember_me, api_key;
     if (req.headers["cookie"] != null) {

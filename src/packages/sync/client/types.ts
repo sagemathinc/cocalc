@@ -1,5 +1,9 @@
 import type { EventEmitter } from "events";
 import type { CB } from "@cocalc/util/types/callback";
+import type {
+  CallNatsServiceFunction,
+  CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
 
 // What we need the client to implement so we can use
 // it to support a table.
@@ -17,6 +21,9 @@ export interface Client extends EventEmitter {
   touch_project: (project_id: string, compute_server_id?: number) => void;
   set_connected?: Function;
   is_deleted: (path: string, project_id: string) => true | false | undefined;
+  callNatsService?: CallNatsServiceFunction;
+  createNatsService?: CreateNatsServiceFunction;
+  client_id?: () => string | undefined;
 }
 
 export interface ClientFs extends Client {

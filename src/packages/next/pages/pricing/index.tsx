@@ -90,13 +90,11 @@ const dataSource: DataSource = [
   {
     link: "/pricing/onprem",
     title: "On-Premises Installations",
-    logo: "network-wired",
+    logo: "server",
     description: (
       <>
         You can run CoCalc on{" "}
-        <A href="/pricing/onprem">
-          your own Kubernetes cluster, starting at $3,000/year.
-        </A>
+        <A href="/pricing/onprem">your own Kubernetes cluster.</A>
       </>
     ),
   },

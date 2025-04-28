@@ -35,17 +35,18 @@ systemctl restart systemd-timesyncd
 }
 
 // Install lightweight version of nodejs that we can depend on.
-// Note that the exact version is VERY important, e.g., the most
-// recent 18.x and 20.x versions totally broke node-pty in horrible
-// ways... so we really can't depend on something random for node,
-// hence the version is hard coded here.  See https://github.com/sagemathinc/cocalc/issues/6963
-const NODE_VERSION = "18.17.1";
+// This has to be API compatible with the version used when building the @cocalc/compute-server package
+// since code (e.g., zeromq) built as part of that will be used by this node.
+const NODE_VERSION = "20";
 
 // see https://github.com/nvm-sh/nvm#install--update-script for this version:
-const NVM_VERSION = "0.39.5";
+const NVM_VERSION = "0.40.2";
+// We delete nvm first, then install it.   Otherwise, when slightly older versions are
+// there things can get confusing and broken.  It's 170MB, so this isn't a killer.
 export function installNode() {
   return `
-mkdir -p /cocalc/nvm
+rm -rf /cocalc/nvm/
+mkdir  /cocalc/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | NVM_DIR=/cocalc/nvm PROFILE=/dev/null bash
 set +v
 source /cocalc/nvm/nvm.sh

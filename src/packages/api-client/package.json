@@ -22,8 +22,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
-    "@cocalc/backend": "workspace:*",
-    "tsimportlib": "^0.0.5"
+    "@cocalc/backend": "workspace:*"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {

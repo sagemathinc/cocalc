@@ -664,7 +664,14 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       getValueRef.current = cm.current.getValue.bind(cm.current);
     }
 
-    cm.current.save = () => actions.save();
+    cm.current.save = () => {
+      // before saving to disk, also make sure the latest version of
+      // the contents of the codemirror is in the notebook.  E.g., a user
+      // often types something then immediately "control+s", which must
+      // include what they *just* typed.
+      cm_save();
+      actions.save();
+    };
 
     // needed for vim support -- see src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
     cm.current.cocalc_actions = { save: cm.current.save };
@@ -812,7 +819,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           }}
           onClick={focus_cm}
         >
-          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 10px" }}>
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 20px" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
           <a

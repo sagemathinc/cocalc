@@ -9,6 +9,12 @@ import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
+import { parseReq } from "./parse";
+import { readFile as readProjectFile } from "@cocalc/nats/files/read";
+import { path_split } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
+import hasAccess from "./check-for-access-to-project";
+import mime from "mime-types";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -44,7 +50,8 @@ export default function init({ projectControl, isPersonal }: Options) {
       logger.silly(req.url, ...args);
     };
     dbg("got request");
-    dbg("headers = ", req.headers);
+    // dangerous/verbose to log...?
+    // dbg("headers = ", req.headers);
 
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");
@@ -76,12 +83,65 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     const url = stripBasePath(req.url);
+    const parsed = parseReq(url, remember_me, api_key);
+    // TODO: parseReq is called again in getTarget so need to refactor...
+    const { type, project_id } = parsed;
+    if (type == "files") {
+      dbg("handling the request via nats");
+      if (
+        !(await hasAccess({
+          project_id,
+          remember_me,
+          api_key,
+          type: "read",
+          isPersonal,
+        }))
+      ) {
+        throw Error(`user does not have read access to project`);
+      }
+      const i = url.indexOf("files/");
+      const compute_server_id = req.query.id ?? 0;
+      let j = url.lastIndexOf("?");
+      if (j == -1) {
+        j = url.length;
+      }
+      const path = decodeURIComponent(url.slice(i + "files/".length, j));
+      dbg("NATs: get", { project_id, path, compute_server_id, url });
+      const fileName = path_split(path).tail;
+      if (req.query.download != null) {
+        const fileNameEncoded = encodeURIComponent(fileName)
+          .replace(/['()]/g, escape)
+          .replace(/\*/g, "%2A");
+        res.setHeader(
+          "Content-disposition",
+          `attachment; filename*=UTF-8''${fileNameEncoded}`,
+        );
+      }
+      res.setHeader("Content-type", mime.lookup(fileName));
+      for await (const chunk of await readProjectFile({
+        project_id,
+        compute_server_id,
+        path,
+        // allow a long download time (1 hour), since files can be large and
+        // networks can be slow.
+        maxWait: 1000 * 60 * 60,
+      })) {
+        if (!res.write(chunk)) {
+          // backpressure -- wait for it to resolve
+          await once(res, "drain");
+        }
+      }
+      res.end();
+      return;
+    }
+
     const { host, port, internal_url } = await getTarget({
       remember_me,
       api_key,
       url,
       isPersonal,
       projectControl,
+      parsed,
     });
 
     // It's http here because we've already got past the ssl layer.  This is all internal.

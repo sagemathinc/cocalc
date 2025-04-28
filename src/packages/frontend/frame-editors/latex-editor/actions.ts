@@ -664,16 +664,24 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public async explicit_save() {
-    const account: any = this.redux.getStore("account");
+    const account = this.redux.getStore("account");
     if (
-      account == null ||
-      !account.getIn(["editor_settings", "build_on_save"]) ||
+      !account?.getIn(["editor_settings", "build_on_save"]) ||
       !this.is_likely_master()
     ) {
-      await this.save_all(true);
+      // kicks off a save of all relevant files
+      // Obviously, do not make this save_all(true), because
+      // that would end up calling this very function again
+      // crashing the browser in an INFINITE RECURSSION
+      // (this was a bug for a while!).
+      // Also, the save of the related files is NOT
+      // explicit -- the user is only explicitly saving this
+      // file.  Explicit save is mainly about deleting trailing
+      // whitespace and launching builds.
+      await this.save_all(false);
       return;
     }
-    await this.build(); // kicks off a save of all relevant files
+    await this.build();
   }
 
   // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence

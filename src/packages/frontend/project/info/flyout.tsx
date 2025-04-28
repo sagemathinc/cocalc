@@ -63,6 +63,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     error,
     info,
     loading,
+    project_actions,
     project_state,
     project_status,
     status,
@@ -95,8 +96,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
             pid={procRow.pid}
             loading={loading}
             processes={info.processes}
-            chan={chan}
             small={true}
+            project_actions={project_actions}
           />
         }
       />

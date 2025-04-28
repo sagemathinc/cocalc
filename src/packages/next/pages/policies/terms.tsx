@@ -33,7 +33,7 @@ export default function TermsOfService({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Terms of Service</h1>
-              <h2>Last Updated: July 30, 2024</h2>
+              <h2>Last Updated: January 27, 2025</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -75,26 +75,6 @@ export default function TermsOfService({ customize }) {
                 may change or discontinue all or any part of the Services, at
                 any time and without notice, at our sole discretion.{" "}
               </p>
-              <h1>Beta Testing Disclaimer</h1>
-              <p>
-                You understand and agree that the Services are released for beta
-                testing only, and may not be at the level of performance of a
-                commercially available product offering. The Services may not
-                operate correctly and may be substantially modified prior to
-                first commercial release.{" "}
-                <span className="uppercase">
-                  All Services provided hereunder are in various stages of
-                  development and are likely to contain defects. a primary
-                  purpose of granting you access to our Services in this
-                  beta-testing phase is to obtain feedback on THE services’
-                  performance and the identification of defects. we are under no
-                  obligation to correct or cure defects that have been
-                  identified. You are advised to safeguard important data, to
-                  use caution when using and not to rely in any way on the
-                  correct functioning or performance of the Services. you assume
-                  The entire risk arising out of the use of the Services.{" "}
-                </span>{" "}
-              </p>
               <h1>Who May Use the Services</h1>
               <h2>Eligibility</h2>
               <p>
@@ -115,23 +95,24 @@ export default function TermsOfService({ customize }) {
                 support student privacy requirements.){" "}
               </p>
               <h1>Using the Services</h1>
+              <h2>Projects and Files</h2>
               <p>
                 The Services offer a web-based environment through which users
                 can use SageMath and other open source math software online in
                 connection with mathematical research and teaching and the
                 performance of computational mathematics. Through their
                 Accounts, users can create multiple projects ("<b>Project</b>"),
-                each of which acts as a file system with multiple directories,
-                inside of which a user can create and edit any number of files
-                of any type (such as Latex documents, IPython notebooks, and
-                SageMath worksheets) as well as write, compile, and run software
-                code in various programming languages (such files and code
-                collectively, "<b>Files</b>"). You’ll be able to share your
-                Files with other users of the Services, as well as enable them
-                to contribute to and build upon them and share them as well.
-                When you create Files, you can, if you choose, specify the terms
-                and conditions that govern other users’ use of your Files (e.g.
-                a specific software or creative commons license) ("
+                each of which acts as a virtual computer with a file system with
+                multiple directories, inside of which a user can create and edit
+                any number of files of any type (such as Latex documents,
+                Jupyter notebooks, and many others) as well as write, compile,
+                and run software code in various programming languages (such
+                files and code collectively, "<b>Files</b>"). You’ll be able to
+                share your Files with other users of the Services, as well as
+                enable them to contribute to and build upon them and share them
+                as well. When you create Files, you can, if you choose, specify
+                the terms and conditions that govern other users’ use of your
+                Files (e.g. a specific software or creative commons license) ("
                 <b>File License</b>"). Similarly, if you download, access or use
                 another user’s Files through the Services, you agree that you
                 will use such Files strictly in accordance with the File License
@@ -139,6 +120,7 @@ export default function TermsOfService({ customize }) {
                 the Services. If you don’t agree with the terms of a File
                 License, then you may not use the applicable Files.{" "}
               </p>
+              <h2>Collaborators</h2>
               <p>
                 You can elect to share your Files (which comprise User Content
                 (defined below)) with one or more Account holders of your
@@ -159,6 +141,7 @@ export default function TermsOfService({ customize }) {
                 will have the same rights to access and use your Files as those
                 granted to Collaborators in this paragraph.{" "}
               </p>
+              <h2>Posting</h2>
               <p>
                 You may also make your Files available to a broader audience by
                 posting them through our Services (hereinafter, "<b>Posting</b>
@@ -178,6 +161,11 @@ export default function TermsOfService({ customize }) {
                   revoke this license, so we encourage you to consider carefully
                   before POSTING.{" "}
                 </span>{" "}
+              </p>
+              <h2>Commercial Use</h2>
+              <p>
+                In order to use the Services for commercial purposes, you must
+                obtain a business license or subscription.
               </p>
               <h1>API Terms</h1>
               <p>
@@ -217,57 +205,66 @@ export default function TermsOfService({ customize }) {
               </ul>
               <h1>Payments and Refunds</h1>
               <p>
-                Your subscription to use the Services can be on a free or paid
-                basis. If you are using the Services pursuant to a paid plan (or
-                you upgrade from a free to a paid plan) you must provide SMI
-                with complete and accurate billing and contact information. You
-                will be billed immediately upon an upgrade from the free plan to
-                any paid plan. Paid plans may include free temporary trial
-                periods. For paid plans where payment is due on a monthly or
-                annual basis, you will be billed for the Services in advance on
-                a non-refundable basis for the next period or a portion of it.
-                There will be no refunds or credits for partial months or years
-                of service, upgrade/downgrade refunds, or refunds for months
-                unused with an open Account. Pay-As-You-Go Services may require
-                you to put CoCalc Credit on your account before you can access
-                them. CoCalc Credit is given on a non-refundable basis. No
-                exceptions will be made except for billing errors. All fees due
-                hereunder in connection with the Services are exclusive of all
-                taxes, levies, or duties imposed by taxing authorities, and you
-                shall be responsible for payment of all such taxes, levies, or
-                duties, excluding only United States (federal or state) taxes on
-                SMI’s net income. Downgrading your plan may cause the loss of
-                access to Content, features, or capacity of your Account. SMI
-                does not accept any liability for such loss. We may suspend or
-                terminate the subscription Services if fees are 30 days past
-                due. Pay-As-You-Go services may be suspended or terminated
-                immediately, if your CoCalc credit balance becomes negative. You
-                agree to pay, and authorize SMI’s third party payment processor
-                to charge using your selected payment method, for all applicable
+                Your use of the Services can be on a free trial or paid basis.
+                If you are using the Services pursuant to a paid plan (or you
+                upgrade from a free to a paid plan) you must provide SMI with
+                complete and accurate billing and contact information. You will
+                be billed immediately upon an upgrade from the free plan to any
+                paid plan. Paid plans may include free temporary trial periods.
+                All payments are done on a non-refundable basis except for
+                billing errors. All fees due hereunder in connection with the
+                Services are exclusive of all taxes, levies, or duties imposed
+                by taxing authorities, and you shall be responsible for payment
+                of all such taxes, levies, or duties, excluding only United
+                States (federal or state) taxes on SMI’s net income. You agree
+                to pay, and authorize SMI’s third party payment processor to
+                charge using your selected payment method, for all applicable
                 fees and taxes that may accrue in relation to your use of the
-                Services. The fees for your subscription to use the Services are
-                set forth at <A href="/pricing">https://cocalc.com/pricing</A>.
-                Pricing for the Services, including but not limited to monthly
-                subscription plan fees, are subject to change upon thirty (30)
-                days’ notice from SMI. Such notice may be provided at any time
-                by posting the changes to the Site or the Service itself.{" "}
+                Services. Downgrading your plan may cause the loss of access to
+                Content, features, or capacity of your Account. SMI does not
+                accept any liability for such loss.
               </p>
+              <h2>Licenses and Subscriptions</h2>
               <p>
-                In order to use the Services for commercial purposes, you must
-                obtain business license or subscription.
+                A license allows you to use the Services with configurable
+                resources. It may have either set start and end dates, or be an
+                automatically renewing subscription. For subscriptions where
+                payment is due on a monthly or annual basis, you will be billed
+                for the Services five (5) days in advance for the next period.
+                We may suspend or terminate the subscription Services if fees
+                are past due. There will be no refunds or credits for partial
+                months or years of service or refunds for months unused with an
+                open Account. The fees for your subscription to use the Services
+                are subject to change upon thirty (30) days’ notice from SMI.
+                Such notice may be provided at any time by posting the changes
+                to the Site or the Service itself.{" "}
+              </p>
+              <h2>CoCalc Credit and Pay-As-You-Go Services</h2>
+              <p>
+                Some Services, such as compute servers, may require you to put
+                CoCalc Credit on your Account before you can access them. CoCalc
+                Credit has no cash value and is given on a non-refundable basis.
+                It may be used, however, towards any of the Pay-As-You-Go
+                services or to purchase licenses and subscriptions.
+                Pay-As-You-Go services may be suspended or terminated
+                immediately, if your CoCalc credit balance becomes negative. The
+                fees for Pay-As-You-Go Services are subject to change without
+                any advance notice at any time by posting the changes to the
+                Site or the Service itself. Typically these changes mirror fee
+                changes by cloud providers that we utilize.
               </p>
               <h1>Feedback</h1>
               <p>
                 We welcome feedback, comments and suggestions for improvements
                 to the Services ("<b>Feedback</b>"). You can submit Feedback by
-                emailing us{" "}
-                <A href="mailto:office@sagemath.com">office@sagemath.com</A>.
-                You grant to us a non-exclusive, worldwide, perpetual,
-                irrevocable, fully-paid, royalty-free, sublicensable and
-                transferable license under any and all intellectual property
-                rights that you own or control to use, copy, modify, create
-                derivative works based upon and otherwise exploit the Feedback
-                for any purpose.{" "}
+                emailing us at{" "}
+                <A href="mailto:help@sagemath.com">help@sagemath.com</A> or
+                using internal messaging system. You grant to us a
+                non-exclusive, worldwide, perpetual, irrevocable, fully-paid,
+                royalty-free, sublicensable and transferable license under any
+                and all intellectual property rights that you own or control to
+                use, copy, modify, create derivative works based upon and
+                otherwise exploit the Feedback for any purpose.{" "}
               </p>
               <h1>Privacy Policy</h1>
               <p>
@@ -343,7 +340,7 @@ export default function TermsOfService({ customize }) {
                 various users’ use of the Services, but not specifically
                 identifying you).{" "}
               </p>
-              <h3>Rights in Content Granted by SMI</h3>
+              <h2>Rights in Content Granted by SMI</h2>
               <p>
                 Subject to your compliance with these Terms, SMI grants you, if
                 you are a non-Account holder user of the Services, a limited,
@@ -762,8 +759,8 @@ export default function TermsOfService({ customize }) {
                 The look and feel of the Services is copyright ©2015 Sagemath,
                 Inc. All rights reserved. You may only duplicate, copy, or reuse
                 any portion of the HTML/CSS, Javascript, or visual design
-                elements or concepts under the terms of the GNU Affero General
-                Public License, version 3, as stated at{" "}
+                elements or concepts under the terms of the MICROSOFT REFERENCE
+                SOURCE LICENSE (MS-RSL), as stated at{" "}
                 <A href="https://github.com/sagemathinc/cocalc">
                   {" "}
                   https://github.com/sagemathinc/cocalc{" "}
@@ -774,7 +771,7 @@ export default function TermsOfService({ customize }) {
               <p>
                 If you have any questions about these Terms or the Services,
                 please contact SMI at{" "}
-                <A href="mailto:office@sagemath.com">office@sagemath.com</A>.
+                <A href="mailto:help@sagemath.com">help@sagemath.com</A>.
               </p>
             </div>
           </div>

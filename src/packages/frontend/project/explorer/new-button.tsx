@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, MenuProps } from "antd";
+import { Button, type MenuProps, Space } from "antd";
 import { useIntl } from "react-intl";
 
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
@@ -128,12 +128,12 @@ export const NewButton: React.FC<Props> = (props: Props) => {
   ];
 
   return (
-    <Button.Group>
+    <Space.Compact>
       <Button onClick={on_create_button_clicked} disabled={disabled}>
         {file_dropdown_icon()}{" "}
       </Button>
 
       <DropdownMenu title={""} button={true} items={items} />
-    </Button.Group>
+    </Space.Compact>
   );
 };

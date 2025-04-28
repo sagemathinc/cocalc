@@ -4,7 +4,7 @@
  */
 
 /*
-miniterm.cjsx -- a small terminal that lets you enter a single bash command.
+a small terminal that lets you enter a single bash command.
 
 IDEAS FOR LATER:
 
@@ -12,6 +12,8 @@ IDEAS FOR LATER:
  - [ ] tab completion
  - [ ] mode to evaluate in another program, e.g., %gp <...>
  - [ ] help
+
+@cspell:ignore miniterminal miniterm
 
 */
 import { Button, Input, Space } from "antd";
@@ -21,27 +23,26 @@ import { React, redux, useRef, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { COLORS } from "@cocalc/util/theme";
 
 // used to run the command -- could change to use an action and the store.
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { unreachable } from "@cocalc/util/misc";
 
-const WIDTH = "256px";
-
-export const output_style_searchbox: React.CSSProperties = {
+export const outputSearchBoxStyle: React.CSSProperties = {
   background: "white",
   position: "absolute",
   zIndex: 2,
-  width: WIDTH,
   boxShadow: "-4px 4px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
   borderRadius: "5px",
 } as const;
 
-export const output_style_miniterm: React.CSSProperties = {
+export const outputMinitermStyle: React.CSSProperties = {
   background: "white",
   position: "absolute",
   zIndex: 2,
@@ -71,14 +72,14 @@ const EXEC_TIMEOUT = 10; // in seconds
 
 interface Props {
   current_path: string;
-  project_id: string;
   actions: ProjectActions;
   show_close_x?: boolean;
 }
 
 const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
-  const { current_path, project_id, actions, show_close_x = true } = props;
+  const { current_path, actions, show_close_x = true } = props;
   const intl = useIntl();
+  const { project_id } = useProjectContext();
 
   //private _id: number = 0;
   const _id = useRef<number>(0);
@@ -115,7 +116,7 @@ const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
       ?.get("compute_server_id");
 
     webapp_client.exec({
-      project_id: project_id,
+      project_id,
       command: input0,
       timeout: EXEC_TIMEOUT,
       max_output: 100000,
@@ -188,17 +189,16 @@ const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
   function render_button() {
     switch (state) {
       case "edit":
-        return (
-          <Button style={{ height: "33px" }} onClick={execute_command}>
-            <Icon name="play" />
-          </Button>
-        );
+        return <Button onClick={execute_command} icon={<Icon name="play" />} />;
       case "run":
         return (
-          <Button style={{ height: "33px" }} onClick={execute_command}>
-            <Icon name="cocalc-ring" spin />
-          </Button>
+          <Button
+            onClick={execute_command}
+            icon={<Icon name="cocalc-ring" spin />}
+          />
         );
+      default:
+        unreachable(state);
     }
   }
 
@@ -236,49 +236,56 @@ const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
     }
   }
 
+  function submit(e) {
+    e.preventDefault();
+    execute_command();
+  }
+
   function keydown(e) {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
     //# e.persist(); window.e = e  # for debugging
-    if (e.keyCode === 27) {
-      set_input("");
-      set_stdout("");
-      set_error("");
+    switch (e.key) {
+      case "Escape":
+        set_stdout("");
+        set_error("");
+        set_input("");
+        break;
+      case "Enter":
+        submit(e);
+        break;
     }
   }
 
   // We don't use inline, since we still want the full horizontal width.
   return (
     <>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          execute_command();
-        }}
-      >
-        <Space.Compact style={{ width: WIDTH, float: "right" }}>
-          <Input
-            allowClear
-            type="text"
-            value={input}
-            placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
-            onChange={(e) => {
-              e.preventDefault();
-              const input_val = e?.target?.value;
-              if (!input_val) {
-                set_stdout("");
-                set_error("");
-              }
-              if (input_val == null) return;
-              set_input(input_val);
-            }}
-            onKeyDown={keydown}
-          />
-          {render_button()}
-        </Space.Compact>
-      </form>
-      <div style={output_style_miniterm}>
+      <Space.Compact style={{ width: "100%" }}>
+        <Input
+          allowClear
+          autoFocus
+          type="text"
+          value={input}
+          placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
+          style={{ width: "100%" }}
+          addonAfter={render_button()}
+          onChange={(e) => {
+            e.preventDefault();
+            const input_val = e?.target?.value;
+            if (!input_val) {
+              set_stdout("");
+              set_error("");
+            }
+            if (input_val == null) return;
+            set_input(input_val);
+          }}
+          onKeyDown={keydown}
+          onSubmit={submit}
+        />
+      </Space.Compact>
+
+      <div style={outputMinitermStyle}>
         {render_output(stdout, { margin: 0 })}
         {render_output(error, {
           color: "darkred",
@@ -290,9 +297,9 @@ const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
 };
 
 export const MiniTerminal: React.FC<Props> = (props) => {
-  const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id,
-  );
+  const { project_id } = useProjectContext();
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
   if (student_project_functionality.disableTerminals) {
     return <></>;
   }

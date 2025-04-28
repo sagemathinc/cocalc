@@ -49,9 +49,6 @@ misc = require('@cocalc/util/misc')
 # Ensure CodeMirror is available and configured
 CodeMirror = require("codemirror")
 
-# Ensure the console jquery plugin is available
-require('./console')
-
 # SMELL: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('@cocalc/util/misc')
@@ -1637,54 +1634,6 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
     E.save = E.syncdoc?.save
     return E
 
-class Terminal extends FileEditor
-    constructor: (project_id, filename, content, opts) ->
-        super(project_id, filename)
-        @element = $("<div>").hide()
-        elt = @element.webapp_console
-            title      : "Terminal"
-            filename   : @filename
-            project_id : @project_id
-            path       : @filename
-            editor     : @
-        @console = elt.data("console")
-        @console.is_hidden = true
-        @element = @console.element
-        @console.blur()
-
-    _get: =>  # FUTURE ??
-        return @opts.session_uuid ? ''
-
-    _set: (content) =>  # FUTURE ??
-
-    save: =>
-        # DO nothing -- a no-op for now
-        # FUTURE: Add notion of history
-        cb?()
-
-    focus: =>
-        @console?.is_hidden = false
-        @console?.focus()
-
-    blur: =>
-        @console?.is_hidden = false
-        @console?.blur()
-
-    terminate_session: () =>
-
-    remove: =>
-        @element.webapp_console(false)
-        super()
-
-    hide: =>
-        @console?.is_hidden = true
-        @console?.blur()
-
-    _show: () =>
-        @console?.is_hidden = false
-        @console?.resize_terminal()
-
-
 
 class FileEditorWrapper extends FileEditor
     constructor: (project_id, filename, content, opts) ->
@@ -1763,9 +1712,6 @@ exports.register_nonreact_editors = ->
                 if not e.ext?
                     console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
                 return e
-
-    if feature.IS_TOUCH
-        register(false, Terminal, ['term', 'sage-term'])
 
     # Editing Sage worksheets
     reg

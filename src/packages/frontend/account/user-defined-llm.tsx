@@ -42,6 +42,8 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc, unreachable } from "@cocalc/util/misc";
 
+// @cspell:ignore mixtral userdefined
+
 interface Props {
   on_change: (name: string, value: any) => void;
 }
@@ -260,7 +262,7 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
       case "mistralai":
         return "'open-mixtral-8x22b'";
       case "google":
-        return "'gemini-1.5-flash'";
+        return "'gemini-2.0-flash'";
       default:
         unreachable(service);
         return "'llama3:latest'";
@@ -403,7 +405,7 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
 
 function TestCustomLLM({ llm }: { llm: UserDefinedLLM }) {
   const [querying, setQuerying] = useState<boolean>(false);
-  const [prompt, setPrompt] = useState<string>("Capital of Australia?");
+  const [prompt, setPrompt] = useState<string>("Capital city of Australia?");
   const [reply, setReply] = useState<string>("");
   const [error, setError] = useState<string>("");
 

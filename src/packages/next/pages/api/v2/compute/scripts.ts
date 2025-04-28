@@ -11,7 +11,7 @@ import {
   getStopScript,
   getDeprovisionScript,
 } from "@cocalc/server/compute/control";
-import { getAccountWithApiKey as getProjectIdWithApiKey } from "@cocalc/server/api/manage";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 import getPool from "@cocalc/database/pool";
 
@@ -46,7 +46,7 @@ export async function getScript({
   id: number;
   action: "start" | "stop" | "deprovision";
 }): Promise<string> {
-  const project_id = await getProjectIdWithApiKey(api_key);
+  const { project_id } = (await getAccountWithApiKey(api_key)) ?? {};
   if (!project_id) {
     throw Error("api_key must be a valid project api key");
   }

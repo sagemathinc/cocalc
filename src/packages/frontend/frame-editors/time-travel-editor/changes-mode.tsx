@@ -4,18 +4,16 @@
  */
 
 import { Checkbox, Tooltip } from "antd";
-import { TimeTravelActions } from "./actions";
 
 interface Props {
-  id: string;
-  actions: TimeTravelActions;
   disabled: boolean;
-  changes_mode: boolean; // whether or not in changes mode.
+  changesMode: boolean; // whether or not in changes mode.
+  setChangesMode: (boolean) => void;
 }
 
-export function ChangesMode(props: Props) {
+export function ChangesMode({ disabled, changesMode, setChangesMode }: Props) {
   const toggle = () => {
-    props.actions.set_changes_mode(props.id, !props.changes_mode);
+    setChangesMode(!changesMode);
   };
 
   return (
@@ -25,9 +23,9 @@ export function ChangesMode(props: Props) {
       mouseEnterDelay={1}
     >
       <Checkbox
-        disabled={props.disabled}
+        disabled={disabled}
         onChange={toggle}
-        checked={props.disabled ? false : props.changes_mode}
+        checked={disabled ? false : changesMode}
       >
         Changes
       </Checkbox>

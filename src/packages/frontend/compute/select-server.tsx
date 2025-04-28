@@ -1,11 +1,10 @@
 /*
-Dropdown on frame title bar for running that Jupyter notebook or terminal on a compute server.
+Dropdown on frame title bar for running that on a compute server.
 */
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
-
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";
@@ -171,6 +170,7 @@ export default function SelectServer({
             state: "",
             label: (
               <Tooltip
+                mouseEnterDelay={1}
                 title="The Home Base is the core of your project; it contains your primary files and has limited compute resources to work with them. You can upgrade it using a license.  For GPUs, high end CPUs, and root access use a compute server."
                 placement="right"
               >

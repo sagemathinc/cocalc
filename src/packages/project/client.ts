@@ -27,7 +27,7 @@ import { join } from "node:path";
 import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
@@ -48,43 +48,59 @@ import * as sage_session from "./sage_session";
 import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
+import synctable_nats from "@cocalc/project/nats/synctable";
+import pubsub from "@cocalc/project/nats/pubsub";
+import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
+import {
+  callNatsService,
+  createNatsService,
+  type CallNatsServiceFunction,
+  type CreateNatsServiceFunction,
+} from "@cocalc/nats/service";
+import type { NatsEnvFunction } from "@cocalc/nats/types";
 
 const winston = getLogger("client");
 
 const HOME = process.env.HOME ?? "/home/user";
 
-let DEBUG = false;
-// Easy way to enable debugging in any project anywhere.
-const DEBUG_FILE = join(HOME, ".smc-DEBUG");
-if (fs.existsSync(DEBUG_FILE)) {
-  DEBUG = true;
-} else if (kucalc.IN_KUCALC) {
-  // always make verbose in kucalc, since logs are taken care of by the k8s
-  // logging infrastructure...
-  DEBUG = true;
-} else {
-  winston.info(
-    "create this file to enable very verbose debugging:",
-    DEBUG_FILE,
-  );
+let DEBUG = !!kucalc.IN_KUCALC;
+
+export function initDEBUG() {
+  if (DEBUG) {
+    return;
+  }
+  // // Easy way to enable debugging in any project anywhere.
+  const DEBUG_FILE = join(HOME, ".smc-DEBUG");
+  fs.access(DEBUG_FILE, (err) => {
+    if (err) {
+      // no file
+      winston.info(
+        "create this file to enable very verbose debugging:",
+        DEBUG_FILE,
+      );
+      return;
+    } else {
+      DEBUG = true;
+    }
+    winston.info(`DEBUG = ${DEBUG}`);
+  });
 }
 
-winston.info(`DEBUG = ${DEBUG}`);
-if (!DEBUG) {
-  winston.info(`create ${DEBUG_FILE} for much more verbose logging`);
-}
-
-let client: Client;
+let client: Client | null = null;
 
 export function init() {
   if (client != null) {
-    throw Error("BUG: Client already initialized!");
+    return client;
   }
   client = new Client();
   return client;
 }
 
 export function getClient(): Client {
+  if (client == null) {
+    init();
+  }
   if (client == null) {
     throw Error("BUG: Client not initialized!");
   }
@@ -96,7 +112,7 @@ let ALREADY_CREATED = false;
 type HubCB = CB<any, { event: "error"; error?: string }>;
 
 export class Client extends EventEmitter implements ProjectClientInterface {
-  private project_id: string;
+  public readonly project_id: string;
   private _connected: boolean;
 
   private _hub_callbacks: {
@@ -137,6 +153,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       throw Error("BUG: Client already created!");
     }
     ALREADY_CREATED = true;
+    if (process.env.HOME != null) {
+      // client assumes curdir is HOME
+      process.chdir(process.env.HOME);
+    }
     this.project_id = data.project_id;
     this.dbg("constructor")();
     this.setMaxListeners(300); // every open file/table/sync db listens for connect event, which adds up.
@@ -500,6 +520,27 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
+  synctable_nats: NatsSyncTableFunction = async (query, options?) => {
+    return await synctable_nats(query, options);
+  };
+
+  pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
+    return await pubsub({ path, name });
+  };
+
+  callNatsService: CallNatsServiceFunction = async (options) => {
+    return await callNatsService(options);
+  };
+
+  createNatsService: CreateNatsServiceFunction = (options) => {
+    return createNatsService({
+      ...options,
+      project_id: this.project_id,
+    });
+  };
+
+  getNatsEnv: NatsEnvFunction = async () => await getNatsEnv();
+
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
 
@@ -612,7 +653,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string, _compute_server_id?:number) {}
+  touch_project(_project_id: string, _compute_server_id?: number) {}
 
   async get_syncdoc_history(string_id: string, patches = false) {
     const dbg = this.dbg("get_syncdoc_history");
@@ -628,7 +669,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // Returns unknown if don't know
   // Returns false if definitely not.
   public is_deleted(filename: string, _project_id: string) {
-    return getListingsTable()?.isDeleted(filename);
+    return !!getListingsTable()?.isDeleted(filename);
   }
 
   public async set_deleted(

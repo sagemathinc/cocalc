@@ -346,7 +346,13 @@ export interface PostgreSQL extends EventEmitter {
 
   set_project_status(opts: { project_id: string; status: ProjectStatus }): void;
 
-  touch(opts: { project_id: string; account_id: string; cb: CB });
+  touch(opts: {
+    project_id?: string;
+    account_id: string;
+    action?: string;
+    path?: string;
+    cb: CB;
+  });
 
   get_project_extra_env(opts: { project_id: string; cb: CB }): void;
 
@@ -376,8 +382,6 @@ export interface PostgreSQL extends EventEmitter {
     cutoff?: Date;
     cb?: CB;
   });
-
-  unarchivePatches(string_id: string);
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

@@ -41,18 +41,6 @@ describe("test archiving and unarchiving syncstrings with no edit history", () =
     expect(rows[0].archived.length).toBe(36);
     expect(rows[1].archived.length).toBe(36);
   });
-
-  it("unarchives their history", async () => {
-    const d = db();
-    await d.unarchivePatches(string_id);
-    await d.unarchivePatches(string_id2);
-    const { rows } = await pool.query(
-      "SELECT archived from syncstrings WHERE string_id=$1 OR string_id=$2",
-      [string_id, string_id2],
-    );
-    expect(rows[0].archived).toBe(null);
-    expect(rows[1].archived).toBe(null);
-  });
 });
 
 describe("test archiving and unarchiving two syncstrings with nontrivial but equal edit histories", () => {
@@ -75,11 +63,11 @@ describe("test archiving and unarchiving two syncstrings with nontrivial but equ
       [string_id2, project_id, path2],
     );
     await pool.query(
-      "INSERT INTO patches(string_id,time,patch) VALUES($1,$2,$3)",
+      "INSERT INTO patches(string_id,time,patch,is_snapshot) VALUES($1,$2,$3,false)",
       [string_id, time, patch],
     );
     await pool.query(
-      "INSERT INTO patches(string_id,time,patch) VALUES($1,$2,$3)",
+      "INSERT INTO patches(string_id,time,patch,is_snapshot) VALUES($1,$2,$3,false)",
       [string_id2, time, patch],
     );
   });
@@ -99,29 +87,5 @@ describe("test archiving and unarchiving two syncstrings with nontrivial but equ
       [string_id, string_id2],
     );
     expect(rows2[0].count).toBe("0");
-  });
-
-  it("unarchives their history", async () => {
-    const d = db();
-    await d.unarchivePatches(string_id);
-    await d.unarchivePatches(string_id2);
-    const { rows } = await pool.query(
-      "SELECT archived from syncstrings WHERE string_id=$1 OR string_id=$2",
-      [string_id, string_id2],
-    );
-    expect(rows[0].archived).toBe(null);
-    expect(rows[1].archived).toBe(null);
-    const { rows: rows2 } = await pool.query(
-      "SELECT count(*) AS count from patches where string_id=$1 OR string_id=$2",
-      [string_id, string_id2],
-    );
-    expect(rows2[0].count).toBe("2");
-
-    const { rows: rows3 } = await pool.query(
-      "SELECT patch from patches where string_id=$1 OR string_id=$2",
-      [string_id, string_id2],
-    );
-    expect(rows3[0].patch).toBe(patch);
-    expect(rows3[1].patch).toBe(patch);
   });
 });

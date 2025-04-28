@@ -8,7 +8,6 @@ Synchronized table that tracks server settings.
 */
 
 import { isEmpty } from "lodash";
-
 import { once } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { AllSiteSettings } from "@cocalc/util/db-schema/types";
@@ -27,7 +26,11 @@ import { database } from "./database";
 export interface ServerSettingsDynamic {
   all: AllSiteSettings;
   pub: object;
-  version: object;
+  version: {
+    version_min_browser?: number;
+    version_recommended_browser?: number;
+    version_min_project?: number;
+  };
   table: any;
 }
 

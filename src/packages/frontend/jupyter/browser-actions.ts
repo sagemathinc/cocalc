@@ -10,7 +10,6 @@ web browser frontend.
 import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
-
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -26,7 +25,15 @@ import { CellToolbarName } from "@cocalc/jupyter/types";
 import { callback2, once } from "@cocalc/util/async-utils";
 import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
 import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
-import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
+import {
+  closest_kernel_match,
+  from_json,
+  history_path,
+  merge_copy,
+  to_json,
+  uuid,
+  uint8ArrayToBase64,
+} from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
@@ -38,6 +45,20 @@ import { CursorManager } from "./cursor-manager";
 import { NBGraderActions } from "./nbgrader/actions";
 import * as parsing from "./parsing";
 import { WidgetManager } from "./widgets/manager";
+import { retry_until_success } from "@cocalc/util/async-utils";
+import type { Kernels, Kernel } from "@cocalc/jupyter/util/misc";
+import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
+import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
+import { cloneDeep } from "lodash";
+import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
+import exportToHTML from "./nbviewer/export";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import { parse } from "path";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
+import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+
+// local cache: map project_id (string) -> kernels (immutable)
+let jupyter_kernels = Map<string, Kernels>();
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -46,9 +67,10 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
-  private lastComputeServerId?: number;
+  private syncdbPath: string;
 
   protected init2(): void {
+    this.syncdbPath = syncdbPath(this.path);
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
@@ -90,6 +112,8 @@ export class JupyterActions extends JupyterActions0 {
       // run progress
       this.updateRunProgress();
     });
+
+    this.fetch_jupyter_kernels();
 
     // Load kernel (once ipynb file loads).
     (async () => {
@@ -337,12 +361,6 @@ export class JupyterActions extends JupyterActions0 {
     if (cells != null) {
       this.setState({ cells });
     }
-    const computeServerId = this.cursor_manager.computeServerId(cursors);
-    if (computeServerId != this.lastComputeServerId) {
-      this.lastComputeServerId = computeServerId;
-      this.fetch_jupyter_kernels();
-    }
-    this.setState({ computeServerId });
   };
 
   private account_change(state: Map<string, any>): void {
@@ -473,14 +491,14 @@ export class JupyterActions extends JupyterActions0 {
       buffers64 = [];
     }
     const msg = { msg_id, target_name, comm_id, data, buffers64 };
-    await this.api_call("comm", msg);
+    await this.api().comm(msg);
     // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
   };
 
   ipywidgetsGetBuffer = reuseInFlight(
     async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
-      const { buffer64 } = await this.api_call("ipywidgets-get-buffer", {
+      const { buffer64 } = await this.api().ipywidgetsGetBuffer({
         model_id,
         buffer_path,
       });
@@ -617,6 +635,12 @@ export class JupyterActions extends JupyterActions0 {
       console.warn("nbconvert: syncdb not available, aborting...");
       return;
     }
+
+    if (args[1] == "cocalc-html" || args[1] == "cocalc-pdf") {
+      this.nbconvertToHtml();
+      return;
+    }
+
     this.syncdb.set({
       type: "nbconvert",
       args,
@@ -637,7 +661,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     let error;
     try {
-      error = await this.api_call("store", { key });
+      error = await this.api().store({ key });
     } catch (err) {
       this.set_error(err);
       return;
@@ -965,4 +989,445 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.check_select_kernel();
   }
+
+  getComputeServerIdSync = (): number => {
+    return (
+      webapp_client.project_client.getServerIdForPathSync({
+        project_id: this.project_id,
+        path: this.syncdbPath,
+      }) ?? 0
+    );
+  };
+
+  getComputeServerId = async (): Promise<number> => {
+    return (
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id: this.project_id,
+        path: this.syncdbPath,
+      })) ?? 0
+    );
+  };
+
+  fetch_jupyter_kernels = async ({
+    noCache,
+  }: { noCache?: boolean } = {}): Promise<void> => {
+    let data;
+    const f = async () => {
+      if (this._state === "closed") {
+        return;
+      }
+      data = await getKernelSpec({
+        project_id: this.project_id,
+        compute_server_id: this.getComputeServerIdSync(),
+        noCache,
+      });
+    };
+    try {
+      await retry_until_success({
+        max_time: 1000 * 15, // up to 15 seconds
+        start_delay: 3000,
+        max_delay: 10000,
+        f,
+        desc: "jupyter:fetch_jupyter_kernels",
+      });
+    } catch (err) {
+      this.set_error(err);
+      return;
+    }
+    if (this._state === "closed") {
+      return;
+    }
+    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+    const kernels = fromJS(data ?? []).filter(
+      (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
+    );
+    const key: string = await this.store.jupyter_kernel_key();
+    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
+    this.setState({ kernels });
+    // We must also update the kernel info (e.g., display name), now that we
+    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+    this.setState({ kernel_info });
+    // e.g. "kernel_selection" is derived from "kernels"
+    await this.update_select_kernel_data();
+    this.check_select_kernel();
+  };
+
+  set_jupyter_kernels = async () => {
+    if (this.store == null) return;
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
+    if (kernels != null) {
+      this.setState({ kernels });
+    } else {
+      await this.fetch_jupyter_kernels();
+    }
+    await this.update_select_kernel_data();
+    this.check_select_kernel();
+  };
+
+  update_select_kernel_data = async (): Promise<void> => {
+    if (this.store == null) return;
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
+    if (kernels == null) {
+      return;
+    }
+    const kernel_selection = this.store.get_kernel_selection(kernels);
+    const [kernels_by_name, kernels_by_language] =
+      get_kernels_by_name_or_language(kernels);
+    const default_kernel = this.store.get_default_kernel();
+    // do we have a similar kernel?
+    let closestKernel: Kernel | undefined = undefined;
+    const kernel = this.store.get("kernel");
+    const kernel_info = this.store.get_kernel_info(kernel);
+    // unknown kernel, we try to find a close match
+    if (kernel_info == null && kernel != null && kernel !== "") {
+      // kernel & kernels must be defined
+      closestKernel = closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
+    }
+    this.setState({
+      kernel_selection,
+      kernels_by_name,
+      kernels_by_language,
+      default_kernel,
+      closestKernel,
+    });
+  };
+
+  show_select_kernel = async (
+    reason: show_kernel_selector_reasons,
+  ): Promise<void> => {
+    await this.update_select_kernel_data();
+    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
+    // the select dialog will show a loading spinner
+    this.setState({
+      show_kernel_selector_reason: reason,
+      show_kernel_selector: true,
+    });
+  };
+
+  hide_select_kernel = (): void => {
+    this.setState({
+      show_kernel_selector_reason: undefined,
+      show_kernel_selector: false,
+    });
+  };
+
+  select_kernel = (kernel_name: string | null): void => {
+    this.set_kernel(kernel_name);
+    if (kernel_name != null && kernel_name !== "") {
+      this.set_default_kernel(kernel_name);
+    }
+    this.focus(true);
+    this.hide_select_kernel();
+  };
+
+  kernel_dont_ask_again = (dont_ask: boolean): void => {
+    // why is "as any" necessary?
+    const account_table = this.redux.getTable("account");
+    account_table.set({
+      editor_settings: { ask_jupyter_kernel: !dont_ask },
+    });
+  };
+
+  private set_kernel_after_load = async (): Promise<void> => {
+    // Browser Client: Wait until the .ipynb file has actually been parsed into
+    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+    // then set the kernel, if necessary.
+    try {
+      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
+    } catch (err) {
+      if (this._state != "ready") {
+        // Probably user just closed the notebook before it finished
+        // loading, so we don't need to set the kernel.
+        return;
+      }
+      throw Error("error waiting for ipynb file to load");
+    }
+    this._syncdb_init_kernel();
+  };
+
+  private _syncdb_init_kernel = (): void => {
+    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
+    if (this.store.get("kernel") == null) {
+      // Creating a new notebook with no kernel set
+      // we either let the user select a kernel, or use a stored one
+      let using_default_kernel = false;
+
+      const account_store = this.redux.getStore("account") as any;
+      const editor_settings = account_store.get("editor_settings") as any;
+      if (
+        editor_settings != null &&
+        !editor_settings.get("ask_jupyter_kernel")
+      ) {
+        const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
+        // TODO: check if kernel is actually known
+        if (default_kernel != null) {
+          this.set_kernel(default_kernel);
+          using_default_kernel = true;
+        }
+      }
+
+      if (!using_default_kernel) {
+        // otherwise we let the user choose a kernel
+        this.show_select_kernel("bad kernel");
+      }
+      // we also finalize the kernel selection check, because it doesn't switch to true
+      // if there is no kernel at all.
+      this.setState({ check_select_kernel_init: true });
+    } else {
+      // Opening an existing notebook
+      const default_kernel = this.store.get_default_kernel();
+      if (default_kernel == null && this.store.get("kernel")) {
+        // But user has no default kernel, since they never before explicitly set one.
+        // So we set it.  This is so that a user's default
+        // kernel is that of the first ipynb they
+        // opened, which is very sensible in courses.
+        this.set_default_kernel(this.store.get("kernel"));
+      }
+    }
+  };
+
+  set_kernel = (kernel: string | null) => {
+    if (this.syncdb.get_state() != "ready") {
+      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
+      return;
+    }
+    if (this.store.get("kernel") !== kernel) {
+      this._set({
+        type: "settings",
+        kernel,
+      });
+      // clear error when changing the kernel
+      this.set_error(null);
+    }
+    if (this.store.get("show_kernel_selector") || kernel === "") {
+      this.hide_select_kernel();
+    }
+    if (kernel === "") {
+      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
+    }
+  };
+
+  show_history_viewer = (): void => {
+    const project_actions = this.redux.getProjectActions(this.project_id);
+    if (project_actions == null) return;
+    project_actions.open_file({
+      path: history_path(this.path),
+      foreground: true,
+    });
+  };
+
+  private check_select_kernel = (): void => {
+    const kernel = this.store?.get("kernel");
+    if (kernel == null) return;
+    let unknown_kernel = false;
+    if (kernel === "") {
+      unknown_kernel = false; // it's the "no kernel" kernel
+    } else if (this.store.get("kernels") != null) {
+      unknown_kernel = this.store.get_kernel_info(kernel) == null;
+    }
+
+    // a kernel is set, but we don't know it
+    if (unknown_kernel) {
+      this.show_select_kernel("bad kernel");
+    } else {
+      // we got a kernel, close dialog if not requested by user
+      if (
+        this.store.get("show_kernel_selector") &&
+        this.store.get("show_kernel_selector_reason") === "bad kernel"
+      ) {
+        this.hide_select_kernel();
+      }
+    }
+
+    // also in the case when the kernel is "" we have to set this to true
+    this.setState({ check_select_kernel_init: true });
+  };
+
+  // convert this Jupyter notebook to an ipynb file, including
+  // mime types like images in base64. This makes a first pass
+  // to find the sha1-indexed blobs, gets the blobs, then does
+  // a second pass to fill them in.  There is a similar function
+  // in store that is sync, but doesn't fill in the blobs on the
+  // frontend like this does.
+  toIpynb = async () => {
+    const store = this.store;
+    if (store?.get("cells") == null || store?.get("cell_list") == null) {
+      throw Error("not loaded");
+    }
+
+    const cell_list = store.get("cell_list");
+    const more_output: { [id: string]: any } = {};
+    for (const id of cell_list.toJS()) {
+      const x = store.get_more_output(id);
+      if (x != null) {
+        more_output[id] = x;
+      }
+    }
+
+    const blobsBase64: { [sha1: string]: string | null } = {};
+    const blobsString: { [sha1: string]: string | null } = {};
+    const blob_store = {
+      getBase64: (hash) => {
+        blobsBase64[hash] = null;
+      },
+      getString: (hash) => {
+        blobsString[hash] = null;
+      },
+    };
+
+    // export_to_ipynb mutates its input... mostly not a problem, since
+    // we're toJS'ing most of it, but be careful with more_output.
+    const options = {
+      cells: store.get("cells").toJS(),
+      cell_list: cell_list.toJS(),
+      metadata: store.get("metadata")?.toJS(), // custom metadata
+      kernelspec: store.get_kernel_info(store.get("kernel")),
+      language_info: store.get_language_info(),
+      blob_store,
+      more_output: cloneDeep(more_output),
+    };
+
+    const pass1 = export_to_ipynb(options);
+
+    let n = 0;
+    const blobs: { [sha1: string]: string | null } = {};
+    for (const hash in blobsBase64) {
+      try {
+        const ar = await this.asyncBlobStore.get(hash);
+        if (ar) {
+          blobs[hash] = uint8ArrayToBase64(ar);
+          n += 1;
+        }
+      } catch (err) {
+        console.log("WARNING: missing image ", hash, err);
+      }
+    }
+    const t = new TextDecoder();
+    for (const hash in blobsString) {
+      try {
+        const ar = await this.asyncBlobStore.get(hash);
+        if (ar) {
+          blobs[hash] = t.decode(ar);
+          n += 1;
+        }
+      } catch (err) {
+        console.log("WARNING: missing image ", hash, err);
+      }
+    }
+    if (n == 0) {
+      return pass1;
+    }
+    const blob_store2 = {
+      getBase64: (hash) => blobs[hash],
+      getString: (hash) => blobs[hash],
+    };
+
+    return export_to_ipynb({ ...options, blob_store: blob_store2 });
+  };
+
+  private getBase64Blobs = async (cells) => {
+    const blobs: { [hash: string]: string } = {};
+    const failed = new Set<string>();
+    const t = new TextDecoder();
+    for (const id in cells) {
+      const cell = cells[id];
+      if (!cell?.output) {
+        continue;
+      }
+      for (const i in cell.output) {
+        const mesg = cell.output[i];
+        if (!mesg.data) {
+          continue;
+        }
+        if (mesg.data.iframe) {
+          const hash = mesg.data.iframe;
+          if (failed.has(hash)) {
+            continue;
+          }
+          if (blobs[hash] == null) {
+            try {
+              const ar = await this.asyncBlobStore.get(hash);
+              blobs[hash] = t.decode(ar);
+            } catch {
+              failed.add(hash);
+              continue;
+            }
+          }
+          delete mesg.data["iframe"];
+          if (blobs[hash]) {
+            mesg.data["text/html"] = blobs[hash];
+          }
+        } else {
+          for (const type of JUPYTER_MIMETYPES) {
+            const hash = mesg.data[type];
+            if (hash?.length != 40) {
+              continue;
+            }
+            if (failed.has(hash)) {
+              continue;
+            }
+            if (blobs[hash] == null) {
+              try {
+                const ar = await this.asyncBlobStore.get(hash);
+                blobs[hash] = uint8ArrayToBase64(ar);
+              } catch {
+                failed.add(hash);
+                continue;
+              }
+            }
+            if (blobs[hash]) {
+              mesg.data[type] = blobs[hash];
+            }
+          }
+        }
+      }
+    }
+  };
+
+  toHTML = async () => {
+    const store = this.store;
+    if (store?.get("cells") == null || store?.get("cell_list") == null) {
+      throw Error("not loaded");
+    }
+    const kernelspec = store.get_kernel_info(store.get("kernel"));
+    if (kernelspec == null) {
+      throw Error("unable to get kernelspec");
+    }
+    const cells = store.get("cells").toJS();
+    await this.getBase64Blobs(cells);
+    const cocalcJupyter = {
+      cells,
+      cellList: store.get("cell_list").toJS(),
+      metadata: store.get("metadata")?.toJS(),
+      kernelspec,
+    };
+    const { base: title } = parse(this.path);
+    return exportToHTML({ cocalcJupyter, title });
+  };
+
+  nbconvertToHtml = async () => {
+    try {
+      this.setState({ nbconvert: { state: "run", error: "" } });
+      const html = await this.toHTML();
+      const printWindow = window.open("", "_blank");
+      if (printWindow == null) {
+        throw Error("failed to open popup window");
+      }
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.onload = function () {
+        printWindow.print();
+        printWindow.onafterprint = function () {
+          printWindow.close();
+        };
+      };
+      this.setState({ nbconvert: { state: "done", error: "" } });
+    } catch (err) {
+      this.setState({ nbconvert: { state: "done", error: `${err}` } });
+    }
+    return;
+  };
 }

@@ -1,6 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# The cli command cc-new-file is no longer used. See
+#   packages/backend/misc/new-file.ts
+# However, this file right here is still used by the open command, so need to rewrite
+# that first.
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: MS-RSL – see LICENSE.md for details
 

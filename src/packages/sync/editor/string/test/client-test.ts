@@ -46,6 +46,10 @@ export class Client extends EventEmitter implements Client0 {
     return new Date();
   }
 
+  isTestClient = () => {
+    return true;
+  };
+
   public is_project(): boolean {
     return false;
   }
@@ -168,7 +172,18 @@ export class Client extends EventEmitter implements Client0 {
     _options: any,
     _throttle_changes?: number,
   ): Promise<SyncTable> {
-    throw Error("not implemented");
+    throw Error("synctable_database: not implemented");
+  }
+
+  async synctable_nats(_query: any): Promise<SyncTable> {
+    throw Error("synctable_nats: not implemented");
+  }
+  async pubsub_nats(_query: any): Promise<SyncTable> {
+    throw Error("pubsub_nats: not implemented");
+  }
+
+  async natsRequest(_subject: string, _mesg: any, _options?) {
+    throw Error("natsRequest: not implemented");
   }
 
   // account_id or project_id

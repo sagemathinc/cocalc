@@ -37,7 +37,7 @@ export class SyncDB extends SyncDoc {
     super(opts1 as SyncOpts);
   }
 
-  get_one(arg?) {
+  get_one(arg?) : any {
     // I know it is really of type DBDocument.
     return (this.get_doc() as DBDocument).get_one(arg);
   }

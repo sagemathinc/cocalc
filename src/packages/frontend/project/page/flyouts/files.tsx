@@ -35,7 +35,7 @@ import {
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {

@@ -41,6 +41,7 @@ interface Props {
   haveLLMCellTools: boolean; // decides if we show the LLM Tools, depends on student project in a course, etc.
   index: number;
   is_readonly: boolean;
+  input_is_readonly?: boolean;
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -67,6 +68,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     llmTools,
     index,
     is_readonly,
+    input_is_readonly,
     haveLLMCellTools,
   }: Props) => {
     const intl = useIntl();
@@ -107,7 +109,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarRunStop() {
-      if (id == null || actions == null || actions.is_closed()) {
+      if (id == null || actions == null || actions.is_closed() || is_readonly) {
         return;
       }
 
@@ -155,7 +157,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarComputeServer() {
-      if (!is_current || !computeServerId) return;
+      if (!is_current || !computeServerId || is_readonly) return;
       return <ComputeServerPrompt id={computeServerId} />;
     }
 
@@ -168,19 +170,20 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             last={cell.get("last")}
             state={cell.get("state")}
             isLive={!is_readonly && actions != null}
+            kernel={cell.get("kernel")}
           />
         </div>
       );
     }
 
     function renderCodeBarLLMButtons() {
-      if (!llmTools || !haveLLMCellTools) return;
+      if (!llmTools || !haveLLMCellTools || is_readonly) return;
       return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
     }
 
     function renderCodeBarFormatButton() {
       // Should only show formatter button if there is a way to format this code.
-      if (is_readonly || actions == null) return;
+      if (is_readonly || actions == null || input_is_readonly) return;
       return (
         <Tooltip
           title={intl.formatMessage({
@@ -228,12 +231,14 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
         {renderCodeBarFormatButton()}
-        <CodeBarDropdownMenu
-          actions={actions}
-          frameActions={frameActions}
-          id={id}
-          cell={cell}
-        />
+        {!is_readonly && !input_is_readonly && (
+          <CodeBarDropdownMenu
+            actions={actions}
+            frameActions={frameActions}
+            id={id}
+            cell={cell}
+          />
+        )}
         <CellIndexNumber index={index} />
       </div>
     );

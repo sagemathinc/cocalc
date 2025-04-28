@@ -17,7 +17,7 @@ import { once } from "@cocalc/util/async-utils";
 import { redux } from "@cocalc/frontend/app-framework";
 import { QueryParams } from "../misc/query-params";
 import { separate_file_extension } from "@cocalc/util/misc";
-import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
+import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 
 type Kernel = "ir" | "python3" | "bash" | "octave";
 type Cell = { type?: "markdown" | "code"; content: string };

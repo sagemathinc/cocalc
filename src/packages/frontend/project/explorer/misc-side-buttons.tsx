@@ -3,24 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Space } from "antd";
 import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
 
-import {
-  Button,
-  ButtonGroup,
-  ButtonToolbar,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
+import { serverURL, SPEC } from "@cocalc/frontend/project/named-server-panel";
 import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { serverURL, SPEC } from "@cocalc/frontend/project/named-server-panel";
+
 import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({
@@ -151,9 +149,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     if (!available_features) return;
     const { vscode, homeDirectory } = available_features;
     if (!vscode || !homeDirectory) return;
-    const abspath = join(homeDirectory, current_path ?? "");
+    const absPath = join(homeDirectory, current_path ?? "");
     // setting ?folder= tells VS Code to open that directory
-    const url = `${serverURL(project_id, "code")}?folder=${abspath}`;
+    const url = `${serverURL(project_id, "code")}?folder=${absPath}`;
     const values = { name: SPEC.code.longName };
     const tooltip = intl.formatMessage(OPEN_MSG, values);
     const description = intl.formatMessage(SPEC.code.description, values);
@@ -174,7 +172,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     if (!available_features.jupyter_lab) return;
     // appending /tree/[relative path to home dir]
     const base = serverURL(project_id, "jupyterlab");
-    // we make sure the url ends wiht a slash, without messing up the full URL
+    // we make sure the url ends with a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
     const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
     const values = { name: SPEC.code.longName };
@@ -210,21 +208,21 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       style={{ whiteSpace: "nowrap", padding: "0" }}
       className="pull-right"
     >
-      <ButtonGroup>
+      <Space.Compact>
         {render_jupyterlab_button()}
         {render_vscode_button()}
-      </ButtonGroup>
-      <ButtonGroup>
+      </Space.Compact>
+      <Space.Compact>
         {render_upload_button()}
         {render_library_button()}
-      </ButtonGroup>
+      </Space.Compact>
       <div className="pull-right">
-        <ButtonGroup>
+        <Space.Compact>
           {render_hidden_toggle()}
           {render_masked_toggle()}
           {render_backup()}
           <TourButton project_id={project_id} />
-        </ButtonGroup>
+        </Space.Compact>
       </div>
     </ButtonToolbar>
   );

@@ -41,11 +41,11 @@ interface Props {
 }
 
 export const SearchInput: React.FC<Props> = React.memo((props) => {
-  const [value, set_value] = useState<string>(
+  const [value, setValue] = useState<string>(
     props.value ?? props.default_value ?? "",
   );
   // if value changes, we update as well!
-  useEffect(() => set_value(props.value ?? ""), [props.value]);
+  useEffect(() => setValue(props.value ?? ""), [props.value]);
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
   const [shift_down, set_shift_down] = useState<boolean>(false);
@@ -70,7 +70,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }
 
   function clear_value(): void {
-    set_value("");
+    setValue("");
     props.on_change?.("", get_opts());
     props.on_clear?.();
   }
@@ -140,7 +140,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       onChange={(e) => {
         e.preventDefault();
         const value = e.target?.value ?? "";
-        set_value(value);
+        setValue(value);
         props.on_change?.(value, get_opts());
         if (!value) clear_value();
       }}

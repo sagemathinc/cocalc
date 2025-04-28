@@ -43,11 +43,10 @@ export default function Download({}) {
     const file = checked_files.first();
     const isdir = redux.getProjectStore(project_id).get("displayed_listing")
       ?.file_map?.[path_split(file).tail]?.isdir;
-    console.log({ isdir });
     setArchiveMode(!!isdir);
     if (!isdir) {
       const store = actions?.get_store();
-      setUrl(store?.get_raw_link(file) ?? "");
+      setUrl(store?.fileURL(file) ?? "");
     }
   }, [checked_files, current_path]);
 
@@ -79,8 +78,13 @@ export default function Download({}) {
       const files = checked_files.toArray();
       let dest;
       if (archiveMode) {
-        dest = path_to_file(store.get("current_path"), target + ".zip");
-        await actions.zip_files({ src: files, dest });
+        const path = store.get("current_path");
+        dest = path_to_file(path, target + ".zip");
+        await actions.zip_files({
+          src: path ? files.map((x) => x.slice(path.length + 1)) : files,
+          dest: target + ".zip",
+          path: store.get("current_path"),
+        });
       } else {
         dest = files[0];
       }
@@ -89,6 +93,7 @@ export default function Download({}) {
         path: store.get("current_path"),
       });
     } catch (err) {
+      console.log(err);
       setLoading(false);
       setError(err);
     } finally {

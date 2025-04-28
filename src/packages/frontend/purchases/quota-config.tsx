@@ -4,6 +4,9 @@ in a modal on demand when you try to use a specific service and don't
 have sufficient quota.
 */
 
+import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
+import { useEffect, useState } from "react";
+
 import { SettingBox } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -12,10 +15,9 @@ import {
   serviceToDisplay,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
-import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
-import { useEffect, useState } from "react";
 import Quotas, {
   PRESETS,
+  PRESETS_LLM,
   Preset,
   QUOTA_LIMIT_ICON_NAME,
   STEP,
@@ -81,6 +83,8 @@ export default function QuotaConfig({
     saveRef.current = saveServiceQuota;
   }
 
+  const presets = QUOTA_SPEC[service]?.category === "ai" ? PRESETS_LLM : PRESETS;
+
   return (
     <div>
       {!QUOTA_SPEC[service]?.noSet && (
@@ -118,16 +122,18 @@ export default function QuotaConfig({
                 Save{savedValue == inputValue ? "d" : ""}
               </Button>
               <div style={{ marginLeft: "15px" }}>
-                {PRESETS.filter((amount) => amount > 0).map((amount) => (
-                  <Preset
-                    key={amount}
-                    index={0}
-                    amount={amount}
-                    handleQuotaChange={(_, amount) => {
-                      setInputValue(amount);
-                    }}
-                  />
-                ))}
+                {presets
+                  .filter((amount) => amount > 0)
+                  .map((amount) => (
+                    <Preset
+                      key={amount}
+                      index={0}
+                      amount={amount}
+                      handleQuotaChange={(_, amount) => {
+                        setInputValue(amount);
+                      }}
+                    />
+                  ))}
               </div>
             </Space>
           )}

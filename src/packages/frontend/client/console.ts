@@ -45,13 +45,13 @@ export function setup_global_cocalc(client): void {
 
   const cocalc: any = window.cc ?? {};
   cocalc.client = client;
+  cocalc.nats = client.nats_client;
   cocalc.misc = require("@cocalc/util/misc");
   cocalc.immutable = require("immutable");
   cocalc.done = cocalc.misc.done;
-  cocalc.sha1 = require("sha1");
-  cocalc.prom_client = require("../prom-client");
   cocalc.schema = require("@cocalc/util/schema");
   cocalc.redux = redux;
+  cocalc.current = redux.currentEditor;
   cocalc.load_eruda = load_eruda;
   cocalc.compute = require("@cocalc/frontend/compute/api");
   console.log(

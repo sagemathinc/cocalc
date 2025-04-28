@@ -1,6 +1,5 @@
 import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
 import { useEffect, useState } from "react";
-
 import { redux, useStore } from "@cocalc/frontend/app-framework";
 import { A, CopyToClipBoard, Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -13,6 +12,7 @@ import {
   ACTION_INFO,
   STATE_INFO,
   getTargetState,
+  getArchitecture,
 } from "@cocalc/util/db-schema/compute-servers";
 import { computeServerAction, getApiKey } from "./api";
 import costPerHour from "./cost";
@@ -41,19 +41,11 @@ export default function getActions({
   for (const action of s.actions) {
     if (
       !editable &&
-      action != "stop" &&
-      action != "deprovision" &&
-      action != "start" &&
-      action != "suspend" &&
-      action != "resume" &&
-      action != "reboot"
+      !["stop", "start", "suspend", "resume", "reboot", "deprovision"].includes(
+        action,
+      )
     ) {
-      // non-owner can only do start/stop/suspend/resume -- NOT delete or deprovision.
-      continue;
-    }
-    if (!editable && action == "deprovision" && !configuration.ephemeral) {
-      // also do not allow NON ephemeral deprovision by collaborator.
-      // For ephemeral, collab is encouraged to delete server.
+      // non-owner can only do start/stop/suspend/resume/deprovision -- NOT delete.
       continue;
     }
     const a = ACTION_INFO[action];
@@ -62,7 +54,7 @@ export default function getActions({
       if (configuration.cloud != "google-cloud") {
         continue;
       }
-      if (configuration.machineType.startsWith("t2a-")) {
+      if (getArchitecture(configuration) == "arm64") {
         // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
         // figured out a workaround, so don't support it for now.  I guess this
         // is a GCP bug.
@@ -260,7 +252,7 @@ function ActionButton({
                 style={{ margin: "15px 0", maxWidth: "400px" }}
                 type="warning"
                 message={
-                  "This will delete the boot disk!  This does not touch the files in your project's home directory."
+                  "This will delete the boot disk!  This does not touch the files in your HOME BASE (what you see when not using a compute server).  This permanently deletes EVERYTHING stored on the compute server, especially in any fast local directories."
                 }
               />
             )}

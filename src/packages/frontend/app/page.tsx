@@ -10,6 +10,7 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import { Spin } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -21,12 +22,12 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
-import { IconName } from "@cocalc/frontend/components/icon";
+import { IconName, Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { COLORS } from "@cocalc/util/theme";
@@ -44,10 +45,12 @@ import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import SettingsModal from "./settings-modal";
-import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import Next from "@cocalc/frontend/components/next";
+import { ClientContext } from "@cocalc/frontend/client/context";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -104,6 +107,7 @@ export const Page: React.FC = () => {
   const cookie_warning = useTypedRedux("page", "cookie_warning");
   const new_version = useTypedRedux("page", "new_version");
 
+  const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -137,6 +141,13 @@ export const Page: React.FC = () => {
   }
 
   function render_account_tab(): JSX.Element {
+    if (!accountIsReady) {
+      return (
+        <div>
+          <Spin delay={1000} />
+        </div>
+      );
+    }
     const icon = account_tab_icon();
     let label, style;
     if (is_anonymous) {
@@ -181,6 +192,11 @@ export const Page: React.FC = () => {
     );
   }
 
+  function render_balance() {
+    if (!is_commercial) return;
+    return <BalanceButton minimal topBar />;
+  }
+
   function render_admin_tab(): JSX.Element | undefined {
     if (is_logged_in && groups?.includes("admin")) {
       return (
@@ -196,37 +212,26 @@ export const Page: React.FC = () => {
     }
   }
 
-  function sign_in_tab_clicked() {
-    if (active_top_tab === "account") {
-      page_actions.sign_in();
-    }
-  }
-
   function render_sign_in_tab(): JSX.Element | null {
     if (is_logged_in) return null;
 
-    let style: CSS | undefined = undefined;
-    if (active_top_tab !== "account") {
-      // Strongly encourage clicking on the sign in tab.
-      // Especially important if user got signed out due
-      // to cookie expiring or being deleted (say).
-      style = { backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG, fontSize: "16pt" };
-    }
     return (
-      <NavTab
-        name="account"
-        label={intl.formatMessage({
+      <Next
+        sameTab
+        href="/auth/sign-in"
+        style={{
+          backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG,
+          fontSize: "16pt",
+          color: "black",
+          padding: "5px 15px",
+        }}
+      >
+        <Icon name="sign-in" />{" "}
+        {intl.formatMessage({
           id: "page.sign_in.label",
           defaultMessage: "Sign in",
         })}
-        label_class={NAV_CLASS}
-        icon="sign-in"
-        on_click={sign_in_tab_clicked}
-        active_top_tab={active_top_tab}
-        style={style}
-        add_inner_style={{ color: "black" }}
-        hide_label={!show_label}
-      />
+      </Next>
     );
   }
 
@@ -294,8 +299,8 @@ export const Page: React.FC = () => {
         {render_admin_tab()}
         {render_sign_in_tab()}
         {render_support()}
-        {is_logged_in && render_account_tab()}
-        <BalanceButton minimal />
+        {is_logged_in ? render_account_tab() : undefined}
+        {render_balance()}
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (
@@ -350,6 +355,7 @@ export const Page: React.FC = () => {
     }
   }
 
+  let body;
   if (doing_anonymous_setup) {
     // Don't show the login screen or top navbar for a second
     // while creating their anonymous account, since that
@@ -358,7 +364,7 @@ export const Page: React.FC = () => {
     const loading_anon = (
       <div style={{ margin: "auto", textAlign: "center" }}>
         <h1 style={{ color: COLORS.GRAY }}>
-          <Loading />
+          <Spin delay={1000} />
         </h1>
         <div style={{ color: COLORS.GRAY, width: "50vw" }}>
           Please give <SiteName /> a couple of seconds to start your project and
@@ -366,50 +372,55 @@ export const Page: React.FC = () => {
         </div>
       </div>
     );
-    return <div style={PAGE_STYLE}>{loading_anon}</div>;
+    body = <div style={PAGE_STYLE}>{loading_anon}</div>;
+  } else {
+    // Children must define their own padding from navbar and screen borders
+    // Note that the parent is a flex container
+    body = (
+      <div
+        style={PAGE_STYLE}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={drop}
+      >
+        {insecure_test_mode && <InsecureTestModeBanner />}
+        {show_file_use && (
+          <div style={fileUseStyle} className="smc-vfill">
+            <FileUsePage />
+          </div>
+        )}
+        {show_connection && <ConnectionInfo />}
+        {new_version && <VersionWarning new_version={new_version} />}
+        {cookie_warning && <CookieWarning />}
+        {local_storage_warning && <LocalStorageWarning />}
+        {show_i18n && <I18NBanner />}
+        {show_verify_email && <VerifyEmail />}
+        {!fullscreen && (
+          <nav className="smc-top-bar" style={topBarStyle}>
+            <AppLogo size={pageStyle.height} />
+            {is_logged_in && render_project_nav_button()}
+            {!isNarrow ? (
+              <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+            ) : (
+              // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+              <div style={{ flex: "1 1 auto" }} />
+            )}
+            {render_right_nav()}
+          </nav>
+        )}
+        {fullscreen && render_fullscreen()}
+        {isNarrow && (
+          <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+        )}
+        <ActiveContent />
+        <PayAsYouGoModal />
+        <PopconfirmModal />
+        <SettingsModal />
+      </div>
+    );
+    return (
+      <ClientContext.Provider value={{ client: webapp_client }}>
+        {body}
+      </ClientContext.Provider>
+    );
   }
-
-  // Children must define their own padding from navbar and screen borders
-  // Note that the parent is a flex container
-  return (
-    <div
-      style={PAGE_STYLE}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={drop}
-    >
-      {insecure_test_mode && <InsecureTestModeBanner />}
-      {show_file_use && (
-        <div style={fileUseStyle} className="smc-vfill">
-          <FileUsePage />
-        </div>
-      )}
-      {show_connection && <ConnectionInfo />}
-      {new_version && <VersionWarning new_version={new_version} />}
-      {cookie_warning && <CookieWarning />}
-      {local_storage_warning && <LocalStorageWarning />}
-      {show_i18n && <I18NBanner />}
-      {show_verify_email && <VerifyEmail />}
-      {!fullscreen && (
-        <nav className="smc-top-bar" style={topBarStyle}>
-          <AppLogo size={pageStyle.height} />
-          {is_logged_in && render_project_nav_button()}
-          {!isNarrow ? (
-            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-          ) : (
-            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
-            <div style={{ flex: "1 1 auto" }} />
-          )}
-          {render_right_nav()}
-        </nav>
-      )}
-      {fullscreen && render_fullscreen()}
-      {isNarrow && (
-        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-      )}
-      <ActiveContent />
-      <PayAsYouGoModal />
-      <PopconfirmModal />
-      <SettingsModal />
-    </div>
-  );
 };

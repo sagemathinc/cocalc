@@ -61,9 +61,9 @@ import { registerListingsTable } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
-import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
+import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 type Query = { [key: string]: any };
 
@@ -114,9 +114,6 @@ class SyncTableChannel {
   private channel: Channel;
   private closed: boolean = false;
   private closing: boolean = false;
-  private setOnDisconnect: {
-    [spark_id: string]: { changes: any; merge: MergeType }[];
-  } = {};
   private num_connections: { n: number; changed: Date } = {
     n: 0,
     changed: new Date(),
@@ -164,7 +161,7 @@ class SyncTableChannel {
       // will be denied anyways.
       this.ephemeral = true;
     }
-    this.query_string = stringify(query); // used only for logging
+    this.query_string = stringify(query)!; // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
       `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`,
@@ -334,7 +331,7 @@ class SyncTableChannel {
 
     spark.on("data", async (mesg) => {
       try {
-        await this.handle_mesg_from_browser(spark, mesg);
+        await this.handle_mesg_from_browser(mesg);
       } catch (err) {
         spark.write({ error: `error handling mesg -- ${err}` });
         this.log("error handling mesg -- ", err, err.stack);
@@ -353,21 +350,6 @@ class SyncTableChannel {
     this.log(
       `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${n}  (from this client = ${m})`,
     );
-
-    if (!this.closed) {
-      try {
-        const x = this.setOnDisconnect[spark.id];
-        this.log("do setOnDisconnect", x);
-        if (x != null) {
-          for (const { changes, merge } of x) {
-            this.synctable.set(changes, merge);
-          }
-          delete this.setOnDisconnect[spark.id];
-        }
-      } catch (err) {
-        this.log("setOnDisconnect error", err);
-      }
-    }
 
     this.check_if_should_save_or_close();
   }
@@ -410,10 +392,7 @@ class SyncTableChannel {
     }
   }
 
-  private async handle_mesg_from_browser(
-    spark: Spark,
-    mesg: any,
-  ): Promise<void> {
+  private handle_mesg_from_browser = async (mesg: any): Promise<void> => {
     // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
     // Temporarily enable as needed for debugging purposes.
     //this.log("handle_mesg_from_browser ", { mesg });
@@ -423,38 +402,20 @@ class SyncTableChannel {
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
-    if (mesg.event == "set-on-disconnect") {
-      this.log("set-on-disconnect", mesg, spark.id);
-      if (this.setOnDisconnect[spark.id] == null) {
-        this.setOnDisconnect[spark.id] = [];
-      }
-      this.setOnDisconnect[spark.id].push(mesg);
-      return;
-    }
-    if (mesg.event == "message") {
-      // generic messages from any client to the project can be
-      // handled by backend code by listening for message events.
-      this.synctable.emit("message", {
-        data: mesg.data,
-        spark,
-        channel: this.channel,
-      });
-      return;
-    }
     if (mesg.timed_changes != null) {
       this.synctable.apply_changes_from_browser_client(mesg.timed_changes);
+      await this.synctable.save();
     }
-    await this.synctable.save();
-  }
+  };
 
-  private send_versioned_changes_to_browsers(
+  private send_versioned_changes_to_browsers = (
     versioned_changes: VersionedChange[],
-  ): void {
+  ): void => {
     if (this.closed) return;
     this.log("send_versioned_changes_to_browsers");
     const x = { versioned_changes };
     this.channel.write(x);
-  }
+  };
 
   private async save_if_possible(): Promise<void> {
     if (this.closed || this.closing) {
@@ -468,7 +429,7 @@ class SyncTableChannel {
       if (syncdoc != null) {
         const path = syncdoc.get_path();
         this.log("save_if_possible: saving syncdoc to disk", { path });
-        if (path.endsWith(".sage-jupyter2")) {
+        if (path.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS)) {
           // treat jupyter notebooks in a special way, since they have
           // an aux .ipynb file that the syncdoc doesn't know about. In
           // this case we save the ipynb to disk, not just the hidden
@@ -477,10 +438,6 @@ class SyncTableChannel {
           if (actions == null) {
             this.log("save_if_possible: jupyter -- actions is null");
           } else {
-            if (!actions.isCellRunner()) {
-              this.log("save_if_possible: jupyter -- not cell runner");
-              return;
-            }
             this.log("save_if_possible: jupyter -- saving to ipynb");
             await actions.save_ipynb_file();
           }
@@ -532,7 +489,7 @@ class SyncTableChannel {
 const synctable_channels: { [name: string]: SyncTableChannel } = {};
 
 function createKey(args): string {
-  return stringify([args[3], args[4]]);
+  return stringify([args[3], args[4]])!;
 }
 
 function channel_name(query: any, options: any[]): string {
@@ -557,7 +514,7 @@ function channel_name(query: any, options: any[]): string {
     // that's fine - in this case, just make a key out of the query.
     q = query;
   }
-  const y = stringify([q, opts]);
+  const y = stringify([q, opts])!;
   const s = sha1(y);
   return `sync:${s}`;
 }

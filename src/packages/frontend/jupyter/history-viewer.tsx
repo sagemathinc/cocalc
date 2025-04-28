@@ -8,13 +8,10 @@ History viewer for Jupyter notebooks
 */
 
 import { fromJS, List, Map } from "immutable";
-
-import { Redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay } from "@cocalc/frontend/components";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { path_split } from "@cocalc/util/misc";
-import { createRoot } from "react-dom/client";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
 import { ERROR_STYLE } from "./main";
@@ -43,6 +40,7 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
   });
 
   const kernel_error = doc.get_one({ type: "settings" })?.get("kernel_error");
+  const actions = redux.getEditorActions(project_id, path)?.jupyter_actions;
 
   return (
     <div
@@ -61,6 +59,7 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
         />
       )}
       <CellList
+        actions={actions}
         cell_list={cell_list}
         cells={cells}
         font_size={font_size ?? default_font_size}
@@ -69,6 +68,7 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
         project_id={project_id}
         directory={directory}
         trust={false}
+        read_only={true}
       />
     </div>
   );
@@ -76,36 +76,8 @@ export function HistoryViewer({ project_id, path, doc, font_size }) {
 
 // The following is just for integrating the history viewer.
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
-import json_stable from "json-stable-stringify";
 
 export function to_ipynb(doc): object {
-  return export_to_ipynb(get_cells(doc));
-}
-
-export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
-  const elt = $("<div class='smc-vfill'></div>");
-  const root = createRoot(elt[0]);
-  return {
-    element: elt,
-    show() {
-      elt.show();
-    },
-    hide() {
-      elt.hide();
-    },
-    remove() {
-      root.unmount();
-    },
-    set_version(_version) {
-      root.render(
-        <Redux>
-          <div>Jupyter Classic is Deprecated</div>
-        </Redux>,
-      );
-    },
-    to_str(version) {
-      const ipynb = to_ipynb(syncdb.version(version));
-      return json_stable(ipynb, { space: 1 });
-    },
-  };
+  const { cells, cell_list } = get_cells(doc);
+  return export_to_ipynb({ cells: cells.toJS(), cell_list: cell_list.toJS() });
 }

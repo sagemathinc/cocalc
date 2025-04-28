@@ -15,7 +15,6 @@ import { Range } from "slate";
 import { path_split } from "@cocalc/util/misc";
 import { useSlateStatic as useSlateStatic0 } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
-import "@cocalc/frontend/misc/process-links/jquery"; // jquery plugin is defined
 
 // Exactly like the normal useSlate hook, except return type is
 // SlateEditor, which we know since we're only using this in CoCalc

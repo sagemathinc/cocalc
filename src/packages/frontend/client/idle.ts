@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-declare var $: any;
+import $ from "jquery";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { redux } from "../app-framework";
@@ -11,21 +11,32 @@ import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 import { disconnect_from_all_projects } from "../project/websocket/connect";
 
+// set to true when there are no load issues.
+const NEVER_TIMEOUT_VISIBLE = false;
+
+const CHECK_INTERVAL = 30 * 1000;
+//const CHECK_INTERVAL = 7 * 1000;
+
 export class IdleClient {
   private notification_is_visible: boolean = false;
   private client: WebappClient;
   private idle_timeout: number = 5 * 60 * 1000; // default -- 5 minutes
   private idle_time: number = 0;
   private delayed_disconnect?;
+  private standbyMode = false;
 
   constructor(client: WebappClient) {
     this.client = client;
     this.init_idle();
   }
 
-  public reset(): void {}
+  inStandby = () => {
+    return this.standbyMode;
+  };
 
-  private async init_idle(): Promise<void> {
+  reset = (): void => {};
+
+  private init_idle = async (): Promise<void> => {
     // Do not bother on touch devices, since they already automatically tend to
     // disconnect themselves very aggressively to save battery life, and it's
     // sketchy trying to ensure that banner will dismiss properly.
@@ -34,7 +45,7 @@ export class IdleClient {
     }
 
     // Wait a little before setting this stuff up.
-    await delay(15 * 1000);
+    await delay(CHECK_INTERVAL / 3);
 
     this.idle_time = Date.now() + this.idle_timeout;
 
@@ -53,74 +64,88 @@ export class IdleClient {
 
     // There is no need to worry about cleaning this up, since the client survives
     // for the lifetime of the page.
-    setInterval(this.idle_check.bind(this), 60 * 1000);
+    setInterval(this.idle_check, CHECK_INTERVAL);
 
-    // Call this idle_reset like a function
-    // throttled, so will reset timer on *first* call and
-    // then every 15secs while being called
-    this.idle_reset = throttle(this.idle_reset.bind(this), 15 * 1000);
+    // Call this idle_reset like a throttled function
+    // so will reset timer on *first* call and
+    // then periodically while being called
+    this.idle_reset = throttle(this.idle_reset, CHECK_INTERVAL / 2);
 
     // activate a listener on our global body (universal sink for
     // bubbling events, unless stopped!)
     $(document).on(
       "click mousemove keydown focusin touchstart",
-      this.idle_reset
+      this.idle_reset,
     );
     $("#smc-idle-notification").on(
       "click mousemove keydown focusin touchstart",
-      this.idle_reset
+      this.idle_reset,
     );
 
-    // Every 30s, if the document is visible right now, then we
-    // reset the idle timeout., just as if the mouse moved.  This means
-    // that users never get the standby timeout if their current browser
-    // tab is considered visible according to the Page Visibility API
-    // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
-    // See also https://github.com/sagemathinc/cocalc/issues/6371
-    setInterval(() => {
-      if (!document.hidden) {
-        this.idle_reset();
-      }
-    }, 30 * 1000);
-  }
+    if (NEVER_TIMEOUT_VISIBLE) {
+      // If the document is visible right now, then we
+      // reset the idle timeout., just as if the mouse moved.  This means
+      // that users never get the standby timeout if their current browser
+      // tab is considered visible according to the Page Visibility API
+      // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
+      // See also https://github.com/sagemathinc/cocalc/issues/6371
+      setInterval(() => {
+        if (!document.hidden) {
+          this.idle_reset();
+        }
+      }, CHECK_INTERVAL / 2);
+    }
+  };
 
-  private idle_check(): void {
+  private idle_check = (): void => {
     if (!this.idle_time) return;
-    const now = Date.now();
-    if (this.idle_time >= now) return;
+    const remaining = this.idle_time - Date.now();
+    if (remaining > 0) {
+      // console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
+      return;
+    }
     this.show_notification();
     if (!this.delayed_disconnect) {
       // We actually disconnect 15s after appearing to
       // so that if the user sees the idle banner and immediately
       // dismisses it, then the experience is less disruptive.
       this.delayed_disconnect = setTimeout(() => {
+        console.log("Entering standby mode");
+        this.standbyMode = true;
+        // console.log("idle timeout: disconnect!");
+        this.client.nats_client.standby();
         this.client.hub_client.disconnect();
         disconnect_from_all_projects();
-      }, 15 * 1000);
+      }, CHECK_INTERVAL / 2);
     }
-  }
+  };
 
   // We set this.idle_time to the **moment in in the future** at
-  // which the user will be considered idle, and also emit event
-  // indicating that user is currently active.
-  public idle_reset(): void {
+  // which the user will be considered idle.
+  public idle_reset = (): void => {
     this.hide_notification();
     this.idle_time = Date.now() + this.idle_timeout + 1000;
     if (this.delayed_disconnect) {
       clearTimeout(this.delayed_disconnect);
       this.delayed_disconnect = undefined;
     }
-    this.client.hub_client.reconnect();
-  }
+    // console.log("idle timeout: reconnect");
+    if (this.standbyMode) {
+      this.standbyMode = false;
+      console.log("Leaving standby mode");
+      this.client.nats_client.resume();
+      this.client.hub_client.reconnect();
+    }
+  };
 
   // Change the standby timeout to a particular time in minutes.
   // This gets called when the user configuration settings are set/loaded.
-  public set_standby_timeout_m(time_m: number): void {
+  public set_standby_timeout_m = (time_m: number): void => {
     this.idle_timeout = time_m * 60 * 1000;
     this.idle_reset();
-  }
+  };
 
-  private notification_html(): string {
+  private notification_html = (): string => {
     const customize = redux.getStore("customize");
     const site_name = customize.get("site_name");
     const description = customize.get("site_description");
@@ -144,9 +169,9 @@ export class IdleClient {
     }
 
     return html + "&mdash; click to reconnect &mdash;</div>";
-  }
+  };
 
-  public show_notification(): void {
+  show_notification = (): void => {
     if (this.notification_is_visible) return;
     const idle = $("#cocalc-idle-notification");
     if (idle.length === 0) {
@@ -159,11 +184,11 @@ export class IdleClient {
       idle.slideDown("slow");
     }
     this.notification_is_visible = true;
-  }
+  };
 
-  public hide_notification(): void {
+  hide_notification = (): void => {
     if (!this.notification_is_visible) return;
     $("#cocalc-idle-notification").slideUp("slow");
     this.notification_is_visible = false;
-  }
+  };
 }

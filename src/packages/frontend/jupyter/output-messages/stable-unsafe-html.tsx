@@ -51,7 +51,7 @@ const POSITION_WHEN_MOUNTED_INTERVAL_MS = 10000;
 
 // Scroll actively this many frames after each update, due to throttling of onscroll
 // and other events. This is to eliminate lag.
-const SCROLL_COUNT = 30;
+const SCROLL_COUNT = 60;
 
 const cache = new TTL<string, any>({
   ttl: IDLE_TIMEOUT_S * 1000,

@@ -4,7 +4,7 @@ import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
-import { projects, root, blobstore } from "@cocalc/backend/data";
+import { projects, root } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -14,6 +14,8 @@ import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { natsPorts, natsServer } from "@cocalc/backend/data";
 
 const logger = getLogger("project-control:util");
 
@@ -112,8 +114,6 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
     "--daemon",
     "--init",
     "project_init.sh",
-    "--blobstore",
-    blobstore,
   ];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
@@ -246,6 +246,19 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   return env2 as { [key: string]: string };
 }
 
+async function natsWebsocketServer() {
+  const { nats_project_server } = await getServerSettings();
+  if (nats_project_server) {
+    if (nats_project_server.startsWith("ws")) {
+      if (base_path.length <= 1) {
+        return nats_project_server;
+      }
+      return `${nats_project_server}${base_path}/nats`;
+    }
+  }
+  return `${natsServer}:${natsPorts.server}`;
+}
+
 export async function getEnvironment(
   project_id: string,
 ): Promise<{ [key: string]: any }> {
@@ -275,6 +288,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      // url of the NATS websocket server the project will connect to:
+      NATS_SERVER: await natsWebsocketServer(),
     },
   };
 }

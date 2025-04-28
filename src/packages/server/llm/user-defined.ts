@@ -1,5 +1,5 @@
-import { Ollama, OllamaInput } from "@langchain/community/llms/ollama";
-import { OpenAI as LCOpenAI } from "@langchain/openai";
+import { Ollama, OllamaInput } from "@langchain/ollama";
+import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
@@ -15,7 +15,7 @@ import {
   unpackUserDefinedLLMModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
-import { History } from "@cocalc/util/types/llm";
+import type { History, Stream } from "@cocalc/util/types/llm";
 import { evaluateAnthropic } from "./anthropic";
 import { evaluateCustomOpenAI } from "./custom-openai";
 import { evaluateGoogleGenAILC } from "./google-lc";
@@ -30,7 +30,7 @@ interface UserDefinedOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be user-[type-[model]]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
 }
 
@@ -69,7 +69,7 @@ export async function evaluateUserDefinedLLM(
   switch (service) {
     case "custom_openai": {
       // https://js.langchain.com/v0.2/docs/integrations/llms/openai/
-      const oic: ConstructorParameters<typeof LCOpenAI>["0"] = {
+      const oic: ConstructorParameters<typeof ChatOpenAILC>["0"] = {
         model: conf.model,
       };
       if (endpoint) {
@@ -80,7 +80,7 @@ export async function evaluateUserDefinedLLM(
         oic.apiKey = apiKey;
         oic.openAIApiKey = apiKey;
       }
-      const client = new LCOpenAI(oic);
+      const client = new ChatOpenAILC(oic);
       return await evaluateCustomOpenAI(
         { ...opts, model: toCustomOpenAIModel(conf.model) },
         client,
@@ -92,9 +92,8 @@ export async function evaluateUserDefinedLLM(
         baseUrl: conf.endpoint,
       };
       if (conf.apiKey) {
-        oc.headers = {
-          Authorization: `Bearer ${conf.apiKey}`,
-        };
+        oc.headers = new Headers();
+        oc.headers.set("Authorization", `Bearer ${conf.apiKey}`);
       }
       const client = new Ollama(oc);
       return await evaluateOllama(

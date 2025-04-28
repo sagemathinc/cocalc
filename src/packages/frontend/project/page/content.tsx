@@ -21,7 +21,6 @@ import {
   React,
   ReactDOM,
   redux,
-  useForceUpdate,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
@@ -40,12 +39,10 @@ import { Explorer } from "@cocalc/frontend/project/explorer";
 import { ProjectLog } from "@cocalc/frontend/project/history";
 import { ProjectInfo } from "@cocalc/frontend/project/info";
 import { ProjectNew } from "@cocalc/frontend/project/new";
-import { log_file_open } from "@cocalc/frontend/project/open-file";
 import { ProjectSearch } from "@cocalc/frontend/project/search/search";
 import { ProjectServers } from "@cocalc/frontend/project/servers";
 import { ProjectSettings } from "@cocalc/frontend/project/settings";
 import { editor_id } from "@cocalc/frontend/project/utils";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
@@ -53,6 +50,7 @@ import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
 import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -103,6 +101,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
   const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
+  const recentlyDeletedPaths: Map<string, number> | undefined = useTypedRedux(
+    { project_id },
+    "recentlyDeletedPaths",
+  );
 
   const path = useMemo(() => {
     if (tab_name.startsWith("editor-")) {
@@ -172,6 +174,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           project_id,
           path,
           is_visible,
+          client: webapp_client,
         };
         return (
           <FileContext.Provider value={value}>
@@ -185,6 +188,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
                 DEFAULT_CHAT_WIDTH
               }
               component={open_files.getIn([path, "component"]) ?? {}}
+              deleted={recentlyDeletedPaths?.get(path)}
             />
           </FileContext.Provider>
         );
@@ -234,27 +238,23 @@ interface EditorContentProps {
   chat_width: number;
   chatState?: ChatState;
   component: { Editor?; redux_name?: string };
+  // if deleted, when
+  deleted?: number;
 }
 
-const EditorContent: React.FC<EditorContentProps> = (
-  props: EditorContentProps,
-) => {
-  const { project_id, path, chat_width, is_visible, chatState, component } =
-    props;
+const EditorContent: React.FC<EditorContentProps> = ({
+  deleted,
+  project_id,
+  path,
+  chat_width,
+  is_visible,
+  chatState,
+  component,
+}: EditorContentProps) => {
   const editor_container_ref = useRef(null);
-  const force_update = useForceUpdate();
 
-  if (webapp_client.file_client.is_deleted(path, project_id)) {
-    return (
-      <DeletedFile
-        project_id={project_id}
-        path={path}
-        onOpen={() => {
-          log_file_open(project_id, path);
-          force_update();
-        }}
-      />
-    );
+  if (deleted) {
+    return <DeletedFile project_id={project_id} path={path} time={deleted} />;
   }
 
   // Render this here, since it is used in multiple places below.

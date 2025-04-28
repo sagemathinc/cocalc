@@ -4,7 +4,7 @@
  */
 
 import { delay } from "awaiting";
-declare var $: any;
+import $ from "jquery";
 
 // Cause a file at a given url to get downloaded... using an iframe.  Don't await this.
 export async function download_file(src: string): Promise<void> {

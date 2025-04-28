@@ -23,7 +23,7 @@ Table({
     status: {
       // change this according to all the usual schema rules
       type: "map",
-      pg_type: "JSONB[]",
+      pg_type: "JSONB",
       desc: "Status of this project",
     },
   },

@@ -43,6 +43,7 @@ interface Props {
   is_selected?: boolean;
   is_markdown_edit?: boolean;
   project_id?: string;
+  path?: string;
   directory?: string;
   complete?: Map<string, any>; // TODO: types
   is_focused?: boolean;
@@ -104,13 +105,6 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     return <></>;
   }
 
-  function is_editable(): boolean {
-    return (
-      !props.read_only &&
-      (props.cell.getIn(["metadata", "editable"], true) as any)
-    );
-  }
-
   function is_deletable(): boolean {
     return props.cell.getIn(["metadata", "deletable"], true) as any;
   }
@@ -137,7 +131,8 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         complete={props.is_current ? props.complete : undefined}
         cell_toolbar={props.cell_toolbar}
         trust={props.trust}
-        is_readonly={!is_editable()}
+        is_readonly={!!props.read_only}
+        input_is_readonly={!props.cell.getIn(["metadata", "editable"], true)}
         is_scrolling={props.is_scrolling}
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
@@ -210,16 +205,17 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_not_editable(): Rendered {
-    if (is_editable()) return;
-    return (
-      <Tip
-        title={"Protected from modifications"}
-        placement={"right"}
-        size={"small"}
-      >
-        <Icon name="lock" />
-      </Tip>
-    );
+    if (props.read_only || !props.cell.getIn(["metadata", "editable"], true)) {
+      return (
+        <Tip
+          title={"Protected from modifications"}
+          placement={"right"}
+          size={"small"}
+        >
+          <Icon name="lock" />
+        </Tip>
+      );
+    }
   }
 
   function render_nbgrader(): Rendered {
@@ -266,8 +262,8 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     const marginTop = props.isFirst
       ? "30px"
       : props.actions != null
-      ? "10px"
-      : "20px";
+        ? "10px"
+        : "20px";
 
     const style: React.CSSProperties = {
       border: `1px solid ${color}`,
@@ -306,6 +302,9 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_metadata_state(): Rendered {
+    if (props.read_only) {
+      return;
+    }
     let style: React.CSSProperties;
 
     // note -- that second part is because the official

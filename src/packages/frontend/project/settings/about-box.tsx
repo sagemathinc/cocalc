@@ -3,10 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import ShowError from "@cocalc/frontend/components/error";
 import { Alert, Col, Row, Typography } from "antd";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
-
 import {
   redux,
   useAsyncEffect,
@@ -79,15 +79,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
   function renderBody() {
     return (
       <>
-        {error && (
-          <Alert
-            banner={isFlyout}
-            showIcon={!isFlyout}
-            style={{ marginBottom: "15px" }}
-            type="error"
-            message={error}
-          />
-        )}
+        <ShowError error={error} setError={setError} />
         {renderReadonly()}
         <LabeledRow
           label={intl.formatMessage({
@@ -101,7 +93,13 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             style={{ width: "100%" }}
             text={project_title}
             disabled={hasReadonlyFields}
-            on_change={(title) => actions.set_project_title(project_id, title)}
+            on_change={async (title) => {
+              try {
+                await actions.set_project_title(project_id, title);
+              } catch (err) {
+                setError(`${err}`);
+              }
+            }}
           />
         </LabeledRow>
         <LabeledRow
@@ -119,9 +117,13 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             rows={2}
             text={description}
             disabled={hasReadonlyFields}
-            on_change={(desc) =>
-              actions.set_project_description(project_id, desc)
-            }
+            on_change={async (desc) => {
+              try {
+                await actions.set_project_description(project_id, desc);
+              } catch (err) {
+                setError(`${err}`);
+              }
+            }}
           />
         </LabeledRow>
         <LabeledRow
@@ -137,7 +139,13 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             type="textarea"
             rows={1}
             text={name ?? ""}
-            on_change={(name) => actions.set_project_name(project_id, name)}
+            on_change={async (name) => {
+              try {
+                await actions.set_project_name(project_id, name);
+              } catch (err) {
+                setError(`${err}`);
+              }
+            }}
             onFocus={() => setShowNameInfo(true)}
             onBlur={() => setShowNameInfo(false)}
           />

@@ -62,19 +62,10 @@ read = require('read')
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
 {updateUnreadMessageCount} = require('./postgres/messages');
+centralLog = require('./postgres/central-log').default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
-# log events, which contain personal information (email, account_id, ...)
-PII_EVENTS = ['create_account',
-              'change_password',
-              'change_email_address',
-              'webapp-add_passport',
-              'get_user_auth_token',
-              'successful_sign_in',
-              'webapp-email_sign_up',
-              'create_account_registration_token'
-             ]
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -83,27 +74,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             event : required    # string
             value : required    # object
             cb    : undefined
-
-        # always expire central_log entries after 1 year, unless …
-        expire = expire_time(365*24*60*60)
-        # exception events expire earlier
-        if opts.event == 'uncaught_exception'
-            expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
-        else
-            # and user-related events according to the PII time, although "never" falls back to 1 year
-            v = opts.value
-            if v.ip_address? or v.email_address? or opts.event in PII_EVENTS
-                expire = await pii_expire(@) ? expire
-
-        @_query
-            query  : 'INSERT INTO central_log'
-            values :
-                'id::UUID'          : misc.uuid()
-                'event::TEXT'       : opts.event
-                'value::JSONB'      : opts.value
-                'time::TIMESTAMP'   : 'NOW()'
-                'expire::TIMESTAMP' : expire
-            cb     : (err) => opts.cb?(err)
+        try
+            await centralLog(opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     uncaught_exception: (err) =>
         # call when things go to hell in some unexpected way; at least
@@ -1169,56 +1144,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
     ###
-    User auth token
-    ###
-    # save an auth token in the database
-    save_auth_token: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            auth_token : required
-            ttl        : 12*3600    # ttl in seconds (default: 12 hours)
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query  : 'INSERT INTO auth_tokens'
-            values :
-                'auth_token :: CHAR(24)  ' : opts.auth_token
-                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
-                'account_id :: UUID      ' : opts.account_id
-            cb     : opts.cb
-
-    # Get account_id of account with given auth_token.  If it
-    # is not defined, get back undefined instead.
-    get_auth_token_account_id: (opts) =>
-        opts = defaults opts,
-            auth_token : required
-            cb         : required   # cb(err, account_id)
-        @_query
-            query : 'SELECT account_id, expire FROM auth_tokens'
-            where :
-                'auth_token = $::CHAR(24)' : opts.auth_token
-            cb       : one_result (err, x) =>
-                if err
-                    opts.cb(err)
-                else if not x?
-                    opts.cb()  # nothing
-                else if x.expire <= new Date()
-                    opts.cb()
-                else
-                    opts.cb(undefined, x.account_id)
-
-    delete_auth_token: (opts) =>
-        opts = defaults opts,
-            auth_token : required
-            cb         : undefined   # cb(err)
-        @_query
-            query : 'DELETE FROM auth_tokens'
-            where :
-                'auth_token = $::CHAR(24)' : opts.auth_token
-            cb    : opts.cb
-
-
-    ###
     Password reset
     ###
     set_password_reset: (opts) =>
@@ -1305,7 +1230,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return
 
         # If expire no pii expiration is set, use 1 year as a fallback
-        expire = await pii_expire(@) ? expire_time(365*24*60*60)
+        expire = await pii_expire() ? expire_time(365*24*60*60)
 
         @_query
             query  : 'INSERT INTO file_access_log'
