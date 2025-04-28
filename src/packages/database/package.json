@@ -22,9 +22,6 @@
     "@cocalc/database": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/lodash": "^4.14.202",
-    "@types/pg": "^8.11.10",
-    "@types/uuid": "^8.3.1",
     "@nats-io/services": "3.0.0",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
@@ -45,7 +42,7 @@
   "devDependencies": {
     "@types/node": "^18.16.14",
     "@types/lodash": "^4.14.202",
-    "@types/pg": "^8.6.1",
+    "@types/pg": "^8.11.10",
     "@types/uuid": "^8.3.1",
     "coffeescript": "^2.5.1"
   },
