@@ -1481,7 +1481,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     select : select
                     where  : where
                     watch  : watch
-                    cb     : (err, feed) =>
+                    cb     : (err, _feed) =>
+                        # there *is* a glboal variable feed that we set here:
+                        feed = _feed
                         if err
                             cb(err)
                             return
