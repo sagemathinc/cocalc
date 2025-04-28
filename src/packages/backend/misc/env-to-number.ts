@@ -11,7 +11,7 @@ const L = getLogger("env-to-number").debug;
 export function envToInt(name: string, fallback: number) {
   const value = process.env[name];
   if (value == null) {
-    L(`envToInt: using fallback value ${fallback} for ${name}`);
+    // L(`envToInt: using fallback value ${fallback} for ${name}`);
     return fallback;
   }
   const parsed = parseInt(value);

@@ -3,16 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-declare var $: any;
+import $ from "jquery";
 
 export function is_safari(): boolean {
+  // @ts-ignore
   return !!$.browser?.safari;
 }
 
 export function is_firefox(): boolean {
+  // @ts-ignore
   return !!$.browser?.firefox;
 }
 
 export function is_chrome(): boolean {
+  // @ts-ignore
   return !!$.browser?.chrome;
 }

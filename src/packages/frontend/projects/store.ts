@@ -710,7 +710,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     return false;
   }
 
-  public get_projects_with_compute_image(csi: string) {
+  public get_projects_with_compute_image(csi: string) : any {
     const by_csi = (val) => {
       const ci = val.get("compute_image");
       if (ci.startsWith(CUSTOM_IMG_PREFIX)) {

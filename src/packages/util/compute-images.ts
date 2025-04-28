@@ -7,6 +7,7 @@
 // the "/customize" endpoint does not send a suitable "software" field.
 // check frontend/customize.tsx for more details.
 
+//import { without } from "lodash";
 import * as schema from "./db-schema";
 
 // WARNING! Do not remove this from the public api.  **It is used by kucalc
@@ -21,8 +22,8 @@ const GROUPS = [
   "Ubuntu 24.04",
   "Ubuntu 22.04",
   "Ubuntu 20.04",
-  "Ubuntu 18.04",
-  "Ubuntu 16.04",
+  "Ubuntu 18.04", // empty
+  "Ubuntu 16.04", // empty
 ] as const;
 
 type Group = (typeof GROUPS)[number];
@@ -78,6 +79,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 22.04 (Testing)",
     descr: "Upcoming Ubuntu 22.04 based software stack",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   default: {
     order: 1,
@@ -95,6 +97,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 18.04 (EndOfLife)",
     descr: "Reached end of life in August 2020",
     group: "Main",
+    hidden: true,
   },
   [DISMISS_IMG_2004]: {
     order: 1,
@@ -124,17 +127,25 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     group: "Ubuntu 20.04",
     hidden: true,
   },
+  "ubuntu2204-2024-11-25": {
+    title: "Ubuntu 22.04 (2024-11-25)",
+    short: "2024-11-25",
+    descr: "Frozen on 2024-11-25 and no longer updated",
+    group: "Ubuntu 22.04",
+  },
   "ubuntu2204-2024-08-01": {
     title: "Ubuntu 22.04 (2024-08-01)",
     short: "2024-08-01",
     descr: "Frozen on 2024-08-01 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   "ubuntu2204-2024-05-13": {
     title: "Ubuntu 22.04 (2024-05-13)",
     short: "2024-05-13",
     descr: "Frozen on 2024-05-13 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   "ubuntu2204-2024-02-07": {
     title: "Ubuntu 22.04 (2024-02-07)",
@@ -147,60 +158,70 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "2023-01-09",
     descr: "Frozen on 2023-01-09 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   "ubuntu2204-2023-04-19": {
     title: "Ubuntu 22.04 (2023-04-19)",
     short: "2023-04-19",
     descr: "Frozen on 2023-04-19 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   "ubuntu2204-2023-05-15": {
     title: "Ubuntu 22.04 (2023-05-15)",
     short: "2023-05-15",
     descr: "Frozen on 2023-05-15 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   "ubuntu2204-2023-09-11": {
     title: "Ubuntu 22.04 (2023-09-11)",
     short: "2023-09-11",
     descr: "Frozen on 2023-09-11 and no longer updated",
     group: "Ubuntu 22.04",
+    hidden: true,
   },
   [UBUNTU2004_DEV]: {
     title: "Ubuntu 20.04 (Testing)",
     short: "Testing",
     descr: "Upcoming software changes – could be broken!",
     group: "Ubuntu 20.04",
+    hidden: true,
   },
   "ubuntu2004-2020-10-28": {
     title: "Ubuntu 20.04 (2020-10-28)",
     short: "2020-10-28",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2020-10-28 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2020-12-09": {
     title: "Ubuntu 20.04 (2020-12-09)",
     short: "2020-12-09",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2020-12-09 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2021-02-01": {
     title: "Ubuntu 20.04 (2021-02-01)",
     short: "2021-02-01",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2021-02-01 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2021-05-31": {
     title: "Ubuntu 20.04 (2021-05-31)",
     short: "2021-05-31",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2021-05-31 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2021-08-13": {
     title: "Ubuntu 20.04 (2021-08-13)",
     short: "2021-08-13",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2021-08-13 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2021-10-10": {
     title: "Ubuntu 20.04 (2021-10-10)",
@@ -213,12 +234,14 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "2022-04-19",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2022-04-19 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2022-08-17": {
     title: "Ubuntu 20.04 (2022-08-17)",
     short: "2022-08-17",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2022-08-17 and no longer updated",
+    hidden: true,
   },
   "ubuntu2004-2022-11-25": {
     title: "Ubuntu 20.04 (2022-11-25)",
@@ -247,42 +270,49 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "2018-08-27",
     descr: "Frozen on 2018-08-27 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2019-01-12": {
     title: "Ubuntu 18.04 @ 2019-01-12",
     short: "2019-01-12",
     descr: "Frozen on 2019-01-12 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2019-07-15": {
     title: "Ubuntu 18.04 @ 2019-07-15",
     short: "2019-07-15",
     descr: "Frozen on 2019-07-15 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2019-10-25_ro": {
     title: "Ubuntu 18.04 @ 2019-10-25",
     short: "2019-10-25",
     descr: "Frozen on 2019-10-25 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2019-12-15_ro": {
     title: "Ubuntu 18.04 @ 2019-12-15",
     short: "2019-12-15",
     descr: "Frozen on 2019-12-15 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2020-01-26_ro": {
     title: "Ubuntu 18.04 @ 2020-01-26",
     short: "2020-01-26",
     descr: "Frozen on 2020-01-26 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2020-07-31": {
     title: "Ubuntu 18.04 @ 2020-07-31",
     short: "2020-07-31",
     descr: "Frozen on 2020-07-31 and no longer updated",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   old: {
     order: 10,
@@ -290,12 +320,13 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Old software image",
     descr: "In use until Summer 2018. No longer maintained!",
     group: "Ubuntu 16.04",
+    hidden: true,
   },
 } as const;
 
 export const FALLBACK_SOFTWARE_ENV = {
   default: DEFAULT_COMPUTE_IMAGE,
-  groups: GROUPS,
+  groups: GROUPS, // without(GROUPS, "Ubuntu 18.04", "Ubuntu 16.04"),
   environments: COMPUTE_IMAGES,
 } as const;
 

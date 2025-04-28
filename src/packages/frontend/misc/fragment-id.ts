@@ -24,14 +24,19 @@ export function isPageFragment(x: any): x is FragmentId {
   return !!x?.page;
 }
 
+type SetFunction = (fragmentId: FragmentId | undefined) => void;
+
 namespace Fragment {
   // set is debounced so you can call it as frequently as you want...
-  export const set = debounce((fragmentId: FragmentId | undefined) => {
-    if (IS_EMBEDDED) return; // no op in embed mode.
-    const url = new URL(location.href);
-    url.hash = encode(fragmentId);
-    history.replaceState({}, "", url.href);
-  }, 100);
+  export const set: SetFunction = debounce(
+    (fragmentId: FragmentId | undefined) => {
+      if (IS_EMBEDDED) return; // no op in embed mode.
+      const url = new URL(location.href);
+      url.hash = encode(fragmentId);
+      history.replaceState({}, "", url.href);
+    },
+    100,
+  );
 
   export function get(): FragmentId | undefined {
     return decode(location.hash.slice(1));

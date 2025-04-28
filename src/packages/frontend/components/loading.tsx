@@ -63,11 +63,7 @@ export function Loading({
         {text ?? intl.formatMessage(labels.loading)}
       </span>
       {estimate != undefined && (
-        <div>
-          Loading '{estimate.get("type")}' file.
-          <br />
-          Estimated time: {estimate.get("time")}s
-        </div>
+        <div>Estimated time: {estimate.get("time")}s</div>
       )}
     </div>
   );

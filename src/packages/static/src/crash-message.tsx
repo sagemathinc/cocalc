@@ -43,7 +43,7 @@ export default function CrashMessage({
         <A href={getSupport}>
           <b>Report the full error.</b>
         </A>{" "}
-        In the meantime, try switching to another web browser, upating to the
+        In the meantime, try switching to another web browser, updating to the
         latest version of your browser, or{" "}
         <a
           onClick={() => {

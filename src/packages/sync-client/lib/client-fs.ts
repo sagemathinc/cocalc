@@ -156,9 +156,9 @@ export class FileSystemClient {
             new Error(
               `file '${path}' size (=${
                 size / 1000000
-              }MB) too large (must be at most ${
+              } MB) too large (must be at most ${
                 opts.maxsize_MB
-              }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`,
+              } MB); try opening it in a Terminal with vim instead or click Help in the upper right to create a support request.`,
             ),
           );
           return;

@@ -24,11 +24,11 @@ const COST_THRESH_DOLLARS = 1;
 // Still we make it reasonably large since we really don't want to
 // delete data for non-abuse users.
 //
-// NOTE: we never automatically delete anything for a user with a negative balance, as
-// that indicates some trust.
-//
-const DELETE_THRESH_MARGIN_DEFAULT = 20;
-const DELETE_THRESH_MARGIN_NEGATIVE_BALANCE = 250;
+// NOTE: we do not automatically delete for a user with a negative balance
+// until it's way below (DELETE_THRESH_MARGIN_NEGATIVE_BALANCE) their negative,
+// as that indicates some trust.
+const DELETE_THRESH_MARGIN_DEFAULT = 10;
+const DELETE_THRESH_MARGIN_NEGATIVE_BALANCE = 200;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 

@@ -25,7 +25,6 @@ import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
@@ -192,7 +191,7 @@ function AIGenerateDocument({
     (async () => {
       try {
         setKernelSpecs(null);
-        let X = await getKernelSpec(project_id);
+        let X = await getKernelSpec({ project_id });
         if (ext === "ipynb-sagemath") {
           // only SageMath KernelSpecs
           X = X.filter((x) => x.language === "sagemath");
@@ -232,6 +231,7 @@ function AIGenerateDocument({
           }
         }
       } catch (err) {
+        console.log(err);
         setKernelSpecs(
           intl.formatMessage({
             id: "ai-generate-document.loading_kernels.error_message",
@@ -645,7 +645,7 @@ function AIGenerateDocument({
         case "ipynb":
         case "ipynb-sagemath":
           return spec != null
-            ? JUPYTER[spec.language?.toLowerCase()] ?? []
+            ? (JUPYTER[spec.language?.toLowerCase()] ?? [])
             : [];
         default:
           return DOCUMENT[ext];

@@ -106,6 +106,7 @@ export default function NoFiles({
           margin: "0 auto",
           height: "80px",
           fontSize: "24px",
+          padding: "30px",
         }}
         onClick={(): void => {
           if (file_search.length === 0) {

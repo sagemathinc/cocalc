@@ -39,8 +39,6 @@ import {
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
-declare var $: any;
-
 // used for some styles
 const HEIGHT = "275px";
 

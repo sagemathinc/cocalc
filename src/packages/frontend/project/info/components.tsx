@@ -18,16 +18,13 @@ import {
 } from "antd";
 import humanizeList from "humanize-list";
 import * as immutable from "immutable";
-
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeElapsed, Tip } from "@cocalc/frontend/components";
 import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   Processes,
-  ProjectInfoCmds,
   Signal,
   State,
 } from "@cocalc/util/types/project-info/types";
@@ -37,6 +34,8 @@ import { COLORS } from "@cocalc/util/theme";
 import { CGroupInfo, DUState } from "./types";
 import { filename, warning_color_disk, warning_color_pct } from "./utils";
 import { useProjectContext } from "../context";
+import ShowError from "@cocalc/frontend/components/error";
+import { useState } from "react";
 
 interface AboutContentProps {
   proc?: Process;
@@ -540,7 +539,6 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
 );
 
 interface SignalButtonsProps {
-  chan: Channel | null;
   pid?: number;
   selected?: number[];
   set_selected?: Function;
@@ -548,12 +546,12 @@ interface SignalButtonsProps {
   disabled?: boolean;
   processes: Processes;
   small?: boolean;
+  project_actions;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
   (props: SignalButtonsProps) => {
     const {
-      chan,
       selected: selected_user,
       set_selected,
       loading,
@@ -561,7 +559,9 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       pid,
       processes,
       small = false,
+      project_actions,
     } = props;
+    const [error, setError] = useState<string>("");
 
     // we don't let users send signals to processes classified as "project" or "ssh daemon"
     const dont_kill = ["project", "sshd"];
@@ -604,15 +604,16 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       return "";
     }
 
-    function onConfirm(signal: Signal) {
-      if (chan == null) return;
-      const payload: ProjectInfoCmds = {
-        cmd: "signal",
-        signal,
-        pids: selected,
-      };
-      chan.write(payload);
-      set_selected?.([]);
+    async function onConfirm(signal: Signal) {
+      try {
+        setError("");
+        set_selected?.([]);
+        await project_actions
+          .projectApi()
+          .system.signal({ signal, pids: selected });
+      } catch (err) {
+        setError(`${err}`);
+      }
     }
 
     function render_signal(signal: Signal) {
@@ -674,6 +675,11 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       ) : (
         <Form.Item label="Send signal:">
           <Space>{btns}</Space>
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "15px 0" }}
+          />
         </Form.Item>
       );
     }

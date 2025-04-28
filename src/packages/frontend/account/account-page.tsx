@@ -15,7 +15,6 @@ and configuration.
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import {
   React,
@@ -229,7 +228,7 @@ export const AccountPage: React.FC = () => {
   function renderExtraContent() {
     return (
       <Space>
-        <BalanceButton />
+        {is_commercial ? <BalanceButton /> : undefined}
         <I18NSelector isWide={isWide} />
         <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>

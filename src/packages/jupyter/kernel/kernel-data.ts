@@ -6,9 +6,15 @@
 /*
 Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
 
-The result is cached for 10s to avoid wasted effort in case of a flurry of calls.
+The result is cached for a few seconds to avoid wasted effort in case
+of a flurry of calls.
 
 Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
+
+This is supposed to be basically the same as "jupyter kernelspec list --json", but it is NOT always.
+E.g., on my dev system the "ptyhon3" system-wide kernel is just completely missed.  Also,
+"jupyter kernelspec list --json" is MUCH slower, taking almost a second, versus only
+a few ms for this.  We stick with this for now, but may need to improve upstream.
 */
 
 import { findAll } from "kernelspecs";
@@ -47,10 +53,12 @@ function spec2language(spec): string {
 // this is very expensive and can get called many times at once before
 // the cache is set, which is very bad... so reuseInFlight.
 export const get_kernel_data = reuseInFlight(
-  async (): Promise<KernelSpec[]> => {
-    let x = cache.get("kernel_data");
-    if (x != null) {
-      return x;
+  async ({ noCache }: { noCache?: boolean } = {}): Promise<KernelSpec[]> => {
+    if (!noCache) {
+      let x = cache.get("kernel_data");
+      if (x != null) {
+        return x;
+      }
     }
     const kernel_data = await findAll();
     const v: KernelSpec[] = [];

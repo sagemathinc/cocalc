@@ -41,6 +41,17 @@ const IframeHtml = ({ value }) => {
     setTimeout(f, 250);
   }, []);
 
+  let src: undefined | string = undefined;
+  let srcDoc: undefined | string = undefined;
+  if (
+    value.startsWith("https:") ||
+    value.startsWith("http:") ||
+    value.startsWith("blob:")
+  ) {
+    src = value;
+  } else {
+    srcDoc = value;
+  }
   return (
     <iframe
       ref={iframeRef}
@@ -49,8 +60,8 @@ const IframeHtml = ({ value }) => {
         "600px" /* Kind of arbitrary -- but overflow auto below, so scrollable */
       }
       style={{ overflow: "auto", border: 0 }}
-      src={value}
-      srcDoc={value}
+      src={src}
+      srcDoc={srcDoc}
       sandbox="allow-forms allow-scripts allow-presentation"
     />
   );

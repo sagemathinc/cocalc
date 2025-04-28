@@ -16,7 +16,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { ajax, globalEval } from "jquery";
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -240,6 +239,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // attempting websocket connections (which turns out to be very bad
   // for modern browsers!), we use our own strategy.
   conn.on("end", async function () {
+    while (webapp_client.idle_client.inStandby()) {
+      await delay(1000);
+    }
     log(`project websocket: reconnecting to '${project_id}' in 1s...`);
     // put this delay in since otherwise we try to reconnect so rapidly that
     // we basically DOS the project thus slowing down connecting by a
@@ -251,6 +253,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
     if (conn.api == null) return; // done with this connection
     conn.open();
   });
+
+  //   conn.on("data", (data) => {
+  //     console.log("project websocket received data", data);
+  //   });
 
   return conn;
 }

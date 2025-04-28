@@ -354,10 +354,10 @@ export class Evaluator {
     dbg(`no outputs yet with key ${to_json(id)}`);
     const r = this.inputs_table.get(key);
     if (r == null) {
-      dbg("deleting from input?");
-      throw Error("deleting from input not implemented");
-      // happens when deleting from input table (if that is
-      // ever supported, e.g., for maybe trimming old evals...)
+      dbg("deleted old input");
+      // This happens when deleting from input table (if that is
+      // ever supported, e.g., for maybe trimming old evals...).
+      // Nothing we need to do here.
       return;
     }
     const input = r.get("input");

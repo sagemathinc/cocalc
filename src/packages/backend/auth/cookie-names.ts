@@ -13,6 +13,7 @@ setting the following environment variable:
 
 import basePath from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
+import { basePathCookieName } from "@cocalc/util/misc";
 
 const log = getLogger("cookie-names");
 
@@ -20,15 +21,21 @@ const log = getLogger("cookie-names");
 // when the user is signed in.
 export const REMEMBER_ME_COOKIE_NAME =
   process.env.COCALC_REMEMBER_ME_COOKIE_NAME ??
-  `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}remember_me`;
+  basePathCookieName({ basePath, name: "remember_me" });
 
 log.debug("REMEMBER_ME_COOKIE_NAME", REMEMBER_ME_COOKIE_NAME);
 
 // Name of user provided api key cookie, with appropriate base path.
 // This is set by the user when using the api from node.js, especially
 // via a websocket.
-export const API_COOKIE_NAME =
-  process.env.COCALC_API_COOKIE_NAME ??
-  `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}api_key`;
+export const API_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "api_key",
+});
 
 log.debug("API_COOKIE_NAME", API_COOKIE_NAME);
+
+export const ACCOUNT_ID_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "account_id",
+});

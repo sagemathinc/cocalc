@@ -182,7 +182,10 @@ export default function Message({
 
   const generating = message.get("generating");
 
-  const history_size = useMemo(() => message.get("history").size, [message]);
+  const history_size = useMemo(
+    () => message.get("history")?.size ?? 0,
+    [message],
+  );
 
   const isEditing = useMemo(
     () => is_editing(message, account_id),
@@ -268,7 +271,10 @@ export default function Message({
       } else if (other_editors.size > 1) {
         // Multiple other editors
         text = `${other_editors.size} other users are also editing this!`;
-      } else if (history_size !== message.get("history").size && new_changes) {
+      } else if (
+        history_size !== (message.get("history")?.size ?? 0) &&
+        new_changes
+      ) {
         text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
       } else {
         if (IS_TOUCH) {

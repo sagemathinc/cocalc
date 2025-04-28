@@ -382,7 +382,7 @@ export default function ComputeServer({
             <div style={{ display: "flex", marginLeft: "-20px" }}>
               {id != null && <ComputeServerLog id={id} />}
               {id != null &&
-                configuration.cloud == "google-cloud" &&
+                configuration?.cloud == "google-cloud" &&
                 (state == "starting" ||
                   state == "stopping" ||
                   state == "running") && (

@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Layout } from "antd";
+import { Button, Layout, Space } from "antd";
 
 import {
   LanguageName,
@@ -56,23 +56,24 @@ const LINKS: { [lang in LanguageName | "executables"]: string } = {
 function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
   return (
     <Paragraph>
-      {SOFTWARE_ENV_NAMES.map((name) => {
-        const type = SOFTWARE_ENV_DEFAULT === name ? "primary" : undefined;
-        const style =
-          SOFTWARE_ENV_DEFAULT === name ? { color: "white" } : undefined;
-        // toLowerCase is necessary for R → r
-        const href = `/software/${lang.toLowerCase()}/${name}`;
-        return (
-          <Button
-            size="small"
-            type={type}
-            style={{ ...style, marginRight: "10px" }}
-            href={href}
-          >
-            {name}
-          </Button>
-        );
-      })}
+      <Space>
+        {SOFTWARE_ENV_NAMES.map((name) => {
+          const type = SOFTWARE_ENV_DEFAULT === name ? "primary" : undefined;
+          const style = type === "primary" ? { fontWeight: "bold" } : {};
+          // toLowerCase is necessary for R → r
+          const href = `/software/${lang.toLowerCase()}/${name}`;
+          return (
+            <Button
+              size="small"
+              type={type}
+              href={href}
+              style={{ ...style, padding: "5px" }}
+            >
+              {name}
+            </Button>
+          );
+        })}
+      </Space>
     </Paragraph>
   );
 }

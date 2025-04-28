@@ -12,12 +12,7 @@ import type {
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
 
-interface Options extends ExecuteCodeOptions {
-  compute_server_id?: number;
-  filesystem?: boolean;
-}
-
-export default async function execCode(opts: Options): Promise<ExecuteCodeOutput> {
+export default async function execCode(opts: ExecuteCodeOptions): Promise<ExecuteCodeOutput> {
   if (opts.compute_server_id) {
     if (opts.filesystem) {
       return await handleComputeServerFilesystemExec(opts);

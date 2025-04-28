@@ -13,9 +13,7 @@ import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc/sanitize";
-import "@cocalc/frontend/misc/process-links/jquery"; // ensure jquery plugin defined.
-
-declare var $;
+import $ from "jquery";
 
 export interface Props {
   value?: string;
@@ -94,7 +92,11 @@ export function HTML({
 
   function jq(): any {
     if (!isMountedRef.current) return;
-    return $(ReactDOM.findDOMNode(ref.current)) as any;
+    const elt = ReactDOM.findDOMNode(ref.current);
+    if (elt == null) {
+      return undefined;
+    }
+    return $(elt);
   }
 
   function update_mathjax(): void {

@@ -27,7 +27,7 @@ export function serializeElement(node: Element, info: Info): string {
     info.topLevel === undefined ||
     !info.noCache.has(info.topLevel)
   ) {
-    const cachedMarkdown = info.cache?.[stringify(node)];
+    const cachedMarkdown = info.cache?.[stringify(node)!];
     if (cachedMarkdown != null) {
       return cachedMarkdown;
     }

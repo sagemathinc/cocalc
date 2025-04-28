@@ -6,11 +6,12 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
-import { filenameIcon } from "@cocalc/frontend/file-associations";
 import {
   ProjectActions,
+  redux,
   useActions,
   useRedux,
   useTypedRedux,
@@ -26,9 +27,14 @@ import {
 } from "@cocalc/frontend/components";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import ComputeServer from "@cocalc/frontend/compute/inline";
+import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
+import {
+  getValidVBAROption,
+  VBAR_KEY,
+} from "@cocalc/frontend/project/page/vbar";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -329,9 +335,13 @@ export default function NewFilePage(props: Props) {
     );
   };
 
-  const showFiles = () => {
-    actions.set_active_tab("files");
-  };
+  function closeNewPage() {
+    // Showing homepage in flyout only mode, otherwise the files as usual
+    const account_store = redux.getStore("account") as any;
+    const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+    const pureFlyoutMode = getValidVBAROption(vbar) === "flyout";
+    actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
+  }
 
   //key is so autofocus works below
   return (
@@ -411,7 +421,7 @@ export default function NewFilePage(props: Props) {
           )}
         </div>
       }
-      close={showFiles}
+      close={closeNewPage}
     >
       <Modal
         onCancel={() => setCreatingFile("")}
@@ -490,7 +500,7 @@ export default function NewFilePage(props: Props) {
             <FormattedMessage
               id="new.file-type-page.header.description"
               defaultMessage={
-                "What would you like to create? Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+                "Click a button to create a new file.  Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
               }
               values={{
                 A: (ch) => (

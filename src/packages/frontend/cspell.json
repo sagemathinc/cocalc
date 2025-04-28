@@ -30,9 +30,16 @@
     "tidyverse",
     "timetravel",
     "undelete",
-    "undeleting"
+    "undeleting",
+    "tolerations",
+    "rtypes",
+    "rclass",
+    "ipython",
+    "Miniterm"
   ],
   "ignoreWords": [
+    "LLMs",
+    "LLM",
     "antd",
     "ipynb",
     "kernelspec",
@@ -43,10 +50,19 @@
     "vertexai",
     "vfill",
     "xsmall",
+    "MDLG",
+    "isdir",
+    "mintime",
+    "PoweroffOutlined",
+    "immutablejs",
+    "reuseinflight"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
   "allowCompoundWords": false,
   "ignoreRegExpList": ["/import\\s+.*?\\s+from\\s+['\"].*?['\"]/g"],
-  "import": ["@cspell/dict-typescript/cspell-ext.json"]
+  "import": [
+    "@cspell/dict-typescript/cspell-ext.json",
+    "./node_modules/@cspell/dict-typescript/cspell-ext.json"
+  ]
 }

@@ -5,12 +5,12 @@
 
 import ShowError from "@cocalc/frontend/components/error";
 import { AccessErrors } from "./access-errors";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   error: any;
   path: string;
   quotas: any;
-  is_commercial: boolean;
   is_logged_in: boolean;
 }
 
@@ -18,9 +18,9 @@ export function FetchDirectoryErrors({
   error,
   path,
   quotas,
-  is_commercial,
   is_logged_in,
 }: Props): JSX.Element {
+  const is_commercial = useTypedRedux("customize", "is_commercial");
   switch (error) {
     case "not_public":
       return <AccessErrors is_logged_in={is_logged_in} />;

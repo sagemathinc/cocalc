@@ -7,23 +7,10 @@ import { server_time } from "@cocalc/util/misc";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { webapp_client } from "../webapp-client";
 import { redux } from "../app-framework";
-import * as prom_client from "../prom-client";
 import { dirname } from "path";
 
 //const log = (...args) => console.log("directory-listing", ...args);
 const log = (..._args) => {};
-
-let prom_get_dir_listing_h;
-if (prom_client.enabled) {
-  prom_get_dir_listing_h = prom_client.new_histogram(
-    "get_dir_listing_seconds",
-    "get_directory_listing time",
-    {
-      buckets: [1, 2, 5, 7, 10, 15, 20, 30, 50],
-      labels: ["public", "state", "err"],
-    },
-  );
-}
 
 interface ListingOpts {
   project_id: string;
@@ -39,11 +26,6 @@ interface ListingOpts {
 
 export async function get_directory_listing(opts: ListingOpts) {
   log("get_directory_listing", opts);
-  let prom_dir_listing_start, prom_labels;
-  if (prom_client.enabled) {
-    prom_dir_listing_start = server_time();
-    prom_labels = { public: false };
-  }
 
   let method, state, time0, timeout;
 
@@ -56,9 +38,6 @@ export async function get_directory_listing(opts: ListingOpts) {
       "state",
       "state",
     ]);
-    if (prom_client.enabled) {
-      prom_labels.state = state;
-    }
     if (state != null && state !== "running") {
       timeout = 0.5;
       time0 = server_time();
@@ -88,18 +67,16 @@ export async function get_directory_listing(opts: ListingOpts) {
       if (err.message != null) {
         if (err.message.indexOf("ENOENT") != -1) {
           listing_err = Error("no_dir");
+          return;
         } else if (err.message.indexOf("ENOTDIR") != -1) {
           listing_err = Error("not_a_dir");
-        } else {
-          listing_err = err.message;
+          return;
         }
-        return undefined;
-      } else {
-        if (timeout < 5) {
-          timeout *= 1.3;
-        }
-        throw err;
       }
+      if (timeout < 5) {
+        timeout *= 1.3;
+      }
+      throw err;
     }
   }
 
@@ -114,17 +91,6 @@ export async function get_directory_listing(opts: ListingOpts) {
   } catch (err) {
     listing_err = err;
   } finally {
-    if (prom_client.enabled && prom_dir_listing_start != null) {
-      prom_labels.err = !!listing_err;
-      const tm =
-        (server_time().valueOf() - prom_dir_listing_start.valueOf()) / 1000;
-      if (!isNaN(tm)) {
-        if (prom_get_dir_listing_h != null) {
-          prom_get_dir_listing_h.observe(prom_labels, tm);
-        }
-      }
-    }
-
     // no error, but `listing` has no value, too
     // https://github.com/sagemathinc/cocalc/issues/3223
     if (!listing_err && listing == null) {
@@ -146,7 +112,7 @@ export async function get_directory_listing(opts: ListingOpts) {
   }
 }
 
-import { Listings } from "./websocket/listings";
+import { Listings } from "@cocalc/frontend/nats/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   log("get_directory_listing2", opts);
@@ -173,8 +139,8 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
           );
           return { files };
         } catch (err) {
-          console.warn(
-            `WARNING: problem getting directory listing ${err}; falling back`,
+          console.log(
+            `WARNING: temporary problem getting directory listing -- ${err}`,
           );
         }
       } else {

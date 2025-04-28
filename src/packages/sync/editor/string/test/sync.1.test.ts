@@ -3,6 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+
+
+DEVELOPMENT:
+
+pnpm test sync.1.test.ts
+
+*/
+
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
 import { once } from "@cocalc/util/async-utils";
@@ -30,6 +39,7 @@ describe("create syncstring and test doing some edits", () => {
       expect(syncstring.to_str()).toBe(v[i]);
       expect(syncstring.count()).toBe(v[i].length);
       expect(syncstring.versions().length).toBe(i);
+      await syncstring.commit();
       await syncstring.save();
       expect(syncstring.versions().length).toBe(i + 1);
     }
@@ -76,16 +86,6 @@ describe("create syncstring and test doing some edits", () => {
     }
     // correct, since no commits.
     expect(syncstring.versions().length).toBe(3 * v.length);
-  });
-
-  it("gets info about patch at a given point in time", () => {
-    const t = syncstring.versions()[1];
-    expect(syncstring.account_id(t)).toEqual(client_id);
-
-    // time sent is not set since patch wasn't made offline.
-    expect(syncstring.time_sent(t)).toBe(undefined);
-
-    expect(syncstring.user_id(t)).toEqual(1);
   });
 
   it("last_changed is the time of the last version", () => {

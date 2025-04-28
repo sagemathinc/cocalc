@@ -4,7 +4,7 @@
  */
 
 /*
-Watch A DIRECTORY for changes of the files in *that* directory only (not recursive). 
+Watch A DIRECTORY for changes of the files in *that* directory only (not recursive).
 Use ./watcher.ts for a single file.
 
 Slightly generalized fs.watch that works even when the directory doesn't exist,
@@ -54,7 +54,7 @@ const logger = getLogger("backend:path-watcher");
 const POLLING = true;
 
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "3000",
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
 );
 
 const ChokidarOpts: WatchOptions = {
@@ -128,14 +128,13 @@ export class Watcher extends EventEmitter {
   private async initWatchExistence(): Promise<void> {
     const containing_path = path_split(this.path).head;
     this.watchExistence = watch(containing_path, ChokidarOpts);
-    this.watchExistence.on("all", this.watchExistenceChange(containing_path));
+    this.watchExistence.on("all", this.watchExistenceChange);
     this.watchExistence.on("error", (err) => {
       this.log(`error watching for existence of ${this.path} -- ${err}`);
     });
   }
 
-  private watchExistenceChange = (containing_path) => async (_, filename) => {
-    const path = join(containing_path, filename);
+  private watchExistenceChange = async (_, path) => {
     if (path != this.path) return;
     const e = await exists(this.path);
     if (!this.exists && e) {
@@ -164,4 +163,41 @@ export class Watcher extends EventEmitter {
     this.watchContents?.close();
     close(this);
   }
+}
+
+export class MultipathWatcher extends EventEmitter {
+  private paths: { [path: string]: Watcher } = {};
+  private options;
+
+  constructor(options?) {
+    super();
+    this.options = options;
+  }
+
+  has = (path: string) => {
+    return this.paths[path] != null;
+  };
+
+  add = (path: string) => {
+    if (this.has(path)) {
+      // already watching
+      return;
+    }
+    this.paths[path] = new Watcher(path, this.options);
+    this.paths[path].on("change", () => this.emit("change", path));
+  };
+
+  delete = (path: string) => {
+    if (!this.has(path)) {
+      return;
+    }
+    this.paths[path].close();
+    delete this.paths[path];
+  };
+
+  close = () => {
+    for (const path in this.paths) {
+      this.delete(path);
+    }
+  };
 }

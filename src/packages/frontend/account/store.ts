@@ -9,7 +9,7 @@ import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import { get_total_upgrades } from "@cocalc/util/upgrades";
-import { AccountState } from "./types";
+import type { AccountState } from "./types";
 
 declare var DEBUG: boolean;
 

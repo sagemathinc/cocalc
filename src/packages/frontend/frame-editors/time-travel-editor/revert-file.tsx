@@ -8,25 +8,30 @@ import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
 interface Props {
-  id: string;
   actions: TimeTravelActions;
-  version: Date | undefined;
+  version: number | undefined;
   doc;
   changesMode?: boolean;
+  gitMode?: boolean;
 }
 
-export function RevertFile({ id, actions, version, doc, changesMode }: Props) {
+export function RevertFile({
+  actions,
+  version,
+  doc,
+  changesMode,
+  gitMode,
+}: Props) {
   return (
     <Tooltip
       title={`Revert file to the displayed version (this makes a new version, so nothing is lost). ${
         changesMode ? "In changes mode, this uses newer version." : ""
       }`}
     >
-      {" "}
       <Button
         onClick={() => {
           if (version != null) {
-            actions.revert(id, version, doc);
+            actions.revert({ version, doc, gitMode });
           }
         }}
         disabled={version == null || actions.syncdoc?.is_read_only()}

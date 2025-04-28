@@ -29,6 +29,7 @@ export const TAGS = [
   "Email",
   "Logo",
   "Version",
+  "Nats",
   "Stripe",
   "captcha",
   "Zendesk",
@@ -70,6 +71,7 @@ export type SiteSettingsKeys =
   | "selectable_llms"
   | "default_llm"
   | "user_defined_llm"
+  | "llm_default_quota"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -119,7 +121,8 @@ export type SiteSettingsKeys =
   | "compute_servers_hyperstack_enabled"
   | "cloud_filesystems_enabled"
   | "insecure_test_mode"
-  | "samesite_remember_me";
+  | "samesite_remember_me"
+  | "user_tracking";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -363,8 +366,8 @@ const organization_email_desc = `How to contact your organization (fallback: '${
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
-    name: "Domain name",
-    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
+    name: "External Domain Name",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is used for password resets, invitation, sign up emails and also for external compute servers connecting back, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,
@@ -862,6 +865,15 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     tags: ["AI LLM"],
   },
+  llm_default_quota: {
+    name: "Default Quota for LLMs",
+    desc: "We do not want to send users messages about LLM usage, if they didn't bother to set their quotas to >0. This is the default quota for LLMs. Integer val >=0",
+    default: "10",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_commercial,
+    tags: ["AI LLM"],
+  },
   neural_search_enabled: {
     name: "DEPRECATED - OpenAI Neural Search UI",
     desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
@@ -971,5 +983,11 @@ export const site_settings_conf: SiteSettings = {
     valid: ["strict", "lax", "none"],
     to_val: (x) => `${x}`,
     tags: ["Security"],
+  },
+  user_tracking: {
+    name: "User Tracking",
+    desc: "If enabled, then information about what users do in the frontend browser gets temporarily recorded in the user_tracking table of the database.",
+    default: "no",
+    valid: only_booleans,
   },
 } as const;

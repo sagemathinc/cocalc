@@ -68,10 +68,10 @@ export default function LicenseEditor({
   }
 
   const [start, setStart] = useState<dayjs.Dayjs | undefined>(
-    info.start ? dayjs(info.start) : undefined
+    info.start ? dayjs(info.start) : undefined,
   );
   const [end, setEnd] = useState<dayjs.Dayjs | undefined>(
-    info.end ? dayjs(info.end) : undefined
+    info.end ? dayjs(info.end) : undefined,
   );
   const columns = [
     {
@@ -114,7 +114,7 @@ export default function LicenseEditor({
           return (
             <Tag
               key={label}
-              style={{ cursor: "pointer", marginTop:'5px' }}
+              style={{ cursor: "pointer", marginTop: "5px" }}
               color={color ?? "blue"}
               onClick={() => {
                 const now = dayjs();
@@ -172,9 +172,7 @@ export default function LicenseEditor({
           />
           {isSubscription && (
             <div style={{ color: "#666", marginTop: "15px" }}>
-              Editing the end date of a subscription license is not allowed: it
-              is always set to your Closing Date, which can be adjusted in
-              Subscriptions.
+              Subscription Start and End dates cannot be edited.
             </div>
           )}
           {endPresets}

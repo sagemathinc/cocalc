@@ -1,11 +1,20 @@
 packages:
-  - "api-client"
-  - "backend"
-  - "comm"
-  - "jupyter"
-  - "sync"
-  - "sync-fs"
-  - "sync-client"
-  - "util"
-  - "terminal"
-  - "compute"
+  - api-client
+  - backend
+  - comm
+  - jupyter
+  - nats
+  - project
+  - sync
+  - sync-fs
+  - sync-client
+  - util
+  - terminal
+  - compute
+  - nats
+
+onlyBuiltDependencies:
+  - '@cocalc/fuse-native'
+  - websocket-sftp
+  - websocketfs
+

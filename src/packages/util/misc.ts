@@ -69,6 +69,19 @@ export {
 import sha1 from "sha1";
 export { sha1 };
 
+function base16ToBase64(hex) {
+  return Buffer.from(hex, "hex").toString("base64");
+  //   let bytes: number[] = [];
+  //   for (let c = 0; c < hex.length; c += 2) {
+  //     bytes.push(parseInt(hex.substr(c, 2), 16));
+  //   }
+  //   return btoa(String.fromCharCode.apply(null, bytes));
+}
+
+export function sha1base64(s) {
+  return base16ToBase64(sha1(s));
+}
+
 import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
 import * as immutable from "immutable";
@@ -381,7 +394,8 @@ export function walltime(t?: number): number {
 // encode a UNIX path, which might have # and % in it.
 // Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 export function encode_path(path) {
-  path = encodeURI(path); // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  path = encodeURI(path);
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 }
 
@@ -1465,20 +1479,14 @@ export function retry_until_success(opts: {
           return;
         }
         if (err && opts.warn != null) {
-          opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
-          );
+          opts.warn(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.log != null) {
-          opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
-          );
+          opts.log(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
           opts.cb?.(
-            `maximum tries (=${
-              opts.max_tries
-            }) exceeded - last error ${JSON.stringify(err)}`,
+            `maximum tries (=${opts.max_tries}) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -1492,9 +1500,7 @@ export function retry_until_success(opts: {
           Date.now() - start_time + delta > opts.max_time
         ) {
           opts.cb?.(
-            `maximum time (=${
-              opts.max_time
-            }ms) exceeded - last error ${JSON.stringify(err)}`,
+            `maximum time (=${opts.max_time}ms) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -2671,4 +2677,39 @@ export function tail(s: string, lines: number) {
 
   // Return the substring starting from the next character after the last newline
   return s.slice(lastIndex + 2);
+}
+
+export function basePathCookieName({
+  basePath,
+  name,
+}: {
+  basePath: string;
+  name: string;
+}): string {
+  return `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}${name}`;
+}
+
+export function isNumericString(str: string): boolean {
+  // https://stackoverflow.com/questions/175739/how-can-i-check-if-a-string-is-a-valid-number
+  if (typeof str != "string") {
+    return false; // we only process strings!
+  }
+  return (
+    // @ts-ignore
+    !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !isNaN(parseFloat(str))
+  ); // ...and ensure strings of whitespace fail
+}
+
+// This is needed in browsers, where toString('base64') doesn't work
+// and .toBase64(). This also works on buffers.  In nodejs there is
+// toString('base64'), but that seems broken in some cases and a bit
+// dangerous since toString('base64') in the browser is just toString(),
+// which is very different.
+export function uint8ArrayToBase64(uint8Array: Uint8Array) {
+  let binaryString = "";
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binaryString);
 }

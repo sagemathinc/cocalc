@@ -25,7 +25,7 @@ download_and_copy() {
 pids=()
 
 # Start downloads in parallel
-for name in "18.04" "20.04" "22.04" "24.04"; do
+for name in "20.04" "22.04" "24.04"; do
     download_and_copy "$name" &
     pids+=($!)
 done

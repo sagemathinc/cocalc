@@ -81,7 +81,7 @@ const isWhitelisted = function (opts) {
 // it gathers additional information about the webapp client.
 let currentlySendingError = false;
 const sendError = async function (opts) {
-  //console.log("sendError", currentlySendingError, opts);
+  // console.log("sendError", currentlySendingError, opts);
   if (currentlySendingError) {
     // errors can be crazy and easily DOS the user's connection.  Since this table is
     // just something we manually check sometimes, not sending too many errors is

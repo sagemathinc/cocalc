@@ -14,7 +14,7 @@ This works in conjunction with src/compute/compute/terminal
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { spawn } from "node-pty";
+import { spawn } from "@lydell/node-pty";
 import type { Options, IPty } from "./types";
 import type { Channel } from "@cocalc/comm/websocket/types";
 import { readlink, realpath, writeFile } from "node:fs/promises";

@@ -4,8 +4,8 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
-import { Ollama } from "@langchain/community/llms/ollama";
-import { OpenAI as LCOpenAI } from "@langchain/openai";
+import { Ollama } from "@langchain/ollama";
+import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
 import { omit } from "lodash";
 import OpenAI from "openai";
 
@@ -35,7 +35,7 @@ export async function getClient(
   const vendorName = model2vendor(model).name;
 
   switch (vendorName) {
-    case "openai":
+    case "openai": {
       const { openai_api_key: apiKey } = await getServerSettings();
       if (clientCache[apiKey]) {
         return clientCache[apiKey];
@@ -49,10 +49,12 @@ export async function getClient(
       const client = new OpenAI({ apiKey });
       clientCache[apiKey] = client;
       return client;
+    }
 
-    case "google":
-      const { google_vertexai_key } = await getServerSettings();
-      if (!google_vertexai_key) {
+    case "google": {
+      // This is a GenAI API key
+      const { google_vertexai_key: apiKey } = await getServerSettings();
+      if (!apiKey) {
         log.warn("requested google vertexai key, but it's not configured");
         throw Error("google vertexai not configured");
       }
@@ -62,7 +64,8 @@ export async function getClient(
       }
 
       // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
-      return new GoogleGenAIClient({ apiKey: google_vertexai_key }, model);
+      return new GoogleGenAIClient({ apiKey }, model);
+    }
 
     case "ollama":
       throw new Error("Use the getOllama function instead");
@@ -171,7 +174,7 @@ export async function getCustomOpenAI(model: string) {
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
   const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
   const customOpenAIConfig = {
-    configuration: { baseURL }, // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
+    configuration: { baseURL }, // https://js.langchain.com/docs/integrations/chat/openai/#custom-urls
     model: config.model ?? model,
     ...other,
   };
@@ -181,7 +184,7 @@ export async function getCustomOpenAI(model: string) {
     omit(customOpenAIConfig, ["apiKey", "openAIApiKey", "azureOpenAIApiKey"]),
   );
 
-  // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
-  const client = new LCOpenAI(customOpenAIConfig);
+  // https://js.langchain.com/docs/integrations/chat/openai/
+  const client = new ChatOpenAILC(customOpenAIConfig);
   return client;
 }

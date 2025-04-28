@@ -73,7 +73,7 @@ export const useListProperties = (editor) => {
     };
     // We debounce to avoid any potential performance implications while
     // typing and for the reason mentioned in the NOTE above.
-    return debounce(f, 200, { leading: true });
+    return debounce(f, 200, { leading: true }) as typeof f;
   }, []);
 
   return { listProperties, updateListProperties };

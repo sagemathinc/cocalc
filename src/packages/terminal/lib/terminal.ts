@@ -11,7 +11,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
-import { spawn } from "node-pty";
+import { spawn } from "@lydell/node-pty";
 import { throttle } from "lodash";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";
@@ -506,12 +506,9 @@ export class Terminal {
         spark.write({ cmd: "size", rows, cols });
       }
     }
-    // broadcast message to all other clients telling them to close.
-    this.channel.forEach((spark0, id, _) => {
-      if (id !== spark.id) {
-        spark0.write({ cmd: "close" });
-      }
-    });
+    // broadcast message to all clients telling them to close, but
+    // telling requestor to ignore.
+    spark.write({ cmd: "close", ignore: spark.id });
   };
 
   private writeToPty = async (data) => {
@@ -537,7 +534,7 @@ export class Terminal {
     spark,
     data: string | ClientCommand,
   ) => {
-    //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+    //logger.debug("terminal: browser --> term", JSON.stringify(data));
     if (typeof data === "string") {
       this.writeToPty(data);
     } else if (typeof data === "object") {

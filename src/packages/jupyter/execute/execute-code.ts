@@ -121,7 +121,7 @@ export class CodeExecutionEmitter
       log.warn(
         "_handle_stdin: STDIN msg_id mismatch:",
         mesg.parent_header.msg_id,
-        this._message.header.msg_id
+        this._message.header.msg_id,
       );
       return;
     }
@@ -130,7 +130,7 @@ export class CodeExecutionEmitter
     try {
       response = await this.stdin(
         mesg.content.prompt ? mesg.content.prompt : "",
-        !!mesg.content.password
+        !!mesg.content.password,
       );
     } catch (err) {
       response = `ERROR -- ${err}`;
@@ -159,7 +159,7 @@ export class CodeExecutionEmitter
   _handle_shell(mesg: any): void {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.silly(
-        `_handle_shell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`
+        `_handle_shell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
       );
       return;
     }
@@ -203,7 +203,8 @@ export class CodeExecutionEmitter
       // iopub message for a different execute request so ignore it.
       return;
     }
-    log.silly("_handle_iopub: got IOPUB message -- ", mesg);
+    // these can be huge -- do not uncomment except for low level debugging!
+    // log.silly("_handle_iopub: got IOPUB message -- ", mesg);
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -216,7 +217,7 @@ export class CodeExecutionEmitter
     }
 
     this.set_iopub_done(
-      !!this.killing || mesg.content?.execution_state == "idle"
+      !!this.killing || mesg.content?.execution_state == "idle",
     );
   }
 
@@ -309,7 +310,7 @@ export class CodeExecutionEmitter
   private async timeout(): Promise<void> {
     if (this.state == "closed") {
       log.debug(
-        "CodeExecutionEmitter.timeout: already finished, so nothing to worry about"
+        "CodeExecutionEmitter.timeout: already finished, so nothing to worry about",
       );
       return;
     }
@@ -321,7 +322,7 @@ export class CodeExecutionEmitter
     let d = 1000;
     while (this.state != ("closed" as State) && tries > 0) {
       log.debug(
-        "CodeExecutionEmitter.timeout: code still running, so try to interrupt it"
+        "CodeExecutionEmitter.timeout: code still running, so try to interrupt it",
       );
       // Code still running but timeout reached.
       // Keep sending interrupt signal, which will hopefully do something to
@@ -334,7 +335,7 @@ export class CodeExecutionEmitter
     }
     if (this.state != ("closed" as State)) {
       log.debug(
-        "CodeExecutionEmitter.timeout: now try SIGKILL, which should kill things for sure."
+        "CodeExecutionEmitter.timeout: now try SIGKILL, which should kill things for sure.",
       );
       this.kernel.signal("SIGKILL");
       this._finish();

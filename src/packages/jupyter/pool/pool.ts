@@ -78,7 +78,7 @@ function makeKey({ name, opts }) {
   delete opts0.cwd;
   opts0.env = { ...opts.env };
   delete opts0.env.COCALC_JUPYTER_FILENAME;
-  return json({ name, opts: opts0 });
+  return json({ name, opts: opts0 })!;
 }
 
 export default async function launchJupyterKernel(
@@ -127,7 +127,7 @@ export default async function launchJupyterKernel(
   }
 
   const key = makeKey({ name, opts });
-  log.debug("launchJupyterKernel", key);
+  log.debug("launchJupyterKernel", key.slice(0, 30));
   try {
     if (POOL[key] == null) {
       POOL[key] = [];
@@ -160,21 +160,21 @@ const replenishPool = reuseInFlight(
     if (isBlacklisted(name)) {
       log.debug(
         "replenishPool",
-        key,
+        key.slice(0, 30),
         ` -- skipping since ${name} is blacklisted`,
       );
       return;
     }
     const size: number = size_arg ?? getSize();
     const timeout_s: number = timeout_s_arg ?? getTimeoutS();
-    log.debug("replenishPool", key, { size, timeout_s });
+    log.debug("replenishPool", key.slice(0, 30), { size, timeout_s });
     try {
       if (POOL[key] == null) {
         POOL[key] = [];
       }
       const pool = POOL[key];
       while (pool.length < size) {
-        log.debug("replenishPool - creating a kernel", key);
+        log.debug("replenishPool - creating a kernel", key.slice(0, 30));
         writeConfig(key);
         await delay(getLaunchDelayMS());
         const kernel = await launchJupyterKernelNoPool(name, opts);
@@ -182,7 +182,11 @@ const replenishPool = reuseInFlight(
         EXPIRE[key] = Math.max(EXPIRE[key] ?? 0, Date.now() + 1000 * timeout_s);
       }
     } catch (error) {
-      log.error("Failed to replenish Jupyter kernel pool", error);
+      log.error(
+        "Failed to replenish Jupyter kernel pool",
+        key.slice(0, 30),
+        error,
+      );
       throw error;
     }
   },
@@ -219,11 +223,11 @@ async function fillWhenEmpty() {
 }
 
 async function maintainPool() {
-  log.debug("maintainPool", { EXPIRE });
+  log.debug("maintainPool");
   const now = Date.now();
   for (const key in EXPIRE) {
     if (EXPIRE[key] < now) {
-      log.debug("maintainPool -- expiring key=", key);
+      log.debug("maintainPool -- expiring key=", key.slice(0, 30));
       const pool = POOL[key] ?? [];
       while (pool.length > 0) {
         const kernel = pool.shift() as SpawnedKernel;

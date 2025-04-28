@@ -24,7 +24,7 @@ export const ADMIN_SEARCH_LIMIT = 2500;
 
 export const USE_BALANCE_TOWARD_SUBSCRIPTIONS =
   "use_balance_toward_subscriptions";
-export const USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT = false;
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT = true;
 
 // AutoBalance: Every parameter is in dollars.
 export interface AutoBalance {
@@ -742,6 +742,7 @@ Table({
           salesloft_id: null,
           sign_up_usage_intent: null,
           owner_id: null,
+          deleted: null,
         },
       },
       set: {
@@ -940,3 +941,20 @@ for (const x of TAGS) {
 
 export const CONTACT_TAG = "contact";
 export const CONTACT_THESE_TAGS = [professional];
+
+export interface UserSearchResult {
+  account_id: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string; // "vanity" username
+  last_active?: number; // ms since epoch -- when account was last active
+  created?: number; // ms since epoch -- when account created
+  banned?: boolean; // true if this user has been banned (only set for admin searches, obviously)
+  email_address_verified?: boolean; // true if their email has been verified (a sign they are more trustworthy).
+  // For security reasons, the email_address *only* occurs in search queries that
+  // are by email_address (or for admins); we must not reveal email addresses
+  // of users queried by substring searches, obviously.
+  email_address?: string;
+}
+
+export const ACCOUNT_ID_COOKIE_NAME = "account_id";

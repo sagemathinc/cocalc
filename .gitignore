@@ -156,3 +156,6 @@ venv
 src/packages/frontend/i18n/extracted.json
 src/packages/frontend/i18n/trans/*.compiled.json
 
+**/*.db
+
+src/packages/project/nats/project-env.sh

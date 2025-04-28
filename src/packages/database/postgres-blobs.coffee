@@ -674,9 +674,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         catch err
             opts.cb?(err)
 
-    unarchivePatches: (string_id) =>
-        await blobs.unarchivePatches({db:@, string_id:string_id})
-
     ###
     Export/import of syncstring history and info.
     ###

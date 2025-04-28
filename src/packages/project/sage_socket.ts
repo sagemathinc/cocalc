@@ -56,7 +56,7 @@ export async function get_sage_socket(): Promise<CoCalcSocket> {
       factor: 1.5,
       max_time: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,
       log(m) {
-        return winston.debug(`get_sage_socket: ${m}`);
+        winston.debug(`get_sage_socket: ${m}`);
       },
       cb(err) {
         if (socket == null) {
@@ -87,13 +87,13 @@ async function _get_sage_socket(): Promise<CoCalcSocket> {
     enable_mesg(sage_socket);
     sage_socket.write_mesg("json", message.start_session({ type: "sage" }));
     winston.debug(
-      "Waiting to read one JSON message back, which will describe the session...."
+      "Waiting to read one JSON message back, which will describe the session....",
     );
     // TODO: couldn't this just hang forever :-(
     return new Promise<CoCalcSocket>((resolve) => {
       sage_socket.once("mesg", (_type, desc) => {
         winston.debug(
-          `Got message back from Sage server: ${common.json(desc)}`
+          `Got message back from Sage server: ${common.json(desc)}`,
         );
         sage_socket.pid = desc.pid;
         resolve(sage_socket);

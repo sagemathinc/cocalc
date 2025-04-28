@@ -103,19 +103,20 @@ def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments,
     # but we use "tsc --build", which automatically builds deps if not built.
     v = [
-        'packages/',  # top level workspace
+        'packages/',  # top level workspace, e.g., typescript
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
         'packages/sync-client',
         'packages/sync-fs',
+        'packages/nats',
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
         'packages/comm',
+        'packages/project',
         'packages/assets',
         'packages/frontend',  # static depends on frontend; frontend depends on assets
-        'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again), which also depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
@@ -236,18 +237,39 @@ def banner(s: str) -> None:
 
 def install(args) -> None:
     v = packages(args)
-    if v == all_packages():
-        print("install all packages -- fast special case")
-        # much faster special case
-        cmd("cd packages && pnpm install")
-        return
 
-    # Do "pnpm i" not in parallel
-    for path in v:
-        c = "pnpm install "
+    # The trick we use to build only a subset of the packages in a pnpm workspace
+    # is to temporarily modify packages/pnpm-workspace.yaml to explicitly remove
+    # the packages that we do NOT want to build.  This should be supported by
+    # pnpm via the --filter option but I can't figure that out in a way that doesn't
+    # break the global lockfile, so this is the hack we have for now.
+    ws = "packages/pnpm-workspace.yaml"
+    tmp = ws + ".tmp"
+    allp = all_packages()
+    try:
+        if v != allp:
+            shutil.copy(ws, tmp)
+            s = open(ws,'r').read() + '\n'
+            for package in allp:
+                if package not in v:
+                     s += '  - "!%s"\n'%package.split('/')[-1]
+
+            open(ws,'w').write(s)
+
+        print("install packages")
+        # much faster special case
+        # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
+        c = "cd packages && pnpm install --config.confirmModulesPurge=false"
         if args.prod:
-            c += ' --prod '
-        cmd(c, path)
+            args.dist_only = False
+            args.node_modules_only = True
+            args.parallel = True
+            clean(args)
+            c += " --prod"
+        cmd(c)
+    finally:
+        if os.path.exists(tmp):
+            shutil.move(tmp, ws)
 
 
 # Build all the packages that need to be built.
