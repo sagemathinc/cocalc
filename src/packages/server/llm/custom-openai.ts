@@ -1,3 +1,9 @@
+import getLogger from "@cocalc/backend/logger";
+import {
+  fromCustomOpenAIModel,
+  isCustomOpenAI,
+} from "@cocalc/util/db-schema/llm-utils";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -7,13 +13,6 @@ import {
   ChatOpenAI as ChatOpenAILC,
   OpenAICallOptions,
 } from "@langchain/openai";
-
-import getLogger from "@cocalc/backend/logger";
-import {
-  fromCustomOpenAIModel,
-  isCustomOpenAI,
-} from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 import { getCustomOpenAI } from "./client";
@@ -26,7 +25,7 @@ interface CustomOpenAIOpts {
   system?: string; // extra setup that we add for relevance and context
   history?: History;
   model: string; // this must be custom_openai-[model]
-  stream?: (output?: string) => void;
+  stream?: Stream;
   maxTokens?: number;
 }
 
@@ -87,7 +86,7 @@ export async function evaluateCustomOpenAI(
   }
 
   // and an empty call when done
-  opts.stream?.();
+  opts.stream?.(null);
 
   // we use that GPT3 tokenizer to get an approximate number of tokens
   const prompt_tokens = numTokens(input) + historyTokens;

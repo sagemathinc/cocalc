@@ -86,6 +86,12 @@ test_llm("openai")("OpenAI", () => {
   test("gpt 4o mini works", async () => {
     llmOpenAI("gpt-4o-mini-8k");
   });
+  test("gpt 4.1 works", async () => {
+    llmOpenAI("gpt-4.1");
+  });
+  test("gpt 4.1 mini works", async () => {
+    llmOpenAI("gpt-4.1-mini");
+  });
 
   // test("gpt o1", async () => {
   //   llmOpenAI("o1-8k");
