@@ -872,8 +872,8 @@ importers:
         specifier: ^4.21.2
         version: 4.21.2
       formidable:
-        specifier: ^3.5.2
-        version: 3.5.2
+        specifier: ^3.5.4
+        version: 3.5.4
       http-proxy:
         specifier: ^1.18.1
         version: 1.18.1(debug@4.4.0)
@@ -3709,6 +3709,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@noble/hashes@1.8.0':
+    resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
+    engines: {node: ^14.21.3 || >=16}
+
   '@node-rs/helper@1.6.0':
     resolution: {integrity: sha512-2OTh/tokcLA1qom1zuCJm2gQzaZljCCbtX1YCrwRVd/toz7KxaDRFeLTAPwhs8m9hWgzrBn5rShRm6IaZofCPw==}
 
@@ -3775,6 +3779,9 @@ packages:
   '@orama/orama@3.0.0-rc-3':
     resolution: {integrity: sha512-09wDVEl32p3Cq84OFoyFzuksP1cSo5AV00mYsBgb0Kqc3qonwdkruQIO1brLDszIXdy3+f2I6AkSKeKhqSRhtA==}
     engines: {node: '>= 16.0.0'}
+
+  '@paralleldrive/cuid2@2.2.2':
+    resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
 
   '@parcel/watcher-android-arm64@2.5.1':
     resolution: {integrity: sha512-KF8+j9nNbUN8vzOFDpRMsaKBHZ/mcjEjMToVMJOhTozkDonQFFrRcfdLWn6yWKCmJKmdVxSgHiYvTCef4/qcBA==}
@@ -7058,6 +7065,10 @@ packages:
 
   formidable@3.5.2:
     resolution: {integrity: sha512-Jqc1btCy3QzRbJaICGwKcBfGWuLADRerLzDqi2NwSt/UkXLsHJw2TVResiaoBufHVHy9aSgClOHCeJsSsFLTbg==}
+
+  formidable@3.5.4:
+    resolution: {integrity: sha512-YikH+7CUTOtP44ZTnUhR7Ic2UASBPOqmaRkRKxRbywPTe5VxF7RRCck4af9wutiZ/QKM5nME9Bie2fFaPz5Gug==}
+    engines: {node: '>=14.0.0'}
 
   forwarded-for@1.1.0:
     resolution: {integrity: sha512-1Yam9ht7GyMXMBvuwJfUYqpdtLVodtT5ee5JMBzGiSwVVeh37ZN8LuOWkNHd6ho2zUxpSZCHuQrt1Vjl2AxDNA==}
@@ -13975,6 +13986,8 @@ snapshots:
   '@next/swc-win32-x64-msvc@14.2.28':
     optional: true
 
+  '@noble/hashes@1.8.0': {}
+
   '@node-rs/helper@1.6.0':
     dependencies:
       '@napi-rs/triples': 1.2.0
@@ -14099,6 +14112,10 @@ snapshots:
       - supports-color
 
   '@orama/orama@3.0.0-rc-3': {}
+
+  '@paralleldrive/cuid2@2.2.2':
+    dependencies:
+      '@noble/hashes': 1.8.0
 
   '@parcel/watcher-android-arm64@2.5.1':
     optional: true
@@ -17927,6 +17944,12 @@ snapshots:
     dependencies:
       dezalgo: 1.0.4
       hexoid: 2.0.0
+      once: 1.4.0
+
+  formidable@3.5.4:
+    dependencies:
+      '@paralleldrive/cuid2': 2.2.2
+      dezalgo: 1.0.4
       once: 1.4.0
 
   forwarded-for@1.1.0: {}
