@@ -38,7 +38,7 @@
     "debug": "^4.4.0",
     "escape-html": "^1.0.3",
     "express": "^4.21.2",
-    "formidable": "^3.5.2",
+    "formidable": "^3.5.4",
     "http-proxy": "^1.18.1",
     "immutable": "^4.3.0",
     "jquery": "^3.6.0",
