@@ -27,6 +27,7 @@ import { getEnv } from "@cocalc/nats/client";
 import { headers as createHeaders } from "@nats-io/nats-core";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { throttle } from "lodash";
+import { once } from "@cocalc/util/async-utils";
 
 export interface RawMsg extends Msg {
   cocalc_timestamp: number;
@@ -39,6 +40,7 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
 
 const COCALC_SEQUENCE_HEADER = "CoCalc-Seq";
 const COCALC_TIMESTAMP_HEADER = "CoCalc-Timestamp";
+const COCALC_OPTIONS_HEADER = "CoCalc-Options";
 
 export interface EphemeralStreamOptions {
   // what it's called
@@ -59,7 +61,6 @@ export interface EphemeralStreamOptions {
 export class EphemeralStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
-  private readonly apiSubject: string;
   private readonly limits: FilteredStreamLimitOptions;
   private _start_seq?: number;
   public readonly valueType: ValueType;
@@ -89,7 +90,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
     this.leader = !!leader;
     const subjects = streamSubject({ account_id, project_id, ephemeral: true });
     this.subject = subjects.replace(">", encodeBase64(name));
-    this.apiSubject = this.subject + '.api";';
     this._start_seq = start_seq;
     this.limits = {
       max_msgs: -1,
@@ -124,6 +124,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   close = () => {
+    delete this.env;
     this.removeAllListeners();
     // @ts-ignore
     this.sub?.close();
@@ -133,14 +134,17 @@ export class EphemeralStream<T = any> extends EventEmitter {
     delete this.server;
   };
 
-  private getAllFromLeader = async ({ maxWait = 30000 }: { maxWait? } = {}) => {
+  private getAllFromLeader = async ({
+    maxWait = 30000,
+    start_seq = 0,
+  }: { maxWait?: number; start_seq?: number } = {}) => {
     if (this.env == null) {
       throw Error("closed");
     }
     await waitUntilConnected();
     for await (const raw of await this.env.nc.requestMany(
-      this.apiSubject,
-      this.env.jc.encode("get-all"),
+      this.subject + ".all",
+      this.env.jc.encode({ start_seq }),
       { maxWait },
     )) {
       if (raw.data.length == 0) {
@@ -157,36 +161,31 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (this.env == null) {
       throw Error("closed");
     }
-    this.server = this.env.nc.subscribe(this.apiSubject);
+    this.server = this.env.nc.subscribe(this.subject + ".>");
     for await (const raw of this.server) {
-      const mesg = this.env.jc.decode(raw.data);
-      if (mesg === "get-all") {
-        for (const m of this.raw) {
-          raw.respond(m[0].data, { headers: m[0].headers });
+      if (raw.subject.endsWith(".all")) {
+        const { start_seq = 0 } = this.env.jc.decode(raw.data) ?? {};
+        for (const [m] of this.raw) {
+          if (m.seq >= start_seq) {
+            raw.respond(m.data, { headers: m.headers });
+          }
         }
         raw.respond(Empty);
-      } else if (mesg == "create") {
-        raw.respond(this.env.jc.encode(await this.create()));
+        continue;
+      } else if (raw.subject.endsWith(".send")) {
+        const resp = await this.sendAsLeader(raw.data);
+        let options: any = undefined;
+        if (raw.headers) {
+          for (const [key, value] of raw.headers) {
+            if (key == COCALC_OPTIONS_HEADER) {
+              options = JSON.parse(value[0]);
+              break;
+            }
+          }
+        }
+        raw.respond(this.env.jc.encode(resp), options);
+        continue;
       }
-    }
-  };
-
-  private create = async () => {
-    if (this.env == null) {
-      throw Error("closed");
-    }
-    if (this.leader) {
-      // we are the leader
-      const seq = this.seq;
-      this.seq += 1;
-      return { seq, timestamp: Date.now() };
-    } else {
-      // we ask the leader
-      const resp = await this.env.nc.request(
-        this.apiSubject,
-        this.env.jc.encode("create"),
-      );
-      return this.env.jc.decode(resp.data);
     }
   };
 
@@ -222,14 +221,46 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   publish = async (
     mesg: T,
-    options?: Partial<{ headers: { [key: string]: string } }>,
+    options?: { headers?: { [key: string]: string } },
   ) => {
+    if (this.leader) {
+      // sending from leader -- so assign seq, timestamp and sent it out.
+      const data = this.encodeValue(mesg);
+      return await this.sendAsLeader(data, options);
+    } else {
+      const timeout = 15000; // todo
+      // sending as non-leader -- ask leader to send it.
+      const data = this.encodeValue(mesg);
+      let headers;
+      if (options?.headers) {
+        headers = createHeaders();
+        headers.append(COCALC_OPTIONS_HEADER, JSON.stringify(options.headers));
+      } else {
+        headers = undefined;
+      }
+      await waitUntilConnected();
+      if (this.env == null) {
+        throw Error("closed");
+      }
+      const resp = await this.env.nc.request(this.subject + ".send", data, {
+        headers,
+        timeout,
+      });
+      return this.env.jc.decode(resp.data);
+    }
+  };
+
+  private sendAsLeader = async (data, options?): Promise<{ seq: number }> => {
+    if (!this.leader) {
+      throw Error("must be the leader");
+    }
     await waitUntilConnected();
     if (this.env == null) {
       throw Error("closed");
     }
-    const { seq, timestamp } = await this.create();
-    const data = this.encodeValue(mesg);
+    const seq = this.seq;
+    this.seq += 1;
+    const timestamp = Date.now();
     const headers = createHeaders();
     if (options?.headers) {
       for (const k in options.headers) {
@@ -238,9 +269,16 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
     headers.append(COCALC_SEQUENCE_HEADER, `${seq}`);
     headers.append(COCALC_TIMESTAMP_HEADER, `${timestamp}`);
-    this.env.nc.publish(this.subject, data, { headers });
     const resp = { seq };
-    this.seq += 1;
+    // we publish it until we get it as a change event, and only
+    // then do we respond, being sure it was sent.
+    while (this.env != null) {
+      this.env.nc.publish(this.subject, data, { headers });
+      const [_, raw] = await once(this, "change");
+      if (last(raw).seq == seq) {
+        break;
+      }
+    }
     return resp;
   };
 
