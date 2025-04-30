@@ -845,7 +845,7 @@ const SearchTerminalBar = React.forwardRef(
       create_file: (ext?: string, switch_over?: boolean) => void;
       create_folder: (switch_over?: boolean) => void;
     },
-    ref: React.LegacyRef<HTMLDivElement> | undefined,
+    ref: any,
   ) => {
     const [mode, setMode] = React.useState<"search" | "terminal">("search");
 
