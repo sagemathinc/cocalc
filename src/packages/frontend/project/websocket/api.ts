@@ -118,6 +118,10 @@ export class API {
   };
 
   version = async (compute_server_id?: number): Promise<number> => {
+    if (compute_server_id) {
+      throw Error("version only implemented right now for home base");
+    }
+    compute_server_id = 0;
     const api = this.getApi({ compute_server_id });
     return await api.system.version();
   };

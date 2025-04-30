@@ -166,7 +166,9 @@ function ActionButton({
           // only check if running -- if not running, the project will obviously
           // not need a restart, since it isn't even running
           const api = await webapp_client.project_client.api(project_id);
-          const version = await api.version();
+          const version = await api.version(
+            0 /* want version of the home base! */,
+          );
           if (version < required) {
             setError(
               "You must restart your project to upgrade it to the latest version.",
@@ -189,6 +191,7 @@ function ActionButton({
       // right now user has to copy paste
       return;
     }
+
     try {
       setError("");
       setDoing(true);
