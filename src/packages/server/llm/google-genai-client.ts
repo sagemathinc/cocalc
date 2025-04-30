@@ -11,7 +11,6 @@ import {
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import {
@@ -20,7 +19,7 @@ import {
   LanguageModel,
   isGoogleModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
+import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { transformHistoryToMessages } from "./chat-history";
 
 const log = getLogger("llm:google-genai");
@@ -64,7 +63,7 @@ export class GoogleGenAIClient {
     history: History;
     input: string;
     maxTokens?: number;
-    stream?: (output?: string) => void;
+    stream?: Stream;
   }): Promise<ChatOutput> {
     const settings = await getServerSettings();
     const { google_vertexai_enabled } = settings;
@@ -101,7 +100,7 @@ export class GoogleGenAIClient {
     history: History;
     input: string;
     maxTokens?: number;
-    stream?: (output?: string) => void;
+    stream?: Stream;
   }) {
     // we might have to translate the model name (stable!) to the particular ID on google's side (which could change)
     const modelName = GOOGLE_MODEL_TO_ID[model] ?? model;
@@ -114,9 +113,9 @@ export class GoogleGenAIClient {
       streaming: true,
     });
 
-    // However, we also count tokens, and for that we use "gemini-pro" only
+    // However, we also count tokens, and for that we use "gemini-1.5-pro" only
     const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
-      model: "gemini-pro",
+      model: "gemini-1.5-pro",
     });
 
     const prompt = ChatPromptTemplate.fromMessages([
@@ -148,8 +147,7 @@ export class GoogleGenAIClient {
       stream?.(content);
     }
 
-    // and an empty call when done
-    stream?.();
+    stream?.(null);
 
     const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
       input,
@@ -157,9 +155,8 @@ export class GoogleGenAIClient {
       ...history.map(({ content }) => content),
     ]);
 
-    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
-      output,
-    );
+    const { totalTokens: completion_tokens } =
+      await geminiPro.countTokens(output);
 
     log.debug("chatGemini successful", { prompt_tokens, completion_tokens });
 
