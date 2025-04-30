@@ -6,11 +6,12 @@ import { projectSubject } from "@cocalc/nats/names";
 import { type NatsEnv, State } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import { isConnectedSync } from "@cocalc/nats/util";
+import { type Subscription } from "@nats-io/nats-core";
 
 export class PubSub extends EventEmitter {
   private subject: string;
   private env: NatsEnv;
-  private sub?;
+  private sub?: Subscription;
   private state: State = "disconnected";
 
   constructor({
@@ -45,6 +46,7 @@ export class PubSub extends EventEmitter {
     }
     this.setState("closed");
     this.removeAllListeners();
+    // @ts-ignore
     this.sub?.close();
     delete this.sub;
   };

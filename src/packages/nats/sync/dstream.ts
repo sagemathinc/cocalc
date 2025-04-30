@@ -27,6 +27,7 @@ import {
   userStreamOptionsKey,
   last,
 } from "./stream";
+import { EphemeralStream } from "./ephemeral-stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -42,6 +43,7 @@ import { getClient, type ClientWithState } from "@cocalc/nats/client";
 import { encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
+import { type Msg } from "@nats-io/nats-core";
 
 const logger = getLogger("dstream");
 
@@ -50,13 +52,15 @@ const MAX_PARALLEL = 250;
 export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
   noInventory?: boolean;
+  ephemeral?: boolean;
+  leader?: boolean;
 }
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: Stream;
+  private stream?: Stream | EphemeralStream;
   private messages: T[];
-  private raw: JsMsg[][];
+  private raw: (JsMsg | Msg)[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
@@ -79,7 +83,7 @@ export class DStream<T = any> extends EventEmitter {
     this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream = new Stream(opts);
+    this.stream = opts.ephemeral ? new EphemeralStream(opts) : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
     if (!this.noAutosave) {
@@ -189,6 +193,9 @@ export class DStream<T = any> extends EventEmitter {
     const r = last(this.raw[n]);
     if (r == null) {
       return;
+    }
+    if (r.cocalc_timestamp != null) {
+      return new Date(r.cocalc_timestamp);
     }
     return new Date(millis(r?.info.timestampNanos));
   };
