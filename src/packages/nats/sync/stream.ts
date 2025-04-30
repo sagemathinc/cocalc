@@ -136,8 +136,8 @@ export interface StreamOptions {
   // actually name of the jetstream in NATS
   jsname: string;
   // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
-  subjects: string | string[];
   subject?: string;
+  subjects: string | string[];
   filter?: string;
   env?: NatsEnv;
   natsStreamOptions?;
@@ -405,6 +405,7 @@ export class Stream<T = any> extends EventEmitter {
     return this._start_seq;
   }
 
+  // WARNING: if you push multiple values at once here, then the order is NOT guaranteed
   push = async (...args: T[]) => {
     await awaitMap(args, MAX_PARALLEL, this.publish);
   };
@@ -509,7 +510,7 @@ export class Stream<T = any> extends EventEmitter {
         if (i == 1 && options?.headers != null) {
           // also include custom user headers
           for (const k in options.headers) {
-            h.append(k, options.headers[k]);
+            h.append(k, `${options.headers[k]}`);
           }
         }
         h.append(CHUNKS_HEADER, `${i}/${last}`);
@@ -521,7 +522,7 @@ export class Stream<T = any> extends EventEmitter {
       if (options?.headers != null) {
         const h = createHeaders();
         for (const k in options.headers) {
-          h.append(k, options.headers[k]);
+          h.append(k, `${options.headers[k]}`);
         }
         headers.push(h);
       }
