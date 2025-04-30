@@ -27,6 +27,27 @@
       "katex@<0.16.9": "^0.16.10",
       "nanoid@<3.3.8": "^3.3.8",
       "tar-fs@2.1.1": "2.1.2"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@cocalc/primus-multiplex",
+      "@cocalc/widgets",
+      "@nestjs/core",
+      "@openapitools/openapi-generator-cli",
+      "@parcel/watcher",
+      "better-sqlite3",
+      "core-js",
+      "diskusage",
+      "dtrace-provider",
+      "es5-ext",
+      "history",
+      "lz4",
+      "node-pty",
+      "protobufjs",
+      "sharp",
+      "sinon",
+      "storage-engine",
+      "websocket-sftp",
+      "zeromq"
+    ]
   }
 }
