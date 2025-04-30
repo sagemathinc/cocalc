@@ -257,6 +257,9 @@ class Session {
   createStream = async () => {
     this.stream = await dstream<string>({
       name: this.streamName,
+      ephemeral: true,
+      // server side is THE leader.
+      leader: true,
       limits: {
         max_bytes: HISTORY_LIMIT_BYTES,
         max_bytes_per_second: MAX_BYTES_PER_SECOND,

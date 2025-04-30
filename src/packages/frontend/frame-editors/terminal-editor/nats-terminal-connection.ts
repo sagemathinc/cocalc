@@ -194,6 +194,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private getStream = async () => {
     const { nats_client } = webapp_client;
     return await nats_client.dstream<string>({
+      ephemeral: true,
       name: `terminal-${this.path}`,
       project_id: this.project_id,
     });
