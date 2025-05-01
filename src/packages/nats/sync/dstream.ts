@@ -111,6 +111,10 @@ export class DStream<T = any> extends EventEmitter {
         this.emit("stable");
       }
     });
+    this.stream.on("reset", () => {
+      this.local = {};
+      this.saved = {};
+    });
     await this.stream.init();
     this.emit("connected");
     this.updateInventory();
@@ -283,7 +287,10 @@ export class DStream<T = any> extends EventEmitter {
       } catch (err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-        console.warn(`WARNING stream attemptToSave failed -- ${err}`, this.name);
+        console.warn(
+          `WARNING stream attemptToSave failed -- ${err}`,
+          this.name,
+        );
       }
       if (!this.hasUnsavedChanges()) {
         return;

@@ -29,10 +29,12 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { throttle } from "lodash";
 import { once } from "@cocalc/util/async-utils";
 import { callback, delay } from "awaiting";
+import { randomId } from "@cocalc/nats/names";
 
 export interface RawMsg extends Msg {
-  cocalc_timestamp: number;
+  timestamp: number;
   seq: number;
+  sessionId: string;
 }
 
 export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
@@ -42,6 +44,7 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
 const COCALC_SEQUENCE_HEADER = "CoCalc-Seq";
 const COCALC_TIMESTAMP_HEADER = "CoCalc-Timestamp";
 const COCALC_OPTIONS_HEADER = "CoCalc-Options";
+const COCALC_SESSION_ID_HEADER = "CoCalc-SessionId";
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -83,6 +86,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private heartbeatInterval: number;
   private lastSeq: number = 0;
   private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
+
+  private sessionId?: string;
 
   constructor({
     name,
@@ -139,6 +144,18 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
   };
 
+  private reset = async () => {
+    delete this.sessionId;
+    this.raw.length = 0;
+    this.messages.length = 0;
+    this.seq = 0;
+    this.sendQueue.length = 0;
+    this.lastSeq = 0;
+    delete this._start_seq;
+    this.emit("reset");
+    await this.reconnect();
+  };
+
   close = () => {
     delete this.env;
     this.removeAllListeners();
@@ -176,13 +193,23 @@ export class EphemeralStream<T = any> extends EventEmitter {
             return;
           }
           const raw = getRawMsg(raw0);
-          if (this.lastSeq && raw.seq > this.lastSeq + 1) {
+          if (
+            !this.leader &&
+            this.sessionId &&
+            this.sessionId != raw.sessionId
+          ) {
+            await this.reset();
+            return;
+          } else if (this.lastSeq && raw.seq > this.lastSeq + 1) {
             // console.log("skipped a sequence number - reconnecting");
             await this.reconnect();
             return;
           } else if (raw.seq <= this.lastSeq) {
             // already saw this
             continue;
+          }
+          if (!this.sessionId) {
+            this.sessionId = raw.sessionId;
           }
           this.lastSeq = raw.seq;
           const mesg = this.decodeValue(raw.data);
@@ -208,6 +235,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (this.env == null) {
       throw Error("closed");
     }
+    this.sessionId = randomId();
     this.sendHeartbeats();
     this.server = this.env.nc.subscribe(this.subject + ".>");
     for await (const raw of this.server) {
@@ -291,13 +319,27 @@ export class EphemeralStream<T = any> extends EventEmitter {
             continue;
           }
           const raw = getRawMsg(raw0);
-          if (!this.leader && this.lastSeq && raw.seq > this.lastSeq + 1) {
+          if (
+            !this.leader &&
+            this.sessionId &&
+            this.sessionId != raw.sessionId
+          ) {
+            await this.reset();
+            return;
+          } else if (
+            !this.leader &&
+            this.lastSeq &&
+            raw.seq > this.lastSeq + 1
+          ) {
             // console.log("skipped a sequence number - reconnecting");
             await this.reconnect();
             return;
           } else if (raw.seq <= this.lastSeq) {
             // already saw this
             continue;
+          }
+          if (!this.sessionId) {
+            this.sessionId = raw.sessionId;
           }
           // move sequence number forward one and record the data
           this.lastSeq = raw.seq;
@@ -395,7 +437,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (!this.leader) {
       throw Error("must be the leader");
     }
-    while (this.sendQueue.length > 0 && this.env != null) {
+    const { sessionId } = this;
+    while (
+      this.sendQueue.length > 0 &&
+      this.env != null &&
+      this.sessionId == sessionId
+    ) {
       const x = this.sendQueue.shift();
       if (x == null) {
         continue;
@@ -415,15 +462,22 @@ export class EphemeralStream<T = any> extends EventEmitter {
       }
       headers.append(COCALC_SEQUENCE_HEADER, `${seq}`);
       headers.append(COCALC_TIMESTAMP_HEADER, `${timestamp}`);
+      if (!this.sessionId) {
+        throw Error("sessionId must be set");
+      }
+      headers.append(COCALC_SESSION_ID_HEADER, this.sessionId);
       // we publish it until we get it as a change event, and only
       // then do we respond, being sure it was sent.
       const now = Date.now();
-      while (this.env != null) {
+      while (this.env != null && this.sessionId == sessionId) {
         this.env.nc.publish(this.subject, data, { headers });
         const start = Date.now();
         let done = false;
         try {
-          while (Date.now() - start <= PUBLISH_TIMEOUT) {
+          while (
+            Date.now() - start <= PUBLISH_TIMEOUT &&
+            this.sessionId == sessionId
+          ) {
             const [_, raw] = await once(this, "change", PUBLISH_TIMEOUT);
             if (last(raw)?.seq == seq) {
               done = true;
@@ -493,7 +547,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (r == null) {
       return;
     }
-    return new Date(r.cocalc_timestamp);
+    return new Date(r.timestamp);
   };
 
   times = () => {
@@ -570,26 +624,29 @@ export async function estream<T>(
 
 function getRawMsg(raw: Msg): RawMsg {
   let seq = 0,
-    cocalc_timestamp = 0;
+    timestamp = 0,
+    sessionId = "";
   for (const [key, value] of raw.headers ?? []) {
     if (key == COCALC_SEQUENCE_HEADER) {
       seq = parseInt(value[0]);
-      if (cocalc_timestamp) break;
     } else if (key == COCALC_TIMESTAMP_HEADER) {
-      cocalc_timestamp = parseFloat(value[0]);
-      if (seq) break;
+      timestamp = parseFloat(value[0]);
+    } else if (key == COCALC_SESSION_ID_HEADER) {
+      sessionId = value[0];
     }
   }
   if (!seq) {
     throw Error("missing seq header");
   }
-  if (!cocalc_timestamp) {
-    throw Error("missing cocalc_timestamp header");
+  if (!timestamp) {
+    throw Error("missing timestamp header");
   }
   // @ts-ignore
   raw.seq = seq;
   // @ts-ignore
-  raw.cocalc_timestamp = cocalc_timestamp;
+  raw.timestamp = timestamp;
+  // @ts-ignore
+  raw.sessionId = sessionId;
   // @ts-ignore
   return raw;
 }
