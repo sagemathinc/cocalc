@@ -126,199 +126,173 @@ describe("create two dstreams and observe sync between them", () => {
   });
 });
 
-// describe("get sequence number and time of message", () => {
-//   let s;
+describe("get sequence number and time of message", () => {
+  let s;
 
-//   it("creates stream and write message", async () => {
-//     s = await create();
-//     s.push("hello");
-//   });
+  it("creates stream and write message", async () => {
+    s = await create();
+    s.push("hello");
+  });
 
-//   it("sequence number is initialized undefined because it is server assigned ", async () => {
-//     const n = s.seq(0);
-//     expect(n).toBe(undefined);
-//   });
+  it("sequence number is initialized undefined because it is server assigned ", async () => {
+    const n = s.seq(0);
+    expect(n).toBe(undefined);
+  });
 
-//   it("time also undefined because it is server assigned ", async () => {
-//     const t = s.time(0);
-//     expect(t).toBe(undefined);
-//   });
+  it("time also undefined because it is server assigned ", async () => {
+    const t = s.time(0);
+    expect(t).toBe(undefined);
+  });
 
-//   it("save and get server assigned sequence number", async () => {
-//     s.save();
-//     await once(s, "change");
-//     const n = s.seq(0);
-//     expect(n).toBeGreaterThan(0);
-//   });
+  it("save and get server assigned sequence number", async () => {
+    s.save();
+    await once(s, "change");
+    const n = s.seq(0);
+    expect(n).toBeGreaterThan(0);
+  });
 
-//   it("get server assigned time", async () => {
-//     const t = s.time(0);
-//     // since testing on the same machine as server, these times should be close:
-//     expect(t.getTime() - Date.now()).toBeLessThan(5000);
-//   });
+  it("get server assigned time", async () => {
+    const t = s.time(0);
+    // since testing on the same machine as server, these times should be close:
+    expect(t.getTime() - Date.now()).toBeLessThan(5000);
+  });
 
-//   it("publish another message and get next server number is bigger", async () => {
-//     const n = s.seq(0);
-//     s.push("there");
-//     await s.save();
-//     const m = s.seq(1);
-//     expect(m).toBeGreaterThan(n);
-//   });
+  it("publish another message and get next server number is bigger", async () => {
+    const n = s.seq(0);
+    s.push("there");
+    await s.save();
+    const m = s.seq(1);
+    expect(m).toBeGreaterThan(n);
+  });
 
-//   it("and time is bigger", async () => {
-//     if (s.time(1) == null) {
-//       await once(s, "change");
-//     }
-//     expect(s.time(0).getTime()).toBeLessThan(s.time(1).getTime());
-//   });
-// });
+  it("and time is bigger", async () => {
+    if (s.time(1) == null) {
+      await once(s, "change");
+    }
+    expect(s.time(0).getTime()).toBeLessThan(s.time(1).getTime());
+  });
+});
 
-// describe("closing also saves by default, but not if autosave is off", () => {
-//   let s;
-//   const name = `test-${Math.random()}`;
+describe("testing start_seq", () => {
+  const name = `test-${Math.random()}`;
+  let seq;
+  it("creates a stream and adds 3 messages, noting their assigned sequence numbers", async () => {
+    const s = await createDstream({ name, noAutosave: true });
+    s.push(1, 2, 3);
+    expect(s.getAll()).toEqual([1, 2, 3]);
+    // save, thus getting sequence numbers
+    s.save();
+    while (s.seq(2) == null) {
+      s.save();
+      await once(s, "change");
+    }
+    seq = [s.seq(0), s.seq(1), s.seq(2)];
+    // tests partly that these are integers...
+    const n = seq.reduce((a, b) => a + b, 0);
+    expect(typeof n).toBe("number");
+    expect(n).toBeGreaterThan(2);
+  });
 
-//   it("creates stream and write a message", async () => {
-//     s = await createDstream({ name, noAutosave: false /* the default */ });
-//     s.push(389);
-//   });
+  let t;
+  it("it opens another copy of the stream, but starting with the last sequence number, so only one message", async () => {
+    t = await createDstream({
+      name,
+      noAutosave: true,
+      leader: false,
+      start_seq: seq[2],
+    });
+    expect(t.length).toBe(1);
+    expect(t.getAll()).toEqual([3]);
+    expect(t.start_seq).toEqual(seq[2]);
+  });
 
-//   it("closes then opens and message is there, since autosave is on", async () => {
-//     await s.close();
-//     const t = await createDstream({ name });
-//     expect(t[0]).toEqual(389);
-//   });
+  it("it then pulls in the previous message, so now two messages are loaded", async () => {
+    await t.load({ start_seq: seq[1] });
+    expect(t.length).toBe(2);
+    expect(t.getAll()).toEqual([2, 3]);
+    expect(t.start_seq).toEqual(seq[1]);
+  });
+});
 
-//   it("make another stream with autosave off, and close which causes LOSS OF DATA", async () => {
-//     const name = `test-${Math.random()}`;
-//     const s = await createDstream({ name, noAutosave: true });
-//     s.push(389);
-//     s.close();
-//     const t = await createDstream({ name, noAutosave: true });
-//     // data is gone forever!
-//     expect(t.length).toBe(0);
-//   });
-// });
+describe("a little bit of a stress test", () => {
+  const name = `test-${Math.random()}`;
+  const count = 100;
+  let s;
+  it(`creates a stream and pushes ${count} messages`, async () => {
+    s = await createDstream({
+      name,
+      noAutosave: true,
+    });
+    for (let i = 0; i < count; i++) {
+      s.push({ i });
+    }
+    expect(s.length).toBe(count);
+    // NOTE: warning -- this is **MUCH SLOWER**, e.g., 10x slower,
+    // running under jest, hence why count is small.
+    await s.save();
+    expect(s.length).toBe(count);
+  });
+});
 
-// describe("testing start_seq", () => {
-//   const name = `test-${Math.random()}`;
-//   let seq;
-//   it("creates a stream and adds 3 messages, noting their assigned sequence numbers", async () => {
-//     const s = await createDstream({ name, noAutosave: true });
-//     s.push(1, 2, 3);
-//     expect(s.getAll()).toEqual([1, 2, 3]);
-//     // save, thus getting sequence numbers
-//     s.save();
-//     while (s.seq(2) == null) {
-//       s.save();
-//       await once(s, "change");
-//     }
-//     seq = [s.seq(0), s.seq(1), s.seq(2)];
-//     // tests partly that these are integers...
-//     const n = seq.reduce((a, b) => a + b, 0);
-//     expect(typeof n).toBe("number");
-//     expect(n).toBeGreaterThan(2);
-//     await s.close();
-//   });
+describe("dstream typescript test", () => {
+  it("creates stream", async () => {
+    const name = `test-${Math.random()}`;
+    const s = await createDstream<string>({ name });
 
-//   let s;
-//   it("it opens the stream but starting with the last sequence number, so only one message", async () => {
-//     s = await createDstream({
-//       name,
-//       noAutosave: true,
-//       start_seq: seq[2],
-//     });
-//     expect(s.length).toBe(1);
-//     expect(s.getAll()).toEqual([3]);
-//     expect(s.start_seq).toEqual(seq[2]);
-//   });
+    // write a message with the correct type
+    s.push("foo");
 
-//   it("it then pulls in the previous message, so now two messages are loaded", async () => {
-//     await s.load({ start_seq: seq[1] });
-//     expect(s.length).toBe(2);
-//     expect(s.getAll()).toEqual([2, 3]);
-//     expect(s.start_seq).toEqual(seq[1]);
-//   });
-// });
+    // wrong type -- no way to test this, but if you uncomment
+    // this you should get a typescript error:
 
-// describe("a little bit of a stress test", () => {
-//   const name = `test-${Math.random()}`;
-//   const count = 100;
-//   let s;
-//   it(`creates a stream and pushes ${count} messages`, async () => {
-//     s = await createDstream({
-//       name,
-//       noAutosave: true,
-//     });
-//     for (let i = 0; i < count; i++) {
-//       s.push({ i });
-//     }
-//     expect(s.length).toBe(count);
-//     // NOTE: warning -- this is **MUCH SLOWER**, e.g., 10x slower,
-//     // running under jest, hence why count is small.
-//     await s.save();
-//     expect(s.length).toBe(count);
-//   });
-// });
+    // s.push({ foo: "bar" });
+  });
+});
 
-// describe("dstream typescript test", () => {
-//   it("creates stream", async () => {
-//     const name = `test-${Math.random()}`;
-//     const s = await createDstream<string>({ name });
+import { numSubscriptions } from "@cocalc/nats/client";
 
-//     // write a message with the correct type
-//     s.push("foo");
+describe("ensure there are no NATS subscription leaks", () => {
+  // There is some slight slack at some point due to the clock stuff,
+  // inventory, etc.  It is constant and small, whereas we allocate
+  // a large number of kv's in the test.
+  const SLACK = 4;
 
-//     // wrong type -- no way to test this, but if you uncomment
-//     // this you should get a typescript error:
+  it("creates and closes many kv's and checks there is no leak", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+        noAutosave: true,
+      });
+    }
+    for (let i = 0; i < COUNT; i++) {
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  });
 
-//     // s.push({ foo: "bar" });
-//   });
-// });
-
-// import { numSubscriptions } from "@cocalc/nats/client";
-
-// describe("ensure there are no NATS subscription leaks", () => {
-//   // There is some slight slack at some point due to the clock stuff,
-//   // inventory, etc.  It is constant and small, whereas we allocate
-//   // a large number of kv's in the test.
-//   const SLACK = 4;
-
-//   it("creates and closes many kv's and checks there is no leak", async () => {
-//     const before = numSubscriptions();
-//     const COUNT = 20;
-//     // create
-//     const a: any = [];
-//     for (let i = 0; i < COUNT; i++) {
-//       a[i] = await createDstream({
-//         name: `${Math.random()}`,
-//         noAutosave: true,
-//       });
-//     }
-//     for (let i = 0; i < COUNT; i++) {
-//       await a[i].close();
-//     }
-//     const after = numSubscriptions();
-//     expect(Math.abs(after - before)).toBeLessThan(SLACK);
-//   });
-
-//   it("does another leak test, but with a set operation each time", async () => {
-//     const before = numSubscriptions();
-//     const COUNT = 20;
-//     // create
-//     const a: any = [];
-//     for (let i = 0; i < COUNT; i++) {
-//       a[i] = await createDstream({
-//         name: `${Math.random()}`,
-//         noAutosave: true,
-//       });
-//       a[i].publish(i);
-//       await a[i].save();
-//     }
-//     for (let i = 0; i < COUNT; i++) {
-//       await a[i].purge();
-//       await a[i].close();
-//     }
-//     const after = numSubscriptions();
-//     expect(Math.abs(after - before)).toBeLessThan(SLACK);
-//   });
-// });
+  it("does another leak test, but with a set operation each time", async () => {
+    const before = numSubscriptions();
+    const COUNT = 20;
+    // create
+    const a: any = [];
+    for (let i = 0; i < COUNT; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+        noAutosave: true,
+      });
+      a[i].publish(i);
+      await a[i].save();
+    }
+    for (let i = 0; i < COUNT; i++) {
+      await a[i].purge();
+      await a[i].close();
+    }
+    const after = numSubscriptions();
+    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  });
+});

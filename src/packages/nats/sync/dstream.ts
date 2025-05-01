@@ -33,7 +33,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
-import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
@@ -207,14 +206,10 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   time = (n: number): Date | undefined => {
-    const r = last(this.raw[n]);
-    if (r == null) {
-      return;
+    if (this.stream == null) {
+      throw Error("not initialized");
     }
-    if (r.cocalc_timestamp != null) {
-      return new Date(r.cocalc_timestamp);
-    }
-    return new Date(millis(r?.info.timestampNanos));
+    return this.stream.time(n);
   };
 
   // all server assigned times of messages in the stream.

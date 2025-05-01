@@ -52,11 +52,13 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
   ? 100
   : 45000;
 
-const COCALC_SEQUENCE_HEADER = "CoCalc-Seq";
-const COCALC_TIMESTAMP_HEADER = "CoCalc-Timestamp";
-const COCALC_OPTIONS_HEADER = "CoCalc-Options";
-const COCALC_SESSION_ID_HEADER = "CoCalc-Session-Id";
-export const COCALC_MESSAGE_ID_HEADER = "Cocalc-Msg-Id";
+const HEADER_PREFIX = "CoCalc-";
+
+const COCALC_SEQUENCE_HEADER = `${HEADER_PREFIX}Seq`;
+const COCALC_TIMESTAMP_HEADER = `${HEADER_PREFIX}Timestamp`;
+const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
+const COCALC_SESSION_ID_HEADER = `${HEADER_PREFIX}Session-Id`;
+export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -158,7 +160,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
   };
 
-  private reset = async () => {
+  private resetState = () => {
     delete this.sessionId;
     this.bytesSent = {};
     this.msgIDs.clear();
@@ -169,6 +171,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
     this.lastSeq = 0;
     delete this._start_seq;
     this.emit("reset");
+  };
+
+  private reset = async () => {
+    this.resetState();
     await this.reconnect();
   };
 
@@ -558,8 +564,30 @@ export class EphemeralStream<T = any> extends EventEmitter {
     return headersFromRawMessages(this.raw[n]);
   };
 
-  load = () => {
-    throw Error("load not implemented");
+  // load older messages starting at start_seq
+  load = async ({
+    start_seq,
+    noEmit,
+  }: {
+    start_seq: number;
+    noEmit?: boolean;
+  }) => {
+    if (this._start_seq == null || this._start_seq <= 1 || this.leader) {
+      // we already loaded everything on initialization; there can't be anything older;
+      // or we are leader, so we are the full source of truth.
+      return;
+    }
+    // this is NOT efficient - it just discards everything and starts over.
+    const n = this.messages.length;
+    this.resetState();
+    this._start_seq = start_seq;
+    this.seq = start_seq - 1;
+    await this.reconnect();
+    if (!noEmit) {
+      for (let i = 0; i < this.raw.length - n; i++) {
+        this.emit("change", this.messages[i], this.raw[i]);
+      }
+    }
   };
 
   // get server assigned time of n-th message in stream

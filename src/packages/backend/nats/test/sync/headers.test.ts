@@ -28,7 +28,7 @@ describe("test headers with a stream", () => {
   });
 
   it("writes a large value to a stream that requires chunking and a header", async () => {
-    s.publish("y".repeat(await getMaxPayload() * 2), {
+    s.publish("y".repeat((await getMaxPayload()) * 2), {
       headers: { large: "chunks", multiple: "keys" },
     });
     await once(s, "change");
@@ -59,8 +59,8 @@ describe("test headers with a dstream", () => {
     await once(s, "change");
     const h = s.headers(s.length - 1);
     for (const k in h ?? {}) {
-      if (!k.startsWith("Nats-")) {
-        throw Error("headers must start with Nats-");
+      if (!k.startsWith("Nats-") && !k.startsWith("CoCalc-")) {
+        throw Error("headers must start with Nats- or CoCalc-");
       }
     }
   });
@@ -127,7 +127,7 @@ describe("test headers with low level general kv", () => {
 
   it("writes a large value to a kv that requires chunking and a header", async () => {
     const key = `${s.prefix}.big`;
-    gkv.set(key, "x".repeat(await getMaxPayload() * 2), {
+    gkv.set(key, "x".repeat((await getMaxPayload()) * 2), {
       headers: { the: "header" },
     });
     await once(gkv, "change");
