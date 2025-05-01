@@ -30,7 +30,7 @@ import {
   type UserStreamOptions,
   type Stream,
 } from "@cocalc/nats/sync/stream";
-import { dstream, type DStream } from "@cocalc/nats/sync/dstream";
+import { dstream } from "@cocalc/nats/sync/dstream";
 import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { callNatsService, createNatsService } from "@cocalc/nats/service";
@@ -580,14 +580,7 @@ export class NatsClient extends EventEmitter {
     return await stream<T>({ env: await this.getEnv(), ...opts });
   };
 
-  dstream = async <T = any,>(
-    opts: Partial<UserStreamOptions> & { name: string },
-  ): Promise<DStream<T>> => {
-    if (!opts.account_id && !opts.project_id && opts.limits != null) {
-      throw Error("account client can't set limits on public stream");
-    }
-    return await dstream<T>({ env: await this.getEnv(), ...opts });
-  };
+  dstream = dstream;
 
   kv = async <T = any,>(
     opts: Partial<KVOptions> & { name: string },

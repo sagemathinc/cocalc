@@ -73,6 +73,7 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
+
     if (
       opts.noInventory ||
       (process.env.COCALC_TEST_MODE && opts.noInventory == null)
@@ -282,8 +283,7 @@ export class DStream<T = any> extends EventEmitter {
       } catch (err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-        // [ ] TODO: I do not like silently not dealing with this error!
-        console.log(`WARNING stream attemptToSave failed -- ${err}`, this.name);
+        console.warn(`WARNING stream attemptToSave failed -- ${err}`, this.name);
       }
       if (!this.hasUnsavedChanges()) {
         return;
