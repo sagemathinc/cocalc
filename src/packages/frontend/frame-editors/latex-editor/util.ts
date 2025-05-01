@@ -71,20 +71,24 @@ export function ensureTargetPathIsCorrect(
 /**
  * Periodically get information about the job and terminate (without another update!) when the job is no longer running.
  */
-export async function gatherJobInfo(
+async function gatherJobInfo(
   project_id: string,
   job_info: ExecuteCodeOutputAsync,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
+  path: string,
 ): Promise<void> {
   await new Promise((done) => setTimeout(done, 100));
   let wait_s = 1;
   try {
     while (true) {
-      const update = await exec({
-        project_id,
-        async_get: job_info.job_id,
-        async_stats: true,
-      });
+      const update = await exec(
+        {
+          project_id,
+          async_get: job_info.job_id,
+          async_stats: true,
+        },
+        path,
+      );
       if (update.type !== "async") {
         console.warn("Wrong type returned. The project is too old!");
         return;
@@ -111,11 +115,20 @@ interface RunJobOpts {
   rundir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
   set_job_info: (info: ExecuteCodeOutputAsync) => void;
   timeout?: number;
+  path: string;
 }
 
 export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
-  const { aggregate, args, command, env, project_id, rundir, set_job_info } =
-    opts;
+  const {
+    aggregate,
+    args,
+    command,
+    env,
+    project_id,
+    rundir,
+    set_job_info,
+    path,
+  } = opts;
 
   const haveArgs = Array.isArray(args);
 
@@ -132,7 +145,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     timeout: TIMEOUT_LATEX_JOB_S,
   };
 
-  const job_info = await exec(job);
+  const job_info = await exec(job, path);
 
   if (job_info.type !== "async") {
     // this is not an async job. This happens with "old" projects, not knowing about async_call.
@@ -144,17 +157,20 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
   }
 
   // this runs async, until the job is no longer "running"
-  gatherJobInfo(project_id, job_info, set_job_info);
+  gatherJobInfo(project_id, job_info, set_job_info, path);
 
   while (true) {
     try {
       // This also returns the result, if the job has already completed.
-      const output = await exec({
-        project_id,
-        async_get: job_info.job_id,
-        async_await: true,
-        async_stats: true,
-      });
+      const output = await exec(
+        {
+          project_id,
+          async_get: job_info.job_id,
+          async_await: true,
+          async_stats: true,
+        },
+        path,
+      );
       if (output.type !== "async") {
         throw new Error("output type is not async exec");
       }

@@ -20,7 +20,7 @@ interface Options {
 }
 
 export async function misspelled_words(
-  opts: Options
+  opts: Options,
 ): Promise<string[] | string> {
   if (!opts.lang) {
     opts.lang = language();
@@ -54,13 +54,16 @@ export async function misspelled_words(
   const command = `cat '${opts.path}' | aspell ${mode} ${lang} list | sort -u`;
   //console.log(command);
 
-  const output: ExecOutput = await exec({
-    project_id: opts.project_id,
-    command,
-    bash: true,
-    err_on_exit: true,
-    aggregate: opts.time,
-  });
+  const output: ExecOutput = await exec(
+    {
+      project_id: opts.project_id,
+      command,
+      bash: true,
+      err_on_exit: true,
+      aggregate: opts.time,
+    },
+    opts.path,
+  );
 
   if (output.stderr) {
     throw Error(output.stderr);

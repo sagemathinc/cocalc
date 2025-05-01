@@ -13,25 +13,28 @@ import { aux_file } from "@cocalc/util/misc";
 export async function convert(
   project_id: string,
   path: string,
-  time?: number
+  time?: number,
 ): Promise<void> {
   const outfile = aux_file(path, "html");
-  await exec({
-    command: "pandoc",
-    args: [
-      "--toc",
-      "-f",
-      "mediawiki",
-      "-t",
-      "html5",
-      "--highlight-style",
-      "pygments",
-      path,
-      "-o",
-      outfile,
-    ],
-    project_id: project_id,
-    err_on_exit: true,
-    aggregate: time,
-  });
+  await exec(
+    {
+      command: "pandoc",
+      args: [
+        "--toc",
+        "-f",
+        "mediawiki",
+        "-t",
+        "html5",
+        "--highlight-style",
+        "pygments",
+        path,
+        "-o",
+        outfile,
+      ],
+      project_id: project_id,
+      err_on_exit: true,
+      aggregate: time,
+    },
+    path,
+  );
 }

@@ -725,14 +725,17 @@ export class Actions extends BaseActions<LatexEditorState> {
     const { pid, status } = job;
     if (status === "running" && typeof pid === "number") {
       try {
-        await exec({
-          project_id: this.project_id,
-          // negative PID, to kill the entire process group
-          command: `kill -9 -${pid}`,
-          // bash:true is necessary. kill + array does not work. IDK why.
-          bash: true,
-          err_on_exit: false,
-        });
+        await exec(
+          {
+            project_id: this.project_id,
+            // negative PID, to kill the entire process group
+            command: `kill -9 -${pid}`,
+            // bash:true is necessary. kill + array does not work. IDK why.
+            bash: true,
+            err_on_exit: false,
+          },
+          this.path,
+        );
       } catch (err) {
         // likely "No such process", we just ignore it
       } finally {

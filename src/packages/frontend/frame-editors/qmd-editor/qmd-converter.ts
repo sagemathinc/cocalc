@@ -29,14 +29,17 @@ async function _convert(opts: Opts): Promise<ExecOutput> {
   const infile = x.tail;
   const args = ["render", infile, ...LOG];
 
-  return await exec({
-    timeout: 4 * 60,
-    bash: true, // so timeout is enforced by ulimit
-    command: "quarto",
-    args,
-    project_id,
-    path: x.head,
-    err_on_exit: false,
-    aggregate: { value: hash },
-  });
+  return await exec(
+    {
+      timeout: 4 * 60,
+      bash: true, // so timeout is enforced by ulimit
+      command: "quarto",
+      args,
+      project_id,
+      path: x.head,
+      err_on_exit: false,
+      aggregate: { value: hash },
+    },
+    path,
+  );
 }

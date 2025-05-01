@@ -43,6 +43,7 @@ export async function latexmk(
     rundir: head,
     aggregate: time,
     set_job_info,
+    path,
   });
 
   // Step 2: do a copy operation, if we run this in an output_directory (somewhere in /tmp)
@@ -51,13 +52,16 @@ export async function latexmk(
     // Using a symlink would be faster and more efficient *while editing*,
     // but would likely cause great confusion otherwise.
     try {
-      await exec({
-        project_id,
-        bash: false,
-        command: "cp",
-        path: head,
-        args: [`${output_directory}/${pdf_path(tail)}`, "."],
-      });
+      await exec(
+        {
+          project_id,
+          bash: false,
+          command: "cp",
+          path: head,
+          args: [`${output_directory}/${pdf_path(tail)}`, "."],
+        },
+        path,
+      );
     } catch (err) {
       // good reasons this could fail (due to err_on_exit above), e.g., no pdf produced.
     }

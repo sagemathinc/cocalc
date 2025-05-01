@@ -50,6 +50,7 @@ export async function pythontex(
     set_job_info,
     // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     env: { MPLBACKEND: "Agg" },
+    path,
   });
 }
 

@@ -30,6 +30,7 @@ import { ensure_project_running } from "./project-start-warning";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 export interface OpenFileOpts {
   path: string;
@@ -297,25 +298,56 @@ export async function open_file(
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
-  if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
-    let path = opts.path;
-    path = canonicalPath(path);
-    try {
-      await actions.setComputeServerIdForFile({
-        path,
-        compute_server_id: opts.compute_server_id,
-        confirm: true,
-      });
-    } catch (err) {
-      actions.open_files.delete(opts.path);
-      alert_message({
-        type: "error",
-        message: `${err}`,
-        timeout: 20,
-      });
-      return;
+  const noComputeServer = excludeFromComputeServer(opts.path);
+
+  if (
+    noComputeServer &&
+    actions.getComputeServerIdForFile({ path: opts.path })
+  ) {
+    // this won't work so if such a file is somehow on a compute server, move it back:
+    opts.compute_server_id = 0;
+    await actions.setComputeServerIdForFile({
+      path: opts.path,
+      compute_server_id: opts.compute_server_id,
+      confirm: false,
+    });
+  } else {
+    if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
+      let path = opts.path;
+      path = canonicalPath(path);
+      try {
+        if (noComputeServer) {
+          if (opts.compute_server_id) {
+            throw Error(
+              `Opening '${path}' on a compute server is not yet supported -- copy it to the Home Base and open it there instead.`,
+            );
+          } else {
+            opts.compute_server_id = 0;
+            await actions.setComputeServerIdForFile({
+              path,
+              compute_server_id: opts.compute_server_id,
+              confirm: false,
+            });
+          }
+        } else {
+          await actions.setComputeServerIdForFile({
+            path,
+            compute_server_id: opts.compute_server_id,
+            confirm: true,
+          });
+        }
+      } catch (err) {
+        actions.open_files.delete(opts.path);
+        alert_message({
+          type: "error",
+          message: `${err}`,
+          timeout: 20,
+        });
+        return;
+      }
     }
   }
+
   if (!tabIsOpened()) {
     return;
   }

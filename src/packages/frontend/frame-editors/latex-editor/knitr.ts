@@ -45,6 +45,7 @@ export async function knitr(
     rundir: directory,
     aggregate: time ? { value: time } : undefined,
     set_job_info,
+    path,
   });
 }
 
@@ -138,14 +139,17 @@ export async function patch_synctex(
   const { directory, filename } = parse_path(path);
   const expr = `require(patchSynctex); patchSynctex("${filename}")`;
   status(`${expr}`);
-  return exec({
-    timeout: 10,
-    command: R_CMD,
-    args: [...R_ARGS, expr],
-    bash: false,
-    project_id: project_id,
-    path: directory,
-    err_on_exit: false,
-    aggregate: time ? { value: time } : undefined,
-  });
+  return exec(
+    {
+      timeout: 10,
+      command: R_CMD,
+      args: [...R_ARGS, expr],
+      bash: false,
+      project_id: project_id,
+      path: directory,
+      err_on_exit: false,
+      aggregate: time ? { value: time } : undefined,
+    },
+    path,
+  );
 }

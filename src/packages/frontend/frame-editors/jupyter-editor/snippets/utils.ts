@@ -153,7 +153,7 @@ function parseCustomSnippet(json?: object): LangSnippets {
     } else {
       ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1] = merge(
         ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1],
-        sippets
+        sippets,
       );
     }
   }
@@ -175,7 +175,7 @@ function getBase(location: "local" | "global"): string {
 
 async function fetchCustomSnippetsData(
   location: "local" | "global",
-  project_id: string
+  project_id: string,
 ): Promise<LangSnippets | Error> {
   // we collect all files by their name and drop all outputs (images are embedded!)
   // TODO of course, if there are many files, we'll end up having problems.
@@ -187,6 +187,7 @@ async function fetchCustomSnippetsData(
     project_id,
     bash: true,
     err_on_exit: false,
+    compute_server_id: 0,
   });
 
   if (res.exit_code === 0) {
@@ -205,7 +206,7 @@ async function fetchCustomSnippetsData(
 async function _loadCustomSnippets(
   project_id: string,
   setError: (err) => void,
-  forced: boolean
+  forced: boolean,
 ): Promise<LangSnippets> {
   const cached = CUSTOM_SNIPPETS_CACHE[project_id];
   if (forced) {
