@@ -26,6 +26,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private service?;
   private options?;
   private writeQueue: string = "";
+  private ephemeral?: boolean;
 
   constructor({
     project_id,
@@ -177,9 +178,17 @@ export class NatsTerminalConnection extends EventEmitter {
         if ((this.state as State) == "closed") {
           return;
         }
-        await this.api.create(this.options);
+        const { success, note, ephemeral } = await this.api.create({
+          ...this.options,
+          ephemeral: true,
+        });
+        this.ephemeral = ephemeral;
+        if (!success) {
+          throw Error(`failed to create terminal -- ${note}`);
+        }
         return;
-      } catch {
+      } catch (err) {
+        console.log(`Warning -- ${err} (will retry)`);
         try {
           await this.api.nats.waitFor({ maxWait });
         } catch (err) {
@@ -194,9 +203,9 @@ export class NatsTerminalConnection extends EventEmitter {
   private getStream = async () => {
     const { nats_client } = webapp_client;
     return await nats_client.dstream<string>({
-      ephemeral: true,
       name: `terminal-${this.path}`,
       project_id: this.project_id,
+      ephemeral: this.ephemeral,
     });
   };
 

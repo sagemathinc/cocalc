@@ -14,7 +14,8 @@ interface TerminalApi {
     command?: string;
     args?: string[];
     cwd?: string;
-  }) => Promise<{ success: "ok"; note?: string }>;
+    ephemeral?: boolean;
+  }) => Promise<{ success: "ok"; note?: string; ephemeral?: boolean }>;
 
   write: (data: string) => Promise<void>;
 
