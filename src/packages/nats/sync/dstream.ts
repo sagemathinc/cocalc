@@ -44,6 +44,8 @@ import { encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { type Msg } from "@nats-io/nats-core";
+import { headersFromRawMessages } from "./stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./ephemeral-stream";
 
 const logger = getLogger("dstream");
 
@@ -107,6 +109,15 @@ export class DStream<T = any> extends EventEmitter {
     }
     this.stream.on("change", (mesg: T, raw: JsMsg[]) => {
       delete this.saved[last(raw).seq];
+      const headers = headersFromRawMessages(raw);
+      if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
+        // this is critical with ephemeral-stream.ts, since otherwise there is a moment
+        // when the same message is in both this.local *and* this.messages, and you'll
+        // see it doubled in this.getAll().  I didn't see this ever with
+        // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,
+        // but still it would be a bug to not do this properly, which is what we do here.
+        delete this.local[headers[COCALC_MESSAGE_ID_HEADER]];
+      }
       this.emit("change", mesg);
       if (this.isStable()) {
         this.emit("stable");

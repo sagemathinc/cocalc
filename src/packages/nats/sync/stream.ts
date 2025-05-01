@@ -69,7 +69,7 @@ import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
-import type { RawMsg } from "./ephemeral-stream";
+import { COCALC_MESSAGE_ID_HEADER, type RawMsg } from "./ephemeral-stream";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -358,22 +358,7 @@ export class Stream<T = any> extends EventEmitter {
   };
 
   headers = (n: number): { [key: string]: string } | undefined => {
-    if (this.raw[n] == null) {
-      return;
-    }
-    const x: { [key: string]: string } = {};
-    let hasHeaders = false;
-    for (const raw of this.raw[n]) {
-      const { headers } = raw;
-      if (headers == null) {
-        continue;
-      }
-      for (const [key, value] of headers) {
-        x[key] = value[0];
-        hasHeaders = true;
-      }
-    }
-    return hasHeaders ? x : undefined;
+    return headersFromRawMessages(this.raw[n]);
   };
 
   // get server assigned global sequence number of n-th message in stream
@@ -443,6 +428,14 @@ export class Stream<T = any> extends EventEmitter {
       throw err;
     }
     this.enforceLimits();
+    if (options?.msgID) {
+      if (options.headers) {
+        // also put it here so can be used to clear this.local by dstream:
+        options.headers[COCALC_MESSAGE_ID_HEADER] = options.msgID;
+      } else {
+        options.headers = { [COCALC_MESSAGE_ID_HEADER]: options.msgID };
+      }
+    }
     let resp;
     const chunks: Buffer[] = [];
     const headers: ReturnType<typeof createHeaders>[] = [];
@@ -1096,4 +1089,23 @@ export function enforceRateLimits({
     throw err;
   }
   bytesSent[now] = data.length;
+}
+
+export function headersFromRawMessages(messages?: (JsMsg | RawMsg)[]) {
+  if (messages == null) {
+    return undefined;
+  }
+  const x: { [key: string]: string } = {};
+  let hasHeaders = false;
+  for (const raw of messages) {
+    const { headers } = raw;
+    if (headers == null) {
+      continue;
+    }
+    for (const [key, value] of headers) {
+      x[key] = value[0];
+      hasHeaders = true;
+    }
+  }
+  return hasHeaders ? x : undefined;
 }

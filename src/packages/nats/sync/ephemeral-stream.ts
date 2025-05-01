@@ -4,9 +4,14 @@ An Ephemeral Stream
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
-...
+
 
     require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/ephemeral-stream'); s = await a.estream({name:'test', leader:true})
+
+
+Testing two at once (a leader and non-leader):
+
+    require('@cocalc/backend/nats'); s = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:1, noAutosave:true}); t = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:0,noAutosave:true})
 
 */
 
@@ -15,6 +20,7 @@ import {
   last,
   enforceLimits,
   enforceRateLimits,
+  headersFromRawMessages,
 } from "./stream";
 import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
@@ -49,7 +55,8 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
 const COCALC_SEQUENCE_HEADER = "CoCalc-Seq";
 const COCALC_TIMESTAMP_HEADER = "CoCalc-Timestamp";
 const COCALC_OPTIONS_HEADER = "CoCalc-Options";
-const COCALC_SESSION_ID_HEADER = "CoCalc-SessionId";
+const COCALC_SESSION_ID_HEADER = "CoCalc-Session-Id";
+export const COCALC_MESSAGE_ID_HEADER = "Cocalc-Msg-Id";
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -81,6 +88,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
   public readonly raw: RawMsg[][] = [];
   public readonly messages: T[] = [];
+  private readonly msgIDs = new Set<any>();
 
   private env?: NatsEnv;
   private sub?: Subscription;
@@ -152,6 +160,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   private reset = async () => {
     delete this.sessionId;
+    this.bytesSent = {};
+    this.msgIDs.clear();
     this.raw.length = 0;
     this.messages.length = 0;
     this.seq = 0;
@@ -255,13 +265,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
         raw.respond(Empty);
         continue;
       } else if (raw.subject.endsWith(".send")) {
-        let resp;
-        try {
-          resp = await this.sendAsLeader(raw.data);
-        } catch (err) {
-          raw.respond(this.env.jc.encode({ error: `${err}` }));
-          return;
-        }
         let options: any = undefined;
         if (raw.headers) {
           for (const [key, value] of raw.headers) {
@@ -271,7 +274,14 @@ export class EphemeralStream<T = any> extends EventEmitter {
             }
           }
         }
-        raw.respond(this.env.jc.encode(resp), options);
+        let resp;
+        try {
+          resp = await this.sendAsLeader(raw.data, options);
+        } catch (err) {
+          raw.respond(this.env.jc.encode({ error: `${err}` }));
+          return;
+        }
+        raw.respond(this.env.jc.encode(resp));
         continue;
       }
     }
@@ -392,7 +402,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   publish = async (
     mesg: T,
-    options?: { headers?: { [key: string]: string } },
+    options?: { headers?: { [key: string]: string }; msgID?: string },
   ) => {
     const data = this.encodeValue(mesg);
 
@@ -412,9 +422,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
       const timeout = 15000; // todo
       // sending as non-leader -- ask leader to send it.
       let headers;
-      if (options?.headers) {
+      if (options != null && Object.keys(options).length > 0) {
         headers = createHeaders();
-        headers.append(COCALC_OPTIONS_HEADER, JSON.stringify(options.headers));
+        headers.append(COCALC_OPTIONS_HEADER, JSON.stringify(options));
       } else {
         headers = undefined;
       }
@@ -463,6 +473,11 @@ export class EphemeralStream<T = any> extends EventEmitter {
         continue;
       }
       const { data, options, seq, cb } = x;
+      if (options?.msgID && this.msgIDs.has(options?.msgID)) {
+        // it's a dup of one already successfully sent before -- dedup by ignoring.
+        cb();
+        continue;
+      }
       await waitUntilConnected();
       if (this.env == null) {
         cb("closed");
@@ -481,6 +496,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
         throw Error("sessionId must be set");
       }
       headers.append(COCALC_SESSION_ID_HEADER, this.sessionId);
+      if (options?.msgID) {
+        headers.append(COCALC_MESSAGE_ID_HEADER, options.msgID);
+      }
       // we publish it until we get it as a change event, and only
       // then do we respond, being sure it was sent.
       const now = Date.now();
@@ -498,6 +516,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
               done = true;
               break;
             }
+          }
+          if (done && options?.msgID) {
+            this.msgIDs.add(options.msgID);
           }
           cb(done ? undefined : "timeout");
           break;
@@ -517,12 +538,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (n == null) {
       return this.getAll();
     } else {
-      return this.messages[n][0];
+      return this.messages[n];
     }
   };
 
   getAll = () => {
-    return this.messages.map((x) => x[0]);
+    return [...this.messages];
   };
 
   get length(): number {
@@ -534,22 +555,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   }
 
   headers = (n: number): { [key: string]: string } | undefined => {
-    if (this.raw[n] == null) {
-      return;
-    }
-    const x: { [key: string]: string } = {};
-    let hasHeaders = false;
-    for (const raw of this.raw[n]) {
-      const { headers } = raw;
-      if (headers == null) {
-        continue;
-      }
-      for (const [key, value] of headers) {
-        x[key] = value[0];
-        hasHeaders = true;
-      }
-    }
-    return hasHeaders ? x : undefined;
+    return headersFromRawMessages(this.raw[n]);
   };
 
   load = () => {
@@ -644,7 +650,6 @@ export const cache = refCache<EphemeralStreamOptions, EphemeralStream>({
     return estream;
   },
 });
-
 export async function estream<T>(
   options: EphemeralStreamOptions,
 ): Promise<EphemeralStream<T>> {
