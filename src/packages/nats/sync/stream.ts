@@ -451,50 +451,14 @@ export class Stream<T = any> extends EventEmitter {
     const maxMessageSize = (await getMaxPayload()) - 1000;
     //const maxMessageSize = 20; // DEV ONLY!!!
 
-    const now = Date.now();
-    if (
-      this.limits.max_bytes_per_second > 0 ||
-      this.limits.max_msgs_per_second > 0
-    ) {
-      const cutoff = now - 1000;
-      let bytes = 0,
-        msgs = 0;
-      for (const t in this.bytesSent) {
-        if (parseInt(t) < cutoff) {
-          delete this.bytesSent[t];
-        } else {
-          bytes += this.bytesSent[t];
-          msgs += 1;
-        }
-      }
-      if (
-        this.limits.max_bytes_per_second > 0 &&
-        bytes + data.length > this.limits.max_bytes_per_second
-      ) {
-        const err = new PublishRejectError(
-          `bytes per second limit of ${this.limits.max_bytes_per_second} exceeded`,
-        );
-        err.code = "REJECT";
-        err.mesg = mesg;
-        err.subject = this.subject;
-        err.limit = "max_bytes_per_second";
-        throw err;
-      }
-      if (
-        this.limits.max_msgs_per_second > 0 &&
-        msgs > this.limits.max_msgs_per_second
-      ) {
-        const err = new PublishRejectError(
-          `messages per second limit of ${this.limits.max_msgs_per_second} exceeded`,
-        );
-        err.code = "REJECT";
-        err.mesg = mesg;
-        err.subject = this.subject;
-        err.limit = "max_msgs_per_second";
-        throw err;
-      }
-      this.bytesSent[now] = data.length;
-    }
+    // this may throw an exception:
+    enforceRateLimits({
+      limits: this.limits,
+      bytesSent: this.bytesSent,
+      subject: this.subject,
+      data,
+      mesg,
+    });
 
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
@@ -1077,4 +1041,59 @@ export function enforceLimits({
   }
 
   return index;
+}
+
+export function enforceRateLimits({
+  limits,
+  bytesSent,
+  subject,
+  data,
+  mesg,
+}: {
+  limits: { max_bytes_per_second: number; max_msgs_per_second: number };
+  bytesSent: { [time: number]: number };
+  subject?: string;
+  data;
+  mesg;
+}) {
+  const now = Date.now();
+  if (!(limits.max_bytes_per_second > 0) && !(limits.max_msgs_per_second > 0)) {
+    return;
+  }
+
+  const cutoff = now - 1000;
+  let bytes = 0,
+    msgs = 0;
+  for (const t in bytesSent) {
+    if (parseInt(t) < cutoff) {
+      delete bytesSent[t];
+    } else {
+      bytes += bytesSent[t];
+      msgs += 1;
+    }
+  }
+  if (
+    limits.max_bytes_per_second > 0 &&
+    bytes + data.length > limits.max_bytes_per_second
+  ) {
+    const err = new PublishRejectError(
+      `bytes per second limit of ${limits.max_bytes_per_second} exceeded`,
+    );
+    err.code = "REJECT";
+    err.mesg = mesg;
+    err.subject = subject;
+    err.limit = "max_bytes_per_second";
+    throw err;
+  }
+  if (limits.max_msgs_per_second > 0 && msgs > limits.max_msgs_per_second) {
+    const err = new PublishRejectError(
+      `messages per second limit of ${limits.max_msgs_per_second} exceeded`,
+    );
+    err.code = "REJECT";
+    err.mesg = mesg;
+    err.subject = subject;
+    err.limit = "max_msgs_per_second";
+    throw err;
+  }
+  bytesSent[now] = data.length;
 }

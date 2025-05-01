@@ -10,7 +10,12 @@ DEVELOPMENT:
 
 */
 
-import { type FilteredStreamLimitOptions, last, enforceLimits } from "./stream";
+import {
+  type FilteredStreamLimitOptions,
+  last,
+  enforceLimits,
+  enforceRateLimits,
+} from "./stream";
 import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import { Empty, type Msg, type Subscription } from "@nats-io/nats-core";
@@ -86,6 +91,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private heartbeatInterval: number;
   private lastSeq: number = 0;
   private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
+  private bytesSent: { [time: number]: number } = {};
 
   private sessionId?: string;
 
@@ -388,14 +394,23 @@ export class EphemeralStream<T = any> extends EventEmitter {
     mesg: T,
     options?: { headers?: { [key: string]: string } },
   ) => {
+    const data = this.encodeValue(mesg);
+
+    // this may throw an exception:
+    enforceRateLimits({
+      limits: this.limits,
+      bytesSent: this.bytesSent,
+      subject: this.subject,
+      data,
+      mesg,
+    });
+
     if (this.leader) {
       // sending from leader -- so assign seq, timestamp and sent it out.
-      const data = this.encodeValue(mesg);
       return await this.sendAsLeader(data, options);
     } else {
       const timeout = 15000; // todo
       // sending as non-leader -- ask leader to send it.
-      const data = this.encodeValue(mesg);
       let headers;
       if (options?.headers) {
         headers = createHeaders();
