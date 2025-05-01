@@ -69,6 +69,7 @@ import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
+import type { RawMsg } from "./ephemeral-stream";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -846,63 +847,11 @@ export class Stream<T = any> extends EventEmitter {
     if (this.jsm == null) {
       return;
     }
-    const { max_msgs, max_age, max_bytes } = this.limits;
-    // we check with each defined limit if some old messages
-    // should be dropped, and if so move limit forward.  If
-    // it is above -1 at the end, we do the drop.
-    let index = -1;
-    const setIndex = (i, _limit) => {
-      // console.log("setIndex", { i, _limit });
-      index = Math.max(i, index);
-    };
-    // max_msgs
-    // console.log({ max_msgs, l: this.messages.length, messages: this.messages });
-    if (max_msgs > -1 && this.messages.length > max_msgs) {
-      // ensure there are at most this.limits.max_msgs messages
-      // by deleting the oldest ones up to a specified point.
-      const i = this.messages.length - max_msgs;
-      if (i > 0) {
-        setIndex(i - 1, "max_msgs");
-      }
-    }
-
-    // max_age
-    if (max_age > 0) {
-      // expire messages older than max_age nanoseconds
-      const recent = this.raw[this.raw.length - 1];
-      if (recent != null) {
-        // to avoid potential clock skew, we define *now* as the time of the most
-        // recent message.  For us, this should be fine, since we only impose limits
-        // when writing new messages, and none of these limits are guaranteed.
-        const now = last(recent).info.timestampNanos;
-        const cutoff = now - nanos(max_age);
-        for (let i = this.raw.length - 1; i >= 0; i--) {
-          if (last(this.raw[i]).info.timestampNanos < cutoff) {
-            // it just went over the limit.  Everything before
-            // and including the i-th message must be deleted.
-            setIndex(i, "max_age");
-            break;
-          }
-        }
-      }
-    }
-
-    // max_bytes
-    if (max_bytes >= 0) {
-      let t = 0;
-      for (let i = this.raw.length - 1; i >= 0; i--) {
-        for (const r of this.raw[i]) {
-          t += r.data.length;
-        }
-        if (t > max_bytes) {
-          // it just went over the limit.  Everything before
-          // and including the i-th message must be deleted.
-          setIndex(i, "max_bytes");
-          break;
-        }
-      }
-    }
-
+    const index = enforceLimits({
+      messages: this.messages,
+      raw: this.raw,
+      limits: this.limits,
+    });
     // console.log("enforceLImits", { index });
     if (index > -1) {
       try {
@@ -1054,4 +1003,78 @@ export function last(v: any[] | undefined) {
     return v;
   }
   return v[v.length - 1];
+}
+
+export function enforceLimits({
+  messages,
+  raw,
+  limits,
+}: {
+  messages: any[];
+  raw: (JsMsg | RawMsg)[][];
+  limits: FilteredStreamLimitOptions;
+}) {
+  const { max_msgs, max_age, max_bytes } = limits;
+  // we check with each defined limit if some old messages
+  // should be dropped, and if so move limit forward.  If
+  // it is above -1 at the end, we do the drop.
+  let index = -1;
+  const setIndex = (i, _limit) => {
+    // console.log("setIndex", { i, _limit });
+    index = Math.max(i, index);
+  };
+  // max_msgs
+  // console.log({ max_msgs, l: messages.length, messages });
+  if (max_msgs > -1 && messages.length > max_msgs) {
+    // ensure there are at most limits.max_msgs messages
+    // by deleting the oldest ones up to a specified point.
+    const i = messages.length - max_msgs;
+    if (i > 0) {
+      setIndex(i - 1, "max_msgs");
+    }
+  }
+
+  // max_age
+  if (max_age > 0) {
+    // expire messages older than max_age nanoseconds
+    const recent = raw[raw.length - 1];
+    if (recent != null) {
+      // to avoid potential clock skew, we define *now* as the time of the most
+      // recent message.  For us, this should be fine, since we only impose limits
+      // when writing new messages, and none of these limits are guaranteed.
+      const nanos = last(recent).info?.timestampNanos;
+      const now = nanos ? nanos / 10 ** 6 : last(recent).timestamp;
+      if (now) {
+        const cutoff = now - max_age;
+        for (let i = raw.length - 1; i >= 0; i--) {
+          const nanos = last(raw[i]).info?.timestampNanos;
+          const t = nanos ? nanos / 10 ** 6 : last(raw[i]).timestamp;
+          if (t < cutoff) {
+            // it just went over the limit.  Everything before
+            // and including the i-th message must be deleted.
+            setIndex(i, "max_age");
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // max_bytes
+  if (max_bytes >= 0) {
+    let t = 0;
+    for (let i = raw.length - 1; i >= 0; i--) {
+      for (const r of raw[i]) {
+        t += r.data.length;
+      }
+      if (t > max_bytes) {
+        // it just went over the limit.  Everything before
+        // and including the i-th message must be deleted.
+        setIndex(i, "max_bytes");
+        break;
+      }
+    }
+  }
+
+  return index;
 }

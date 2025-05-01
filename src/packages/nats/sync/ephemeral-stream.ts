@@ -10,7 +10,7 @@ DEVELOPMENT:
 
 */
 
-import { type FilteredStreamLimitOptions, last } from "./stream";
+import { type FilteredStreamLimitOptions, last, enforceLimits } from "./stream";
 import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import { Empty, type Msg, type Subscription } from "@nats-io/nats-core";
@@ -597,7 +597,21 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   private enforceLimitsNow = reuseInFlight(async () => {
-    console.log("TODO: enforce limits not implemented", this.limits);
+    const index = enforceLimits({
+      messages: this.messages,
+      raw: this.raw,
+      limits: this.limits,
+    });
+    if (index > -1) {
+      try {
+        // console.log("imposing limit via purge ", { index });
+        await this.purge({ index });
+      } catch (err) {
+        if (err.code != "TIMEOUT") {
+          console.log(`WARNING: purging old messages - ${err}`);
+        }
+      }
+    }
   });
 
   private enforceLimits = throttle(

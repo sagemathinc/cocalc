@@ -76,6 +76,7 @@ export class DStream<T = any> extends EventEmitter {
 
     if (
       opts.noInventory ||
+      opts.ephemeral ||
       (process.env.COCALC_TEST_MODE && opts.noInventory == null)
     ) {
       // @ts-ignore
