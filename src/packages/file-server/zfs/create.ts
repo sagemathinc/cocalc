@@ -1,3 +1,20 @@
+/*
+
+DEVELOPMENT:
+
+If you're using Docker, make sure the DATA directory in config.ts is inside a folder
+that is bind mounted from the host.
+
+Start node.
+
+a = require('@cocalc/file-server/zfs/create')
+
+fs = await a.createFilesystem({namespace:'default', owner_type:'project', owner_id:'6b851643-360e-435e-b87e-f9a6ab64a8b1', name:'home'})
+
+await a.deleteFilesystem({namespace:'default', owner_type:'project', owner_id:'6b851643-360e-435e-b87e-f9a6ab64a8b1', name:'home'})
+
+*/
+
 import { create, get, getDb, deleteFromDb, filesystemExists } from "./db";
 import { exec } from "./util";
 import {
@@ -5,8 +22,9 @@ import {
   bupFilesystemMountpoint,
   filesystemDataset,
   filesystemMountpoint,
+  poolName,
 } from "./names";
-import { getPools, initializePool } from "./pools";
+import { initializePool } from "./pools";
 import { dearchiveFilesystem } from "./archive";
 import { UID, GID } from "./config";
 import { createSnapshot } from "./snapshots";
@@ -31,7 +49,7 @@ export async function createFilesystem(
   let pool: undefined | string = undefined;
 
   if (source != null) {
-    // use same pool as source filesystem.  (we could use zfs send/recv but that's much slower and not a clone)
+    // For clone, we use same pool as source filesystem.  (we could use zfs send/recv but that's much slower and not a clone)
     pool = source.pool;
   } else {
     if (affinity) {
@@ -44,33 +62,8 @@ export async function createFilesystem(
       pool = x?.pool;
     }
     if (!pool) {
-      // assign one with *least* filesystems
-      const x = db
-        .prepare(
-          "SELECT pool, COUNT(pool) AS cnt FROM filesystems GROUP BY pool ORDER by cnt ASC",
-        )
-        .all() as any;
-      const pools = await getPools();
-      if (Object.keys(pools).length > x.length) {
-        // rare case: there exists a pool that isn't used yet, so not
-        // represented in above query at all; use it
-        const v = new Set<string>();
-        for (const { pool } of x) {
-          v.add(pool);
-        }
-        for (const name in pools) {
-          if (!v.has(name)) {
-            pool = name;
-            break;
-          }
-        }
-      } else {
-        if (x.length == 0) {
-          throw Error("cannot create filesystem -- no available pools");
-        }
-        // just use the least crowded
-        pool = x[0].pool;
-      }
+      // create new pool
+      pool = poolName(pk);
     }
   }
   if (!pool) {

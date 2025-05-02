@@ -116,7 +116,10 @@ export function filesystemsPath({ namespace }) {
 
 export function filesystemMountpoint(fs: PrimaryKey) {
   const pk = primaryKey(fs);
-  return join(filesystemsPath(pk), pk.owner_type, pk.owner_id, pk.name);
+  return join(
+    context.FILESYSTEMS,
+    `${pk.owner_type}-${pk.owner_id}-${pk.name}`,
+  );
 }
 
 export function filesystemSnapshotMountpoint(
@@ -151,6 +154,23 @@ export function filesystemDataset({
   // only one dataset, rather than three.  (We also don't need to worry about deleting parents
   // when there are no children...)
   return `${filesystemsDataset({ pool, namespace: namespace })}/${owner_type}-${owner_id}-${name}`;
+}
+
+// A unique name for the pool that will store this fs. Other fs with
+// same affinity and clones could also be stored on this pool.
+export function poolName(fs): string {
+  // NOTE: imageDirectory below assumes the pool name starts with "${context.PREFIX}-{namespace}-"
+  const { namespace, owner_type, owner_id, name } = primaryKey(fs);
+  return `${context.PREFIX}-${namespace}-${owner_type}-${owner_id}-${name}`;
+}
+
+export function poolImageDirectory({ pool }: { pool: string }): string {
+  const namespace = pool.slice(context.PREFIX.length + 1).split("-")[0];
+  return join(context.IMAGES, namespace, pool);
+}
+
+export function poolImageFile({ pool }: { pool: string }): string {
+  return join(poolImageDirectory({ pool }), "0.img");
 }
 
 export function tempDataset({

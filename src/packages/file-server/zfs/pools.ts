@@ -14,7 +14,7 @@ OPERATIONS:
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { context, POOLS_CACHE_MS } from "./config";
+import { context, DEFAULT_POOL_SIZE, POOLS_CACHE_MS } from "./config";
 import { exec } from "./util";
 import {
   archivesDataset,
@@ -25,6 +25,8 @@ import {
   bupDataset,
   bupMountpoint,
   tempDataset,
+  poolImageDirectory,
+  poolImageFile,
 } from "./names";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getNamespacesAndPools } from "./db";
@@ -52,8 +54,8 @@ let poolsCache: { [prefix: string]: Pools } = {};
 
 export const getPools = reuseInFlight(
   async ({ noCache }: { noCache?: boolean } = {}): Promise<Pools> => {
-    if (!noCache && poolsCache[context.PREFIX]) {
-      return poolsCache[context.PREFIX];
+    if (!noCache && poolsCache[context.DATA]) {
+      return poolsCache[context.DATA];
     }
     const { stdout } = await exec({
       verbose: true,
@@ -92,11 +94,65 @@ export const initializePool = reuseInFlight(
     namespace?: string;
     pool: string;
   }) => {
-    if (!pool.startsWith(context.PREFIX)) {
-      throw Error(
-        `pool (="${pool}") must start with the prefix '${context.PREFIX}'`,
-      );
+    const image = poolImageFile({ pool });
+    if (!(await exists(image))) {
+      const dir = poolImageDirectory({ pool });
+
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["mkdir", "-p", dir],
+      });
+
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: ["truncate", "-s", DEFAULT_POOL_SIZE, image],
+        what: { pool, desc: "create sparse image file" },
+      });
+
+      // create the pool
+      await exec({
+        verbose: true,
+        command: "sudo",
+        args: [
+          "zpool",
+          "create",
+          "-o",
+          "feature@fast_dedup=enabled",
+          "-m",
+          "none",
+          pool,
+          image,
+        ],
+        what: {
+          pool,
+          desc: `create the zpool ${pool} using the device ${image}`,
+        },
+      });
+    } else {
+      // make sure pool is imported
+      try {
+        await exec({
+          verbose: true,
+          command: "zpool",
+          args: ["list", pool],
+          what: { pool, desc: `check if ${pool} needs to be imported` },
+        });
+      } catch {
+        const dir = poolImageDirectory({ pool });
+        await exec({
+          verbose: true,
+          command: "sudo",
+          args: ["zpool", "import", pool, "-d", dir],
+          what: {
+            pool,
+            desc: `import the zpool ${pool} from ${dir}`,
+          },
+        });
+      }
     }
+
     // archives and filesystems for each namespace are in this dataset
     await ensureDatasetExists({
       name: namespaceDataset({ namespace, pool }),

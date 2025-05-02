@@ -1,5 +1,5 @@
 /*
-Use zfs replication over ssh to pull recent filesystems from 
+Use zfs replication over ssh to pull recent filesystems from
 one file-server to another one.
 
 This will be used for:
@@ -59,17 +59,19 @@ export const SYNCED_FIELDS = [
 interface Remote {
   // remote = user@hostname that you can ssh to
   remote: string;
-  // filesystem prefix of the remote server, so {prefix}/database.sqlite3 has the
+  // filesystem location on the remote server, so {data}/database.sqlite3 has the
   // database that defines the state of the remote server.
-  prefix: string;
+  data: string;
 }
+
+// [ ] TODO: this is very likely broken due to prefix --> data change
 
 // Copy from remote to here every filesystem that has changed since cutoff.
 export async function pull({
   cutoff,
   filesystem,
   remote,
-  prefix,
+  data,
   deleteFilesystemCutoff,
   deleteSnapshots,
   dryRun,
@@ -93,9 +95,9 @@ export async function pull({
   toUpdate: { remoteFs: Filesystem; localFs?: Filesystem }[];
   toDelete: RawFilesystem[];
 }> {
-  logger.debug("pull: from ", { remote, prefix, cutoff, filesystem });
-  if (prefix.startsWith("/")) {
-    throw Error("prefix should not start with /");
+  logger.debug("pull: from ", { remote, data, cutoff, filesystem });
+  if (data.startsWith("/")) {
+    throw Error("data should start with /");
   }
   if (cutoff == null) {
     cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
@@ -104,12 +106,12 @@ export async function pull({
   await exec({ command: "mkdir", args: ["-p", context.PULL] });
   const remoteDatabase = join(
     context.PULL,
-    `${remote}:${prefix}---${new Date().toISOString()}.sqlite3`,
+    `${remote}:${data}---${new Date().toISOString()}.sqlite3`,
   );
-  // delete all but the most recent remote database files for this remote/prefix (?).
+  // delete all but the most recent remote database files for this remote/data (?).
   const oldDbFiles = (await readdir(context.PULL))
     .sort()
-    .filter((x) => x.startsWith(`${remote}:${prefix}---`))
+    .filter((x) => x.startsWith(`${remote}:${data}---`))
     .slice(0, -NUM_DB_TO_KEEP);
   for (const path of oldDbFiles) {
     await unlink(join(context.PULL, path));
@@ -117,7 +119,7 @@ export async function pull({
 
   await exec({
     command: "scp",
-    args: [`${remote}:/${databaseFilename(prefix)}`, remoteDatabase],
+    args: [`${remote}:/${databaseFilename(data)}`, remoteDatabase],
   });
 
   logger.debug("pull: compare state");

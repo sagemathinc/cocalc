@@ -1,16 +1,19 @@
 import { join } from "path";
 import { databaseFilename } from "./names";
 
-// we ONLY put filesystems on pools whose name have this prefix.
-// all other pools are ignored.  We also mount everything in /{PREFIX} on the filesystem.
-const PREFIX = process.env.COCALC_TEST_MODE ? "cocalcfs-test" : "cocalcfs";
+// names of all pools we create/manage will start with this prefix:
+const PREFIX = "cocalcfs";
 
-const DATA = `/${PREFIX}`;
+// this is where all data is stored or mounted on the filesystem
+const DATA = process.env.COCALC_TEST_MODE ? "/data/zfs-test" : "/data/zfs";
 
 const SQLITE3_DATABASE_FILE = databaseFilename(DATA);
 
-// Directory on server where filesystems get mounted (so NFS can serve them)
+// Directory where filesystems get mounted (so NFS can serve them)
 const FILESYSTEMS = join(DATA, "filesystems");
+
+// Directory where sparse image files are stored
+const IMAGES = join(DATA, "images");
 
 // Directory on server where zfs send streams (and tar?) are stored
 const ARCHIVES = join(DATA, "archives");
@@ -19,7 +22,7 @@ const ARCHIVES = join(DATA, "archives");
 // E.g., this keeps around copies of the sqlite state database of each remote.
 const PULL = join(DATA, "pull");
 
-// Directory for bup
+// Directory for bup backups
 const BUP = join(DATA, "bup");
 
 export const context = {
@@ -29,6 +32,7 @@ export const context = {
   SQLITE3_DATABASE_FILE,
   FILESYSTEMS,
   ARCHIVES,
+  IMAGES,
   PULL,
   BUP,
 };
@@ -39,23 +43,28 @@ export const context = {
 // changing the context out from under it would lead to nonsense and corruption.
 export function setContext({
   namespace,
+  data,
   prefix,
 }: {
   namespace?: string;
+  data?: string;
   prefix?: string;
 }) {
   context.namespace = namespace ?? process.env.NAMESPACE ?? "default";
   context.PREFIX = prefix ?? PREFIX;
-  context.DATA = `/${context.PREFIX}`;
+  context.DATA = data ?? DATA;
   context.SQLITE3_DATABASE_FILE = databaseFilename(context.DATA);
   context.FILESYSTEMS = join(context.DATA, "filesystems");
   context.ARCHIVES = join(context.DATA, "archives");
+  context.IMAGES = join(context.DATA, "images");
   context.PULL = join(context.DATA, "pull");
   context.BUP = join(context.DATA, "bup");
 }
 
 // Every filesystem has at least this much quota (?)
 export const MIN_QUOTA = 1024 * 1024 * 1; // 1MB
+
+export const DEFAULT_POOL_SIZE = "100G";
 
 // We periodically do "zpool list" to find out what pools are available
 // and how much space they have left.  This info is cached for this long
