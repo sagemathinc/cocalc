@@ -21,17 +21,17 @@ await p.get('compressratio')
 
 await p.list()
 
-q = await x.filesystem('c', {clone:'1'})
+q = await x.clone('c', '1')
 await q.create()
 await q.get('origin')   // --> 'x/1@clone-c'
 
 // around 10 seconds:
 
-t = Date.now(); for(let i=0; i<100; i++) { await (await pools.pool({name:'x'+i})).create() }; Date.now() - t
+t = Date.now(); for(let i=0; i<100; i++) { await (await pools.pool('x'+i)).create() }; Date.now() - t
 
 // around 5 seconds:
 
-t = Date.now(); for(let i=0; i<100; i++) { await (await x.filesystem({name:'x'+i})).create() }; Date.now() - t
+t = Date.now(); for(let i=0; i<100; i++) { await (await x.filesystem('x'+i)).create() }; Date.now() - t
 
 
 */

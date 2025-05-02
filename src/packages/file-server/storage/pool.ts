@@ -171,9 +171,15 @@ export class Pool {
     await this.import();
   };
 
-  filesystem = async (name, { clone }: { clone?: string } = {}) => {
+  filesystem = async (name) => {
     await this.import();
-    return await filesystem({ pool: this.opts.name, name, clone });
+    return await filesystem({ pool: this.opts.name, name });
+  };
+
+  // create a lightweight clone callend name of the given filesystem source.
+  clone = async (name: string, source: string) => {
+    await this.import();
+    return await filesystem({ pool: this.opts.name, name, clone: source });
   };
 
   import = async () => {
