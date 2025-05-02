@@ -4,7 +4,9 @@
   "description": "CoCalc File Server",
   "exports": {
     "./zfs": "./dist/zfs/index.js",
-    "./zfs/*": "./dist/zfs/*.js"
+    "./zfs/*": "./dist/zfs/*.js",
+    "./storage": "./dist/storage/index.js",
+    "./storage/*": "./dist/storage/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -12,17 +14,9 @@
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest  --runInBand"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "nats",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
