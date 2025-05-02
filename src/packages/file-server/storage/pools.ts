@@ -6,12 +6,11 @@ Start node, then:
 a = require('@cocalc/file-server/storage')
 pools = await a.pools({images:'/data/zfs/images', mount:'/data/zfs/mnt'})
 
-x = await pools.pool({name:'x'})
-await x.create()
+x = await pools.pool('x')
 
 t = await x.list()
 
-p = await x.filesystem({name:'1'})
+p = await x.filesystem('1')
 await p.create()
 
 await x.enlarge('1T')
@@ -22,7 +21,7 @@ await p.get('compressratio')
 
 await p.list()
 
-q = await x.filesystem({name:'c', clone:'1'})
+q = await x.filesystem('c', {clone:'1'})
 await q.create()
 await q.get('origin')   // --> 'x/1@clone-c'
 
@@ -39,7 +38,7 @@ t = Date.now(); for(let i=0; i<100; i++) { await (await x.filesystem({name:'x'+i
 
 import refCache from "@cocalc/util/refcache";
 import { join } from "path";
-import { listdir, mkdirp } from "./util";
+import { listdir, mkdirp, sudo } from "./util";
 import { pool } from "./pool";
 
 export interface Options {
@@ -62,7 +61,7 @@ export class Pools {
     // nothing, yet
   };
 
-  pool = async ({ name }: { name: string }) => {
+  pool = async (name: string) => {
     const images = join(this.opts.images, name);
     const mount = join(this.opts.mount, name);
     return await pool({ images, mount, name });
@@ -70,6 +69,31 @@ export class Pools {
 
   list = async (): Promise<string[]> => {
     return await listdir(this.opts.images);
+  };
+
+  rsync = async ({
+    src,
+    target,
+    args = ["-axH"],
+    timeout = 5 * 60 * 1000,
+  }: {
+    src: string;
+    target: string;
+    args?: string[];
+    timeout?: number;
+  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
+    const srcPool = await this.pool(src.split("/")[0]);
+    await srcPool.import();
+    const targetPool = await this.pool(target.split("/")[0]);
+    await targetPool.import();
+    const srcPath = join(this.opts.mount, src);
+    const targetPath = join(this.opts.mount, target);
+    return await sudo({
+      command: "rsync",
+      args: [...args, srcPath, targetPath],
+      err_on_exit: false,
+      timeout: timeout / 1000,
+    });
   };
 }
 

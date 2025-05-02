@@ -171,9 +171,8 @@ export class Pool {
     await this.import();
   };
 
-  filesystem = async ({ name, clone }: { name: string; clone?: string }) => {
-    // ensure available
-    await this.list();
+  filesystem = async (name, { clone }: { clone?: string } = {}) => {
+    await this.import();
     return await filesystem({ pool: this.opts.name, name, clone });
   };
 
@@ -182,10 +181,19 @@ export class Pool {
       await this.create();
       return;
     }
-    await sudo({
-      command: "zpool",
-      args: ["import", this.opts.name, "-d", this.opts.images],
-    });
+    try {
+      await sudo({
+        command: "zpool",
+        args: ["import", this.opts.name, "-d", this.opts.images],
+        verbose: false,
+      });
+    } catch (err) {
+      if (`${err}`.includes("pool with that name already exists")) {
+        // already imported
+        return;
+      }
+      throw err;
+    }
   };
 
   export = async () => {
