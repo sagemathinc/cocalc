@@ -11,10 +11,16 @@ await x.create()
 
 t = await x.list()
 
-p = await x.filesystem({name:'puppa'})
+p = await x.filesystem({name:'1'})
 await p.create()
 
+await p.get('compressratio')
+
 await p.list()
+
+q = await x.filesystem({name:'c', clone:'1'})
+await q.create()
+await q.get('origin')   // --> 'x/1@clone-c'
 
 // around 10 seconds:
 

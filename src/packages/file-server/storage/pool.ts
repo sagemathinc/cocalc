@@ -53,10 +53,10 @@ export class Pool {
     }
   };
 
-  filesystem = async ({ name }: { name: string }) => {
+  filesystem = async ({ name, clone }: { name: string; clone?: string }) => {
     // ensure available
     await this.list();
-    return await filesystem({ pool: this.opts.name, name });
+    return await filesystem({ pool: this.opts.name, name, clone });
   };
 
   import = async () => {
