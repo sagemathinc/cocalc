@@ -11,7 +11,10 @@ await x.create()
 
 t = await x.list()
 
+p = await x.filesystem({name:'puppa'})
+await p.create()
 
+await p.list()
 */
 
 import refCache from "@cocalc/util/refcache";

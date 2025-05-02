@@ -1,6 +1,7 @@
 import refCache from "@cocalc/util/refcache";
 import { chmod, exec, exists, mkdirp } from "./util";
 import { join } from "path";
+import { filesystem } from "./filesystem";
 
 const DEFAULT_SIZE = "10G";
 const POOL_NAME_REGEXP = /^(?!-)(?!(\.{1,2})$)[A-Za-z0-9_.:-]{1,255}$/;
@@ -46,6 +47,22 @@ export class Pool {
     }
     await exec({ command: "sudo", args: ["rm", this.image] });
     await exec({ command: "sudo", args: ["rmdir", this.opts.images] });
+    await exec({ command: "sudo", args: ["rmdir", this.opts.mount] });
+  };
+
+  filesystem = async ({ name }: { name: string }) => {
+    return await filesystem({ pool: this.opts.name, name });
+  };
+
+  import = async () => {
+    if (!(await this.exists())) {
+      await this.create();
+      return;
+    }
+    await exec({
+      command: "sudo",
+      args: ["zpool", "import", this.opts.name, "-d", this.opts.images],
+    });
   };
 
   create = async () => {
@@ -75,15 +92,7 @@ export class Pool {
     });
     await exec({
       command: "sudo",
-      args: [
-        "zfs",
-        "set",
-        "-o",
-        "compression=lz4",
-        "-o",
-        "dedup=on",
-        this.opts.name,
-      ],
+      args: ["zfs", "set", "compression=lz4", "dedup=on", this.opts.name],
     });
   };
 
