@@ -1,5 +1,5 @@
 import refCache from "@cocalc/util/refcache";
-import { chmod, exec, exists, mkdirp } from "./util";
+import { chmod, sudo, exists, mkdirp, rm, rmdir, listdir } from "./util";
 import { join } from "path";
 import { filesystem } from "./filesystem";
 
@@ -36,21 +36,26 @@ export class Pool {
       return;
     }
     try {
-      await exec({
-        command: "sudo",
-        args: ["zpool", "destroy", "-f", this.opts.name],
+      await sudo({
+        command: "zpool",
+        args: ["destroy", "-f", this.opts.name],
       });
     } catch (err) {
       if (!`${err}`.includes("no such pool")) {
         throw err;
       }
     }
-    await exec({ command: "sudo", args: ["rm", this.image] });
-    await exec({ command: "sudo", args: ["rmdir", this.opts.images] });
-    await exec({ command: "sudo", args: ["rmdir", this.opts.mount] });
+    await rm([this.image]);
+    await rmdir([this.opts.images]);
+    if (await exists(this.opts.mount)) {
+      await rmdir(await listdir(this.opts.mount));
+      await rmdir([this.opts.mount]);
+    }
   };
 
   filesystem = async ({ name }: { name: string }) => {
+    // ensure available
+    await this.list();
     return await filesystem({ pool: this.opts.name, name });
   };
 
@@ -59,9 +64,9 @@ export class Pool {
       await this.create();
       return;
     }
-    await exec({
-      command: "sudo",
-      args: ["zpool", "import", this.opts.name, "-d", this.opts.images],
+    await sudo({
+      command: "zpool",
+      args: ["import", this.opts.name, "-d", this.opts.images],
     });
   };
 
@@ -72,14 +77,13 @@ export class Pool {
     }
     await mkdirp([this.opts.images, this.opts.mount]);
     await chmod(["a+rx", this.opts.mount]);
-    await exec({
-      command: "sudo",
-      args: ["truncate", "-s", DEFAULT_SIZE, this.image],
+    await sudo({
+      command: "truncate",
+      args: ["-s", DEFAULT_SIZE, this.image],
     });
-    await exec({
-      command: "sudo",
+    await sudo({
+      command: "zpool",
       args: [
-        "zpool",
         "create",
         "-o",
         "feature@fast_dedup=enabled",
@@ -90,38 +94,54 @@ export class Pool {
       ],
       desc: `create the pool ${this.opts.name} using the device ${this.image}`,
     });
-    await exec({
-      command: "sudo",
-      args: ["zfs", "set", "compression=lz4", "dedup=on", this.opts.name],
+    await sudo({
+      command: "zfs",
+      args: ["set", "compression=lz4", "dedup=on", this.opts.name],
     });
   };
 
-  list = async (): Promise<PoolListOutput> => {
-    const { stdout } = await exec({
-      command: "zpool",
-      args: ["list", "-j", "--json-int", this.opts.name],
-    });
-    const x = JSON.parse(stdout);
-    const y = x.pools[this.opts.name];
-    for (const a in y.properties) {
-      y.properties[a] = y.properties[a].value;
+  private async ensureExists<T>(f: () => Promise<T>): Promise<T> {
+    try {
+      return await f();
+    } catch (err) {
+      if (`${err}`.includes("no such pool")) {
+        await this.import();
+        return await f();
+      }
     }
-    y.properties.dedupratio = parseFloat(y.properties.dedupratio);
-    return y;
+    throw Error("bug");
+  }
+
+  list = async (): Promise<PoolListOutput> => {
+    return await this.ensureExists<PoolListOutput>(async () => {
+      const { stdout } = await sudo({
+        command: "zpool",
+        args: ["list", "-j", "--json-int", this.opts.name],
+      });
+      const x = JSON.parse(stdout);
+      const y = x.pools[this.opts.name];
+      for (const a in y.properties) {
+        y.properties[a] = y.properties[a].value;
+      }
+      y.properties.dedupratio = parseFloat(y.properties.dedupratio);
+      return y;
+    });
   };
 
   trim = async () => {
-    await exec({
-      command: "sudo",
-      args: ["zpool", "trim", "-w", this.opts.name],
+    return await this.ensureExists<void>(async () => {
+      await sudo({
+        command: "zpool",
+        args: ["trim", "-w", this.opts.name],
+      });
     });
   };
 
   // bytes of disk used by image
   bytes = async (): Promise<number> => {
-    const { stdout } = await exec({
-      command: "sudo",
-      args: ["ls", "-s", this.image],
+    const { stdout } = await sudo({
+      command: "ls",
+      args: ["-s", this.image],
     });
     return parseFloat(stdout.split(" ")[0]);
   };

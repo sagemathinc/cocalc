@@ -15,11 +15,21 @@ p = await x.filesystem({name:'puppa'})
 await p.create()
 
 await p.list()
+
+// around 10 seconds:
+
+t = Date.now(); for(let i=0; i<100; i++) { await (await pools.pool({name:'x'+i})).create() }; Date.now() - t
+
+// around 5 seconds:
+
+t = Date.now(); for(let i=0; i<100; i++) { await (await x.filesystem({name:'x'+i})).create() }; Date.now() - t
+
+
 */
 
 import refCache from "@cocalc/util/refcache";
 import { join } from "path";
-import { mkdirp } from "./util";
+import { listdir, mkdirp } from "./util";
 import { pool } from "./pool";
 
 export interface Options {
@@ -46,6 +56,10 @@ export class Pools {
     const images = join(this.opts.images, name);
     const mount = join(this.opts.mount, name);
     return await pool({ images, mount, name });
+  };
+
+  list = async (): Promise<string[]> => {
+    return await listdir(this.opts.images);
   };
 }
 

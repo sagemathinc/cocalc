@@ -1,5 +1,5 @@
 import refCache from "@cocalc/util/refcache";
-import { exec } from "./util";
+import { sudo } from "./util";
 
 const FILESYSTEM_NAME_REGEXP = /^(?!-)(?!(\.{1,2})$)[A-Za-z0-9_.:-]{1,255}$/;
 
@@ -22,25 +22,41 @@ export class Filesystem {
 
   exists = async () => {
     try {
-      await this.list();
+      await this.list0();
       return true;
     } catch {
       return false;
     }
   };
 
+  private async ensureExists<T>(f: () => Promise<T>): Promise<T> {
+    try {
+      return await f();
+    } catch (err) {
+      if (`${err}`.includes("dataset does not exist")) {
+        await this.create();
+        return await f();
+      }
+    }
+    throw Error("bug");
+  }
+
   create = async () => {
     if (await this.exists()) {
       return;
     }
-    await exec({
-      command: "sudo",
-      args: ["zfs", "create", this.dataset],
+    await sudo({
+      command: "zfs",
+      args: ["create", this.dataset],
     });
   };
 
-  list = async (): Promise<any> => {
-    const { stdout } = await exec({
+  list = async (): Promise<FilesystemListOutput> => {
+    return await this.ensureExists<FilesystemListOutput>(this.list0);
+  };
+
+  private list0 = async (): Promise<FilesystemListOutput> => {
+    const { stdout } = await sudo({
       command: "zfs",
       args: ["list", "-j", "--json-int", this.dataset],
     });
@@ -56,6 +72,8 @@ export class Filesystem {
     // nothing, yet
   };
 }
+
+interface FilesystemListOutput {}
 
 const cache = refCache<Options & { noCache?: boolean }, Filesystem>({
   name: "zfs-filesystem",
