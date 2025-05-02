@@ -2,8 +2,12 @@ import refCache from "@cocalc/util/refcache";
 import { chmod, sudo, exists, mkdirp, rm, rmdir, listdir } from "./util";
 import { join } from "path";
 import { filesystem } from "./filesystem";
+import getLogger from "@cocalc/backend/logger";
+import { executeCode } from "@cocalc/backend/execute-code";
 
-const DEFAULT_SIZE = "10G";
+const logger = getLogger("file-server:storage:pool");
+
+const DEFAULT_SIZE = "1G";
 const POOL_NAME_REGEXP = /^(?!-)(?!(\.{1,2})$)[A-Za-z0-9_.:-]{1,255}$/;
 
 export interface Options {
@@ -51,6 +55,39 @@ export class Pool {
       await rmdir(await listdir(this.opts.mount));
       await rmdir([this.opts.mount]);
     }
+  };
+
+  expand = async (size: string | number) => {
+    logger.debug(`expand to ${size}`);
+    if (typeof size == "string") {
+      // convert to bytes
+      const { stdout } = await executeCode({
+        command: "numfmt",
+        args: ["--from=iec", size],
+      });
+      size = parseFloat(stdout);
+    }
+    if (!(await exists(this.image))) {
+      await this.create();
+    }
+    const { stdout } = await sudo({
+      command: "stat",
+      args: ["--format=%s", this.image],
+    });
+    const bytes = parseFloat(stdout);
+    if (size < bytes) {
+      throw Error(`size must be at least ${bytes}`);
+    }
+    if (size == bytes) {
+      return;
+    }
+    await this.ensureExists<void>(async () => {
+      await sudo({ command: "truncate", args: ["-s", size, this.image] });
+      await sudo({
+        command: "zpool",
+        args: ["online", "-e", this.opts.name, this.image],
+      });
+    });
   };
 
   filesystem = async ({ name, clone }: { name: string; clone?: string }) => {
