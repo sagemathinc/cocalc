@@ -5,9 +5,9 @@ import {
 import { executeCode } from "@cocalc/backend/execute-code";
 import getLogger from "@cocalc/backend/logger";
 
-const DEFAULT_EXEC_TIMEOUT_MS = 60 * 1000;
-
 const logger = getLogger("file-server:storage:util");
+
+const DEFAULT_EXEC_TIMEOUT_MS = 60 * 1000;
 
 export async function exists(path: string) {
   try {

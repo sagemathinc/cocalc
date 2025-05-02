@@ -1,5 +1,9 @@
 import refCache from "@cocalc/util/refcache";
 import { sudo } from "./util";
+import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("file-server:storage:filesystem");
 
 const FILESYSTEM_NAME_REGEXP = /^(?!-)(?!(\.{1,2})$)[A-Za-z0-9_.:-]{1,255}$/;
 
@@ -14,20 +18,20 @@ export interface Options {
 }
 
 export class Filesystem {
-  private dataset: string;
+  public readonly dataset: string;
   private opts: Options;
 
   constructor(opts: Options) {
-    if (!FILESYSTEM_NAME_REGEXP.test(opts.name)) {
+    if (opts.name !== "" && !FILESYSTEM_NAME_REGEXP.test(opts.name)) {
       throw Error(`invalid ZFS filesystem name '${opts.name}'`);
     }
     this.opts = opts;
-    this.dataset = `${opts.pool}/${opts.name}`;
+    this.dataset = opts.name ? `${opts.pool}/${opts.name}` : opts.pool;
   }
 
   exists = async () => {
     try {
-      await this.list0();
+      await this._info();
       return true;
     } catch {
       return false;
@@ -42,6 +46,7 @@ export class Filesystem {
         await this.create();
         return await f();
       }
+      throw err;
     }
     throw Error("bug");
   }
@@ -51,6 +56,10 @@ export class Filesystem {
       return;
     }
     if (this.opts.clone) {
+      logger.debug("create clone", {
+        dataset: this.dataset,
+        clone: this.opts.clone,
+      });
       const snapshot = `${this.opts.pool}/${this.opts.clone}@clone-${this.opts.name}`;
       await sudo({
         command: "zfs",
@@ -69,6 +78,9 @@ export class Filesystem {
         throw err;
       }
     } else {
+      logger.debug("create dataset", {
+        dataset: this.dataset,
+      });
       // non-clone
       await sudo({
         command: "zfs",
@@ -77,11 +89,11 @@ export class Filesystem {
     }
   };
 
-  list = async (): Promise<FilesystemListOutput> => {
-    return await this.ensureExists<FilesystemListOutput>(this.list0);
+  info = async (): Promise<FilesystemListOutput> => {
+    return await this.ensureExists<FilesystemListOutput>(this._info);
   };
 
-  private list0 = async (): Promise<FilesystemListOutput> => {
+  private _info = async (): Promise<FilesystemListOutput> => {
     const { stdout } = await sudo({
       command: "zfs",
       args: ["list", "-j", "--json-int", this.dataset],
@@ -129,6 +141,70 @@ export class Filesystem {
   close = () => {
     // nothing, yet
   };
+
+  createSnapshot = async (name: string) => {
+    logger.debug("createSnapshot", { name, dataset: this.dataset });
+    await this.ensureExists<void>(async () => {
+      await sudo({
+        command: "zfs",
+        args: ["snapshot", `${this.dataset}@${name}`],
+      });
+    });
+  };
+
+  snapshots = async (): Promise<Snapshots> => {
+    return await this.ensureExists<Snapshots>(async () => {
+      const { stdout } = await sudo({
+        command: "zfs",
+        args: [
+          "list",
+          "-j",
+          "--json-int",
+          "-r",
+          "-d",
+          "1",
+          "-t",
+          "snapshot",
+          `${this.dataset}`,
+        ],
+      });
+      const { datasets } = JSON.parse(stdout);
+      for (const name in datasets) {
+        const y = datasets[name];
+        for (const a in y.properties) {
+          y.properties[a] = y.properties[a].value;
+        }
+      }
+      return datasets;
+    });
+  };
+
+  destroySnapshot = async (name) => {
+    logger.debug("destroySnapshot", { name, dataset: this.dataset });
+    await this.ensureExists<void>(async () => {
+      await sudo({
+        command: "zfs",
+        args: ["destroy", `${this.dataset}@${name}`],
+      });
+    });
+  };
+
+  updateRollingSnapshots = async (counts?: Partial<SnapshotCounts>) => {
+    return await this.ensureExists<any>(async () => {
+      return await updateRollingSnapshots({ filesystem: this, counts });
+    });
+  };
+
+  // number of newly written bytes in filesystem since last snapshot
+  writtenSinceLastSnapshot = async (): Promise<number> => {
+    return await this.ensureExists<any>(async () => {
+      const { stdout } = await sudo({
+        command: "zfs",
+        args: ["list", "-Hpo", "written", this.dataset],
+      });
+      return parseInt(stdout);
+    });
+  };
 }
 
 interface FilesystemListOutput {
@@ -143,6 +219,23 @@ interface FilesystemListOutput {
     mountpoint: string;
   };
 }
+
+interface Snapshot {
+  name: string;
+  type: "SNAPSHOT";
+  pool: string;
+  createtxg: number;
+  dataset: string;
+  snapshot_name: string;
+  properties: {
+    used: number;
+    available: string | number;
+    referenced: number;
+    mountpoint: string; // '-' if not mounted
+  };
+}
+
+export type Snapshots = { [name: string]: Snapshot };
 
 const cache = refCache<Options & { noCache?: boolean }, Filesystem>({
   name: "zfs-filesystem",

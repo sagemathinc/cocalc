@@ -108,11 +108,12 @@ export class Pool {
         await this.import();
         return await f();
       }
+      throw err;
     }
     throw Error("bug");
   }
 
-  list = async (): Promise<PoolListOutput> => {
+  info = async (): Promise<PoolListOutput> => {
     return await this.ensureExists<PoolListOutput>(async () => {
       const { stdout } = await sudo({
         command: "zpool",
@@ -125,6 +126,17 @@ export class Pool {
       }
       y.properties.dedupratio = parseFloat(y.properties.dedupratio);
       return y;
+    });
+  };
+
+  status = async (): Promise<PoolListOutput> => {
+    return await this.ensureExists<PoolListOutput>(async () => {
+      const { stdout } = await sudo({
+        command: "zpool",
+        args: ["status", "-j", "--json-int", this.opts.name],
+      });
+      const x = JSON.parse(stdout);
+      return x.pools[this.opts.name];
     });
   };
 
@@ -146,8 +158,38 @@ export class Pool {
     return parseFloat(stdout.split(" ")[0]);
   };
 
+  list = async (): Promise<{ [dataset: string]: Dataset }> => {
+    return await this.ensureExists<{ [dataset: string]: Dataset }>(async () => {
+      const { stdout } = await sudo({
+        command: "zfs",
+        args: ["list", "-j", "--json-int", "-r", this.opts.name],
+      });
+      const { datasets } = JSON.parse(stdout);
+      for (const name in datasets) {
+        const y = datasets[name];
+        for (const a in y.properties) {
+          y.properties[a] = y.properties[a].value;
+        }
+      }
+      return datasets;
+    });
+  };
+
   close = () => {
     // nothing, yet
+  };
+}
+
+interface Dataset {
+  name: string;
+  type: "FILESYSTEM";
+  pool: string;
+  createtxg: number;
+  properties: {
+    used: number;
+    available: number;
+    referenced: number;
+    mountpoint: string;
   };
 }
 
