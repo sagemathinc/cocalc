@@ -1,16 +1,25 @@
+/*
+
+
+*/
+
 import { create, get, getDb, deleteFromDb, filesystemExists } from "./db";
 import { exec } from "./util";
 import {
   filesystemArchivePath,
   bupFilesystemMountpoint,
   filesystemDataset,
+  filesystemPool,
   filesystemMountpoint,
+  filesystemImagePath,
 } from "./names";
 import { getPools, initializePool } from "./pools";
 import { dearchiveFilesystem } from "./archive";
 import { UID, GID } from "./config";
 import { createSnapshot } from "./snapshots";
 import { type Filesystem, primaryKey, type PrimaryKey } from "./types";
+
+const MAX_POOL_SIZE = "128G";
 
 export async function createFilesystem(
   opts: PrimaryKey & {
@@ -27,71 +36,47 @@ export async function createFilesystem(
   const source = clone ? get(clone) : undefined;
 
   const db = getDb();
-  // select a pool:
-  let pool: undefined | string = undefined;
-
-  if (source != null) {
-    // use same pool as source filesystem.  (we could use zfs send/recv but that's much slower and not a clone)
-    pool = source.pool;
-  } else {
-    if (affinity) {
-      // if affinity is set, have preference to use same pool as other filesystems with this affinity.
-      const x = db
-        .prepare(
-          "SELECT pool, COUNT(pool) AS cnt FROM filesystems WHERE namespace=? AND affinity=? ORDER by cnt DESC",
-        )
-        .get(namespace, affinity) as { pool: string; cnt: number } | undefined;
-      pool = x?.pool;
-    }
-    if (!pool) {
-      // assign one with *least* filesystems
-      const x = db
-        .prepare(
-          "SELECT pool, COUNT(pool) AS cnt FROM filesystems GROUP BY pool ORDER by cnt ASC",
-        )
-        .all() as any;
-      const pools = await getPools();
-      if (Object.keys(pools).length > x.length) {
-        // rare case: there exists a pool that isn't used yet, so not
-        // represented in above query at all; use it
-        const v = new Set<string>();
-        for (const { pool } of x) {
-          v.add(pool);
-        }
-        for (const name in pools) {
-          if (!v.has(name)) {
-            pool = name;
-            break;
-          }
-        }
-      } else {
-        if (x.length == 0) {
-          throw Error("cannot create filesystem -- no available pools");
-        }
-        // just use the least crowded
-        pool = x[0].pool;
-      }
-    }
-  }
-  if (!pool) {
-    throw Error("bug -- unable to select a pool");
-  }
-
-  const { cnt } = db
-    .prepare(
-      "SELECT COUNT(pool) AS cnt FROM filesystems WHERE pool=? AND namespace=?",
-    )
-    .get(pool, namespace) as { cnt: number };
-
-  if (cnt == 0) {
-    // initialize pool for use in this namespace:
-    await initializePool({ pool, namespace });
-  }
 
   if (source == null) {
-    // create filesystem on the selected pool
+    // create filesystem
+    const imagePath = filesystemImagePath(pk);
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["mkdir", "-p", imagePath],
+    });
+    const image = join(imagePath, "0.img");
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: ["truncate", "-s", MAX_POOL_SIZE, image],
+      what: { ...pk, desc: "create sparse image file" },
+    });
     const mountpoint = filesystemMountpoint(pk);
-    const dataset = filesystemDataset({ ...pk, pool });
+    const pool = filesystemPool(pk);
+    const dataset = filesystemDataset(pk);
+
+    // create the pool
+    await exec({
+      verbose: true,
+      command: "sudo",
+      args: [
+        "zpool",
+        "create",
+        "-o",
+        "feature@fast_dedup=enabled",
+        "-m",
+        "none",
+        pool,
+        image,
+      ],
+      what: {
+        ...pk,
+        desc: `create the zpool ${pool} using the device ${image}`,
+      },
+    });
+
+    // create the filesystem
     await exec({
       verbose: true,
       command: "sudo",
@@ -111,6 +96,7 @@ export async function createFilesystem(
         desc: `create filesystem ${dataset} for filesystem on the selected pool mounted at ${mountpoint}`,
       },
     });
+
     await exec({
       verbose: true,
       command: "sudo",
@@ -156,24 +142,27 @@ export async function createFilesystem(
   }
 
   // update database
-  create({ ...pk, pool, affinity });
+  create({ ...pk, affinity });
   return get(pk);
 }
 
 // delete -- This is very dangerous -- it deletes the filesystem,
 // the archive, and any backups and removes knowledge the filesystem from the db.
 
+// TODO: WHAT ABOUT CLONES.
+
 export async function deleteFilesystem(fs: PrimaryKey) {
   const filesystem = get(fs);
   const dataset = filesystemDataset(filesystem);
+  const pool = filesystemPool(filesystem);
   if (!filesystem.archived) {
     await exec({
       verbose: true,
       command: "sudo",
-      args: ["zfs", "destroy", "-r", dataset],
+      args: ["zpool", "destroy", pool],
       what: {
         ...filesystem,
-        desc: `destroy dataset ${dataset} containing the filesystem`,
+        desc: `destroy pool ${dataset} containing the filesystem`,
       },
     });
   }
@@ -204,5 +193,6 @@ export async function deleteFilesystem(fs: PrimaryKey) {
       desc: `delete directory '${filesystemArchivePath(filesystem)}' where archives were stored`,
     },
   });
+
   deleteFromDb(filesystem);
 }

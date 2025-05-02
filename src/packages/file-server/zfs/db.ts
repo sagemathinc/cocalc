@@ -25,7 +25,6 @@ const schema = {
   name: "TEXT",
 
   // data about the filesystem
-  pool: "TEXT",
   archived: "INTEGER",
   affinity: "TEXT",
   nfs: "TEXT",
@@ -205,23 +204,14 @@ export function get(fs: PrimaryKey, databaseFile?: string): Filesystem {
 
 export function create(
   obj: PrimaryKey & {
-    pool: string;
     affinity?: string;
   },
 ) {
-  if (!obj.pool.startsWith(context.PREFIX)) {
-    throw Error(`pool must start with ${context.PREFIX} - ${obj.pool}`);
-  }
   getDb()
     .prepare(
-      "INSERT INTO filesystems(namespace, owner_type, owner_id, name, pool, affinity, last_edited) VALUES(?,?,?,?,?,?,?)",
+      "INSERT INTO filesystems(namespace, owner_type, owner_id, name, affinity, last_edited) VALUES(?,?,?,?,?,?,?)",
     )
-    .run(
-      ...primaryKeyArgs(obj),
-      obj.pool,
-      obj.affinity,
-      new Date().toISOString(),
-    );
+    .run(...primaryKeyArgs(obj), obj.affinity, new Date().toISOString());
 }
 
 export function deleteFromDb(fs: PrimaryKey) {
@@ -239,11 +229,9 @@ export function getAll({
     .all(namespace) as RawFilesystem[];
 }
 
-export function getNamespacesAndPools(): { namespace: string; pool: string }[] {
+export function getNamespaces(): { namespace: string }[] {
   const db = getDb();
-  return db
-    .prepare("SELECT DISTINCT namespace, pool FROM filesystems")
-    .all() as any;
+  return db.prepare("SELECT DISTINCT namespace FROM filesystems").all() as any;
 }
 
 export function getRecent({

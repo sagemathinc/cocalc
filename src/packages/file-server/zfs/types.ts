@@ -112,8 +112,6 @@ export function primaryKey({
 export interface Filesystem extends FilesystemPrimaryKey {
   // Properties of the filesystem and its current state:
 
-  // the pool is where the filesystem happened to get allocated.  This can be influenced by affinity or usage.
-  pool: string;
   // true if project is currently archived
   archived: boolean;
   // array of hosts (or range using CIDR notation) that we're
@@ -131,7 +129,7 @@ export interface Filesystem extends FilesystemPrimaryKey {
   // operations cause this to get updated.
   last_edited?: Date;
   // optional arbitrary affinity string - we attempt if possible to put
-  // projects with the same affinity in the same pool, to improve chances of dedup.
+  // projects with the same affinity on the same server, to improve data locality.
   affinity?: string;
   // if this is set, then some sort of error that "should" never happen,
   // has happened, and manual intervention is needed.
@@ -156,7 +154,6 @@ export interface Filesystem extends FilesystemPrimaryKey {
 // is using sqlite).
 type FilesystemFieldFunction = (project: Filesystem) => any;
 export interface SetFilesystem extends PrimaryKey {
-  pool?: string | FilesystemFieldFunction;
   archived?: boolean | FilesystemFieldFunction;
   nfs?: string[] | FilesystemFieldFunction;
   snapshots?: string[] | FilesystemFieldFunction;
@@ -176,7 +173,6 @@ export interface RawFilesystem {
   owner_type: OwnerType;
   owner_id: string;
   namespace: string;
-  pool: string;
   // 0 or 1
   archived?: number;
   // nfs and snasphots are v.join(',')

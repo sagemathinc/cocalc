@@ -1,9 +1,8 @@
 import { join } from "path";
 import { databaseFilename } from "./names";
 
-// we ONLY put filesystems on pools whose name have this prefix.
-// all other pools are ignored.  We also mount everything in /{PREFIX} on the filesystem.
-const PREFIX = process.env.COCALC_TEST_MODE ? "cocalcfs-test" : "cocalcfs";
+// We also mount everything in /{PREFIX} on the filesystem.
+const PREFIX = process.env.COCALC_TEST_MODE ? "data/zfs-test" : "data/zfs";
 
 const DATA = `/${PREFIX}`;
 
@@ -14,6 +13,9 @@ const FILESYSTEMS = join(DATA, "filesystems");
 
 // Directory on server where zfs send streams (and tar?) are stored
 const ARCHIVES = join(DATA, "archives");
+
+// Directory where sparse image files are stored
+const IMAGES = join(DATA, "images");
 
 // Directory to store data used in pulling as part of sync.
 // E.g., this keeps around copies of the sqlite state database of each remote.
@@ -50,6 +52,7 @@ export function setContext({
   context.SQLITE3_DATABASE_FILE = databaseFilename(context.DATA);
   context.FILESYSTEMS = join(context.DATA, "filesystems");
   context.ARCHIVES = join(context.DATA, "archives");
+  context.IMAGES = join(context.DATA, "images");
   context.PULL = join(context.DATA, "pull");
   context.BUP = join(context.DATA, "bup");
 }
@@ -57,7 +60,7 @@ export function setContext({
 // Every filesystem has at least this much quota (?)
 export const MIN_QUOTA = 1024 * 1024 * 1; // 1MB
 
-// We periodically do "zpool list" to find out what pools are available
+// TODO: not anymore -- We periodically do "zpool list" to find out what pools are available
 // and how much space they have left.  This info is cached for this long
 // to avoid excessive calls:
 export const POOLS_CACHE_MS = 15000;
@@ -70,7 +73,7 @@ export const UID = 2001;
 export const GID = 2001;
 
 // We make/update snapshots periodically, with this being the minimum interval.
-export const SNAPSHOT_INTERVAL_MS = 60 * 30 * 1000;
+export const SNAPSHOT_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 //export const SNAPSHOT_INTERVAL_MS = 10 * 1000;
 
 // Lengths of time in minutes to keep these snapshots
@@ -94,5 +97,6 @@ export const BUP_INTERVAL_MS = 24 * 1000 * 60 * 60;
 
 // minimal interval for zfs streams
 export const STREAM_INTERVAL_MS = 24 * 1000 * 60 * 60;
+
 // when more than this many streams, we recompact down
 export const MAX_STREAMS = 30;
