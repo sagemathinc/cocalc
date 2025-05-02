@@ -4,6 +4,7 @@ import { join } from "path";
 import { filesystem } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { randomId } from "@cocalc/nats/names";
 
 const logger = getLogger("file-server:storage:pool");
 
@@ -36,9 +37,6 @@ export class Pool {
   };
 
   destroy = async () => {
-    if (!(await this.exists())) {
-      return;
-    }
     try {
       await sudo({
         command: "zpool",
@@ -49,23 +47,26 @@ export class Pool {
         throw err;
       }
     }
-    await rm([this.image]);
-    await rmdir([this.opts.images]);
+    if (await exists(this.image)) {
+      await rm([this.image]);
+    }
+    if (await exists(this.opts.images)) {
+      await rmdir([this.opts.images]);
+    }
     if (await exists(this.opts.mount)) {
-      await rmdir(await listdir(this.opts.mount));
+      const v = await listdir(this.opts.mount);
+      await rmdir(v.map((x) => join(this.opts.mount, x)));
       await rmdir([this.opts.mount]);
     }
   };
 
-  expand = async (size: string | number) => {
-    logger.debug(`expand to ${size}`);
-    if (typeof size == "string") {
-      // convert to bytes
-      const { stdout } = await executeCode({
-        command: "numfmt",
-        args: ["--from=iec", size],
-      });
-      size = parseFloat(stdout);
+  // enlarge pool to have given size (which can be a string like '1G' or
+  // a number of bytes). This is very fast/CHEAP and can be done live.
+  enlarge = async (size: string | number) => {
+    logger.debug(`enlarge to ${size}`);
+    size = await sizeToBytes(size);
+    if (typeof size != "number") {
+      throw Error("bug");
     }
     if (!(await exists(this.image))) {
       await this.create();
@@ -82,12 +83,92 @@ export class Pool {
       return;
     }
     await this.ensureExists<void>(async () => {
-      await sudo({ command: "truncate", args: ["-s", size, this.image] });
+      await sudo({ command: "truncate", args: ["-s", `${size}`, this.image] });
       await sudo({
         command: "zpool",
         args: ["online", "-e", this.opts.name, this.image],
       });
     });
+  };
+
+  // shrink pool to have given size (which can be a string like '1G' or
+  // a number of bytes). This is EXPENSIVE, requiring rewriting everything, and
+  // the pool must be unmounted.
+  shrink = async (size: string | number) => {
+    // TODO: this is so dangerous, so make sure there is a backup first, once
+    // backups are implemented
+    logger.debug(`shrink to ${size}`);
+    logger.debug("shrink -- 0. size checks");
+    size = await sizeToBytes(size);
+    if (typeof size != "number") {
+      throw Error("bug");
+    }
+    if (size < (await sizeToBytes(DEFAULT_SIZE))) {
+      throw Error(`size must be at least ${DEFAULT_SIZE}`);
+    }
+    const info = await this.info();
+    // TOOD: this is made up
+    const min_alloc = info.properties.allocated * 1.25 + 1000000;
+    if (size <= min_alloc) {
+      throw Error(
+        `size must be at least as big as currently allocated space ${min_alloc}`,
+      );
+    }
+    if (size >= info.properties.size) {
+      logger.debug("shrink -- it's already smaller than the shrink goal.");
+      return;
+    }
+    logger.debug("shrink -- 1. unmount all datasets");
+    for (const dataset of Object.keys(await this.list())) {
+      try {
+        await sudo({ command: "zfs", args: ["unmount", dataset] });
+      } catch (err) {
+        if (`${err}`.includes("not currently mounted")) {
+          // that's fine
+          continue;
+        }
+        throw err;
+      }
+    }
+    logger.debug("shrink -- 2. make new smaller temporary pool");
+    const id = "-" + randomId();
+    const name = this.opts.name + id;
+    const images = this.opts.images + id;
+    const mount = this.opts.mount + id;
+    const temp = await pool({ images, mount, name });
+    await temp.create();
+    await temp.enlarge(size);
+    const snapshot = `${this.opts.name}@shrink${id}`;
+    logger.debug("shrink -- 3. replicate data to target");
+    await sudo({ command: "zfs", args: ["snapshot", "-r", snapshot] });
+    try {
+      await executeCode({
+        command: `sudo zfs send -c -R ${snapshot} | sudo zfs recv -F ${name}`,
+      });
+    } catch (err) {
+      await temp.destroy();
+      throw err;
+    }
+    await temp.export();
+
+    logger.debug("shrink -- 4. destroy original pool");
+    await this.destroy();
+    logger.debug("shrink -- 5. rename temporary pool");
+    await sudo({
+      command: "zpool",
+      args: ["import", "-d", images, name, this.opts.name],
+    });
+    await sudo({
+      command: "zpool",
+      args: ["export", this.opts.name],
+    });
+    logger.debug("shrink -- 6. move image file");
+    await mkdirp([this.opts.images, this.opts.mount]);
+    await sudo({ command: "mv", args: [temp.image, this.image] });
+    logger.debug("shrink -- 7. destroy temp files");
+    await temp.destroy();
+    logger.debug("shrink -- 8. Import our new pool");
+    await this.import();
   };
 
   filesystem = async ({ name, clone }: { name: string; clone?: string }) => {
@@ -105,6 +186,20 @@ export class Pool {
       command: "zpool",
       args: ["import", this.opts.name, "-d", this.opts.images],
     });
+  };
+
+  export = async () => {
+    try {
+      await sudo({
+        command: "zpool",
+        args: ["export", this.opts.name],
+      });
+    } catch (err) {
+      if (`${err}`.includes("no such pool")) {
+        return;
+      }
+      throw err;
+    }
   };
 
   create = async () => {
@@ -263,4 +358,15 @@ interface PoolListOutput {
     health: "ONLINE" | string; // todo
     altroot: string;
   };
+}
+
+async function sizeToBytes(size: number | string): Promise<number> {
+  if (typeof size == "number") {
+    return size;
+  }
+  const { stdout } = await executeCode({
+    command: "numfmt",
+    args: ["--from=iec", size],
+  });
+  return parseFloat(stdout);
 }

@@ -14,6 +14,10 @@ t = await x.list()
 p = await x.filesystem({name:'1'})
 await p.create()
 
+await x.enlarge('1T')
+
+await x.shrink('3G')
+
 await p.get('compressratio')
 
 await p.list()
