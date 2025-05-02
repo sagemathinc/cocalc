@@ -158,6 +158,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (!this.leader) {
       this.heartbeatMonitor();
     }
+    if (this.env?.nc?.on != null) {
+      this.env.nc.on("reconnect", this.reconnect);
+    }
   };
 
   private resetState = () => {
@@ -179,6 +182,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   close = () => {
+    if (this.env?.nc?.removeListener != null) {
+      this.env.nc.removeListener("reconnect", this.reconnect);
+    }
     delete this.env;
     this.removeAllListeners();
     // @ts-ignore
