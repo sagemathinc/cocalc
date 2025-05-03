@@ -674,9 +674,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn?.kick();
   }
 
-  kill(): void {
+  kill = async () => {
     this.conn_write({ cmd: "kill" });
-  }
+    await this.connect();
+  };
 
   set_command(command: string | undefined, args: string[] | undefined): void {
     this.command = command;

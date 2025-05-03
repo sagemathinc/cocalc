@@ -175,9 +175,6 @@ export class NatsTerminalConnection extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
-        if ((this.state as State) == "closed") {
-          return;
-        }
         const { success, note, ephemeral } = await this.api.create({
           ...this.options,
           ephemeral: true,

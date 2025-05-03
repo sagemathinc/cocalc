@@ -339,7 +339,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private listen = async () => {
     await waitUntilConnected();
     if (this.env == null) {
-      throw Error("closed");
+      return;
     }
     while (this.env != null) {
       // @ts-ignore
