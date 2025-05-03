@@ -42,10 +42,15 @@ const HISTORY_LIMIT_BYTES = 20000;
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
 
 //   Limit number of MB/s in data:
-const MAX_BYTES_PER_SECOND = 1 * 1000000;
+const MAX_BYTES_PER_SECOND = parseInt(
+  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "2000000",
+);
 
-//   Limit number of messages per second (not doing this makes it easy to cause trouble to the server)
-const MAX_MSGS_PER_SECOND = 250;
+//   Limit number of messages per second (not doing this makes it easy
+// to cause trouble to the server)
+const MAX_MSGS_PER_SECOND = parseInt(
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "250",
+);
 
 const sessions: { [path: string]: Session } = {};
 
@@ -273,18 +278,20 @@ class Session {
     this.stream.on("reject", ({ err }) => {
       if (err.limit == "max_bytes_per_second") {
         // instead, send something small
-        this.throttledEllipses("bytes");
+        this.throttledEllipses();
       } else if (err.limit == "max_msgs_per_second") {
         // only sometimes send [...], because channel is already full and it
         // doesn't help to double the messages!
-        this.throttledEllipses("messages");
+        this.throttledEllipses();
       }
     });
   };
 
   private throttledEllipses = throttle(
-    (what) => {
-      this.stream?.publish(` [...(truncated ${what})...] `);
+    () => {
+      this.stream?.publish(
+        `\r\n[...excessive output discarded above...]\r\n\r\n`,
+      );
     },
     1000,
     { leading: true, trailing: true },

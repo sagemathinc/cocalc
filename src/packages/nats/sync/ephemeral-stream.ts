@@ -96,9 +96,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private sub?: Subscription;
   private leader: boolean;
   private server?: Subscription;
+  // seq used by the *leader* only to assign sequence numbers
   private seq: number = 1;
   private lastHeartbeat: number = 0;
   private heartbeatInterval: number;
+  // lastSeq used by clients to keep track of what they have received; if one
+  // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
   private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
   private bytesSent: { [time: number]: number } = {};
@@ -116,7 +119,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
   }: EphemeralStreamOptions) {
     super();
-
     this.valueType = valueType;
     this.heartbeatInterval = heartbeatInterval;
     this.name = name;
@@ -146,7 +148,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
     this.env = await getEnv();
     if (!this.leader) {
       // try to get current data from a leader
-      await this.getAllFromLeader({ start_seq: this._start_seq ?? 0 });
+      await this.getAllFromLeader({
+        start_seq: this._start_seq ?? 0,
+        noEmit: true,
+      });
     } else {
       // start listening on the subject for new data
       this.serve();
@@ -198,7 +203,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private getAllFromLeader = async ({
     maxWait = 30000,
     start_seq = 0,
-  }: { maxWait?: number; start_seq?: number } = {}) => {
+    noEmit,
+  }: { maxWait?: number; start_seq?: number; noEmit?: boolean } = {}) => {
     if (this.leader) {
       throw Error("this is the leader");
     }
@@ -243,6 +249,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
           const mesg = this.decodeValue(raw.data);
           this.messages.push(mesg);
           this.raw.push([raw]);
+          if (!noEmit) {
+            this.emit("change", mesg, [raw]);
+          }
         }
         return;
       } catch (err) {
@@ -394,7 +403,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     // @ts-ignore
     this.sub?.close();
     delete this.sub;
-    await this.getAllFromLeader({ start_seq: this.seq + 1 });
+    await this.getAllFromLeader({ start_seq: this.lastSeq + 1, noEmit: false });
     this.listen();
   });
 
@@ -587,7 +596,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     const n = this.messages.length;
     this.resetState();
     this._start_seq = start_seq;
-    this.seq = start_seq - 1;
+    this.lastSeq = start_seq - 1;
     await this.reconnect();
     if (!noEmit) {
       for (let i = 0; i < this.raw.length - n; i++) {
