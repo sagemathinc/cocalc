@@ -37,7 +37,9 @@ const COMPUTE_SERVER_PROMPT_MESSAGE =
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
-const HISTORY_LIMIT_BYTES = 20000;
+const HISTORY_LIMIT_BYTES = parseInt(
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "20000",
+);
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
 
