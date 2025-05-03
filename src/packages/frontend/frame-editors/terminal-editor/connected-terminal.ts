@@ -307,6 +307,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       });
       conn.on("data", this.handleDataFromProject);
       conn.once("ready", () => {
+        this.terminal.clear();
         delete this.last_geom;
         this.ignore_terminal_data = false;
         this.set_connection_status("connected");
@@ -706,6 +707,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_terminal_data(): void {
     this.terminal.onData((data) => {
+      if (data == "\x1B[>0;276;0c") {
+        // this is a request for term capabilities, sending it just ends up
+        // not helping and putting "control codes" that users see in the terminal,
+        // which is very bad.  So we ignore them.
+        return;
+      }
       if (this.ignore_terminal_data && this.conn?.state == "init") {
         return;
       }
@@ -763,7 +770,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     const { rows, cols } = geom;
-    if (this.last_geom?.rows === rows && this.last_geom?.cols === cols) {
+    if (
+      !kick &&
+      this.last_geom?.rows === rows &&
+      this.last_geom?.cols === cols
+    ) {
       return;
     }
     this.last_geom = { rows, cols };
