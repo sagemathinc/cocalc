@@ -221,7 +221,7 @@ importers:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
       pg:
-        specifier: ^8.7.1
+        specifier: ^8.13.0
         version: 8.14.1
       random-key:
         specifier: ^0.3.2
@@ -246,7 +246,7 @@ importers:
         specifier: ^18.16.14
         version: 18.19.86
       '@types/pg':
-        specifier: ^8.6.1
+        specifier: ^8.11.10
         version: 8.11.11
       '@types/uuid':
         specifier: ^8.3.1
@@ -1177,6 +1177,9 @@ importers:
       '@openapitools/openapi-generator-cli':
         specifier: ^2.19.1
         version: 2.19.1(encoding@0.1.13)
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.11.11
       '@types/react':
         specifier: ^18.3.10
         version: 18.3.10
@@ -1238,7 +1241,7 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       pg:
-        specifier: ^8.7.1
+        specifier: ^8.13.0
         version: 8.14.1
       react:
         specifier: ^18.3.1

@@ -16,6 +16,15 @@ This code is very similar to single-user.ts, except with some
 small modifications due to having to create and delete Linux users.
 */
 
+import getLogger from "@cocalc/backend/logger";
+import { getUid, homePath } from "@cocalc/backend/misc";
+import {
+  BaseProject,
+  CopyOptions,
+  getProject,
+  ProjectState,
+  ProjectStatus,
+} from "./base";
 import {
   chown,
   copyPath,
@@ -25,22 +34,12 @@ import {
   getEnvironment,
   getState,
   getStatus,
-  homePath,
   isProjectRunning,
   launchProjectDaemon,
   mkdir,
   setupDataPath,
   stopProjectProcesses,
 } from "./util";
-import {
-  BaseProject,
-  CopyOptions,
-  getProject,
-  ProjectStatus,
-  ProjectState,
-} from "./base";
-import getLogger from "@cocalc/backend/logger";
-import { getUid } from "@cocalc/backend/misc";
 
 const winston = getLogger("project-control:multi-user");
 
@@ -71,7 +70,7 @@ class Project extends BaseProject {
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     winston.debug(
-      `got status of ${this.project_id} = ${JSON.stringify(status)}`
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`,
     );
     this.saveStatusToDatabase(status);
     return status;
@@ -155,7 +154,7 @@ class Project extends BaseProject {
     await copyPath(
       opts,
       this.project_id,
-      opts.target_project_id ? getUid(opts.target_project_id) : undefined
+      opts.target_project_id ? getUid(opts.target_project_id) : undefined,
     );
     return "";
   }

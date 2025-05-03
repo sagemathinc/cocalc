@@ -10,7 +10,7 @@ import { archiveProject, archiveAccount } from "./archive";
 
 const logger = getLogger("tiered-storage:clean");
 const log = (...args) => {
-  logger.debug(...args);
+  logger.debug("", ...args);
   console.log("tiered-storage:clean: ", ...args);
 };
 

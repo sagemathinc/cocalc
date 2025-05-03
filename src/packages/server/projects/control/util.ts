@@ -1,21 +1,21 @@
-import { promisify } from "util";
-import { dirname, join, resolve } from "path";
-import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
-import * as fs from "fs";
-import { writeFile } from "fs/promises";
-import { projects, root } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
-import getLogger from "@cocalc/backend/logger";
-import { CopyOptions, ProjectState, ProjectStatus } from "./base";
-import { getUid } from "@cocalc/backend/misc";
+import { exec as exec0, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
+
 import base_path from "@cocalc/backend/base-path";
+import { natsPorts, natsServer, root } from "@cocalc/backend/data";
+import getLogger from "@cocalc/backend/logger";
+import { getUid, homePath } from "@cocalc/backend/misc";
 import { db } from "@cocalc/database";
-import { getProject } from ".";
-import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { natsPorts, natsServer } from "@cocalc/backend/data";
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { getProject } from ".";
+import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 
 const logger = getLogger("project-control:util");
 
@@ -31,10 +31,6 @@ export async function chown(path: string, uid: number): Promise<void> {
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
-}
-
-export function homePath(project_id: string): string {
-  return projects.replace("[project_id]", project_id);
 }
 
 export function getUsername(project_id: string): string {
@@ -109,12 +105,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = [
-    "cocalc-project",
-    "--daemon",
-    "--init",
-    "project_init.sh",
-  ];
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
