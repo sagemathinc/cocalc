@@ -572,7 +572,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   close_request = (): void => {
-    this.actions.set_error("You were removed from a terminal.");
+    this.actions.set_error("Terminal closed by another session.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.
@@ -690,6 +690,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   kick_other_users_out(): void {
     // @ts-ignore
     this.conn?.kick();
+    this.measureSize({ kick: true });
   }
 
   kill = async () => {
@@ -752,7 +753,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return this.terminal.options[option];
   }
 
-  measureSize = (): void => {
+  measureSize = ({ kick }: { kick?: boolean } = {}): void => {
     if (this.ignore_terminal_data) {
       // during initial load
       return;
@@ -766,7 +767,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.last_geom = { rows, cols };
-    this.conn_write({ cmd: "size", rows, cols });
+    this.conn_write({ cmd: "size", rows, cols, kick });
   };
 
   copy = (): void => {

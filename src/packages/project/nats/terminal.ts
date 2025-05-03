@@ -119,7 +119,12 @@ export async function createTerminalService(path: string) {
       }
     },
 
-    size: async (opts: { rows: number; cols: number; browser_id: string }) => {
+    size: async (opts: {
+      rows: number;
+      cols: number;
+      browser_id: string;
+      kick?: boolean;
+    }) => {
       const session = await getSession();
       session.setSize(opts);
     },
@@ -351,11 +356,16 @@ class Session {
     browser_id,
     rows,
     cols,
+    kick,
   }: {
     browser_id: string;
     rows: number;
     cols: number;
+    kick?: boolean;
   }) => {
+    if (kick) {
+      this.clientSizes = {};
+    }
     this.clientSizes[browser_id] = { rows, cols, time: Date.now() };
     this.resize();
   };
@@ -378,7 +388,7 @@ class Session {
     logger.debug("resize", "new size", rows, cols);
     try {
       this.setSizePty({ rows, cols });
-      // tell browsers about out new size
+      // tell browsers about our new size
       await this.browserApi.size({ rows, cols });
     } catch (err) {
       logger.debug(`WARNING: unable to resize term: ${err}`);
@@ -393,6 +403,10 @@ class Session {
     }
     // logger.debug("setSize", { rows, cols }, "DOING IT!");
 
+    // the underlying ptyjs library -- if it thinks the size is already set,
+    // it will do NOTHING.  This ends up being very bad when clients reconnect.
+    // As a hack, we just change it, then immediately change it back
+    this.pty.resize(cols, rows + 1);
     this.pty.resize(cols, rows);
     this.size = { rows, cols };
   };
