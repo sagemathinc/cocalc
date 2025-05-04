@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 Start node, then:
 
-a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', format:true, mount:'/mnt/btrfs', uid:238309483})
+a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:238309483})
 
 */
 
@@ -24,8 +24,11 @@ export interface Options {
   // If this is a file (or filename) ending in .img, then it's a sparse file mounted as a loopback device.
   // If this starts with "/dev" then it is a raw block device.
   device: string;
-  // if true, format the device or image, if it doesn't mount with an error containing "wrong fs type, bad option, bad superblock"
-  format?: boolean;
+  // formatIfNeeded -- DANGEROUS! if true, format the device or image,
+  // if it doesn't mount with an error containing "wrong fs type,
+  // bad option, bad superblock".  Never use this in production.  Useful
+  // for testing and dev.
+  formatIfNeeded?: boolean;
   // where the btrfs filesystem is mounted
   mount: string;
   // path where btrfs send streams of subvolumes are stored (using "btrfs send")
@@ -53,6 +56,10 @@ export class Filesystem {
     await this.initDevice();
     await this.mountFilesystem();
     await sudo({ command: "chmod", args: ["a+rx", this.opts.mount] });
+    await sudo({
+      command: "btrfs",
+      args: ["quota", "enable", "--simple", this.opts.mount],
+    });
   };
 
   private initDevice = async () => {
@@ -85,7 +92,7 @@ export class Filesystem {
     const { stderr, exit_code } = await this._mountFilesystem();
     if (exit_code) {
       if (stderr.includes(MOUNT_ERROR)) {
-        if (this.opts.format) {
+        if (this.opts.formatIfNeeded) {
           await this.formatDevice();
           const { stderr, exit_code } = await this._mountFilesystem();
           if (exit_code) {
@@ -101,10 +108,20 @@ export class Filesystem {
 
   private _mountFilesystem = async () => {
     const args: string[] = isImageFile(this.opts.device) ? ["-o", "loop"] : [];
-    args.push(this.opts.device);
-    args.push("-t");
-    args.push("btrfs");
-    args.push(this.opts.mount);
+    args.push(
+      "-o",
+      "compress=zstd",
+      "-o",
+      "noatime",
+      "-o",
+      "space_cache=v2",
+      "-o",
+      "autodefrag",
+      this.opts.device,
+      "-t",
+      "btrfs",
+      this.opts.mount,
+    );
     return await sudo({
       command: "mount",
       args,
