@@ -3,7 +3,7 @@ DEVELOPMENT:
 
 Start node, then:
 
-a = require('@cocalc/file-server/storage')
+a = require('@cocalc/file-server/storage-zfs')
 pools = await a.pools({images:'/data/zfs/images', mount:'/data/zfs/mnt'})
 
 x = await pools.pool('x')

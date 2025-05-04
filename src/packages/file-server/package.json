@@ -5,8 +5,10 @@
   "exports": {
     "./zfs": "./dist/zfs/index.js",
     "./zfs/*": "./dist/zfs/*.js",
-    "./storage": "./dist/storage/index.js",
-    "./storage/*": "./dist/storage/*.js"
+    "./storage-zfs": "./dist/storage-zfs/index.js",
+    "./storage-zfs/*": "./dist/storage-zfs/*.js",
+    "./storage-btrfs": "./dist/storage-btrfs/index.js",
+    "./storage-btrfs/*": "./dist/storage-btrfs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

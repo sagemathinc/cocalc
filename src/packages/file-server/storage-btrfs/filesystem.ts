@@ -1,0 +1,182 @@
+/*
+A BTRFS Filesystem
+
+DEVELOPMENT:
+
+Start node, then:
+
+a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', format:true, mount:'/mnt/btrfs', uid:238309483})
+
+*/
+
+import refCache from "@cocalc/util/refcache";
+import { exists, mkdirp, sudo } from "@cocalc/file-server/storage-zfs/util";
+import { subvolume } from "./subvolume";
+import { join } from "path";
+
+// default size of btrfs filesystem if creating an image file.
+const DEFAULT_SIZE = "10G";
+
+const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
+
+export interface Options {
+  // the underlying block device.
+  // If this is a file (or filename) ending in .img, then it's a sparse file mounted as a loopback device.
+  // If this starts with "/dev" then it is a raw block device.
+  device: string;
+  // if true, format the device or image, if it doesn't mount with an error containing "wrong fs type, bad option, bad superblock"
+  format?: boolean;
+  // where the btrfs filesystem is mounted
+  mount: string;
+  // path where btrfs send streams of subvolumes are stored (using "btrfs send")
+  streams?: string;
+  // path where bup backups of subvolumes are stored
+  bup?: string;
+
+  // all subvolumes will have this owner
+  uid?: number;
+}
+
+export class Filesystem {
+  public readonly opts: Options;
+
+  constructor(opts: Options) {
+    this.opts = opts;
+  }
+
+  init = async () => {
+    await mkdirp(
+      [this.opts.mount, this.opts.streams, this.opts.bup].filter(
+        (x) => x,
+      ) as string[],
+    );
+    await this.initDevice();
+    await this.mountFilesystem();
+    await sudo({ command: "chmod", args: ["a+rx", this.opts.mount] });
+  };
+
+  private initDevice = async () => {
+    if (!isImageFile(this.opts.device)) {
+      // raw block device -- nothing to do
+      return;
+    }
+    if (!(await exists(this.opts.device))) {
+      await sudo({
+        command: "truncate",
+        args: ["-s", DEFAULT_SIZE, this.opts.device],
+      });
+    }
+  };
+
+  info = async () => {
+    return await sudo({
+      command: "btrfs",
+      args: ["subvolume", "show", this.opts.mount],
+    });
+  };
+
+  //
+  private mountFilesystem = async () => {
+    try {
+      await this.info();
+      // already mounted
+      return;
+    } catch {}
+    const { stderr, exit_code } = await this._mountFilesystem();
+    if (exit_code) {
+      if (stderr.includes(MOUNT_ERROR)) {
+        if (this.opts.format) {
+          await this.formatDevice();
+          const { stderr, exit_code } = await this._mountFilesystem();
+          if (exit_code) {
+            throw Error(stderr);
+          } else {
+            return;
+          }
+        }
+      }
+      throw Error(stderr);
+    }
+  };
+
+  private _mountFilesystem = async () => {
+    const args: string[] = isImageFile(this.opts.device) ? ["-o", "loop"] : [];
+    args.push(this.opts.device);
+    args.push("-t");
+    args.push("btrfs");
+    args.push(this.opts.mount);
+    return await sudo({
+      command: "mount",
+      args,
+      err_on_exit: false,
+    });
+  };
+
+  private formatDevice = async () => {
+    await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
+  };
+
+  close = () => {
+    // nothing, yet
+  };
+
+  subvolume = async (name: string) => {
+    return await subvolume({ filesystem: this, name });
+  };
+
+  deleteSubvolume = async (name: string) => {
+    await sudo({ command: "btrfs", args: ["subvolume", "delete", name] });
+  };
+
+  list = async (): Promise<string[]> => {
+    const { stdout } = await sudo({
+      command: "btrfs",
+      args: ["subvolume", "list", this.opts.mount],
+    });
+    return stdout.split("\n").map((x) => x.split(" ").slice(-1)[0]);
+  };
+
+  rsync = async ({
+    src,
+    target,
+    args = ["-axH"],
+    timeout = 5 * 60 * 1000,
+  }: {
+    src: string;
+    target: string;
+    args?: string[];
+    timeout?: number;
+  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
+    const srcPath = join(this.opts.mount, src);
+    const targetPath = join(this.opts.mount, target);
+    return await sudo({
+      command: "rsync",
+      args: [...args, srcPath, targetPath],
+      err_on_exit: false,
+      timeout: timeout / 1000,
+    });
+  };
+}
+
+function isImageFile(name: string) {
+  if (name.startsWith("/dev")) {
+    return false;
+  }
+  // TODO: could probably check os for a device with given name?
+  return name.endsWith(".img");
+}
+
+const cache = refCache<Options & { noCache?: boolean }, Filesystem>({
+  name: "btrfs-filesystems",
+  createObject: async (options: Options) => {
+    const filesystem = new Filesystem(options);
+    await filesystem.init();
+    return filesystem;
+  },
+});
+
+export async function filesystem(
+  options: Options & { noCache?: boolean },
+): Promise<Filesystem> {
+  return await cache(options);
+}
