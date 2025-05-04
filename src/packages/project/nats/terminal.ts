@@ -45,13 +45,13 @@ const HISTORY_LIMIT_BYTES = parseInt(
 
 //   Limit number of MB/s in data:
 const MAX_BYTES_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "2000000",
+  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "500000",
 );
 
 //   Limit number of messages per second (not doing this makes it easy
 // to cause trouble to the server)
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "250",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "100",
 );
 
 const sessions: { [path: string]: Session } = {};
