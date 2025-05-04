@@ -707,12 +707,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_terminal_data(): void {
     this.terminal.onData((data) => {
-      if (data == "\x1B[>0;276;0c") {
-        // this is a request for term capabilities, sending it just ends up
-        // not helping and putting "control codes" that users see in the terminal,
-        // which is very bad.  So we ignore them.
-        return;
-      }
       if (this.ignore_terminal_data && this.conn?.state == "init") {
         return;
       }
