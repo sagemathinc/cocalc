@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 Start node, then:
 
-a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:238309483})
+a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:293597964})
 
 */
 
@@ -150,7 +150,10 @@ export class Filesystem {
       command: "btrfs",
       args: ["subvolume", "list", this.opts.mount],
     });
-    return stdout.split("\n").map((x) => x.split(" ").slice(-1)[0]);
+    return stdout
+      .split("\n")
+      .map((x) => x.split(" ").slice(-1)[0])
+      .filter((x) => x);
   };
 
   rsync = async ({

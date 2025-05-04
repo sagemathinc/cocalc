@@ -41,6 +41,28 @@ export class Subvolume {
     }
   };
 
+  private quotaInfo = async () => {
+    const { stdout } = await sudo({
+      verbose: false,
+      command: "btrfs",
+      args: ["--format=json", "qgroup", "show", "-reF", this.path],
+    });
+    const x = JSON.parse(stdout);
+    return x["qgroup-show"][0];
+  };
+
+  setSize = async (size: string | number) => {
+    await sudo({
+      command: "btrfs",
+      args: ["qgroup", "limit", size, this.path],
+    });
+  };
+
+  getUsage = async (): Promise<{ size: number; usage: number }> => {
+    const { max_referenced: size, referenced: usage } = await this.quotaInfo();
+    return { usage, size };
+  };
+
   close = () => {
     // @ts-ignore
     delete this.filesystem;
