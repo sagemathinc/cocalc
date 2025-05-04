@@ -15,7 +15,10 @@ import { subvolume } from "./subvolume";
 import { join } from "path";
 
 // default size of btrfs filesystem if creating an image file.
-const DEFAULT_SIZE = "10G";
+const DEFAULT_FILESYSTEM_SIZE = "10G";
+
+// default for newly created subvolumes
+export const DEFAULT_SUBVOLUME_SIZE = "1G";
 
 const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
 
@@ -38,12 +41,21 @@ export interface Options {
 
   // all subvolumes will have this owner
   uid?: number;
+
+  // default size of newly created subvolumes
+  defaultSize?: string | number;
+  defaultFilesystemSize?: string | number;
 }
 
 export class Filesystem {
   public readonly opts: Options;
 
   constructor(opts: Options) {
+    opts = {
+      defaultSize: DEFAULT_SUBVOLUME_SIZE,
+      defaultFilesystemSize: DEFAULT_FILESYSTEM_SIZE,
+      ...opts,
+    };
     this.opts = opts;
   }
 
@@ -70,7 +82,7 @@ export class Filesystem {
     if (!(await exists(this.opts.device))) {
       await sudo({
         command: "truncate",
-        args: ["-s", DEFAULT_SIZE, this.opts.device],
+        args: ["-s", `${this.opts.defaultFilesystemSize}`, this.opts.device],
       });
     }
   };
