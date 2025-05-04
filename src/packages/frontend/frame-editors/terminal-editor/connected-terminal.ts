@@ -307,7 +307,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       });
       conn.on("data", this.handleDataFromProject);
       conn.once("ready", () => {
-        this.terminal.clear();
         delete this.last_geom;
         this.ignore_terminal_data = false;
         this.set_connection_status("connected");
