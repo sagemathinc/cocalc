@@ -28,6 +28,8 @@ export const DEFAULT_SUBVOLUME_SIZE = "1G";
 
 const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
 
+const RESERVED = new Set(["bup", "streams", SNAPSHOTS]);
+
 export interface Options {
   // the underlying block device.
   // If this is a file (or filename) ending in .img, then it's a sparse file mounted as a loopback device.
@@ -40,10 +42,6 @@ export interface Options {
   formatIfNeeded?: boolean;
   // where the btrfs filesystem is mounted
   mount: string;
-  // path where btrfs send streams of subvolumes are stored (using "btrfs send")
-  streams?: string;
-  // path where bup backups of subvolumes are stored
-  bup?: string;
 
   // all subvolumes will have this owner
   uid?: number;
@@ -55,6 +53,8 @@ export interface Options {
 
 export class Filesystem {
   public readonly opts: Options;
+  public readonly bup: string;
+  public readonly streams: string;
 
   constructor(opts: Options) {
     opts = {
@@ -63,13 +63,13 @@ export class Filesystem {
       ...opts,
     };
     this.opts = opts;
+    this.bup = join(this.opts.mount, "bup");
+    this.streams = join(this.opts.mount, "streams");
   }
 
   init = async () => {
     await mkdirp(
-      [this.opts.mount, this.opts.streams, this.opts.bup].filter(
-        (x) => x,
-      ) as string[],
+      [this.opts.mount, this.streams, this.bup].filter((x) => x) as string[],
     );
     await this.initDevice();
     await this.mountFilesystem();
@@ -77,6 +77,10 @@ export class Filesystem {
     await sudo({
       command: "btrfs",
       args: ["quota", "enable", "--simple", this.opts.mount],
+    });
+    await sudo({
+      bash: true,
+      command: `BUP_DIR=${this.bup} bup init`,
     });
   };
 
@@ -156,11 +160,17 @@ export class Filesystem {
   };
 
   subvolume = async (name: string) => {
+    if (RESERVED.has(name)) {
+      throw Error(`${name} is reserved`);
+    }
     return await subvolume({ filesystem: this, name });
   };
 
   // create a subvolume by cloning an existing one.
   cloneSubvolume = async (source: string, name: string) => {
+    if (RESERVED.has(name)) {
+      throw Error(`${name} is reserved`);
+    }
     if (!(await exists(join(this.opts.mount, source)))) {
       throw Error(`subvolume ${source} does not exist`);
     }

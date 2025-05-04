@@ -33,12 +33,20 @@ export async function sudo(
   if (opts.verbose !== false && opts.desc) {
     logger.debug("exec", opts.desc);
   }
+  let command, args;
+  if (opts.bash) {
+    command = `sudo ${opts.command}`;
+    args = undefined;
+  } else {
+    command = "sudo";
+    args = [opts.command, ...(opts.args ?? [])];
+  }
   return await executeCode({
     verbose: true,
     timeout: DEFAULT_EXEC_TIMEOUT_MS / 1000,
     ...opts,
-    command: "sudo",
-    args: [opts.command, ...(opts.args ?? [])],
+    command,
+    args,
   });
 }
 

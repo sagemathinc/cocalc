@@ -159,14 +159,46 @@ export class Subvolume {
     const snapGen = await getGeneration(
       join(this.snapshotsDir, s[s.length - 1]),
     );
-    console.log({ pathGen, snapGen });
     return snapGen < pathGen;
   };
 
-  //   // create a new bup save
-  //   bup = async () => {
+  // create a new bup snapshot
+  createBupSnapshot = async () => {
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.filesystem.bup,
+        "index",
+        "--exclude=",
+        join(this.path, SNAPSHOTS),
+        this.path,
+      ],
+    });
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.filesystem.bup,
+        "save",
+        "--strip",
+        "-n",
+        this.name,
+        this.path,
+      ],
+    });
+  };
 
-  //   }
+  bupSnapshots = async (): Promise<string[]> => {
+    const { stdout } = await sudo({
+      command: "bup",
+      args: ["-d", this.filesystem.bup, "ls", this.name],
+    });
+    return stdout
+      .split("\n")
+      .map((x) => x.split(" ").slice(-1)[0])
+      .filter((x) => x);
+  };
 }
 
 async function getGeneration(path: string): Promise<number> {
