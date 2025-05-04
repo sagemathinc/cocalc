@@ -12,6 +12,9 @@ import {
 } from "@cocalc/file-server/storage-zfs/util";
 import { join } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
+import { human_readable_size } from "@cocalc/util/misc";
+
+export const SNAPSHOTS = ".snapshots";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -32,7 +35,7 @@ export class Subvolume {
     this.filesystem = filesystem;
     this.name = name;
     this.path = join(filesystem.opts.mount, name);
-    this.snapshotsDir = join(this.path, ".snapshots");
+    this.snapshotsDir = join(this.path, SNAPSHOTS);
   }
 
   init = async () => {
@@ -87,9 +90,23 @@ export class Subvolume {
     });
   };
 
-  getUsage = async (): Promise<{ size: number; usage: number }> => {
-    const { max_referenced: size, referenced: usage } = await this.quotaInfo();
-    return { usage, size };
+  getUsage = async (): Promise<{
+    size: number;
+    usage: number;
+    human: { size: string; usage: string };
+  }> => {
+    let { max_referenced: size, referenced: usage } = await this.quotaInfo();
+    if (size == "none") {
+      size = null;
+    }
+    return {
+      usage,
+      size,
+      human: {
+        usage: human_readable_size(usage),
+        size: size != null ? human_readable_size(size) : size,
+      },
+    };
   };
 
   private makeSnapshotsDir = async () => {
@@ -135,7 +152,7 @@ export class Subvolume {
   hasUnsavedChanges = async (): Promise<boolean> => {
     const s = await this.snapshots();
     if (s.length == 0) {
-      // more than just the .snapshots directory?
+      // more than just the SNAPSHOTS directory?
       return (await listdir(this.path)).length > 1;
     }
     const pathGen = await getGeneration(this.path);
@@ -145,6 +162,11 @@ export class Subvolume {
     console.log({ pathGen, snapGen });
     return snapGen < pathGen;
   };
+
+  //   // create a new bup save
+  //   bup = async () => {
+
+  //   }
 }
 
 async function getGeneration(path: string): Promise<number> {

@@ -10,8 +10,14 @@ a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({devic
 */
 
 import refCache from "@cocalc/util/refcache";
-import { exists, mkdirp, sudo } from "@cocalc/file-server/storage-zfs/util";
-import { subvolume } from "./subvolume";
+import {
+  exists,
+  listdir,
+  mkdirp,
+  rmdir,
+  sudo,
+} from "@cocalc/file-server/storage-zfs/util";
+import { subvolume, SNAPSHOTS } from "./subvolume";
 import { join } from "path";
 
 // default size of btrfs filesystem if creating an image file.
@@ -151,6 +157,40 @@ export class Filesystem {
 
   subvolume = async (name: string) => {
     return await subvolume({ filesystem: this, name });
+  };
+
+  // create a subvolume by cloning an existing one.
+  cloneSubvolume = async (source: string, name: string) => {
+    if (!(await exists(join(this.opts.mount, source)))) {
+      throw Error(`subvolume ${source} does not exist`);
+    }
+    if (await exists(join(this.opts.mount, name))) {
+      throw Error(`subvolume ${name} already exists`);
+    }
+    await sudo({
+      command: "btrfs",
+      args: [
+        "subvolume",
+        "snapshot",
+        join(this.opts.mount, source),
+        join(this.opts.mount, source, name),
+      ],
+    });
+    await sudo({
+      command: "mv",
+      args: [join(this.opts.mount, source, name), join(this.opts.mount, name)],
+    });
+    const snapshots = await listdir(join(this.opts.mount, name, SNAPSHOTS));
+    await rmdir(
+      snapshots.map((x) => join(this.opts.mount, name, SNAPSHOTS, x)),
+    );
+    const src = await this.subvolume(source);
+    const vol = await this.subvolume(name);
+    const { size } = await src.getUsage();
+    if (size) {
+      await vol.setSize(size);
+    }
+    return vol;
   };
 
   deleteSubvolume = async (name: string) => {
