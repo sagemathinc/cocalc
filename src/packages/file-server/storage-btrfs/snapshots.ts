@@ -78,7 +78,11 @@ export async function updateRollingSnapshots({
   snapshots.push(snapshot);
   const toDelete = snapshotsToDelete({ counts, snapshots });
   for (const snapshot of toDelete) {
-    await subvolume.deleteSnapshot(snapshot);
+    try {
+      await subvolume.deleteSnapshot(snapshot);
+    } catch {
+      // some snapshots can't be deleted, e.g., they were used for the last send.
+    }
   }
 }
 

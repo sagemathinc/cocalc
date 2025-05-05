@@ -28,7 +28,7 @@ export const DEFAULT_SUBVOLUME_SIZE = "1G";
 
 const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
 
-const RESERVED = new Set(["bup", "streams", SNAPSHOTS]);
+const RESERVED = new Set(["bup", "recv", "streams", SNAPSHOTS]);
 
 export interface Options {
   // the underlying block device.
@@ -196,9 +196,9 @@ export class Filesystem {
     );
     const src = await this.subvolume(source);
     const vol = await this.subvolume(name);
-    const { size } = await src.getUsage();
+    const { size } = await src.usage();
     if (size) {
-      await vol.setSize(size);
+      await vol.size(size);
     }
     return vol;
   };

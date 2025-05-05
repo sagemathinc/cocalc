@@ -49,7 +49,7 @@ export class Subvolume {
       });
       await this.makeSnapshotsDir();
       await this.chown(this.path);
-      await this.setSize(
+      await this.size(
         this.filesystem.opts.defaultSize ?? DEFAULT_SUBVOLUME_SIZE,
       );
     }
@@ -86,14 +86,17 @@ export class Subvolume {
     return x["qgroup-show"][0];
   };
 
-  setSize = async (size: string | number) => {
+  size = async (size: string | number) => {
+    if (!size) {
+      throw Error("size must be specified");
+    }
     await sudo({
       command: "btrfs",
       args: ["qgroup", "limit", `${size}`, this.path],
     });
   };
 
-  getUsage = async (): Promise<{
+  usage = async (): Promise<{
     size: number;
     usage: number;
     human: { size: string; usage: string };
@@ -140,7 +143,28 @@ export class Subvolume {
     return (await listdir(this.snapshotsDir)).sort();
   };
 
+  lockSnapshot = async (name) => {
+    if (await exists(join(this.snapshotsDir, name))) {
+      await sudo({
+        command: "touch",
+        args: [join(this.snapshotsDir, `.${name}.lock`)],
+      });
+    } else {
+      throw Error(`snapshot ${name} does not exist`);
+    }
+  };
+
+  unlockSnapshot = async (name) => {
+    await sudo({
+      command: "rm",
+      args: ["-f", join(this.snapshotsDir, `.${name}.lock`)],
+    });
+  };
+
   deleteSnapshot = async (name) => {
+    if (await exists(join(this.snapshotsDir, `.${name}.lock`))) {
+      throw Error(`snapshot ${name} is locked`);
+    }
     await sudo({
       command: "btrfs",
       args: ["subvolume", "delete", join(this.snapshotsDir, name)],
@@ -223,6 +247,11 @@ export class Subvolume {
     });
   };
 
+  // this was just a quick proof of concept -- I don't like it.  Should switch to using
+  // timestamps and a lock.
+  // To recover these, doing recv for each in order does work.  Then you have to
+  // snapshot all of the results to move them.  It's awkward, but efficient
+  // and works fine.
   send = async () => {
     await mkdirp([join(this.filesystem.streams, this.name)]);
     const streams = new Set(
@@ -266,6 +295,18 @@ export class Subvolume {
       await this.deleteSnapshot(parent);
     }
   };
+
+  //   recv = async (target: string) => {
+  //     const streamsDir = join(this.filesystem.streams, this.name);
+  //     const streams = await listdir(streamsDir);
+  //     streams.sort();
+  //     for (const stream of streams) {
+  //       await sudo({
+  //         command: "btrfs",
+  //         args: ["recv", "-f", join(streamsDir, stream)],
+  //       });
+  //     }
+  //   };
 }
 
 async function getGeneration(path: string): Promise<number> {
