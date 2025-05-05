@@ -3581,7 +3581,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return this.computeServerManager?.get(canonicalPath(path));
   };
 
-  // in case of confirmation, returns true on success or false if user says "no"
+  // In case of confirmation, returns true on success or false if user says "no"
+  // Also, no matter what, we NEVER explicitly request confirmation if the
+  // file doesn't involve backend state that could be reset, e.g., we basically
+  // only confirm for terminals and jupyter notebooks.
   setComputeServerIdForFile = async ({
     path,
     compute_server_id,
@@ -3591,6 +3594,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     compute_server_id?: number;
     confirm?: boolean;
   }): Promise<boolean> => {
+    if (confirm) {
+      if (!path.endsWith(".term") && !path.endsWith(".ipynb")) {
+        // ONLY confirm when there is some danger is loss of state.  Otherwise,
+        // this is very annoying.
+        confirm = false;
+      }
+    }
     const selectedComputeServerId = this.getComputeServerId(compute_server_id);
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
