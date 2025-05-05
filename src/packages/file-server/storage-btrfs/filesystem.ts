@@ -12,13 +12,14 @@ a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({devic
 import refCache from "@cocalc/util/refcache";
 import {
   exists,
+  isdir,
   listdir,
   mkdirp,
   rmdir,
   sudo,
 } from "@cocalc/file-server/storage-zfs/util";
 import { subvolume, SNAPSHOTS } from "./subvolume";
-import { join } from "path";
+import { join, normalize } from "path";
 
 // default size of btrfs filesystem if creating an image file.
 const DEFAULT_FILESYSTEM_SIZE = "10G";
@@ -229,8 +230,20 @@ export class Filesystem {
     args?: string[];
     timeout?: number;
   }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    const srcPath = join(this.opts.mount, src);
-    const targetPath = join(this.opts.mount, target);
+    let srcPath = normalize(join(this.opts.mount, src));
+    if (!srcPath.startsWith(this.opts.mount)) {
+      throw Error("suspicious source");
+    }
+    let targetPath = normalize(join(this.opts.mount, target));
+    if (!targetPath.startsWith(this.opts.mount)) {
+      throw Error("suspicious target");
+    }
+    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
+      srcPath += "/";
+      if (!targetPath.endsWith("/")) {
+        targetPath += "/";
+      }
+    }
     return await sudo({
       command: "rsync",
       args: [...args, srcPath, targetPath],

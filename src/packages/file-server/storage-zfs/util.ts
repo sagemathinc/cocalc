@@ -64,3 +64,8 @@ export async function listdir(path: string) {
   const { stdout } = await sudo({ command: "ls", args: ["-1", path] });
   return stdout.split("\n").filter((x) => x);
 }
+
+export async function isdir(path: string) {
+  const { stdout } = await sudo({ command: "stat", args: ["-c", "%F", path] });
+  return stdout.trim() == "directory";
+}
