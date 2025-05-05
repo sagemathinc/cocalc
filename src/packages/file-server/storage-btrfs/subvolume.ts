@@ -15,6 +15,9 @@ import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
 import { human_readable_size } from "@cocalc/util/misc";
 
 export const SNAPSHOTS = ".snapshots";
+const SEND_SNAPSHOT_PREFIX = "send-";
+
+const PAD = 4;
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -218,6 +221,50 @@ export class Subvolume {
         this.name,
       ],
     });
+  };
+
+  send = async () => {
+    await mkdirp([join(this.filesystem.streams, this.name)]);
+    const streams = new Set(
+      await listdir(join(this.filesystem.streams, this.name)),
+    );
+    const allSnapshots = await this.snapshots();
+    const snapshots = allSnapshots.filter(
+      (x) => x.startsWith(SEND_SNAPSHOT_PREFIX) && streams.has(x),
+    );
+    const nums = snapshots.map((x) =>
+      parseInt(x.slice(SEND_SNAPSHOT_PREFIX.length)),
+    );
+    nums.sort();
+    const last = nums.slice(-1)[0];
+    let seq, parent;
+    if (last) {
+      seq = `${last + 1}`.padStart(PAD, "0");
+      const l = `${last}`.padStart(PAD, "0");
+      parent = `${SEND_SNAPSHOT_PREFIX}${l}`;
+    } else {
+      seq = "1".padStart(PAD, "0");
+      parent = "";
+    }
+    const send = `${SEND_SNAPSHOT_PREFIX}${seq}`;
+    if (allSnapshots.includes(send)) {
+      await this.deleteSnapshot(send);
+    }
+    await this.createSnapshot(send);
+    await sudo({
+      command: "btrfs",
+      args: [
+        "send",
+        "--compressed-data",
+        join(this.snapshotsDir, send),
+        ...(last ? ["-p", join(this.snapshotsDir, parent)] : []),
+        "-f",
+        join(this.filesystem.streams, this.name, send),
+      ],
+    });
+    if (parent) {
+      await this.deleteSnapshot(parent);
+    }
   };
 }
 
