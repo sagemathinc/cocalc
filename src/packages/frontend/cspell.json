@@ -35,7 +35,9 @@
     "rtypes",
     "rclass",
     "ipython",
-    "Miniterm"
+    "Miniterm",
+    "syncdoc",
+    "synctables"
   ],
   "ignoreWords": [
     "LLMs",
@@ -55,7 +57,8 @@
     "mintime",
     "PoweroffOutlined",
     "immutablejs",
-    "reuseinflight"
+    "reuseinflight",
+    "sidechat"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],

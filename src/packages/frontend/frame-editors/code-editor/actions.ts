@@ -1134,7 +1134,7 @@ export class Actions<
     // need to check since this can get called by the close.
     if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
-    // TOOD: this is probably naive and slow too...
+    // TODO: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring
       .get_cursors({
@@ -1157,7 +1157,7 @@ export class Actions<
   }
 
   // Set the location of all of OUR cursors.  This serves many purposes:
-  //  -- propogate to other users via the syncstring.
+  //  -- propagate to other users via the syncstring.
   //  -- setting uri fragment page= at top of browser, so URL link is useful
   //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
