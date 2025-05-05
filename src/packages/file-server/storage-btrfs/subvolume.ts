@@ -162,8 +162,8 @@ export class Subvolume {
     return snapGen < pathGen;
   };
 
-  // create a new bup snapshot
-  createBupSnapshot = async () => {
+  // create a new bup backup
+  createBupBackup = async () => {
     await sudo({
       command: "bup",
       args: [
@@ -189,7 +189,7 @@ export class Subvolume {
     });
   };
 
-  bupSnapshots = async (): Promise<string[]> => {
+  bupBackups = async (): Promise<string[]> => {
     const { stdout } = await sudo({
       command: "bup",
       args: ["-d", this.filesystem.bup, "ls", this.name],
@@ -198,6 +198,26 @@ export class Subvolume {
       .split("\n")
       .map((x) => x.split(" ").slice(-1)[0])
       .filter((x) => x);
+  };
+
+  bupPrune = async ({
+    dailies = "1w",
+    monthlies = "4m",
+    all = "3d",
+  }: { dailies?: string; monthlies?: string; all?: string } = {}) => {
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.filesystem.bup,
+        "prune-older",
+        `--keep-dailies-for=${dailies}`,
+        `--keep-monthlies-for=${monthlies}`,
+        `--keep-all-for=${all}`,
+        "--unsafe",
+        this.name,
+      ],
+    });
   };
 }
 
