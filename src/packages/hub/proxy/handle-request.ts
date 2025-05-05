@@ -1,6 +1,6 @@
 /* Handle a proxy request */
 
-import { createProxyServer } from "http-proxy";
+import { createProxyServer } from "http-proxy-node16";
 import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
