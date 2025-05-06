@@ -86,7 +86,7 @@
     "cloudflare": "^2.9.1",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.11",
-    "dot-object": "^2.1.4",
+    "dot-object": "^2.1.5",
     "express-session": "^1.18.1",
     "google-auth-library": "^9.4.1",
     "googleapis": "^137.1.0",

@@ -80,7 +80,9 @@ export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
  * The remaining fields, except for type, clientID, clientSecret, and callbackURL, userinfoURL, login_info are passed to that constructor.
  * Additionally, there are default values for some of the fields, e.g. for the SAML2.0 strategy.
  * Please check the hub/auth.ts file for more details.
+ *
  * Regarding the userinfoURL, this is used by OAuth2 to get the profile.
+ *
  * The "login_info" field is a mapping from "cocalc" profile fields, that end up in the DB,
  * to the entries in the generated profile object. The DB entry can only be a string and
  * processing is done by using the "dot-object" npm library.
@@ -91,6 +93,7 @@ export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
  *   last_name: "name.familyName",
  *   emails: "emails[0].value",
  * }
+ * You can to customize the separator of dot-object, e.g. to process keys with dots, add a "_sep: string" entry.
  */
 export interface PassportStrategyDBConfig {
   type: PassportTypes;
