@@ -34,7 +34,7 @@
 // Then restart the hubs.
 
 import Cookies from "cookies";
-import * as dot from "dot-object";
+import dot from "dot-object";
 import type { NextFunction, Request, Response } from "express";
 import * as express from "express";
 import express_session from "express-session";
@@ -42,8 +42,9 @@ import * as _ from "lodash";
 import ms from "ms";
 import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
-import { v4 as uuidv4, v4 } from "uuid";
 import safeJsonStringify from "safe-json-stringify";
+import { v4 as uuidv4, v4 } from "uuid";
+
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
@@ -79,6 +80,7 @@ import {
   getOauthCache,
   getPassportCache,
 } from "@cocalc/database/postgres/passport-store";
+import { getServerSettings } from "@cocalc/database/settings";
 import {
   PassportLoginOpts,
   PassportStrategyDB,
@@ -87,6 +89,7 @@ import {
   isOAuth2,
   isSAML,
 } from "@cocalc/database/settings/auth-sso-types";
+import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 import {
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
@@ -98,9 +101,6 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
-import { record_sign_in } from "./sign-in";
-import { getServerSettings } from "@cocalc/database/settings";
-import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 
 const logger = getLogger("server:hub:auth");
 
@@ -144,7 +144,7 @@ interface HandleReturnOpts {
   type: PassportTypes;
   update_on_login: boolean;
   cookie_ttl_s: number | undefined;
-  login_info: any;
+  login_info;
 }
 
 export class PassportManager {
@@ -657,6 +657,8 @@ export class PassportManager {
         site_url: this.site_url,
       };
 
+      const dotInstance = this.getDot(login_info);
+
       for (const k in login_info) {
         const v = login_info[k];
         const param: string | string[] =
@@ -664,7 +666,7 @@ export class PassportManager {
             ? // v is a LoginInfoDerivator<T>
               v(profile)
             : // v is a string for dot-object
-              dot.pick(v, profile);
+              dotInstance.pick(v, profile);
         login_opts[k] = param;
       }
 
@@ -687,6 +689,18 @@ export class PassportManager {
         res.send(err_msg);
       }
     };
+  }
+
+  private getDot(login_info): DotObject.Dot {
+    // if login_info contains a key "_delimiter", take it from that object and remove it
+    // then instantiate dot with that delimiter and use it to pick the values
+    if (typeof login_info._sep === "string") {
+      const sep = login_info._sep;
+      delete login_info._sep;
+      return new dot(sep);
+    } else {
+      return dot;
+    }
   }
 
   // right now, we only set this for OAauth2 (SAML knows what to do on its own)

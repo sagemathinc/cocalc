@@ -1466,7 +1466,7 @@ importers:
         specifier: ^1.11.11
         version: 1.11.13
       dot-object:
-        specifier: ^2.1.4
+        specifier: ^2.1.5
         version: 2.1.5
       express-session:
         specifier: ^1.18.1
