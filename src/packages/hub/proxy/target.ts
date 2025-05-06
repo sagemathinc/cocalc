@@ -28,7 +28,14 @@ const logger = getLogger("proxy:target");
 // Also, if the project stops and starts, the host=ip address could
 // change, so we need to timeout so we see that thange.
 
-const cache = new LRU({ max: 20000, ttl: 1000 * 30 });
+const cache = new LRU<
+  string,
+  {
+    host: string;
+    port: number;
+    internal_url: string | undefined;
+  }
+>({ max: 20000, ttl: 1000 * 30 });
 
 // This gets explicitly called from outside when certain errors occur.
 export function invalidateTargetCache(remember_me: string, url: string): void {

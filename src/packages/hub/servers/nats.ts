@@ -38,6 +38,10 @@ export async function proxyNatsWebsocket(req, socket, head) {
     timeout: 5000,
   });
   proxy.ws(req, socket, head);
+  proxy.on("error", (err) => {
+    logger.debug(`nats websocket proxy error, so closing -- ${err}`);
+    proxy.close();
+  });
 
   while (socket.readyState !== socket.CLOSED) {
     if (versionCheckFails(req)) {
