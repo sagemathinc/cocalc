@@ -11,7 +11,7 @@ const DEFAULT_EXEC_TIMEOUT_MS = 60 * 1000;
 
 export async function exists(path: string) {
   try {
-    await sudo({ command: "ls", args: [path] });
+    await sudo({ command: "ls", args: [path], verbose: false });
     return true;
   } catch {
     return false;

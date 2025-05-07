@@ -5,6 +5,8 @@ DEVELOPMENT:
 
 Start node, then:
 
+DEBUG="cocalc:*file-server*" DEBUG_CONSOLE=yes node
+
 a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:293597964})
 
 */

@@ -17,6 +17,8 @@ import { human_readable_size } from "@cocalc/util/misc";
 export const SNAPSHOTS = ".snapshots";
 const SEND_SNAPSHOT_PREFIX = "send-";
 
+const BUP_SNAPSHOT = "temp-bup-snapshot";
+
 const PAD = 4;
 
 import getLogger from "@cocalc/backend/logger";
@@ -161,6 +163,10 @@ export class Subvolume {
     });
   };
 
+  snapshotExists = async (name: string) => {
+    return await exists(join(this.snapshotsDir, name));
+  };
+
   deleteSnapshot = async (name) => {
     if (await exists(join(this.snapshotsDir, `.${name}.lock`))) {
       throw Error(`snapshot ${name} is locked`);
@@ -190,30 +196,52 @@ export class Subvolume {
   };
 
   // create a new bup backup
-  createBupBackup = async () => {
-    await sudo({
-      command: "bup",
-      args: [
-        "-d",
-        this.filesystem.bup,
-        "index",
-        "--exclude=",
-        join(this.path, SNAPSHOTS),
-        this.path,
-      ],
-    });
-    await sudo({
-      command: "bup",
-      args: [
-        "-d",
-        this.filesystem.bup,
-        "save",
-        "--strip",
-        "-n",
-        this.name,
-        this.path,
-      ],
-    });
+  createBupBackup = async ({
+    // timeout used for bup index and bup save commands
+    timeout = 30 * 60 * 1000,
+  }: { timeout?: number } = {}) => {
+    if (await this.snapshotExists(BUP_SNAPSHOT)) {
+      logger.debug(`createBupBackup: deleting existing ${BUP_SNAPSHOT}`);
+      await this.deleteSnapshot(BUP_SNAPSHOT);
+    }
+    try {
+      logger.debug(
+        `createBupBackup: creating ${BUP_SNAPSHOT} to get a consistent backup`,
+      );
+      await this.createSnapshot(BUP_SNAPSHOT);
+      const target = join(this.snapshotsDir, BUP_SNAPSHOT);
+      logger.debug(`createBupBackup: indexing ${BUP_SNAPSHOT}`);
+      await sudo({
+        command: "bup",
+        args: [
+          "-d",
+          this.filesystem.bup,
+          "index",
+          "--exclude",
+          join(target, ".snapshots"),
+          "-x",
+          target,
+        ],
+        timeout,
+      });
+      logger.debug(`createBupBackup: saving ${BUP_SNAPSHOT}`);
+      await sudo({
+        command: "bup",
+        args: [
+          "-d",
+          this.filesystem.bup,
+          "save",
+          "--strip",
+          "-n",
+          this.name,
+          target,
+        ],
+        timeout,
+      });
+    } finally {
+      logger.debug(`createBupBackup: deleting temporary ${BUP_SNAPSHOT}`);
+      await this.deleteSnapshot(BUP_SNAPSHOT);
+    }
   };
 
   bupBackups = async (): Promise<string[]> => {
