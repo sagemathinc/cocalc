@@ -1,6 +1,6 @@
 // Websocket support
 
-import { createProxyServer } from "http-proxy-node16";
+import { createProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
 import getLogger from "@cocalc/hub/logger";
@@ -24,9 +24,23 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
+    let proxy: any = undefined;
+    function cleanUp() {
+      logger.debug("websocket proxy: cleanUp");
+      socket.destroy();
+      socket.end();
+      proxy?.close();
+    }
     socket.on("error", (err) => {
+      cleanUp();
       // server will crash sometimes without this:
       logger.debug("WARNING -- websocket socket error", err);
+    });
+    socket.on("close", () => {
+      cleanUp();
+    });
+    socket.on("end", () => {
+      cleanUp();
     });
     const dbg = (...args) => {
       logger.silly(req.url, ...args);
@@ -83,7 +97,7 @@ export default function init(
 
     dbg("target", target);
     dbg("not using cache");
-    const proxy = createProxyServer({
+    proxy = createProxyServer({
       ws: true,
       target,
       timeout: 3000,
@@ -107,11 +121,12 @@ export default function init(
     });
 
     proxy.on("error", (err) => {
+      cleanUp();
       logger.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.delete(target);
-      proxy.close();
     });
     proxy.on("close", () => {
+      cleanUp();
       dbg("websocket proxy closed, so removing from cache");
       cache.delete(target);
     });

@@ -4,7 +4,7 @@ export LOGS=`pwd`/logs
 rm -f $LOGS/log
 unset INIT_CWD
 unset PGHOST
-export DEBUG="cocalc:*"
+export DEBUG="cocalc:*,http-proxy-3:ws-incoming*"
 #export DEBUG_CONSOLE="yes"
 unset DEBUG_CONSOLE
 

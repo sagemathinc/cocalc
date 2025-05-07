@@ -874,9 +874,9 @@ importers:
       formidable:
         specifier: ^3.5.4
         version: 3.5.4
-      http-proxy-node16:
-        specifier: ^1.0.6
-        version: 1.0.6(debug@4.4.0)
+      http-proxy-3:
+        specifier: ^1.19.1
+        version: 1.19.1
       immutable:
         specifier: ^4.3.0
         version: 4.3.7
@@ -7607,6 +7607,10 @@ packages:
   http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
 
+  http-proxy-3@1.19.1:
+    resolution: {integrity: sha512-cymjsZYY7ejle/pNEPd2gJvwwQm1HJqRhDG8SffR7UIZNPhyLn+JcqkeLuCnlbfsdej7/emwTQRhBwkiabPzgg==}
+    engines: {node: '>=16.0.0'}
+
   http-proxy-agent@5.0.0:
     resolution: {integrity: sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==}
     engines: {node: '>= 6'}
@@ -7623,10 +7627,6 @@ packages:
     peerDependenciesMeta:
       '@types/express':
         optional: true
-
-  http-proxy-node16@1.0.6:
-    resolution: {integrity: sha512-RLtYkbmbLmh+To4lmqLpiEitu0igXb/j1SOW8F6w/esXsapGT5dSShMF9vg7shtxGJSXaWiFE3wYWCoLOuiibg==}
-    engines: {node: '>=8.0.0'}
 
   http-proxy@1.18.1:
     resolution: {integrity: sha512-7mz/721AbnJwIVbnaSv1Cz3Am0ZLT/UBwkC92VlxhXv/k/BBQfM2fXElQNC27BVGr0uwUpplYPQM9LnaBMR5NQ==}
@@ -18733,6 +18733,14 @@ snapshots:
 
   http-parser-js@0.5.10: {}
 
+  http-proxy-3@1.19.1:
+    dependencies:
+      debug: 4.4.0(supports-color@8.1.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
+      requires-port: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+
   http-proxy-agent@5.0.0:
     dependencies:
       '@tootallnate/once': 2.0.0
@@ -18757,14 +18765,6 @@ snapshots:
       micromatch: 4.0.8
     optionalDependencies:
       '@types/express': 4.17.21
-    transitivePeerDependencies:
-      - debug
-
-  http-proxy-node16@1.0.6(debug@4.4.0):
-    dependencies:
-      eventemitter3: 4.0.7
-      follow-redirects: 1.15.9(debug@4.4.0)
-      requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
 
