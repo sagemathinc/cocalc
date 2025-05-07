@@ -21,30 +21,32 @@
 import Cookies from "cookies";
 import * as _ from "lodash";
 import { isEmpty } from "lodash";
+
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
-import generateHash from "@cocalc/server/auth/hash";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
-import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
   PassportStrategyDB,
 } from "@cocalc/database/settings/auth-sso-types";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import isBanned from "@cocalc/server/accounts/is-banned";
+import { legacyManageApiKey } from "@cocalc/server/api/manage";
+import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
+import generateHash from "@cocalc/server/auth/hash";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
+import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
+import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
+import { record_sign_in } from "@cocalc/server/hub/sign-in";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
-import isBanned from "@cocalc/server/accounts/is-banned";
-import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
-import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -54,7 +56,6 @@ export class PassportLogin {
   private readonly database: PostgreSQL;
   // passed on to do the login
   private opts: PassportLoginOpts;
-  private record_sign_in: Function;
 
   constructor(opts: PassportLoginOpts) {
     const L = logger.extend("constructor").debug;
@@ -62,7 +63,6 @@ export class PassportLogin {
     this.passports = opts.passports;
     //this.exclusiveDomains = this.mapExclusiveDomains();
     this.database = opts.database;
-    this.record_sign_in = opts.record_sign_in;
 
     this.opts = opts;
 
@@ -474,7 +474,7 @@ export class PassportLogin {
 
     // don't make client wait for this -- it's just a log message for us.
     L(`no new account → record_sign_in: ${opts.req.ip}`);
-    this.record_sign_in({
+    record_sign_in({
       ip_address: opts.req.ip,
       successful: true,
       remember_me: locals.has_valid_remember_me,

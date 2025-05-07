@@ -646,7 +646,6 @@ export class PassportManager {
         passports: this.passports ?? {},
         database: this.database,
         host: this.host,
-        record_sign_in,
         id: profile.id, // ATTN: not all strategies have an ID → you have to derive the ID from the profile below via the "login_info" mapping (e.g. {id: "email"})
         strategyName: name,
         profile, // will just get saved in database
