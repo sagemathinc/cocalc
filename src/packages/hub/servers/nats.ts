@@ -10,7 +10,7 @@ $ pnpm nats-server
 
 */
 
-import { createProxyServer } from "http-proxy";
+import { createProxyServer } from "http-proxy-node16";
 import getLogger from "@cocalc/backend/logger";
 import { type Router } from "express";
 import { natsWebsocketServer } from "@cocalc/backend/data";
@@ -38,6 +38,10 @@ export async function proxyNatsWebsocket(req, socket, head) {
     timeout: 5000,
   });
   proxy.ws(req, socket, head);
+  proxy.on("error", (err) => {
+    logger.debug(`nats websocket proxy error, so closing -- ${err}`);
+    proxy.close();
+  });
 
   while (socket.readyState !== socket.CLOSED) {
     if (versionCheckFails(req)) {

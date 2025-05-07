@@ -1,6 +1,6 @@
 // Websocket support
 
-import { createProxyServer } from "http-proxy";
+import { createProxyServer } from "http-proxy-node16";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
 import getLogger from "@cocalc/hub/logger";
@@ -109,6 +109,7 @@ export default function init(
     proxy.on("error", (err) => {
       logger.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.delete(target);
+      proxy.close();
     });
     proxy.on("close", () => {
       dbg("websocket proxy closed, so removing from cache");
