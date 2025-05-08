@@ -1,10 +1,10 @@
 /* Handle a proxy request */
 
-import { createProxyServer } from "http-proxy-3";
+import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
-import { getTarget, invalidateTargetCache } from "./target";
+import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
@@ -34,14 +34,9 @@ export default function init({ projectControl, isPersonal }: Options) {
    a permissions and security point of view.
 */
 
-  const cache = new LRU({
+  const cache = new LRU<string, ProxyServer>({
     max: 5000,
     ttl: 1000 * 60 * 3,
-    dispose: (proxy) => {
-      // important to close the proxy whenever it gets removed
-      // from the cache, to avoid wasting resources.
-      (proxy as any)?.close();
-    },
   });
 
   async function handleProxyRequest(req, res): Promise<void> {
@@ -158,26 +153,13 @@ export default function init({ projectControl, isPersonal }: Options) {
       proxy = createProxyServer({
         ws: false,
         target,
-        timeout: 60000,
       });
       // and cache it.
       cache.set(target, proxy);
       logger.debug("created new proxy");
-      // setup error handler, so that if something goes wrong with this proxy (it will,
-      // e.g., on project restart), we properly invalidate it.
-      const remove_from_cache = () => {
-        cache.delete(target); // this also closes the proxy.
-        invalidateTargetCache(remember_me, url);
-      };
 
-      proxy.on("error", (e) => {
-        logger.debug("http proxy error event (ending proxy)", e);
-        remove_from_cache();
-      });
-
-      proxy.on("close", () => {
-        logger.debug("http proxy close event (ending proxy)");
-        remove_from_cache();
+      proxy.on("error", (err) => {
+        logger.debug(`http proxy error -- ${err}`);
       });
     }
 

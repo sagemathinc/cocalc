@@ -10,7 +10,7 @@ $ pnpm nats-server
 
 */
 
-import { createProxyServer } from "http-proxy-3";
+import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import getLogger from "@cocalc/backend/logger";
 import { type Router } from "express";
 import { natsWebsocketServer } from "@cocalc/backend/data";
@@ -22,6 +22,7 @@ import { delay } from "awaiting";
 
 const logger = getLogger("hub:nats");
 
+let proxy: ProxyServer | null = null;
 export async function proxyNatsWebsocket(req, socket, head) {
   const target = natsWebsocketServer;
   logger.debug(`nats proxy -- proxying a connection to ${target}`);
@@ -32,16 +33,19 @@ export async function proxyNatsWebsocket(req, socket, head) {
     socket.destroy();
     return;
   }
-  const proxy = createProxyServer({
-    ws: true,
-    target,
-    timeout: 5000,
-  });
+  if (proxy == null) {
+    // make the proxy server
+    proxy = createProxyServer({
+      ws: true,
+      target,
+    });
+    proxy.on("error", (err) => {
+      logger.debug(`WARNING: nats websocket proxy error -- ${err}`);
+    });
+  }
+
+  // connect the client's socket to nats via the proxy server:
   proxy.ws(req, socket, head);
-  proxy.on("error", (err) => {
-    logger.debug(`nats websocket proxy error, so closing -- ${err}`);
-    proxy.close();
-  });
 
   while (socket.readyState !== socket.CLOSED) {
     if (versionCheckFails(req)) {
