@@ -10,7 +10,7 @@ $ pnpm nats-server
 
 */
 
-import { createProxyServer } from "http-proxy-node16";
+import { createProxyServer } from "http-proxy-3";
 import getLogger from "@cocalc/backend/logger";
 import { type Router } from "express";
 import { natsWebsocketServer } from "@cocalc/backend/data";
