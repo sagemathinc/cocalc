@@ -46,7 +46,7 @@ export async function pythontex(
     project_id,
     aggregate,
     command,
-    rundir: output_directory || directory,
+    runDir: output_directory || directory,
     set_job_info,
     // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     env: { MPLBACKEND: "Agg" },
