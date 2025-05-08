@@ -40,7 +40,7 @@
     "express": "^4.21.2",
     "formidable": "^3.5.4",
     "http-proxy": "^1.18.1",
-    "http-proxy-3": "^1.19.3",
+    "http-proxy-3": "^1.19.6",
     "immutable": "^4.3.0",
     "jquery": "^3.6.0",
     "json-stable-stringify": "^1.0.1",
