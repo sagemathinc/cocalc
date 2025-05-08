@@ -1,6 +1,6 @@
 // Websocket support
 
-import { createProxyServer } from "http-proxy-3";
+import { createProxyServer } from "http-proxy";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
 import getLogger from "@cocalc/hub/logger";
