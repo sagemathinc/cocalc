@@ -34,7 +34,7 @@
 // Then restart the hubs.
 
 import Cookies from "cookies";
-import * as dot from "dot-object";
+import dot from "dot-object";
 import type { NextFunction, Request, Response } from "express";
 import * as express from "express";
 import express_session from "express-session";
@@ -42,8 +42,9 @@ import * as _ from "lodash";
 import ms from "ms";
 import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
-import { v4 as uuidv4, v4 } from "uuid";
 import safeJsonStringify from "safe-json-stringify";
+import { v4 as uuidv4, v4 } from "uuid";
+
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
@@ -56,6 +57,7 @@ import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-prof
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
   InitPassport,
+  LoginInfo,
   PassportManagerOpts,
   StrategyConf,
   StrategyInstanceOpts,
@@ -79,6 +81,7 @@ import {
   getOauthCache,
   getPassportCache,
 } from "@cocalc/database/postgres/passport-store";
+import { getServerSettings } from "@cocalc/database/settings";
 import {
   PassportLoginOpts,
   PassportStrategyDB,
@@ -87,6 +90,7 @@ import {
   isOAuth2,
   isSAML,
 } from "@cocalc/database/settings/auth-sso-types";
+import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 import {
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
@@ -98,8 +102,6 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
-import { getServerSettings } from "@cocalc/database/settings";
-import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 
 const logger = getLogger("server:hub:auth");
 
@@ -143,7 +145,7 @@ interface HandleReturnOpts {
   type: PassportTypes;
   update_on_login: boolean;
   cookie_ttl_s: number | undefined;
-  login_info: any;
+  login_info: LoginInfo;
 }
 
 export class PassportManager {
@@ -655,14 +657,18 @@ export class PassportManager {
         site_url: this.site_url,
       };
 
+      const dotInstance =
+        typeof login_info._sep === "string" ? new dot(login_info._sep) : dot;
+
       for (const k in login_info) {
+        if (k === "_sep") continue; // used above, not useful here
         const v = login_info[k];
         const param: string | string[] =
           typeof v == "function"
             ? // v is a LoginInfoDerivator<T>
               v(profile)
             : // v is a string for dot-object
-              dot.pick(v, profile);
+              dotInstance.pick(v, profile);
         login_opts[k] = param;
       }
 

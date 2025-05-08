@@ -218,14 +218,6 @@ nodeCleanup(() => {
   }
 });
 
-// TODO: are these the only base64 encoded types that jupyter kernels return?
-export const BASE64_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "application/pdf",
-  "base64",
-] as const;
-
 // NOTE: keep JupyterKernel implementation private -- use the kernel function
 // above, and the interface defined in types.
 class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
@@ -760,15 +752,14 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return await new CodeExecutionEmitter(this, opts).go();
   };
 
-  private saveBlob = (data: string, type?: string) => {
+  private saveBlob = (data: string, type: string) => {
     const blobs = this._actions?.blobs;
     if (blobs == null) {
       throw Error("blob store not available");
     }
-    const buf: Buffer =
-      type && BASE64_TYPES.includes(type as any)
-        ? Buffer.from(data, "base64")
-        : Buffer.from(data);
+    const buf: Buffer = !type.startsWith("text/")
+      ? Buffer.from(data, "base64")
+      : Buffer.from(data);
 
     const sha1: string = misc_node_sha1(buf);
     blobs.set(sha1, buf);

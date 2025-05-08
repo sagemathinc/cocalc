@@ -61,7 +61,7 @@ const INTERVAL_BAD = 5 * 1000;
 // If clock fails to sync this many times in a row, we reconnect to nats.
 const MAX_FAILS = 3;
 
-const RECONNECT_LOGIC = true;
+const RECONNECT_LOGIC = false;
 
 export function init() {
   syncLoop();

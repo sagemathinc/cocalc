@@ -109,6 +109,7 @@ export default function init(
     proxy.on("error", (err) => {
       logger.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.delete(target);
+      proxy.close();
     });
     proxy.on("close", () => {
       dbg("websocket proxy closed, so removing from cache");
