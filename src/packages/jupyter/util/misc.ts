@@ -27,6 +27,7 @@ export const JUPYTER_MIMETYPES = [
   "text/latex",
   "image/svg+xml",
   "image/png",
+  "image/gif",
   "image/jpeg",
   "application/pdf",
   "text/plain",
