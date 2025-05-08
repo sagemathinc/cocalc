@@ -41,6 +41,7 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 import { getEnv } from "@cocalc/nats/client";
 import { projectSubject } from "@cocalc/nats/names";
 import { Empty, headers, type Subscription } from "@nats-io/nats-core";
+import { runLoop } from "./util";
 
 let subs: { [name: string]: Subscription } = {};
 export async function close({ project_id, compute_server_id, name = "" }) {
@@ -76,13 +77,16 @@ export async function createServer({
     return;
   }
   const { nc } = await getEnv();
-  // console.log(subject);
-  const sub = nc.subscribe(subject);
-  subs[subject] = sub;
-  listen(sub, createReadStream);
+  runLoop({
+    listen,
+    subs,
+    subject,
+    nc,
+    opts: { createReadStream },
+  });
 }
 
-async function listen(sub, createReadStream) {
+async function listen({ sub, createReadStream }) {
   // NOTE: we just handle as many messages as we get in parallel, so this
   // could be a large number of simultaneous downloads. These are all by
   // authenticated users of the project, and the load is on the project,
