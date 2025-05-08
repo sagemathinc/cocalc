@@ -68,14 +68,17 @@ export interface StrategyConf {
   };
   auth_opts?: AuthenticateOptions;
   // return type has to partially fit with passport_login
-  login_info: {
-    id: string | LoginInfoDerivator<string>; // id is required!
-    first_name?: string | LoginInfoDerivator<string>;
-    last_name?: string | LoginInfoDerivator<string>;
-    full_name?: string | LoginInfoDerivator<string>;
-    emails?: string | LoginInfoDerivator<string[]>;
-  };
+  login_info: LoginInfo;
   userinfoURL?: string; // OAuth2, to get a profile
   update_on_login?: boolean; // if true, update the user's profile on login
   cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
 }
+
+export type LoginInfo = Readonly<{
+  id: string | LoginInfoDerivator<string>; // id is required!
+  first_name?: string | LoginInfoDerivator<string>;
+  last_name?: string | LoginInfoDerivator<string>;
+  full_name?: string | LoginInfoDerivator<string>;
+  emails?: string | LoginInfoDerivator<string[]>;
+  _sep?: string;
+}>;
