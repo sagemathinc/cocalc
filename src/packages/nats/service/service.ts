@@ -284,20 +284,21 @@ export class NatsService extends EventEmitter {
         }
       }
 
+      const queue = this.options.all ? randomId() : "0";
       if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
         const svcm = new Svcm(env.nc);
         const service = await svcm.add({
           name: this.name,
           version: this.options.version ?? "0.0.1",
           description: serviceDescription(this.options),
-          queue: this.options.all ? randomId() : "0",
+          queue,
         });
         if (!this.subject) {
           return;
         }
         this.api = service.addEndpoint("api", { subject: this.subject });
       } else {
-        this.api = env.nc.subscribe(this.subject);
+        this.api = env.nc.subscribe(this.subject, { queue });
       }
       this.emit("running");
       await this.listen();
