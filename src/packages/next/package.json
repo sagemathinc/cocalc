@@ -88,7 +88,7 @@
     "react-dom": "^18.3.1",
     "react-google-recaptcha": "^2.1.0",
     "react-google-recaptcha-v3": "^1.9.7",
-    "react-intl": "^7.1.0",
+    "react-intl": "^7.1.11",
     "serve-index": "^1.9.1",
     "sharp": "^0.32.6",
     "timeago-react": "^3.0.4",
