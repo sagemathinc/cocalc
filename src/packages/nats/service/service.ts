@@ -48,6 +48,8 @@ export interface ServiceDescription extends Location {
 
   // DEFAULT: ENABLE_SERVICE_FRAMEWORK
   enableServiceFramework?: boolean;
+  
+  subject?: string;
 }
 
 export interface ServiceCall extends ServiceDescription {
@@ -156,7 +158,12 @@ export function serviceSubject({
   compute_server_id,
 
   path,
+
+  subject,
 }: ServiceDescription): string {
+  if (subject) {
+    return subject;
+  }
   let segments;
   path = path ? encodeBase64(path) : "_";
   if (!project_id && !account_id) {

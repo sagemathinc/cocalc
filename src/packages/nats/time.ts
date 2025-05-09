@@ -88,10 +88,11 @@ async function syncLoop() {
 // skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
 let rtt: number | null = null;
-const client = timeClient();
 export const getSkew = reuseInFlight(async (): Promise<number> => {
   const start = Date.now();
-  const serverTime = await client.time();
+  const client = getClient();
+  const tc = timeClient(client);
+  const serverTime = await tc.time();
   const end = Date.now();
   rtt = end - start;
   skew = start + rtt / 2 - serverTime;
