@@ -4,32 +4,32 @@
  */
 
 import React from "react";
-import * as misc from "@cocalc/util/misc";
 import { useInterval } from "react-interval-hook";
+
+import { seconds2hms, server_time } from "@cocalc/util/misc";
 
 interface Props {
   start_ts: number;
   interval_s?: number;
 }
 
-function isSame(prev, next) {
-  if (prev == null || next == null) return false;
-  return prev.start_ts != next.start_ts;
-}
+export function TimeElapsed({ start_ts, interval_s = 1 }: Props) {
+  const [elapsed, setElapsed] = React.useState<string>(getUptimeStr());
 
-export const TimeElapsed: React.FC<Props> = React.memo((props: Props) => {
-  const { start_ts, interval_s = 1 } = props;
-
-  const [elapsed, setElapsed] = React.useState("");
+  function getUptimeStr() {
+    if (start_ts == null) return "";
+    const delta_s = (server_time().getTime() - start_ts) / 1000;
+    const uptime_str = seconds2hms(delta_s, true);
+    return uptime_str;
+  }
 
   useInterval(() => {
-    if (start_ts == null) return;
-    const delta_s = (misc.server_time().getTime() - start_ts) / 1000;
-    const uptime_str = misc.seconds2hms(delta_s, true);
-    setElapsed(uptime_str);
+    const next = getUptimeStr();
+    if (!next) return;
+    setElapsed(next);
   }, interval_s * 1000);
 
   if (start_ts == null) return null;
 
   return <React.Fragment>{elapsed}</React.Fragment>;
-}, isSame);
+}
