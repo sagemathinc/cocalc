@@ -1,30 +1,18 @@
 /*
-Time sync entirely using nats itself.
+Time sync -- relies on a hub running a time sync server.
 
 To use this, call the default export, which is a sync
 function that returns the current sync'd time (in ms since epoch), or
 throws an error if the first time sync hasn't succeeded.
 This gets initialized by default on load of your process.
-If you want to await until the clock is sync'd, call "await getSkew()"
+If you want to await until the clock is sync'd, call "await getSkew()".
 
-It works using a key:value store via jetstream,
-which is complicated overall.  Normal request/reply
-messages don't seem to have a timestamp, so I couldn't
-use them.
-
-import getTime, {getSkew} from "@cocalc/nats/time";
-
-// sync - this throws if hasn't connected and sync'd the first time:
-
-getTime();  // -- ms since the epoch
-
-// async -- will wait to connect and tries to sync if haven't done so yet.  Otherwise same as sync:
-// once this works you can definitely call getTime henceforth.
-await getSkew();
+In unit testing mode this just falls back to Date.now().
 
 DEVELOPMENT:
 
-See src/packages/backend/nats/test/time.test.ts for unit tests.
+See src/packages/backend/nats/test/time.test.ts for relevant unit test, though
+in test mode this is basically disabled.
 
 Also do this, noting the directory and import of @cocalc/backend/nats.
 
@@ -89,6 +77,10 @@ async function syncLoop() {
 export let skew: number | null = null;
 let rtt: number | null = null;
 export const getSkew = reuseInFlight(async (): Promise<number> => {
+  if (process.env.COCALC_TEST_MODE) {
+    skew = 0;
+    return skew;
+  }
   const start = Date.now();
   const client = getClient();
   const tc = timeClient(client);

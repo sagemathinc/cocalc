@@ -48,7 +48,7 @@ export interface ServiceDescription extends Location {
 
   // DEFAULT: ENABLE_SERVICE_FRAMEWORK
   enableServiceFramework?: boolean;
-  
+
   subject?: string;
 }
 
@@ -102,10 +102,11 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     return result;
   };
 
-  // we just try to call the service
+  // we just try to call the service first
   try {
     return await doRequest();
   } catch (err) {
+    //console.log(`request to '${subject}' failed -- ${err}`);
     // it failed.
     if (err.name == "NatsError" && !opts.noRetry) {
       // it's a nats problem
