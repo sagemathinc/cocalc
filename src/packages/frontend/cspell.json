@@ -27,18 +27,19 @@
     "Rmarkdown",
     "rtypes",
     "Sagemath",
+    "sagetex",
     "sagews",
     "scikit",
     "statsmodels",
     "syncdb",
     "syncdoc",
     "syncstring",
+    "synctable",
     "tidyverse",
     "timetravel",
     "tolerations",
     "undelete",
-    "undeleting",
-    "sagetex"
+    "undeleting"
   ],
   "ignoreWords": [
     "antd",
