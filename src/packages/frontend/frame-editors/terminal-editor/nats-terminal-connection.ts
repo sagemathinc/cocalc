@@ -154,14 +154,19 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
-  close = () => {
+  close = async () => {
     webapp_client.nats_client.removeListener("connected", this.clearWriteQueue);
     this.stream?.close();
     delete this.stream;
     this.service?.close();
     delete this.service;
-    this.api.close(webapp_client.browser_id);
     this.setState("closed");
+    try {
+      await this.api.close(webapp_client.browser_id);
+    } catch {
+      // we did our best to quickly tell that we're closed, but if it times out or fails,
+      // it is the responsibility of the project to stop worrying about this browser.
+    }
   };
 
   end = () => {

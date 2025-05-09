@@ -40,7 +40,7 @@ export async function latexmk(
     project_id,
     command,
     args,
-    rundir: head,
+    runDir: head,
     aggregate: time,
     set_job_info,
     path,

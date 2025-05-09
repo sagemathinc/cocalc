@@ -42,7 +42,7 @@ export async function knitr(
     project_id,
     command: R_CMD,
     args: [...R_ARGS, expr],
-    rundir: directory,
+    runDir: directory,
     aggregate: time ? { value: time } : undefined,
     set_job_info,
     path,

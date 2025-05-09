@@ -170,9 +170,9 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_uptime() {
-    // start_ts is e.g. 1508576664416
+    // start_ts is a timestamp, e.g. 1508576664416
     const start_ts = project.getIn(["status", "start_ts"]);
-    if (start_ts == undefined) return;
+    if (typeof start_ts !== "number") return;
     if (project.getIn(["state", "state"]) !== "running") {
       return;
     }
@@ -180,7 +180,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="uptime"
-        label="Uptime"
+        label={intl.formatMessage(labels.uptime)}
         style={rowStyle()}
         vertical={isFlyout}
       >
@@ -188,9 +188,9 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Icon name="clock" />{" "}
           <FormattedMessage
             id="project.settings.control.uptime.info"
-            defaultMessage={"Project started"}
-          />{" "}
-          <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
+            defaultMessage={`Project started <b>{ago}</b> ago`}
+            values={{ ago: <TimeElapsed start_ts={start_ts} /> }}
+          />
         </span>
       </LabeledRow>
     );
@@ -318,6 +318,31 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     };
   }
 
+  function render_project_id() {
+    return (
+      <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
+        {!isFlyout ? (
+          <CopyToClipBoard
+            inputWidth={"330px"}
+            value={project_id}
+            style={{ display: "inline-block", width: "100%", margin: 0 }}
+          />
+        ) : (
+          <Paragraph
+            copyable={{
+              text: project_id,
+              tooltips: ["Copy Project ID", "Copied!"],
+            }}
+            code
+            style={{ marginBottom: 0 }}
+          >
+            {project_id}
+          </Paragraph>
+        )}
+      </LabeledRow>
+    );
+  }
+
   function renderBody() {
     return (
       <>
@@ -335,26 +360,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         {render_idle_timeout_row()}
         {render_uptime()}
         {render_cpu_usage()}
-        <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
-          {!isFlyout ? (
-            <CopyToClipBoard
-              inputWidth={"330px"}
-              value={project_id}
-              style={{ display: "inline-block", width: "100%", margin: 0 }}
-            />
-          ) : (
-            <Paragraph
-              copyable={{
-                text: project_id,
-                tooltips: ["Copy Project ID", "Copied!"],
-              }}
-              code
-              style={{ marginBottom: 0 }}
-            >
-              {project_id}
-            </Paragraph>
-          )}
-        </LabeledRow>
+        {render_project_id()}
         {render_select_compute_image_row()}
       </>
     );

@@ -65,7 +65,7 @@ export async function sagetex(
     command: "sage",
     args: [s],
     set_job_info,
-    rundir: output_directory || directory,
+    runDir: output_directory || directory,
     aggregate: hash ? { value: hash } : undefined,
     path,
   });
