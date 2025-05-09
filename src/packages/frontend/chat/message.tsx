@@ -3,10 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore blankcolumn
+
 import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -55,14 +58,14 @@ const BORDER = "2px solid #ccc";
 
 const SHOW_EDIT_BUTTON_MS = 15000;
 
-const TRHEAD_STYLE_SINGLE: CSS = {
+const THREAD_STYLE_SINGLE: CSS = {
   marginLeft: "15px",
   marginRight: "15px",
   paddingLeft: "15px",
 } as const;
 
 const THREAD_STYLE: CSS = {
-  ...TRHEAD_STYLE_SINGLE,
+  ...THREAD_STYLE_SINGLE,
   borderLeft: BORDER,
   borderRight: BORDER,
 } as const;
@@ -102,7 +105,7 @@ interface Props {
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
   path?: string;
-  font_size: number;
+  font_size?: number;
   is_prev_sender?: boolean;
   show_avatar?: boolean;
   mode: Mode;
@@ -395,7 +398,7 @@ export default function Message({
       marginTop = "5px";
     }
 
-    const message_style: CSSProperties = {
+    const messageStyle: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
@@ -418,7 +421,7 @@ export default function Message({
     const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
     const showOtherFeedback = otherFeedback > 0;
 
     const editControlRow = () => {
@@ -563,7 +566,7 @@ export default function Message({
           ) : undefined}
         </div>
         <div
-          style={message_style}
+          style={messageStyle}
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
@@ -844,7 +847,7 @@ export default function Message({
           return THREAD_STYLE_TOP;
         }
       } else {
-        return TRHEAD_STYLE_SINGLE;
+        return THREAD_STYLE_SINGLE;
       }
     } else if (allowReply) {
       return THREAD_STYLE_BOTTOM;
@@ -945,7 +948,7 @@ export default function Message({
     );
   }
 
-  function getThreadfoldOrBlank() {
+  function getThreadFoldOrBlank() {
     const xs = 2;
     if (is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN(xs);
@@ -964,7 +967,7 @@ export default function Message({
               width: "100%",
               textAlign: "center",
             };
-      const iconname = is_folded
+      const iconName = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
             ? "right-circle-o"
@@ -978,7 +981,7 @@ export default function Message({
           onClick={() => actions?.toggleFoldThread(message.get("date"), index)}
           icon={
             <Icon
-              name={iconname}
+              name={iconName}
               style={{ fontSize: mode === "standalone" ? "22px" : "18px" }}
             />
           }
@@ -1027,14 +1030,14 @@ export default function Message({
 
     switch (mode) {
       case "standalone":
-        const cols = [avatar_column(), contentColumn(), getThreadfoldOrBlank()];
+        const cols = [avatar_column(), contentColumn(), getThreadFoldOrBlank()];
         if (reverseRowOrdering) {
           cols.reverse();
         }
         return cols;
 
       case "sidechat":
-        return [getThreadfoldOrBlank(), contentColumn()];
+        return [getThreadFoldOrBlank(), contentColumn()];
 
       default:
         unreachable(mode);

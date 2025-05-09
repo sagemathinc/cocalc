@@ -15,6 +15,7 @@
     "mathjax",
     "matplotlib",
     "Miniterm",
+    "Miniterm",
     "nbconvert",
     "nbgrader",
     "nbviewer",
@@ -27,18 +28,20 @@
     "Rmarkdown",
     "rtypes",
     "Sagemath",
+    "sagetex",
     "sagews",
     "scikit",
     "statsmodels",
     "syncdb",
     "syncdoc",
+    "syncdoc",
     "syncstring",
+    "synctables",
     "tidyverse",
     "timetravel",
     "tolerations",
     "undelete",
-    "undeleting",
-    "sagetex"
+    "undeleting"
   ],
   "ignoreWords": [
     "antd",
@@ -56,6 +59,7 @@
     "Popconfirm",
     "PoweroffOutlined",
     "reuseinflight",
+    "sidechat",
     "vertexai",
     "vfill",
     "xsmall"
