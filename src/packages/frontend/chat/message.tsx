@@ -41,6 +41,7 @@ import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode, SubmitMentionsFn } from "./types";
 import {
+  getReplyToRoot,
   getThreadRootDate,
   is_editing,
   message_colors,
@@ -384,19 +385,15 @@ export default function Message({
   }
 
   function contentColumn() {
-    let marginTop;
-    let value = newest_content(message);
+    const value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
       account_id,
       message,
     );
 
-    if (!is_prev_sender && is_viewers_message) {
-      marginTop = MARGIN_TOP_VIEWER;
-    } else {
-      marginTop = "5px";
-    }
+    const marginTop =
+      !is_prev_sender && is_viewers_message ? MARGIN_TOP_VIEWER : "5px";
 
     const messageStyle: CSSProperties = {
       color,
@@ -911,6 +908,21 @@ export default function Message({
         {showAISummarize && is_thread ? (
           <SummarizeThread message={message} actions={actions} />
         ) : undefined}
+        {is_thread ? (
+          <Button
+            type="text"
+            style={{ color: COLORS.GRAY_M }}
+            icon={<Icon name="to-top-outlined" />}
+            onClick={() =>
+              actions?.toggleFoldThread(
+                new Date(getThreadRootDate({ date, messages })),
+                index,
+              )
+            }
+          >
+            Fold Thread…
+          </Button>
+        ) : undefined}
       </div>
     );
   }
@@ -920,16 +932,13 @@ export default function Message({
       return;
     }
 
-    let label;
-    if (numChildren) {
-      label = (
-        <>
-          {numChildren} {plural(numChildren, "Reply", "Replies")}
-        </>
-      );
-    } else {
-      label = "View Replies";
-    }
+    const label = numChildren ? (
+      <>
+        Show {numChildren} {plural(numChildren, "Reply", "Replies")}…
+      </>
+    ) : (
+      "View Replies…"
+    );
 
     return (
       <Col xs={24}>
@@ -940,6 +949,7 @@ export default function Message({
             }
             type="link"
             style={{ color: "darkblue" }}
+            icon={<Icon name="to-top-outlined" rotate="180" />}
           >
             {label}
           </Button>
@@ -956,17 +966,18 @@ export default function Message({
       const style: CSS =
         mode === "standalone"
           ? {
-              color: "#666",
+              color: COLORS.GRAY_M,
               marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }
           : {
-              color: "#666",
+              color: COLORS.GRAY_M,
               marginTop: "5px",
               width: "100%",
               textAlign: "center",
             };
+
       const iconName = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
@@ -974,6 +985,7 @@ export default function Message({
             : "left-circle-o"
           : "right-circle-o"
         : "down-circle-o";
+
       const button = (
         <Button
           type="text"

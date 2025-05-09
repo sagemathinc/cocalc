@@ -42,7 +42,7 @@ export function compute_cursor_offset_position(
   mentions: MentionList,
 ) {
   let index_offset = 0;
-  let usuable_cursor_index = cursor_plain_text_index;
+  let usable_cursor_index = cursor_plain_text_index;
   const mention_array = mentions.toJS() as any;
 
   for (let i = 0; i < mention_array.length; i++) {
@@ -60,19 +60,19 @@ export function compute_cursor_offset_position(
         index_offset = mention_offset + id.length + SINGLE_MENTION_OFFSET;
       }
     } else if (cursor_plain_text_index > plainTextIndex + display.length / 2) {
-      usuable_cursor_index = plainTextIndex + display.length;
+      usable_cursor_index = plainTextIndex + display.length;
       if (i == mention_array.length - 1) {
         // Cursor is inside the second half of the last mention.
         index_offset = mention_offset + id.length + SINGLE_MENTION_OFFSET;
       }
     } else if (cursor_plain_text_index <= plainTextIndex + display.length / 2) {
       // Cursor is inside the first half of this mention
-      usuable_cursor_index = plainTextIndex;
+      usable_cursor_index = plainTextIndex;
       index_offset = mention_offset;
       break;
     }
   }
-  return index_offset + usuable_cursor_index;
+  return index_offset + usable_cursor_index;
 }
 
 export function newest_content(message: ChatMessageTyped): string {

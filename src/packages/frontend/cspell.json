@@ -15,7 +15,6 @@
     "mathjax",
     "matplotlib",
     "Miniterm",
-    "Miniterm",
     "nbconvert",
     "nbgrader",
     "nbviewer",
@@ -45,6 +44,7 @@
   ],
   "ignoreWords": [
     "antd",
+    "collab",
     "immutablejs",
     "ipynb",
     "isdir",
