@@ -1039,13 +1039,17 @@ export class SyncDoc extends EventEmitter {
     });
   };
 
-  /* List of timestamps of the versions of this string in the sync
+  /* List of logical timestamps of the versions of this string in the sync
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
   versions = (): number[] => {
     assertDefined(this.patch_list);
     return this.patch_list.versions();
+  };
+
+  wallTime = (version: number): number | undefined => {
+    return this.patch_list?.wallTime(version);
   };
 
   // newest version of any non-staging known patch on this client,
@@ -2335,6 +2339,7 @@ export class SyncDoc extends EventEmitter {
       size: snapshot.length,
       string_id: this.string_id,
       time,
+      wall: time,
       is_snapshot: true,
       snapshot,
       user_id: x.user_id,
@@ -2402,9 +2407,11 @@ export class SyncDoc extends EventEmitter {
   }): Patch => {
     let t = x.get("time");
     if (typeof t != "number") {
+      // backwards compat
       t = new Date(t).valueOf();
     }
     const time: number = t;
+    const wall = x.get("wall") ?? time;
     const user_id: number = x.get("user_id");
     let parents: number[] = x.get("parents")?.toJS() ?? [];
     let size: number;
@@ -2436,6 +2443,7 @@ export class SyncDoc extends EventEmitter {
 
     const obj: Patch = {
       time,
+      wall,
       user_id,
       patch,
       size,

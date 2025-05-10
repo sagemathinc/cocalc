@@ -226,6 +226,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return this.syncdoc?.historyVersionNumber(version);
   };
 
+  wallTime = (version: number): number | undefined => {
+    return this.syncdoc?.wallTime(version);
+  };
+
   // Get the given version of the document.
   get_doc = (version: number): Document | undefined => {
     // log("get_doc", version);

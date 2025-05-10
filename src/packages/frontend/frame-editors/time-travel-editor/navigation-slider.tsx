@@ -13,6 +13,7 @@ interface Props {
   versions?: List<number>;
   version?: number;
   setVersion: (number) => void;
+  actions;
 }
 
 export function NavigationSlider({
@@ -26,14 +27,19 @@ export function NavigationSlider({
   }
 }
 
-function NavigationSliderNoMarks({ version, versions, setVersion }: Props) {
+function NavigationSliderNoMarks({
+  version,
+  versions,
+  setVersion,
+  actions,
+}: Props) {
   const { isVisible } = useFrameContext();
   if (versions == null || version == null || !isVisible) {
     return null;
   }
 
   const renderTooltip = (index) => {
-    const date = versions.get(index);
+    const date = actions.wallTime(versions.get(index));
     if (date == null) return; // shouldn't happen
     return <TimeAgo date={date} />;
   };
@@ -55,11 +61,16 @@ function NavigationSliderNoMarks({ version, versions, setVersion }: Props) {
 // This lays the marks out with dots spread by when they actually happened, like
 // a timeline.  It is sometimes very nice and sometimes very annoying.
 
-function NavigationSliderMarks({ version, versions, setVersion }: Props) {
+function NavigationSliderMarks({
+  version,
+  versions,
+  setVersion,
+  actions,
+}: Props) {
   const { isVisible } = useFrameContext();
 
   const renderTooltip = (version) => {
-    return <TimeAgo date={new Date(version)} />;
+    return <TimeAgo date={new Date(actions.wallTime(version))} />;
   };
 
   const marks = useMemo(() => {

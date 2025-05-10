@@ -466,6 +466,18 @@ export class SortedPatchList extends EventEmitter {
     return this.versions_cache;
   };
 
+  // Walltime of patch created at a given point in time.
+  wallTime = (version: number): number | undefined => {
+    const p = this.live[version];
+    if (p != null) {
+      return p.wall ?? p.time;
+    }
+    const s = this.staging[version];
+    if (s != null) {
+      return s.wall ?? s.time;
+    }
+  };
+
   hasVersion = (time: number): boolean => {
     return this.live[time] != null;
   };

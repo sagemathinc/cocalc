@@ -253,9 +253,13 @@ export function TimeTravel(props: Props) {
       if (i == -1) {
         return null;
       }
+      const t = props.actions.wallTime(version);
+      if (t == null) {
+        return null;
+      }
       return (
         <Version
-          date={new Date(version)}
+          date={new Date(t)}
           number={props.actions.versionNumber(version) ?? i + firstVersion}
           user={props.actions.getUser(version)}
         />
@@ -324,6 +328,7 @@ export function TimeTravel(props: Props) {
         setVersion={setVersion}
         versions={gitMode ? gitVersions : versions}
         marks={marks}
+        actions={props.actions}
       />
     );
   };
@@ -340,6 +345,7 @@ export function TimeTravel(props: Props) {
         version1={version1}
         setVersion1={setVersion1}
         marks={marks}
+        actions={props.actions}
       />
     );
   };
