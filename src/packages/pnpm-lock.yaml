@@ -874,12 +874,9 @@ importers:
       formidable:
         specifier: ^3.5.4
         version: 3.5.4
-      http-proxy:
-        specifier: ^1.18.1
-        version: 1.18.1(debug@4.4.0)
       http-proxy-3:
-        specifier: ^1.19.6
-        version: 1.19.6
+        specifier: ^1.19.7
+        version: 1.19.7
       immutable:
         specifier: ^4.3.0
         version: 4.3.7
@@ -980,9 +977,6 @@ importers:
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.21
-      '@types/http-proxy':
-        specifier: ^1.17.9
-        version: 1.17.16
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.86
@@ -7610,9 +7604,9 @@ packages:
   http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
 
-  http-proxy-3@1.19.6:
-    resolution: {integrity: sha512-C4TIHxPapJ+pfWIm913BRALWCUX7rLHvSNx6vzvdgqJY5Ig60FTyQuUwyOzUMjtcFva7XNvP+Ehwv9zMVJQ/+A==}
-    engines: {node: '>=16.0.0'}
+  http-proxy-3@1.19.7:
+    resolution: {integrity: sha512-Wm1PSARz3bbArawiUz4Sw7U788P9UpSRUPFr+LLeK7COqfdN8OK9XBxCK0sbmO6lm/BQVcSfuOnG3OqsmlOQyg==}
+    engines: {node: '>=20.0.0'}
 
   http-proxy-agent@5.0.0:
     resolution: {integrity: sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==}
@@ -18736,11 +18730,10 @@ snapshots:
 
   http-parser-js@0.5.10: {}
 
-  http-proxy-3@1.19.6:
+  http-proxy-3@1.19.7:
     dependencies:
       debug: 4.4.0(supports-color@8.1.1)
       follow-redirects: 1.15.9(debug@4.4.0)
-      requires-port: 1.0.0
     transitivePeerDependencies:
       - supports-color
 
@@ -18762,7 +18755,7 @@ snapshots:
   http-proxy-middleware@2.0.9(@types/express@4.17.21):
     dependencies:
       '@types/http-proxy': 1.17.16
-      http-proxy: 1.18.1(debug@4.4.0)
+      http-proxy: 1.18.1
       is-glob: 4.0.3
       is-plain-obj: 3.0.0
       micromatch: 4.0.8
@@ -18771,7 +18764,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  http-proxy@1.18.1(debug@4.4.0):
+  http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
       follow-redirects: 1.15.9(debug@4.4.0)
