@@ -1,6 +1,12 @@
 /*
 Time sync -- relies on a hub running a time sync server.
 
+IMPORTANT: Our realtime sync algorithm doesn't depend on an accurate clock anymore.
+We may use time to compute logical timestamps for convenience, but they will always be
+increasing and fall back to a non-time sequence for a while in case a clock is out of sync.
+We do use the time for displaying edit times to users, which is one reason why syncing
+the clock is useful.
+
 To use this, call the default export, which is a sync
 function that returns the current sync'd time (in ms since epoch), or
 throws an error if the first time sync hasn't succeeded.
@@ -33,13 +39,15 @@ Type ".help" for more information.
 
 import { timeClient } from "@cocalc/nats/service/time";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { once } from "@cocalc/util/async-utils";
 import { getClient } from "@cocalc/nats/client";
 import { delay } from "awaiting";
+import { waitUntilConnected } from "./util";
 
-// sync clock this frequently once it has sync'd once
-const INTERVAL_GOOD = 1000 * 60;
-const INTERVAL_BAD = 5 * 1000;
+// we use exponential backoff starting with a short interval
+// then making it longer
+const INTERVAL_START = 5 * 1000;
+const INTERVAL_GOOD = 1000 * 120;
+const TOLERANCE = 3000;
 
 export function init() {
   syncLoop();
@@ -57,18 +65,24 @@ async function syncLoop() {
   }
   syncLoopStarted = true;
   const client = getClient();
+  let d = INTERVAL_START;
   while (state != "closed" && client.state != "closed") {
     try {
+      const lastSkew = skew ?? 0;
       await getSkew();
       if (state == "closed") return;
-      await delay(INTERVAL_GOOD);
-    } catch (err) {
-      if (client.state != "connected") {
-        await once(client, "connected");
-        continue;
+      if (Math.abs((skew ?? 0) - lastSkew) >= TOLERANCE) {
+        // changing a lot so check again soon
+        d = INTERVAL_START;
+      } else {
+        d = Math.min(INTERVAL_GOOD, d * 2);
       }
+      await delay(d);
+    } catch (err) {
       console.log(`WARNING: failed to sync clock -- ${err}`);
-      await delay(INTERVAL_BAD);
+      // reset delay
+      d = INTERVAL_START;
+      await delay(d);
     }
   }
 }
@@ -81,6 +95,7 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
     skew = 0;
     return skew;
   }
+  await waitUntilConnected();
   const start = Date.now();
   const client = getClient();
   const tc = timeClient(client);
@@ -88,6 +103,7 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
   const end = Date.now();
   rtt = end - start;
   skew = start + rtt / 2 - serverTime;
+  console.log("getSkew", { skew });
   return skew;
 });
 
