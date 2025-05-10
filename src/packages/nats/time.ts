@@ -103,7 +103,6 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
   const end = Date.now();
   rtt = end - start;
   skew = start + rtt / 2 - serverTime;
-  console.log("getSkew", { skew });
   return skew;
 });
 
