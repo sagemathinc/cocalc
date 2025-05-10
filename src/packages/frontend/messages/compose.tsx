@@ -11,7 +11,6 @@ import { isEqual } from "lodash";
 import { useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useAsyncEffect } from "use-async-effect";
-
 import {
   redux,
   useActions,
@@ -64,8 +63,14 @@ export default function Compose({
   const [version, setVersion] = useState<number>(0);
   const [versions, setVersions] = useState<Date[]>([]);
   const renderSliderTooltip = (index) => {
-    const date = versions[index];
-    if (date == null) return;
+    const logicalTime = versions[index];
+    if (logicalTime == null) {
+      return;
+    }
+    const date = syncstringRef.current?.wallTime(logicalTime);
+    if (date == null) {
+      return;
+    }
     return <TimeAgo date={date} />;
   };
   const getValueRef = useRef<any>(null);
