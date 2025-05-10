@@ -16,6 +16,8 @@ import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";
 import mime from "mime-types";
 
+const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml", "text/html"]);
+
 const logger = getLogger("proxy:handle-request");
 
 interface Options {
@@ -103,7 +105,11 @@ export default function init({ projectControl, isPersonal }: Options) {
       const path = decodeURIComponent(url.slice(i + "files/".length, j));
       dbg("NATs: get", { project_id, path, compute_server_id, url });
       const fileName = path_split(path).tail;
-      if (req.query.download != null) {
+      const contentType = mime.lookup(fileName);
+      if (
+        req.query.download != null ||
+        DANGEROUS_CONTENT_TYPE.has(contentType)
+      ) {
         const fileNameEncoded = encodeURIComponent(fileName)
           .replace(/['()]/g, escape)
           .replace(/\*/g, "%2A");
@@ -112,7 +118,7 @@ export default function init({ projectControl, isPersonal }: Options) {
           `attachment; filename*=UTF-8''${fileNameEncoded}`,
         );
       }
-      res.setHeader("Content-type", mime.lookup(fileName));
+      res.setHeader("Content-type", contentType);
       for await (const chunk of await readProjectFile({
         project_id,
         compute_server_id,

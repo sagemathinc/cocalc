@@ -54,6 +54,7 @@ import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
+import { readFile, type ReadFileOptions } from "@cocalc/nats/files/read";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -97,6 +98,18 @@ export class ProjectClient {
       opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
     }
     return await writeFile(opts);
+  };
+
+  // readFile -- read **arbitrarily large text or binary files**
+  // from a project via a readable stream.
+  // Look at the code below if you want to stream a file for memory
+  // efficiency...
+  readFile = async (opts: ReadFileOptions): Promise<Buffer> => {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of await readFile(opts)) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
   };
 
   public async read_text_file({

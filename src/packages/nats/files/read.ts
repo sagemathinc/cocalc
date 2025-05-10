@@ -137,19 +137,21 @@ async function sendData(mesg, createReadStream) {
   }
 }
 
+export interface ReadFileOptions {
+  project_id: string;
+  compute_server_id?: number;
+  path: string;
+  name?: string;
+  maxWait?: number;
+}
+
 export async function* readFile({
   project_id,
   compute_server_id = 0,
   path,
   name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
-}: {
-  project_id: string;
-  compute_server_id?: number;
-  path: string;
-  name?: string;
-  maxWait?: number;
-}) {
+}: ReadFileOptions) {
   const { nc, jc } = await getEnv();
   const subject = getSubject({
     project_id,

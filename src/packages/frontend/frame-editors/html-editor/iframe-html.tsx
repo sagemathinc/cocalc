@@ -26,7 +26,9 @@ import { debounce } from "lodash";
 import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
-import { raw_url } from "../frame-tree/util";
+import { useEffect, useRef, useState } from "react";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Spin } from "antd";
 
 interface Props {
   id: string;
@@ -42,6 +44,7 @@ interface Props {
   mode: "rmd" | undefined;
   style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
+  value?: string;
 }
 
 function should_memoize(prev, next) {
@@ -73,15 +76,56 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     style,
     derived_file_types,
     tab_is_visible,
+    value,
   } = props;
 
-  const rootEl = React.useRef(null);
-  const iframe = React.useRef(null);
-  const mounted = React.useRef(false);
+  // during init definitely nothing available to show users; this
+  // is only needed for rmd mode where an aux file loaded from server.
+  const [init, setInit] = useState<boolean>(mode == "rmd");
+  const [srcDoc, setSrcDoc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode != "rmd") {
+      setInit(false);
+      return;
+    }
+    let actual_path = path;
+    if (mode == "rmd" && derived_file_types != undefined) {
+      if (derived_file_types.contains("html")) {
+        // keep path as it is; don't remove this case though because of the else
+      } else if (derived_file_types.contains("nb.html")) {
+        actual_path = change_filename_extension(path, "nb.html");
+      } else {
+        setSrcDoc(null);
+      }
+    }
+
+    // read actual_path and set srcDoc to it.
+    (async () => {
+      let buf;
+      try {
+        buf = await webapp_client.project_client.readFile({
+          project_id,
+          path: actual_path,
+        });
+      } catch (err) {
+        actions.set_error(`${err}`);
+        return;
+      } finally {
+        // done -- we tried
+        setInit(false);
+      }
+      setSrcDoc(buf.toString("utf8"));
+    })();
+  }, [reload, mode, path, derived_file_types]);
+
+  const rootEl = useRef(null);
+  const iframe = useRef(null);
+  const mounted = useRef(false);
   const scaling = use_font_size_scaling(font_size);
 
   // once after mounting
-  React.useEffect(function () {
+  useEffect(function () {
     mounted.current = true;
     reload_iframe();
     set_iframe_style(scaling);
@@ -90,18 +134,18 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     };
   }, []);
 
-  React.useEffect(
+  useEffect(
     function () {
       if (tab_is_visible) restore_scroll();
     },
-    [tab_is_visible]
+    [tab_is_visible],
   );
 
-  React.useEffect(
+  useEffect(
     function () {
       set_iframe_style(scaling);
     },
-    [scaling]
+    [scaling],
   );
 
   function click_iframe(): void {
@@ -132,7 +176,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener(
         "scroll",
-        debounce(() => on_scroll(), 150)
+        debounce(() => on_scroll(), 150),
       );
     }
   }
@@ -156,27 +200,25 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_iframe() {
-    let actual_path = path;
-    if (mode == "rmd" && derived_file_types != undefined) {
-      if (derived_file_types.contains("html")) {
-        // keep path as it is; don't remove this case though because of the else
-      } else if (derived_file_types.contains("nb.html")) {
-        actual_path = change_filename_extension(path, "nb.html");
-      } else {
-        return render_no_html();
-      }
+    if (init) {
+      // in the init phase.
+      return (
+        <div style={{ margin: "15px auto" }}>
+          <Spin />
+        </div>
+      );
     }
-
-    // param below is just to avoid caching.
-    const src = `${raw_url(project_id, actual_path)}?param=${reload}`;
-
+    if (mode == "rmd" && srcDoc == null) {
+      return render_no_html();
+    }
     return (
       <iframe
         ref={iframe}
-        src={src}
+        srcDoc={mode != "rmd" ? value : (srcDoc ?? "")}
+        sandbox="allow-forms allow-scripts allow-presentation"
         width={"100%"}
         height={"100%"}
-        style={{ border: 0, opacity: 0, ...style }}
+        style={{ border: 0, ...style }}
         onLoad={iframe_loaded}
       />
     );
@@ -208,7 +250,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div>
         <p>There is no rendered HTML file available.</p>
-        {derived_file_types.size > 0 ? (
+        {(derived_file_types?.size ?? 0) > 0 ? (
           <p>
             Instead, you might want to switch to the{" "}
             {list_alternatives(derived_file_types)} view by selecting it via the
