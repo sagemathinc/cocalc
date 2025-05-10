@@ -899,7 +899,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # This will avoid a possible subtle edge case if user is cheating and always somehow
     # crashes server...?
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
-        dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
+        #dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
+        # I've seen MASSIVE OUTPUT from this, e.g., when setting avatar.
+        dbg = @_dbg("_user_set_query_project_change_before #{account_id}")
         dbg()
 
         if new_val?.name and (new_val?.name != old_val?.name)
