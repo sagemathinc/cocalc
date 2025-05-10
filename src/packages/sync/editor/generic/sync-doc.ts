@@ -1795,6 +1795,7 @@ export class SyncDoc extends EventEmitter {
       string_id: this.string_id,
       is_snapshot: false, // only used with nats
       time: cutoff ? { ">=": cutoff } : null,
+      wall: null,
       // compressed format patch as a JSON *string*
       patch: null,
       // integer id of user (maps to syncstring table)
@@ -2227,7 +2228,11 @@ export class SyncDoc extends EventEmitter {
     const obj: any = {
       // version for database
       string_id: this.string_id,
+      // logical time -- usually the sync'd walltime, but
+      // guaranteed to be increasing.
       time,
+      // what we show user
+      wall: this.client.server_time().valueOf(),
       patch: JSON.stringify(patch),
       user_id: this.my_user_id,
       is_snapshot: false,
