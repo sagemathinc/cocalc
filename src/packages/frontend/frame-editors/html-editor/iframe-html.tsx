@@ -21,6 +21,7 @@ import {
   change_filename_extension,
   is_different,
   list_alternatives,
+  path_split,
 } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
@@ -146,7 +147,13 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         // extra security and pointed in the right direction.
         // We can't just use <iframe src= since the backend 'raw files' server
         // just always forces a download of that, for security reasons.
-        const extraHead = `<base href="${join(appBasePath, project_id)}/files/">
+        const base = join(
+          appBasePath,
+          project_id,
+          "files",
+          encodeURIComponent(path_split(actual_path).head) + "/",
+        );
+        const extraHead = `<base href="${base}">
         <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval';
   script-src * data: blob: 'unsafe-inline' 'unsafe-eval';
   img-src * data: blob:;
