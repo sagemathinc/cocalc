@@ -48,10 +48,9 @@ const MAX_BYTES_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "500000",
 );
 
-//   Limit number of messages per second (not doing this makes it easy
-// to cause trouble to the server)
+// Limit number of messages per second.
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "100",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "250",
 );
 
 const sessions: { [path: string]: Session } = {};
