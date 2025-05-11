@@ -28,7 +28,14 @@ import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { useEffect, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Spin } from "antd";
+import { Switch, Spin, Tooltip } from "antd";
+import {
+  set_local_storage,
+  get_local_storage,
+  delete_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 interface Props {
   id: string;
@@ -45,6 +52,20 @@ interface Props {
   style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
   value?: string;
+}
+
+function getKey({ project_id, path }) {
+  return `${project_id}:${path}:trust`;
+}
+function isTrusted(props): boolean {
+  return !!get_local_storage(getKey(props));
+}
+function setTrusted(props, trust: boolean) {
+  if (trust) {
+    set_local_storage(getKey(props), "true");
+  } else {
+    delete_local_storage(getKey(props));
+  }
 }
 
 function should_memoize(prev, next) {
@@ -83,6 +104,11 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // is only needed for rmd mode where an aux file loaded from server.
   const [init, setInit] = useState<boolean>(mode == "rmd");
   const [srcDoc, setSrcDoc] = useState<string | null>(null);
+  const [trust, setTrust0] = useState<boolean>(isTrusted(props));
+  const setTrust = (trust) => {
+    setTrusted(props, trust);
+    setTrust0(trust);
+  };
 
   useEffect(() => {
     if (mode != "rmd") {
@@ -115,9 +141,31 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         // done -- we tried
         setInit(false);
       }
-      setSrcDoc(buf.toString("utf8"));
+      let src = buf.toString("utf8");
+      if (trust) {
+        // extra security and pointed in the right direction.
+        // We can't just use <iframe src= since the backend 'raw files' server
+        // just always forces a download of that, for security reasons.
+        const extraHead = `<base href="${join(appBasePath, project_id)}/files/">
+        <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval';
+  script-src * data: blob: 'unsafe-inline' 'unsafe-eval';
+  img-src * data: blob:;
+  style-src * data: blob: 'unsafe-inline';
+  font-src * data: blob: about:;
+  connect-src * data: blob:;
+  frame-src * data: blob:;
+  object-src * data: blob:;
+  media-src * data: blob:;">`;
+        const newSrc = src.replace(/<head>/i, `<head>${extraHead}`);
+        if (src != newSrc) {
+          src = newSrc;
+        } else {
+          src = `<head>\n${extraHead}\n</head>\n\n${src}`;
+        }
+      }
+      setSrcDoc(src);
     })();
-  }, [reload, mode, path, derived_file_types]);
+  }, [reload, mode, path, derived_file_types, trust]);
 
   const rootEl = useRef(null);
   const iframe = useRef(null);
@@ -211,15 +259,18 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     if (mode == "rmd" && srcDoc == null) {
       return render_no_html();
     }
+
     return (
       <iframe
         ref={iframe}
         srcDoc={mode != "rmd" ? value : (srcDoc ?? "")}
-        sandbox="allow-forms allow-scripts allow-presentation"
         width={"100%"}
         height={"100%"}
         style={{ border: 0, ...style }}
         onLoad={iframe_loaded}
+        sandbox={
+          !trust ? "allow-forms allow-scripts allow-presentation" : undefined
+        }
       />
     );
   }
@@ -266,6 +317,21 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // the cocalc-editor-div is needed for a safari hack only
   return (
     <div style={STYLE} className={"cocalc-editor-div smc-vfill"} ref={rootEl}>
+      <div>
+        <Tooltip
+          title={
+            "Arbitrary HTML is potentially dangerous.  If you trust this content, switch this to trusted."
+          }
+        >
+          <Switch
+            style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
+            checked={trust}
+            onChange={(checked) => setTrust(checked)}
+            unCheckedChildren={"Untrusted"}
+            checkedChildren={"Trusted"}
+          />
+        </Tooltip>
+      </div>
       {render_iframe()}
     </div>
   );
