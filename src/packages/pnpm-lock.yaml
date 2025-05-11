@@ -875,8 +875,8 @@ importers:
         specifier: ^3.5.4
         version: 3.5.4
       http-proxy-3:
-        specifier: ^1.19.7
-        version: 1.19.7
+        specifier: ^1.20.0
+        version: 1.20.0
       immutable:
         specifier: ^4.3.0
         version: 4.3.7
@@ -7604,8 +7604,8 @@ packages:
   http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
 
-  http-proxy-3@1.19.7:
-    resolution: {integrity: sha512-Wm1PSARz3bbArawiUz4Sw7U788P9UpSRUPFr+LLeK7COqfdN8OK9XBxCK0sbmO6lm/BQVcSfuOnG3OqsmlOQyg==}
+  http-proxy-3@1.20.0:
+    resolution: {integrity: sha512-lGheif1UzSJ4j1MvvlWUA8u95tFnNzMMhtqOFIASZ9wD4UrLxp+F0QCR4BbE/ddrSpw+i+iJiO0oTH/9mEsriw==}
     engines: {node: '>=20.0.0'}
 
   http-proxy-agent@5.0.0:
@@ -18730,7 +18730,7 @@ snapshots:
 
   http-parser-js@0.5.10: {}
 
-  http-proxy-3@1.19.7:
+  http-proxy-3@1.20.0:
     dependencies:
       debug: 4.4.0(supports-color@8.1.1)
       follow-redirects: 1.15.9(debug@4.4.0)
