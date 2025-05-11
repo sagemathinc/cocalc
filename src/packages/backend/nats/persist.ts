@@ -1,8 +1,8 @@
-export { pstream } from "@cocalc/nats/persist/stream";
+export { pstream } from "@cocalc/nats/persist/storage";
 
 import "./index";
 import betterSqlite3 from "better-sqlite3";
 import { setDatabase } from "@cocalc/nats/persist/sqlite";
-import * as lz4 from "lz4-napi";
+import { compress, decompress } from "zstd-napi";
 
-setDatabase({ betterSqlite3, lz4 });
+setDatabase({ betterSqlite3, compress, decompress });

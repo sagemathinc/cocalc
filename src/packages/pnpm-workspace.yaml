@@ -10,3 +10,4 @@ onlyBuiltDependencies:
   - websocket-sftp
   - websocketfs
   - zeromq
+  - zstd-napi

@@ -45,7 +45,6 @@
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
-    "lz4-napi": "^2.8.0",
     "nats": "^2.29.3",
     "nats.ws": "^1.30.2",
     "password-hash": "^1.2.2",
@@ -55,7 +54,8 @@
     "supports-color": "^9.0.2",
     "tmp-promise": "^3.0.3",
     "underscore": "^1.12.1",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zstd-napi": "^0.0.10"
   },
   "repository": {
     "type": "git",

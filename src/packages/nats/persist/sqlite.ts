@@ -4,30 +4,26 @@ export { type Database };
 
 let betterSqlite3: any = null;
 
-export let compress: (
-  data: Buffer | string | ArrayBuffer | Uint8Array,
-  _dict?: string | Buffer,
-) => Buffer = () => {
+export let compress: (data: Buffer) => Buffer = () => {
   throw Error("must initialize persiste.sqlite");
 };
 
-export let decompress: (
-  data: Buffer | string | ArrayBuffer | Uint8Array,
-  _dict?: string | Buffer,
-) => Buffer = () => {
+export let decompress: (data: Buffer) => Buffer = () => {
   throw Error("must initialize persiste.sqlite");
 };
 
 export function setDatabase({
   betterSqlite3: _betterSqlite3,
-  lz4,
+  compress: _compress,
+  decompress: _decompress,
 }: {
   betterSqlite3;
-  lz4;
+  compress: (Buffer) => Buffer;
+  decompress: (Buffer) => Buffer;
 }) {
   betterSqlite3 = _betterSqlite3;
-  compress = lz4.compressSync;
-  decompress = lz4.uncompressSync;
+  compress = _compress;
+  decompress = _decompress;
 }
 
 export function createDatabase(...args): Database {

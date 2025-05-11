@@ -32,7 +32,8 @@
       "better-sqlite3",
       "websocket-sftp",
       "websocketfs",
-      "zeromq"
+      "zeromq",
+      "zstd-napi"
     ]
   }
 }
