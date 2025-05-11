@@ -95,6 +95,9 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      better-sqlite3:
+        specifier: ^11.9.1
+        version: 11.9.1
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -1135,6 +1138,9 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
     devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
       '@types/json-stable-stringify':
         specifier: ^1.0.32
         version: 1.0.36
