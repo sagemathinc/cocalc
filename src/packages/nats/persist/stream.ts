@@ -1,9 +1,13 @@
 /*
+Sqlite3 storage of stream values for a particular subject.
 
-
+The binary buffer value is lz4 compressed as configured in
+the sqlite module. In backend, we configured this to use a
+very fast synchronous rust lz4 implementation from lz4-napi.
 */
+
 import refCache from "@cocalc/util/refcache";
-import { createDatabase, type Database } from "./sqlite";
+import { createDatabase, type Database, compress, decompress } from "./sqlite";
 
 type Headers = { [field: string]: string | string[] };
 
@@ -42,36 +46,49 @@ export class PersistentStream {
 
   close = async () => {};
 
-  set = (seq: number, mesg: Message) => {
+  set = (seq: number, mesg: Message): number => {
     const headers = mesg.headers ? JSON.stringify(mesg.headers) : undefined;
+    const timestamp = Date.now();
     this.db
       .prepare(
         "INSERT INTO messages(seq, timestamp, value, headers) VALUES(?,?,?,?)",
       )
-      .run(seq, mesg.timestamp, mesg.value, headers);
+      .run(seq, timestamp, compress(mesg.value), headers);
+    return timestamp;
   };
 
   get = (seq: number): Message => {
-    return this.db
-      .prepare("SELECT timestamp,value,headers FROM messages WHERE seq=?")
-      .get(seq) as Message;
+    return dbToMessage(
+      this.db
+        .prepare("SELECT timestamp,value,headers FROM messages WHERE seq=?")
+        .get(seq) as any,
+    );
   };
 
   getAll = ({ start_seq }: { start_seq?: number } = {}): Message[] => {
     const query = "SELECT seq, timestamp, value, headers FROM messages";
     if (!start_seq) {
-      return this.db.prepare(query).all() as Message[];
+      return this.db.prepare(query).all().map(dbToMessage);
     } else {
       return this.db
         .prepare(
           "SELECT seq,timestamp,value,headers FROM messages WHERE seq>=?",
         )
-        .all(start_seq) as Message[];
+        .all(start_seq)
+        .map(dbToMessage);
     }
   };
 
   delete = (seq: number) => {
     this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
+  };
+}
+
+function dbToMessage({ timestamp, value, headers }): Message {
+  return {
+    timestamp,
+    value: decompress(value),
+    headers: headers ? JSON.parse(headers) : undefined,
   };
 }
 

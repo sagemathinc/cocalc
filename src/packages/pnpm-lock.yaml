@@ -113,6 +113,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      lz4-napi:
+        specifier: ^2.8.0
+        version: 2.8.0
       nats:
         specifier: ^2.29.3
         version: 2.29.3
