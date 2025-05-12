@@ -16,6 +16,10 @@ unset DEBUG_CONSOLE
 #export NO_RSPACK_DEV_SERVER=yes
 
 while true; do
-  pnpm hub
+  if [ x"$COCALC_PROD_MODE" = "x" ]; then
+      pnpm hub
+  else
+      pnpm hub-prod
+  fi
   sleep 1
 done

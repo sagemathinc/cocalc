@@ -9,6 +9,7 @@
     "build-dev": "./workspaces.py install && ./workspaces.py build --dev",
     "clean": "rm -rf packages/node_modules && ./workspaces.py clean && cd compute/compute && pnpm clean ",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
+    "hub-prod": "cd packages/hub && npm run hub-project-prod-nobuild",
     "rspack": "cd packages/static && pnpm watch",
     "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
     "database": "cd dev/project && ./start_postgres.py",

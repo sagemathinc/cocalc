@@ -41,7 +41,6 @@ import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode, SubmitMentionsFn } from "./types";
 import {
-  getReplyToRoot,
   getThreadRootDate,
   is_editing,
   message_colors,

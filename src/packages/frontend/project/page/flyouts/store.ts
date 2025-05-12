@@ -57,12 +57,12 @@ export function useStarredFilesManager(project_id: string) {
       };
       await api("bookmarks/set", payload);
     } catch (err) {
-      console.error("api error", err);
+      console.warn(`bookmark: warning -- ${err}`);
     }
   }
 
   // this is called once, when the flyout/tabs component is mounted
-  // throtteld, to usually take 1 sec from opening the panel to loading the stars
+  // throtteled, to usually take 1 sec from opening the panel to loading the stars
   const updateStarred = throttle(
     async () => {
       try {
@@ -105,7 +105,7 @@ export function useStarredFilesManager(project_id: string) {
           console.error("flyout/store/starred error: unknown status", status);
         }
       } catch (err) {
-        console.error("api error", err);
+        console.warn(`bookmark: warning -- ${err}`);
       }
     },
     1000,

@@ -1,30 +1,24 @@
 /*
-Time sync entirely using nats itself.
+Time sync -- relies on a hub running a time sync server.
+
+IMPORTANT: Our realtime sync algorithm doesn't depend on an accurate clock anymore.
+We may use time to compute logical timestamps for convenience, but they will always be
+increasing and fall back to a non-time sequence for a while in case a clock is out of sync.
+We do use the time for displaying edit times to users, which is one reason why syncing
+the clock is useful.
 
 To use this, call the default export, which is a sync
 function that returns the current sync'd time (in ms since epoch), or
 throws an error if the first time sync hasn't succeeded.
 This gets initialized by default on load of your process.
-If you want to await until the clock is sync'd, call "await getSkew()"
+If you want to await until the clock is sync'd, call "await getSkew()".
 
-It works using a key:value store via jetstream,
-which is complicated overall.  Normal request/reply
-messages don't seem to have a timestamp, so I couldn't
-use them.
-
-import getTime, {getSkew} from "@cocalc/nats/time";
-
-// sync - this throws if hasn't connected and sync'd the first time:
-
-getTime();  // -- ms since the epoch
-
-// async -- will wait to connect and tries to sync if haven't done so yet.  Otherwise same as sync:
-// once this works you can definitely call getTime henceforth.
-await getSkew();
+In unit testing mode this just falls back to Date.now().
 
 DEVELOPMENT:
 
-See src/packages/backend/nats/test/time.test.ts for unit tests.
+See src/packages/backend/nats/test/time.test.ts for relevant unit test, though
+in test mode this is basically disabled.
 
 Also do this, noting the directory and import of @cocalc/backend/nats.
 
@@ -43,31 +37,20 @@ Type ".help" for more information.
 
 */
 
-import { dkv as createDkv } from "@cocalc/nats/sync/dkv";
-import { getClient, getEnv, reconnect } from "@cocalc/nats/client";
+import { timeClient } from "@cocalc/nats/service/time";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { randomId } from "@cocalc/nats/names";
-import { callback, delay } from "awaiting";
-import { nanos } from "@cocalc/nats/util";
-import { once } from "@cocalc/util/async-utils";
+import { getClient } from "@cocalc/nats/client";
+import { delay } from "awaiting";
+import { waitUntilConnected } from "./util";
 
-// max time to try when syncing
-const TIMEOUT = 3 * 1000;
-
-// sync clock this frequently once it has sync'd once
-const INTERVAL_GOOD = 1000 * 60;
-const INTERVAL_BAD = 5 * 1000;
-
-// If clock fails to sync this many times in a row, we reconnect to nats.
-const MAX_FAILS = 3;
-
-const RECONNECT_LOGIC = false;
+// we use exponential backoff starting with a short interval
+// then making it longer
+const INTERVAL_START = 5 * 1000;
+const INTERVAL_GOOD = 1000 * 120;
+const TOLERANCE = 3000;
 
 export function init() {
   syncLoop();
-  if (RECONNECT_LOGIC) {
-    monitorLoop();
-  }
 }
 
 let state = "running";
@@ -82,107 +65,45 @@ async function syncLoop() {
   }
   syncLoopStarted = true;
   const client = getClient();
-  let fails = 0;
+  let d = INTERVAL_START;
   while (state != "closed" && client.state != "closed") {
     try {
+      const lastSkew = skew ?? 0;
       await getSkew();
       if (state == "closed") return;
-      fails = 0;
-      await delay(INTERVAL_GOOD);
+      if (Math.abs((skew ?? 0) - lastSkew) >= TOLERANCE) {
+        // changing a lot so check again soon
+        d = INTERVAL_START;
+      } else {
+        d = Math.min(INTERVAL_GOOD, d * 2);
+      }
+      await delay(d);
     } catch (err) {
-      if (client.state != "connected") {
-        await once(client, "connected");
-        continue;
-      }
       console.log(`WARNING: failed to sync clock -- ${err}`);
-      if (RECONNECT_LOGIC) {
-        fails += 1;
-        console.log({ fails, MAX_FAILS, state });
-        if (state == "closed") return;
-        if (fails >= MAX_FAILS) {
-          // something is very very wrong -- reconnect
-          console.log("WARNING: something is wrong with NATS connection");
-          fails = 0;
-          try {
-            await reconnect();
-          } catch (err) {
-            console.log(`WARNING: reconnect failed -- ${err}`);
-          }
-        }
-      }
-      await delay(INTERVAL_BAD);
+      // reset delay
+      d = INTERVAL_START;
+      await delay(d);
     }
   }
 }
-
-// periodically check if the client thinks we are connected, but
-// the clock isn't updating.  If so, reconnect.
-async function monitorLoop() {
-  if (process.env.COCALC_TEST_MODE) {
-    return;
-  }
-  const client = getClient();
-  while (state != "closed" && client.state != "closed") {
-    await delay(5000);
-    if (
-      client.state == "connected" &&
-      Date.now() - lastUpdated > 1.2 * INTERVAL_GOOD
-    ) {
-      console.log("WARNING: clock isn't updating, so reconnecting");
-      await reconnect();
-    }
-  }
-}
-
-let dkv: any = null;
-const initDkv = reuseInFlight(async () => {
-  const { account_id, project_id } = getClient();
-  // console.log({ account_id, project_id, client: getClient() });
-  dkv = await createDkv({
-    account_id,
-    project_id,
-    env: await getEnv(),
-    name: "time",
-    noInventory: true,
-    limits: {
-      max_age: nanos(4 * TIMEOUT),
-    },
-  });
-});
 
 // skew = amount in ms to subtract from our clock to get sync'd clock
 export let skew: number | null = null;
 let rtt: number | null = null;
-let lastUpdated = Date.now();
 export const getSkew = reuseInFlight(async (): Promise<number> => {
-  if (dkv == null) {
-    await initDkv();
+  if (process.env.COCALC_TEST_MODE) {
+    skew = 0;
+    return skew;
   }
+  await waitUntilConnected();
   const start = Date.now();
-  const id = randomId();
-  dkv.set(id, "");
-  const f = (cb) => {
-    const handle = ({ key }) => {
-      const end = Date.now();
-      if (key == id) {
-        clearTimeout(timer);
-        dkv.removeListener("change", handle);
-        const serverTime = dkv.time(key)?.valueOf();
-        dkv.delete(key);
-        rtt = end - start;
-        skew = start + rtt / 2 - serverTime;
-        lastUpdated = Date.now();
-        cb(undefined, skew);
-      }
-    };
-    dkv.on("change", handle);
-    let timer = setTimeout(() => {
-      dkv.removeListener("change", handle);
-      dkv.delete(id);
-      cb("timeout");
-    }, TIMEOUT);
-  };
-  return await callback(f);
+  const client = getClient();
+  const tc = timeClient(client);
+  const serverTime = await tc.time();
+  const end = Date.now();
+  rtt = end - start;
+  skew = start + rtt / 2 - serverTime;
+  return skew;
 });
 
 export async function waitUntilTimeAvailable() {
