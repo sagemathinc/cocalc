@@ -183,6 +183,8 @@ export default function Message({
     return message?.get("date")?.valueOf() ?? 0;
   }, [message.get("date")]);
 
+  const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
+
   const generating = message.get("generating");
 
   const history_size = useMemo(
@@ -255,7 +257,7 @@ export default function Message({
     }
   }, [replying]);
 
-  function editing_status(is_editing: boolean) {
+  function render_editing_status(is_editing: boolean) {
     let text;
 
     let other_editors = // @ts-ignore -- keySeq *is* a method of TypedMap
@@ -383,6 +385,123 @@ export default function Message({
     );
   }
 
+  function renderEditControlRow() {
+    if (isEditing) {
+      return null;
+    }
+    const showDeleteButton =
+      DELETE_BUTTON && newest_content(message).trim().length > 0;
+    const showEditingStatus =
+      (message.get("history")?.size ?? 0) > 1 ||
+      (message.get("editing")?.size ?? 0) > 0;
+    const showHistory = (message.get("history")?.size ?? 0) > 1;
+    const showLLMFeedback = isLLMThread && msgWrittenByLLM;
+
+    // Show the bottom line of the message -- this uses a LOT of extra
+    // vertical space, so only do it if there is a good reason to.
+    // Getting rid of this might be nice.
+    const show =
+      showEditButton ||
+      showDeleteButton ||
+      showEditingStatus ||
+      showHistory ||
+      showLLMFeedback;
+    if (!show) {
+      // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
+      return null;
+    }
+
+    return (
+      <div style={{ width: "100%", textAlign: "center" }}>
+        <Space direction="horizontal" size="small" wrap>
+          {showEditButton ? (
+            <Tooltip
+              title={
+                <>
+                  Edit this message. You can edit <b>any</b> past message at any
+                  time by double clicking on it. Fix other people's typos. All
+                  versions are stored.
+                </>
+              }
+              placement="left"
+            >
+              <Button
+                disabled={replying}
+                style={{
+                  color: is_viewers_message ? "white" : "#555",
+                }}
+                type="text"
+                size="small"
+                onClick={() => actions?.setEditing(message, true)}
+              >
+                <Icon name="pencil" /> Edit
+              </Button>
+            </Tooltip>
+          ) : undefined}
+          {showDeleteButton && (
+            <Tooltip
+              title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+              placement="left"
+            >
+              <Popconfirm
+                title="Delete this message"
+                description="Are you sure you want to delete this message?"
+                onConfirm={() => {
+                  actions?.setEditing(message, true);
+                  setTimeout(() => actions?.sendEdit(message, ""), 1);
+                }}
+              >
+                <Button
+                  disabled={replying}
+                  style={{
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                >
+                  <Icon name="trash" /> Delete
+                </Button>
+              </Popconfirm>
+            </Tooltip>
+          )}
+          {showEditingStatus && render_editing_status(isEditing)}
+          {showHistory && (
+            <Button
+              style={{
+                marginLeft: "5px",
+                color: is_viewers_message ? "white" : "#555",
+              }}
+              type="text"
+              size="small"
+              icon={<Icon name="history" />}
+              onClick={() => {
+                set_show_history(!show_history);
+                scroll_into_view?.();
+              }}
+            >
+              <Tip
+                title="Message History"
+                tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+              >
+                {verb} History
+              </Tip>
+            </Button>
+          )}
+          {showLLMFeedback && (
+            <>
+              <RegenerateLLM
+                actions={actions}
+                date={date}
+                model={isLLMThread}
+              />
+              <FeedbackLLM actions={actions} message={message} />
+            </>
+          )}
+        </Space>
+      </div>
+    );
+  }
+
   function contentColumn() {
     const value = newest_content(message);
 
@@ -414,128 +533,10 @@ export default function Message({
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
-    const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
       isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
     const showOtherFeedback = otherFeedback > 0;
-
-    const editControlRow = () => {
-      if (isEditing) {
-        return null;
-      }
-      const showDeleteButton =
-        DELETE_BUTTON && newest_content(message).trim().length > 0;
-      const showEditingStatus =
-        (message.get("history")?.size ?? 0) > 1 ||
-        (message.get("editing")?.size ?? 0) > 0;
-      const showHistory = (message.get("history")?.size ?? 0) > 1;
-      const showLLMFeedback = isLLMThread && msgWrittenByLLM;
-
-      // Show the bottom line of the message -- this uses a LOT of extra
-      // vertical space, so only do it if there is a good reason to.
-      // Getting rid of this might be nice.
-      const show =
-        showEditButton ||
-        showDeleteButton ||
-        showEditingStatus ||
-        showHistory ||
-        showLLMFeedback;
-      if (!show) {
-        // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
-        return null;
-      }
-
-      return (
-        <div style={{ width: "100%", textAlign: "center" }}>
-          <Space direction="horizontal" size="small" wrap>
-            {showEditButton ? (
-              <Tooltip
-                title={
-                  <>
-                    Edit this message. You can edit <b>any</b> past message at
-                    any time by double clicking on it. Fix other people's typos.
-                    All versions are stored.
-                  </>
-                }
-                placement="left"
-              >
-                <Button
-                  disabled={replying}
-                  style={{
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                  onClick={() => actions?.setEditing(message, true)}
-                >
-                  <Icon name="pencil" /> Edit
-                </Button>
-              </Tooltip>
-            ) : undefined}
-            {showDeleteButton && (
-              <Tooltip
-                title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                placement="left"
-              >
-                <Popconfirm
-                  title="Delete this message"
-                  description="Are you sure you want to delete this message?"
-                  onConfirm={() => {
-                    actions?.setEditing(message, true);
-                    setTimeout(() => actions?.sendEdit(message, ""), 1);
-                  }}
-                >
-                  <Button
-                    disabled={replying}
-                    style={{
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                  >
-                    <Icon name="trash" /> Delete
-                  </Button>
-                </Popconfirm>
-              </Tooltip>
-            )}
-            {showEditingStatus && editing_status(isEditing)}
-            {showHistory && (
-              <Button
-                style={{
-                  marginLeft: "5px",
-                  color: is_viewers_message ? "white" : "#555",
-                }}
-                type="text"
-                size="small"
-                icon={<Icon name="history" />}
-                onClick={() => {
-                  set_show_history(!show_history);
-                  scroll_into_view?.();
-                }}
-              >
-                <Tip
-                  title="Message History"
-                  tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-                >
-                  {verb} History
-                </Tip>
-              </Button>
-            )}
-            {showLLMFeedback && (
-              <>
-                <RegenerateLLM
-                  actions={actions}
-                  date={date}
-                  model={isLLMThread}
-                />
-                <FeedbackLLM actions={actions} message={message} />
-              </>
-            )}
-          </Space>
-        </div>
-      );
-    };
 
     return (
       <Col key={1} xs={mainXS}>
@@ -665,8 +666,7 @@ export default function Message({
               }
             />
           )}
-          {isEditing && renderEditMessage()}
-          {editControlRow()}
+          {isEditing ? renderEditMessage() : renderEditControlRow()}
         </div>
         {show_history && (
           <div>
