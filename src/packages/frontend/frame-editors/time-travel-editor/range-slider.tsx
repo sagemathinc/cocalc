@@ -21,7 +21,7 @@ interface Props {
   version1?: number;
   setVersion0: (number) => void;
   setVersion1: (number) => void;
-  actions;
+  wallTime: (number) => number;
 }
 
 export function RangeSlider({ marks, ...props }: Props & { marks?: boolean }) {
@@ -38,7 +38,7 @@ function RangeSliderNoMarks({
   version1,
   setVersion0,
   setVersion1,
-  actions,
+  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
 
@@ -63,7 +63,7 @@ function RangeSliderNoMarks({
   };
 
   const renderTooltip = (index) => {
-    const d = actions.wallTime(versions.get(index));
+    const d = wallTime(versions.get(index));
     if (d == null) {
       // shouldn't happen
       return;
@@ -114,7 +114,7 @@ function RangeSliderMarks({
   version1,
   setVersion0,
   setVersion1,
-  actions,
+  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
 
@@ -150,7 +150,7 @@ function RangeSliderMarks({
   };
 
   const renderTooltip = (version) => {
-    const date = new Date(actions.wallTime(version));
+    const date = new Date(wallTime(version));
     if (version == version0) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
