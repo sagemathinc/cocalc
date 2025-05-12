@@ -27,10 +27,14 @@ successor to lz4.
 
 import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./sqlite";
+import type { JSONValue } from "@cocalc/util/types";
 
-type Headers = { [field: string]: string | string[] };
+// headers are meant to be a map from strings to string|string[], but
+// we just allow any object, since it's just as easy.
+type Headers = JSONValue;
 
 interface Message {
+  seq?: number;
   value: Buffer;
   headers?: Headers;
   timestamp?: number;
@@ -62,41 +66,51 @@ export class PersistentStream {
       // typically going to come in one-by-one as users edit files, so this works well
       // for our application.  Also, loss of persistence is acceptable in a lot of application,
       // e.g., if it is just edit history for a file.
-      this.db.prepare("PRAGMA synchronous = OFF").run();
+      this.db.prepare("PRAGMA synchronous=OFF").run();
     }
     this.db
       .prepare(
-        `
-         CREATE TABLE IF NOT EXISTS messages ( 
-          seq INTEGER, timestamp INTEGER, value BLOB, headers TEXT,
-          PRIMARY KEY (seq)
+        `CREATE TABLE IF NOT EXISTS messages ( 
+          seq INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER, value BLOB, headers TEXT
         )`,
       )
       .run();
   };
 
   close = () => {
+    this.vacuum();
+    this.db?.close();
     // @ts-ignore
     delete this.options;
     // @ts-ignore
     delete this.db;
   };
 
-  set = (seq: number, mesg: Message): number => {
-    const headers = mesg.headers ? JSON.stringify(mesg.headers) : undefined;
+  set = (
+    value: Buffer,
+    {
+      headers,
+    }: {
+      headers?: Headers;
+    } = {},
+  ): { seq: number; timestamp: number } => {
     const timestamp = Date.now();
-    this.db
-      .prepare(
-        "INSERT INTO messages(seq, timestamp, value, headers) VALUES(?,?,?,?)",
-      )
-      .run(seq, timestamp, compress(Buffer.from(mesg.value)), headers);
-    return timestamp;
+    const { lastInsertRowid: seq } = this.db
+      .prepare("INSERT INTO messages(timestamp, value, headers) VALUES(?,?,?)")
+      .run(
+        timestamp,
+        compress(Buffer.isBuffer(value) ? value : Buffer.from(value)),
+        headers ? JSON.stringify(headers) : undefined,
+      );
+    return { timestamp, seq: Number(seq) };
   };
 
-  get = (seq: number): Message => {
+  get = (seq: number): Message | undefined => {
     return dbToMessage(
       this.db
-        .prepare("SELECT timestamp,value,headers FROM messages WHERE seq=?")
+        .prepare(
+          "SELECT seq, timestamp, value, headers FROM messages WHERE seq=?",
+        )
         .get(seq) as any,
     );
   };
@@ -106,31 +120,58 @@ export class PersistentStream {
   }: { start_seq?: number } = {}): IterableIterator<Message> {
     let query: string, stmt;
     if (!start_seq) {
-      query = "SELECT seq, timestamp, value, headers FROM messages";
+      query =
+        "SELECT seq, timestamp, value, headers FROM messages ORDER BY seq";
       stmt = this.db.prepare(query);
       for (const row of stmt.iterate()) {
-        yield dbToMessage(row);
+        yield dbToMessage(row)!;
       }
     } else {
       query =
-        "SELECT seq, timestamp, value, headers FROM messages WHERE seq>=?";
+        "SELECT seq, timestamp, value, headers FROM messages WHERE seq>=? ORDER BY seq";
       stmt = this.db.prepare(query);
       for (const row of stmt.iterate(start_seq)) {
-        yield dbToMessage(row);
+        yield dbToMessage(row)!;
       }
     }
   }
 
-  delete = (seq: number) => {
-    this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
+  delete = ({
+    seq,
+    last_seq,
+    all,
+  }: {
+    seq?: number;
+    last_seq?: number;
+    all?: boolean;
+  }) => {
+    if (all) {
+      this.db.prepare("DELETE FROM messages").run();
+      this.vacuum();
+    } else if (last_seq) {
+      this.db.prepare("DELETE FROM messages WHERE seq<=?").run(last_seq);
+      this.vacuum();
+    } else if (seq) {
+      this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
+    }
+  };
+
+  vacuum = () => {
+    this.db.prepare("VACUUM").run();
   };
 }
 
-function dbToMessage({ timestamp, value, headers }): Message {
+function dbToMessage(
+  x: (Message & { headers: string }) | undefined,
+): Message | undefined {
+  if (x === undefined) {
+    return x;
+  }
   return {
-    timestamp,
-    value: decompress(value),
-    headers: headers ? JSON.parse(headers) : undefined,
+    seq: x.seq,
+    timestamp: x.timestamp,
+    value: decompress(x.value),
+    headers: x.headers ? JSON.parse(x.headers) : undefined,
   };
 }
 
@@ -142,6 +183,7 @@ export const cache = refCacheSync<Options, PersistentStream>({
     return pstream;
   },
 });
+
 export function pstream(
   options: Options & { noCache?: boolean },
 ): PersistentStream {
