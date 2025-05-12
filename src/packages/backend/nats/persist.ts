@@ -6,3 +6,8 @@ import { setDatabase } from "@cocalc/nats/persist/sqlite";
 import { compress, decompress } from "zstd-napi";
 
 setDatabase({ betterSqlite3, compress, decompress });
+
+export {
+  init as initServer,
+  terminate as terminateServer,
+} from "@cocalc/nats/persist/server";

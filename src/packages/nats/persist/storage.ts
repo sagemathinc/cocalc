@@ -38,18 +38,18 @@ leak memory. So zstd-napi it is.  And I like zstandard anyways.
 import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./sqlite";
 import type { JSONValue } from "@cocalc/util/types";
+import { EventEmitter } from "events";
 
-interface Message {
+export interface Message {
   // server assigned positive increasing integer number
   seq: number;
   // server assigned time in ms since epoch
   time: number;
-  // user assigned key; any time message with a given key is set all other
-  // messages with that key are deleted.
+  // user assigned key -- when set all previous messages with that key are deleted.
   key?: string;
-  // arbitrary binary data -- analogue of NATS payload
+  // arbitrary binary data -- analogue of NATS payload, but no size limit
   buffer?: Buffer;
-  // arbitrary JSON-able object -- analogue of NATS headers
+  // arbitrary JSON-able object -- analogue of NATS headers, but anything JSON-able
   json?: JSONValue;
 }
 
@@ -61,11 +61,12 @@ interface Options {
 }
 
 // persistence for stream of messages with subject
-export class PersistentStream {
+export class PersistentStream extends EventEmitter {
   private readonly options: Options;
   private readonly db: Database;
 
   constructor(options: Options) {
+    super();
     this.options = options;
     this.db = createDatabase(`${this.options.path}`);
     this.init();
@@ -111,6 +112,8 @@ export class PersistentStream {
     key?: string;
   }): { seq: number; time: number } => {
     const time = Date.now();
+    const orig = { buffer, json };
+
     if (buffer !== undefined) {
       buffer = compress(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
     }
@@ -126,14 +129,18 @@ export class PersistentStream {
           )
           .run(time / 1000, buffer, json, key);
       });
-      const { lastInsertRowid: seq } = tx(buffer, json, key, time);
-      return { time, seq: Number(seq) };
+      const { lastInsertRowid } = tx(buffer, json, key, time);
+      const seq = Number(lastInsertRowid);
+      this.emit("change", { seq, time, key, ...orig });
+      return { time, seq };
     } else {
       // regular insert
-      const { lastInsertRowid: seq } = this.db
+      const { lastInsertRowid } = this.db
         .prepare("INSERT INTO messages(time, buffer, json) VALUES (?, ?, ?)")
         .run(time / 1000, buffer, json);
-      return { time, seq: Number(seq) };
+      const seq = Number(lastInsertRowid);
+      this.emit("change", { seq, time, ...orig });
+      return { time, seq };
     }
   };
 
@@ -232,7 +239,7 @@ function dbToMessage(
   }
   return {
     seq: x.seq,
-    key: x.key,
+    key: x.key != null ? x.key : undefined,
     time: x.time * 1000,
     buffer: x.buffer != null ? decompress(x.buffer) : undefined,
     json: x.json ? JSON.parse(x.json) : undefined,
