@@ -53,11 +53,13 @@ export interface Message {
   json?: JSONValue;
 }
 
-interface Options {
+export interface Options {
   // path to a sqlite database file
   path: string;
   // if not set (the default) do not require sync writes to disk on every set
   sync?: boolean;
+  // if set, then data is never saved to disk at all
+  ephemeral?: boolean;
 }
 
 // persistence for stream of messages with subject
@@ -68,12 +70,14 @@ export class PersistentStream extends EventEmitter {
   constructor(options: Options) {
     super();
     this.options = options;
-    this.db = createDatabase(`${this.options.path}`);
+    this.db = createDatabase(
+      this.options.ephemeral ? ":memory:" : `${this.options.path}`,
+    );
     this.init();
   }
 
   init = () => {
-    if (!this.options.sync) {
+    if (!this.options.sync && !this.options.ephemeral) {
       // Unless sync is set, we do not require that the filesystem has commited changes
       // to disk after every insert. This can easily make things 10x faster.  sets are
       // typically going to come in one-by-one as users edit files, so this works well

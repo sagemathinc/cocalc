@@ -1,41 +1,104 @@
 import { getEnv } from "@cocalc/nats/client";
-import { isValidUUID } from "@cocalc/util/misc";
-import { persistSubject, renewSubject, LAST_CHUNK, type User } from "./server";
+import {
+  persistSubject,
+  renewSubject,
+  LAST_CHUNK,
+  type User,
+  type Command,
+} from "./server";
 import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
+import { type Options as Storage, type Message } from "./storage";
 
-async function* callApi({
-  account_id,
-  project_id,
-  cmd,
-  path,
-  options,
-  heartbeat,
-  lifetime,
-  maxActualLifetime = 1000 * 60 * 60 * 2,
-}: User & {
-  path: string;
-  cmd: "set" | "changefeed";
-  options?: object;
+interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
   // many calls to extend it.
   maxActualLifetime?: number;
   // server will send resp='' to ensure there is at least one message every this many ms.
   heartbeat?: number;
-  // persist will live at most this long, then definitely die.
+  // persist will live at most this long, then definitely die unless renewed.
   lifetime?: number;
+}
+
+export async function getAll({
+  user,
+  storage,
+  start_seq,
+  options,
+}: {
+  user: User;
+  storage: Storage;
+  start_seq?: number;
+  options?: ConnectionOptions;
+}): Promise<{ id: string; lifetime: number; stream }> {
+  const stream = await callApi({
+    user,
+    storage,
+    options,
+    cmd: { name: "getAll", start_seq },
+  });
+  // the first element of the stream has the id, and the rest is the stream user will consume
+  const { value } = await stream.next();
+  return { ...value, stream };
+}
+
+export async function set({
+  user,
+  storage,
+  buffer,
+  json,
+  key,
+}): Promise<{ seq: number; time: number }> {
+  return await command({
+    user,
+    storage,
+    cmd: { name: "set", buffer, json, key },
+  });
+}
+
+export async function get({
+  user,
+  storage,
+  seq,
+  key,
+}: {
+  user;
+  storage;
+} & (
+  | { seq: number; key: undefined }
+  | { key: string; seq: undefined }
+)): Promise<Message> {
+  return await command({ user, storage, cmd: { name: "get", seq, key } });
+}
+
+async function* callApi({
+  // who is accessing persistent storage
+  user,
+  // what storage they are accessing
+  storage,
+  // command they want to do
+  cmd,
+  // options for persistent connection
+  options,
+}: {
+  user: User;
+  storage: Storage;
+  cmd: Command;
+  options?: ConnectionOptions;
 }) {
-  if (!isValidUUID(account_id) && !isValidUUID(project_id)) {
-    throw Error("account_id or project_id must be a valid uuid");
-  }
-  const subject = persistSubject({ account_id, project_id } as User);
+  const subject = persistSubject(user);
   let lastSeq = -1;
   const { nc, jc } = await getEnv();
   await waitUntilConnected();
   const chunks: Uint8Array[] = [];
+  const {
+    heartbeat,
+    lifetime,
+    maxActualLifetime = 1000 * 60 * 60 * 2,
+  } = options ?? {};
   for await (const mesg of await nc.requestMany(
     subject,
-    jc.encode({ path, cmd, options, heartbeat, lifetime }),
+    jc.encode({ storage, cmd, heartbeat, lifetime }),
     { maxWait: maxActualLifetime },
   )) {
     if (mesg.data.length == 0) {
@@ -60,13 +123,7 @@ async function* callApi({
   }
 }
 
-export async function* changefeed(opts) {
-  for await (const x of await callApi({ ...opts, cmd: "changefeed" })) {
-    yield x;
-  }
-}
-
-export async function command(opts) {
+async function command(opts) {
   for await (const x of await callApi(opts)) {
     return x;
   }
@@ -82,15 +139,15 @@ function isLastChunk(mesg) {
 }
 
 export async function renew({
-  account_id,
-  project_id,
+  user,
   id,
   lifetime,
 }: {
+  user: User;
   id: string;
   lifetime?: number;
 } & User) {
-  const subject = renewSubject({ account_id, project_id } as User);
+  const subject = renewSubject(user);
   const { nc, jc } = await getEnv();
   await waitUntilConnected();
   const resp = await nc.request(subject, jc.encode({ id, lifetime }));

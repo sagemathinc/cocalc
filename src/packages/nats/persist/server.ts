@@ -10,23 +10,36 @@ DEVELOPMENT:
 
 Change to the packages/backend directory and run node.
 
-This sets up the environment and starts the server running:
+TERMINAL 1: This sets up the environment and starts the server running:
 
    require('@cocalc/backend/nats/persist').initServer()
 
 
-In another node session, create a client:
+TERMINAL 2: In another node session, create a client:
 
-    require('@cocalc/backend/nats'); c = require('@cocalc/nats/persist/client'); p = await c.changefeed({account_id:'00000000-0000-4000-8000-000000000000', path:'/tmp/a.db', cmd:'changefeed'}); for await(const x of p) { console.log(x) }
+    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'/tmp/a.db'}
 
+    const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x) }; console.log("DONE")
 
-Back in the server process above:
+// client also does this periodically to keep subscription alive:
 
-   p = require('@cocalc/backend/nats/persist'); a = p.pstream({path:'/tmp/a.db'}); a.set({json:"foo"})
+    await renew({user, id }) 
+
+TERMINAL 3:
+
+user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'/tmp/a.db'}; const {set,get} = require('@cocalc/backend/nats/persist')
+
+   await set({user, storage, json:Math.random()})
    
-Or as another client:
+   await get({user, storage,  seq:1})
+   
+   await set({user, storage, json:Math.random(), key:'bella'})
+   
+   await get({user, storage,  key:'bella'})
+   
+Also getAll using start_seq:
 
-   require('@cocalc/backend/nats'); c = require('@cocalc/nats/persist/client'); await c.command({account_id:'00000000-0000-4000-8000-000000000000', path:'/tmp/a.db', cmd:'set', options:{json:'xxx'}})
+   cf = const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
 */
 
 import { pstream, type Message as StoredMessage } from "./storage";
@@ -38,6 +51,7 @@ import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { getMaxPayload } from "@cocalc/nats/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { JSONValue } from "@cocalc/util/types";
 
 export const DEFAULT_LIFETIME = 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
@@ -59,6 +73,34 @@ const logger = getLogger("persist:server");
 export const SUBJECT = process.env.COCALC_TEST_MODE
   ? "persist-test"
   : "persist";
+
+export interface SetCommand {
+  name: "set";
+  buffer?: Buffer;
+  json?: JSONValue;
+  key?: string;
+}
+
+export interface GetByKeyCommand {
+  name: "get";
+  key: string;
+}
+
+export interface GetBySeqCommand {
+  name: "get";
+  seq: number;
+}
+
+export interface GetAllCommand {
+  name: "getAll";
+  start_seq?: number;
+}
+
+export type Command =
+  | SetCommand
+  | GetByKeyCommand
+  | GetBySeqCommand
+  | GetAllCommand;
 
 export type User =
   | { account_id: string; project_id: undefined }
@@ -248,7 +290,7 @@ async function handleMessage(mesg) {
   const request = jc.decode(mesg.data);
   //console.log("handleMessage", request);
   const user_id = getUserId(mesg.subject);
-  const stream = pstream({ path: request.path });
+  const stream = pstream(request.storage);
 
   let seq = 0;
   let lastSend = 0;
@@ -272,9 +314,10 @@ async function handleMessage(mesg) {
     }
   };
 
-  if (["set", "get", "delete"].includes(request.cmd)) {
+  const { name, ...arg } = request.cmd;
+  if (["set", "get"].includes(name)) {
     try {
-      await respond(undefined, stream[request.cmd](request.options));
+      await respond(undefined, stream[name](arg));
       end();
     } catch (err) {
       respond(`${err}`);
@@ -282,7 +325,7 @@ async function handleMessage(mesg) {
     return;
   }
 
-  if (request.cmd == "changefeed") {
+  if (name == "getAll") {
     const id = uuid();
     numPersists += 1;
     metrics();
@@ -371,7 +414,7 @@ async function handleMessage(mesg) {
       }
 
       // send the current data
-      for (const message of stream.getAll()) {
+      for (const message of stream.getAll(request.arg)) {
         if (done) {
           return;
         }
@@ -406,6 +449,6 @@ async function handleMessage(mesg) {
       }
     }
   } else {
-    respond(`unknown command: '${request.cmd}'`);
+    respond(`unknown command: '${name}'`);
   }
 }
