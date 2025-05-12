@@ -73,19 +73,8 @@ export class ProjectClient {
   };
 
   // This can write small text files in one message.
-  public async write_text_file({
-    project_id,
-    path,
-    content,
-  }: {
-    project_id: string;
-    path: string;
-    content: string;
-  }): Promise<void> {
-    await this.natsApi(project_id).system.writeTextFileToProject({
-      path,
-      content,
-    });
+  public async write_text_file(opts): Promise<void> {
+    await this.writeFile(opts);
   }
 
   // writeFile -- easily write **arbitrarily large text or binary files**
