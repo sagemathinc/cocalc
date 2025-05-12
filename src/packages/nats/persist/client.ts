@@ -4,19 +4,19 @@ import { persistSubject, renewSubject, LAST_CHUNK, type User } from "./server";
 import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
 
-export async function* persist({
+async function* callApi({
   account_id,
   project_id,
+  cmd,
   path,
   options,
   heartbeat,
   lifetime,
   maxActualLifetime = 1000 * 60 * 60 * 2,
-}: {
-  // TODO
+}: User & {
   path: string;
-  options?: any[];
-
+  cmd: "set" | "changefeed";
+  options?: object;
   // maximum amount of time the persist can possibly stay alive, even with
   // many calls to extend it.
   maxActualLifetime?: number;
@@ -24,19 +24,18 @@ export async function* persist({
   heartbeat?: number;
   // persist will live at most this long, then definitely die.
   lifetime?: number;
-} & User) {
+}) {
   if (!isValidUUID(account_id) && !isValidUUID(project_id)) {
     throw Error("account_id or project_id must be a valid uuid");
   }
   const subject = persistSubject({ account_id, project_id } as User);
-
   let lastSeq = -1;
   const { nc, jc } = await getEnv();
   await waitUntilConnected();
   const chunks: Uint8Array[] = [];
   for await (const mesg of await nc.requestMany(
     subject,
-    jc.encode({ path, options, heartbeat, lifetime }),
+    jc.encode({ path, cmd, options, heartbeat, lifetime }),
     { maxWait: maxActualLifetime },
   )) {
     if (mesg.data.length == 0) {
@@ -58,6 +57,18 @@ export async function* persist({
     }
     lastSeq = seq;
     yield resp;
+  }
+}
+
+export async function* changefeed(opts) {
+  for await (const x of await callApi({ ...opts, cmd: "changefeed" })) {
+    yield x;
+  }
+}
+
+export async function command(opts) {
+  for await (const x of await callApi(opts)) {
+    return x;
   }
 }
 

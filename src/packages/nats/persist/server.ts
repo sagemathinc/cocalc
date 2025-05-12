@@ -12,17 +12,21 @@ Change to the packages/backend directory and run node.
 
 This sets up the environment and starts the server running:
 
-   s = require('@cocalc/backend/nats/persist'); s.initServer()
+   require('@cocalc/backend/nats/persist').initServer()
 
 
 In another node session, create a client:
 
-    require('@cocalc/backend/nats'); c = require('@cocalc/nats/persist/client'); p = await c.persist({account_id:'00000000-0000-4000-8000-000000000000', path:'a.db'});; for await(const x of p) { console.log(x) }
+    require('@cocalc/backend/nats'); c = require('@cocalc/nats/persist/client'); p = await c.changefeed({account_id:'00000000-0000-4000-8000-000000000000', path:'/tmp/a.db', cmd:'changefeed'}); for await(const x of p) { console.log(x) }
 
 
 Back in the server process above:
 
-   p = require('@cocalc/backend/nats/persist'); a = p.pstream({path:'a.db'}); a.set({json:"foo"})
+   p = require('@cocalc/backend/nats/persist'); a = p.pstream({path:'/tmp/a.db'}); a.set({json:"foo"})
+   
+Or as another client:
+
+   require('@cocalc/backend/nats'); c = require('@cocalc/nats/persist/client'); await c.command({account_id:'00000000-0000-4000-8000-000000000000', path:'/tmp/a.db', cmd:'set', options:{json:'xxx'}})
 */
 
 import { pstream, type Message as StoredMessage } from "./storage";
@@ -242,13 +246,16 @@ async function send({ jc, mesg, resp }) {
 async function handleMessage(mesg) {
   const { jc } = await getEnv();
   const request = jc.decode(mesg.data);
+  //console.log("handleMessage", request);
   const user_id = getUserId(mesg.subject);
-
   const stream = pstream({ path: request.path });
-  const id = uuid();
 
   let seq = 0;
   let lastSend = 0;
+  let end = () => {
+    stream.close();
+    mesg.respond(Empty);
+  };
   const respond = async (error, resp?) => {
     if (terminated) {
       end();
@@ -265,124 +272,140 @@ async function handleMessage(mesg) {
     }
   };
 
-  numPersists += 1;
-  metrics();
-  let done = false;
-  const end = () => {
-    if (done) {
-      return;
+  if (["set", "get", "delete"].includes(request.cmd)) {
+    try {
+      await respond(undefined, stream[request.cmd](request.options));
+      end();
+    } catch (err) {
+      respond(`${err}`);
     }
-    done = true;
-    delete endOfLife[id];
-    numPersists -= 1;
+    return;
+  }
+
+  if (request.cmd == "changefeed") {
+    const id = uuid();
+    numPersists += 1;
     metrics();
-    stream.close();
-    // end response stream with empty payload.
-    mesg.respond(Empty);
-  };
-
-  if (numPersistsPerUser[user_id] > MAX_PERSISTS_PER_USER) {
-    logger.debug(`numPersistsPerUser[${user_id}] >= MAX_PERSISTS_PER_USER`, {
-      numPersistsPerUserThis: numPersistsPerUser[user_id],
-      MAX_PERSISTS_PER_USER,
-    });
-    respond(
-      `This server has a limit of ${MAX_PERSISTS_PER_USER} persists per account`,
-    );
-    return;
-  }
-  if (numPersists >= MAX_PERSISTS_PER_SERVER) {
-    logger.debug("numPersists >= MAX_PERSISTS_PER_SERVER", {
-      numPersists,
-      MAX_PERSISTS_PER_SERVER,
-    });
-    // this will just cause the client to make another attempt, hopefully
-    // to another server
-    respond(`This server has a limit of ${MAX_PERSISTS_PER_SERVER} persists`);
-    return;
-  }
-
-  let { heartbeat } = request;
-  const lifetime = getLifetime(request);
-  delete request.lifetime;
-  delete request.heartbeat;
-
-  endOfLife[id] = Date.now() + lifetime;
-
-  async function lifetimeLoop() {
-    while (!done) {
-      await delay(7500);
-      if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
-        end();
-        return;
-      }
-    }
-  }
-  lifetimeLoop();
-
-  async function heartbeatLoop() {
-    let hb = parseFloat(heartbeat);
-    if (hb < MIN_HEARTBEAT) {
-      hb = MIN_HEARTBEAT;
-    } else if (hb > MAX_HEARTBEAT) {
-      hb = MAX_HEARTBEAT;
-    }
-    await delay(hb);
-    while (!done) {
-      const timeSinceLast = Date.now() - lastSend;
-      if (timeSinceLast < hb) {
-        // no neeed to send heartbeat yet
-        await delay(hb - timeSinceLast);
-        continue;
-      }
-      respond(undefined, "");
-      await delay(hb);
-    }
-  }
-
-  try {
-    if (!isValidUUID(user_id)) {
-      throw Error("user_id must be a valid uuid");
-    }
-    // send the id first
-    await respond(undefined, { id, lifetime });
-    if (done) {
-      return;
-    }
-
-    // send the current data
-    for (const message of stream.getAll()) {
+    let done = false;
+    // more elaborate end.
+    end = () => {
       if (done) {
         return;
       }
-      await respond(undefined, message);
+      done = true;
+      delete endOfLife[id];
+      numPersists -= 1;
+      metrics();
+      stream.close();
+      // end response stream with empty payload.
+      mesg.respond(Empty);
+    };
+
+    if (numPersistsPerUser[user_id] > MAX_PERSISTS_PER_USER) {
+      logger.debug(`numPersistsPerUser[${user_id}] >= MAX_PERSISTS_PER_USER`, {
+        numPersistsPerUserThis: numPersistsPerUser[user_id],
+        MAX_PERSISTS_PER_USER,
+      });
+      respond(
+        `This server has a limit of ${MAX_PERSISTS_PER_USER} persists per account`,
+      );
+      return;
+    }
+    if (numPersists >= MAX_PERSISTS_PER_SERVER) {
+      logger.debug("numPersists >= MAX_PERSISTS_PER_SERVER", {
+        numPersists,
+        MAX_PERSISTS_PER_SERVER,
+      });
+      // this will just cause the client to make another attempt, hopefully
+      // to another server
+      respond(`This server has a limit of ${MAX_PERSISTS_PER_SERVER} persists`);
+      return;
     }
 
-    const unsentMessages: StoredMessage[] = [];
-    const sendAllUnsentMessages = reuseInFlight(async () => {
-      while (!done && unsentMessages.length > 0) {
-        const message = unsentMessages.shift(-1);
+    let { heartbeat } = request;
+    const lifetime = getLifetime(request);
+    delete request.lifetime;
+    delete request.heartbeat;
+
+    endOfLife[id] = Date.now() + lifetime;
+
+    async function lifetimeLoop() {
+      while (!done) {
+        await delay(7500);
+        if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
+          end();
+          return;
+        }
+      }
+    }
+    lifetimeLoop();
+
+    async function heartbeatLoop() {
+      let hb = parseFloat(heartbeat);
+      if (hb < MIN_HEARTBEAT) {
+        hb = MIN_HEARTBEAT;
+      } else if (hb > MAX_HEARTBEAT) {
+        hb = MAX_HEARTBEAT;
+      }
+      await delay(hb);
+      while (!done) {
+        const timeSinceLast = Date.now() - lastSend;
+        if (timeSinceLast < hb) {
+          // no neeed to send heartbeat yet
+          await delay(hb - timeSinceLast);
+          continue;
+        }
+        respond(undefined, "");
+        await delay(hb);
+      }
+    }
+
+    try {
+      if (!isValidUUID(user_id)) {
+        throw Error("user_id must be a valid uuid");
+      }
+      // send the id first
+      await respond(undefined, { id, lifetime });
+      if (done) {
+        return;
+      }
+
+      // send the current data
+      for (const message of stream.getAll()) {
         if (done) {
           return;
         }
         await respond(undefined, message);
       }
-    });
 
-    stream.on("change", async (message) => {
-      if (done) {
-        return;
+      const unsentMessages: StoredMessage[] = [];
+      const sendAllUnsentMessages = reuseInFlight(async () => {
+        while (!done && unsentMessages.length > 0) {
+          const message = unsentMessages.shift();
+          if (done) {
+            return;
+          }
+          await respond(undefined, message);
+        }
+      });
+
+      stream.on("change", async (message) => {
+        if (done) {
+          return;
+        }
+        unsentMessages.push(message);
+        sendAllUnsentMessages();
+      });
+
+      if (heartbeat) {
+        heartbeatLoop();
       }
-      unsentMessages.push(message);
-      sendAllUnsentMessages();
-    });
-
-    if (heartbeat) {
-      heartbeatLoop();
+    } catch (err) {
+      if (!done) {
+        respond(`${err}`);
+      }
     }
-  } catch (err) {
-    if (!done) {
-      respond(`${err}`);
-    }
+  } else {
+    respond(`unknown command: '${request.cmd}'`);
   }
 }
