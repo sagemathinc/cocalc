@@ -514,84 +514,87 @@ export default function Message({
       <>
         <span style={lighten}>
           <Time message={message} edit={edit_message} />
-          {!isLLMThread && (
-            <Tip
-              placement={"bottom"}
-              title={
-                !showOtherFeedback
-                  ? undefined
-                  : () => {
-                      return (
-                        <div>
-                          {Object.keys(
-                            message.get("feedback")?.toJS() ?? {},
-                          ).map((account_id) => (
-                            <div
-                              key={account_id}
-                              style={{ marginBottom: "2px" }}
-                            >
-                              <Avatar size={24} account_id={account_id} />{" "}
-                              <User account_id={account_id} />
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-              }
-            >
-              <Button
-                style={{
-                  marginRight: "5px",
-                  float: "right",
-                  marginTop: "-4px",
-                  color: !feedback && is_viewers_message ? "white" : "#888",
-                  fontSize: "12px",
-                }}
-                size="small"
-                type={feedback ? "dashed" : "text"}
-                onClick={() => {
-                  actions?.feedback(message, feedback ? null : "positive");
-                }}
+          <Space
+            size={"small"}
+            align="baseline"
+            style={{ float: "right", marginRight: "10px" }}
+          >
+            {!isLLMThread && (
+              <Tip
+                placement={"top"}
+                title={
+                  !showOtherFeedback
+                    ? "Like this"
+                    : () => {
+                        return (
+                          <div>
+                            {Object.keys(
+                              message.get("feedback")?.toJS() ?? {},
+                            ).map((account_id) => (
+                              <div
+                                key={account_id}
+                                style={{ marginBottom: "2px" }}
+                              >
+                                <Avatar size={24} account_id={account_id} />{" "}
+                                <User account_id={account_id} />
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                }
               >
-                {showOtherFeedback ? (
-                  <Badge count={otherFeedback} color="darkblue" size="small" />
-                ) : (
-                  ""
-                )}
-                <Tip
-                  placement={"bottom"}
-                  title={showOtherFeedback ? undefined : "Like this"}
+                <Button
+                  style={{
+                    color: !feedback && is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                    marginTop: "-4px",
+                    ...(feedback ? {} : { position: "relative", top: "-5px" }),
+                  }}
+                  size="small"
+                  type={feedback ? "dashed" : "text"}
+                  onClick={() => {
+                    actions?.feedback(message, feedback ? null : "positive");
+                  }}
                 >
+                  {showOtherFeedback ? (
+                    <Badge
+                      count={otherFeedback}
+                      color="darkblue"
+                      size="small"
+                    />
+                  ) : (
+                    ""
+                  )}
                   <Icon
                     name="thumbs-up"
                     style={{
                       color: showOtherFeedback ? "darkblue" : undefined,
                     }}
                   />
-                </Tip>
+                </Button>
+              </Tip>
+            )}
+            <Tip
+              placement={"top"}
+              title="Select message. Copy URL to link to this message."
+            >
+              <Button
+                onClick={() => {
+                  actions?.setFragment(message.get("date"));
+                }}
+                size="small"
+                type={"text"}
+                style={{
+                  color: is_viewers_message ? "white" : "#888",
+                  fontSize: "12px",
+                  marginTop: "-4px",
+                }}
+              >
+                <Icon name="link" />
               </Button>
             </Tip>
-          )}{" "}
-          <Tip
-            placement={"bottom"}
-            title="Select message. Copy URL to link to this message."
-          >
-            <Button
-              onClick={() => {
-                actions?.setFragment(message.get("date"));
-              }}
-              size="small"
-              type={"text"}
-              style={{
-                float: "right",
-                marginTop: "-4px",
-                color: is_viewers_message ? "white" : "#888",
-                fontSize: "12px",
-              }}
-            >
-              <Icon name="link" />
-            </Button>
-          </Tip>
+          </Space>
         </span>
         <MostlyStaticMarkdown
           style={MARKDOWN_STYLE}
@@ -608,6 +611,7 @@ export default function Message({
               : undefined
           }
         />
+        {renderEditControlRow()}
       </>
     );
   }
@@ -636,8 +640,6 @@ export default function Message({
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
       ...(selected ? { border: "3px solid #66bb6a" } : undefined),
-      maxHeight: is_folded ? "100px" : undefined,
-      overflowY: is_folded ? "auto" : undefined,
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
@@ -671,24 +673,24 @@ export default function Message({
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
-          {isEditing ? (
-            renderEditMessage()
-          ) : (
-            <>
-              {renderMessageBody({ lighten, message_class })}
-              {renderEditControlRow()}
-            </>
-          )}
+          {isEditing
+            ? renderEditMessage()
+            : renderMessageBody({ lighten, message_class })}
         </div>
-        {show_history && (
-          <div>
-            <HistoryTitle />
-            <History history={message.get("history")} user_map={user_map} />
-            <HistoryFooter />
-          </div>
-        )}
-        {replying ? renderComposeReply() : undefined}
+        {renderHistory()}
+        {renderComposeReply()}
       </Col>
+    );
+  }
+
+  function renderHistory() {
+    if (!show_history) return;
+    return (
+      <div>
+        <HistoryTitle />
+        <History history={message.get("history")} user_map={user_map} />
+        <HistoryFooter />
+      </div>
     );
   }
 
@@ -768,11 +770,14 @@ export default function Message({
   }
 
   function renderComposeReply() {
+    if (!replying) return;
+
     if (project_id == null || path == null || actions?.syncdb == null) {
       // should never get into this position
       // when null.
       return;
     }
+
     const replyDate = -getThreadRootDate({ date, messages });
     let input;
     let moveCursorToEndOfLine = false;
