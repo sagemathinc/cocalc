@@ -5,7 +5,7 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Popconfirm, Row, Space } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
@@ -415,7 +415,7 @@ export default function Message({
       <div style={{ width: "100%", textAlign: "center" }}>
         <Space direction="horizontal" size="small" wrap>
           {showEditButton ? (
-            <Tooltip
+            <Tip
               title={
                 <>
                   Edit this message. You can edit <b>any</b> past message at any
@@ -436,10 +436,10 @@ export default function Message({
               >
                 <Icon name="pencil" /> Edit
               </Button>
-            </Tooltip>
+            </Tip>
           ) : undefined}
           {showDeleteButton && (
-            <Tooltip
+            <Tip
               title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
               placement="left"
             >
@@ -462,7 +462,7 @@ export default function Message({
                   <Icon name="trash" /> Delete
                 </Button>
               </Popconfirm>
-            </Tooltip>
+            </Tip>
           )}
           {showEditingStatus && render_editing_status(isEditing)}
           {showHistory && (
@@ -502,9 +502,117 @@ export default function Message({
     );
   }
 
-  function contentColumn() {
+  function renderMessageBody({ lighten, message_class }) {
     const value = newest_content(message);
 
+    const feedback = message.getIn(["feedback", account_id]);
+    const otherFeedback =
+      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
+    const showOtherFeedback = otherFeedback > 0;
+
+    return (
+      <>
+        <span style={lighten}>
+          <Time message={message} edit={edit_message} />
+          {!isLLMThread && (
+            <Tip
+              placement={"bottom"}
+              title={
+                !showOtherFeedback
+                  ? undefined
+                  : () => {
+                      return (
+                        <div>
+                          {Object.keys(
+                            message.get("feedback")?.toJS() ?? {},
+                          ).map((account_id) => (
+                            <div
+                              key={account_id}
+                              style={{ marginBottom: "2px" }}
+                            >
+                              <Avatar size={24} account_id={account_id} />{" "}
+                              <User account_id={account_id} />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+              }
+            >
+              <Button
+                style={{
+                  marginRight: "5px",
+                  float: "right",
+                  marginTop: "-4px",
+                  color: !feedback && is_viewers_message ? "white" : "#888",
+                  fontSize: "12px",
+                }}
+                size="small"
+                type={feedback ? "dashed" : "text"}
+                onClick={() => {
+                  actions?.feedback(message, feedback ? null : "positive");
+                }}
+              >
+                {showOtherFeedback ? (
+                  <Badge count={otherFeedback} color="darkblue" size="small" />
+                ) : (
+                  ""
+                )}
+                <Tip
+                  placement={"bottom"}
+                  title={showOtherFeedback ? undefined : "Like this"}
+                >
+                  <Icon
+                    name="thumbs-up"
+                    style={{
+                      color: showOtherFeedback ? "darkblue" : undefined,
+                    }}
+                  />
+                </Tip>
+              </Button>
+            </Tip>
+          )}{" "}
+          <Tip
+            placement={"bottom"}
+            title="Select message. Copy URL to link to this message."
+          >
+            <Button
+              onClick={() => {
+                actions?.setFragment(message.get("date"));
+              }}
+              size="small"
+              type={"text"}
+              style={{
+                float: "right",
+                marginTop: "-4px",
+                color: is_viewers_message ? "white" : "#888",
+                fontSize: "12px",
+              }}
+            >
+              <Icon name="link" />
+            </Button>
+          </Tip>
+        </span>
+        <MostlyStaticMarkdown
+          style={MARKDOWN_STYLE}
+          value={value}
+          className={message_class}
+          selectedHashtags={selectedHashtags}
+          toggleHashtag={
+            selectedHashtags != null && actions != null
+              ? (tag) =>
+                  actions?.setHashtagState(
+                    tag,
+                    selectedHashtags?.has(tag) ? undefined : 1,
+                  )
+              : undefined
+          }
+        />
+      </>
+    );
+  }
+
+  function contentColumn() {
     const { background, color, lighten, message_class } = message_colors(
       account_id,
       message,
@@ -533,10 +641,6 @@ export default function Message({
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
-    const feedback = message.getIn(["feedback", account_id]);
-    const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
-    const showOtherFeedback = otherFeedback > 0;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -567,106 +671,14 @@ export default function Message({
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
-          {!isEditing && (
-            <span style={lighten}>
-              <Time message={message} edit={edit_message} />
-              {!isLLMThread && (
-                <Tooltip
-                  title={
-                    !showOtherFeedback
-                      ? undefined
-                      : () => {
-                          return (
-                            <div>
-                              {Object.keys(
-                                message.get("feedback")?.toJS() ?? {},
-                              ).map((account_id) => (
-                                <div
-                                  key={account_id}
-                                  style={{ marginBottom: "2px" }}
-                                >
-                                  <Avatar size={24} account_id={account_id} />{" "}
-                                  <User account_id={account_id} />
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        }
-                  }
-                >
-                  <Button
-                    style={{
-                      marginRight: "5px",
-                      float: "right",
-                      marginTop: "-4px",
-                      color: !feedback && is_viewers_message ? "white" : "#888",
-                      fontSize: "12px",
-                    }}
-                    size="small"
-                    type={feedback ? "dashed" : "text"}
-                    onClick={() => {
-                      actions?.feedback(message, feedback ? null : "positive");
-                    }}
-                  >
-                    {showOtherFeedback ? (
-                      <Badge
-                        count={otherFeedback}
-                        color="darkblue"
-                        size="small"
-                      />
-                    ) : (
-                      ""
-                    )}
-                    <Tooltip
-                      title={showOtherFeedback ? undefined : "Like this"}
-                    >
-                      <Icon
-                        name="thumbs-up"
-                        style={{
-                          color: showOtherFeedback ? "darkblue" : undefined,
-                        }}
-                      />
-                    </Tooltip>
-                  </Button>
-                </Tooltip>
-              )}{" "}
-              <Tooltip title="Select message. Copy URL to link to this message.">
-                <Button
-                  onClick={() => {
-                    actions?.setFragment(message.get("date"));
-                  }}
-                  size="small"
-                  type={"text"}
-                  style={{
-                    float: "right",
-                    marginTop: "-4px",
-                    color: is_viewers_message ? "white" : "#888",
-                    fontSize: "12px",
-                  }}
-                >
-                  <Icon name="link" />
-                </Button>
-              </Tooltip>
-            </span>
+          {isEditing ? (
+            renderEditMessage()
+          ) : (
+            <>
+              {renderMessageBody({ lighten, message_class })}
+              {renderEditControlRow()}
+            </>
           )}
-          {!isEditing && (
-            <MostlyStaticMarkdown
-              style={MARKDOWN_STYLE}
-              value={value}
-              className={message_class}
-              selectedHashtags={selectedHashtags}
-              toggleHashtag={
-                selectedHashtags != null && actions != null
-                  ? (tag) =>
-                      actions?.setHashtagState(
-                        tag,
-                        selectedHashtags?.has(tag) ? undefined : 1,
-                      )
-                  : undefined
-              }
-            />
-          )}
-          {isEditing ? renderEditMessage() : renderEditControlRow()}
         </div>
         {show_history && (
           <div>
@@ -876,7 +888,8 @@ export default function Message({
 
     return (
       <div style={{ textAlign: "center", width: "100%" }}>
-        <Tooltip
+        <Tip
+          placement={"bottom"}
           title={
             isLLMThread
               ? `Reply to ${modelToName(
@@ -903,25 +916,32 @@ export default function Message({
               />
             ) : undefined}
           </Button>
-        </Tooltip>
+        </Tip>
         {showAISummarize && is_thread ? (
           <SummarizeThread message={message} actions={actions} />
         ) : undefined}
-        {is_thread ? (
-          <Button
-            type="text"
-            style={{ color: COLORS.GRAY_M }}
-            icon={<Icon name="to-top-outlined" />}
-            onClick={() =>
-              actions?.toggleFoldThread(
-                new Date(getThreadRootDate({ date, messages })),
-                index,
-              )
+        {is_thread && (
+          <Tip
+            placement={"bottom"}
+            title={
+              "Fold this thread to make the list of messages shorter. You can unfold it again at any time."
             }
           >
-            Fold Thread…
-          </Button>
-        ) : undefined}
+            <Button
+              type="text"
+              style={{ color: COLORS.GRAY_M }}
+              icon={<Icon name="to-top-outlined" />}
+              onClick={() =>
+                actions?.toggleFoldThread(
+                  new Date(getThreadRootDate({ date, messages })),
+                  index,
+                )
+              }
+            >
+              Fold…
+            </Button>
+          </Tip>
+        )}
       </div>
     );
   }
@@ -998,6 +1018,7 @@ export default function Message({
           }
         />
       );
+
       return (
         <Col
           xs={xs}
@@ -1007,7 +1028,8 @@ export default function Message({
           {hideTooltip ? (
             button
           ) : (
-            <Tooltip
+            <Tip
+              placement={"bottom"}
               title={
                 is_folded ? (
                   <>
@@ -1026,7 +1048,7 @@ export default function Message({
               }
             >
               {button}
-            </Tooltip>
+            </Tip>
           )}
         </Col>
       );
