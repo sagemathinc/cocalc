@@ -112,10 +112,6 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   };
 
   useEffect(() => {
-    if (mode != "rmd") {
-      setInit(false);
-      return;
-    }
     let actual_path = path;
     if (mode == "rmd" && derived_file_types != undefined) {
       if (derived_file_types.contains("html")) {
@@ -270,7 +266,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     return (
       <iframe
         ref={iframe}
-        srcDoc={mode != "rmd" ? value : (srcDoc ?? "")}
+        srcDoc={!trust && mode != "rmd" ? value : (srcDoc ?? "")}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, ...style }}
