@@ -1,3 +1,8 @@
+/*
+Define functions for using sqlite, the filesystem, compression, etc.
+These can only be defined from nodejs on the backend.
+*/
+
 import type BetterSqlite3 from "better-sqlite3";
 type Database = BetterSqlite3.Database;
 export { type Database };
@@ -20,7 +25,7 @@ export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
   throw Error("must initialize persiste.sqlite");
 };
 
-export function setDatabase(opts: {
+export function initContext(opts: {
   betterSqlite3;
   compress: (Buffer) => Buffer;
   decompress: (Buffer) => Buffer;

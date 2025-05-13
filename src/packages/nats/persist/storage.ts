@@ -36,12 +36,7 @@ leak memory. So zstd-napi it is.  And I like zstandard anyways.
 */
 
 import { refCacheSync } from "@cocalc/util/refcache";
-import {
-  createDatabase,
-  type Database,
-  compress,
-  decompress,
-} from "./sqlite";
+import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
 

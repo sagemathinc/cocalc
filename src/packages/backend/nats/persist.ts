@@ -1,11 +1,11 @@
 import "./index";
 import betterSqlite3 from "better-sqlite3";
-import { setDatabase } from "@cocalc/nats/persist/sqlite";
+import { initContext } from "@cocalc/nats/persist/context";
 import { compress, decompress } from "zstd-napi";
 import { syncFiles } from "@cocalc/backend/data";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
-setDatabase({
+initContext({
   betterSqlite3,
   compress,
   decompress,

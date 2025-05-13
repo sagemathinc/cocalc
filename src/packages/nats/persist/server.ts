@@ -53,7 +53,7 @@ import { getMaxPayload } from "@cocalc/nats/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { JSONValue } from "@cocalc/util/types";
 import { join } from "path";
-import { syncFiles, ensureContainingDirectoryExists } from "./sqlite";
+import { syncFiles, ensureContainingDirectoryExists } from "./context";
 
 export const DEFAULT_LIFETIME = 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
