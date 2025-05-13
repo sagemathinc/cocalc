@@ -45,13 +45,15 @@ Also getAll using start_seq:
 import { pstream, type Message as StoredMessage } from "./storage";
 import { getEnv } from "@cocalc/nats/client";
 import { type Subscription, Empty, headers } from "@nats-io/nats-core";
-import { isValidUUID, uuid } from "@cocalc/util/misc";
+import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
 import { getMaxPayload } from "@cocalc/nats/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { JSONValue } from "@cocalc/util/types";
+import { join } from "path";
+import { syncFiles, ensureContainingDirectoryExists } from "./sqlite";
 
 export const DEFAULT_LIFETIME = 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
@@ -102,16 +104,14 @@ export type Command =
   | GetBySeqCommand
   | GetAllCommand;
 
-export type User =
-  | { account_id: string; project_id: undefined }
-  | { account_id: undefined; project_id: string };
+export type User = { account_id?: string; project_id?: string };
 export function persistSubject({ account_id, project_id }: User) {
   if (account_id) {
     return `${SUBJECT}.account-${account_id}.api`;
   } else if (project_id) {
     return `${SUBJECT}.project-${project_id}.api`;
   } else {
-    throw Error("invalid user");
+    return `${SUBJECT}.hub.api`;
   }
 }
 
@@ -121,7 +121,7 @@ export function renewSubject({ account_id, project_id }: User) {
   } else if (project_id) {
     return `${SUBJECT}.project-${project_id}.renew`;
   } else {
-    throw Error("invalid user");
+    return `${SUBJECT}.hub.renew`;
   }
 }
 
@@ -136,7 +136,7 @@ function getUserId(subject: string): string {
       `${SUBJECT}.account-`.length + 36,
     );
   }
-  throw Error("invalid subject");
+  return "";
 }
 
 let terminated = false;
@@ -290,7 +290,11 @@ async function handleMessage(mesg) {
   const request = jc.decode(mesg.data);
   //console.log("handleMessage", request);
   const user_id = getUserId(mesg.subject);
-  const stream = pstream(request.storage);
+
+  // [ ] TODO: permissions and sanity checks!
+  const path = join(syncFiles.local, request.storage.path);
+  await ensureContainingDirectoryExists(path);
+  const stream = pstream({ ...request.storage, path });
 
   let seq = 0;
   let lastSend = 0;
@@ -316,7 +320,7 @@ async function handleMessage(mesg) {
 
   const { name, ...arg } = request.cmd;
   if (["set", "get"].includes(name)) {
-    console.log("doing command", { name, arg });
+    // console.log("doing command", { name, arg });
     if (arg.buffer) {
       // TODO: very stupid and inefficient
       arg.buffer = Buffer.from(JSON.parse(arg.buffer).data);
@@ -409,9 +413,6 @@ async function handleMessage(mesg) {
     }
 
     try {
-      if (!isValidUUID(user_id)) {
-        throw Error("user_id must be a valid uuid");
-      }
       // send the id first
       await respond(undefined, { id, lifetime });
       if (done) {

@@ -10,6 +10,7 @@ import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
 import { type Options as Storage, type Message } from "./storage";
 import type { JSONValue } from "@cocalc/util/types";
+export type { Storage };
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
@@ -56,13 +57,13 @@ export async function set({
   json?: JSONValue;
   key?: string;
 }): Promise<{ seq: number; time: number }> {
-  console.log("set", {
-    user,
-    storage,
-    buffer,
-    json,
-    key,
-  });
+//   console.log("set", {
+//     user,
+//     storage,
+//     buffer,
+//     json,
+//     key,
+//   });
   if (buffer) {
     // [ ] TODO
     buffer = JSON.stringify(Buffer.from(buffer)) as any;
@@ -114,7 +115,7 @@ async function* callApi({
     lifetime,
     maxActualLifetime = 1000 * 60 * 60 * 2,
   } = options ?? {};
-  console.log({ storage, cmd, heartbeat, lifetime })
+  //console.log({ storage, cmd, heartbeat, lifetime });
   for await (const mesg of await nc.requestMany(
     subject,
     jc.encode({ storage, cmd, heartbeat, lifetime }),

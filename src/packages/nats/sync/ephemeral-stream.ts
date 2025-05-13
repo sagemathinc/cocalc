@@ -115,6 +115,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private bytesSent: { [time: number]: number } = {};
   private user;
   private persistStream?;
+  private storage?: persistClient.Storage;
 
   private sessionId?: string;
 
@@ -138,6 +139,19 @@ export class EphemeralStream<T = any> extends EventEmitter {
     this.persist = !!persist;
     const subjects = streamSubject({ account_id, project_id, ephemeral: true });
     this.subject = subjects.replace(">", encodeBase64(name));
+    if (persist) {
+      let top;
+      if (account_id) {
+        top = `accounts/${account_id}`;
+      } else if (project_id) {
+        top = `projects/${project_id}`;
+      } else {
+        top = "hubs";
+      }
+      this.storage = {
+        path: `${top}/${name}`,
+      };
+    }
     this._start_seq = start_seq;
     this.limits = {
       max_msgs: -1,
@@ -230,9 +244,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
 
     // [ ] TODO: just for initial testing!
+    if (this.storage == null) {
+      throw Error("bug -- storage must be set");
+    }
     const { id, stream } = await persistClient.getAll({
       user: this.user,
-      storage: { path: this.subject },
+      storage: this.storage,
       start_seq,
     });
     this.persistStream = stream;
@@ -540,9 +557,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
     });
 
     if (this.persist) {
+      if (this.storage == null) {
+        throw Error("bug -- storage must be set");
+      }
       return await persistClient.set({
         user: this.user,
-        storage: { path: this.subject },
+        storage: this.storage,
         buffer: this.encodeValue(mesg),
         json: options?.headers,
       });

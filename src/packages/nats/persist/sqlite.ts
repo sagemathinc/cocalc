@@ -12,18 +12,26 @@ export let decompress: (data: Buffer) => Buffer = () => {
   throw Error("must initialize persiste.sqlite");
 };
 
-export function setDatabase({
-  betterSqlite3: _betterSqlite3,
-  compress: _compress,
-  decompress: _decompress,
-}: {
+export let syncFiles = { local: "", archive: "" };
+
+export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
+  _path,
+) => {
+  throw Error("must initialize persiste.sqlite");
+};
+
+export function setDatabase(opts: {
   betterSqlite3;
   compress: (Buffer) => Buffer;
   decompress: (Buffer) => Buffer;
+  syncFiles: { local: string; archive: string };
+  ensureContainingDirectoryExists: (path: string) => Promise<void>;
 }) {
-  betterSqlite3 = _betterSqlite3;
-  compress = _compress;
-  decompress = _decompress;
+  betterSqlite3 = opts.betterSqlite3;
+  compress = opts.compress;
+  decompress = opts.decompress;
+  syncFiles = opts.syncFiles;
+  ensureContainingDirectoryExists = opts.ensureContainingDirectoryExists;
 }
 
 export function createDatabase(...args): Database {

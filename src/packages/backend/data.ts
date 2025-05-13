@@ -179,6 +179,15 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+
+export const syncFiles = {
+  // Persistent local storage of streams and kv's as sqlite3 files
+  local: process.env.COCALC_SYNC ?? join(data, "sync"),
+  // Archived storage of streams and kv's as sqlite3 files, if set.
+  // This could be a gcsfuse mountpoint.
+  archive: process.env.COCALC_SYNC_ARCHIVE ?? "",
+};
+
 // if the directory secrets doesn't exist, create it (sync, during this load):
 if (!existsSync(secrets)) {
   try {

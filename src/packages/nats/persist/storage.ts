@@ -36,7 +36,12 @@ leak memory. So zstd-napi it is.  And I like zstandard anyways.
 */
 
 import { refCacheSync } from "@cocalc/util/refcache";
-import { createDatabase, type Database, compress, decompress } from "./sqlite";
+import {
+  createDatabase,
+  type Database,
+  compress,
+  decompress,
+} from "./sqlite";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
 
@@ -58,7 +63,9 @@ export interface Options {
   path: string;
   // if not set (the default) do not require sync writes to disk on every set
   sync?: boolean;
-  // if set, then data is never saved to disk at all
+  // if set, then data is never saved to disk at all. This is very dangerous
+  // for production, since it could use a LOT of RAM -- but could be very useful
+  // for unit testing.
   ephemeral?: boolean;
 }
 
@@ -71,7 +78,7 @@ export class PersistentStream extends EventEmitter {
     super();
     this.options = options;
     this.db = createDatabase(
-      this.options.ephemeral ? ":memory:" : `${this.options.path}`,
+      this.options.ephemeral ? ":memory:" : this.options.path,
     );
     this.init();
   }
