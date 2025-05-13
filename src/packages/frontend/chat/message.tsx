@@ -964,7 +964,7 @@ export default function Message({
     );
 
     return (
-      <Col xs={24} style={{}}>
+      <Col xs={24}>
         <Tip title={"Click to unfold this thread to show all messages."}>
           <Button
             onClick={() =>

@@ -23,6 +23,7 @@ import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
+import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
@@ -262,6 +263,7 @@ export function ChatRoom({
         <ButtonGroup style={{ marginLeft: "5px" }}>
           {render_video_chat_button()}
         </ButtonGroup>
+        <FoldAllThreads actions={actions} shortLabel={false} />
       </Space>
     );
   }
