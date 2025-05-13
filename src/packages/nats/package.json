@@ -41,11 +41,13 @@
     "@nats-io/nats-core": "3.0.0",
     "@nats-io/services": "3.0.0",
     "awaiting": "^3.0.0",
+    "event-iterator": "^2.0.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

@@ -15,6 +15,7 @@
     "./nats": "./dist/nats/index.js",
     "./nats/api": "./dist/nats/api/index.js",
     "./nats/auth": "./dist/nats/auth/index.js",
+    "./nats/socketio": "./dist/nats/socketio/index.js",
     "./nats/tiered-storage": "./dist/nats/tiered-storage/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
@@ -121,6 +122,7 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
+    "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
     "uuid": "^8.3.2"
   },
