@@ -1,7 +1,6 @@
+import { init as createConatServer } from "@cocalc/nats/server/server";
 import { Server } from "socket.io";
 
-import { init as init0 } from "@cocalc/nats/server/server";
-
-export function init(opts?) {
-  return init0({ Server, ...opts });
+export function init({ port, httpServer }: { port?: number; httpServer? }={}) {
+  createConatServer({ port, httpServer, Server });
 }

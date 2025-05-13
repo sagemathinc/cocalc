@@ -1578,6 +1578,12 @@ importers:
       '@sendgrid/mail':
         specifier: ^8.1.4
         version: 8.1.5
+      '@socket.io/cluster-adapter':
+        specifier: ^0.2.2
+        version: 0.2.2(socket.io-adapter@2.5.5)
+      '@socket.io/sticky':
+        specifier: ^1.0.4
+        version: 1.0.4
       '@zxcvbn-ts/core':
         specifier: ^3.0.4
         version: 3.0.4
@@ -4191,8 +4197,17 @@ packages:
   '@sinonjs/text-encoding@0.7.3':
     resolution: {integrity: sha512-DE427ROAphMQzU4ENbliGYrBSYPXF+TtLg9S8vzeA+OF4ZKzoDdzfL8sxuMUGS/lgRhM6j1URSk9ghf7Xo1tyA==}
 
+  '@socket.io/cluster-adapter@0.2.2':
+    resolution: {integrity: sha512-/tNcY6qQx0BOgjl4mFk3YxX6pjaPdEyeWhP88Ea9gTlISY4SfA7t8VxbryeAs5/9QgXzChlvSN/i37Gog3kWag==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      socket.io-adapter: ^2.4.0
+
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+
+  '@socket.io/sticky@1.0.4':
+    resolution: {integrity: sha512-VuauT5CJLvzYtKIgouFSQ8rUaygseR+zRutnwh6ZA2QYcXx+8g52EoJ8V2SLxfo+Tfs3ELUDy08oEXxlWNrxaw==}
 
   '@speed-highlight/core@1.2.7':
     resolution: {integrity: sha512-0dxmVj4gxg3Jg879kvFS/msl4s9F3T9UXC1InxgOf7t5NvcPD97u/WTA5vL/IxWHMn7qSxBozqrnnE2wvl1m8g==}
@@ -14641,7 +14656,16 @@ snapshots:
 
   '@sinonjs/text-encoding@0.7.3': {}
 
+  '@socket.io/cluster-adapter@0.2.2(socket.io-adapter@2.5.5)':
+    dependencies:
+      debug: 4.3.7(supports-color@9.4.0)
+      socket.io-adapter: 2.5.5
+    transitivePeerDependencies:
+      - supports-color
+
   '@socket.io/component-emitter@3.1.2': {}
+
+  '@socket.io/sticky@1.0.4': {}
 
   '@speed-highlight/core@1.2.7': {}
 

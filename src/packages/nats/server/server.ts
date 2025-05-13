@@ -17,13 +17,29 @@ export function init(opts) {
 }
 
 export class NatsServer {
-  private io;
+  public readonly io;
+  public readonly id: number;
 
-  constructor({ Server, port = 3000 }) {
-    this.io = new Server({ maxHttpBufferSize: MAX_PAYLOAD });
+  constructor({
+    Server,
+    httpServer,
+    port = 3000,
+    id = 0,
+  }: {
+    Server;
+    httpServer?;
+    port?: number;
+    id?: number;
+  }) {
+    this.id = id;
+    if (httpServer) {
+      this.io = new Server(httpServer, { maxHttpBufferSize: MAX_PAYLOAD });
+    } else {
+      this.io = new Server({ maxHttpBufferSize: MAX_PAYLOAD });
+      this.log(`listening on port ${port}`);
+      this.io.listen(port);
+    }
     this.init();
-    // [ ] TODO: integrate with hub http server
-    this.io.listen(port);
   }
 
   private info = (): ServerInfo => {
@@ -32,21 +48,25 @@ export class NatsServer {
     };
   };
 
+  private log = (...args) => {
+    console.log("conat", this.id, ...args);
+  };
+
   private init = () => {
     const { io } = this;
     io.on("connection", (socket) => {
-      console.log("got connection", socket.id);
+      this.log("got connection", socket.id);
       socket.emit("info", this.info());
 
       socket.on("publish", ({ subject, data }) => {
         // TODO: auth check
-        console.log("publishing", { subject, data });
+        this.log("publishing", { subject, data });
         io.to(subject).emit(subject, data);
       });
 
       socket.on("subscribe", ({ subject }) => {
         // TODO: auth check
-        console.log("join ", { subject });
+        this.log("join ", { subject });
         socket.join(subject);
       });
 

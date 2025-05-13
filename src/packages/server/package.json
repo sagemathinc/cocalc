@@ -27,17 +27,15 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
-    "prepublishOnly": "test"
+    "prepublishOnly": "test",
+    "conat-server": "node ./dist/nats/socketio/cluster.js"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
@@ -74,6 +72,8 @@
     "@passport-next/passport-oauth2": "^2.1.4",
     "@sendgrid/client": "^8.1.4",
     "@sendgrid/mail": "^8.1.4",
+    "@socket.io/cluster-adapter": "^0.2.2",
+    "@socket.io/sticky": "^1.0.4",
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
