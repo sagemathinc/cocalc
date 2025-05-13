@@ -1,1 +1,1 @@
-export { init as initServer } from "./server";
+export { init as initConatServer } from "./server";

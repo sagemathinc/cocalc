@@ -6,7 +6,6 @@ for await (const x of s) { console.log(x.length)}
 
 */
 
-
 import { connect } from "socket.io-client";
 import { EventIterator } from "event-iterator";
 import type { ServerInfo } from "./types";

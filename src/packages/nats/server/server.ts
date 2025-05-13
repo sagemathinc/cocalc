@@ -19,25 +19,33 @@ export function init(opts) {
 export class NatsServer {
   public readonly io;
   public readonly id: number;
+  private readonly logger: (...args) => void;
 
   constructor({
     Server,
     httpServer,
     port = 3000,
     id = 0,
+    logger,
   }: {
     Server;
     httpServer?;
     port?: number;
     id?: number;
+    logger?;
   }) {
     this.id = id;
+    this.logger = logger;
+    this.log("Starting CoNat server with id", { id });
+    const options = {
+      maxHttpBufferSize: MAX_PAYLOAD,
+    };
+    this.log(options);
     if (httpServer) {
-      this.io = new Server(httpServer, { maxHttpBufferSize: MAX_PAYLOAD });
+      this.io = new Server(httpServer);
     } else {
-      this.io = new Server({ maxHttpBufferSize: MAX_PAYLOAD });
+      this.io = new Server(port, options);
       this.log(`listening on port ${port}`);
-      this.io.listen(port);
     }
     this.init();
   }
@@ -49,7 +57,7 @@ export class NatsServer {
   };
 
   private log = (...args) => {
-    console.log("conat", this.id, ...args);
+    this.logger?.(new Date().toISOString(), "conat", this.id, ":", ...args);
   };
 
   private init = () => {
@@ -60,17 +68,18 @@ export class NatsServer {
 
       socket.on("publish", ({ subject, data }) => {
         // TODO: auth check
-        this.log("publishing", { subject, data });
+        // this.log("publishing", { subject, data });
         io.to(subject).emit(subject, data);
       });
 
       socket.on("subscribe", ({ subject }) => {
         // TODO: auth check
-        this.log("join ", { subject });
+        this.log("subscribe ", { subject });
         socket.join(subject);
       });
 
       socket.on("unsubscribe", ({ subject }) => {
+        this.log("unsubscribe ", { subject });
         socket.leave(subject);
       });
     });

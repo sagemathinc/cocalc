@@ -51,6 +51,7 @@ import {
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
+import { initConatServer } from "@cocalc/server/nats/socketio";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
@@ -193,6 +194,7 @@ async function startServer(): Promise<void> {
   if (program.natsServer) {
     await initNatsServer();
   }
+
   if (program.natsDatabaseServer) {
     await initNatsDatabaseServer();
   }
@@ -254,6 +256,10 @@ async function startServer(): Promise<void> {
       program.websocketServer &&
       process.env["NODE_ENV"] == "development",
   });
+
+  if (program.conatServer) {
+    initConatServer({ httpServer });
+  }
 
   //initNatsServer();
 
@@ -429,7 +435,11 @@ async function main(): Promise<void> {
     .option("--websocket-server", "run a websocket server in this process")
     .option(
       "--nats-server",
-      "run a hub that servers standard nats microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+      "run a hub that serves standard nats microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+    )
+    .option(
+      "--conat-server",
+      "run a hub that provides a single-core conat server (socketio) as part of its http server. This is needed for dev and small deployments of cocalc.",
     )
     .option(
       "--nats-database-server",

@@ -2,7 +2,7 @@
 
 To start this:
 
-    pnpm conat-server
+    pnpm conat-cluster
     
 Environment variables:
 
@@ -22,38 +22,49 @@ import { createAdapter, setupPrimary } from "@socket.io/cluster-adapter";
 
 const DEFAULT_PORT = 3000;
 
-if (cluster.isMaster) {
-  console.log(`Master ${process.pid} is running`);
-  const numWorkers = parseInt(process.env.CONAT_WORKERS ?? `${cpus().length}`);
-  const port = parseInt(process.env.CONAT_PORT ?? `${DEFAULT_PORT}`);
+const numWorkers = parseInt(process.env.CONAT_WORKERS ?? `${cpus().length}`);
+const port = parseInt(process.env.CONAT_PORT ?? `${DEFAULT_PORT}`);
 
-  const httpServer = http.createServer();
+console.log("* CONATS *");
+console.log({ numWorkers, port });
 
-  setupMaster(httpServer, {
-    loadBalancingMethod: "least-connection",
-  });
-
-  setupPrimary();
-
-  cluster.setupPrimary({ serialization: "advanced" });
-  httpServer.listen(port);
-
-  for (let i = 0; i < numWorkers; i++) {
-    cluster.fork();
-  }
-
-  cluster.on("exit", (worker) => {
-    console.log(`Worker ${worker.process.pid} died`);
-    cluster.fork();
-  });
+if (numWorkers <= 1) {
+  console.log("Running in non-cluster mode since numWorkers=1");
+  createConatServer({ port, Server, logger: console.log });
 } else {
-  console.log(`Worker ${process.pid} started`);
-  const httpServer = http.createServer();
-  const natsServer = createConatServer({
-    httpServer,
-    Server,
-    id: cluster.worker?.id ?? "",
-  });
-  natsServer.io.adapter(createAdapter());
-  setupWorker(natsServer.io);
+  if (cluster.isMaster) {
+    console.log(`Master ${process.pid} is running`);
+
+    const httpServer = http.createServer();
+
+    setupMaster(httpServer, {
+      loadBalancingMethod: "least-connection",
+    });
+
+    setupPrimary();
+
+    cluster.setupPrimary({ serialization: "advanced" });
+    httpServer.listen(port);
+
+    for (let i = 0; i < numWorkers; i++) {
+      cluster.fork();
+    }
+
+    cluster.on("exit", (worker) => {
+      console.log(`Worker ${worker.process.pid} died`);
+      cluster.fork();
+    });
+  } else {
+    console.log(`Worker ${process.pid} started`);
+    const httpServer = http.createServer();
+    const id = cluster.worker?.id ?? "";
+    const natsServer = createConatServer({
+      httpServer,
+      Server,
+      id,
+      logger: console.log,
+    });
+    natsServer.io.adapter(createAdapter());
+    setupWorker(natsServer.io);
+  }
 }
