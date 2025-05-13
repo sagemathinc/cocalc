@@ -55,7 +55,7 @@ import type { JSONValue } from "@cocalc/util/types";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
 
-export const DEFAULT_LIFETIME = 1000 * 60;
+export const DEFAULT_LIFETIME = 5 * 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
 export const MIN_LIFETIME = 30 * 1000;
 export const MIN_HEARTBEAT = 5000;
@@ -263,21 +263,35 @@ function metrics() {
   logger.debug("persist", { numPersists });
 }
 
-async function send({ jc, mesg, resp }) {
-  const maxPayload = (await getMaxPayload()) - 1000; // slack for header
-  const data = jc.encode(resp);
-  const chunks: Buffer[] = [];
-  for (let i = 0; i < data.length; i += maxPayload) {
-    const slice = data.slice(i, i + maxPayload);
-    chunks.push(slice);
+async function send({ mesg, resp }) {
+  const chunks: (Buffer | typeof Empty)[] = [];
+  let respJson;
+  if (resp.content?.buffer) {
+    const buffer = resp.content.buffer;
+    respJson = JSON.stringify({
+      ...resp,
+      content: { ...resp.content, buffer: undefined },
+    });
+    const chunkSize = (await getMaxPayload()) - 1000 - respJson.length; // slack for header
+    for (let i = 0; i < buffer.length; i += chunkSize) {
+      const slice = buffer.slice(i, i + chunkSize);
+      chunks.push(slice);
+    }
+  } else {
+    chunks.push(Empty);
+    respJson = JSON.stringify(resp);
   }
   if (chunks.length > 1) {
     logger.debug(`sending message with ${chunks.length} chunks`);
+  }
+  if (chunks.length == 0) {
+    throw Error("bug -- must be at least one cchunk");
   }
   for (let i = 0; i < chunks.length; i++) {
     if (i == chunks.length - 1) {
       const h = headers();
       h.append(LAST_CHUNK, "true");
+      h.append("response", respJson);
       mesg.respond(chunks[i], { headers: h });
     } else {
       mesg.respond(chunks[i]);
@@ -285,9 +299,19 @@ async function send({ jc, mesg, resp }) {
   }
 }
 
+function getRequest(mesg) {
+  for (const [key, value] of mesg.headers) {
+    if (key == "request") {
+      const request = JSON.parse(value[0]);
+      request.cmd.buffer = mesg.data;
+      return request;
+    }
+  }
+  throw Error("missing request header");
+}
+
 async function handleMessage(mesg) {
-  const { jc } = await getEnv();
-  const request = jc.decode(mesg.data);
+  const request = getRequest(mesg);
   //console.log("handleMessage", request);
   const user_id = getUserId(mesg.subject);
 
@@ -302,29 +326,21 @@ async function handleMessage(mesg) {
     stream.close();
     mesg.respond(Empty);
   };
-  const respond = async (error, resp?) => {
+  const respond = async (error, content?) => {
     if (terminated) {
       end();
     }
     lastSend = Date.now();
-    if (resp?.action == "close") {
+    await send({ mesg, resp: { content, error, seq } });
+    seq += 1;
+    if (error) {
       end();
-    } else {
-      await send({ jc, mesg, resp: { resp, error, seq } });
-      seq += 1;
-      if (error) {
-        end();
-      }
     }
   };
 
   const { name, ...arg } = request.cmd;
   if (["set", "get"].includes(name)) {
     // console.log("doing command", { name, arg });
-    if (arg.buffer) {
-      // TODO: very stupid and inefficient
-      arg.buffer = Buffer.from(JSON.parse(arg.buffer).data);
-    }
     try {
       await respond(undefined, stream[name](arg));
       end();
@@ -445,6 +461,7 @@ async function handleMessage(mesg) {
         if (done) {
           return;
         }
+        //console.log("stream change event", message);
         unsentMessages.push(message);
         sendAllUnsentMessages();
       });

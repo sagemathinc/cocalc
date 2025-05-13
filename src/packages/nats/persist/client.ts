@@ -11,6 +11,7 @@ export { DEFAULT_LIFETIME } from "./server";
 import { type Options as Storage, type Message } from "./storage";
 import type { JSONValue } from "@cocalc/util/types";
 export type { Storage };
+import { headers as createHeaders, Empty } from "@nats-io/nats-core";
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
@@ -57,17 +58,13 @@ export async function set({
   json?: JSONValue;
   key?: string;
 }): Promise<{ seq: number; time: number }> {
-//   console.log("set", {
-//     user,
-//     storage,
-//     buffer,
-//     json,
-//     key,
-//   });
-  if (buffer) {
-    // [ ] TODO
-    buffer = JSON.stringify(Buffer.from(buffer)) as any;
-  }
+  //   console.log("set", {
+  //     user,
+  //     storage,
+  //     buffer,
+  //     json,
+  //     key,
+  //   });
   return await command({
     user,
     storage,
@@ -107,31 +104,44 @@ async function* callApi({
 }) {
   const subject = persistSubject(user);
   let lastSeq = -1;
-  const { nc, jc } = await getEnv();
+  const { nc } = await getEnv();
   await waitUntilConnected();
-  const chunks: Uint8Array[] = [];
+
   const {
     heartbeat,
     lifetime,
-    maxActualLifetime = 1000 * 60 * 60 * 2,
+    maxActualLifetime = cmd.name == "getAll" ? 1000 * 60 * 60 * 2 : undefined,
   } = options ?? {};
+
+  const { buffer, ...cmd1 } = cmd as Command & { buffer?: any };
+
+  let payload = buffer ?? Empty;
+  const headers = createHeaders();
+  headers.append(
+    "request",
+    JSON.stringify({ cmd: cmd1, heartbeat, lifetime, storage }),
+  );
+
+  const chunks: Uint8Array[] = [];
   //console.log({ storage, cmd, heartbeat, lifetime });
-  for await (const mesg of await nc.requestMany(
-    subject,
-    jc.encode({ storage, cmd, heartbeat, lifetime }),
-    { maxWait: maxActualLifetime },
-  )) {
-    if (mesg.data.length == 0) {
-      // done
+  for await (const mesg of await nc.requestMany(subject, payload, {
+    maxWait: maxActualLifetime,
+    headers,
+  })) {
+    const resp = getResponse(mesg);
+    if (resp == null && mesg.data.length == 0) {
+      // terminate requestMany
       return;
     }
-    chunks.push(mesg.data);
+    if (mesg.data.length > 0) {
+      chunks.push(mesg.data);
+    }
     if (!isLastChunk(mesg)) {
       continue;
     }
-    const data = Buffer.concat(chunks);
+    const buffer = Buffer.concat(chunks);
     chunks.length = 0;
-    const { error, resp, seq } = jc.decode(data);
+    const { error, content, seq } = resp;
     if (error) {
       throw Error(error);
     }
@@ -139,13 +149,10 @@ async function* callApi({
       throw Error("missed response");
     }
     lastSeq = seq;
-    // [ ] TODO: we are making buffers work for now in a REALLY STUPID
-    // way, which is just text JSON instead of binary payload.
-    // This is temporary to make sure this approach works!
-    if (resp.buffer != null) {
-      resp.buffer = Buffer.from(resp.buffer);
+    if (cmd.name != "set") {
+      content.buffer = buffer;
     }
-    yield resp;
+    yield content;
   }
 }
 
@@ -162,6 +169,15 @@ function isLastChunk(mesg) {
     }
   }
   return false;
+}
+
+function getResponse(mesg) {
+  for (const [key, value] of mesg.headers ?? []) {
+    if (key == "response") {
+      return JSON.parse(value[0]);
+    }
+  }
+  return null;
 }
 
 export async function renew({

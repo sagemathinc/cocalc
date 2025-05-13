@@ -146,10 +146,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
       } else if (project_id) {
         top = `projects/${project_id}`;
       } else {
-        top = "hubs";
+        top = "global";
       }
       this.storage = {
-        path: `${top}/${name}`,
+        path: `${top}/${name}.db`,
       };
     }
     this._start_seq = start_seq;
