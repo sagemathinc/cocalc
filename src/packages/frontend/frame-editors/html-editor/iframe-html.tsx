@@ -163,7 +163,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   frame-src * data: blob:;
   object-src * data: blob:;
   media-src * data: blob:;">`;
-        const newSrc = src.replace(/<head>/i, `<head>${extraHead}`);
+        const newSrc = src.replace(/\<head\>/i, `<head>${extraHead}`);
         if (src != newSrc) {
           src = newSrc;
         } else {
