@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 
-import { init } from "@cocalc/nats/server/server";
+import { init as init0 } from "@cocalc/nats/server/server";
 
-export function init() {
-  return init({ Server });
+export function init(opts?) {
+  return init0({ Server, ...opts });
 }

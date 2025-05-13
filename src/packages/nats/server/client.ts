@@ -1,12 +1,17 @@
 import { connect } from "socket.io-client";
 import { EventIterator } from "event-iterator";
+import type { ServerInfo } from "./types";
 
 export class Client {
   private conn: ReturnType<typeof connect>;
   private subscriptions: { [subject: string]: number } = {};
+  public info: ServerInfo | undefined = undefined;
 
   constructor(address: string) {
     this.conn = connect(address);
+    this.conn.on("info", (info) => {
+      this.info = info;
+    });
   }
 
   subscribe = async (subject: string): Promise<Subscription<any>> => {
