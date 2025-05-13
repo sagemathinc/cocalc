@@ -617,6 +617,8 @@ export default function Message({
   }
 
   function contentColumn() {
+    const mainXS = mode === "standalone" ? 20 : 22;
+
     const { background, color, lighten, message_class } = message_colors(
       account_id,
       message,
@@ -641,8 +643,6 @@ export default function Message({
         : undefined),
       ...(selected ? { border: "3px solid #66bb6a" } : undefined),
     } as const;
-
-    const mainXS = mode === "standalone" ? 20 : 22;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -935,7 +935,6 @@ export default function Message({
             <Button
               type="text"
               style={{ color: COLORS.GRAY_M }}
-              icon={<Icon name="to-top-outlined" />}
               onClick={() =>
                 actions?.toggleFoldThread(
                   new Date(getThreadRootDate({ date, messages })),
@@ -943,7 +942,7 @@ export default function Message({
                 )
               }
             >
-              Fold…
+              <Icon name="to-top-outlined" /> Fold…
             </Button>
           </Tip>
         )}
@@ -958,26 +957,27 @@ export default function Message({
 
     const label = numChildren ? (
       <>
-        Show {numChildren} {plural(numChildren, "Reply", "Replies")}…
+        Show {numChildren + 1} {plural(numChildren + 1, "Message", "Messages")}…
       </>
     ) : (
-      "View Replies…"
+      "View Messages…"
     );
 
     return (
-      <Col xs={24}>
-        <div style={{ textAlign: "center" }}>
+      <Col xs={24} style={{}}>
+        <Tip title={"Click to unfold this thread to show all messages."}>
           <Button
             onClick={() =>
               actions?.toggleFoldThread(message.get("date"), index)
             }
             type="link"
-            style={{ color: "darkblue" }}
+            block
+            style={{ color: "darkblue", textAlign: "center" }}
             icon={<Icon name="to-top-outlined" rotate="180" />}
           >
             {label}
           </Button>
-        </div>
+        </Tip>
       </Col>
     );
   }
@@ -1062,7 +1062,7 @@ export default function Message({
 
   function renderCols(): JSX.Element[] | JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_thread && is_folded && is_thread_body) {
+    if (is_folded || (is_thread && is_folded && is_thread_body)) {
       return <></>;
     }
 
