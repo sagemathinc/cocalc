@@ -5,7 +5,7 @@
 
 // Time travel editor react component
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import {
@@ -159,6 +159,10 @@ export function TimeTravel(props: Props) {
       props.actions.set_error("");
     }
   }, [version, version0, version1, gitMode, changesMode]);
+
+  const wallTime = useMemo(() => {
+    return gitMode ? (version) => version : props.actions.wallTime;
+  }, [gitMode, props.actions]);
 
   useEffect(() => {
     saveState(props.actions, {
@@ -328,7 +332,7 @@ export function TimeTravel(props: Props) {
         setVersion={setVersion}
         versions={gitMode ? gitVersions : versions}
         marks={marks}
-        actions={props.actions}
+        wallTime={wallTime}
       />
     );
   };
@@ -345,7 +349,7 @@ export function TimeTravel(props: Props) {
         version1={version1}
         setVersion1={setVersion1}
         marks={marks}
-        actions={props.actions}
+        wallTime={wallTime}
       />
     );
   };

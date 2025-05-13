@@ -13,7 +13,7 @@ interface Props {
   versions?: List<number>;
   version?: number;
   setVersion: (number) => void;
-  actions;
+  wallTime: (number) => number;
 }
 
 export function NavigationSlider({
@@ -31,7 +31,7 @@ function NavigationSliderNoMarks({
   version,
   versions,
   setVersion,
-  actions,
+  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
   if (versions == null || version == null || !isVisible) {
@@ -39,7 +39,7 @@ function NavigationSliderNoMarks({
   }
 
   const renderTooltip = (index) => {
-    const date = actions.wallTime(versions.get(index));
+    const date = wallTime(versions.get(index));
     if (date == null) return; // shouldn't happen
     return <TimeAgo date={date} />;
   };
@@ -65,12 +65,12 @@ function NavigationSliderMarks({
   version,
   versions,
   setVersion,
-  actions,
+  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
 
   const renderTooltip = (version) => {
-    return <TimeAgo date={new Date(actions.wallTime(version))} />;
+    return <TimeAgo date={new Date(wallTime(version))} />;
   };
 
   const marks = useMemo(() => {
