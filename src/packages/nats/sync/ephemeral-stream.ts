@@ -13,6 +13,11 @@ Testing two at once (a leader and non-leader):
 
     require('@cocalc/backend/nats'); s = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:1, noAutosave:true}); t = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:0,noAutosave:true})
 
+
+With persistence:
+
+   require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/ephemeral-stream'); s = await a.estream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
+   
 */
 
 import {
@@ -41,6 +46,7 @@ import { throttle } from "lodash";
 import { once } from "@cocalc/util/async-utils";
 import { callback, delay } from "awaiting";
 import { randomId } from "@cocalc/nats/names";
+import * as persistClient from "@cocalc/nats/persist/client";
 
 export interface RawMsg extends Msg {
   timestamp: number;
@@ -76,6 +82,7 @@ export interface EphemeralStreamOptions {
   desc?: JSONValue;
   valueType?: ValueType;
   leader?: boolean;
+  persist?: boolean;
 
   noCache?: boolean;
   heartbeatInterval?: number;
@@ -95,6 +102,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private env?: NatsEnv;
   private sub?: Subscription;
   private leader: boolean;
+  private persist: boolean;
   private server?: Subscription;
   // seq used by the *leader* only to assign sequence numbers
   private seq: number = 1;
@@ -105,6 +113,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
   private lastSeq: number = 0;
   private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
   private bytesSent: { [time: number]: number } = {};
+  private user;
+  private persistStream?;
 
   private sessionId?: string;
 
@@ -116,13 +126,16 @@ export class EphemeralStream<T = any> extends EventEmitter {
     start_seq,
     valueType = "json",
     leader = false,
+    persist = false,
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
   }: EphemeralStreamOptions) {
     super();
+    this.user = { account_id, project_id };
     this.valueType = valueType;
     this.heartbeatInterval = heartbeatInterval;
     this.name = name;
     this.leader = !!leader;
+    this.persist = !!persist;
     const subjects = streamSubject({ account_id, project_id, ephemeral: true });
     this.subject = subjects.replace(">", encodeBase64(name));
     this._start_seq = start_seq;
@@ -146,7 +159,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   init = async () => {
     this.env = await getEnv();
-    if (!this.leader) {
+    if (this.persist) {
+      await this.getAllFromPersist({
+        start_seq: this._start_seq,
+        noEmit: true,
+      });
+    } else if (!this.leader) {
       // try to get current data from a leader
       await this.getAllFromLeader({
         start_seq: this._start_seq ?? 0,
@@ -160,7 +178,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     // then the sequence number will have a gap, and we'll immediately reconnect, starting
     // at the right point. So no data can possibly be lost.
     this.listen();
-    if (!this.leader) {
+    if (!this.leader && !this.persist) {
       this.heartbeatMonitor();
     }
     if (this.env?.nc?.on != null) {
@@ -198,6 +216,48 @@ export class EphemeralStream<T = any> extends EventEmitter {
     // @ts-ignore
     this.server?.close();
     delete this.server;
+  };
+
+  private getAllFromPersist = async ({
+    start_seq = 0,
+    noEmit,
+  }: { start_seq?: number; noEmit?: boolean } = {}) => {
+    if (this.leader) {
+      throw Error("leader is incompatible with persist");
+    }
+    if (!this.persist) {
+      throw Error("must have persist set");
+    }
+
+    // [ ] TODO: just for initial testing!
+    const { id, stream } = await persistClient.getAll({
+      user: this.user,
+      storage: { path: this.subject },
+      start_seq,
+    });
+    this.persistStream = stream;
+    console.log("getAll got ", { id });
+    while (true) {
+      const { value, done } = await stream.next();
+      if(done) {
+        return;
+      }
+      if (value?.state != "watch") {
+        const { seq, time, buffer, json } = value;
+        const mesg = this.decodeValue(buffer);
+        this.messages.push(mesg);
+        // todo typing is wrong
+        const raw = { timestamp: time, headers: json, seq } as RawMsg;
+        this.raw.push([raw]);
+        this.lastSeq = seq;
+        if (!noEmit) {
+          this.emit("change", mesg, [raw]);
+        }
+      } else {
+        // switched to watch mode
+        return;
+      }
+    }
   };
 
   private getAllFromLeader = async ({
@@ -341,6 +401,30 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (this.env == null) {
       return;
     }
+    if (this.persist) {
+      if (this.persistStream == null) {
+        throw Error("persistentStream must be defined");
+      }
+      console.log("listening...");
+      for await (const x of this.persistStream) {
+        console.log("got x");
+        const { seq, time, buffer, json } = x;
+        if (!seq) {
+          // TODO
+          return;
+        }
+        // TODO: wrong typing
+        const raw = { timestamp: time, headers: json, seq } as RawMsg;
+        this.lastSeq = raw.seq;
+        const mesg = this.decodeValue(buffer);
+        this.messages.push(mesg);
+        this.raw.push([raw]);
+        this.lastSeq = raw.seq;
+        this.emit("change", mesg, [raw]);
+      }
+      console.log("finished listening");
+      return;
+    }
     while (this.env != null) {
       // @ts-ignore
       this.sub?.close();
@@ -403,7 +487,17 @@ export class EphemeralStream<T = any> extends EventEmitter {
     // @ts-ignore
     this.sub?.close();
     delete this.sub;
-    await this.getAllFromLeader({ start_seq: this.lastSeq + 1, noEmit: false });
+    if (this.persist) {
+      await this.getAllFromPersist({
+        start_seq: this.lastSeq + 1,
+        noEmit: false,
+      });
+    } else {
+      await this.getAllFromLeader({
+        start_seq: this.lastSeq + 1,
+        noEmit: false,
+      });
+    }
     this.listen();
   });
 
@@ -436,7 +530,14 @@ export class EphemeralStream<T = any> extends EventEmitter {
       mesg,
     });
 
-    if (this.leader) {
+    if (this.persist) {
+      await persistClient.set({
+        user: this.user,
+        storage: { path: this.subject },
+        buffer: this.encodeValue(mesg),
+        json: options?.headers,
+      });
+    } else if (this.leader) {
       // sending from leader -- so assign seq, timestamp and sent it out.
       return await this.sendAsLeader(data, options);
     } else {
@@ -576,6 +677,9 @@ export class EphemeralStream<T = any> extends EventEmitter {
   }
 
   headers = (n: number): { [key: string]: string } | undefined => {
+    if (this.persist) {
+      return last(this.raw[n])?.headers;
+    }
     return headersFromRawMessages(this.raw[n]);
   };
 
@@ -587,6 +691,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
     start_seq: number;
     noEmit?: boolean;
   }) => {
+    if (this.persist) {
+      // [ ] TODO:
+      return;
+    }
     if (this._start_seq == null || this._start_seq <= 1 || this.leader) {
       // we already loaded everything on initialization; there can't be anything older;
       // or we are leader, so we are the full source of truth.
@@ -653,6 +761,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
   // is deleted.
   // NOTE: other clients will NOT see the result of a purge.
   purge = async ({ index = -1 }: { index?: number } = {}) => {
+    if (this.persist) {
+      // [ ] TODO:
+      return;
+    }
     if (index >= this.raw.length - 1 || index == -1) {
       index = this.raw.length - 1;
     }
@@ -661,6 +773,10 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   private enforceLimitsNow = reuseInFlight(async () => {
+    if (this.persist) {
+      // [ ] TODO:
+      return;
+    }
     const index = enforceLimits({
       messages: this.messages,
       raw: this.raw,

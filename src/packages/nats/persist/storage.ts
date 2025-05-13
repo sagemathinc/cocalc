@@ -54,7 +54,7 @@ export interface Message {
 }
 
 export interface Options {
-  // path to a sqlite database file
+  // relative path to a sqlite database file
   path: string;
   // if not set (the default) do not require sync writes to disk on every set
   sync?: boolean;

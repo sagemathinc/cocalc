@@ -316,11 +316,16 @@ async function handleMessage(mesg) {
 
   const { name, ...arg } = request.cmd;
   if (["set", "get"].includes(name)) {
+    console.log("doing command", { name, arg });
+    if (arg.buffer) {
+      // TODO: very stupid and inefficient
+      arg.buffer = Buffer.from(JSON.parse(arg.buffer).data);
+    }
     try {
       await respond(undefined, stream[name](arg));
       end();
     } catch (err) {
-      respond(`${err}`);
+      await respond(`${err}`);
     }
     return;
   }
@@ -420,6 +425,9 @@ async function handleMessage(mesg) {
         }
         await respond(undefined, message);
       }
+
+      // send state change message
+      await respond(undefined, { state: "watch" });
 
       const unsentMessages: StoredMessage[] = [];
       const sendAllUnsentMessages = reuseInFlight(async () => {

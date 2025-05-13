@@ -9,6 +9,7 @@ import {
 import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
 import { type Options as Storage, type Message } from "./storage";
+import type { JSONValue } from "@cocalc/util/types";
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
@@ -48,7 +49,24 @@ export async function set({
   buffer,
   json,
   key,
+}: {
+  user: User;
+  storage: Storage;
+  buffer?: Buffer;
+  json?: JSONValue;
+  key?: string;
 }): Promise<{ seq: number; time: number }> {
+  console.log("set", {
+    user,
+    storage,
+    buffer,
+    json,
+    key,
+  });
+  if (buffer) {
+    // [ ] TODO
+    buffer = JSON.stringify(Buffer.from(buffer)) as any;
+  }
   return await command({
     user,
     storage,
@@ -96,6 +114,7 @@ async function* callApi({
     lifetime,
     maxActualLifetime = 1000 * 60 * 60 * 2,
   } = options ?? {};
+  console.log({ storage, cmd, heartbeat, lifetime })
   for await (const mesg of await nc.requestMany(
     subject,
     jc.encode({ storage, cmd, heartbeat, lifetime }),
@@ -119,6 +138,12 @@ async function* callApi({
       throw Error("missed response");
     }
     lastSeq = seq;
+    // [ ] TODO: we are making buffers work for now in a REALLY STUPID
+    // way, which is just text JSON instead of binary payload.
+    // This is temporary to make sure this approach works!
+    if (resp.buffer != null) {
+      resp.buffer = Buffer.from(resp.buffer);
+    }
     yield resp;
   }
 }
