@@ -239,7 +239,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     console.log("getAll got ", { id });
     while (true) {
       const { value, done } = await stream.next();
-      if(done) {
+      if (done) {
         return;
       }
       if (value?.state != "watch") {
@@ -247,7 +247,12 @@ export class EphemeralStream<T = any> extends EventEmitter {
         const mesg = this.decodeValue(buffer);
         this.messages.push(mesg);
         // todo typing is wrong
-        const raw = { timestamp: time, headers: json, seq } as RawMsg;
+        const raw = {
+          timestamp: time,
+          headers: json,
+          seq,
+          data: buffer,
+        } as RawMsg;
         this.raw.push([raw]);
         this.lastSeq = seq;
         if (!noEmit) {
@@ -407,14 +412,18 @@ export class EphemeralStream<T = any> extends EventEmitter {
       }
       console.log("listening...");
       for await (const x of this.persistStream) {
-        console.log("got x");
         const { seq, time, buffer, json } = x;
         if (!seq) {
           // TODO
           return;
         }
         // TODO: wrong typing
-        const raw = { timestamp: time, headers: json, seq } as RawMsg;
+        const raw = {
+          timestamp: time,
+          headers: json,
+          seq,
+          data: buffer,
+        } as RawMsg;
         this.lastSeq = raw.seq;
         const mesg = this.decodeValue(buffer);
         this.messages.push(mesg);
@@ -531,7 +540,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     });
 
     if (this.persist) {
-      await persistClient.set({
+      return await persistClient.set({
         user: this.user,
         storage: { path: this.subject },
         buffer: this.encodeValue(mesg),

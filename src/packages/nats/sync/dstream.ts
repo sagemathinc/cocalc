@@ -54,6 +54,7 @@ export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
   noInventory?: boolean;
   ephemeral?: boolean;
+  persist?: boolean;
   leader?: boolean;
 }
 
@@ -86,7 +87,10 @@ export class DStream<T = any> extends EventEmitter {
     this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream = opts.ephemeral ? new EphemeralStream(opts) : new Stream(opts);
+    this.stream =
+      opts.ephemeral || opts.persist
+        ? new EphemeralStream(opts)
+        : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
     if (!this.noAutosave) {
