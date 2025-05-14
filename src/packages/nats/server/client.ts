@@ -86,11 +86,14 @@ export class Client {
   // returns EventEmitter that emits 'message', mesg: Message
   subscription = (
     subject: string,
-    { closeWhenOffCalled }: { closeWhenOffCalled?: boolean } = {},
+    {
+      closeWhenOffCalled,
+      queue,
+    }: { closeWhenOffCalled?: boolean; queue?: string } = {},
   ) => {
     const cur = this.subscriptions[subject] ?? 0;
     if (cur == 0) {
-      this.conn.emit("subscribe", { subject });
+      this.conn.emit("subscribe", { subject, queue });
       // todo confirmation/security
     }
     const sub = new Subscription({
@@ -111,9 +114,13 @@ export class Client {
 
   subscribe = (
     subject: string,
-    { maxWait, mesgLimit }: { maxWait?: number; mesgLimit?: number } = {},
+    {
+      maxWait,
+      mesgLimit,
+      queue,
+    }: { maxWait?: number; mesgLimit?: number; queue?: string } = {},
   ) => {
-    const sub = this.subscription(subject, { closeWhenOffCalled: true });
+    const sub = this.subscription(subject, { closeWhenOffCalled: true, queue });
     // @ts-ignore
     return new EventIterator<Message>(sub, "message", {
       idle: maxWait,
@@ -198,13 +205,12 @@ export class Client {
         return;
       }
     }
-    console.log("exited loop");
     sub.end();
     throw Error("timeout");
   }
 
-  watch = async (subject: string, cb = console.log) => {
-    for await (const x of this.subscribe(subject)) {
+  watch = async (subject: string, { cb = console.log, ...opts } = {}) => {
+    for await (const x of this.subscribe(subject, opts)) {
       cb(x);
     }
   };

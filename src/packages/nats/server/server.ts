@@ -24,6 +24,8 @@ export class NatsServer {
   public readonly io;
   public readonly id: number;
   private readonly logger: (...args) => void;
+  private queueGroups: { [subject: string]: { [queue: string]: Set<string> } } =
+    {};
 
   constructor({
     Server,
@@ -72,18 +74,45 @@ export class NatsServer {
 
       socket.on("publish", ([subject, ...data]) => {
         // TODO: auth check
-        // this.log("publishing", { subject, data });
-        io.to(subject).emit(subject, data);
+        const g = this.queueGroups[subject];
+        //this.log("publishing", { subject, data, g });
+        if (g != null) {
+          // send to exactly one in each queue group
+          for (const queue in g) {
+            const v = Array.from(g[queue]);
+            const choice = v[Math.floor(Math.random() * v.length)];
+            // console.log({ choice });
+            if (choice != null) {
+              io.to(choice).emit(subject, data);
+            }
+          }
+        } else {
+          io.to(subject).emit(subject, data);
+        }
       });
 
-      socket.on("subscribe", ({ subject }) => {
+      socket.on("subscribe", ({ subject, queue }) => {
         // TODO: auth check
-        this.log("subscribe ", { subject });
-        socket.join(subject);
+        // TODO: load balance across each queue group
+        this.log("subscribe ", { subject, queue });
+        if (queue) {
+          const queueSubject = JSON.stringify({ queue: socket.id, subject });
+          if (this.queueGroups[subject] == null) {
+            this.queueGroups[subject] = { [queue]: new Set([queueSubject]) };
+          } else if (this.queueGroups[subject][queue] == null) {
+            this.queueGroups[subject][queue] = new Set([queueSubject]);
+          } else {
+            this.queueGroups[subject][queue].add(queueSubject);
+          }
+          socket.join(queueSubject);
+        } else {
+          socket.join(subject);
+        }
       });
 
       socket.on("unsubscribe", ({ subject }) => {
         this.log("unsubscribe ", { subject });
+        // TODO: handle queue groups from above
         socket.leave(subject);
       });
     });
