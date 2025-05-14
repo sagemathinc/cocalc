@@ -464,6 +464,7 @@ export class NatsClient extends EventEmitter {
       sha1,
       jc: this.jc,
       nc: await this.getConnection(),
+      cn: this.conat(),
     };
   };
 
@@ -490,30 +491,6 @@ export class NatsClient extends EventEmitter {
     });
     await s.init();
     return s;
-  };
-
-  changefeedInterest = async (query, noError?: boolean) => {
-    // express interest
-    // (re-)start changefeed going
-    try {
-      await this.client.nats_client.callHub({
-        service: "db",
-        name: "userQuery",
-        args: [{ changes: true, query }],
-      });
-    } catch (err) {
-      if (noError) {
-        console.log(`WARNING: changefeed -- ${err}`, query);
-        return;
-      } else {
-        throw err;
-      }
-    }
-  };
-
-  changefeed = async (query, options?) => {
-    this.changefeedInterest(query, true);
-    return await this.synctable(query, options);
   };
 
   // DEPRECATED
