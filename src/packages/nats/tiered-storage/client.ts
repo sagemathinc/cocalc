@@ -3,7 +3,7 @@ Client for the tiered server.
 */
 
 import type { Info, Command } from "./server";
-import { SUBJECT, tieredStorageSubject } from "./server";
+import { tieredStorageSubject } from "./server";
 import { getEnv, getLogger } from "@cocalc/nats/client";
 import { type Location } from "@cocalc/nats/types";
 import { waitUntilConnected } from "@cocalc/nats/util";
@@ -142,10 +142,11 @@ export async function info(location: Location): Promise<Info> {
 }
 
 async function call(command: Command, location: Location) {
+  const subject = tieredStorageSubject(location);
   const { cn } = await getEnv();
   const resp = await cn.request(
-    SUBJECT,
-    { command, location },
+    subject,
+    { command },
     {
       timeout: TIMEOUT[command],
     },

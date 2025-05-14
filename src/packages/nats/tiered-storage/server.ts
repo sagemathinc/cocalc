@@ -77,26 +77,33 @@ export function tieredStorageSubject({ account_id, project_id }: Location) {
   }
 }
 
-let tieredStorage: TieredStorage | null = null;
-export type IsCollab = (opts: {
-  account_id: string;
-  project_id: string;
-}) => Promise<boolean>;
+function getLocation(subject: string): Location {
+  if (subject.startsWith(`${SUBJECT}.account-`)) {
+    return {
+      account_id: subject.slice(
+        `${SUBJECT}.account-`.length,
+        `${SUBJECT}.account-`.length + 36,
+      ),
+    };
+  }
+  if (subject.startsWith(`${SUBJECT}.project-`)) {
+    return {
+      project_id: subject.slice(
+        `${SUBJECT}.project-`.length,
+        `${SUBJECT}.project-`.length + 36,
+      ),
+    };
+  }
+  throw Error(`invalid subject -- ${subject}`);
+}
 
-let isCollaborator: IsCollab | null = null;
-export function init({
-  ts,
-  isCollaborator: _isCollaborator,
-}: {
-  ts: TieredStorage;
-  isCollaborator: IsCollab;
-}) {
+let tieredStorage: TieredStorage | null = null;
+export function init(ts: TieredStorage) {
   logger.debug("init");
   if (tieredStorage != null) {
     throw Error("tiered-storage: init already called");
   }
   tieredStorage = ts;
-  isCollaborator = _isCollaborator;
   mainLoop();
 }
 
@@ -129,8 +136,9 @@ async function mainLoop() {
 let sub: Subscription | null = null;
 async function run() {
   const { cn } = await getEnv();
-  logger.debug(`run: listening on '${SUBJECT}'`);
-  sub = cn.subscribe(SUBJECT, { queue: "0" });
+  const subject = `${SUBJECT}.*.api`;
+  logger.debug(`run: listening on '${subject}'`);
+  sub = cn.subscribe(subject, { queue: "0" });
   await listen(sub);
 }
 
@@ -149,19 +157,13 @@ async function handleMessage(mesg) {
   let resp;
 
   try {
-    const { command, location } = mesg.data;
-    if (tieredStorage == null || isCollaborator == null) {
+    if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
+    const location = getLocation(mesg.subject);
+    const { command } = mesg.data;
     logger.debug("handleMessage", { location, command, from: mesg.from });
-    if (
-      !(await isCollaborator({
-        project_id: location.project_id,
-        account_id: mesg.from?.account_id,
-      }))
-    ) {
-      resp = "user must be collaborator on project";
-    } else if (command == "restore") {
+    if (command == "restore") {
       resp = await tieredStorage.restore(location);
     } else if (command == "archive") {
       resp = await tieredStorage.archive(location);
