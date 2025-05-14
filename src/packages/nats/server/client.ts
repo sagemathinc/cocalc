@@ -65,6 +65,7 @@ export function connect(address = "http://localhost:3000", options?) {
 const INBOX_PREFIX = "_INBOX.";
 const REPLY_HEADER = "CoCalc-Reply";
 const DEFAULT_MAX_WAIT = 30000;
+const DEFAULT_REQUEST_TIMEOUT = 10000;
 
 enum Protocol {
   MsgPack = 0,
@@ -115,7 +116,7 @@ export class Client {
       this.conn.emit("subscribe", { subject, queue });
       // todo confirmation/security
     }
-    const sub = new Subscription({
+    const sub = new SubscriptionEmitter({
       client: this,
       subject,
       closeWhenOffCalled,
@@ -138,7 +139,7 @@ export class Client {
       mesgLimit,
       queue,
     }: { maxWait?: number; mesgLimit?: number; queue?: string } = {},
-  ) => {
+  ): Subscription => {
     const sub = this.subscription(subject, { closeWhenOffCalled: true, queue });
     // @ts-ignore
     return new EventIterator<Message>(sub, "message", {
@@ -180,12 +181,15 @@ export class Client {
     subject: string,
     mesg: any,
     {
-      maxWait = DEFAULT_MAX_WAIT,
+      timeout = DEFAULT_REQUEST_TIMEOUT,
       ...options
-    }: PublishOptions & { maxWait?: number } = {},
+    }: PublishOptions & { timeout?: number } = {},
   ): Promise<Message> => {
-    const inboxSubject = this.getInboxSubject();
-    const sub = this.subscribe(inboxSubject, { maxWait, mesgLimit: 1 });
+    const inboxSubject = this.getTemporaryInboxSubject();
+    const sub = this.subscribe(inboxSubject, {
+      maxWait: timeout,
+      mesgLimit: 1,
+    });
     this.publish(subject, mesg, {
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
     });
@@ -206,7 +210,7 @@ export class Client {
       ...options
     }: PublishOptions & { maxWait?: number; maxMessages?: number } = {},
   ) {
-    const inboxSubject = this.getInboxSubject();
+    const inboxSubject = this.getTemporaryInboxSubject();
     const sub = this.subscribe(inboxSubject, {
       maxWait,
       mesgLimit: maxMessages,
@@ -239,7 +243,7 @@ export class Client {
     return sub;
   };
 
-  private getInboxSubject = () =>
+  private getTemporaryInboxSubject = () =>
     `${this.options.inboxPrefix ?? INBOX_PREFIX}${randomId()}`;
 }
 
@@ -293,7 +297,7 @@ interface Chunk {
   headers?: any;
 }
 
-class Subscription extends EventEmitter {
+class SubscriptionEmitter extends EventEmitter {
   private incoming: { [id: string]: Partial<Chunk>[] } = {};
   private client: Client;
   private closeWhenOffCalled?: boolean;
@@ -363,7 +367,7 @@ class Subscription extends EventEmitter {
       const data = concatArrayBuffers(chunks);
       delete incoming[id];
       const mesg = new Message({
-        mesg: decode({ protocol, data }),
+        data: decode({ protocol, data }),
         headers,
         client: this.client,
       });
@@ -393,20 +397,23 @@ function concatArrayBuffers(buffers) {
 
 export class Message {
   private client: Client;
-  public readonly mesg: any;
+  public readonly data: any;
   public readonly headers: JSONValue;
 
-  constructor({ mesg, headers, client }) {
-    this.mesg = mesg;
+  constructor({ data, headers, client }) {
+    this.data = data;
     this.headers = headers;
     this.client = client;
   }
 
-  respond = (mesg: any) => {
+  respond = (data: any) => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
       throw Error("message is not a request");
     }
-    this.client.publish(subject, mesg);
+    this.client.publish(subject, data);
   };
 }
+
+export type Subscription = EventIterator<Message>;
+

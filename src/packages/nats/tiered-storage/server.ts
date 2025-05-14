@@ -5,10 +5,26 @@ This is pure javascript and sets the basic interface,
 behavior and types for both client and server.
 
 See also @cocalc/server/nats/tiered-storage.
+
+DEVELOPMENT:
+
+cd to packages/backend, then
+
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/tiered-storage/server'); 
+    a.init({info:async ({project_id})=> { return "info about " + project_id}})
+
+In another console:
+
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/tiered-storage/client'); await a.info({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
+    
+Outputs:   
+
+   'info about 81e0c408-ac65-4114-bad5-5f4b6539bd0e'
+
 */
 
 import { getEnv, getLogger } from "@cocalc/nats/client";
-import { type Subscription } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Location } from "@cocalc/nats/types";
 import { delay } from "awaiting";
@@ -61,26 +77,6 @@ export function tieredStorageSubject({ account_id, project_id }: Location) {
   }
 }
 
-function getLocation(subject: string): Location {
-  if (subject.startsWith(`${SUBJECT}.account-`)) {
-    return {
-      account_id: subject.slice(
-        `${SUBJECT}.account-`.length,
-        `${SUBJECT}.account-`.length + 36,
-      ),
-    };
-  }
-  if (subject.startsWith(`${SUBJECT}.project-`)) {
-    return {
-      project_id: subject.slice(
-        `${SUBJECT}.project-`.length,
-        `${SUBJECT}.project-`.length + 36,
-      ),
-    };
-  }
-  throw Error(`invalid subject -- ${subject}`);
-}
-
 let tieredStorage: TieredStorage | null = null;
 export function init(ts: TieredStorage) {
   logger.debug("init");
@@ -118,17 +114,17 @@ async function mainLoop() {
 }
 
 let sub: Subscription | null = null;
-export async function run() {
-  const { nc } = await getEnv();
-  const subject = `${SUBJECT}.*.api`;
-  logger.debug(`run: listening on '${subject}'`);
-  sub = nc.subscribe(subject, { queue: "0" });
+async function run() {
+  const { cn } = await getEnv();
+  logger.debug(`run: listening on '${SUBJECT}'`);
+  sub = cn.subscribe(SUBJECT, { queue: "0" });
   await listen(sub);
 }
 
 async function listen(sub) {
   logger.debug("listen");
   for await (const mesg of sub) {
+    logger.debug("got mesg", { mesg });
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
@@ -138,11 +134,9 @@ async function listen(sub) {
 
 async function handleMessage(mesg) {
   let resp;
-  const { jc } = await getEnv();
-  const location = getLocation(mesg.subject);
-  const { command } = jc.decode(mesg.data);
 
   try {
+    const { command, location } = mesg.data;
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
@@ -162,5 +156,5 @@ async function handleMessage(mesg) {
     resp = { error: `${err}` };
   }
   //logger.debug("handleMessage -- resp", { location, command, resp });
-  mesg.respond(jc.encode(resp));
+  mesg.respond(resp);
 }

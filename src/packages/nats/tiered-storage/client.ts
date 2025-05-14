@@ -3,7 +3,7 @@ Client for the tiered server.
 */
 
 import type { Info, Command } from "./server";
-import { tieredStorageSubject } from "./server";
+import { SUBJECT, tieredStorageSubject } from "./server";
 import { getEnv, getLogger } from "@cocalc/nats/client";
 import { type Location } from "@cocalc/nats/types";
 import { waitUntilConnected } from "@cocalc/nats/util";
@@ -63,7 +63,7 @@ function stringToLocation(s: string): Location | null {
 
 export const waitUntilReady = reuseInFlight(
   async (location: Location | string | null): Promise<void> => {
-    if(location == null) {
+    if (location == null) {
       return;
     }
     if (typeof location == "string") {
@@ -142,12 +142,15 @@ export async function info(location: Location): Promise<Info> {
 }
 
 async function call(command: Command, location: Location) {
-  const subject = tieredStorageSubject(location);
-  const { nc, jc } = await getEnv();
-  const resp = await nc.request(subject, jc.encode({ command }), {
-    timeout: TIMEOUT[command],
-  });
-  const x = jc.decode(resp.data);
+  const { cn } = await getEnv();
+  const resp = await cn.request(
+    SUBJECT,
+    { command, location },
+    {
+      timeout: TIMEOUT[command],
+    },
+  );
+  const x = resp.data;
   if (x?.error) {
     throw Error(x.error);
   } else {
