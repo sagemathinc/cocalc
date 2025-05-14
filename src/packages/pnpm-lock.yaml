@@ -1148,7 +1148,7 @@ importers:
         version: 4.17.21
       socket.io-client:
         specifier: ^4.8.1
-        version: 4.8.1
+        version: 4.8.1(supports-color@9.4.0)
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -1617,6 +1617,9 @@ importers:
       cloudflare:
         specifier: ^2.9.1
         version: 2.9.1
+      cookie:
+        specifier: ^1.0.0
+        version: 1.0.0
       cookies:
         specifier: ^0.8.0
         version: 0.8.0
@@ -17073,10 +17076,6 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
-  debug@4.3.7:
-    dependencies:
-      ms: 2.1.3
-
   debug@4.3.7(supports-color@9.4.0):
     dependencies:
       ms: 2.1.3
@@ -17424,18 +17423,6 @@ snapshots:
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
-
-  engine.io-client@6.6.3:
-    dependencies:
-      '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7
-      engine.io-parser: 5.2.3
-      ws: 8.17.1
-      xmlhttprequest-ssl: 2.1.2
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
 
   engine.io-client@6.6.3(supports-color@9.4.0):
     dependencies:
@@ -22882,17 +22869,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  socket.io-client@4.8.1:
-    dependencies:
-      '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7
-      engine.io-client: 6.6.3
-      socket.io-parser: 4.2.4
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
   socket.io-client@4.8.1(supports-color@9.4.0):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -22903,13 +22879,6 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
-
-  socket.io-parser@4.2.4:
-    dependencies:
-      '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7
-    transitivePeerDependencies:
-      - supports-color
 
   socket.io-parser@4.2.4(supports-color@9.4.0):
     dependencies:

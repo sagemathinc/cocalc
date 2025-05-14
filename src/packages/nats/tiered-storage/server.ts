@@ -78,12 +78,25 @@ export function tieredStorageSubject({ account_id, project_id }: Location) {
 }
 
 let tieredStorage: TieredStorage | null = null;
-export function init(ts: TieredStorage) {
+export type IsCollab = (opts: {
+  account_id: string;
+  project_id: string;
+}) => Promise<boolean>;
+
+let isCollaborator: IsCollab | null = null;
+export function init({
+  ts,
+  isCollaborator: _isCollaborator,
+}: {
+  ts: TieredStorage;
+  isCollaborator: IsCollab;
+}) {
   logger.debug("init");
   if (tieredStorage != null) {
     throw Error("tiered-storage: init already called");
   }
   tieredStorage = ts;
+  isCollaborator = _isCollaborator;
   mainLoop();
 }
 
@@ -137,11 +150,18 @@ async function handleMessage(mesg) {
 
   try {
     const { command, location } = mesg.data;
-    if (tieredStorage == null) {
+    if (tieredStorage == null || isCollaborator == null) {
       throw Error("tiered storage not available");
     }
-    logger.debug("handleMessage", { location, command });
-    if (command == "restore") {
+    logger.debug("handleMessage", { location, command, from: mesg.from });
+    if (
+      !(await isCollaborator({
+        project_id: location.project_id,
+        account_id: mesg.from?.account_id,
+      }))
+    ) {
+      resp = "user must be collaborator on project";
+    } else if (command == "restore") {
       resp = await tieredStorage.restore(location);
     } else if (command == "archive") {
       resp = await tieredStorage.archive(location);

@@ -48,6 +48,7 @@ import { getProjectInfo, getAccountInfo } from "./info";
 import { isValidUUID } from "@cocalc/util/misc";
 import "@cocalc/backend/nats";
 import getLogger from "@cocalc/backend/logger";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const logger = getLogger("tiered-storage:api");
 
@@ -56,7 +57,7 @@ export { terminate };
 export async function init() {
   logger.debug("init");
   const ts = new TieredStorage();
-  initServer(ts);
+  initServer({ ts, isCollaborator });
 }
 
 function getType({ account_id, project_id }: Location): LocationType {

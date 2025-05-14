@@ -26,5 +26,29 @@ export function init({
     Server,
     logger: logger.debug,
     path,
+    getUser,
   });
+}
+
+import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
+import { parse } from "cookie";
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import { getRememberMeHashFromCookieValue } from "@cocalc/server/auth/remember-me";
+
+// [ ] TODO -- api keys, hubs,
+export async function getUser(socket) {
+  if (!socket.handshake.headers.cookie) {
+    return;
+  }
+  const cookies = parse(socket.handshake.headers.cookie);
+  const value = cookies[REMEMBER_ME_COOKIE_NAME];
+  if (!value) {
+    return;
+  }
+  const hash = getRememberMeHashFromCookieValue(value);
+  if (!hash) {
+    return;
+  }
+  const account_id = await getAccountIdFromRememberMe(hash);
+  return { account_id };
 }

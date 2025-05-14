@@ -27,7 +27,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -86,6 +89,7 @@
     "base64-js": "^1.5.1",
     "bottleneck": "^2.19.5",
     "cloudflare": "^2.9.1",
+    "cookie": "^1.0.0",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.11",
     "dot-object": "^2.1.5",

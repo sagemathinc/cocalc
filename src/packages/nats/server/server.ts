@@ -21,12 +21,15 @@ export function init(opts) {
   return new CoNatServer(opts);
 }
 
+export type AuthFunction = (socket) => Promise<any>;
+
 export class CoNatServer {
   public readonly io;
   public readonly id: number;
   private readonly logger: (...args) => void;
   private queueGroups: { [subject: string]: { [queue: string]: Set<string> } } =
     {};
+  private getUser?: AuthFunction;
 
   constructor({
     Server,
@@ -35,6 +38,7 @@ export class CoNatServer {
     id = 0,
     logger,
     path,
+    getUser,
   }: {
     Server;
     httpServer?;
@@ -42,7 +46,9 @@ export class CoNatServer {
     id?: number;
     logger?;
     path?: string;
+    getUser?;
   }) {
+    this.getUser = getUser;
     this.id = id;
     this.logger = logger;
     this.log("Starting CoNat server...", {
@@ -104,7 +110,7 @@ export class CoNatServer {
     }
   };
 
-  private publish = ({ socket, subject, data }) => {
+  private publish = ({ socket, subject, data, from }) => {
     // TODO: auth check
     // @ts-ignore
     const _socket = socket; // TODO
@@ -118,7 +124,7 @@ export class CoNatServer {
         const choice = v[Math.floor(Math.random() * v.length)];
         // console.log({ choice });
         if (choice != null) {
-          this.io.to(choice).emit(subject, data);
+          this.io.to(choice).emit(subject, { data, from });
           count += 1;
         }
       }
@@ -128,32 +134,39 @@ export class CoNatServer {
       }
     }
     // just send to everyone
-    this.io.to(subject).emit(subject, data);
+    this.io.to(subject).emit(subject, { data, from });
   };
 
   private init = () => {
-    this.io.on("connection", (socket) => {
-      this.log("got connection", { id: socket.id });
-      socket.emit("info", this.info());
+    this.io.on("connection", this.handleSocket);
+  };
 
-      socket.on("publish", ([subject, ...data]) => {
-        this.publish({ socket, subject, data });
-      });
+  private handleSocket = async (socket) => {
+    let user: any = null;
+    if (this.getUser) {
+      user = await this.getUser?.(socket);
+    }
+    this.log("got connection", { id: socket.id, user });
 
-      socket.on("subscribe", ({ subject, queue }) => {
-        this.subscribe({ socket, subject, queue });
-      });
+    socket.emit("info", { ...this.info(), user });
 
-      socket.on("unsubscribe", ({ subject }) => {
+    socket.on("publish", ([subject, ...data]) => {
+      this.publish({ socket, subject, data, from: user });
+    });
+
+    socket.on("subscribe", ({ subject, queue }) => {
+      this.subscribe({ socket, subject, queue });
+    });
+
+    socket.on("unsubscribe", ({ subject }) => {
+      this.unsubscribe({ socket, subject });
+    });
+
+    socket.on("disconnecting", () => {
+      for (const room of socket.rooms) {
+        const subject = getRoomSubject(room);
         this.unsubscribe({ socket, subject });
-      });
-
-      socket.on("disconnecting", () => {
-        for (const room of socket.rooms) {
-          const subject = getRoomSubject(room);
-          this.unsubscribe({ socket, subject });
-        }
-      });
+      }
     });
   };
 }

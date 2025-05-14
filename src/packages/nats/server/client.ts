@@ -332,10 +332,11 @@ class SubscriptionEmitter extends EventEmitter {
     return this;
   }
 
-  private handle = ([id, seq, done, protocol, buffer, headers]) => {
+  private handle = ({ data, from }) => {
     if (this.client == null) {
       return;
     }
+    const [id, seq, done, protocol, buffer, headers] = data;
     // console.log({ id, seq, done, protocol, buffer, headers });
     const chunk = { seq, done, protocol, buffer, headers };
     const { incoming } = this;
@@ -370,6 +371,7 @@ class SubscriptionEmitter extends EventEmitter {
         data: decode({ protocol, data }),
         headers,
         client: this.client,
+        from,
       });
       this.emit("message", mesg);
     }
@@ -399,11 +401,13 @@ export class Message {
   private client: Client;
   public readonly data: any;
   public readonly headers: JSONValue;
+  public readonly from;
 
-  constructor({ data, headers, client }) {
+  constructor({ data, headers, client, from }) {
     this.data = data;
     this.headers = headers;
     this.client = client;
+    this.from = from;
   }
 
   respond = (data: any) => {
@@ -416,4 +420,3 @@ export class Message {
 }
 
 export type Subscription = EventIterator<Message>;
-
