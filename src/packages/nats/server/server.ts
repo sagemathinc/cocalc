@@ -75,55 +75,97 @@ export class CoNatServer {
     this.logger?.(new Date().toISOString(), "conat", this.id, ":", ...args);
   };
 
+  private unsubscribe = ({ socket, subject }) => {
+    this.log("unsubscribe ", { id: socket.id, subject });
+    socket.leave(subject);
+    const groups = this.queueGroups[subject];
+    if (groups != null) {
+      const socketSubject = socketSpecificSubject({ socket, subject });
+      for (const queue in groups) {
+        groups[queue].delete(socketSubject);
+      }
+    }
+  };
+
+  private subscribe = ({ socket, subject, queue }) => {
+    this.log("subscribe ", { id: socket.id, subject, queue });
+    if (queue) {
+      const socketSubject = socketSpecificSubject({ socket, subject });
+      if (this.queueGroups[subject] == null) {
+        this.queueGroups[subject] = { [queue]: new Set([socketSubject]) };
+      } else if (this.queueGroups[subject][queue] == null) {
+        this.queueGroups[subject][queue] = new Set([socketSubject]);
+      } else {
+        this.queueGroups[subject][queue].add(socketSubject);
+      }
+      socket.join(socketSubject);
+    } else {
+      socket.join(subject);
+    }
+  };
+
+  private publish = ({ socket, subject, data }) => {
+    // TODO: auth check
+    // @ts-ignore
+    const _socket = socket; // TODO
+    const g = this.queueGroups[subject];
+    //this.log("publishing", { subject, data, g });
+    if (g != null) {
+      let count = 0;
+      // send to exactly one in each queue group
+      for (const queue in g) {
+        const v = Array.from(g[queue]);
+        const choice = v[Math.floor(Math.random() * v.length)];
+        // console.log({ choice });
+        if (choice != null) {
+          this.io.to(choice).emit(subject, data);
+          count += 1;
+        }
+      }
+      if (count > 0) {
+        // at least one queue group
+        return;
+      }
+    }
+    // just send to everyone
+    this.io.to(subject).emit(subject, data);
+  };
+
   private init = () => {
-    const { io } = this;
-    io.on("connection", (socket) => {
-      this.log("got connection", socket.id);
+    this.io.on("connection", (socket) => {
+      this.log("got connection", { id: socket.id });
       socket.emit("info", this.info());
 
       socket.on("publish", ([subject, ...data]) => {
-        // TODO: auth check
-        const g = this.queueGroups[subject];
-        //this.log("publishing", { subject, data, g });
-        if (g != null) {
-          // send to exactly one in each queue group
-          for (const queue in g) {
-            const v = Array.from(g[queue]);
-            const choice = v[Math.floor(Math.random() * v.length)];
-            // console.log({ choice });
-            if (choice != null) {
-              io.to(choice).emit(subject, data);
-            }
-          }
-        } else {
-          io.to(subject).emit(subject, data);
-        }
+        this.publish({ socket, subject, data });
       });
 
       socket.on("subscribe", ({ subject, queue }) => {
-        // TODO: auth check
-        // TODO: load balance across each queue group
-        this.log("subscribe ", { subject, queue });
-        if (queue) {
-          const queueSubject = JSON.stringify({ queue: socket.id, subject });
-          if (this.queueGroups[subject] == null) {
-            this.queueGroups[subject] = { [queue]: new Set([queueSubject]) };
-          } else if (this.queueGroups[subject][queue] == null) {
-            this.queueGroups[subject][queue] = new Set([queueSubject]);
-          } else {
-            this.queueGroups[subject][queue].add(queueSubject);
-          }
-          socket.join(queueSubject);
-        } else {
-          socket.join(subject);
-        }
+        this.subscribe({ socket, subject, queue });
       });
 
       socket.on("unsubscribe", ({ subject }) => {
-        this.log("unsubscribe ", { subject });
-        // TODO: handle queue groups from above
-        socket.leave(subject);
+        this.unsubscribe({ socket, subject });
+      });
+
+      socket.on("disconnecting", () => {
+        for (const room of socket.rooms) {
+          const subject = getRoomSubject(room);
+          this.unsubscribe({ socket, subject });
+        }
       });
     });
   };
+}
+
+function getRoomSubject(room: string) {
+  if (room.startsWith("{")) {
+    return JSON.parse(room).subject;
+  } else {
+    return room;
+  }
+}
+
+function socketSpecificSubject({ socket, subject }) {
+  return JSON.stringify({ id: socket.id, subject });
 }

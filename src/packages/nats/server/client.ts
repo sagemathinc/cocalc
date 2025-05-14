@@ -32,21 +32,25 @@ with opaque messages.
 
 USAGE:
 
+For developing at the command line, cd to packages/backend, then in node:
 
-c = require("@cocalc/nats/server/client").client();
+   c = require('@cocalc/backend/nats/conat').connect()
 
-c.watch('a')
+   c.watch('a')
 
-s=await c.subscribe('a');  for await (const x of s) { console.log(x.length)}
+   s = await c.subscribe('a');  for await (const x of s) { console.log(x.length)}
 
 // in another console
 
-c = require("@cocalc/nats/server/client").client();
-c.publish('a', 'hello there')
+   c = require('@cocalc/backend/nats/conat').connect()
+   c.publish('a', 'hello there')
 
+// in browser (right now)
+
+   cc.nats.conat()
 */
 
-import { connect } from "socket.io-client";
+import { connect as connectToSocketIO } from "socket.io-client";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ServerInfo } from "./types";
 import * as msgpack from "@msgpack/msgpack";
@@ -54,7 +58,7 @@ import { randomId } from "@cocalc/nats/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
 
-export function client(address = "http://localhost:3000", options?) {
+export function connect(address = "http://localhost:3000", options?) {
   return new Client(address, options);
 }
 
@@ -73,7 +77,7 @@ interface ClientOptions {
 }
 
 export class Client {
-  public conn: ReturnType<typeof connect>;
+  public conn: ReturnType<typeof connectToSocketIO>;
   private subscriptions: { [subject: string]: number } = {};
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions;
@@ -83,11 +87,14 @@ export class Client {
     options: { inboxPrefix?: string; path?: string; transports? } = {},
   ) {
     this.options = options;
-    this.conn = connect(address, {
+    this.conn = connectToSocketIO(address, {
       path: options.path,
       // cocalc itself only works with new clients.
       // TODO: chunking + long polling is tricky; need to shrink chunk size a lot, since
       // I guess no binary protocol.
+      // Also a major problem if we allow long polling is that we must always use at most
+      // half the chunk size... because there is no way to know if recipients will be
+      // using long polling to RECEIVE messages.
       transports: ["websocket"],
     });
     this.conn.on("info", (info) => {

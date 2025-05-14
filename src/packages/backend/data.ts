@@ -29,6 +29,8 @@ import { ConnectionOptions } from "node:tls";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import { hostname } from "os";
+import basePath from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -234,6 +236,17 @@ export function setNatsWebsocketPort(port) {
 export function setNatsServer(server) {
   natsServer = server;
   natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+
+// dev mode defaults
+export let conatServer = `http://localhost:${port}`;
+export let conatPath = join(basePath, "conat");
+
+export function setConatServer(server: string) {
+  conatServer = server;
+}
+export function setConatPath(path: string) {
+  conatPath = path;
 }
 
 // Password used to connect to the nats server
