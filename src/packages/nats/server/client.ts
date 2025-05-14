@@ -35,11 +35,15 @@ USAGE:
 For developing at the command line, cd to packages/backend, then in node:
 
    c = require('@cocalc/backend/nats/conat').connect()
+   
+or
+
+   c = require('@cocalc/nats/server/client').connect()
 
    c.watch('a')
 
    s = await c.subscribe('a');  for await (const x of s) { console.log(x.length)}
-
+   
 // in another console
 
    c = require('@cocalc/backend/nats/conat').connect()
@@ -48,6 +52,18 @@ For developing at the command line, cd to packages/backend, then in node:
 // in browser (right now)
 
    cc.nats.conat()
+   
+// client server:
+
+   s = await c.subscribe('eval'); for await(const x of s) { x.respond(eval(x.data)) }
+
+then in another console
+
+   f = async () => (await c.request('eval', '2+3')).data
+   await f()
+   
+   
+
 */
 
 import { connect as connectToSocketIO } from "socket.io-client";

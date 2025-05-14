@@ -13,14 +13,14 @@ import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("conat-server");
 
-export function init({
+export async function init({
   port,
   httpServer,
   path,
 }: { port?: number; httpServer?; path?: string } = {}) {
   logger.debug("init", { port, httpServer: httpServer != null, path });
 
-  createConatServer({
+  const server = createConatServer({
     port,
     httpServer,
     Server,
@@ -28,6 +28,18 @@ export function init({
     path,
     getUser,
   });
+
+  // This might enable uWebosckets.js?
+  // pnpm i uws-pack
+  // Then uncomment the following
+  /*
+  // @ts-ignore
+  const { App } = await import("uws-pack");
+  const app = App();
+  server.io.attachApp(app);
+  */
+
+  return server;
 }
 
 import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";

@@ -82,7 +82,7 @@ export class CoNatServer {
   };
 
   private unsubscribe = ({ socket, subject }) => {
-    this.log("unsubscribe ", { id: socket.id, subject });
+    //this.log("unsubscribe ", { id: socket.id, subject });
     socket.leave(subject);
     const groups = this.queueGroups[subject];
     if (groups != null) {
@@ -94,7 +94,7 @@ export class CoNatServer {
   };
 
   private subscribe = ({ socket, subject, queue }) => {
-    this.log("subscribe ", { id: socket.id, subject, queue });
+    //this.log("subscribe ", { id: socket.id, subject, queue });
     if (queue) {
       const socketSubject = socketSpecificSubject({ socket, subject });
       if (this.queueGroups[subject] == null) {
