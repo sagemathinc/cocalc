@@ -63,6 +63,14 @@ then in another console
    await f()
    
    
+Wildcard subject:
+
+   
+   c = require('@cocalc/nats/server/client').connect(); c.watch('a.*');
+   
+   
+   c = require('@cocalc/nats/server/client').connect(); c.publish('a.x', 'foo')
+   
 
 */
 
@@ -73,6 +81,10 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/nats/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
+import {
+  isValidSubject,
+  isValidSubjectWithoutWildcards,
+} from "@cocalc/nats/util";
 
 export function connect(address = "http://localhost:3000", options?) {
   return new Client(address, options);
@@ -127,6 +139,9 @@ export class Client {
       queue,
     }: { closeWhenOffCalled?: boolean; queue?: string } = {},
   ) => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid subscribe subject ${subject}`);
+    }
     const cur = this.subscriptions[subject] ?? 0;
     if (cur == 0) {
       this.conn.emit("subscribe", { subject, queue });
@@ -170,6 +185,9 @@ export class Client {
     mesg,
     { protocol = PROTOCOL, headers }: PublishOptions = {},
   ) => {
+    if (!isValidSubjectWithoutWildcards(subject)) {
+      throw Error(`invalid publish subject ${subject}`);
+    }
     let raw = encode({ protocol, mesg });
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
@@ -248,7 +266,11 @@ export class Client {
     throw Error("timeout");
   }
 
-  watch = (subject: string, cb = (x) => console.log(x.mesg), opts?) => {
+  watch = (
+    subject: string,
+    cb = (x) => console.log(x.subject, ":", x.data),
+    opts?,
+  ) => {
     const sub = this.subscribe(subject, opts);
     const f = async () => {
       for await (const x of sub) {
@@ -348,7 +370,7 @@ class SubscriptionEmitter extends EventEmitter {
     return this;
   }
 
-  private handle = ({ data, from }) => {
+  private handle = ({ subject, data, from }) => {
     if (this.client == null) {
       return;
     }
@@ -388,6 +410,7 @@ class SubscriptionEmitter extends EventEmitter {
         headers,
         client: this.client,
         from,
+        subject,
       });
       this.emit("message", mesg);
     }
@@ -418,12 +441,14 @@ export class Message {
   public readonly data: any;
   public readonly headers: JSONValue;
   public readonly from;
+  public readonly subject;
 
-  constructor({ data, headers, client, from }) {
+  constructor({ data, headers, client, from, subject }) {
     this.data = data;
     this.headers = headers;
     this.client = client;
     this.from = from;
+    this.subject = subject;
   }
 
   respond = (data: any) => {

@@ -1,14 +1,24 @@
 /*
 
 
-cd ../server
-node
+cd packages/server
 
-  io = require('@cocalc/server/nats/socketio').initServer()
+
+   s = await require('@cocalc/server/nats/socketio').initConatServer()
+    
+Or from cocalc/src
+
+   pnpm conat-server
    
 */
 
 import type { ServerInfo } from "./types";
+import {
+  matchesPattern,
+  isValidSubject,
+  isValidSubjectWithoutWildcards,
+} from "@cocalc/nats/util";
+import { randomId } from "@cocalc/nats/names";
 
 // This is just the default with socket.io, but we might want a bigger
 // size, which could mean more RAM usage by the servers.
@@ -89,52 +99,58 @@ export class CoNatServer {
       const socketSubject = socketSpecificSubject({ socket, subject });
       for (const queue in groups) {
         groups[queue].delete(socketSubject);
+        if (groups[queue].size == 0) {
+          delete groups[queue];
+        }
       }
     }
   };
 
   private subscribe = ({ socket, subject, queue }) => {
     //this.log("subscribe ", { id: socket.id, subject, queue });
-    if (queue) {
-      const socketSubject = socketSpecificSubject({ socket, subject });
-      if (this.queueGroups[subject] == null) {
-        this.queueGroups[subject] = { [queue]: new Set([socketSubject]) };
-      } else if (this.queueGroups[subject][queue] == null) {
-        this.queueGroups[subject][queue] = new Set([socketSubject]);
-      } else {
-        this.queueGroups[subject][queue].add(socketSubject);
-      }
-      socket.join(socketSubject);
-    } else {
-      socket.join(subject);
+    if (!queue) {
+      queue = randomId();
     }
+    if (!isValidSubject(subject)) {
+      // drops it
+      return;
+    }
+    const socketSubject = socketSpecificSubject({ socket, subject });
+    if (this.queueGroups[subject] == null) {
+      this.queueGroups[subject] = { [queue]: new Set([socketSubject]) };
+    } else if (this.queueGroups[subject][queue] == null) {
+      this.queueGroups[subject][queue] = new Set([socketSubject]);
+    } else {
+      this.queueGroups[subject][queue].add(socketSubject);
+    }
+    socket.join(socketSubject);
   };
 
   private publish = ({ socket, subject, data, from }) => {
     // TODO: auth check
     // @ts-ignore
     const _socket = socket; // TODO
-    const g = this.queueGroups[subject];
-    //this.log("publishing", { subject, data, g });
-    if (g != null) {
-      let count = 0;
+    if (!isValidSubjectWithoutWildcards(subject)) {
+      // drops it
+      return;
+    }
+    for (const pattern in this.queueGroups) {
+      if (!matchesPattern({ pattern, subject })) {
+        continue;
+      }
+      const g = this.queueGroups[pattern];
+      if (g === undefined) {
+        continue;
+      }
+      //this.log("publishing", { subject, data, g });
       // send to exactly one in each queue group
       for (const queue in g) {
-        const v = Array.from(g[queue]);
-        const choice = v[Math.floor(Math.random() * v.length)];
-        // console.log({ choice });
-        if (choice != null) {
-          this.io.to(choice).emit(subject, { data, from });
-          count += 1;
+        const choice = randomChoice(g[queue]);
+        if (choice !== undefined) {
+          this.io.to(choice).emit(pattern, { subject, data, from });
         }
       }
-      if (count > 0) {
-        // at least one queue group
-        return;
-      }
     }
-    // just send to everyone
-    this.io.to(subject).emit(subject, { data, from });
   };
 
   private init = () => {
@@ -181,4 +197,18 @@ function getRoomSubject(room: string) {
 
 function socketSpecificSubject({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
+}
+
+function randomChoice(v: Set<string>): any {
+  if (v.size == 0) {
+    return undefined;
+  }
+  if (v.size == 1) {
+    for (const x of v) {
+      return x;
+    }
+  }
+  const w = Array.from(v);
+  const i = Math.floor(Math.random() * w.length);
+  return w[i];
 }
