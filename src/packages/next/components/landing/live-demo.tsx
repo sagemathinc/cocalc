@@ -1,7 +1,8 @@
-import getSupportUrl from "@cocalc/frontend/support/url";
 import { Button } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import getSupportUrl from "@cocalc/frontend/support/url";
 
 export function liveDemoUrl(context) {
   return getSupportUrl({

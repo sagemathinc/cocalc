@@ -10,6 +10,7 @@ import {
 } from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -19,6 +20,7 @@ import ChatGPTHelp from "components/openai/chatgpt-help";
 import CodeMirror from "components/share/codemirror";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
+import { VideoItem } from "components/videos";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
@@ -26,7 +28,6 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
-import { VideoItem } from "components/videos";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -43,19 +44,26 @@ export type Type = "problem" | "question" | "task" | "purchase" | "chat";
 
 function stringToType(s?: any): Type {
   if (
-    s == "problem" ||
-    s == "question" ||
-    s == "task" ||
-    s == "purchase" ||
-    s == "chat"
+    s === "problem" ||
+    s === "question" ||
+    s === "task" ||
+    s === "purchase" ||
+    s === "chat"
   )
     return s;
   return "problem"; // default;
 }
 
 export default function Create() {
-  const { account, onCoCalcCom, helpEmail, openaiEnabled, siteName, zendesk } =
-    useCustomize();
+  const {
+    account,
+    onCoCalcCom,
+    helpEmail,
+    openaiEnabled,
+    siteName,
+    zendesk,
+    supportVideoCall,
+  } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -131,6 +139,50 @@ export default function Create() {
     );
   }
 
+  function renderChat() {
+    if (type === "chat" && supportVideoCall) {
+      return (
+        <h1 style={{ textAlign: "center" }}>
+          <b>
+            <A href={supportVideoCall}>Book a Video Chat...</A>
+          </b>
+        </h1>
+      );
+    }
+    if (type !== "chat") {
+      return (
+        <>
+          <b>
+            <Status
+              done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
+            />{" "}
+            Description
+          </b>
+          <div
+            style={{
+              marginLeft: "30px",
+              borderLeft: "1px solid lightgrey",
+              paddingLeft: "15px",
+            }}
+          >
+            {type == "problem" && <Problem onChange={setBody} />}
+            {type == "question" && (
+              <Question onChange={setBody} defaultValue={body} />
+            )}
+            {type == "purchase" && (
+              <Purchase
+                onChange={setBody}
+                defaultValue={body}
+                showExtra={showExtra}
+              />
+            )}
+            {type == "task" && <Task onChange={setBody} />}
+          </div>
+        </>
+      );
+    }
+  }
+
   return (
     <Layout.Content style={{ backgroundColor: "white" }}>
       <div
@@ -157,10 +209,15 @@ export default function Create() {
                 {helpEmail ? (
                   <>
                     You can also email us directly at{" "}
-                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
-                    <A href="https://calendly.com/cocalc/discovery">
-                      book a demo or discovery call
-                    </A>
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>{" "}
+                    {supportVideoCall ? (
+                      <>
+                        or{" "}
+                        <A href={supportVideoCall}>
+                          book a demo or discovery call
+                        </A>
+                      </>
+                    ) : undefined}
                     .
                   </>
                 ) : undefined}
@@ -242,43 +299,7 @@ export default function Create() {
                 <br />
               </>
             )}
-            {type == "chat" && (
-              <h1 style={{ textAlign: "center" }}>
-                <b>
-                  <A href="https://calendly.com/cocalc">Book a Video Chat...</A>
-                </b>
-              </h1>
-            )}
-            {type != "chat" && (
-              <>
-                <b>
-                  <Status
-                    done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
-                  />{" "}
-                  Description
-                </b>
-                <div
-                  style={{
-                    marginLeft: "30px",
-                    borderLeft: "1px solid lightgrey",
-                    paddingLeft: "15px",
-                  }}
-                >
-                  {type == "problem" && <Problem onChange={setBody} />}
-                  {type == "question" && (
-                    <Question onChange={setBody} defaultValue={body} />
-                  )}
-                  {type == "purchase" && (
-                    <Purchase
-                      onChange={setBody}
-                      defaultValue={body}
-                      showExtra={showExtra}
-                    />
-                  )}
-                  {type == "task" && <Task onChange={setBody} />}
-                </div>
-              </>
-            )}
+            {renderChat()}
           </VSpace>
 
           <div style={{ textAlign: "center", marginTop: "30px" }}>
@@ -302,16 +323,16 @@ export default function Create() {
                 {submitting
                   ? "Submitting..."
                   : success
-                    ? "Thank you for creating a ticket"
-                    : submitError
-                      ? "Close the error box to try again"
-                      : !isValidEmailAddress(email)
-                        ? "Enter Valid Email Address above"
-                        : !subject
-                          ? "Enter Subject above"
-                          : (body ?? "").length < MIN_BODY_LENGTH
-                            ? `Describe your ${type} in detail above`
-                            : "Create Support Ticket"}
+                  ? "Thank you for creating a ticket"
+                  : submitError
+                  ? "Close the error box to try again"
+                  : !isValidEmailAddress(email)
+                  ? "Enter Valid Email Address above"
+                  : !subject
+                  ? "Enter Subject above"
+                  : (body ?? "").length < MIN_BODY_LENGTH
+                  ? `Describe your ${type} in detail above`
+                  : "Create Support Ticket"}
               </Button>
             )}
             {submitting && <Loading style={{ fontSize: "32pt" }} />}

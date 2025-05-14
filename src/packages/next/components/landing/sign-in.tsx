@@ -17,6 +17,7 @@ interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
   hideFree?: boolean;
   style?: React.CSSProperties;
+  emphasize?: boolean;
 }
 
 const STYLE: CSSProperties = {
@@ -25,7 +26,7 @@ const STYLE: CSSProperties = {
   marginBottom: "0",
 } as const;
 
-export default function SignIn({ startup, hideFree, style }: Props) {
+export default function SignIn({ startup, hideFree, style, emphasize }: Props) {
   const { anonymousSignup, siteName, account, emailSignup } = useCustomize();
   style = { ...STYLE, ...style };
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
             style={{ margin: "10px" }}
             title={"Create a new account."}
             onClick={() => router.push("/auth/sign-up")}
+            type={emphasize ? "primary" : undefined}
           >
             Sign Up
           </Button>
@@ -65,6 +67,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
               "Either create a new account or sign into an existing account."
             }
             onClick={() => router.push("/auth/sign-in")}
+            type={emphasize ? "primary" : undefined}
           >
             Sign In
           </Button>
