@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { join } from "path";
 import { CSSProperties, ReactNode } from "react";
 
+import { Icon } from "@cocalc/frontend/components/icon";
 import SSO from "components/auth/sso";
 import { Paragraph } from "components/misc";
 import basePath from "lib/base-path";
@@ -39,6 +40,7 @@ export default function SignIn({ startup, hideFree, style, emphasize }: Props) {
           onClick={() => (window.location.href = join(basePath, "projects"))}
           title={`Open the ${siteName} app and view your projects.`}
           type="primary"
+          icon={<Icon name="edit" />}
         >
           Your {siteName} Projects
         </Button>
