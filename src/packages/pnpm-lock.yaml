@@ -1131,9 +1131,6 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
-      event-iterator:
-        specifier: ^2.0.0
-        version: 2.0.0
       events:
         specifier: 3.3.0
         version: 3.3.0
@@ -1151,7 +1148,7 @@ importers:
         version: 4.17.21
       socket.io-client:
         specifier: ^4.8.1
-        version: 4.8.1(supports-color@9.4.0)
+        version: 4.8.1
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -6869,9 +6866,6 @@ packages:
 
   event-emitter@0.3.5:
     resolution: {integrity: sha512-D9rRn9y7kLPnJ+hMq7S/nhvoKwwvVJahBi2BPmx3bvbsEdK3W9ii8cBSGjP+72/LnM4n6fo3+dkCX5FeTQruXA==}
-
-  event-iterator@2.0.0:
-    resolution: {integrity: sha512-KGft0ldl31BZVV//jj+IAIGCxkvvUkkON+ScH6zfoX+l+omX6001ggyRSpI0Io2Hlro0ThXotswCtfzS8UkIiQ==}
 
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
@@ -17079,6 +17073,10 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
+  debug@4.3.7:
+    dependencies:
+      ms: 2.1.3
+
   debug@4.3.7(supports-color@9.4.0):
     dependencies:
       ms: 2.1.3
@@ -17426,6 +17424,18 @@ snapshots:
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
+
+  engine.io-client@6.6.3:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+      xmlhttprequest-ssl: 2.1.2
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   engine.io-client@6.6.3(supports-color@9.4.0):
     dependencies:
@@ -17781,8 +17791,6 @@ snapshots:
     dependencies:
       d: 1.0.2
       es5-ext: 0.10.64
-
-  event-iterator@2.0.0: {}
 
   event-target-shim@5.0.1: {}
 
@@ -22874,6 +22882,17 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  socket.io-client@4.8.1:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-client: 6.6.3
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   socket.io-client@4.8.1(supports-color@9.4.0):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -22884,6 +22903,13 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  socket.io-parser@4.2.4:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+    transitivePeerDependencies:
+      - supports-color
 
   socket.io-parser@4.2.4(supports-color@9.4.0):
     dependencies:

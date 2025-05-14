@@ -42,7 +42,6 @@
     "@nats-io/nats-core": "3.0.0",
     "@nats-io/services": "3.0.0",
     "awaiting": "^3.0.0",
-    "event-iterator": "^2.0.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "js-base64": "^3.7.7",

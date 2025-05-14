@@ -47,10 +47,17 @@ c.publish('a', 'hello there')
 */
 
 import { connect } from "socket.io-client";
-import { EventIterator } from "event-iterator";
+import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ServerInfo } from "./types";
 import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/nats/names";
+import type { JSONValue } from "@cocalc/util/types";
+import { EventEmitter } from "events";
+// import { once } from "@cocalc/util/async-utils";
+
+const INBOX_PREFIX = "_INBOX.";
+const REPLY_HEADER = "CoCalc-Reply";
+const DEFAULT_MAX_WAIT = 30000;
 
 enum Protocol {
   MsgPack = 0,
@@ -58,79 +65,67 @@ enum Protocol {
 }
 const PROTOCOL = Protocol.MsgPack;
 
+interface ClientOptions {
+  inboxPrefix?: string;
+}
+
 export class Client {
-  private conn: ReturnType<typeof connect>;
+  public conn: ReturnType<typeof connect>;
   private subscriptions: { [subject: string]: number } = {};
   public info: ServerInfo | undefined = undefined;
+  private readonly options: ClientOptions;
 
-  constructor(address: string) {
+  constructor(address: string, options: { inboxPrefix?: string } = {}) {
+    this.options = options;
     this.conn = connect(address);
     this.conn.on("info", (info) => {
       this.info = info;
     });
   }
 
-  subscribe = async (subject: string): Promise<Subscription<any>> => {
+  // returns EventEmitter that emits 'message', mesg: Message
+  subscription = (
+    subject: string,
+    { closeWhenOffCalled }: { closeWhenOffCalled?: boolean } = {},
+  ) => {
     const cur = this.subscriptions[subject] ?? 0;
     if (cur == 0) {
       this.conn.emit("subscribe", { subject });
       // todo confirmation/security
     }
-    this.subscriptions[subject] = cur + 1;
-    const iter = new EventIterator(({ push }) => {
-      this.conn.on(subject, push);
-      return () => {
-        this.conn.off(subject, push);
-        this.subscriptions[subject] -= 1;
-        if (this.subscriptions[subject] <= 0) {
-          this.conn.emit("unsubscribe", { subject });
-        }
-      };
+    const sub = new Subscription({
+      client: this,
+      subject,
+      closeWhenOffCalled,
     });
-    const f = async function* () {
-      const incoming: { [id: string]: Partial<Chunk>[] } = {};
-      for await (const [
-        id,
-        seq,
-        done,
-        protocol,
-        buffer,
-        headers,
-      ] of iter as any) {
-        // console.log({ id, seq, done, protocol, buffer, headers });
-        const chunk = { seq, done, protocol, buffer, headers };
-        if (incoming[id] == null) {
-          if (seq != 0) {
-            // part of a dropped message -- by definition this should just
-            // silently happen and be handled via application level protocols
-            // elsewhere
-            continue;
-          }
-          incoming[id] = [];
-        } else {
-          if ((incoming[id].slice(-1)[0].seq ?? -100) + 1 != seq) {
-            // part of message was dropped -- discard everything
-            delete incoming[id];
-            continue;
-          }
-        }
-        incoming[id].push(chunk);
-        if (chunk.done) {
-          // console.log("assembling ", incoming[id].length, "chunks");
-          const chunks = incoming[id].map((x) => x.buffer!);
-          const data = Buffer.concat(chunks);
-          delete incoming[id];
-          yield { mesg: decode({ protocol, data }), headers };
-        }
+    sub.once("close", () => {
+      this.subscriptions[subject] -= 1;
+      if (this.subscriptions[subject] <= 0) {
+        this.conn.emit("unsubscribe", { subject });
+        delete this.subscriptions[subject];
       }
-    };
-    return new Subscription(f());
+    });
+    this.subscriptions[subject] = cur + 1;
+    return sub;
+  };
+
+  subscribe = (
+    subject: string,
+    { maxWait, mesgLimit }: { maxWait?: number; mesgLimit?: number } = {},
+  ) => {
+    const sub = this.subscription(subject, { closeWhenOffCalled: true });
+    // @ts-ignore
+    return new EventIterator<Message>(sub, "message", {
+      idle: maxWait,
+      limit: mesgLimit,
+      map: (args) => args[0],
+    });
   };
 
   publish = (
     subject: string,
     mesg,
-    { protocol = PROTOCOL, headers }: { protocol?: Protocol; headers? } = {},
+    { protocol = PROTOCOL, headers }: PublishOptions = {},
   ) => {
     let raw = encode({ protocol, mesg });
     // default to 1MB is safe since it's at least that big.
@@ -139,7 +134,14 @@ export class Client {
     let id = randomId();
     for (let i = 0; i < raw.length; i += chunkSize) {
       const done = i + chunkSize >= raw.length ? 1 : 0;
-      const v = [subject, id, seq, done, protocol, raw.slice(i, i + chunkSize)];
+      const v: any[] = [
+        subject,
+        id,
+        seq,
+        done,
+        protocol,
+        raw.slice(i, i + chunkSize),
+      ];
       if (done && headers) {
         v.push(headers);
       }
@@ -148,11 +150,35 @@ export class Client {
     }
   };
 
+  request = async (
+    subject: string,
+    mesg: any,
+    {
+      maxWait = DEFAULT_MAX_WAIT,
+      ...options
+    }: PublishOptions & { maxWait?: number } = {},
+  ): Promise<Message> => {
+    const inboxSubject = `${this.options.inboxPrefix ?? INBOX_PREFIX}${randomId()}`;
+    const sub = this.subscribe(inboxSubject, { maxWait, mesgLimit: 1 });
+    this.publish(subject, mesg, {
+      headers: { ...options, [REPLY_HEADER]: inboxSubject },
+    });
+    for await (const resp of sub) {
+      return resp;
+    }
+    throw Error("timeout");
+  };
+
   watch = async (subject: string, cb = console.log) => {
-    for await (const x of await this.subscribe(subject)) {
+    for await (const x of this.subscribe(subject)) {
       cb(x);
     }
   };
+}
+
+interface PublishOptions {
+  protocol?: Protocol;
+  headers?: JSONValue;
 }
 
 function encode({ protocol, mesg }: { protocol: Protocol; mesg: any }) {
@@ -204,44 +230,97 @@ export function client(address: string = "http://localhost:3000") {
   return new Client(address);
 }
 
-class Subscription<T> implements AsyncIterableIterator<T> {
-  private iter: AsyncIterableIterator<T>;
-  private stopped = false;
+class Subscription extends EventEmitter {
+  private incoming: { [id: string]: Partial<Chunk>[] } = {};
+  private client: Client;
+  private closeWhenOffCalled?: boolean;
+  private subject: string;
 
-  constructor(iter: AsyncIterableIterator<T>) {
-    this.iter = iter;
+  constructor({ client, subject, closeWhenOffCalled }) {
+    super();
+    this.client = client;
+    this.subject = subject;
+    this.client.conn.on(subject, this.handle);
+    this.closeWhenOffCalled = closeWhenOffCalled;
   }
 
-  async next(...args: [] | [any]) {
-    if (this.stopped) {
-      return { done: true as true, value: undefined };
+  close = () => {
+    this.emit("close");
+    this.client.conn.removeListener(this.subject, this.handle);
+    // @ts-ignore
+    delete this.incoming;
+    // @ts-ignore
+    delete this.client;
+    // @ts-ignore
+    delete this.subject;
+    // @ts-ignore
+    delete this.closeWhenOffCalled;
+  };
+
+  off(a, b) {
+    super.off(a, b);
+    if (this.closeWhenOffCalled) {
+      this.close();
     }
-    const result = await this.iter.next(...args);
-    // Don't yield further values after stopped:
-    if (this.stopped) {
-      return { done: true as true, value: undefined };
-    }
-    return result;
-  }
-
-  async return(value?: any) {
-    this.stopped = true;
-    return this.iter.return ? this.iter.return(value) : { done: true, value };
-  }
-
-  async throw(e?: any) {
-    this.stopped = true;
-    return this.iter.throw ? this.iter.throw(e) : Promise.reject(e);
-  }
-
-  [Symbol.asyncIterator]() {
     return this;
   }
 
-  stop() {
-    if (!this.stopped) {
-      this.stopped = true;
-      this.return();
+  private handle = ([id, seq, done, protocol, buffer, headers]) => {
+    if (this.client == null) {
+      return;
     }
+    // console.log({ id, seq, done, protocol, buffer, headers });
+    const chunk = { seq, done, protocol, buffer, headers };
+    const incoming = this.incoming;
+    if (incoming[id] == null) {
+      if (seq != 0) {
+        // part of a dropped message -- by definition this should just
+        // silently happen and be handled via application level protocols
+        // elsewhere
+        this.emit("drop");
+        return;
+      }
+      incoming[id] = [];
+    } else {
+      if ((incoming[id].slice(-1)[0].seq ?? -100) + 1 != seq) {
+        // part of message was dropped -- discard everything
+        delete incoming[id];
+        this.emit("drop");
+        return;
+      }
+    }
+    incoming[id].push(chunk);
+    if (chunk.done) {
+      // console.log("assembling ", incoming[id].length, "chunks");
+      const chunks = incoming[id].map((x) => x.buffer!);
+      const data = Buffer.concat(chunks);
+      delete incoming[id];
+      const mesg = new Message({
+        mesg: decode({ protocol, data }),
+        headers,
+        client: this.client,
+      });
+      this.emit("message", mesg);
+    }
+  };
+}
+
+export class Message {
+  private client: Client;
+  public readonly mesg: any;
+  public readonly headers: JSONValue;
+
+  constructor({ mesg, headers, client }) {
+    this.mesg = mesg;
+    this.headers = headers;
+    this.client = client;
   }
+
+  respond = (mesg: any) => {
+    const subject = this.headers?.[REPLY_HEADER];
+    if (!subject) {
+      throw Error("message is not a request");
+    }
+    this.client.publish(subject, mesg);
+  };
 }
