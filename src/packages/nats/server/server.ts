@@ -14,13 +14,14 @@ import type { ServerInfo } from "./types";
 // size, which could mean more RAM usage by the servers.
 // Our client protocol automatically chunks messages, so this payload
 // size ONLY impacts performance, never application level constraints.
-const MAX_PAYLOAD = 1e6; // 1MB
+const MB = 1e6;
+const MAX_PAYLOAD = 1 * MB;
 
 export function init(opts) {
-  return new NatsServer(opts);
+  return new CoNatServer(opts);
 }
 
-export class NatsServer {
+export class CoNatServer {
   public readonly io;
   public readonly id: number;
   private readonly logger: (...args) => void;
@@ -33,22 +34,30 @@ export class NatsServer {
     port = 3000,
     id = 0,
     logger,
+    path,
   }: {
     Server;
     httpServer?;
     port?: number;
     id?: number;
     logger?;
+    path?: string;
   }) {
     this.id = id;
     this.logger = logger;
-    this.log("Starting CoNat server with id", { id });
+    this.log("Starting CoNat server...", {
+      id,
+      path,
+      port,
+      httpServer: httpServer != null,
+    });
     const options = {
       maxHttpBufferSize: MAX_PAYLOAD,
+      path,
     };
     this.log(options);
     if (httpServer) {
-      this.io = new Server(httpServer);
+      this.io = new Server(httpServer, options);
     } else {
       this.io = new Server(port, options);
       this.log(`listening on port ${port}`);

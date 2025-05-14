@@ -65,7 +65,7 @@ export class EventIterator<V extends unknown>
    * The filter used to filter out values.
    */
   public filter: EventIteratorFilter<V>;
-  
+
   public map;
 
   /**
@@ -96,7 +96,7 @@ export class EventIterator<V extends unknown>
   /**
    * The timer to track when this will idle out.
    */
-  readonly #idleTimer: NodeJS.Timeout | undefined | null = null;
+  #idleTimer: NodeJS.Timeout | undefined | null = null;
 
   /**
    * The push handler with context bound to the instance.
@@ -121,9 +121,10 @@ export class EventIterator<V extends unknown>
     this.filter = options.filter ?? ((): boolean => true);
 
     // This timer is to idle out on lack of valid responses
-    if (this.#idle)
+    if (this.#idle) {
+      // NOTE: this same code is in next in case when we can't use refresh
       this.#idleTimer = setTimeout(this.end.bind(this), this.#idle);
-
+    }
     this.#push = this.push.bind(this);
     const maxListeners = this.emitter.getMaxListeners();
     if (maxListeners !== 0) this.emitter.setMaxListeners(maxListeners + 1);
@@ -150,6 +151,9 @@ export class EventIterator<V extends unknown>
     const maxListeners = this.emitter.getMaxListeners();
     if (maxListeners !== 0) this.emitter.setMaxListeners(maxListeners - 1);
   }
+  // aliases to match usage in NATS and CoCalc.
+  close = this.end;
+  stop = this.end;
 
   /**
    * The next value that's received from the EventEmitter.
@@ -160,7 +164,15 @@ export class EventIterator<V extends unknown>
       const value = this.#queue.shift()!;
       if (!this.filter(value)) return this.next();
       if (++this.#passed >= this.#limit) this.end();
-      if (this.#idleTimer) this.#idleTimer.refresh();
+      if (this.#idleTimer) {
+        if (this.#idleTimer.refresh != null) {
+          this.#idleTimer.refresh();
+        } else {
+          clearTimeout(this.#idleTimer);
+          this.#idleTimer = setTimeout(this.end.bind(this), this.#idle);
+        }
+      }
+
       return { done: false, value };
     }
 

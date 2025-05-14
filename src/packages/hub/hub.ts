@@ -51,7 +51,6 @@ import {
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
-import { initConatServer } from "@cocalc/server/nats/socketio";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
@@ -245,6 +244,7 @@ async function startServer(): Promise<void> {
   const { router, httpServer } = await initExpressApp({
     isPersonal: program.personal,
     projectControl,
+    conatServer: !!program.conatServer,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
     cert: program.httpsCert,
@@ -256,12 +256,6 @@ async function startServer(): Promise<void> {
       program.websocketServer &&
       process.env["NODE_ENV"] == "development",
   });
-
-  if (program.conatServer) {
-    initConatServer({ httpServer });
-  }
-
-  //initNatsServer();
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
   // or complains a lot. This is obviously not really necessary, but we leave it for now.
@@ -547,6 +541,7 @@ async function main(): Promise<void> {
   }
   if (program.all) {
     program.websocketServer =
+      program.conatServer =
       program.natsServer =
       program.natsChangefeedServer =
       program.natsTieredStorage =

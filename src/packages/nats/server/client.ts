@@ -53,7 +53,10 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/nats/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-// import { once } from "@cocalc/util/async-utils";
+
+export function client(address = "http://localhost:3000", options?) {
+  return new Client(address, options);
+}
 
 const INBOX_PREFIX = "_INBOX.";
 const REPLY_HEADER = "CoCalc-Reply";
@@ -75,9 +78,18 @@ export class Client {
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions;
 
-  constructor(address: string, options: { inboxPrefix?: string } = {}) {
+  constructor(
+    address: string,
+    options: { inboxPrefix?: string; path?: string; transports? } = {},
+  ) {
     this.options = options;
-    this.conn = connect(address);
+    this.conn = connect(address, {
+      path: options.path,
+      // cocalc itself only works with new clients.
+      // TODO: chunking + long polling is tricky; need to shrink chunk size a lot, since
+      // I guess no binary protocol.
+      transports: ["websocket"],
+    });
     this.conn.on("info", (info) => {
       this.info = info;
     });
@@ -136,7 +148,7 @@ export class Client {
   ) => {
     let raw = encode({ protocol, mesg });
     // default to 1MB is safe since it's at least that big.
-    const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 1000);
+    const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
     let seq = 0;
     let id = randomId();
     for (let i = 0; i < raw.length; i += chunkSize) {
@@ -209,10 +221,15 @@ export class Client {
     throw Error("timeout");
   }
 
-  watch = async (subject: string, { cb = console.log, ...opts } = {}) => {
-    for await (const x of this.subscribe(subject, opts)) {
-      cb(x);
-    }
+  watch = (subject: string, cb = (x) => console.log(x.mesg), opts?) => {
+    const sub = this.subscribe(subject, opts);
+    const f = async () => {
+      for await (const x of sub) {
+        cb(x);
+      }
+    };
+    f();
+    return sub;
   };
 
   private getInboxSubject = () =>
@@ -269,10 +286,6 @@ interface Chunk {
   headers?: any;
 }
 
-export function client(address: string = "http://localhost:3000") {
-  return new Client(address);
-}
-
 class Subscription extends EventEmitter {
   private incoming: { [id: string]: Partial<Chunk>[] } = {};
   private client: Client;
@@ -314,18 +327,21 @@ class Subscription extends EventEmitter {
     }
     // console.log({ id, seq, done, protocol, buffer, headers });
     const chunk = { seq, done, protocol, buffer, headers };
-    const incoming = this.incoming;
+    const { incoming } = this;
     if (incoming[id] == null) {
       if (seq != 0) {
         // part of a dropped message -- by definition this should just
         // silently happen and be handled via application level protocols
         // elsewhere
+        console.log("drop -- first message has wrong seq", { seq });
         this.emit("drop");
         return;
       }
       incoming[id] = [];
     } else {
-      if ((incoming[id].slice(-1)[0].seq ?? -100) + 1 != seq) {
+      const prev = incoming[id].slice(-1)[0].seq ?? -100;
+      if (prev + 1 != seq) {
+        console.log("drop -- seq mismatch", { prev, seq });
         // part of message was dropped -- discard everything
         delete incoming[id];
         this.emit("drop");
@@ -336,7 +352,8 @@ class Subscription extends EventEmitter {
     if (chunk.done) {
       // console.log("assembling ", incoming[id].length, "chunks");
       const chunks = incoming[id].map((x) => x.buffer!);
-      const data = Buffer.concat(chunks);
+      global.y = { chunks, concatArrayBuffers, decode };
+      const data = concatArrayBuffers(chunks);
       delete incoming[id];
       const mesg = new Message({
         mesg: decode({ protocol, data }),
@@ -346,6 +363,25 @@ class Subscription extends EventEmitter {
       this.emit("message", mesg);
     }
   };
+}
+
+function concatArrayBuffers(buffers) {
+  if (buffers.length == 1) {
+    return buffers[0];
+  }
+  if (Buffer.isBuffer(buffers[0])) {
+    return Buffer.concat(buffers);
+  }
+  // browser fallback
+  const totalLength = buffers.reduce((sum, buf) => sum + buf.byteLength, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buf of buffers) {
+    result.set(new Uint8Array(buf), offset);
+    offset += buf.byteLength;
+  }
+
+  return result.buffer;
 }
 
 export class Message {

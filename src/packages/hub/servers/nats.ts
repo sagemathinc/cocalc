@@ -19,8 +19,30 @@ import {
   init as initVersionCheck,
 } from "@cocalc/hub/proxy/version";
 import { delay } from "awaiting";
+import basePath from "@cocalc/backend/base-path";
+import { join } from "path";
 
 const logger = getLogger("hub:nats");
+
+// this is immediately upgraded to a websocket
+export function initNatsServer({
+  router,
+  httpServer,
+}: {
+  router: Router;
+  httpServer;
+}) {
+  initVersionCheck();
+  router.get("/nats", async (_req, res) => {
+    res.send("");
+  });
+
+  httpServer.on("upgrade", (req, socket, head) => {
+    if (req.url == join(basePath, "nats")) {
+      proxyNatsWebsocket(req, socket, head);
+    }
+  });
+}
 
 let proxy: ProxyServer | null = null;
 export async function proxyNatsWebsocket(req, socket, head) {
@@ -55,12 +77,4 @@ export async function proxyNatsWebsocket(req, socket, head) {
     }
     await delay(2 * 60 * 1000);
   }
-}
-
-// this is immediately upgraded to a websocket
-export function initNatsServer(router: Router) {
-  initVersionCheck();
-  router.get("/nats", async (_req, res) => {
-    res.send("");
-  });
 }
