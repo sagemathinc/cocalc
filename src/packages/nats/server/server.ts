@@ -10,7 +10,11 @@ node
 
 import type { ServerInfo } from "./types";
 
-const MAX_PAYLOAD = 8 * 1e6;
+// This is just the default with socket.io, but we might want a bigger
+// size, which could mean more RAM usage by the servers.
+// Our client protocol automatically chunks messages, so this payload
+// size ONLY impacts performance, never application level constraints.
+const MAX_PAYLOAD = 1e6; // 1MB
 
 export function init(opts) {
   return new NatsServer(opts);
@@ -66,7 +70,7 @@ export class NatsServer {
       this.log("got connection", socket.id);
       socket.emit("info", this.info());
 
-      socket.on("publish", ({ subject, data }) => {
+      socket.on("publish", ([subject, ...data]) => {
         // TODO: auth check
         // this.log("publishing", { subject, data });
         io.to(subject).emit(subject, data);

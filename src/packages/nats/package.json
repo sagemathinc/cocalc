@@ -36,6 +36,7 @@
     "@cocalc/comm": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@msgpack/msgpack": "^3.1.1",
     "@nats-io/jetstream": "3.0.0",
     "@nats-io/kv": "3.0.0",
     "@nats-io/nats-core": "3.0.0",

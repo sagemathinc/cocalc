@@ -1113,6 +1113,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@msgpack/msgpack':
+        specifier: ^3.1.1
+        version: 3.1.1
       '@nats-io/jetstream':
         specifier: 3.0.0
         version: 3.0.0
@@ -3543,6 +3546,10 @@ packages:
 
   '@module-federation/webpack-bundler-runtime@0.11.2':
     resolution: {integrity: sha512-WdwIE6QF+MKs/PdVu0cKPETF743JB9PZ62/qf7Uo3gU4fjsUMc37RnbJZ/qB60EaHHfjwp1v6NnhZw1r4eVsnw==}
+
+  '@msgpack/msgpack@3.1.1':
+    resolution: {integrity: sha512-DnBpqkMOUGayNVKyTLlkM6ILmU/m/+VUxGkuQlPQVAcvreLz5jn1OlQnWd8uHKL/ZSiljpM12rjRhr51VtvJUQ==}
+    engines: {node: '>= 18'}
 
   '@napi-rs/canvas-android-arm64@0.1.69':
     resolution: {integrity: sha512-4icWTByY8zPvM9SelfQKf3I6kwXw0aI5drBOVrwfER5kjwXJd78FPSDSZkxDHjvIo9Q86ljl18Yr963ehA4sHQ==}
@@ -13953,6 +13960,8 @@ snapshots:
     dependencies:
       '@module-federation/runtime': 0.11.2
       '@module-federation/sdk': 0.11.2
+
+  '@msgpack/msgpack@3.1.1': {}
 
   '@napi-rs/canvas-android-arm64@0.1.69':
     optional: true
