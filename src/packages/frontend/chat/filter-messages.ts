@@ -6,13 +6,14 @@ NOTE: chat uses every imaginable way to store a timestamp at once,
 which is the may source of weirdness in the code below...  Beware.
 */
 
-import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
-import { search_match, search_split } from "@cocalc/util/misc";
 import { List } from "immutable";
+import LRU from "lru-cache";
+
 import type { TypedMap } from "@cocalc/frontend/app-framework";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import LRU from "lru-cache";
+import { search_match, search_split } from "@cocalc/util/misc";
+import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
 
 export function filterMessages({
   messages,

@@ -33,8 +33,10 @@
     "statsmodels",
     "syncdb",
     "syncdoc",
+    "syncdoc",
     "syncstring",
     "synctable",
+    "synctables",
     "tidyverse",
     "timetravel",
     "tolerations",
@@ -43,6 +45,7 @@
   ],
   "ignoreWords": [
     "antd",
+    "collab",
     "immutablejs",
     "ipynb",
     "isdir",
@@ -57,6 +60,7 @@
     "Popconfirm",
     "PoweroffOutlined",
     "reuseinflight",
+    "sidechat",
     "vertexai",
     "vfill",
     "xsmall"

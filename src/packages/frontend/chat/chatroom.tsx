@@ -5,6 +5,8 @@
 
 import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
+import { FormattedMessage } from "react-intl";
+
 import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -18,16 +20,16 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
-import { FormattedMessage } from "react-intl";
 import type { ChatActions } from "./actions";
-import type { ChatState } from "./store";
 import { ChatLog } from "./chat-log";
+import Filter from "./filter";
+import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import type { ChatState } from "./store";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import Filter from "./filter";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -68,7 +70,7 @@ interface Props {
   project_id: string;
   path: string;
   is_visible?: boolean;
-  font_size: number;
+  fontSize: number;
   desc?;
 }
 
@@ -77,7 +79,7 @@ export function ChatRoom({
   project_id,
   path,
   is_visible,
-  font_size,
+  fontSize,
   desc,
 }: Props) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
@@ -261,6 +263,7 @@ export function ChatRoom({
         <ButtonGroup style={{ marginLeft: "5px" }}>
           {render_video_chat_button()}
         </ButtonGroup>
+        <FoldAllThreads actions={actions} shortLabel={false} />
       </Space>
     );
   }
@@ -285,7 +288,7 @@ export function ChatRoom({
             path={path}
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
-            fontSize={font_size}
+            fontSize={fontSize}
             search={search}
             filterRecentH={filterRecentH}
             selectedHashtags={selectedHashtags}
@@ -304,7 +307,7 @@ export function ChatRoom({
             }}
           >
             <ChatInput
-              fontSize={font_size}
+              fontSize={fontSize}
               autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
