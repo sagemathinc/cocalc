@@ -3,10 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+// cSpell:ignore blankcolumn
+
+import { Badge, Button, Col, Popconfirm, Row, Space } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -55,14 +58,14 @@ const BORDER = "2px solid #ccc";
 
 const SHOW_EDIT_BUTTON_MS = 15000;
 
-const TRHEAD_STYLE_SINGLE: CSS = {
+const THREAD_STYLE_SINGLE: CSS = {
   marginLeft: "15px",
   marginRight: "15px",
   paddingLeft: "15px",
 } as const;
 
 const THREAD_STYLE: CSS = {
-  ...TRHEAD_STYLE_SINGLE,
+  ...THREAD_STYLE_SINGLE,
   borderLeft: BORDER,
   borderRight: BORDER,
 } as const;
@@ -102,7 +105,7 @@ interface Props {
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
   path?: string;
-  font_size: number;
+  font_size?: number;
   is_prev_sender?: boolean;
   show_avatar?: boolean;
   mode: Mode;
@@ -180,6 +183,8 @@ export default function Message({
     return message?.get("date")?.valueOf() ?? 0;
   }, [message.get("date")]);
 
+  const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
+
   const generating = message.get("generating");
 
   const history_size = useMemo(
@@ -252,7 +257,7 @@ export default function Message({
     }
   }, [replying]);
 
-  function editing_status(is_editing: boolean) {
+  function render_editing_status(is_editing: boolean) {
     let text;
 
     let other_editors = // @ts-ignore -- keySeq *is* a method of TypedMap
@@ -380,22 +385,249 @@ export default function Message({
     );
   }
 
+  function renderEditControlRow() {
+    if (isEditing) {
+      return null;
+    }
+    const showDeleteButton =
+      DELETE_BUTTON && newest_content(message).trim().length > 0;
+    const showEditingStatus =
+      (message.get("history")?.size ?? 0) > 1 ||
+      (message.get("editing")?.size ?? 0) > 0;
+    const showHistory = (message.get("history")?.size ?? 0) > 1;
+    const showLLMFeedback = isLLMThread && msgWrittenByLLM;
+
+    // Show the bottom line of the message -- this uses a LOT of extra
+    // vertical space, so only do it if there is a good reason to.
+    // Getting rid of this might be nice.
+    const show =
+      showEditButton ||
+      showDeleteButton ||
+      showEditingStatus ||
+      showHistory ||
+      showLLMFeedback;
+    if (!show) {
+      // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
+      return null;
+    }
+
+    return (
+      <div style={{ width: "100%", textAlign: "center" }}>
+        <Space direction="horizontal" size="small" wrap>
+          {showEditButton ? (
+            <Tip
+              title={
+                <>
+                  Edit this message. You can edit <b>any</b> past message at any
+                  time by double clicking on it. Fix other people's typos. All
+                  versions are stored.
+                </>
+              }
+              placement="left"
+            >
+              <Button
+                disabled={replying}
+                style={{
+                  color: is_viewers_message ? "white" : "#555",
+                }}
+                type="text"
+                size="small"
+                onClick={() => actions?.setEditing(message, true)}
+              >
+                <Icon name="pencil" /> Edit
+              </Button>
+            </Tip>
+          ) : undefined}
+          {showDeleteButton && (
+            <Tip
+              title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+              placement="left"
+            >
+              <Popconfirm
+                title="Delete this message"
+                description="Are you sure you want to delete this message?"
+                onConfirm={() => {
+                  actions?.setEditing(message, true);
+                  setTimeout(() => actions?.sendEdit(message, ""), 1);
+                }}
+              >
+                <Button
+                  disabled={replying}
+                  style={{
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                >
+                  <Icon name="trash" /> Delete
+                </Button>
+              </Popconfirm>
+            </Tip>
+          )}
+          {showEditingStatus && render_editing_status(isEditing)}
+          {showHistory && (
+            <Button
+              style={{
+                marginLeft: "5px",
+                color: is_viewers_message ? "white" : "#555",
+              }}
+              type="text"
+              size="small"
+              icon={<Icon name="history" />}
+              onClick={() => {
+                set_show_history(!show_history);
+                scroll_into_view?.();
+              }}
+            >
+              <Tip
+                title="Message History"
+                tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+              >
+                {verb} History
+              </Tip>
+            </Button>
+          )}
+          {showLLMFeedback && (
+            <>
+              <RegenerateLLM
+                actions={actions}
+                date={date}
+                model={isLLMThread}
+              />
+              <FeedbackLLM actions={actions} message={message} />
+            </>
+          )}
+        </Space>
+      </div>
+    );
+  }
+
+  function renderMessageBody({ lighten, message_class }) {
+    const value = newest_content(message);
+
+    const feedback = message.getIn(["feedback", account_id]);
+    const otherFeedback =
+      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
+    const showOtherFeedback = otherFeedback > 0;
+
+    return (
+      <>
+        <span style={lighten}>
+          <Time message={message} edit={edit_message} />
+          <Space
+            size={"small"}
+            align="baseline"
+            style={{ float: "right", marginRight: "10px" }}
+          >
+            {!isLLMThread && (
+              <Tip
+                placement={"top"}
+                title={
+                  !showOtherFeedback
+                    ? "Like this"
+                    : () => {
+                        return (
+                          <div>
+                            {Object.keys(
+                              message.get("feedback")?.toJS() ?? {},
+                            ).map((account_id) => (
+                              <div
+                                key={account_id}
+                                style={{ marginBottom: "2px" }}
+                              >
+                                <Avatar size={24} account_id={account_id} />{" "}
+                                <User account_id={account_id} />
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                }
+              >
+                <Button
+                  style={{
+                    color: !feedback && is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                    marginTop: "-4px",
+                    ...(feedback ? {} : { position: "relative", top: "-5px" }),
+                  }}
+                  size="small"
+                  type={feedback ? "dashed" : "text"}
+                  onClick={() => {
+                    actions?.feedback(message, feedback ? null : "positive");
+                  }}
+                >
+                  {showOtherFeedback ? (
+                    <Badge
+                      count={otherFeedback}
+                      color="darkblue"
+                      size="small"
+                    />
+                  ) : (
+                    ""
+                  )}
+                  <Icon
+                    name="thumbs-up"
+                    style={{
+                      color: showOtherFeedback ? "darkblue" : undefined,
+                    }}
+                  />
+                </Button>
+              </Tip>
+            )}
+            <Tip
+              placement={"top"}
+              title="Select message. Copy URL to link to this message."
+            >
+              <Button
+                onClick={() => {
+                  actions?.setFragment(message.get("date"));
+                }}
+                size="small"
+                type={"text"}
+                style={{
+                  color: is_viewers_message ? "white" : "#888",
+                  fontSize: "12px",
+                  marginTop: "-4px",
+                }}
+              >
+                <Icon name="link" />
+              </Button>
+            </Tip>
+          </Space>
+        </span>
+        <MostlyStaticMarkdown
+          style={MARKDOWN_STYLE}
+          value={value}
+          className={message_class}
+          selectedHashtags={selectedHashtags}
+          toggleHashtag={
+            selectedHashtags != null && actions != null
+              ? (tag) =>
+                  actions?.setHashtagState(
+                    tag,
+                    selectedHashtags?.has(tag) ? undefined : 1,
+                  )
+              : undefined
+          }
+        />
+        {renderEditControlRow()}
+      </>
+    );
+  }
+
   function contentColumn() {
-    let marginTop;
-    let value = newest_content(message);
+    const mainXS = mode === "standalone" ? 20 : 22;
 
     const { background, color, lighten, message_class } = message_colors(
       account_id,
       message,
     );
 
-    if (!is_prev_sender && is_viewers_message) {
-      marginTop = MARGIN_TOP_VIEWER;
-    } else {
-      marginTop = "5px";
-    }
+    const marginTop =
+      !is_prev_sender && is_viewers_message ? MARGIN_TOP_VIEWER : "5px";
 
-    const message_style: CSSProperties = {
+    const messageStyle: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
@@ -410,133 +642,7 @@ export default function Message({
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
       ...(selected ? { border: "3px solid #66bb6a" } : undefined),
-      maxHeight: is_folded ? "100px" : undefined,
-      overflowY: is_folded ? "auto" : undefined,
     } as const;
-
-    const mainXS = mode === "standalone" ? 20 : 22;
-    const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
-    const feedback = message.getIn(["feedback", account_id]);
-    const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
-    const showOtherFeedback = otherFeedback > 0;
-
-    const editControlRow = () => {
-      if (isEditing) {
-        return null;
-      }
-      const showDeleteButton =
-        DELETE_BUTTON && newest_content(message).trim().length > 0;
-      const showEditingStatus =
-        (message.get("history")?.size ?? 0) > 1 ||
-        (message.get("editing")?.size ?? 0) > 0;
-      const showHistory = (message.get("history")?.size ?? 0) > 1;
-      const showLLMFeedback = isLLMThread && msgWrittenByLLM;
-
-      // Show the bottom line of the message -- this uses a LOT of extra
-      // vertical space, so only do it if there is a good reason to.
-      // Getting rid of this might be nice.
-      const show =
-        showEditButton ||
-        showDeleteButton ||
-        showEditingStatus ||
-        showHistory ||
-        showLLMFeedback;
-      if (!show) {
-        // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
-        return null;
-      }
-
-      return (
-        <div style={{ width: "100%", textAlign: "center" }}>
-          <Space direction="horizontal" size="small" wrap>
-            {showEditButton ? (
-              <Tooltip
-                title={
-                  <>
-                    Edit this message. You can edit <b>any</b> past message at
-                    any time by double clicking on it. Fix other people's typos.
-                    All versions are stored.
-                  </>
-                }
-                placement="left"
-              >
-                <Button
-                  disabled={replying}
-                  style={{
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                  onClick={() => actions?.setEditing(message, true)}
-                >
-                  <Icon name="pencil" /> Edit
-                </Button>
-              </Tooltip>
-            ) : undefined}
-            {showDeleteButton && (
-              <Tooltip
-                title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                placement="left"
-              >
-                <Popconfirm
-                  title="Delete this message"
-                  description="Are you sure you want to delete this message?"
-                  onConfirm={() => {
-                    actions?.setEditing(message, true);
-                    setTimeout(() => actions?.sendEdit(message, ""), 1);
-                  }}
-                >
-                  <Button
-                    disabled={replying}
-                    style={{
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                  >
-                    <Icon name="trash" /> Delete
-                  </Button>
-                </Popconfirm>
-              </Tooltip>
-            )}
-            {showEditingStatus && editing_status(isEditing)}
-            {showHistory && (
-              <Button
-                style={{
-                  marginLeft: "5px",
-                  color: is_viewers_message ? "white" : "#555",
-                }}
-                type="text"
-                size="small"
-                icon={<Icon name="history" />}
-                onClick={() => {
-                  set_show_history(!show_history);
-                  scroll_into_view?.();
-                }}
-              >
-                <Tip
-                  title="Message History"
-                  tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-                >
-                  {verb} History
-                </Tip>
-              </Button>
-            )}
-            {showLLMFeedback && (
-              <>
-                <RegenerateLLM
-                  actions={actions}
-                  date={date}
-                  model={isLLMThread}
-                />
-                <FeedbackLLM actions={actions} message={message} />
-              </>
-            )}
-          </Space>
-        </div>
-      );
-    };
 
     return (
       <Col key={1} xs={mainXS}>
@@ -563,121 +669,28 @@ export default function Message({
           ) : undefined}
         </div>
         <div
-          style={message_style}
+          style={messageStyle}
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
-          {!isEditing && (
-            <span style={lighten}>
-              <Time message={message} edit={edit_message} />
-              {!isLLMThread && (
-                <Tooltip
-                  title={
-                    !showOtherFeedback
-                      ? undefined
-                      : () => {
-                          return (
-                            <div>
-                              {Object.keys(
-                                message.get("feedback")?.toJS() ?? {},
-                              ).map((account_id) => (
-                                <div
-                                  key={account_id}
-                                  style={{ marginBottom: "2px" }}
-                                >
-                                  <Avatar size={24} account_id={account_id} />{" "}
-                                  <User account_id={account_id} />
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        }
-                  }
-                >
-                  <Button
-                    style={{
-                      marginRight: "5px",
-                      float: "right",
-                      marginTop: "-4px",
-                      color: !feedback && is_viewers_message ? "white" : "#888",
-                      fontSize: "12px",
-                    }}
-                    size="small"
-                    type={feedback ? "dashed" : "text"}
-                    onClick={() => {
-                      actions?.feedback(message, feedback ? null : "positive");
-                    }}
-                  >
-                    {showOtherFeedback ? (
-                      <Badge
-                        count={otherFeedback}
-                        color="darkblue"
-                        size="small"
-                      />
-                    ) : (
-                      ""
-                    )}
-                    <Tooltip
-                      title={showOtherFeedback ? undefined : "Like this"}
-                    >
-                      <Icon
-                        name="thumbs-up"
-                        style={{
-                          color: showOtherFeedback ? "darkblue" : undefined,
-                        }}
-                      />
-                    </Tooltip>
-                  </Button>
-                </Tooltip>
-              )}{" "}
-              <Tooltip title="Select message. Copy URL to link to this message.">
-                <Button
-                  onClick={() => {
-                    actions?.setFragment(message.get("date"));
-                  }}
-                  size="small"
-                  type={"text"}
-                  style={{
-                    float: "right",
-                    marginTop: "-4px",
-                    color: is_viewers_message ? "white" : "#888",
-                    fontSize: "12px",
-                  }}
-                >
-                  <Icon name="link" />
-                </Button>
-              </Tooltip>
-            </span>
-          )}
-          {!isEditing && (
-            <MostlyStaticMarkdown
-              style={MARKDOWN_STYLE}
-              value={value}
-              className={message_class}
-              selectedHashtags={selectedHashtags}
-              toggleHashtag={
-                selectedHashtags != null && actions != null
-                  ? (tag) =>
-                      actions?.setHashtagState(
-                        tag,
-                        selectedHashtags?.has(tag) ? undefined : 1,
-                      )
-                  : undefined
-              }
-            />
-          )}
-          {isEditing && renderEditMessage()}
-          {editControlRow()}
+          {isEditing
+            ? renderEditMessage()
+            : renderMessageBody({ lighten, message_class })}
         </div>
-        {show_history && (
-          <div>
-            <HistoryTitle />
-            <History history={message.get("history")} user_map={user_map} />
-            <HistoryFooter />
-          </div>
-        )}
-        {replying ? renderComposeReply() : undefined}
+        {renderHistory()}
+        {renderComposeReply()}
       </Col>
+    );
+  }
+
+  function renderHistory() {
+    if (!show_history) return;
+    return (
+      <div>
+        <HistoryTitle />
+        <History history={message.get("history")} user_map={user_map} />
+        <HistoryFooter />
+      </div>
     );
   }
 
@@ -757,11 +770,14 @@ export default function Message({
   }
 
   function renderComposeReply() {
+    if (!replying) return;
+
     if (project_id == null || path == null || actions?.syncdb == null) {
       // should never get into this position
       // when null.
       return;
     }
+
     const replyDate = -getThreadRootDate({ date, messages });
     let input;
     let moveCursorToEndOfLine = false;
@@ -844,7 +860,7 @@ export default function Message({
           return THREAD_STYLE_TOP;
         }
       } else {
-        return TRHEAD_STYLE_SINGLE;
+        return THREAD_STYLE_SINGLE;
       }
     } else if (allowReply) {
       return THREAD_STYLE_BOTTOM;
@@ -877,7 +893,8 @@ export default function Message({
 
     return (
       <div style={{ textAlign: "center", width: "100%" }}>
-        <Tooltip
+        <Tip
+          placement={"bottom"}
           title={
             isLLMThread
               ? `Reply to ${modelToName(
@@ -904,10 +921,31 @@ export default function Message({
               />
             ) : undefined}
           </Button>
-        </Tooltip>
+        </Tip>
         {showAISummarize && is_thread ? (
           <SummarizeThread message={message} actions={actions} />
         ) : undefined}
+        {is_thread && (
+          <Tip
+            placement={"bottom"}
+            title={
+              "Fold this thread to make the list of messages shorter. You can unfold it again at any time."
+            }
+          >
+            <Button
+              type="text"
+              style={{ color: COLORS.GRAY_M }}
+              onClick={() =>
+                actions?.toggleFoldThread(
+                  new Date(getThreadRootDate({ date, messages })),
+                  index,
+                )
+              }
+            >
+              <Icon name="to-top-outlined" /> Fold…
+            </Button>
+          </Tip>
+        )}
       </div>
     );
   }
@@ -917,35 +955,34 @@ export default function Message({
       return;
     }
 
-    let label;
-    if (numChildren) {
-      label = (
-        <>
-          {numChildren} {plural(numChildren, "Reply", "Replies")}
-        </>
-      );
-    } else {
-      label = "View Replies";
-    }
+    const label = numChildren ? (
+      <>
+        Show {numChildren + 1} {plural(numChildren + 1, "Message", "Messages")}…
+      </>
+    ) : (
+      "View Messages…"
+    );
 
     return (
       <Col xs={24}>
-        <div style={{ textAlign: "center" }}>
+        <Tip title={"Click to unfold this thread to show all messages."}>
           <Button
             onClick={() =>
               actions?.toggleFoldThread(message.get("date"), index)
             }
             type="link"
-            style={{ color: "darkblue" }}
+            block
+            style={{ color: "darkblue", textAlign: "center" }}
+            icon={<Icon name="to-top-outlined" rotate="180" />}
           >
             {label}
           </Button>
-        </div>
+        </Tip>
       </Col>
     );
   }
 
-  function getThreadfoldOrBlank() {
+  function getThreadFoldOrBlank() {
     const xs = 2;
     if (is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN(xs);
@@ -953,24 +990,26 @@ export default function Message({
       const style: CSS =
         mode === "standalone"
           ? {
-              color: "#666",
+              color: COLORS.GRAY_M,
               marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }
           : {
-              color: "#666",
+              color: COLORS.GRAY_M,
               marginTop: "5px",
               width: "100%",
               textAlign: "center",
             };
-      const iconname = is_folded
+
+      const iconName = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
             ? "right-circle-o"
             : "left-circle-o"
           : "right-circle-o"
         : "down-circle-o";
+
       const button = (
         <Button
           type="text"
@@ -978,12 +1017,13 @@ export default function Message({
           onClick={() => actions?.toggleFoldThread(message.get("date"), index)}
           icon={
             <Icon
-              name={iconname}
+              name={iconName}
               style={{ fontSize: mode === "standalone" ? "22px" : "18px" }}
             />
           }
         />
       );
+
       return (
         <Col
           xs={xs}
@@ -993,7 +1033,8 @@ export default function Message({
           {hideTooltip ? (
             button
           ) : (
-            <Tooltip
+            <Tip
+              placement={"bottom"}
               title={
                 is_folded ? (
                   <>
@@ -1012,7 +1053,7 @@ export default function Message({
               }
             >
               {button}
-            </Tooltip>
+            </Tip>
           )}
         </Col>
       );
@@ -1021,20 +1062,20 @@ export default function Message({
 
   function renderCols(): JSX.Element[] | JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_thread && is_folded && is_thread_body) {
+    if (is_folded || (is_thread && is_folded && is_thread_body)) {
       return <></>;
     }
 
     switch (mode) {
       case "standalone":
-        const cols = [avatar_column(), contentColumn(), getThreadfoldOrBlank()];
+        const cols = [avatar_column(), contentColumn(), getThreadFoldOrBlank()];
         if (reverseRowOrdering) {
           cols.reverse();
         }
         return cols;
 
       case "sidechat":
-        return [getThreadfoldOrBlank(), contentColumn()];
+        return [getThreadFoldOrBlank(), contentColumn()];
 
       default:
         unreachable(mode);

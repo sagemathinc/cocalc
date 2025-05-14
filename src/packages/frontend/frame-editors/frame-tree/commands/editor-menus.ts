@@ -135,7 +135,7 @@ export function addEditorMenus({
     const { children } = COMMANDS[name];
     const cmdName = `${prefix}-${name}`;
     if (children == null) {
-      // everthing based entirely on spec object.
+      // everything based entirely on spec object.
       C[cmdName] = {
         ...cmd(name),
         ...COMMANDS[name],

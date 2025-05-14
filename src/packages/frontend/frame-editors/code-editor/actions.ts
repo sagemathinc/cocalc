@@ -1134,7 +1134,7 @@ export class Actions<
     // need to check since this can get called by the close.
     if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
-    // TOO: this is probably naive and slow too...
+    // TODO: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring
       .get_cursors({
