@@ -158,22 +158,59 @@ export class Client {
       ...options
     }: PublishOptions & { maxWait?: number } = {},
   ): Promise<Message> => {
-    const inboxSubject = `${this.options.inboxPrefix ?? INBOX_PREFIX}${randomId()}`;
+    const inboxSubject = this.getInboxSubject();
     const sub = this.subscribe(inboxSubject, { maxWait, mesgLimit: 1 });
     this.publish(subject, mesg, {
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
     });
     for await (const resp of sub) {
+      sub.end();
       return resp;
     }
+    sub.end();
     throw Error("timeout");
   };
+
+  async *requestMany(
+    subject: string,
+    mesg: any,
+    {
+      maxMessages,
+      maxWait = DEFAULT_MAX_WAIT,
+      ...options
+    }: PublishOptions & { maxWait?: number; maxMessages?: number } = {},
+  ) {
+    const inboxSubject = this.getInboxSubject();
+    const sub = this.subscribe(inboxSubject, {
+      maxWait,
+      mesgLimit: maxMessages,
+    });
+    this.publish(subject, mesg, {
+      headers: { ...options, [REPLY_HEADER]: inboxSubject },
+    });
+    let count = 0;
+    for await (const resp of sub) {
+      yield resp;
+      count += 1;
+      if (maxMessages && count >= maxMessages) {
+        console.log({ count, maxMessages });
+        sub.end();
+        return;
+      }
+    }
+    console.log("exited loop");
+    sub.end();
+    throw Error("timeout");
+  }
 
   watch = async (subject: string, cb = console.log) => {
     for await (const x of this.subscribe(subject)) {
       cb(x);
     }
   };
+
+  private getInboxSubject = () =>
+    `${this.options.inboxPrefix ?? INBOX_PREFIX}${randomId()}`;
 }
 
 interface PublishOptions {
