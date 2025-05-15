@@ -14,6 +14,14 @@ For clustering:
    s0 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
    
    s1 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
+   
+Corresponding clients:
+
+   c0 = require('@cocalc/nats/server/client').connect('http://localhost:3000')
+
+   c1 = require('@cocalc/nats/server/client').connect('http://localhost:3001')
+
+---
     
 Or from cocalc/src
 
@@ -41,7 +49,14 @@ const MAX_PAYLOAD = 1 * MB;
 
 const MAX_DISCONNECTION_DURATION = 2 * 60 * 1000;
 
-const DEBUG = true;
+const DEBUG = false;
+
+interface InterestUpdate {
+  op: "add" | "delete";
+  subject: string;
+  queue?: string;
+  room: string;
+}
 
 export function init(opts) {
   return new ConatServer(opts);
@@ -167,7 +182,7 @@ export class ConatServer {
     let lastId = "0";
     let d = 50;
     while (true) {
-      console.log("waiting for interest update");
+      // console.log("waiting for interest update");
       const results = await this.valkey.sub.xread(
         "block" as any,
         0,
@@ -175,7 +190,7 @@ export class ConatServer {
         "interest",
         lastId,
       );
-      console.log("got ", results);
+      // console.log("got ", results);
       if (results == null) {
         d = Math.min(1000, d * 1.2);
         await delay(d);
@@ -189,7 +204,7 @@ export class ConatServer {
         this._updateInterest(update);
       }
       lastId = messages[messages.length - 1][0];
-      console.log({ lastId });
+      // console.log({ lastId });
     }
   };
 
@@ -344,27 +359,20 @@ export class ConatServer {
     socket.on("disconnecting", async () => {
       const rooms = Array.from(socket.rooms) as string[];
       const d = this.options.maxDisconnectionDuration ?? 0;
-      console.log(`will unsubscribe in ${d}ms unless client reconnects`);
+      // console.log(`will unsubscribe in ${d}ms unless client reconnects`);
       await delay(d);
       if (!this.io.of("/").adapter.sids.has(id)) {
-        console.log("client not back");
+        //  console.log("client not back");
         for (const room of rooms) {
           const subject = getSubjectFromRoom(room);
           this.unsubscribe({ socket, subject });
         }
         delete this.subscriptions[id];
       } else {
-        console.log("client is back!");
+        // console.log("client is back!");
       }
     });
   };
-}
-
-interface InterestUpdate {
-  op: "add" | "delete";
-  subject: string;
-  queue?: string;
-  room: string;
 }
 
 function getSubjectFromRoom(room: string) {

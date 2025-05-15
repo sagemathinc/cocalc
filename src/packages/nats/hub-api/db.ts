@@ -33,8 +33,6 @@ export interface DB {
   getLegacyTimeTravelPatches: (opts: {
     account_id?: string;
     uuid: string;
-    // you should set this to true to enable potentially very large response support
-    requestMany?: boolean;
     // also, make this bigger:
     timeout?: number;
   }) => Promise<string>;

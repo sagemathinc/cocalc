@@ -551,12 +551,12 @@ export class Message {
     this.subject = subject;
   }
 
-  respond = (data: any) => {
+  respond = async (data: any) => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
       throw Error("message is not a request");
     }
-    this.client.publish(subject, data);
+    await this.client.publish(subject, data);
   };
 }
 

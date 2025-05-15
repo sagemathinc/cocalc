@@ -55,7 +55,6 @@ import {
 } from "@cocalc/nats/client";
 import type { ConnectionInfo } from "./types";
 import { fromJS } from "immutable";
-import { requestMany } from "@cocalc/nats/service/many";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
@@ -271,31 +270,18 @@ export class NatsClient extends EventEmitter {
     name,
     args = [],
     timeout = DEFAULT_TIMEOUT,
-    requestMany: requestMany0 = false,
   }: {
     service?: string;
     name: string;
     args: any[];
     timeout?: number;
-    // requestMany -- if true do a requestMany request, which is more complicated/slower, but
-    // supports arbitrarily large responses irregardless of the nats server max message size.
-    requestMany?: boolean;
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {
-      const data = this.jc.encode({
-        name,
-        args,
-      });
-      let resp;
-      await waitUntilConnected();
-      if (requestMany0) {
-        resp = await requestMany({ nc, subject, data, maxWait: timeout });
-      } else {
-        resp = await nc.request(subject, data, { timeout });
-      }
-      return this.jc.decode(resp.data);
+      const data = { name, args };
+      const resp = await cn.request(subject, data, { timeout });
+      return resp.data;
     } catch (err) {
       err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
       throw err;
