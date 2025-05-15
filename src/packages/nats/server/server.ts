@@ -5,6 +5,13 @@ cd packages/server
 
 
    s = await require('@cocalc/server/nats/socketio').initConatServer()
+   
+
+For clustering:
+
+   s0 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
+   
+   s1 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
     
 Or from cocalc/src
 
@@ -21,6 +28,7 @@ import {
 import { randomId } from "@cocalc/nats/names";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
+import { delay } from "awaiting";
 
 // This is just the default with socket.io, but we might want a bigger
 // size, which could mean more RAM usage by the servers.
@@ -52,19 +60,18 @@ interface Options {
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
   valkey?: string;
-  adapter?;
 }
 
 export class ConatServer {
   public readonly io;
   public readonly id: number;
   private readonly logger: (...args) => void;
-  private queueGroups: { [subject: string]: { [queue: string]: Set<string> } } =
+  private interest: { [subject: string]: { [queue: string]: Set<string> } } =
     {};
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
   readonly options: Options;
-  private valkey?: Valkey;
+  private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
 
   constructor(options: Options) {
     const {
@@ -77,7 +84,6 @@ export class ConatServer {
       getUser,
       isAllowed,
       valkey,
-      adapter,
     } = options;
     this.options = options;
     this.getUser = getUser ?? (async () => null);
@@ -86,7 +92,11 @@ export class ConatServer {
     this.logger = logger;
     if (valkey) {
       this.log("Using Valkey for clustering");
-      this.valkey = new Valkey(valkey);
+      this.valkey = {
+        adapter: new Valkey(valkey),
+        pub: new Valkey(valkey),
+        sub: new Valkey(valkey),
+      };
     }
     this.log("Starting CoNat server...", {
       id,
@@ -98,7 +108,8 @@ export class ConatServer {
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
-      adapter: this.valkey != null ? createAdapter(this.valkey) : adapter,
+      adapter:
+        this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
     };
     this.log(socketioOptions);
     if (httpServer) {
@@ -110,6 +121,13 @@ export class ConatServer {
     this.init();
   }
 
+  private init = () => {
+    this.io.on("connection", this.handleSocket);
+    if (this.valkey != null) {
+      this.initInterestSubscription();
+    }
+  };
+
   private info = (): ServerInfo => {
     return {
       max_payload: MAX_PAYLOAD,
@@ -120,20 +138,103 @@ export class ConatServer {
     this.logger?.(new Date().toISOString(), "conat", this.id, ":", ...args);
   };
 
-  private unsubscribe = ({ socket, subject }) => {
+  private unsubscribe = async ({ socket, subject }) => {
     if (DEBUG) {
       this.log("unsubscribe ", { id: socket.id, subject });
     }
-    socket.leave(subject);
-    const groups = this.queueGroups[subject];
-    if (groups != null) {
-      const socketSubject = socketSpecificSubject({ socket, subject });
-      for (const queue in groups) {
-        groups[queue].delete(socketSubject);
-        if (groups[queue].size == 0) {
-          delete groups[queue];
+    const room = socketSubjectRoom({ socket, subject });
+    socket.leave(room);
+    await this.updateInterest({ op: "delete", subject, room });
+  };
+
+  private initInterestSubscription = async () => {
+    if (this.valkey == null) {
+      throw Error("valkey not defined");
+    }
+    // [ ] TODO: we need to limit the size of the stream and/or
+    // timeeout interest and/or reconcile it periodically with
+    // actual connected users to avoid the interest object
+    // getting too big for now reason.  E.g, maybe all subscriptions
+    // need to be renewed periodically
+    let lastId = "0";
+    let d = 50;
+    while (true) {
+      console.log("waiting for interest update");
+      const results = await this.valkey.sub.xread(
+        "block" as any,
+        0,
+        "STREAMS",
+        "interest",
+        lastId,
+      );
+      console.log("got ", results);
+      if (results == null) {
+        d = Math.min(1000, d * 1.2);
+        await delay(d);
+        continue;
+      } else {
+        d = 50;
+      }
+      const [_, messages] = results[0];
+      for (const message of messages) {
+        const update = JSON.parse(message[1][1]);
+        this._updateInterest(update);
+      }
+      lastId = messages[messages.length - 1][0];
+      console.log({ lastId });
+    }
+  };
+
+  private updateInterest = async (update: InterestUpdate) => {
+    if (this.valkey != null) {
+      // publish interest change to valkey.
+      console.log("publish interest change to valkey.");
+      await this.valkey.pub.xadd(
+        "interest",
+        "*",
+        "update",
+        JSON.stringify(update),
+      );
+    }
+    this._updateInterest(update);
+  };
+
+  private _updateInterest = async ({
+    op,
+    subject,
+    queue,
+    room,
+  }: InterestUpdate) => {
+    if (op == "add") {
+      if (queue == null) {
+        throw Error("queue must not be null for add");
+      }
+      if (this.interest[subject] == null) {
+        this.interest[subject] = { [queue]: new Set([room]) };
+      } else if (this.interest[subject][queue] == null) {
+        this.interest[subject][queue] = new Set([room]);
+      } else {
+        this.interest[subject][queue].add(room);
+      }
+    } else if (op == "delete") {
+      const groups = this.interest[subject];
+      if (groups != null) {
+        let nonempty = false;
+        for (const queue in groups) {
+          groups[queue].delete(room);
+          if (groups[queue].size == 0) {
+            delete groups[queue];
+          } else {
+            nonempty = true;
+          }
+        }
+        if (!nonempty) {
+          // no interest anymore
+          delete this.interest[subject];
         }
       }
+    } else {
+      throw Error(`invalid op ${op}`);
     }
   };
 
@@ -151,15 +252,9 @@ export class ConatServer {
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
       throw Error("permission denied");
     }
-    const socketSubject = socketSpecificSubject({ socket, subject });
-    if (this.queueGroups[subject] == null) {
-      this.queueGroups[subject] = { [queue]: new Set([socketSubject]) };
-    } else if (this.queueGroups[subject][queue] == null) {
-      this.queueGroups[subject][queue] = new Set([socketSubject]);
-    } else {
-      this.queueGroups[subject][queue].add(socketSubject);
-    }
-    socket.join(socketSubject);
+    const room = socketSubjectRoom({ socket, subject });
+    socket.join(room);
+    await this.updateInterest({ op: "add", subject, room, queue });
   };
 
   private publish = async ({ subject, data, from }) => {
@@ -169,11 +264,11 @@ export class ConatServer {
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
       throw Error("permission denied");
     }
-    for (const pattern in this.queueGroups) {
+    for (const pattern in this.interest) {
       if (!matchesPattern({ pattern, subject })) {
         continue;
       }
-      const g = this.queueGroups[pattern];
+      const g = this.interest[pattern];
       if (g === undefined) {
         continue;
       }
@@ -188,10 +283,6 @@ export class ConatServer {
         }
       }
     }
-  };
-
-  private init = () => {
-    this.io.on("connection", this.handleSocket);
   };
 
   private handleSocket = async (socket) => {
@@ -242,7 +333,7 @@ export class ConatServer {
 
     socket.on("disconnecting", () => {
       for (const room of socket.rooms) {
-        const subject = getRoomSubject(room);
+        const subject = getSubjectFromRoom(room);
         this.unsubscribe({ socket, subject });
       }
       subscriptions.clear();
@@ -250,7 +341,14 @@ export class ConatServer {
   };
 }
 
-function getRoomSubject(room: string) {
+interface InterestUpdate {
+  op: "add" | "delete";
+  subject: string;
+  queue?: string;
+  room: string;
+}
+
+function getSubjectFromRoom(room: string) {
   if (room.startsWith("{")) {
     return JSON.parse(room).subject;
   } else {
@@ -258,7 +356,7 @@ function getRoomSubject(room: string) {
   }
 }
 
-function socketSpecificSubject({ socket, subject }) {
+function socketSubjectRoom({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
 }
 

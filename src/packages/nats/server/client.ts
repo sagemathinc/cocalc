@@ -38,7 +38,7 @@ For developing at the command line, cd to packages/backend, then in node:
    
 or
 
-   c = require('@cocalc/nats/server/client').connect()
+   c = require('@cocalc/nats/server/client').connect('http://localhost:3000')
 
    c.watch('a')
 
@@ -237,6 +237,8 @@ export class Client {
     });
   };
 
+  sub = this.subscribe;
+
   publish = async (
     subject: string,
     mesg,
@@ -286,6 +288,8 @@ export class Client {
     }
     return { bytes: raw.length };
   };
+
+  pub = this.publish;
 
   request = async (
     subject: string,
