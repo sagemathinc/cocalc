@@ -62,6 +62,11 @@ then in another console
    f = async () => (await c.request('eval', '2+3')).data
    await f()
    
+   t = Date.now(); for(i=0;i<1000;i++) { await f()} ; Date.now()-t
+   
+// slower, but won't silently fail due to errors, etc.
+
+   f2 = async () => (await c.request('eval', '2+3', {confirm:true})).data
    
 Wildcard subject:
 
@@ -165,13 +170,14 @@ export class Client {
   };
 
   // returns EventEmitter that emits 'message', mesg: Message
-  subscription = (
+  subscription = async (
     subject: string,
     {
       closeWhenOffCalled,
       queue,
-    }: { closeWhenOffCalled?: boolean; queue?: string } = {},
-  ) => {
+      confirm,
+    }: { closeWhenOffCalled?: boolean; queue?: string; confirm?: boolean } = {},
+  ): Promise<SubscriptionEmitter> => {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject ${subject}`);
     }
@@ -182,7 +188,16 @@ export class Client {
       throw Error(`already subscribed to ${subject}`);
     }
     this.queueGroups[subject] = queue;
-    this.conn.emit("subscribe", { subject, queue });
+    if (confirm) {
+      const f = (cb) => {
+        this.conn.emit("subscribe", { subject, queue }, (response) => {
+          cb(response?.error, response);
+        });
+      };
+      await callback(f);
+    } else {
+      this.conn.emit("subscribe", { subject, queue });
+    }
     const sub = new SubscriptionEmitter({
       client: this,
       subject,
@@ -195,15 +210,25 @@ export class Client {
     return sub;
   };
 
-  subscribe = (
+  subscribe = async (
     subject: string,
     {
       maxWait,
       mesgLimit,
       queue,
-    }: { maxWait?: number; mesgLimit?: number; queue?: string } = {},
-  ): Subscription => {
-    const sub = this.subscription(subject, { closeWhenOffCalled: true, queue });
+      confirm,
+    }: {
+      maxWait?: number;
+      mesgLimit?: number;
+      queue?: string;
+      confirm?: boolean;
+    } = {},
+  ): Promise<Subscription> => {
+    const sub = await this.subscription(subject, {
+      closeWhenOffCalled: true,
+      queue,
+      confirm,
+    });
     // @ts-ignore
     return new EventIterator<Message>(sub, "message", {
       idle: maxWait,
@@ -212,11 +237,15 @@ export class Client {
     });
   };
 
-  publish = (
+  publish = async (
     subject: string,
     mesg,
-    { protocol = PROTOCOL, headers }: PublishOptions = {},
-  ) => {
+    {
+      protocol = PROTOCOL,
+      headers,
+      confirm,
+    }: PublishOptions & { confirm?: boolean } = {},
+  ): Promise<{ bytes: number }> => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
@@ -225,6 +254,7 @@ export class Client {
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
     let seq = 0;
     let id = randomId();
+    const promises: any[] = [];
     for (let i = 0; i < raw.length; i += chunkSize) {
       const done = i + chunkSize >= raw.length ? 1 : 0;
       const v: any[] = [
@@ -238,32 +268,49 @@ export class Client {
       if (done && headers) {
         v.push(headers);
       }
-      this.conn.emit("publish", v);
+      if (confirm) {
+        const f = (cb) => {
+          this.conn.emit("publish", v, (response) => {
+            cb(response?.error);
+          });
+        };
+        const promise = (async () => await callback(f))();
+        promises.push(promise);
+      } else {
+        this.conn.emit("publish", v);
+      }
       seq += 1;
     }
+    if (confirm) {
+      await Promise.all(promises);
+    }
+    return { bytes: raw.length };
   };
 
   request = async (
     subject: string,
     mesg: any,
     {
+      confirm,
       timeout = DEFAULT_REQUEST_TIMEOUT,
       ...options
-    }: PublishOptions & { timeout?: number } = {},
+    }: PublishOptions & { timeout?: number; confirm?: boolean } = {},
   ): Promise<Message> => {
     const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = this.subscribe(inboxSubject, {
+    const sub = await this.subscribe(inboxSubject, {
       maxWait: timeout,
       mesgLimit: 1,
+      confirm,
     });
-    this.publish(subject, mesg, {
+    await this.publish(subject, mesg, {
+      confirm,
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
     });
     for await (const resp of sub) {
-      sub.end();
+      sub.stop();
       return resp;
     }
-    sub.end();
+    sub.stop();
     throw Error("timeout");
   };
 
@@ -273,16 +320,23 @@ export class Client {
     {
       maxMessages,
       maxWait = DEFAULT_MAX_WAIT,
+      confirm,
       ...options
-    }: PublishOptions & { maxWait?: number; maxMessages?: number } = {},
+    }: PublishOptions & {
+      maxWait?: number;
+      maxMessages?: number;
+      confirm?: boolean;
+    } = {},
   ) {
     const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = this.subscribe(inboxSubject, {
+    const sub = await this.subscribe(inboxSubject, {
       maxWait,
       mesgLimit: maxMessages,
+      confirm,
     });
-    this.publish(subject, mesg, {
+    await this.publish(subject, mesg, {
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
+      confirm,
     });
     let count = 0;
     for await (const resp of sub) {
@@ -298,12 +352,12 @@ export class Client {
     throw Error("timeout");
   }
 
-  watch = (
+  watch = async (
     subject: string,
     cb = (x) => console.log(x.subject, ":", x.data),
     opts?,
   ) => {
-    const sub = this.subscribe(subject, opts);
+    const sub = await this.subscribe(subject, opts);
     const f = async () => {
       for await (const x of sub) {
         cb(x);

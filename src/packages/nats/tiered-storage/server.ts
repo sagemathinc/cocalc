@@ -138,7 +138,7 @@ async function run() {
   const { cn } = await getEnv();
   const subject = `${SUBJECT}.*.api`;
   logger.debug(`run: listening on '${subject}'`);
-  sub = cn.subscribe(subject, { queue: "0" });
+  sub = await cn.subscribe(subject, { queue: "0" });
   await listen(sub);
 }
 

@@ -9,7 +9,7 @@ import {
   type NatsSyncTable,
   NatsSyncTableFunction,
 } from "@cocalc/nats/sync/synctable";
-import { randomId } from "@cocalc/nats/names";
+import { randomId, inboxPrefix } from "@cocalc/nats/names";
 import { browserSubject, projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
@@ -101,6 +101,7 @@ export class NatsClient extends EventEmitter {
     if (this._conatClient == null) {
       this._conatClient = connectToConat("/", {
         path: join(appBasePath, "conat"),
+        inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
       });
     }
     return this._conatClient!;
