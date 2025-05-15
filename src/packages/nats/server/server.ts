@@ -6,6 +6,8 @@ cd packages/server
 
    s = await require('@cocalc/server/nats/socketio').initConatServer()
    
+   s0 = await require('@cocalc/server/nats/socketio').initConatServer({port:3000})
+   
 
 For clustering:
 
@@ -37,7 +39,9 @@ import { delay } from "awaiting";
 const MB = 1e6;
 const MAX_PAYLOAD = 1 * MB;
 
-const DEBUG = false;
+const MAX_DISCONNECTION_DURATION = 2 * 60 * 1000;
+
+const DEBUG = true;
 
 export function init(opts) {
   return new ConatServer(opts);
@@ -50,7 +54,7 @@ export type AllowFunction = (opts: {
   subject: string;
 }) => Promise<boolean>;
 
-interface Options {
+export interface Options {
   Server;
   httpServer?;
   port?: number;
@@ -60,6 +64,7 @@ interface Options {
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
   valkey?: string;
+  maxDisconnectionDuration?: number;
 }
 
 export class ConatServer {
@@ -68,9 +73,10 @@ export class ConatServer {
   private readonly logger: (...args) => void;
   private interest: { [subject: string]: { [queue: string]: Set<string> } } =
     {};
+  private subscriptions: { [socketId: string]: Set<string> } = {};
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
-  readonly options: Options;
+  readonly options: Partial<Options>;
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
 
   constructor(options: Options) {
@@ -84,8 +90,9 @@ export class ConatServer {
       getUser,
       isAllowed,
       valkey,
+      maxDisconnectionDuration = MAX_DISCONNECTION_DURATION,
     } = options;
-    this.options = options;
+    this.options = { port, id, path, valkey, maxDisconnectionDuration };
     this.getUser = getUser ?? (async () => null);
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
@@ -98,7 +105,7 @@ export class ConatServer {
         sub: new Valkey(valkey),
       };
     }
-    this.log("Starting CoNat server...", {
+    this.log("Starting Conat server...", {
       id,
       path,
       port,
@@ -110,6 +117,7 @@ export class ConatServer {
       path,
       adapter:
         this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
+      connectionStateRecovery: { maxDisconnectionDuration },
     };
     this.log(socketioOptions);
     if (httpServer) {
@@ -188,7 +196,6 @@ export class ConatServer {
   private updateInterest = async (update: InterestUpdate) => {
     if (this.valkey != null) {
       // publish interest change to valkey.
-      console.log("publish interest change to valkey.");
       await this.valkey.pub.xadd(
         "interest",
         "*",
@@ -286,10 +293,14 @@ export class ConatServer {
   };
 
   private handleSocket = async (socket) => {
+    console.log(socket.id, "created");
     let user: any = null;
     user = await this.getUser(socket);
-    this.log("got connection", { id: socket.id, user });
-    const subscriptions = new Set<string>();
+    const id = socket.id;
+    this.log("got connection", { id, user });
+    if (this.subscriptions[id] == null) {
+      this.subscriptions[id] = new Set<string>();
+    }
 
     socket.emit("info", { ...this.info(), user });
 
@@ -304,13 +315,12 @@ export class ConatServer {
 
     socket.on("subscribe", async ({ subject, queue }, respond) => {
       try {
-        if (!subscriptions.has(subject)) {
+        if (!this.subscriptions[id].has(subject)) {
           await this.subscribe({ socket, subject, queue, user });
-          subscriptions.add(subject);
+          this.subscriptions[id].add(subject);
         }
         respond?.({ status: "added" });
       } catch (err) {
-        console.log("subscribe error respnod", err);
         respond?.({ error: `${err}` });
       }
     });
@@ -319,24 +329,33 @@ export class ConatServer {
       if (respond == null) {
         return;
       }
-      respond(Array.from(subscriptions));
+      respond(Array.from(this.subscriptions[id]));
     });
 
     socket.on("unsubscribe", ({ subject }, respond) => {
-      if (!subscriptions.has(subject)) {
+      if (!this.subscriptions[id].has(subject)) {
         return;
       }
       this.unsubscribe({ socket, subject });
-      subscriptions.delete(subject);
+      this.subscriptions[id].delete(subject);
       respond?.();
     });
 
-    socket.on("disconnecting", () => {
-      for (const room of socket.rooms) {
-        const subject = getSubjectFromRoom(room);
-        this.unsubscribe({ socket, subject });
+    socket.on("disconnecting", async () => {
+      const rooms = Array.from(socket.rooms) as string[];
+      const d = this.options.maxDisconnectionDuration ?? 0;
+      console.log(`will unsubscribe in ${d}ms unless client reconnects`);
+      await delay(d);
+      if (!this.io.of("/").adapter.sids.has(id)) {
+        console.log("client not back");
+        for (const room of rooms) {
+          const subject = getSubjectFromRoom(room);
+          this.unsubscribe({ socket, subject });
+        }
+        delete this.subscriptions[id];
+      } else {
+        console.log("client is back!");
       }
-      subscriptions.clear();
     });
   };
 }

@@ -76,6 +76,15 @@ Wildcard subject:
    
    c = require('@cocalc/nats/server/client').connect(); c.publish('a.x', 'foo')
    
+   
+Testing disconnect
+
+   c.sub('>')
+   c.conn.io.engine.close();0;
+   
+other:
+
+  a=0; setInterval(()=>c.pub('a',a++), 250)
 
 */
 
@@ -145,6 +154,7 @@ export class Client {
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
     const subs = await this.getSubscriptions();
+    console.log({subs})
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
       // the server does not have
@@ -358,7 +368,7 @@ export class Client {
 
   watch = async (
     subject: string,
-    cb = (x) => console.log(x.subject, ":", x.data),
+    cb = (x) => console.log(`${x.subject}:`, x.data),
     opts?,
   ) => {
     const sub = await this.subscribe(subject, opts);

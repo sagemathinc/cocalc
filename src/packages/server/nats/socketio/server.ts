@@ -19,30 +19,25 @@ Then make a client connected to each:
     c2 = require('@cocalc/nats/server/client').connect('http://localhost:3001');
 */
 
-import { init as createConatServer } from "@cocalc/nats/server/server";
+import {
+  init as createConatServer,
+  type Options,
+} from "@cocalc/nats/server/server";
 import { Server } from "socket.io";
 import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 
 const logger = getLogger("conat-server");
 
-export async function init({
-  port,
-  httpServer,
-  path,
-  valkey = process.env.VALKEY,
-}: { port?: number; httpServer?; path?: string; valkey?: string } = {}) {
-  logger.debug("init", { port, httpServer: httpServer != null, path, valkey });
+export async function init(options: Partial<Options> = {}) {
+  logger.debug("init");
 
   const server = createConatServer({
-    port,
-    httpServer,
-    Server,
     logger: logger.debug,
-    path,
+    Server,
     getUser,
     isAllowed,
-    valkey,
+    ...options,
   });
 
   // This might enable uWebosckets.js?
