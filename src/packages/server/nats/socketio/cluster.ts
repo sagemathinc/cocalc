@@ -10,6 +10,8 @@ Environment variables:
 - CONAT_PORT    - port to listen on
 
 Run this on a beefy machine to use all the cores.
+
+WARNING: this doesn't work at all with how we implemented subscriptions.  We must use valkey.
 */
 
 import { init as createConatServer } from "@cocalc/nats/server/server";
