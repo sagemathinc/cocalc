@@ -70,7 +70,7 @@ interface Props {
   project_id: string;
   path: string;
   is_visible?: boolean;
-  fontSize: number;
+  font_size: number;
   desc?;
 }
 
@@ -79,7 +79,7 @@ export function ChatRoom({
   project_id,
   path,
   is_visible,
-  fontSize,
+  font_size,
   desc,
 }: Props) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
@@ -288,7 +288,7 @@ export function ChatRoom({
             path={path}
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
-            fontSize={fontSize}
+            fontSize={font_size}
             search={search}
             filterRecentH={filterRecentH}
             selectedHashtags={selectedHashtags}
@@ -307,7 +307,7 @@ export function ChatRoom({
             }}
           >
             <ChatInput
-              fontSize={fontSize}
+              fontSize={font_size}
               autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
