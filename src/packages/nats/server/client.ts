@@ -81,6 +81,7 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/nats/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
+import { callback } from "awaiting";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
@@ -107,7 +108,8 @@ interface ClientOptions {
 
 export class Client {
   public conn: ReturnType<typeof connectToSocketIO>;
-  private subscriptions: { [subject: string]: number } = {};
+  // queueGroups is a map from subject to the queue group for the subscription to that subject
+  private queueGroups: { [subject: string]: string } = {};
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions;
 
@@ -129,7 +131,38 @@ export class Client {
     this.conn.on("info", (info) => {
       this.info = info;
     });
+    this.conn.on("connect", () => {
+      this.syncSubscriptions();
+    });
   }
+
+  // syncSubscriptions ensures that we're subscribed on server
+  // to what we think we're subscribed to.
+  private syncSubscriptions = async () => {
+    const subs = await this.getSubscriptions();
+    for (const subject in this.queueGroups) {
+      // subscribe on backend to all subscriptions we think we should have that
+      // the server does not have
+      if (!subs.has(subject)) {
+        this.conn.emit("subscribe", {
+          subject,
+          queue: this.queueGroups[subject],
+        });
+      }
+    }
+    for (const subject in subs) {
+      if (this.queueGroups[subject] != null) {
+        // server thinks we're subscribed but we do not, so cancel
+        this.conn.emit("unsubscribe", { subject });
+      }
+    }
+  };
+
+  private getSubscriptions = async (): Promise<Set<string>> => {
+    const f = (cb) =>
+      this.conn.emit("subscriptions", null, (subs) => cb(undefined, subs));
+    return new Set(await callback(f));
+  };
 
   // returns EventEmitter that emits 'message', mesg: Message
   subscription = (
@@ -142,24 +175,23 @@ export class Client {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject ${subject}`);
     }
-    const cur = this.subscriptions[subject] ?? 0;
-    if (cur == 0) {
-      this.conn.emit("subscribe", { subject, queue });
-      // todo confirmation/security
+    if (!queue) {
+      queue = randomId();
     }
+    if (this.queueGroups[subject] != null) {
+      throw Error(`already subscribed to ${subject}`);
+    }
+    this.queueGroups[subject] = queue;
+    this.conn.emit("subscribe", { subject, queue });
     const sub = new SubscriptionEmitter({
       client: this,
       subject,
       closeWhenOffCalled,
     });
     sub.once("close", () => {
-      this.subscriptions[subject] -= 1;
-      if (this.subscriptions[subject] <= 0) {
-        this.conn.emit("unsubscribe", { subject });
-        delete this.subscriptions[subject];
-      }
+      this.conn.emit("unsubscribe", { subject });
+      delete this.queueGroups[subject];
     });
-    this.subscriptions[subject] = cur + 1;
     return sub;
   };
 

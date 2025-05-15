@@ -163,6 +163,7 @@ export class CoNatServer {
       user = await this.getUser?.(socket);
     }
     this.log("got connection", { id: socket.id, user });
+    const subscriptions = new Set<string>();
 
     socket.emit("info", { ...this.info(), user });
 
@@ -171,11 +172,23 @@ export class CoNatServer {
     });
 
     socket.on("subscribe", ({ subject, queue }) => {
+      if (subscriptions.has(subject)) {
+        return;
+      }
       this.subscribe({ socket, subject, queue });
+      subscriptions.add(subject);
+    });
+
+    socket.on("subscriptions", (_, callback) => {
+      callback(Array.from(subscriptions));
     });
 
     socket.on("unsubscribe", ({ subject }) => {
+      if (!subscriptions.has(subject)) {
+        return;
+      }
       this.unsubscribe({ socket, subject });
+      subscriptions.delete(subject);
     });
 
     socket.on("disconnecting", () => {
@@ -183,6 +196,7 @@ export class CoNatServer {
         const subject = getRoomSubject(room);
         this.unsubscribe({ socket, subject });
       }
+      subscriptions.clear();
     });
   };
 }
