@@ -91,19 +91,26 @@ async function syncLoop() {
 export let skew: number | null = null;
 let rtt: number | null = null;
 export const getSkew = reuseInFlight(async (): Promise<number> => {
-  if (process.env.COCALC_TEST_MODE) {
+  if (process.env.COCALC_TEST_MODE || process.env.COCALC_PROJECT_ID) {
+    // projects and test mode assumed to have correct time
     skew = 0;
     return skew;
   }
-  await waitUntilConnected();
-  const start = Date.now();
-  const client = getClient();
-  const tc = timeClient(client);
-  const serverTime = await tc.time();
-  const end = Date.now();
-  rtt = end - start;
-  skew = start + rtt / 2 - serverTime;
-  return skew;
+  try {
+    await waitUntilConnected();
+    const start = Date.now();
+    const client = getClient();
+    const tc = timeClient(client);
+    const serverTime = await tc.time();
+    const end = Date.now();
+    rtt = end - start;
+    skew = start + rtt / 2 - serverTime;
+    return skew;
+  } catch (err) {
+    console.log("WARNING: temporary issue syncing time", err);
+    skew = 0;
+    return 0;
+  }
 });
 
 export async function waitUntilTimeAvailable() {
