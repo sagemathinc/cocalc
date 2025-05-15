@@ -1,10 +1,22 @@
 /*
 To start this standalone
 
-pnpm conat-server
+   s = await require('@cocalc/server/nats/socketio').initConatServer()
+    
+It will also get run integrated with the hub if the --conat-server option is passed in.
 
+Using valkey
 
-It will also get run integrated with the hub if the --conat-server option is passed in
+    s1 = await require('@cocalc/server/nats/socketio').initConatServer({port:3000, valkey:'redis://127.0.0.1:6379'})
+    
+and in another session:
+
+    s2 = await require('@cocalc/server/nats/socketio').initConatServer({port:3001, valkey:'redis://127.0.0.1:6379'})
+    
+Then make a client connected to each:
+
+    c1 = require('@cocalc/nats/server/client').connect('http://localhost:3000');
+    c2 = require('@cocalc/nats/server/client').connect('http://localhost:3001');
 */
 
 import { init as createConatServer } from "@cocalc/nats/server/server";
@@ -25,8 +37,10 @@ export async function init({
   port,
   httpServer,
   path,
-}: { port?: number; httpServer?; path?: string } = {}) {
-  logger.debug("init", { port, httpServer: httpServer != null, path });
+  valkey = process.env.VALKEY,
+}: { port?: number; httpServer?; path?: string; valkey?: string } = {}) {
+  logger.debug("init", { port, httpServer: httpServer != null, path, valkey });
+  let adapter: any = undefined;
 
   const server = createConatServer({
     port,
@@ -36,6 +50,7 @@ export async function init({
     path,
     getUser,
     isAllowed,
+    valkey,
   });
 
   // This might enable uWebosckets.js?

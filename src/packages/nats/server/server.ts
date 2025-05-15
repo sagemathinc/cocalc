@@ -19,6 +19,8 @@ import {
   isValidSubjectWithoutWildcards,
 } from "@cocalc/nats/util";
 import { randomId } from "@cocalc/nats/names";
+import { createAdapter } from "@socket.io/redis-streams-adapter";
+import Valkey from "iovalkey";
 
 // This is just the default with socket.io, but we might want a bigger
 // size, which could mean more RAM usage by the servers.
@@ -30,7 +32,7 @@ const MAX_PAYLOAD = 1 * MB;
 const DEBUG = false;
 
 export function init(opts) {
-  return new CoNatServer(opts);
+  return new ConatServer(opts);
 }
 
 export type UserFunction = (socket) => Promise<any>;
@@ -40,7 +42,20 @@ export type AllowFunction = (opts: {
   subject: string;
 }) => Promise<boolean>;
 
-export class CoNatServer {
+interface Options {
+  Server;
+  httpServer?;
+  port?: number;
+  id?: number;
+  logger?;
+  path?: string;
+  getUser?: UserFunction;
+  isAllowed?: AllowFunction;
+  valkey?: string;
+  adapter?;
+}
+
+export class ConatServer {
   public readonly io;
   public readonly id: number;
   private readonly logger: (...args) => void;
@@ -48,45 +63,48 @@ export class CoNatServer {
     {};
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
+  readonly options: Options;
+  private valkey?: Valkey;
 
-  constructor({
-    Server,
-    httpServer,
-    port = 3000,
-    id = 0,
-    logger,
-    path,
-    getUser,
-    isAllowed,
-  }: {
-    Server;
-    httpServer?;
-    port?: number;
-    id?: number;
-    logger?;
-    path?: string;
-    getUser?: UserFunction;
-    isAllowed?: AllowFunction;
-  }) {
+  constructor(options: Options) {
+    const {
+      Server,
+      httpServer,
+      port = 3000,
+      id = 0,
+      logger,
+      path,
+      getUser,
+      isAllowed,
+      valkey,
+      adapter,
+    } = options;
+    this.options = options;
     this.getUser = getUser ?? (async () => null);
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
     this.logger = logger;
+    if (valkey) {
+      this.log("Using Valkey for clustering");
+      this.valkey = new Valkey(valkey);
+    }
     this.log("Starting CoNat server...", {
       id,
       path,
       port,
       httpServer: httpServer != null,
+      valkey,
     });
-    const options = {
+    const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
+      adapter: this.valkey != null ? createAdapter(this.valkey) : adapter,
     };
-    this.log(options);
+    this.log(socketioOptions);
     if (httpServer) {
-      this.io = new Server(httpServer, options);
+      this.io = new Server(httpServer, socketioOptions);
     } else {
-      this.io = new Server(port, options);
+      this.io = new Server(port, socketioOptions);
       this.log(`listening on port ${port}`);
     }
     this.init();
