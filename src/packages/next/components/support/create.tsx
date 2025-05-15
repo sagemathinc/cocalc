@@ -142,14 +142,25 @@ export default function Create() {
   function renderChat() {
     if (type === "chat" && supportVideoCall) {
       return (
-        <h1 style={{ textAlign: "center" }}>
-          <b>
-            <A href={supportVideoCall}>Book a Video Chat...</A>
-          </b>
-        </h1>
+        <Alert
+          type="info"
+          showIcon={false}
+          description={
+            <Paragraph style={{ fontSize: "16px" }}>
+              Please describe what you want to discuss in the{" "}
+              <A href={supportVideoCall}>video chat</A>. We will then contact
+              you to confirm the time.
+            </Paragraph>
+          }
+          message={
+            <Title level={2}>
+              <Icon name="video-camera" /> You can{" "}
+              <A href={supportVideoCall}>book a video chat</A> with us.
+            </Title>
+          }
+        />
       );
-    }
-    if (type !== "chat") {
+    } else {
       return (
         <>
           <b>
@@ -165,18 +176,18 @@ export default function Create() {
               paddingLeft: "15px",
             }}
           >
-            {type == "problem" && <Problem onChange={setBody} />}
-            {type == "question" && (
+            {type === "problem" && <Problem onChange={setBody} />}
+            {type === "question" && (
               <Question onChange={setBody} defaultValue={body} />
             )}
-            {type == "purchase" && (
+            {type === "purchase" && (
               <Purchase
                 onChange={setBody}
                 defaultValue={body}
                 showExtra={showExtra}
               />
             )}
-            {type == "task" && <Task onChange={setBody} />}
+            {type === "task" && <Task onChange={setBody} />}
           </div>
         </>
       );
@@ -200,28 +211,27 @@ export default function Create() {
         {showExtra && (
           <>
             <Space>
-              <p style={{ fontSize: "12pt" }}>
-                Create a new support ticket below or{" "}
-                <A href="/support/tickets">
-                  check the status of your support tickets
-                </A>
-                .{" "}
+              <Space direction="vertical" size="large">
+                <Paragraph style={{ fontSize: "16px" }}>
+                  Create a new support ticket below or{" "}
+                  <A href="/support/tickets">
+                    check the status of your support tickets
+                  </A>
+                  .
+                </Paragraph>
                 {helpEmail ? (
-                  <>
+                  <Paragraph style={{ fontSize: "16px" }}>
                     You can also email us directly at{" "}
-                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>{" "}
-                    {supportVideoCall ? (
-                      <>
-                        or{" "}
-                        <A href={supportVideoCall}>
-                          book a demo or discovery call
-                        </A>
-                      </>
-                    ) : undefined}
-                    .
-                  </>
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
+                  </Paragraph>
                 ) : undefined}
-              </p>
+                {supportVideoCall ? (
+                  <Paragraph style={{ fontSize: "16px" }}>
+                    Alternatively, feel free to{" "}
+                    <A href={supportVideoCall}>book a video call</A> with us.
+                  </Paragraph>
+                ) : undefined}
+              </Space>
               <VideoItem
                 width={600}
                 style={{ margin: "15px 0", width: "600px" }}
@@ -372,11 +382,14 @@ export default function Create() {
             )}
           </div>
         </form>
-        <p style={{ marginTop: "30px" }}>
-          After submitting this, you'll receive a link, which you should save
-          until you receive a confirmation email. You can also{" "}
-          <A href="/support/tickets">check the status of your tickets here</A>.
-        </p>
+        {type !== "chat" && (
+          <Paragraph style={{ marginTop: "30px" }}>
+            After submitting this, you'll receive a link, which you should save
+            until you receive a confirmation email. You can also{" "}
+            <A href="/support/tickets">check the status of your tickets here</A>
+            .
+          </Paragraph>
+        )}
       </div>
     </Layout.Content>
   );

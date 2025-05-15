@@ -140,7 +140,7 @@ export default function Footer() {
         },
         {
           text: "Get a Live Demo",
-          url: supportVideoCall,
+          url: supportVideoCall ?? "",
           hide: !enabledPages?.liveDemo || !supportVideoCall,
         },
         {

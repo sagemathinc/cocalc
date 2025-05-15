@@ -6,10 +6,12 @@
 import { Divider } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+
 import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
+import { useCustomize } from "lib/customize";
 import {
   OVERVIEW_LARGE_ICON,
   OVERVIEW_STYLE,
@@ -19,6 +21,7 @@ import {
 
 export default function Overview() {
   const router = useRouter();
+  const { supportVideoCall } = useCustomize();
 
   // most likely, user will go to the cart next
   useEffect(() => {
@@ -31,11 +34,18 @@ export default function Overview() {
       <h2 style={{ marginBottom: "30px" }}>
         Welcome to the <SiteName /> Store!
       </h2>
-      <div style={{ fontSize: "13pt" }}>
+      <Paragraph style={{ fontSize: "13pt" }}>
         Shop below for <A href="/store/site-license">licenses</A> and{" "}
         <A href="/store/vouchers">vouchers</A> or explore{" "}
         <A href="/pricing">all available products and pricing</A>.
-      </div>
+      </Paragraph>
+      {supportVideoCall ? (
+        <Paragraph>
+          Not sure what you need?{" "}
+          <A href={supportVideoCall}>Book a video call</A> and we'll help you
+          decide.
+        </Paragraph>
+      ) : undefined}
       <OverviewRow>
         <Product icon="key" title="Licenses" href="/store/site-license">
           Buy a license to upgrade projects, get internet access, more CPU, disk
