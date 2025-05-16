@@ -1,16 +1,12 @@
 import {
   callNatsService,
   createNatsService,
-  natsServiceInfo,
-  natsServiceStats,
   pingNatsService,
   waitForNatsService,
 } from "./service";
 import type { Options, ServiceCall } from "./service";
 
 export interface Extra {
-  info: typeof natsServiceInfo;
-  stats: typeof natsServiceStats;
   ping: typeof pingNatsService;
   waitFor: (opts?: { maxWait?: number }) => Promise<void>;
 }
@@ -29,10 +25,6 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
         }
         if (prop == "nats") {
           return {
-            info: async (opts: { id?: string; maxWait?: number } = {}) =>
-              await natsServiceInfo({ options, ...opts }),
-            stats: async (opts: { id?: string; maxWait?: number } = {}) =>
-              await natsServiceStats({ options, ...opts }),
             ping: async (opts: { id?: string; maxWait?: number } = {}) =>
               await pingNatsService({ options, ...opts }),
             waitFor: async (opts: { maxWait?: number } = {}) =>
@@ -46,7 +38,7 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
               mesg: { name: prop, args },
             });
           } catch (err) {
-            err.message = `Error calling remote function '${prop}': ${err.message}`;
+            err.message = `calling remote function '${prop}': ${err.message}`;
             throw err;
           }
         };

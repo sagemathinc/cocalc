@@ -30,6 +30,27 @@ things purely client side without using a parser, and get a much
 simpler and better result, inspired by how NATS approaches things
 with opaque messages.
 
+
+SUBSCRIPTION ROBUSTNESS: When you call client.subscribe(...) you get back an async iterator.
+It ONLY ends when you explicitly do the standard ways of terminating
+such an iterator, including calling .stop() on it.  It is a MAJOR BUG
+if it were to terminate for any other reason.  In particular, the subscription
+MUST NEVER throw an error or silently end when the connection is dropped 
+then resumed, or the server is restarted, or the client connects to 
+a different server!  These situations can, of course, result in missing
+some messages, but that's understood.  There are no guarantees at all with
+a subscription that every message is received.  That said, we have enabled
+connectionStateRecovery (and added special conat support for it) so no messages
+are dropped for temporary disconnects, even up to several minutes,
+and even in valkey cluster mode!  Finally, any time a client disconnects
+and reconnects, it ensures that all subscriptions exist for it on the server
+via a sync process.
+
+Subscription robustness is a major difference with nats.js, which would randomly
+mysteriously terminate subscriptions for a variety of reasons, meaning that any
+code using subscriptions had to be wrapped in a page of ugly complexity to be
+usable in production.
+
 USAGE:
 
 For developing at the command line, cd to packages/backend, then in node:

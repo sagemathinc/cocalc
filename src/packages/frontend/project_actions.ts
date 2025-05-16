@@ -108,6 +108,7 @@ import {
   computeServerManager,
   type ComputeServerManager,
 } from "@cocalc/nats/compute/manager";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { defaults, required } = misc;
 
@@ -1938,75 +1939,80 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
-  async init_configuration(
-    aspect: ConfigurationAspect = "main",
-    no_cache = false,
-  ): Promise<Configuration | void> {
-    this.setState({ configuration_loading: true });
+  init_configuration = reuseInFlight(
+    async (
+      aspect: ConfigurationAspect = "main",
+      no_cache = false,
+    ): Promise<Configuration | void> => {
+      console.log("init_configuration", this.project_id);
+      this.setState({ configuration_loading: true });
 
-    const store = this.get_store();
-    if (store == null) {
-      // console.warn("project_actions::init_configuration: no store");
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      const store = this.get_store();
+      if (store == null) {
+        // console.warn("project_actions::init_configuration: no store");
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    const prev = store.get("configuration") as ProjectConfiguration;
-    if (!no_cache) {
-      // already done before?
-      if (prev != null) {
-        const conf = prev.get(aspect) as Configuration;
-        if (conf != null) {
-          this.setState({ configuration_loading: false });
-          return conf;
+      const prev = store.get("configuration") as ProjectConfiguration;
+      if (!no_cache) {
+        // already done before?
+        if (prev != null) {
+          const conf = prev.get(aspect) as Configuration;
+          if (conf != null) {
+            this.setState({ configuration_loading: false });
+            return conf;
+          }
         }
       }
-    }
 
-    // we do not know the configuration aspect. "next" will be the updated datastructure.
-    let next;
+      // we do not know the configuration aspect. "next" will be the updated datastructure.
+      let next;
 
-    await retry_until_success({
-      f: async () => {
-        try {
-          next = await get_configuration(
-            webapp_client,
-            this.project_id,
-            aspect,
-            prev,
-            no_cache,
-          );
-        } catch (e) {
-          // not implemented error happens, when the project is still the old one
-          // in that case, do as if everything is available
-          if (e.message.indexOf("not implemented") >= 0) {
-            return null;
+      await retry_until_success({
+        f: async () => {
+          try {
+            next = await get_configuration(
+              webapp_client,
+              this.project_id,
+              aspect,
+              prev,
+              no_cache,
+            );
+          } catch (e) {
+            // not implemented error happens, when the project is still the old one
+            // in that case, do as if everything is available
+            if (e.message.indexOf("not implemented") >= 0) {
+              return null;
+            }
+            //             console.log(
+            //               `WARNING -- project_actions::init_configuration err: ${e}`,
+            //             );
+            throw e;
           }
-          // console.log("project_actions::init_configuration err:", e);
-          throw e;
-        }
-      },
-      start_delay: 1000,
-      max_delay: 5000,
-      desc: "project_actions::init_configuration",
-    });
+        },
+        start_delay: 2000,
+        max_delay: 5000,
+        desc: "project_actions::init_configuration",
+      });
 
-    // there was a problem or configuration is not known
-    if (next == null) {
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      // there was a problem or configuration is not known
+      if (next == null) {
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    this.setState(
-      fromJS({
-        configuration: next,
-        available_features: feature_is_available(next),
-        configuration_loading: false,
-      } as any),
-    );
+      this.setState(
+        fromJS({
+          configuration: next,
+          available_features: feature_is_available(next),
+          configuration_loading: false,
+        } as any),
+      );
 
-    return next.get(aspect) as Configuration;
-  }
+      return next.get(aspect) as Configuration;
+    },
+  );
 
   // this is called once by the project initialization
   private async init_library() {

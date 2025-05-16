@@ -10,31 +10,15 @@ Also if the handler throws an error, the caller will throw
 an error too.
 */
 
-import {
-  Svcm,
-  type ServiceInfo,
-  type ServiceStats,
-  type ServiceIdentity,
-} from "@nats-io/services";
 import { type Location } from "@cocalc/nats/types";
 import { trunc_middle } from "@cocalc/util/misc";
 import { getEnv, getLogger } from "@cocalc/nats/client";
 import { randomId } from "@cocalc/nats/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
-import { requestMany, respondMany } from "./many";
-import { encodeBase64, waitUntilConnected } from "@cocalc/nats/util";
+import { encodeBase64 } from "@cocalc/nats/util";
 
 const DEFAULT_TIMEOUT = 10 * 1000;
-const MONITOR_INTERVAL = 45 * 1000;
-
-// switching this is awkward since it would have to be changed in projects
-// and frontends or things would hang. I'm making it toggleable just for
-// dev purposes so we can benchmark.
-// Using the service framework gives us no real gain and cost a massive amount
-// in terms of subscriptions -- basically there's a whole bunch for every file, etc.
-// **In short: Do NOT enable this by default.**
-const ENABLE_SERVICE_FRAMEWORK = false;
 
 const logger = getLogger("nats:service");
 
@@ -77,25 +61,20 @@ export interface ServiceCall extends ServiceDescription {
 export async function callNatsService(opts: ServiceCall): Promise<any> {
   // console.log("callNatsService", opts);
   const env = await getEnv();
-  const { nc, jc } = env;
+  const { cn } = env;
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
-  const data = jc.encode(opts.mesg);
+  const data = opts.mesg;
 
   const doRequest = async () => {
-    await waitUntilConnected();
-    if (opts.many) {
-      resp = await requestMany({ nc, subject, data, maxWait: timeout });
-    } else {
-      resp = await nc.request(subject, data, {
-        timeout,
-      });
-    }
+    resp = await cn.request(subject, data, {
+      timeout,
+    });
     if (opts.raw) {
       return resp;
     }
-    const result = jc.decode(resp.data);
+    const result = resp.data;
     if (result?.error) {
       throw Error(result.error);
     }
@@ -220,7 +199,7 @@ export function serviceDescription({
 export class NatsService extends EventEmitter {
   private options: Options;
   private subject: string;
-  private api?;
+  private sub?;
   private name: string;
 
   constructor(options: Options) {
@@ -228,98 +207,28 @@ export class NatsService extends EventEmitter {
     this.options = options;
     this.name = serviceName(this.options);
     this.subject = serviceSubject(options);
-    this.startMonitor();
-    this.startMainLoop();
+    this.runService();
   }
 
   private log = (...args) => {
     logger.debug(`service:'${this.name}' -- `, ...args);
   };
 
-  private startMainLoop = async () => {
-    while (this.subject) {
-      await this.runService();
-      await delay(5000);
-    }
-  };
-
-  // The service monitor checks every MONITOR_INTERVAL when
-  // connected that the service is definitely working and
-  // responding to pings.  If not, it calls restartService.
-  private startMonitor = async () => {
-    while (this.subject) {
-      this.log(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms...`);
-      await delay(MONITOR_INTERVAL);
-      if (this.subject == null) return;
-      await waitUntilConnected();
-      if (this.subject == null) return;
-      try {
-        this.log(`serviceMonitor: ping`);
-        await callNatsService({ ...this.options, mesg: "ping", timeout: 7500 });
-        if (this.subject == null) return;
-        this.log("serviceMonitor: ping SUCCESS");
-      } catch (err) {
-        if (this.subject == null) return;
-        this.log(`serviceMonitor: ping FAILED -- ${err}`);
-        this.restartService();
-      }
-    }
-  };
-
-  private restartService = () => {
-    if (this.api) {
-      this.api.stop();
-      delete this.api;
-    }
-    this.runService();
-  };
-
   // create and run the service until something goes wrong, when this
   // willl return. It does not throw an error.
   private runService = async () => {
-    try {
-      await waitUntilConnected();
-      this.emit("starting");
-
-      this.log("starting service");
-      const env = await getEnv();
-
-      // close any subscriptions by this client to the subject, which might be left from previous runs of this service.
-      // @ts-ignore
-      for (const sub of env.nc.protocol.subscriptions.subs) {
-        if (sub[1].subject == this.subject) {
-          sub[1].close();
-        }
-      }
-
-      const queue = this.options.all ? randomId() : "0";
-      if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
-        const svcm = new Svcm(env.nc);
-        const service = await svcm.add({
-          name: this.name,
-          version: this.options.version ?? "0.0.1",
-          description: serviceDescription(this.options),
-          queue,
-        });
-        if (!this.subject) {
-          return;
-        }
-        this.api = service.addEndpoint("api", { subject: this.subject });
-      } else {
-        this.api = env.nc.subscribe(this.subject, { queue });
-      }
-      this.emit("running");
-      await this.listen();
-    } catch (err) {
-      this.log(`service stopping due to ${err}`);
-    }
+    this.emit("starting");
+    this.log("starting service");
+    const { cn } = await getEnv();
+    const queue = this.options.all ? randomId() : "0";
+    this.sub = await cn.subscribe(this.subject, { queue });
+    this.emit("running");
+    await this.listen();
   };
 
   private listen = async () => {
-    const env = await getEnv();
-    const jc = env.jc;
-    for await (const mesg of this.api) {
-      const request = jc.decode(mesg.data) ?? ({} as any);
+    for await (const mesg of this.sub) {
+      const request = mesg.data ?? {};
 
       // console.logger.debug("handle nats service call", request);
       let resp;
@@ -333,24 +242,15 @@ export class NatsService extends EventEmitter {
         }
       }
       try {
-        const data = jc.encode(resp);
-        if (this.options.many) {
-          await respondMany({ mesg, data });
-        } else {
-          await mesg.respond(data);
-        }
+        await mesg.respond(resp);
       } catch (err) {
         // If, e.g., resp is too big, then the error would be
         //    "NatsError: MAX_PAYLOAD_EXCEEDED"
         // and it is of course very important to make the caller aware that
         // there was an error, as opposed to just silently leaving
         // them hanging forever.
-        const data = jc.encode({ error: `${err}` });
-        if (this.options.many) {
-          await respondMany({ mesg, data });
-        } else {
-          await mesg.respond(data);
-        }
+        const data = { error: `${err}` };
+        await mesg.respond(data);
       }
     }
   };
@@ -361,8 +261,8 @@ export class NatsService extends EventEmitter {
     }
     this.emit("close");
     this.removeAllListeners();
-    this.api?.stop();
-    delete this.api;
+    this.sub?.stop();
+    delete this.sub;
     // @ts-ignore
     delete this.subject;
     // @ts-ignore
@@ -378,69 +278,16 @@ interface ServiceClientOpts {
 
 export async function pingNatsService({
   options,
-  maxWait = 500,
-  id,
-}: ServiceClientOpts): Promise<(ServiceIdentity | string)[]> {
-  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
-    //     console.log(
-    //       `pingNatsService: ${options.service}.${options.description ?? ""} -- using fallback ping`,
-    //     );
-    const pong = await callNatsService({
-      ...options,
-      mesg: "ping",
-      timeout: Math.max(3000, maxWait),
-      // set no-retry to avoid infinite loop
-      noRetry: true,
-    });
-    //     console.log(
-    //       `pingNatsService: ${options.service}.${options.description ?? ""} -- success`,
-    //     );
-    return [pong];
-  }
-  const env = await getEnv();
-  const svc = new Svcm(env.nc);
-  const m = svc.client({ maxWait, strategy: "stall" });
-  const v: ServiceIdentity[] = [];
-  for await (const ping of await m.ping(serviceName(options), id)) {
-    v.push(ping);
-  }
-  return v;
-}
-
-export async function natsServiceInfo({
-  options,
-  maxWait = 500,
-  id,
-}: ServiceClientOpts): Promise<ServiceInfo[]> {
-  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
-    throw Error(`service framework not enabled for ${options.service}`);
-  }
-  const env = await getEnv();
-  const svc = new Svcm(env.nc);
-  const m = svc.client({ maxWait, strategy: "stall" });
-  const v: ServiceInfo[] = [];
-  for await (const info of await m.info(serviceName(options), id)) {
-    v.push(info);
-  }
-  return v;
-}
-
-export async function natsServiceStats({
-  options,
-  maxWait = 500,
-  id,
-}: ServiceClientOpts): Promise<ServiceStats[]> {
-  if (!(options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK)) {
-    throw Error(`service framework not enabled for ${options.service}`);
-  }
-  const env = await getEnv();
-  const svc = new Svcm(env.nc);
-  const m = svc.client({ maxWait, strategy: "stall" });
-  const v: ServiceStats[] = [];
-  for await (const stats of await m.stats(serviceName(options), id)) {
-    v.push(stats);
-  }
-  return v;
+  maxWait = 3000,
+}: ServiceClientOpts): Promise<string[]> {
+  const pong = await callNatsService({
+    ...options,
+    mesg: "ping",
+    timeout: Math.max(3000, maxWait),
+    // set no-retry to avoid infinite loop
+    noRetry: true,
+  });
+  return [pong];
 }
 
 export async function waitForNatsService({
@@ -455,12 +302,11 @@ export async function waitForNatsService({
   const start = Date.now();
   const getPing = async (m: number) => {
     try {
-      await waitUntilConnected();
       return await pingNatsService({ options, maxWait: m });
     } catch {
       // ping can fail, e.g, if not connected to nats at all or the ping
       // service isn't up yet.
-      return [] as ServiceIdentity[];
+      return [] as string[];
     }
   };
   let ping = await getPing(m);

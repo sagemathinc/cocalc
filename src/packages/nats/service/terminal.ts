@@ -40,7 +40,7 @@ export function createTerminalClient({ project_id, path }) {
   return createServiceClient<TerminalApi>({
     project_id,
     path,
-    service: "project-api",
+    service: "terminal-api",
   });
 }
 
