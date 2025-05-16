@@ -22,25 +22,22 @@ With persistence:
 
 import {
   type FilteredStreamLimitOptions,
-  last,
   enforceLimits,
   enforceRateLimits,
-  headersFromRawMessages,
 } from "./stream";
 import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
-import { Empty, type Msg, type Subscription } from "@nats-io/nats-core";
+import {
+  type Subscription,
+  type Message as Msg,
+  type Headers,
+} from "@cocalc/nats/server/client";
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
-import {
-  // getMaxPayload,
-  waitUntilConnected,
-  encodeBase64,
-} from "@cocalc/nats/util";
+import { encodeBase64 } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { streamSubject } from "@cocalc/nats/names";
 import { getEnv } from "@cocalc/nats/client";
-import { headers as createHeaders } from "@nats-io/nats-core";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { throttle } from "lodash";
 import { once } from "@cocalc/util/async-utils";
@@ -60,11 +57,10 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
 
 const HEADER_PREFIX = "CoCalc-";
 
-const COCALC_SEQUENCE_HEADER = `${HEADER_PREFIX}Seq`;
-const COCALC_TIMESTAMP_HEADER = `${HEADER_PREFIX}Timestamp`;
-const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
-const COCALC_SESSION_ID_HEADER = `${HEADER_PREFIX}Session-Id`;
 export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
+
+const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
+const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -195,9 +191,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
     if (!this.leader && !this.persist) {
       this.heartbeatMonitor();
     }
-    if (this.env?.nc?.on != null) {
-      this.env.nc.on("reconnect", this.reconnect);
-    }
   };
 
   private resetState = () => {
@@ -219,9 +212,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   close = () => {
-    if (this.env?.nc?.removeListener != null) {
-      this.env.nc.removeListener("reconnect", this.reconnect);
-    }
     delete this.env;
     this.removeAllListeners();
     // @ts-ignore
@@ -261,7 +251,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
       }
       if (value?.state != "watch") {
         const { seq, time, buffer, json } = value;
-        const mesg = this.decodeValue(buffer);
+        const mesg = buffer;
         this.messages.push(mesg);
         // todo typing is wrong
         const raw = {
@@ -292,19 +282,15 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
     let d = 1000;
     while (this.env != null) {
-      await waitUntilConnected();
-      if (this.env == null) {
-        return;
-      }
       // console.log("getAllFromLeader", { start_seq });
       try {
-        for await (const raw0 of await this.env.nc.requestMany(
+        for await (const raw0 of await this.env.cn.requestMany(
           this.subject + ".all",
-          this.env.jc.encode({ start_seq }),
+          { start_seq },
           { maxWait },
         )) {
           this.lastHeartbeat = Date.now();
-          if (raw0.data.length == 0) {
+          if (raw0.data == null) {
             // done
             return;
           }
@@ -328,7 +314,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
             this.sessionId = raw.sessionId;
           }
           this.lastSeq = raw.seq;
-          const mesg = this.decodeValue(raw.data);
+          const mesg = raw.data;
           this.messages.push(mesg);
           this.raw.push([raw]);
           if (!noEmit) {
@@ -338,8 +324,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
         return;
       } catch (err) {
         // console.log(`err connecting -- ${err}`);
-        if (err.code == "503") {
-          // leader just isn't ready yet
+        if (err.code == 503) {
+          // leader just isn't ready yet?
           d = Math.min(15000, d * 1.3);
           await delay(d);
           continue;
@@ -356,35 +342,27 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
     this.sessionId = randomId();
     this.sendHeartbeats();
-    this.server = this.env.nc.subscribe(this.subject + ".>");
+    this.server = await this.env.cn.subscribe(this.subject + ".>");
     for await (const raw of this.server) {
       if (raw.subject.endsWith(".all")) {
-        const { start_seq = 0 } = this.env.jc.decode(raw.data) ?? {};
+        const { start_seq = 0 } = raw.data ?? {};
         for (const [m] of this.raw) {
           if (m.seq >= start_seq) {
             raw.respond(m.data, { headers: m.headers });
           }
         }
-        raw.respond(Empty);
+        raw.respond(null);
         continue;
       } else if (raw.subject.endsWith(".send")) {
-        let options: any = undefined;
-        if (raw.headers) {
-          for (const [key, value] of raw.headers) {
-            if (key == COCALC_OPTIONS_HEADER) {
-              options = JSON.parse(value[0]);
-              break;
-            }
-          }
-        }
+        const options = raw.headers?.[COCALC_OPTIONS_HEADER];
         let resp;
         try {
           resp = await this.sendAsLeader(raw.data, options);
         } catch (err) {
-          raw.respond(this.env.jc.encode({ error: `${err}` }));
+          raw.respond({ error: `${err}` });
           return;
         }
-        raw.respond(this.env.jc.encode(resp));
+        raw.respond(resp);
         continue;
       }
     }
@@ -392,14 +370,13 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   private sendHeartbeats = async () => {
     while (this.env != null) {
-      await waitUntilConnected();
       const now = Date.now();
       const wait = this.heartbeatInterval - (now - this.lastHeartbeat);
       if (wait > 100) {
         await delay(wait);
       } else {
         const now = Date.now();
-        this.env.nc.publish(this.subject, Empty);
+        this.env.cn.publish(this.subject, null);
         this.lastHeartbeat = now;
         await delay(this.heartbeatInterval);
       }
@@ -419,7 +396,6 @@ export class EphemeralStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
-    await waitUntilConnected();
     if (this.env == null) {
       return;
     }
@@ -442,7 +418,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
           data: buffer,
         } as RawMsg;
         this.lastSeq = raw.seq;
-        const mesg = this.decodeValue(buffer);
+        const mesg = buffer;
         this.messages.push(mesg);
         this.raw.push([raw]);
         this.lastSeq = raw.seq;
@@ -454,13 +430,13 @@ export class EphemeralStream<T = any> extends EventEmitter {
     while (this.env != null) {
       // @ts-ignore
       this.sub?.close();
-      this.sub = this.env.nc.subscribe(this.subject);
+      this.sub = await this.env.cn.subscribe(this.subject);
       try {
         for await (const raw0 of this.sub) {
           if (!this.leader) {
             this.lastHeartbeat = Date.now();
           }
-          if (raw0.data.length == 0 && raw0.headers == null) {
+          if (raw0.data == null) {
             // console.log("received heartbeat");
             // it's a heartbeat probe
             continue;
@@ -490,7 +466,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
           }
           // move sequence number forward one and record the data
           this.lastSeq = raw.seq;
-          const mesg = this.decodeValue(raw.data);
+          const mesg = raw.data;
           this.messages.push(mesg);
           this.raw.push([raw]);
           this.lastSeq = raw.seq;
@@ -527,25 +503,11 @@ export class EphemeralStream<T = any> extends EventEmitter {
     this.listen();
   });
 
-  private encodeValue = (value: T) => {
-    if (this.env == null) {
-      throw Error("closed");
-    }
-    return this.valueType == "json" ? this.env.jc.encode(value) : value;
-  };
-
-  private decodeValue = (value): T => {
-    if (this.env == null) {
-      throw Error("closed");
-    }
-    return this.valueType == "json" ? this.env.jc.decode(value) : value;
-  };
-
   publish = async (
     mesg: T,
-    options?: { headers?: { [key: string]: string }; msgID?: string },
+    options?: { headers?: Headers; msgID?: string },
   ) => {
-    const data = this.encodeValue(mesg);
+    const data = mesg;
 
     // this may throw an exception:
     enforceRateLimits({
@@ -563,7 +525,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
       return await persistClient.set({
         user: this.user,
         storage: this.storage,
-        buffer: this.encodeValue(mesg),
+        // @ts-ignore [ ] TODO
+        buffer: mesg,
         json: options?.headers,
       });
     } else if (this.leader) {
@@ -574,21 +537,19 @@ export class EphemeralStream<T = any> extends EventEmitter {
       // sending as non-leader -- ask leader to send it.
       let headers;
       if (options != null && Object.keys(options).length > 0) {
-        headers = createHeaders();
-        headers.append(COCALC_OPTIONS_HEADER, JSON.stringify(options));
+        headers = { [COCALC_OPTIONS_HEADER]: options };
       } else {
         headers = undefined;
       }
-      await waitUntilConnected();
       if (this.env == null) {
         throw Error("closed");
       }
-      const resp = await this.env.nc.request(this.subject + ".send", data, {
+      const resp = await this.env.cn.request(this.subject + ".send", data, {
         headers,
         timeout,
       });
-      const r = this.env.jc.decode(resp.data);
-      if (r.error) {
+      const r = resp.data;
+      if (r?.error) {
         throw Error(r.error);
       }
       return resp;
@@ -629,32 +590,29 @@ export class EphemeralStream<T = any> extends EventEmitter {
         cb();
         continue;
       }
-      await waitUntilConnected();
       if (this.env == null) {
         cb("closed");
         return;
       }
       const timestamp = Date.now();
-      const headers = createHeaders();
+      const headers = {
+        [COCALC_STREAM_HEADER]: {
+          seq,
+          timestamp,
+          sessionId: this.sessionId,
+          msgID: options?.msgID,
+        },
+      } as any;
       if (options?.headers) {
         for (const k in options.headers) {
-          headers.append(k, `${options.headers[k]}`);
+          headers[k] = options.headers[k];
         }
-      }
-      headers.append(COCALC_SEQUENCE_HEADER, `${seq}`);
-      headers.append(COCALC_TIMESTAMP_HEADER, `${timestamp}`);
-      if (!this.sessionId) {
-        throw Error("sessionId must be set");
-      }
-      headers.append(COCALC_SESSION_ID_HEADER, this.sessionId);
-      if (options?.msgID) {
-        headers.append(COCALC_MESSAGE_ID_HEADER, options.msgID);
       }
       // we publish it until we get it as a change event, and only
       // then do we respond, being sure it was sent.
       const now = Date.now();
       while (this.env != null && this.sessionId == sessionId) {
-        this.env.nc.publish(this.subject, data, { headers });
+        this.env.cn.publish(this.subject, data, { headers });
         const start = Date.now();
         let done = false;
         try {
@@ -663,7 +621,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
             this.sessionId == sessionId
           ) {
             const [_, raw] = await once(this, "change", PUBLISH_TIMEOUT);
-            if (last(raw)?.seq == seq) {
+            if (raw[0]?.seq == seq) {
               done = true;
               break;
             }
@@ -705,11 +663,8 @@ export class EphemeralStream<T = any> extends EventEmitter {
     return this._start_seq;
   }
 
-  headers = (n: number): { [key: string]: string } | undefined => {
-    if (this.persist) {
-      return last(this.raw[n])?.headers;
-    }
-    return headersFromRawMessages(this.raw[n]);
+  headers = (n: number): { [key: string]: any } | undefined => {
+    return this.raw[n][0]?.headers;
   };
 
   // load older messages starting at start_seq
@@ -744,7 +699,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   // get server assigned time of n-th message in stream
   time = (n: number): Date | undefined => {
-    const r = last(this.raw[n]);
+    const r = this.raw[n][0];
     if (r == null) {
       return;
     }
@@ -770,7 +725,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     let count = 0;
     let bytes = 0;
     for (const raw of this.raw) {
-      const seq = last(raw)?.seq;
+      const seq = raw[0]?.seq;
       if (seq == null) {
         continue;
       }
@@ -808,6 +763,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     }
     const index = enforceLimits({
       messages: this.messages,
+      // @ts-ignore [ ] TODO
       raw: this.raw,
       limits: this.limits,
     });
@@ -845,18 +801,11 @@ export async function estream<T>(
 }
 
 function getRawMsg(raw: Msg): RawMsg {
-  let seq = 0,
+  const {
+    seq = 0,
     timestamp = 0,
-    sessionId = "";
-  for (const [key, value] of raw.headers ?? []) {
-    if (key == COCALC_SEQUENCE_HEADER) {
-      seq = parseInt(value[0]);
-    } else if (key == COCALC_TIMESTAMP_HEADER) {
-      timestamp = parseFloat(value[0]);
-    } else if (key == COCALC_SESSION_ID_HEADER) {
-      sessionId = value[0];
-    }
-  }
+    sessionId = "",
+  } = (raw.headers?.[COCALC_STREAM_HEADER] ?? {}) as any;
   if (!seq) {
     throw Error("missing seq header");
   }

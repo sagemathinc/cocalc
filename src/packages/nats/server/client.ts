@@ -290,11 +290,7 @@ export class Client {
   publish = async (
     subject: string,
     mesg,
-    {
-      protocol = PROTOCOL,
-      headers,
-      confirm,
-    }: PublishOptions & { confirm?: boolean } = {},
+    { protocol = PROTOCOL, headers, confirm }: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -451,6 +447,7 @@ export class Client {
 interface PublishOptions {
   protocol?: Protocol;
   headers?: JSONValue;
+  confirm?: boolean;
 }
 
 function encode({ protocol, mesg }: { protocol: Protocol; mesg: any }) {
@@ -598,10 +595,12 @@ function concatArrayBuffers(buffers) {
   return result.buffer;
 }
 
+export type Headers = { [key: string]: JSONValue };
+
 export class Message {
   private client: Client;
   public readonly data: any;
-  public readonly headers: JSONValue;
+  public readonly headers?: Headers;
   public readonly subject;
 
   constructor({ data, headers, client, subject }) {
@@ -611,7 +610,7 @@ export class Message {
     this.subject = subject;
   }
 
-  respond = async (data: any, { confirm }: { confirm?: boolean } = {}) => {
+  respond = async (data: any, options: PublishOptions = {}) => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
       console.log(
@@ -619,7 +618,7 @@ export class Message {
       );
       return;
     }
-    await this.client.publish(subject, data, { confirm });
+    await this.client.publish(`${subject}`, data, options);
   };
 }
 

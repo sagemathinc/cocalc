@@ -75,14 +75,14 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     if (err.name == "NatsError" && !opts.noRetry) {
       // it's a nats problem
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
-      if (err.code == "503") {
+      if (err.code == 503) {
         // it's actually just not ready, so
         // wait for the service to be ready, then try again
         await waitForNatsService({ options: opts, maxWait: timeout });
         try {
           return await doRequest();
         } catch (err) {
-          if (err.code == "503") {
+          if (err.code == 503) {
             err.message = `Not Available: service ${p}${opts.service} is not available`;
           }
           throw err;
