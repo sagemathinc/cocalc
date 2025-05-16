@@ -1,7 +1,10 @@
-import getSupportUrl from "@cocalc/frontend/support/url";
 import { Button } from "antd";
+import type { ButtonType } from "antd/es/button";
+import type { ReactNode } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useEffect, useState } from "react";
+import getSupportUrl from "@cocalc/frontend/support/url";
+import { useCustomize } from "lib/customize";
 
 export function liveDemoUrl(context) {
   return getSupportUrl({
@@ -14,18 +17,20 @@ export function liveDemoUrl(context) {
 
 interface Props {
   context: string;
-  label?;
-  type?;
+  label?: string | ReactNode;
+  btnType?: ButtonType;
 }
 
-export default function LiveDemo({ context, label, type }: Props) {
-  const [href, setHref] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    setHref(liveDemoUrl(context));
-  }, []);
+export default function LiveDemo({ label, btnType }: Props) {
+  const { supportVideoCall } = useCustomize();
+
+  if (!supportVideoCall) {
+    return null;
+  }
+
   return (
-    <Button href={href} type={type}>
-      <Icon name="users" /> {label ?? "Contact Us!"}
+    <Button href={supportVideoCall} type={btnType}>
+      <Icon name="video-camera" /> {label ?? "Book a Demo!"}
     </Button>
   );
 }

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { join } from "path";
 import { CSSProperties, ReactNode } from "react";
 
+import { Icon } from "@cocalc/frontend/components/icon";
 import SSO from "components/auth/sso";
 import { Paragraph } from "components/misc";
 import basePath from "lib/base-path";
@@ -17,6 +18,7 @@ interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
   hideFree?: boolean;
   style?: React.CSSProperties;
+  emphasize?: boolean;
 }
 
 const STYLE: CSSProperties = {
@@ -25,7 +27,7 @@ const STYLE: CSSProperties = {
   marginBottom: "0",
 } as const;
 
-export default function SignIn({ startup, hideFree, style }: Props) {
+export default function SignIn({ startup, hideFree, style, emphasize }: Props) {
   const { anonymousSignup, siteName, account, emailSignup } = useCustomize();
   style = { ...STYLE, ...style };
   const router = useRouter();
@@ -38,6 +40,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
           onClick={() => (window.location.href = join(basePath, "projects"))}
           title={`Open the ${siteName} app and view your projects.`}
           type="primary"
+          icon={<Icon name="edit" />}
         >
           Your {siteName} Projects
         </Button>
@@ -55,6 +58,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
             style={{ margin: "10px" }}
             title={"Create a new account."}
             onClick={() => router.push("/auth/sign-up")}
+            type={emphasize ? "primary" : undefined}
           >
             Sign Up
           </Button>
@@ -65,6 +69,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
               "Either create a new account or sign into an existing account."
             }
             onClick={() => router.push("/auth/sign-in")}
+            type={emphasize ? "primary" : undefined}
           >
             Sign In
           </Button>

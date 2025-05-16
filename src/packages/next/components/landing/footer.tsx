@@ -62,7 +62,7 @@ export default function Footer() {
     organizationURL,
     enabledPages,
     termsOfServiceURL,
-    account,
+    supportVideoCall,
   } = useCustomize();
 
   const footerColumns: Array<FooterColumn> = [
@@ -140,8 +140,13 @@ export default function Footer() {
         },
         {
           text: "Get a Live Demo",
+          url: supportVideoCall ?? "",
+          hide: !enabledPages?.liveDemo || !supportVideoCall,
+        },
+        {
+          text: "Contact Us",
           url: liveDemoUrl("footer"),
-          hide: !account || !enabledPages?.liveDemo,
+          hide: !enabledPages?.support,
         },
       ],
     },

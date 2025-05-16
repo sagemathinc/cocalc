@@ -77,6 +77,7 @@ export default async function getCustomize(
       imprint: settings.imprint,
       policies: settings.policies,
       support: settings.support,
+      supportVideoCall: settings.support_video_call,
 
       // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
       // This *can* start with http:// to explicitly use http instead of https, and can end

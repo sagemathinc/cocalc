@@ -3,15 +3,15 @@ import { Col, Layout } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import A from "components/misc/A";
-import ChatGPTHelp from "components/openai/chatgpt-help";
-import { Customize } from "lib/customize";
-import withCustomize from "lib/with-customize";
-import { VideoItem } from "components/videos";
 import IndexList, { DataSource } from "components/landing/index-list";
-import { Title } from "components/misc";
-import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import SocialMediaIconList from "components/landing/social-media-icon-list";
+import { Title } from "components/misc";
+import A from "components/misc/A";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import ChatGPTHelp from "components/openai/chatgpt-help";
+import { VideoItem } from "components/videos";
+import { Customize, type CustomizeType } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 const dataSource = [
   {
@@ -19,17 +19,23 @@ const dataSource = [
     title: "Create a New Support Ticket",
     logo: "medkit",
     hide: (customize) => !customize.zendesk,
-    description: (
+    description: ({ supportVideoCall }: CustomizeType) => (
       <>
         If you are having any trouble or just have a question,{" "}
         <A href="/support/new">
           <b>create a support ticket</b>{" "}
         </A>
-        or{" "}
-        <A href="https://calendly.com/cocalc">
-          <b>book a video chat</b>
-        </A>
-        . You do NOT have to be a paying customer to open a ticket.
+        {supportVideoCall ? (
+          <>
+            or{" "}
+            <A href={supportVideoCall}>
+              <b>book a video chat</b>
+            </A>
+          </>
+        ) : (
+          ""
+        )}
+        . You do NOT have to be a paying customer to contact us!
         <VideoItem
           width={800}
           style={{ margin: "15px 0" }}
@@ -54,13 +60,13 @@ const dataSource = [
     ),
   },
   {
-    link: "https://calendly.com/cocalc",
+    link: ({ supportVideoCall }: CustomizeType) => supportVideoCall,
     title: "Book a Video Chat",
-    logo: "video",
-    description: (
+    logo: "video-camera",
+    description: ({ supportVideoCall }: CustomizeType) => (
       <>
         Book a{" "}
-        <A href="https://calendly.com/cocalc">
+        <A href={supportVideoCall}>
           <b>video chat</b>
         </A>
         .
@@ -113,16 +119,17 @@ const dataSource = [
   },
   {
     landingPages: true,
-    link: "https://calendly.com/cocalc/discovery",
+    link: ({ supportVideoCall }: CustomizeType) => supportVideoCall,
     title: "Request a Live Demo!",
     logo: "video-camera",
-    hide: (customize) => !customize.isCommercial,
-    description: (
+    hide: ({ supportVideoCall, isCommercial }: CustomizeType) =>
+      !isCommercial || !supportVideoCall,
+    description: ({ supportVideoCall }: CustomizeType) => (
       <>
         If you're seriously considering using CoCalc to teach a course, but
         aren't sure of some of the details and really need to just{" "}
         <b>talk to a person</b>,{" "}
-        <A href="https://calendly.com/cocalc/discovery">
+        <A href={supportVideoCall}>
           fill out this form and request a live video chat with us
         </A>
         . We love chatting (in English, German and Russian), and will hopefully
@@ -130,7 +137,7 @@ const dataSource = [
       </>
     ),
   },
-] as DataSource;
+] as const satisfies DataSource;
 
 export default function Preferences({ customize }) {
   const { support, onCoCalcCom } = customize;

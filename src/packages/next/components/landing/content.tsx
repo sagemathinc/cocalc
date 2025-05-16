@@ -224,7 +224,7 @@ export default function Content(props: Props) {
                 }
               />
             </div>
-            <SignIn startup={startup ?? title} hideFree={true} />
+            <SignIn startup={startup ?? title} hideFree={true} emphasize />
           </Space>
         </Col>
         <Col sm={14} xs={24}>
