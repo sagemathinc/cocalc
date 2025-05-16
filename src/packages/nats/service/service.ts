@@ -40,18 +40,6 @@ export interface ServiceCall extends ServiceDescription {
   mesg: any;
   timeout?: number;
 
-  // if true, call returns the raw response message, with no decoding or error wrapping.
-  // (do not combine with many:true)
-  raw?: boolean;
-
-  // if true, uses requestMany so **responses can be arbitrarily large**.
-  // This MUST be set for both client and server!  Don't use this unless
-  // you need it, since every response involves 2 messages instead of 1
-  // (the extra termination message).  A good example that uses this is
-  // the jupyter api, since large output gets returned when you click on
-  // "Fetch more output".
-  many?: boolean;
-
   // if it fails with NatsError, we wait for service to be ready and try again,
   // unless this is set -- e.g., when waiting for the service in the first
   // place we set this to avoid an infinite loop.
@@ -71,9 +59,6 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     resp = await cn.request(subject, data, {
       timeout,
     });
-    if (opts.raw) {
-      return resp;
-    }
     const result = resp.data;
     if (result?.error) {
       throw Error(result.error);
@@ -118,8 +103,6 @@ export interface Options extends ServiceDescription {
   description?: string;
   version?: string;
   handler: (mesg) => Promise<any>;
-  // see corresponding call option above.
-  many?: boolean;
 }
 
 export function createNatsService(options: Options) {
@@ -211,17 +194,18 @@ export class NatsService extends EventEmitter {
   }
 
   private log = (...args) => {
-    logger.debug(`service:'${this.name}' -- `, ...args);
+    logger.debug(`service:subject='${this.subject}' -- `, ...args);
   };
 
   // create and run the service until something goes wrong, when this
   // willl return. It does not throw an error.
   private runService = async () => {
     this.emit("starting");
-    this.log("starting service");
+    this.log("starting service", {name:this.name, 
+                                  description:this.options.description, version:this.options.version});
     const { cn } = await getEnv();
     const queue = this.options.all ? randomId() : "0";
-    this.sub = await cn.subscribe(this.subject, { queue });
+    this.sub = await cn.subscribe(this.subject, { queue, confirm:true });
     this.emit("running");
     await this.listen();
   };

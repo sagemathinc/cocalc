@@ -373,7 +373,9 @@ export class Client {
     });
     if (!count) {
       sub.stop();
-      throw new ConatError(`no subscribers matching ${subject}`, { code: 503 });
+      throw new ConatError(`request -- no subscribers matching ${subject}`, {
+        code: 503,
+      });
     }
     for await (const resp of sub) {
       sub.stop();
@@ -408,7 +410,10 @@ export class Client {
     });
     if (!count) {
       sub.stop();
-      throw new ConatError(`no subscribers matching ${subject}`, { code: 503 });
+      throw new ConatError(
+        `requestMany -- no subscribers matching ${subject}`,
+        { code: 503 },
+      );
     }
     let numMessages = 0;
     for await (const resp of sub) {
@@ -606,12 +611,15 @@ export class Message {
     this.subject = subject;
   }
 
-  respond = async (data: any) => {
+  respond = async (data: any, { confirm }: { confirm?: boolean } = {}) => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
-      throw Error("message is not a request");
+      console.log(
+        `WARNING: respond -- message to ${this.subject} is not a request`,
+      );
+      return;
     }
-    await this.client.publish(subject, data);
+    await this.client.publish(subject, data, { confirm });
   };
 }
 

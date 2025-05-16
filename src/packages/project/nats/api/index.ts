@@ -42,7 +42,7 @@ rebuilding and restarting:
 
 Remember, if you don't set API_KEY, then the project MUST be running so that the secret token in $HOME/.smc/secret_token is valid.
 
-3. Use the browser to see the project is on nats and works:
+3. Use the browser to see the project is on the conat network and works:
 
     a = cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'});
     await a.system.ping();

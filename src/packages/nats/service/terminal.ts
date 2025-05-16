@@ -40,7 +40,7 @@ export function createTerminalClient({ project_id, path }) {
   return createServiceClient<TerminalApi>({
     project_id,
     path,
-    service: "terminal-api",
+    service: "server",
   });
 }
 
@@ -58,7 +58,7 @@ export async function createTerminalServer({
   return await createServiceHandler<TerminalApi>({
     project_id,
     path,
-    service: "project-api",
+    service: "server",
     description: "Terminal service.",
     impl,
   });
@@ -81,7 +81,7 @@ export function createBrowserClient({ project_id, path }) {
   return createServiceClient<TerminalBrowserApi>({
     project_id,
     path,
-    service: "browser-api",
+    service: "client",
   });
 }
 
@@ -97,7 +97,7 @@ export async function createBrowserService({
   return await createServiceHandler<TerminalBrowserApi>({
     project_id,
     path,
-    service: "browser-api",
+    service: "client",
     description: "Browser Terminal service.",
     all: true,
     impl,
