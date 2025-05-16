@@ -3,10 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
+import { ReactNode } from "react";
 
+import { AccountState } from "@cocalc/frontend/account/types";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { IntlMessage } from "@cocalc/frontend/i18n";
+import type { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+
 import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
@@ -103,7 +107,7 @@ export interface EditorDescription {
   short: string | IntlMessage; // short description of the editor
   name: string | IntlMessage; // slightly longer description
   icon: IconName;
-  component: any; // React component
+  component: (props: EditorComponentProps) => ReactNode;
 
   // commands that will be displayed in the menu (if they exist)
   commands?: { [commandName: string]: boolean };
@@ -138,3 +142,42 @@ export interface EditorSpec {
 }
 
 export type EditorState = Map<string, any>; // TODO: use TypeMap and do this right.
+
+export interface EditorComponentProps {
+  id: string;
+  actions;
+  available_features: AvailableFeatures;
+  complete;
+  cursors?: Map<string, any>;
+  derived_file_types: Set<string>;
+  desc: NodeDesc;
+  editor_actions;
+  editor_settings: AccountState["editor_settings"];
+  editor_state: Map<string, any>;
+  font_size: number;
+  fullscreen_style: EditorDescription["fullscreen_style"];
+  gutter_markers?: Map<string, any>;
+  gutters?: EditorDescription["gutters"];
+  is_current: boolean;
+  is_fullscreen: boolean;
+  is_public: boolean;
+  is_subframe: boolean;
+  is_visible: boolean;
+  local_view_state: Map<string, any>;
+  misspelled_words?: Set<string> | string;
+  mode: EditorDescription["mode"];
+  name: string;
+  onFocus: () => void;
+  path: string;
+  placeholder?: string;
+  project_id: string;
+  read_only: boolean;
+  reload_images: boolean;
+  reload?: number;
+  resize: number;
+  settings: Map<string, any>;
+  status: string;
+  tab_is_visible: boolean;
+  terminal?: Map<string, any>;
+  value?: string;
+}

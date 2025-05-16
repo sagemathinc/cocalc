@@ -8,36 +8,37 @@ This is some slightly complicated code to avoid needless duplication.
 
 It's a bit more complicated than you might expect partly due to the fact
 we have to insert these course tab components as frame in a frame tree,
-so there is no commoon containing react component that we control...
+so there is no common containing react component that we control...
 */
 
+import { Map } from "immutable";
+
 import {
+  AppRedux,
   React,
   Rendered,
   redux,
-  AppRedux,
   useEditorRedux,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading, ActivityDisplay } from "@cocalc/frontend/components";
+import { ActivityDisplay, Loading } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import Modals from "@cocalc/frontend/course/modals";
+import { PayBanner } from "@cocalc/frontend/course/pay-banner";
 import {
   AssignmentsMap,
   CourseSettingsRecord,
-  StudentsMap,
+  CourseStore,
   HandoutsMap,
+  StudentsMap,
 } from "@cocalc/frontend/course/store";
-import { Map } from "immutable";
-import { ProjectMap, UserMap } from "../../todo-types";
-import { CourseActions, course_redux_name } from "./course-actions";
-import { values } from "@cocalc/util/misc";
-import { CourseTabBar } from "./course-tab-bar";
-import type { CourseEditorActions, CourseEditorState } from "./actions";
-import { CourseStore } from "@cocalc/frontend/course/store";
-import { PayBanner } from "@cocalc/frontend/course/pay-banner";
-import Modals from "@cocalc/frontend/course/modals";
 import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
+import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { values } from "@cocalc/util/misc";
+import type { CourseEditorActions, CourseEditorState } from "./actions";
+import { CourseActions, course_redux_name } from "./course-actions";
+import { CourseTabBar } from "./course-tab-bar";
 
 export interface FrameProps {
   id: string;

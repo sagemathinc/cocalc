@@ -48,7 +48,7 @@ const lean_info: EditorDescription = {
   short: "Info",
   name: "Info at Cursor", // more focused -- usually used in "tactic mode"
   icon: "info-circle",
-  component: LeanInfo,
+  component: LeanInfo as any, // TODO: rclass wrapper does not fit the EditorDescription type
   commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
@@ -57,7 +57,7 @@ const lean_messages: EditorDescription = {
   short: "Mesages",
   name: "All Messages" /* less focused -- usually used in "term mode" */,
   icon: "eye",
-  component: LeanMessages,
+  component: LeanMessages as any, // TODO: rclass wrapper does not fit the EditorDescription type
   commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
@@ -66,7 +66,7 @@ const lean_help: EditorDescription = {
   short: "Help",
   name: "Help at Cursor",
   icon: "question-circle",
-  component: LeanHelp,
+  component: LeanHelp as any, // TODO: rclass wrapper does not fit the EditorDescription type
   commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 

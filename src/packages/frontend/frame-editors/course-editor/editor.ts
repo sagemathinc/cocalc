@@ -7,15 +7,18 @@
 Spec for editing courses via a frame tree.
 */
 
+import React from "react";
+
 import { COMMANDS } from "@cocalc/frontend/course/commands";
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import { menu } from "@cocalc/frontend/i18n";
-import { course, labels } from "@cocalc/frontend/i18n";
+import { course, labels, menu } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
+
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { FrameProps } from "./course-panel-wrapper";
 import {
   Actions,
   Assignments,
@@ -108,7 +111,11 @@ function initMenus() {
 
 initMenus();
 
-const course_students: EditorDescription = {
+type CourseEditorDescription = Omit<EditorDescription, "component"> & {
+  component: React.FC<FrameProps>;
+};
+
+const course_students: CourseEditorDescription = {
   type: "course-students",
   short: course.students,
   name: course.students,
@@ -118,7 +125,7 @@ const course_students: EditorDescription = {
   buttons,
 } as const;
 
-const course_assignments: EditorDescription = {
+const course_assignments: CourseEditorDescription = {
   type: "course-assignments",
   short: course.assignments,
   name: course.assignments,
@@ -128,7 +135,7 @@ const course_assignments: EditorDescription = {
   buttons,
 } as const;
 
-const course_handouts: EditorDescription = {
+const course_handouts: CourseEditorDescription = {
   type: "course-handouts",
   short: course.handouts,
   name: course.handouts,
@@ -138,7 +145,7 @@ const course_handouts: EditorDescription = {
   buttons,
 } as const;
 
-const course_configuration: EditorDescription = {
+const course_configuration: CourseEditorDescription = {
   type: "course-configuration",
   short: labels.configuration_short,
   name: labels.configuration,
@@ -148,7 +155,7 @@ const course_configuration: EditorDescription = {
   buttons,
 } as const;
 
-const course_actions: EditorDescription = {
+const course_actions: CourseEditorDescription = {
   type: "course-actions",
   short: course.actions,
   name: course.actions,
@@ -158,7 +165,7 @@ const course_actions: EditorDescription = {
   buttons,
 } as const;
 
-const course_shared_project: EditorDescription = {
+const course_shared_project: CourseEditorDescription = {
   type: "course-shared_project",
   short: labels.shared,
   name: course.shared_project,

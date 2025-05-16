@@ -1,7 +1,11 @@
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import CSV from "@cocalc/frontend/components/data-grid/csv";
 
-export default function Grid({ value }) {
+export interface GridProps {
+  value: string;
+}
+
+export default function Grid({ value }: GridProps) {
   const { actions, desc } = useFrameContext();
   return (
     <div
