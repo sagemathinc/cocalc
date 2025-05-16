@@ -12,8 +12,8 @@ how paying for that would work.
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription, Empty } from "@nats-io/nats-core";
 import { isValidUUID } from "@cocalc/util/misc";
+import type { Subscription } from "@cocalc/nats/server/client";
 
 export const SUBJECT = process.env.COCALC_TEST_MODE ? "llm-test" : "llm";
 
@@ -52,8 +52,8 @@ function getUserId(subject: string): string {
 
 let sub: Subscription | null = null;
 export async function init(evaluate) {
-  const { nc } = await getEnv();
-  sub = nc.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
+  const { cn } = await getEnv();
+  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
   listen(evaluate);
 }
 
@@ -75,12 +75,11 @@ async function listen(evaluate) {
 }
 
 async function handleMessage(mesg, evaluate) {
-  const { jc } = await getEnv();
-  const options = jc.decode(mesg.data);
+  const options = mesg.data;
 
   let seq = 0;
   const respond = ({ text, error }: { text?: string; error?: string }) => {
-    mesg.respond(jc.encode({ text, error, seq }));
+    mesg.respond({ text, error, seq });
     seq += 1;
   };
 
@@ -88,8 +87,8 @@ async function handleMessage(mesg, evaluate) {
   const end = () => {
     if (done) return;
     done = true;
-    // end response stream with empty payload.
-    mesg.respond(Empty);
+    // end response stream with null payload.
+    mesg.respond(null);
   };
 
   const stream = (text?) => {

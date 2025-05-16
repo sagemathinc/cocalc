@@ -20,18 +20,18 @@ export async function llm(options: ChatOptions): Promise<string> {
 
   let all = "";
   let lastSeq = -1;
-  const { nc, jc } = await getEnv();
+  const { cn } = await getEnv();
   let { stream, ...opts } = options;
   await waitUntilConnected();
-  for await (const resp of await nc.requestMany(subject, jc.encode(opts), {
+  for await (const resp of await cn.requestMany(subject, opts, {
     maxWait: opts.timeout ?? 1000 * 60 * 10,
   })) {
-    if (resp.data.length == 0) {
+    if (resp.data == null) {
       // client code also expects null token to know when stream is done.
       stream?.(null);
       break;
     }
-    const { error, text, seq } = jc.decode(resp.data);
+    const { error, text, seq } = resp.data;
     if (error) {
       throw Error(error);
     }
