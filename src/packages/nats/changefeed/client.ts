@@ -13,8 +13,7 @@ renew({id, lifetime}) -- keeps the changefeed alive for at least lifetime more m
 
 import { getEnv } from "@cocalc/nats/client";
 import { isValidUUID } from "@cocalc/util/misc";
-import { changefeedSubject, renewSubject, LAST_CHUNK } from "./server";
-import { waitUntilConnected } from "@cocalc/nats/util";
+import { changefeedSubject, renewSubject } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
 
 export async function* changefeed({
@@ -42,25 +41,13 @@ export async function* changefeed({
   const subject = changefeedSubject({ account_id });
 
   let lastSeq = -1;
-  const { nc, jc } = await getEnv();
-  await waitUntilConnected();
-  const chunks: Uint8Array[] = [];
-  for await (const mesg of await nc.requestMany(
+  const { cn } = await getEnv();
+  for await (const mesg of await cn.requestMany(
     subject,
-    jc.encode({ query, options, heartbeat, lifetime }),
+    { query, options, heartbeat, lifetime },
     { maxWait: maxActualLifetime },
   )) {
-    if (mesg.data.length == 0) {
-      // done
-      return;
-    }
-    chunks.push(mesg.data);
-    if (!isLastChunk(mesg)) {
-      continue;
-    }
-    const data = Buffer.concat(chunks);
-    chunks.length = 0;
-    const { error, resp, seq } = jc.decode(data);
+    const { error, resp, seq } = mesg.data;
     if (error) {
       throw Error(error);
     }
@@ -70,15 +57,6 @@ export async function* changefeed({
     lastSeq = seq;
     yield resp;
   }
-}
-
-function isLastChunk(mesg) {
-  for (const [key, _] of mesg.headers ?? []) {
-    if (key == LAST_CHUNK) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export async function renew({
@@ -91,8 +69,7 @@ export async function renew({
   lifetime?: number;
 }) {
   const subject = renewSubject({ account_id });
-  const { nc, jc } = await getEnv();
-  await waitUntilConnected();
-  const resp = await nc.request(subject, jc.encode({ id, lifetime }));
-  return jc.decode(resp.data);
+  const { cn } = await getEnv();
+  const resp = await cn.request(subject, { id, lifetime });
+  return resp.data;
 }

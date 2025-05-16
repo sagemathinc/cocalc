@@ -128,7 +128,7 @@ export function connect(address = "http://localhost:3000", options?) {
   return new Client(address, options);
 }
 
-const INBOX_PREFIX = "_INBOX.";
+const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CoCalc-Reply";
 const DEFAULT_MAX_WAIT = 30000;
 const DEFAULT_REQUEST_TIMEOUT = 10000;
@@ -445,7 +445,7 @@ export class Client {
   };
 
   private getTemporaryInboxSubject = () =>
-    `${this.options.inboxPrefix ?? INBOX_PREFIX}${randomId()}`;
+    `${this.options.inboxPrefix ?? INBOX_PREFIX}.${randomId()}`;
 }
 
 interface PublishOptions {

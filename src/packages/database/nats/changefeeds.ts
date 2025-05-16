@@ -32,7 +32,6 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:database:nats:changefeeds
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { JSONCodec } from "nats";
 import userQuery from "@cocalc/database/user-query";
 import { getEnv } from "@cocalc/backend/nats/env";
 import { getUserId } from "@cocalc/nats/hub-api";
@@ -47,13 +46,10 @@ import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { Svcm } from "@nats-io/services";
 import { Coordinator, now } from "./coordinator";
 import { numSubscriptions } from "@cocalc/nats/client";
 
 const logger = getLogger("database:nats:changefeeds");
-
-const jc = JSONCodec();
 
 // How long until the manager's lock on changefeed expires.
 // It's good for this to be SHORT, since if a hub-database
@@ -199,7 +195,7 @@ async function handleRequest({ mesg, nc, cn }) {
       numCanceledSinceStart,
     });
     const { account_id, project_id } = getUserId(mesg.subject);
-    const { name, args } = jc.decode(mesg.data) ?? ({} as any);
+    const { name, args } = mesg.data ?? ({} as any);
     //console.log(`got request: "${JSON.stringify({ name, args })}"`);
     // logger.debug(`got request: "${JSON.stringify({ name, args })}"`);
     if (!name) {
@@ -225,7 +221,7 @@ async function handleRequest({ mesg, nc, cn }) {
     numRequestsAtOnce -= 1;
   }
   // logger.debug(`Responding with "${JSON.stringify(resp)}"`);
-  mesg.respond(jc.encode(resp));
+  mesg.respond(resp);
 }
 
 async function getResponse({ name, args, account_id, project_id, nc, cn }) {
@@ -385,6 +381,7 @@ const createNewChangefeed = async ({ query, user, nc, opts, hash, cn }) => {
     Object.keys(changefeedHashes).length,
     "changefeeds",
   );
+  const { jc } = await getEnv();
   const env = { nc, jc, sha1, cn };
 
   let done = false;
