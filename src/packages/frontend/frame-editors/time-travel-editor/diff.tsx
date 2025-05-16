@@ -14,10 +14,11 @@ and it uses tables)  Codemirror automatically supports large documents, editor t
 so we build something on Codemirror instead
 */
 
-import { useEffect, useRef, MutableRefObject } from "react";
-import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
-import { Map } from "immutable";
+import { debounce } from "lodash";
+import { MutableRefObject, useEffect, useRef } from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import { cm_options } from "../codemirror/cm-options";
 import { init_style_hacks } from "../codemirror/util";
 import { set_cm_line_diff } from "./diff-util";
@@ -26,7 +27,7 @@ interface Props {
   v0: string;
   v1: string;
   path: string; // filename of doc, which determines what sort of syntax highlighting to use.
-  editor_settings: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   font_size: number;
   use_json: boolean;
 }

@@ -190,7 +190,7 @@ interface ErrorsAndWarningsProps {
   is_fullscreen: boolean;
   project_id: string;
   path: string;
-  reload: number;
+  reload?: number;
   font_size: number;
 }
 

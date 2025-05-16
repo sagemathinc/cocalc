@@ -12,39 +12,41 @@ trigger actions when certain props change. This manages the state of a single
 codemirror editor instance mainly for use in a frame tree.
 */
 
-import { SAVE_DEBOUNCE_MS } from "./const";
-import { Map, Set } from "immutable";
 import * as CodeMirror from "codemirror";
+import { Map, Set } from "immutable";
+
 import {
+  CSS,
   React,
   ReactDOM,
   Rendered,
-  CSS,
   useEffect,
   useIsMountedRef,
   useRef,
   useState,
-} from "../../app-framework";
-import { debounce, throttle, isEqual } from "lodash";
-import { Cursors } from "@cocalc/frontend/jupyter/cursors";
-import { cm_options } from "../codemirror/cm-options";
-import { init_style_hacks } from "../codemirror/util";
-import { get_state, set_state } from "../codemirror/codemirror-state";
-import { has_doc, set_doc, get_linked_doc } from "./doc";
-import { GutterMarkers } from "./codemirror-gutter-markers";
-import { Actions } from "./actions";
-import { EditorState } from "../frame-tree/types";
-import { Path } from "../frame-tree/path";
+} from "@cocalc/frontend/app-framework";
 import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
+import { Cursors } from "@cocalc/frontend/jupyter/cursors";
+import { debounce, isEqual, throttle } from "lodash";
+import { cm_options } from "../codemirror/cm-options";
+import { get_state, set_state } from "../codemirror/codemirror-state";
+import { init_style_hacks } from "../codemirror/util";
+import { Path } from "../frame-tree/path";
+import { EditorState } from "../frame-tree/types";
+import { Actions } from "./actions";
+import { GutterMarkers } from "./codemirror-gutter-markers";
+import { SAVE_DEBOUNCE_MS } from "./const";
+import { get_linked_doc, has_doc, set_doc } from "./doc";
+import { AccountState } from "../../account/types";
 
-const STYLE = {
+const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-  marginbottom: "1ex",
-  minheight: "2em",
+  // marginbottom: "1ex",
+  // minheight: "2em",
   border: "0px",
   background: "#fff",
-} as CSS;
+} as const;
 
 export interface Props {
   id: string;
@@ -52,22 +54,22 @@ export interface Props {
   path: string;
   project_id: string;
   font_size: number;
-  cursors: Map<string, any>;
+  cursors?: Map<string, any>;
   editor_state: EditorState;
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
   value?: string; // if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
-  misspelled_words: Set<string> | string; // **or** show these words as not spelled correctly
+  misspelled_words?: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
-  gutters: string[];
-  gutter_markers: Map<string, any>;
-  editor_settings: Map<string, any>;
+  gutters?: string[];
+  gutter_markers?: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   is_subframe?: boolean;
   placeholder?: string;
 }
 
-export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
+export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   const [has_cm, set_has_cm] = useState<boolean>(false);
 
   const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
@@ -139,7 +141,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 
   function cm_highlight_misspelled_words(): void {
     const words = props.misspelled_words;
-    if (cmRef.current == null) return;
+    if (cmRef.current == null || words == null) return;
     if (words == "browser") {
       // just ensure browser spellcheck is enabled
       cmRef.current.setOption("spellcheck", true);
@@ -286,7 +288,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     const foldKey = `${props.path}\\${props.id}`;
     const saveFoldState = () => {
       if (cmRef.current != null) {
-        saveFold(cmRef.current,foldKey);
+        saveFold(cmRef.current, foldKey);
       }
     };
     cmRef.current.on("fold" as any, saveFoldState);

@@ -32,7 +32,7 @@ interface Props {
   font_size: number;
   editor_state: any;
   is_current: boolean;
-  terminal: Map<string, any>;
+  terminal?: Map<string, any>;
   desc: Map<string, any>;
   resize: number;
   is_visible: boolean;
@@ -185,7 +185,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  const backgroundColor = background_color(props.terminal.get("color_scheme"));
+  const backgroundColor = background_color(props.terminal?.get("color_scheme"));
   /* 4px padding is consistent with CodeMirror */
 
   return (
@@ -201,7 +201,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
         className={"smc-vfill"}
         style={{ backgroundColor, padding: "0 0 0 4px" }}
         onClick={() => {
-          // Focus on click, since otherwise, clicking right outside term defocuses,
+          // Focus on click, since otherwise, clicking right outside term de-focusses,
           // which is confusing.
           terminalRef.current?.focus();
         }}

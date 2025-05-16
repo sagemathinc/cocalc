@@ -41,7 +41,11 @@ export const whiteboardCommands = set([
   "chatgpt",
 ]);
 
-const whiteboard: EditorDescription = {
+type WhiteboardEditorDescription = Omit<EditorDescription, "component"> & {
+  component: React.FC<{ presentation: boolean }>;
+};
+
+const whiteboard: WhiteboardEditorDescription = {
   type: "whiteboard",
   short: "Whiteboard",
   name: "Whiteboard",

@@ -30,7 +30,7 @@ interface Props {
   project_id: string;
   font_size: number;
   read_only: boolean;
-  value: string;
+  value?: string;
   editor_state: EditorState;
   reload_images: boolean;
   is_current: boolean;
@@ -56,7 +56,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     path,
     project_id,
     font_size,
-    value,
+    value = "",
     editor_state,
     reload_images,
     is_current,

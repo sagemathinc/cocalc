@@ -47,7 +47,7 @@ const cells: EditorDescription = {
   short: "Cells",
   name: "Cell Worksheet",
   icon: "minus-square",
-  component: CellWorksheet,
+  component: CellWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
   commands: worksheetCommands,
 } as const;
 
@@ -56,7 +56,7 @@ const document: EditorDescription = {
   short: "Document",
   name: "Document Worksheet",
   icon: "file-alt",
-  component: DocumentWorksheet,
+  component: DocumentWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
   commands: worksheetCommands,
 } as const;
 

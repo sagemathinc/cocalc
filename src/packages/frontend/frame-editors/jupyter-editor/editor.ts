@@ -102,7 +102,7 @@ const jupyter_slideshow_revealjs: EditorDescription = {
   short: "Slideshow",
   name: "Slideshow (Reveal.js)",
   icon: "slides",
-  component: Slideshow,
+  component: Slideshow as any, // TODO: rclass wrapper is incompatible with this type → rewrite Slideshow to be a React.FC
   commands: set(["build"]),
 } as const;
 

@@ -7,27 +7,29 @@
 X11 Window frame.
 */
 
-import { Map, Set } from "immutable";
 import { delay } from "awaiting";
+import { Map, Set } from "immutable";
+import { debounce } from "lodash";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import {
+  React,
   ReactDOM,
   Rendered,
-  React,
   useEffect,
   useIsMountedRef,
-  useRef,
-  useRedux,
-  useTypedRedux,
-  usePrevious,
   useMemo,
-} from "../../app-framework";
-import { debounce } from "lodash";
-import { cmp, is_different } from "@cocalc/util/misc";
-import { Actions } from "./actions";
-import { WindowTab } from "./window-tab";
-import { TAB_BAR_GREY } from "./theme";
+  usePrevious,
+  useRedux,
+  useRef,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { retry_until_success } from "@cocalc/util/async-utils";
+import { cmp, is_different } from "@cocalc/util/misc";
+import { Actions } from "./actions";
+import { TAB_BAR_GREY } from "./theme";
+import { WindowTab } from "./window-tab";
 
 interface Props {
   actions: Actions;
@@ -36,8 +38,8 @@ interface Props {
   desc: Map<string, any>;
   is_current: boolean;
   font_size: number;
-  reload: string;
-  editor_settings: Map<string, any>;
+  reload?: number;
+  editor_settings: AccountState["editor_settings"];
   resize: number;
 }
 
@@ -93,7 +95,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     // keyboard layout change
     actions.set_physical_keyboard(
       editor_settings.get("physical_keyboard"),
-      editor_settings.get("keyboard_variant")
+      editor_settings.get("keyboard_variant"),
     );
   }, [
     editor_settings.get("physical_keyboard"),
@@ -169,7 +171,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     // set keyboard layout
     actions.set_physical_keyboard(
       editor_settings.get("physical_keyboard"),
-      editor_settings.get("keyboard_variant")
+      editor_settings.get("keyboard_variant"),
     );
 
     return () => {
@@ -206,7 +208,9 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
     try {
       client.insert_window_in_dom(wid, node);
-      await insert_children_in_dom(windows.getIn([wid, "children"], Set()) as any);
+      await insert_children_in_dom(
+        windows.getIn([wid, "children"], Set()) as any,
+      );
     } catch (err) {
       // window not available right now.
       is_loaded.current = false;
@@ -277,7 +281,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
           is_current={wid === desc.get("wid")}
           info={windows.get(wid)}
           actions={actions}
-        />
+        />,
       );
     }
     return v;

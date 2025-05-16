@@ -15,28 +15,31 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import $ from "jquery";
-import { Set } from "immutable";
+
+import { Spin, Switch, Tooltip } from "antd";
 import { delay } from "awaiting";
+import { Set } from "immutable";
+import { debounce } from "lodash";
+import { join } from "path";
+import { useEffect, useRef, useState } from "react";
+
 import {
   change_filename_extension,
   is_different,
   list_alternatives,
   path_split,
 } from "@cocalc/util/misc";
-import { debounce } from "lodash";
-import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
+
+import { CSS, React, ReactDOM, Rendered } from "@cocalc/frontend/app-framework";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
-import { useEffect, useRef, useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Switch, Spin, Tooltip } from "antd";
-import {
-  set_local_storage,
-  get_local_storage,
-  delete_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
 
 interface Props {
   id: string;
@@ -46,7 +49,7 @@ interface Props {
   fullscreen_style?: any;
   project_id: string;
   path: string;
-  reload: number;
+  reload?: number;
   font_size: number;
   tab_is_visible: boolean;
   mode: "rmd" | undefined;
@@ -266,7 +269,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     return (
       <iframe
         ref={iframe}
-        srcDoc={!trust && mode != "rmd" ? value : (srcDoc ?? "")}
+        srcDoc={!trust && mode != "rmd" ? value : srcDoc ?? ""}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, ...style }}

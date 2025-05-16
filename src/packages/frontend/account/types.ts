@@ -36,6 +36,9 @@ export interface AccountState {
   editor_settings: TypedMap<{
     jupyter_classic?: boolean;
     jupyter?: { kernel: string };
+    theme?: string;
+    physical_keyboard?: string;
+    keyboard_variant?: string;
   }>;
   font_size: number;
   other_settings: TypedMap<{

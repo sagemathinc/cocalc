@@ -4,13 +4,14 @@
  */
 
 import { useIntl } from "react-intl";
-import { Map } from "immutable";
-import { LabeledRow, SelectorInput } from "@cocalc/frontend/components";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
+
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { LabeledRow, SelectorInput } from "@cocalc/frontend/components";
+import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
+import { AccountState } from "../types";
 
 interface Props {
   theme: string;
@@ -71,7 +72,10 @@ def is_prime_lucas_lehmer(p):
 // bundle.  This probably doesn't work so well yet though.
 const CodeMirrorPreview = AsyncComponent(async () => {
   await import("@cocalc/frontend/codemirror/init");
-  return (props: { editor_settings: Map<string, any>; font_size?: number }) => {
+  return (props: {
+    editor_settings: AccountState["editor_settings"];
+    font_size?: number;
+  }) => {
     // Ensure that we load all the codemirror plugins, modes, etc., so that
     // we can show the codemirror preview of the current theme, fonts, etc.
     import("@cocalc/frontend/codemirror/init");

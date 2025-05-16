@@ -1,7 +1,8 @@
 import { Button, Flex, Space, Tooltip } from "antd";
-import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  CSS,
   redux,
   useActions,
   useRedux,
@@ -26,7 +27,7 @@ import VideoChatButton from "./video/launch-button";
 interface Props {
   project_id: string;
   path: string;
-  style?: CSSProperties;
+  style?: CSS;
   fontSize?: number;
   actions?: ChatActions;
   desc?;
