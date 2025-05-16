@@ -100,6 +100,8 @@ import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/nats/util";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { once } from "@cocalc/util/async-utils";
 
 export function connect(address = "http://localhost:3000", options?) {
   return new Client(address, options);
@@ -150,11 +152,19 @@ export class Client {
     });
   }
 
+  waitUntilConnected = reuseInFlight(async () => {
+    if (this.conn.connected) {
+      return;
+    }
+    // @ts-ignore
+    await once(this.conn, "connect");
+  });
+
   // syncSubscriptions ensures that we're subscribed on server
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
     const subs = await this.getSubscriptions();
-    console.log({subs})
+    console.log({ subs });
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
       // the server does not have
