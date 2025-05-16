@@ -295,7 +295,14 @@ export class Client {
       headers,
       confirm,
     }: PublishOptions & { confirm?: boolean } = {},
-  ): Promise<{ bytes: number }> => {
+  ): Promise<{
+    // bytes encoded (doesn't count some extra wrapping)
+    bytes: number;
+    // if confirm is true, count is the number of matching subscriptions
+    // that the server sent this message to. There's no guaranteee that
+    // the subscribers actually exist right now or received these messages.
+    count?: number;
+  }> => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
@@ -306,6 +313,7 @@ export class Client {
     let seq = 0;
     let id = randomId();
     const promises: any[] = [];
+    let count = 0;
     for (let i = 0; i < raw.length; i += chunkSize) {
       const done = i + chunkSize >= raw.length ? 1 : 0;
       const v: any[] = [
@@ -322,10 +330,13 @@ export class Client {
       if (confirm) {
         const f = (cb) => {
           this.conn.emit("publish", v, (response) => {
-            cb(response?.error);
+            cb(response?.error, response);
           });
         };
-        const promise = (async () => await callback(f))();
+        const promise = (async () => {
+          const response = await callback(f);
+          count = Math.max(count, response.count ?? 0);
+        })();
         promises.push(promise);
       } else {
         this.conn.emit("publish", v);
@@ -334,6 +345,7 @@ export class Client {
     }
     if (confirm) {
       await Promise.all(promises);
+      return { bytes: raw.length, count };
     }
     return { bytes: raw.length };
   };
@@ -344,22 +356,25 @@ export class Client {
     subject: string,
     mesg: any,
     {
-      confirm,
       timeout = DEFAULT_REQUEST_TIMEOUT,
       ...options
-    }: PublishOptions & { timeout?: number; confirm?: boolean } = {},
+    }: PublishOptions & { timeout?: number } = {},
   ): Promise<Message> => {
     const inboxSubject = this.getTemporaryInboxSubject();
     await this.waitUntilConnected();
     const sub = await this.subscribe(inboxSubject, {
       maxWait: timeout,
       mesgLimit: 1,
-      confirm,
+      confirm: false,
     });
-    await this.publish(subject, mesg, {
-      confirm,
+    const { count } = await this.publish(subject, mesg, {
+      confirm: true,
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
     });
+    if (!count) {
+      sub.stop();
+      throw new ConatError(`no subscribers matching ${subject}`, { code: 503 });
+    }
     for await (const resp of sub) {
       sub.stop();
       return resp;
@@ -374,12 +389,10 @@ export class Client {
     {
       maxMessages,
       maxWait = DEFAULT_MAX_WAIT,
-      confirm,
       ...options
     }: PublishOptions & {
       maxWait?: number;
       maxMessages?: number;
-      confirm?: boolean;
     } = {},
   ) {
     await this.waitUntilConnected();
@@ -387,18 +400,21 @@ export class Client {
     const sub = await this.subscribe(inboxSubject, {
       maxWait,
       mesgLimit: maxMessages,
-      confirm,
+      confirm: false,
     });
-    await this.publish(subject, mesg, {
+    const { count } = await this.publish(subject, mesg, {
       headers: { ...options, [REPLY_HEADER]: inboxSubject },
-      confirm,
+      confirm: true,
     });
-    let count = 0;
+    if (!count) {
+      sub.stop();
+      throw new ConatError(`no subscribers matching ${subject}`, { code: 503 });
+    }
+    let numMessages = 0;
     for await (const resp of sub) {
       yield resp;
-      count += 1;
-      if (maxMessages && count >= maxMessages) {
-        console.log({ count, maxMessages });
+      numMessages += 1;
+      if (maxMessages && numMessages >= maxMessages) {
         sub.end();
         return;
       }
@@ -600,3 +616,11 @@ export class Message {
 }
 
 export type Subscription = EventIterator<Message>;
+
+class ConatError extends Error {
+  code: string;
+  constructor(mesg: string, { code }) {
+    super(mesg);
+    this.code = code;
+  }
+}

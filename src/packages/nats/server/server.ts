@@ -134,7 +134,7 @@ export class ConatServer {
         this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
       connectionStateRecovery: { maxDisconnectionDuration },
       // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
-      perMessageDeflate: { threshold: 1024 }
+      perMessageDeflate: { threshold: 1024 },
     };
     this.log(socketioOptions);
     if (httpServer) {
@@ -281,13 +281,14 @@ export class ConatServer {
     await this.updateInterest({ op: "add", subject, room, queue });
   };
 
-  private publish = async ({ subject, data, from }) => {
+  private publish = async ({ subject, data, from }): Promise<number> => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error("invalid subject");
     }
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
       throw Error("permission denied");
     }
+    let count = 0;
     for (const pattern in this.interest) {
       if (!matchesPattern({ pattern, subject })) {
         continue;
@@ -304,9 +305,11 @@ export class ConatServer {
         const choice = randomChoice(g[queue]);
         if (choice !== undefined) {
           this.io.to(choice).emit(pattern, { subject, data });
+          count += 1;
         }
       }
     }
+    return count;
   };
 
   private handleSocket = async (socket) => {
@@ -323,8 +326,8 @@ export class ConatServer {
 
     socket.on("publish", async ([subject, ...data], respond) => {
       try {
-        await this.publish({ subject, data, from: user });
-        respond?.();
+        const count = await this.publish({ subject, data, from: user });
+        respond?.({ count });
       } catch (err) {
         respond?.({ error: `${err}` });
       }
