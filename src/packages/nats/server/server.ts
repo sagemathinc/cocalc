@@ -133,6 +133,8 @@ export class ConatServer {
       adapter:
         this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
       connectionStateRecovery: { maxDisconnectionDuration },
+      // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
+      perMessageDeflate: { threshold: 1024 }
     };
     this.log(socketioOptions);
     if (httpServer) {
