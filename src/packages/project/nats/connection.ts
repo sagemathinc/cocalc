@@ -22,6 +22,7 @@ import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
 import { inboxPrefix as getInboxPrefix } from "@cocalc/nats/names";
 import { project_id } from "@cocalc/project/data";
 import secretToken from "@cocalc/project/servers/secret-token";
+export { connect as connectToConat } from "@cocalc/backend/nats/conat";
 
 export default getConnection;
 

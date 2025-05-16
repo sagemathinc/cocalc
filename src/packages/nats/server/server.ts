@@ -301,7 +301,7 @@ export class ConatServer {
       for (const queue in g) {
         const choice = randomChoice(g[queue]);
         if (choice !== undefined) {
-          this.io.to(choice).emit(pattern, { subject, data, from });
+          this.io.to(choice).emit(pattern, { subject, data });
         }
       }
     }

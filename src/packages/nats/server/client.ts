@@ -116,6 +116,11 @@ enum Protocol {
   MsgPack = 0,
   JsonCodec = 1,
 }
+
+// WARNING!  This is the default and you can't just change it!
+// Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
+// JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
+// JsonCodec to handle Date's properly, don't change this!!
 const PROTOCOL = Protocol.MsgPack;
 
 interface ClientOptions {
@@ -127,13 +132,13 @@ export class Client {
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
   public info: ServerInfo | undefined = undefined;
-  private readonly options: ClientOptions;
+  private readonly options: ClientOptions & { address: string };
 
   constructor(
     address: string,
     options: { inboxPrefix?: string; path?: string; transports? } = {},
   ) {
-    this.options = options;
+    this.options = { address, ...options };
     this.conn = connectToSocketIO(address, {
       path: options.path,
       // cocalc itself only works with new clients.
@@ -198,6 +203,7 @@ export class Client {
       confirm,
     }: { closeWhenOffCalled?: boolean; queue?: string; confirm?: boolean } = {},
   ): Promise<SubscriptionEmitter> => {
+    await this.waitUntilConnected();
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject ${subject}`);
     }
@@ -244,6 +250,7 @@ export class Client {
       confirm?: boolean;
     } = {},
   ): Promise<Subscription> => {
+    await this.waitUntilConnected();
     const sub = await this.subscription(subject, {
       closeWhenOffCalled: true,
       queue,
@@ -271,6 +278,7 @@ export class Client {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
+    await this.waitUntilConnected();
     let raw = encode({ protocol, mesg });
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
@@ -321,6 +329,7 @@ export class Client {
     }: PublishOptions & { timeout?: number; confirm?: boolean } = {},
   ): Promise<Message> => {
     const inboxSubject = this.getTemporaryInboxSubject();
+    await this.waitUntilConnected();
     const sub = await this.subscribe(inboxSubject, {
       maxWait: timeout,
       mesgLimit: 1,
@@ -352,6 +361,7 @@ export class Client {
       confirm?: boolean;
     } = {},
   ) {
+    await this.waitUntilConnected();
     const inboxSubject = this.getTemporaryInboxSubject();
     const sub = await this.subscribe(inboxSubject, {
       maxWait,
@@ -381,6 +391,7 @@ export class Client {
     cb = (x) => console.log(`${x.subject}:`, x.data),
     opts?,
   ) => {
+    await this.waitUntilConnected();
     const sub = await this.subscribe(subject, opts);
     const f = async () => {
       for await (const x of sub) {
@@ -480,7 +491,7 @@ class SubscriptionEmitter extends EventEmitter {
     return this;
   }
 
-  private handle = ({ subject, data, from }) => {
+  private handle = ({ subject, data }) => {
     if (this.client == null) {
       return;
     }
@@ -519,7 +530,6 @@ class SubscriptionEmitter extends EventEmitter {
         data: decode({ protocol, data }),
         headers,
         client: this.client,
-        from,
         subject,
       });
       this.emit("message", mesg);
@@ -550,14 +560,12 @@ export class Message {
   private client: Client;
   public readonly data: any;
   public readonly headers: JSONValue;
-  public readonly from;
   public readonly subject;
 
-  constructor({ data, headers, client, from, subject }) {
+  constructor({ data, headers, client, subject }) {
     this.data = data;
     this.headers = headers;
     this.client = client;
-    this.from = from;
     this.subject = subject;
   }
 

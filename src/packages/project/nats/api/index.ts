@@ -6,7 +6,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project:
 
-   await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
+    await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
 
 1. Create a file project-env.sh as explained in projects/nats/README.md, which defines these environment variables (your values will be different):
 
@@ -23,9 +23,10 @@ How to do development (so in a dev project doing cc-in-cc dev).
     export DEBUG=cocalc:*
     export DEBUG_CONSOLE=yes
 
-If API_KEY is a project-wide API key, then you can change COCALC_PROJECT_ID however you want
-and don't have to worry about whether the project is running or the project secret key changing
-when the project is restarted.
+If API_KEY is a project-wide API key, then you can change 
+COCALC_PROJECT_ID however you want and don't have to worry 
+about whether the project is running or the project secret 
+key changing when the project is restarted.
 
 2. Then do this:
 
@@ -49,133 +50,86 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 
 */
 
-import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { type ProjectApi } from "@cocalc/nats/project-api";
-import getConnection from "@cocalc/project/nats/connection";
+import { connectToConat } from "@cocalc/project/nats/connection";
 import { getSubject } from "../names";
 import { terminate as terminateOpenFiles } from "@cocalc/project/nats/open-files";
 import { close as closeListings } from "@cocalc/project/nats/listings";
-import { Svcm } from "@nats-io/services";
-import { compute_server_id, project_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/nats/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/nats/files/write";
-import { delay } from "awaiting";
-import { waitUntilConnected } from "@cocalc/nats/util";
-
-const MONITOR_INTERVAL = 30000;
 
 const logger = getLogger("project:nats:api");
-const jc = JSONCodec();
 
 export function init() {
-  mainLoop();
+  serve();
 }
 
 let terminate = false;
-export async function mainLoop() {
-  let d = 3000;
-  let lastStart = 0;
-  while (!terminate) {
-    try {
-      lastStart = Date.now();
-      await serve();
-      logger.debug("project nats api service ended");
-    } catch (err) {
-      logger.debug(`project nats api service error -- ${err}`);
-      if (Date.now() - lastStart >= 30000) {
-        // it ran for a while, so no delay
-        logger.debug(`will restart immediately`);
-        d = 3000;
-      } else {
-        // it crashed quickly, so delay!
-        d = Math.min(20000, d * 1.25 + Math.random());
-        logger.debug(`will restart in ${d}ms`);
-        await delay(d);
-      }
-    }
-  }
-}
-
 async function serve() {
   logger.debug("serve: create project nats api service");
-  await waitUntilConnected();
-  const nc = await getConnection();
+  const cn = connectToConat();
   const subject = getSubject({ service: "api" });
   // @ts-ignore
-  const svcm = new Svcm(nc);
   const name = `project-${project_id}`;
-  logger.debug(`serve: creating API microservice ${name}`);
-  await waitUntilConnected();
-  const service = await svcm.add({
-    name,
-    version: "0.1.0",
-    description: `CoCalc ${compute_server_id ? "Compute Server" : "Project"}`,
-  });
-  const api = service.addEndpoint("api", { subject });
-  serviceMonitor({ api, subject, nc });
+  logger.debug(`serve: creating api service ${name}`);
+  const api = await cn.subscribe(subject);
   logger.debug(`serve: subscribed to subject='${subject}'`);
   await listen(api, subject);
 }
 
-async function serviceMonitor({ nc, api, subject }) {
-  while (true) {
-    logger.debug(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms`);
-    await delay(MONITOR_INTERVAL);
-    try {
-      await waitUntilConnected();
-      await nc.request(subject, jc.encode({ name: "ping" }), {
-        timeout: 7500,
-      });
-      logger.debug("serviceMonitor: ping succeeded");
-    } catch (err) {
-      logger.debug(
-        `serviceMonitor: ping failed, so restarting service -- ${err}`,
-      );
-      api.stop();
+async function listen(api, subject) {
+  for await (const mesg of api) {
+    if (terminate) {
       return;
     }
+    (async () => {
+      try {
+        await handleMessage(api, subject, mesg);
+      } catch (err) {
+        logger.debug(`WARNING: issue handling a message -- ${err}`);
+      }
+    })();
   }
 }
 
-async function listen(api, subject) {
-  for await (const mesg of api) {
-    const request = jc.decode(mesg.data) ?? ({} as any);
-    // logger.debug("got message", request);
-    if (request.name == "system.terminate") {
-      // TODO: should be part of handleApiRequest below, but done differently because
-      // one case halts this loop
-      const { service } = request.args[0] ?? {};
-      if (service == "open-files") {
-        terminateOpenFiles();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "listings") {
-        closeListings();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "files:read") {
-        await closeFilesRead();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "files:write") {
-        await closeFilesWrite();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "api") {
-        // special hook so admin can terminate handling. This is useful for development.
-        terminate = true;
-        console.warn("TERMINATING listening on ", subject);
-        logger.debug("TERMINATING listening on ", subject);
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        api.stop();
-        return;
-      } else {
-        mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
-      }
+async function handleMessage(api, subject, mesg) {
+  const request = mesg.data ?? ({} as any);
+  // logger.debug("got message", request);
+  if (request.name == "system.terminate") {
+    // TODO: should be part of handleApiRequest below, but done differently because
+    // one case halts this loop
+    const { service } = request.args[0] ?? {};
+    if (service == "open-files") {
+      terminateOpenFiles();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "listings") {
+      closeListings();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "files:read") {
+      await closeFilesRead();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "files:write") {
+      await closeFilesWrite();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "api") {
+      // special hook so admin can terminate handling. This is useful for development.
+      terminate = true;
+      console.warn("TERMINATING listening on ", subject);
+      logger.debug("TERMINATING listening on ", subject);
+      mesg.respond({ status: "terminated", service });
+      api.stop();
+      return;
     } else {
-      handleApiRequest(request, mesg);
+      mesg.respond({ error: `Unknown service ${service}` });
     }
+  } else {
+    handleApiRequest(request, mesg);
   }
 }
 
@@ -193,7 +147,7 @@ async function handleApiRequest(request, mesg) {
       resp = { error: `${err}` };
     }
   }
-  mesg.respond(jc.encode(resp));
+  mesg.respond(resp);
 }
 
 import * as system from "./system";

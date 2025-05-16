@@ -50,7 +50,6 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
@@ -240,7 +239,7 @@ export class ProjectClient {
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     */
-  public async exec(opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> {
+  exec = async (opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> => {
     if ("async_get" in opts) {
       opts = defaults(opts, {
         project_id: required,
@@ -288,19 +287,10 @@ export class ProjectClient {
       };
     }
 
-    const { post } = opts;
-    delete opts.post;
-
     try {
-      let msg;
-      if (post) {
-        // use post API
-        msg = await httpApi("exec", opts);
-      } else {
-        const ws = await this.websocket(opts.project_id);
-        const exec_opts = copy_without(opts, ["project_id"]);
-        msg = await ws.api.exec(exec_opts);
-      }
+      const ws = await this.websocket(opts.project_id);
+      const exec_opts = copy_without(opts, ["project_id", "cb"]);
+      const msg = await ws.api.exec(exec_opts);
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
       }
@@ -333,7 +323,7 @@ export class ProjectClient {
         };
       }
     }
-  }
+  };
 
   // Directly compute the directory listing.  No caching or other information
   // is used -- this just sends a message over the websocket requesting

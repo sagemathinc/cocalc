@@ -307,7 +307,6 @@ export class NatsClient extends EventEmitter {
     if (!isValidUUID(project_id)) {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
-    let lastAddedPermission = 0;
     if (compute_server_id == null) {
       const actions = redux.getProjectActions(project_id);
       if (path != null) {
@@ -319,30 +318,14 @@ export class NatsClient extends EventEmitter {
       }
     }
     const callProjectApi = async ({ name, args }) => {
-      const opts = {
+      return await this.callProject({
         project_id,
         compute_server_id,
         timeout,
         service: "api",
         name,
         args,
-      };
-      try {
-        await waitUntilConnected();
-        return await this.callProject(opts);
-      } catch (err) {
-        if (
-          err.code == "PERMISSIONS_VIOLATION" &&
-          Date.now() - lastAddedPermission >= 30000
-        ) {
-          lastAddedPermission = Date.now();
-          await this.addProjectPermissions([project_id]);
-          await waitUntilConnected();
-          return await this.callProject(opts);
-        } else {
-          throw err;
-        }
-      }
+      });
     };
     return initProjectApi(callProjectApi);
   };
@@ -362,27 +345,10 @@ export class NatsClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = projectSubject({ project_id, compute_server_id, service });
-    const mesg = this.jc.encode({
-      name,
-      args,
-    });
-    let resp;
-    try {
-      await waitUntilConnected();
-      resp = await nc.request(subject, mesg, { timeout });
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION") {
-        // request update of our credentials to include this project, then try again
-        await (nc as any).addProjectPermissions([project_id]);
-        await waitUntilConnected();
-        resp = await nc.request(subject, mesg, { timeout });
-      } else {
-        throw err;
-      }
-    }
-    return this.jc.decode(resp.data);
+    const resp = await cn.request(subject, { name, args }, { timeout });
+    return resp.data;
   };
 
   private callBrowser = async ({

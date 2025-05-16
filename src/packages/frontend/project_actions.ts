@@ -2113,9 +2113,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     misc.retry_until_success({
       f: fetch,
-      start_delay: 1000,
-      max_delay: 10000,
-      max_time: 1000 * 60 * 3, // try for at most 3 minutes
+      start_delay: 15000,
+      max_delay: 30000,
+      max_time: 1000 * 60, // try for at most 3 minutes
       cb: () => {
         _init_library_index_ongoing[this.project_id] = false;
       },

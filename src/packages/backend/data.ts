@@ -239,8 +239,8 @@ export function setNatsServer(server) {
 }
 
 // dev mode defaults
-export let conatServer = `http://localhost:${port}`;
-export let conatPath = join(basePath, "conat");
+export let conatServer = process.env.CONAT_SERVER ?? `http://localhost:${port}`;
+export let conatPath = process.env.CONAT_PATH ?? join(basePath, "conat");
 
 export function setConatServer(server: string) {
   conatServer = server;
