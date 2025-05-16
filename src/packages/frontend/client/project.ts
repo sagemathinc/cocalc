@@ -683,3 +683,31 @@ const touchComputeServer = throttle(
   },
   30000,
 );
+
+// Polyfill for Safari: Add async iterator support to ReadableStream if missing.
+// E.g., this is missing in all versions of Safari as of May 2025 according to
+//           https://caniuse.com/?search=ReadableStream%20async
+// This breaks reading and writing files to projects, which is why this
+// is here (e.g., the writeFile and readFile functions above).
+// This might also matter for Jupyter.
+// https://chatgpt.com/share/6827a476-dbe8-800e-9156-3326eb41baae
+if (
+  typeof ReadableStream !== "undefined" &&
+  !ReadableStream.prototype[Symbol.asyncIterator]
+) {
+  ReadableStream.prototype[Symbol.asyncIterator] = function () {
+    const reader = this.getReader();
+    return {
+      async next() {
+        return reader.read();
+      },
+      async return() {
+        reader.releaseLock();
+        return { done: true };
+      },
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+    };
+  };
+}
