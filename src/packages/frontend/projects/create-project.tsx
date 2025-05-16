@@ -10,6 +10,7 @@ Create a new project
 import { Button, Card, Col, Form, Input, Row, Space } from "antd";
 import { delay } from "awaiting";
 import { useIntl } from "react-intl";
+
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -29,6 +30,8 @@ import {
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
@@ -38,6 +41,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -61,7 +65,6 @@ export const NewProjectCreator: React.FC<Props> = ({
   );
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
-  const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
   const [custom_software, set_custom_software] =
@@ -80,6 +83,15 @@ export const NewProjectCreator: React.FC<Props> = ({
   const show = useMemo(
     () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
     [customize_kucalc],
+  );
+
+  const customize_software = useTypedRedux("customize", "software");
+  const [dflt_software_img, software_images] = useMemo(
+    () => [
+      customize_software.get("default"),
+      customize_software.get("environments"),
+    ],
+    [customize_software],
   );
 
   const [form] = Form.useForm();
@@ -112,7 +124,6 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_title_text(default_value ?? "");
     set_error("");
     set_custom_software({});
-    set_show_advanced(false);
     set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
@@ -267,15 +278,33 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_custom_software(obj);
   }
 
-  function render_advanced() {
-    if (!show_advanced) return;
+  function render_customize_software_env() {
     return (
-      <Card size="small" title="Software environment" style={CARD_STYLE}>
-        <SoftwareEnvironment
-          onChange={custom_software_on_change}
-          showTitle={false}
-        />
-      </Card>
+      <>
+        <Form.Item label="Software environment">
+          <ComputeImageSelector
+            current_image={DEFAULT_COMPUTE_IMAGE}
+            layout={"dropdown"}
+            onSelect={(img) => {
+              const display = software_images.get(img)?.get("title");
+              custom_software_on_change({
+                image_selected: img,
+                title_text: display,
+                image_type: "standard",
+              });
+            }}
+            changing={false}
+            label={"set"}
+          />
+        </Form.Item>
+
+        <Card size="small" title="Software environment" style={CARD_STYLE}>
+          <SoftwareEnvironment
+            onChange={custom_software_on_change}
+            showTitle={false}
+          />
+        </Card>
+      </>
     );
   }
 
@@ -284,63 +313,44 @@ export const NewProjectCreator: React.FC<Props> = ({
   }
 
   function render_add_license() {
-    if (!show_add_license) return;
-    return (
-      <Card
-        size="small"
-        title={
-          <h4>
-            <div style={{ float: "right" }}>
-              <BuyLicenseForProject />
-            </div>
-            <Icon name="key" /> Select License
-          </h4>
-        }
-        style={CARD_STYLE}
-      >
-        <SiteLicenseInput
-          requireValid
-          confirmLabel={"Add this license"}
-          onChange={addSiteLicense}
-          requireLicense
-          requireMessage={`A license is required to create additional projects.`}
-        />
-      </Card>
-    );
-  }
-
-  function render_advanced_toggle(): JSX.Element | undefined {
-    // we only support custom images on cocalc.com and onprem
     if (!show) return;
-    if (show_advanced) return;
-    return (
-      <div style={TOGGLE_STYLE}>
-        <Button
-          onClick={() => set_show_advanced(true)}
-          type="link"
-          style={TOGGLE_BUTTON_STYLE}
+    if (!show_add_license) {
+      return (
+        <div style={TOGGLE_STYLE}>
+          <Button
+            disabled={requireLicense}
+            onClick={() => set_show_add_license(true)}
+            type="link"
+            style={TOGGLE_BUTTON_STYLE}
+          >
+            <Icon name="plus" /> Add a license key...
+          </Button>
+        </div>
+      );
+    } else {
+      return (
+        <Card
+          size="small"
+          title={
+            <h4>
+              <div style={{ float: "right" }}>
+                <BuyLicenseForProject />
+              </div>
+              <Icon name="key" /> Select License
+            </h4>
+          }
+          style={CARD_STYLE}
         >
-          <Icon name="plus" /> Customize the software environment...
-        </Button>
-      </div>
-    );
-  }
-
-  function render_add_license_toggle(): JSX.Element | undefined {
-    if (!show) return;
-    if (show_add_license) return;
-    return (
-      <div style={TOGGLE_STYLE}>
-        <Button
-          disabled={requireLicense}
-          onClick={() => set_show_add_license(true)}
-          type="link"
-          style={TOGGLE_BUTTON_STYLE}
-        >
-          <Icon name="plus" /> Add a license key...
-        </Button>
-      </div>
-    );
+          <SiteLicenseInput
+            requireValid
+            confirmLabel={"Add this license"}
+            onChange={addSiteLicense}
+            requireLicense
+            requireMessage={`A license is required to create additional projects.`}
+          />
+        </Card>
+      );
+    }
   }
 
   function render_license() {
@@ -381,6 +391,7 @@ export const NewProjectCreator: React.FC<Props> = ({
                     message: helpTxt,
                   },
                 ]}
+                help={"You can change the title at any time."}
               >
                 <Input
                   ref={new_project_title_ref}
@@ -392,9 +403,6 @@ export const NewProjectCreator: React.FC<Props> = ({
                 />
               </Form.Item>
             </Form>
-            <div style={{ color: COLORS.GRAY, float: "right" }}>
-              You can change the title at any time.
-            </div>
           </Col>
           <Col sm={12}>
             <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
@@ -412,18 +420,13 @@ export const NewProjectCreator: React.FC<Props> = ({
             </div>
           </Col>
         </Row>
-        {render_add_license_toggle()}
+        {render_customize_software_env()}
         {render_add_license()}
         {render_license()}
-        {render_advanced_toggle()}
-        {render_advanced()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
             <Space>
-              <Button
-                disabled={state === "saving"}
-                onClick={cancel_editing}
-              >
+              <Button disabled={state === "saving"} onClick={cancel_editing}>
                 {intl.formatMessage(labels.cancel)}
               </Button>
               <Button

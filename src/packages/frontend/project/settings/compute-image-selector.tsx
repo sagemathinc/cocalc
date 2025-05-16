@@ -20,6 +20,7 @@ import {
   Row,
   Space,
   Spin,
+  Switch,
 } from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
@@ -45,6 +46,7 @@ import { CancelText } from "@cocalc/frontend/i18n/components";
 import { capitalize, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
+import { ComputeImages } from "../../custom-software/init";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -68,7 +70,7 @@ const img_sorter = (a, b): number => {
 
 interface ComputeImageSelectorProps {
   current_image: string;
-  layout: "horizontal" | "compact" | "dialog";
+  layout: "horizontal" | "compact" | "dialog" | "dropdown";
   onSelect: (img: string) => void;
   disabled?: boolean;
   size?: SizeType;
@@ -91,6 +93,7 @@ export function ComputeImageSelector({
   const disabled = propsDisabled ?? false;
   const size = propsSize ?? "small";
   const label = propsLabel ?? capitalize(intl.formatMessage(labels.select));
+  const [dropdownCustom, setDropdownCustom] = useState(false);
 
   // initialize with the given default
   const [nextImg, setNextImg] = useState<string>(current_image);
@@ -105,6 +108,11 @@ export function ComputeImageSelector({
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
     "software",
+  );
+
+  const images: ComputeImages | undefined = useTypedRedux(
+    "compute_images",
+    "images",
   );
 
   if (software_envs === undefined) {
@@ -160,9 +168,11 @@ export function ComputeImageSelector({
   }
 
   function render_menu_group(group: string): MenuItem {
+    const children = render_menu_children(group);
+    if (children.length === 0) return null;
     return {
       key: group,
-      children: render_menu_children(group),
+      children,
       label: group,
       type: "group",
     };
@@ -174,7 +184,12 @@ export function ComputeImageSelector({
 
   function getMenu() {
     return {
-      onClick: (e) => (layout === "dialog" ? setNextImg : onSelect)(e.key),
+      onClick: (e) => {
+        setNextImg(e.key);
+        if (layout !== "dialog") {
+          onSelect(e.key);
+        }
+      },
       style: { maxHeight: "50vh", overflow: "auto" },
       items: menu_items(),
     };
@@ -187,6 +202,22 @@ export function ComputeImageSelector({
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
+    );
+  }
+
+  function render_dropdown_custom() {
+    if (!isCoCalcCom) return null;
+    return (
+      <Space style={{ marginLeft: "20px" }}>
+        <Switch
+          value={dropdownCustom}
+          onChange={setDropdownCustom}
+          title={"Switch to select a custom software environment"}
+          checkedChildren={"Custom"}
+          unCheckedChildren={"Standard"}
+        />
+        <HelpIcon title="Software Environment">help</HelpIcon>
+      </Space>
     );
   }
 
@@ -364,7 +395,6 @@ export function ComputeImageSelector({
     case "compact":
       return render_selector();
     case "horizontal":
-      // used in projects → create new project
       return (
         <Row gutter={[10, 10]}>
           <Col xs={24}>
@@ -375,6 +405,23 @@ export function ComputeImageSelector({
             </span>
             <Gap />
             <span>{render_info(nextImg)}</span>
+          </Col>
+        </Row>
+      );
+    // used in projects → create new project
+    case "dropdown":
+      return (
+        <Row gutter={[10, 10]}>
+          <Col xs={24}>
+            <Icon name={SOFTWARE_ENVIRONMENT_ICON} />
+            <Gap />
+            {render_selector()}
+            <Gap />
+            {render_dropdown_custom()}
+          </Col>
+          <Col xs={24}>
+            <Paragraph>{render_info(nextImg)}</Paragraph>
+            <pre>{JSON.stringify(images?.toJS(), null, 2)}</pre>
           </Col>
         </Row>
       );
