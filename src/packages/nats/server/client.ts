@@ -159,7 +159,7 @@ enum Protocol {
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
 // JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
 // JsonCodec to handle Date's properly, don't change this!!
-const PROTOCOL = Protocol.MsgPack;
+const DEFAULT_PROTOCOL = Protocol.MsgPack;
 
 interface ClientOptions {
   inboxPrefix?: string;
@@ -309,7 +309,7 @@ export class Client {
   publish = async (
     subject: string,
     mesg,
-    { protocol = PROTOCOL, headers, confirm }: PublishOptions = {},
+    { headers, confirm, protocol = DEFAULT_PROTOCOL, raw }: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -322,7 +322,9 @@ export class Client {
       throw Error(`invalid publish subject ${subject}`);
     }
     await this.waitUntilConnected();
-    let raw = encode({ protocol, mesg });
+    if (raw == undefined) {
+      raw = encode({ protocol, mesg });
+    }
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
     let seq = 0;
@@ -468,9 +470,14 @@ export class Client {
 }
 
 interface PublishOptions {
-  protocol?: Protocol;
   headers?: JSONValue;
   confirm?: boolean;
+  // if protocol is given, it specifies the protocol used to encode the message
+  protocol?: Protocol;
+  // if raw is given, then it is assumed to be the raw binary
+  // encoded message (using protocol) and any mesg parameter
+  // is *IGNORED*.
+  raw?;
 }
 
 function encode({ protocol, mesg }: { protocol: Protocol; mesg: any }) {
@@ -585,11 +592,11 @@ class SubscriptionEmitter extends EventEmitter {
     if (chunk.done) {
       // console.log("assembling ", incoming[id].length, "chunks");
       const chunks = incoming[id].map((x) => x.buffer!);
-      global.y = { chunks, concatArrayBuffers, decode };
-      const data = concatArrayBuffers(chunks);
+      const raw = concatArrayBuffers(chunks);
       delete incoming[id];
       const mesg = new Message({
-        data: decode({ protocol, data }),
+        protocol,
+        raw,
         headers,
         client: this.client,
         subject,
@@ -620,14 +627,12 @@ function concatArrayBuffers(buffers) {
 
 export type Headers = { [key: string]: JSONValue };
 
-export class Message {
+export class BaseMessage {
   private client: Client;
-  public readonly data: any;
   public readonly headers?: Headers;
   public readonly subject;
 
-  constructor({ data, headers, client, subject }) {
-    this.data = data;
+  constructor({ headers, client, subject }) {
     this.headers = headers;
     this.client = client;
     this.subject = subject;
@@ -643,6 +648,29 @@ export class Message {
     }
     await this.client.publish(`${subject}`, data, options);
   };
+}
+
+// export class Message extends BaseMessage {
+//   public readonly data: any;
+//   constructor({ data, headers, client, subject }) {
+//     super({ headers, client, subject });
+//     this.data = data;
+//   }
+// }
+
+export class Message extends BaseMessage {
+  public readonly protocol: Protocol;
+  public readonly raw;
+
+  constructor({ protocol, raw, headers, client, subject }) {
+    super({ headers, client, subject });
+    this.protocol = protocol;
+    this.raw = raw;
+  }
+
+  get data() {
+    return decode({ protocol: this.protocol, data: this.raw });
+  }
 }
 
 export type Subscription = EventIterator<Message>;
