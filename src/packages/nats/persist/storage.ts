@@ -39,6 +39,24 @@ import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
+import { DataEncoding } from "@cocalc/nats/server/client";
+
+enum CompressionAlgorithm {
+  None = 0,
+  Zstd = 1,
+}
+
+interface Compression {
+  // compression algorithm to use
+  algorithm: CompressionAlgorithm;
+  // only compress data above this size
+  threshold: number;
+}
+
+const DEFAULT_COMPRESSION = {
+  algorithm: CompressionAlgorithm.Zstd,
+  threshold: 1024,
+};
 
 export interface Message {
   // server assigned positive increasing integer number
@@ -47,21 +65,26 @@ export interface Message {
   time: number;
   // user assigned key -- when set all previous messages with that key are deleted.
   key?: string;
-  // arbitrary binary data -- analogue of NATS payload, but no size limit
-  buffer?: Buffer;
+  // the encoding used to encode the raw data
+  encoding: DataEncoding;
+  // arbitrary binary data
+  raw: Buffer;
   // arbitrary JSON-able object -- analogue of NATS headers, but anything JSON-able
-  json?: JSONValue;
+  headers?: JSONValue;
 }
 
 export interface Options {
-  // relative path to a sqlite database file
+  // relative path to sqlite database file.  This needs to be a valid filename
+  // path, and must also be kept under 1K so it can be stored in cloud storage.
   path: string;
-  // if not set (the default) do not require sync writes to disk on every set
+  // if false (the default) do not require sync writes to disk on every set
   sync?: boolean;
   // if set, then data is never saved to disk at all. This is very dangerous
   // for production, since it could use a LOT of RAM -- but could be very useful
   // for unit testing.
   ephemeral?: boolean;
+  // compression configuration
+  compression?: Compression;
 }
 
 // persistence for stream of messages with subject
@@ -71,6 +94,7 @@ export class PersistentStream extends EventEmitter {
 
   constructor(options: Options) {
     super();
+    options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
     this.db = createDatabase(
       this.options.ephemeral ? ":memory:" : this.options.path,
@@ -83,14 +107,14 @@ export class PersistentStream extends EventEmitter {
       // Unless sync is set, we do not require that the filesystem has commited changes
       // to disk after every insert. This can easily make things 10x faster.  sets are
       // typically going to come in one-by-one as users edit files, so this works well
-      // for our application.  Also, loss of persistence is acceptable in a lot of application,
-      // e.g., if it is just edit history for a file.
+      // for our application.  Also, loss of a few seconds persistence is acceptable
+      // in a lot  of applications, e.g., if it is just edit history for a file.
       this.db.prepare("PRAGMA synchronous=OFF").run();
     }
     this.db
       .prepare(
         `CREATE TABLE IF NOT EXISTS messages ( 
-          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, json TEXT, buffer BLOB
+          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL
         )`,
       )
       .run();
@@ -108,46 +132,63 @@ export class PersistentStream extends EventEmitter {
     delete this.db;
   };
 
+  private compress = (
+    raw: Buffer,
+  ): { raw: Buffer; compress: CompressionAlgorithm } => {
+    if (
+      this.options.compression!.algorithm == CompressionAlgorithm.None ||
+      raw.length <= this.options.compression!.threshold
+    ) {
+      return { raw, compress: CompressionAlgorithm.None };
+    }
+    if (this.options.compression!.algorithm == CompressionAlgorithm.Zstd) {
+      return { raw: compress(raw), compress: CompressionAlgorithm.Zstd };
+    }
+    throw Error(
+      `unknown compression algorithm: ${this.options.compression!.algorithm}`,
+    );
+  };
+
   set = ({
-    buffer,
-    json,
+    encoding,
+    raw,
+    headers,
     key,
   }: {
-    buffer: Buffer;
-    json?: JSONValue;
+    encoding: DataEncoding;
+    raw: Buffer;
+    headers?: JSONValue;
     key?: string;
   }): { seq: number; time: number } => {
     const time = Date.now();
-    const orig = { buffer, json };
-
-    if (buffer != null) {
-      buffer = compress(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
-    }
-    json = JSON.stringify(json);
-
-    if (key) {
-      // insert with key -- delete all previous messages, as they will never be needed again and waste space.
-      const tx = this.db.transaction((buffer, json, key, time) => {
-        this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
+    const compressedRaw = this.compress(raw);
+    const serializedHeaders = JSON.stringify(headers);
+    const tx = this.db.transaction(
+      (time, compress, encoding, raw, headers, key) => {
+        if (key) {
+          // insert with key -- delete all previous messages, as they will
+          // never be needed again and waste huge amounts of space.
+          this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
+        }
         return this.db
           .prepare(
-            "INSERT INTO messages(time, buffer, json, key) VALUES (?, ?, ?, ?)",
+            "INSERT INTO messages(time, compress, encoding, raw, headers, key) VALUES (?, ?, ?, ?, ?, ?)",
           )
-          .run(time / 1000, buffer, json, key);
-      });
-      const { lastInsertRowid } = tx(buffer, json, key, time);
-      const seq = Number(lastInsertRowid);
-      this.emit("change", { seq, time, key, ...orig });
-      return { time, seq };
-    } else {
-      // regular insert
-      const { lastInsertRowid } = this.db
-        .prepare("INSERT INTO messages(time, buffer, json) VALUES (?, ?, ?)")
-        .run(time / 1000, buffer, json);
-      const seq = Number(lastInsertRowid);
-      this.emit("change", { seq, time, ...orig });
-      return { time, seq };
-    }
+          .run(time / 1000, compress, encoding, raw, headers, key);
+      },
+    );
+    const { lastInsertRowid } = tx(
+      time,
+      compressedRaw.compress,
+      encoding,
+      compressedRaw.raw,
+      serializedHeaders,
+      key,
+    );
+    // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
+    const seq = Number(lastInsertRowid);
+    this.emit("change", { seq, time, key, encoding, raw, headers });
+    return { time, seq };
   };
 
   get = ({
@@ -160,7 +201,7 @@ export class PersistentStream extends EventEmitter {
     if (seq) {
       x = this.db
         .prepare(
-          "SELECT seq, key, time, buffer, json FROM messages WHERE seq=?",
+          "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE seq=?",
         )
         .get(seq);
     } else if (key != null) {
@@ -168,7 +209,7 @@ export class PersistentStream extends EventEmitter {
       // row with a given key.  Also there's a unique constraint.
       x = this.db
         .prepare(
-          "SELECT seq, key, time, buffer, json FROM messages WHERE key=?",
+          "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE key=?",
         )
         .get(key);
     } else {
@@ -182,14 +223,15 @@ export class PersistentStream extends EventEmitter {
   }: { start_seq?: number } = {}): IterableIterator<Message> {
     let query: string, stmt;
     if (!start_seq) {
-      query = "SELECT seq, key, time, buffer, json FROM messages ORDER BY seq";
+      query =
+        "SELECT seq, key, time, compress, encoding, raw, headers FROM messages ORDER BY seq";
       stmt = this.db.prepare(query);
       for (const row of stmt.iterate()) {
         yield dbToMessage(row)!;
       }
     } else {
       query =
-        "SELECT seq, key, time, buffer, json FROM messages WHERE seq>=? ORDER BY seq";
+        "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE seq>=? ORDER BY seq";
       stmt = this.db.prepare(query);
       for (const row of stmt.iterate(start_seq)) {
         yield dbToMessage(row)!;
@@ -235,8 +277,10 @@ function dbToMessage(
         seq: number;
         key?: string;
         time: number;
-        buffer?: Buffer;
-        json?: string;
+        compress: CompressionAlgorithm;
+        encoding: DataEncoding;
+        raw: Buffer;
+        headers?: string;
       }
     | undefined,
 ): Message | undefined {
@@ -245,11 +289,28 @@ function dbToMessage(
   }
   return {
     seq: x.seq,
-    key: x.key != null ? x.key : undefined,
     time: x.time * 1000,
-    buffer: x.buffer != null ? decompress(x.buffer) : undefined,
-    json: x.json ? JSON.parse(x.json) : undefined,
+    key: x.key != null ? x.key : undefined,
+    encoding: x.encoding,
+    raw: handleDecompress(x),
+    headers: x.headers ? JSON.parse(x.headers) : undefined,
   };
+}
+
+function handleDecompress({
+  raw,
+  compress,
+}: {
+  raw: Buffer;
+  compress: CompressionAlgorithm;
+}) {
+  if (compress == CompressionAlgorithm.None) {
+    return raw;
+  } else if (compress == CompressionAlgorithm.Zstd) {
+    return decompress(raw);
+  } else {
+    throw Error(`unknown compression ${compress}`);
+  }
 }
 
 export const cache = refCacheSync<

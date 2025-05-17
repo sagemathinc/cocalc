@@ -11,10 +11,10 @@ much better in so many ways:
 - Message can be arbitrarily large and they are *automatically* divided
   into chunks and reassembled.   Better than both NATS and socket.io.
   
-- There are multiple supported protocols for encoding messages, and
+- There are multiple supported ways of encoding messages, and
   no coordination is required with the server or other clients!  E.g.,
-  one message can be sent with one protocol and the next with a different
-  protocol and that's fine.  Better than NATS.
+  one message can be sent with one encoding and the next with a different
+  encoding and that's fine. 
      - MsgPack: https://msgpack.org/ -- a very compact encoding that handles
        dates nicely and small numbers efficiently.  This also works 
        well with binary Buffer objects, which is nice.
@@ -25,7 +25,7 @@ much better in so many ways:
 NOTE: There is a socketio msgpack parser, but it just doesn't
 work at all, which is weird.  Also, I think it's impossible to
 do the sort of chunking we want at the level of a socket.io
-parser -- it's just not possible in that the protocol.  We customize
+parser -- it's just not possible in that the encoding.  We customize
 things purely client side without using a parser, and get a much
 simpler and better result, inspired by how NATS approaches things
 with opaque messages.
@@ -150,7 +150,7 @@ const REPLY_HEADER = "CoCalc-Reply";
 const DEFAULT_MAX_WAIT = 30000;
 const DEFAULT_REQUEST_TIMEOUT = 10000;
 
-enum Protocol {
+export enum DataEncoding {
   MsgPack = 0,
   JsonCodec = 1,
 }
@@ -159,7 +159,7 @@ enum Protocol {
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
 // JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
 // JsonCodec to handle Date's properly, don't change this!!
-const DEFAULT_PROTOCOL = Protocol.MsgPack;
+const DEFAULT_ENCODING = DataEncoding.MsgPack;
 
 interface ClientOptions {
   inboxPrefix?: string;
@@ -309,7 +309,7 @@ export class Client {
   publish = async (
     subject: string,
     mesg,
-    { headers, confirm, protocol = DEFAULT_PROTOCOL, raw }: PublishOptions = {},
+    { headers, confirm, encoding = DEFAULT_ENCODING, raw }: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -323,7 +323,7 @@ export class Client {
     }
     await this.waitUntilConnected();
     if (raw == undefined) {
-      raw = encode({ protocol, mesg });
+      raw = encode({ encoding, mesg });
     }
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
@@ -338,7 +338,7 @@ export class Client {
         id,
         seq,
         done,
-        protocol,
+        encoding,
         raw.slice(i, i + chunkSize),
       ];
       if (done && headers) {
@@ -472,31 +472,31 @@ export class Client {
 interface PublishOptions {
   headers?: JSONValue;
   confirm?: boolean;
-  // if protocol is given, it specifies the protocol used to encode the message
-  protocol?: Protocol;
+  // if encoding is given, it specifies the encoding used to encode the message
+  encoding?: DataEncoding;
   // if raw is given, then it is assumed to be the raw binary
-  // encoded message (using protocol) and any mesg parameter
+  // encoded message (using encoding) and any mesg parameter
   // is *IGNORED*.
   raw?;
 }
 
-function encode({ protocol, mesg }: { protocol: Protocol; mesg: any }) {
-  if (protocol == Protocol.MsgPack) {
+function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }) {
+  if (encoding == DataEncoding.MsgPack) {
     return msgpack.encode(mesg);
-  } else if (protocol == Protocol.JsonCodec) {
+  } else if (encoding == DataEncoding.JsonCodec) {
     return jsonEncoder(mesg);
   } else {
-    throw Error(`unknown protocol ${protocol}`);
+    throw Error(`unknown encoding ${encoding}`);
   }
 }
 
-function decode({ protocol, data }: { protocol: Protocol; data }): any {
-  if (protocol == Protocol.MsgPack) {
+function decode({ encoding, data }: { encoding: DataEncoding; data }): any {
+  if (encoding == DataEncoding.MsgPack) {
     return msgpack.decode(data);
-  } else if (protocol == Protocol.JsonCodec) {
+  } else if (encoding == DataEncoding.JsonCodec) {
     return jsonDecoder(data);
   } else {
-    throw Error(`unknown protocol ${protocol}`);
+    throw Error(`unknown encoding ${encoding}`);
   }
 }
 
@@ -564,14 +564,14 @@ class SubscriptionEmitter extends EventEmitter {
     if (this.client == null) {
       return;
     }
-    const [id, seq, done, protocol, buffer, headers] = data;
-    // console.log({ id, seq, done, protocol, buffer, headers });
-    const chunk = { seq, done, protocol, buffer, headers };
+    const [id, seq, done, encoding, buffer, headers] = data;
+    // console.log({ id, seq, done, encoding, buffer, headers });
+    const chunk = { seq, done, encoding, buffer, headers };
     const { incoming } = this;
     if (incoming[id] == null) {
       if (seq != 0) {
         // part of a dropped message -- by definition this should just
-        // silently happen and be handled via application level protocols
+        // silently happen and be handled via application level encodings
         // elsewhere
         console.log("WARNING: drop -- first message has wrong seq", { seq });
         this.emit("drop");
@@ -595,7 +595,7 @@ class SubscriptionEmitter extends EventEmitter {
       const raw = concatArrayBuffers(chunks);
       delete incoming[id];
       const mesg = new Message({
-        protocol,
+        encoding,
         raw,
         headers,
         client: this.client,
@@ -659,17 +659,17 @@ export class BaseMessage {
 // }
 
 export class Message extends BaseMessage {
-  public readonly protocol: Protocol;
+  public readonly encoding: DataEncoding;
   public readonly raw;
 
-  constructor({ protocol, raw, headers, client, subject }) {
+  constructor({ encoding, raw, headers, client, subject }) {
     super({ headers, client, subject });
-    this.protocol = protocol;
+    this.encoding = encoding;
     this.raw = raw;
   }
 
   get data() {
-    return decode({ protocol: this.protocol, data: this.raw });
+    return decode({ encoding: this.encoding, data: this.raw });
   }
 }
 
