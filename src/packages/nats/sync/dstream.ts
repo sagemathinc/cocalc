@@ -27,7 +27,7 @@ import {
   userStreamOptionsKey,
   last,
 } from "./stream";
-import { EphemeralStream } from "./ephemeral-stream";
+import { EphemeralStream, type RawMsg } from "./ephemeral-stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -54,6 +54,7 @@ export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
   noInventory?: boolean;
   ephemeral?: boolean;
+  persist?: boolean;
   leader?: boolean;
 }
 
@@ -61,7 +62,7 @@ export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
   private stream?: Stream | EphemeralStream;
   private messages: T[];
-  private raw: (JsMsg | Msg)[][];
+  private raw: (JsMsg | Msg | RawMsg)[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
@@ -86,7 +87,10 @@ export class DStream<T = any> extends EventEmitter {
     this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream = opts.ephemeral ? new EphemeralStream(opts) : new Stream(opts);
+    this.stream =
+      opts.ephemeral || opts.persist
+        ? new EphemeralStream(opts)
+        : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
     if (!this.noAutosave) {

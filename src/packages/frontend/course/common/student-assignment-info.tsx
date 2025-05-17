@@ -15,7 +15,6 @@ import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { labels } from "@cocalc/frontend/i18n";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { to_json } from "@cocalc/util/misc";
 import { BigTime } from ".";
 import { CourseActions } from "../actions";
 import { NbgraderScores } from "../nbgrader/scores";
@@ -469,7 +468,7 @@ export function StudentAssignmentInfo({
 
   function render_error(step: Steps, error) {
     if (typeof error !== "string") {
-      error = to_json(error);
+      error = `${error}`;
     }
     // We search for two different error messages, since different errors happen in
     // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.

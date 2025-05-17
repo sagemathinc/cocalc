@@ -29,6 +29,8 @@ import { ConnectionOptions } from "node:tls";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import { hostname } from "os";
+import basePath from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -179,6 +181,15 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+
+export const syncFiles = {
+  // Persistent local storage of streams and kv's as sqlite3 files
+  local: process.env.COCALC_SYNC ?? join(data, "sync"),
+  // Archived storage of streams and kv's as sqlite3 files, if set.
+  // This could be a gcsfuse mountpoint.
+  archive: process.env.COCALC_SYNC_ARCHIVE ?? "",
+};
+
 // if the directory secrets doesn't exist, create it (sync, during this load):
 if (!existsSync(secrets)) {
   try {
@@ -225,6 +236,17 @@ export function setNatsWebsocketPort(port) {
 export function setNatsServer(server) {
   natsServer = server;
   natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+}
+
+// dev mode defaults
+export let conatServer = process.env.CONAT_SERVER ?? `http://localhost:${port}`;
+export let conatPath = process.env.CONAT_PATH ?? join(basePath, "conat");
+
+export function setConatServer(server: string) {
+  conatServer = server;
+}
+export function setConatPath(path: string) {
+  conatPath = path;
 }
 
 // Password used to connect to the nats server

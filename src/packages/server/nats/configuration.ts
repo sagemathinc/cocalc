@@ -48,3 +48,13 @@ export async function loadNatsConfiguration() {
     }
   }
 }
+
+/*
+import { setConatServer, setConatPath } from "@cocalc/backend/data";
+
+// configuration for a dev server; we'll use database like above in general.
+export async function loadConatConfiguration() {
+...
+}
+
+*/

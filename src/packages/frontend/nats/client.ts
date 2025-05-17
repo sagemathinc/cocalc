@@ -9,14 +9,13 @@ import {
   type NatsSyncTable,
   NatsSyncTableFunction,
 } from "@cocalc/nats/sync/synctable";
-import { randomId } from "@cocalc/nats/names";
-import { browserSubject, projectSubject } from "@cocalc/nats/names";
+import { randomId, inboxPrefix } from "@cocalc/nats/names";
+import { projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
-import { type BrowserApi, initBrowserApi } from "@cocalc/nats/browser-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/nats/sync/open-files";
@@ -31,7 +30,6 @@ import {
   type Stream,
 } from "@cocalc/nats/sync/stream";
 import { dstream } from "@cocalc/nats/sync/dstream";
-import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { callNatsService, createNatsService } from "@cocalc/nats/service";
 import type {
@@ -55,12 +53,14 @@ import {
 } from "@cocalc/nats/client";
 import type { ConnectionInfo } from "./types";
 import { fromJS } from "immutable";
-import { requestMany } from "@cocalc/nats/service/many";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import * as tieredStorage from "@cocalc/nats/tiered-storage/client";
+import { connect as connectToConat } from "@cocalc/nats/server/client";
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const NATS_STATS_INTERVAL = 2500;
 
@@ -79,19 +79,29 @@ export class NatsClient extends EventEmitter {
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
   private clientWithState: ClientWithState;
+  private _conatClient: null | ReturnType<typeof connectToConat>;
 
   constructor(client: WebappClient) {
     super();
     this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
-    this.initBrowserApi();
     this.initNatsClient();
     this.on("state", (state) => {
       this.emit(state);
       this.setConnectionState(state);
     });
   }
+
+  conat = () => {
+    if (this._conatClient == null) {
+      this._conatClient = connectToConat("/", {
+        path: join(appBasePath, "conat"),
+        inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
+      });
+    }
+    return this._conatClient!;
+  };
 
   private initNatsClient = async () => {
     let d = 100;
@@ -132,30 +142,6 @@ export class NatsClient extends EventEmitter {
   };
 
   getEnv = async () => await getEnv();
-
-  private initBrowserApi = async () => {
-    if (!this.client.account_id) {
-      // it's impossible to initialize the browser api if user is not signed in,
-      // and there is no way to ever sign in without explicitly leaving this
-      // page and coming back.
-      return;
-    }
-    // have to delay so that this.client is fully created.
-    await delay(1);
-    let d = 2000;
-    while (true) {
-      try {
-        await initApi();
-        return;
-      } catch (err) {
-        console.log(
-          `WARNING: failed to initialize browser api (will retry) -- ${err}`,
-        );
-      }
-      d = Math.min(25000, d * 1.3) + Math.random();
-      await delay(d);
-    }
-  };
 
   private getConnection = reuseInFlight(async () => {
     if (this.nc != null) {
@@ -238,18 +224,18 @@ export class NatsClient extends EventEmitter {
     return createNatsService(options);
   };
 
-  // TODO: plan to deprecated...
+  // TODO: plan to deprecated...?
   projectWebsocketApi = async ({
     project_id,
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = projectSubject({ project_id, service: "browser-api" });
-    const resp = await nc.request(subject, this.jc.encode(mesg), {
+    const resp = await cn.request(subject, mesg, {
       timeout,
     });
-    return this.jc.decode(resp.data);
+    return resp.data;
   };
 
   private callHub = async ({
@@ -257,31 +243,18 @@ export class NatsClient extends EventEmitter {
     name,
     args = [],
     timeout = DEFAULT_TIMEOUT,
-    requestMany: requestMany0 = false,
   }: {
     service?: string;
     name: string;
     args: any[];
     timeout?: number;
-    // requestMany -- if true do a requestMany request, which is more complicated/slower, but
-    // supports arbitrarily large responses irregardless of the nats server max message size.
-    requestMany?: boolean;
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {
-      const data = this.jc.encode({
-        name,
-        args,
-      });
-      let resp;
-      await waitUntilConnected();
-      if (requestMany0) {
-        resp = await requestMany({ nc, subject, data, maxWait: timeout });
-      } else {
-        resp = await nc.request(subject, data, { timeout });
-      }
-      return this.jc.decode(resp.data);
+      const data = { name, args };
+      const resp = await cn.request(subject, data, { timeout });
+      return resp.data;
     } catch (err) {
       err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
       throw err;
@@ -307,7 +280,6 @@ export class NatsClient extends EventEmitter {
     if (!isValidUUID(project_id)) {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
-    let lastAddedPermission = 0;
     if (compute_server_id == null) {
       const actions = redux.getProjectActions(project_id);
       if (path != null) {
@@ -319,30 +291,14 @@ export class NatsClient extends EventEmitter {
       }
     }
     const callProjectApi = async ({ name, args }) => {
-      const opts = {
+      return await this.callProject({
         project_id,
         compute_server_id,
         timeout,
         service: "api",
         name,
         args,
-      };
-      try {
-        await waitUntilConnected();
-        return await this.callProject(opts);
-      } catch (err) {
-        if (
-          err.code == "PERMISSIONS_VIOLATION" &&
-          Date.now() - lastAddedPermission >= 30000
-        ) {
-          lastAddedPermission = Date.now();
-          await this.addProjectPermissions([project_id]);
-          await waitUntilConnected();
-          return await this.callProject(opts);
-        } else {
-          throw err;
-        }
-      }
+      });
     };
     return initProjectApi(callProjectApi);
   };
@@ -362,75 +318,10 @@ export class NatsClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = projectSubject({ project_id, compute_server_id, service });
-    const mesg = this.jc.encode({
-      name,
-      args,
-    });
-    let resp;
-    try {
-      await waitUntilConnected();
-      resp = await nc.request(subject, mesg, { timeout });
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION") {
-        // request update of our credentials to include this project, then try again
-        await (nc as any).addProjectPermissions([project_id]);
-        await waitUntilConnected();
-        resp = await nc.request(subject, mesg, { timeout });
-      } else {
-        throw err;
-      }
-    }
-    return this.jc.decode(resp.data);
-  };
-
-  private callBrowser = async ({
-    service = "api",
-    sessionId,
-    name,
-    args = [],
-    timeout = DEFAULT_TIMEOUT,
-  }: {
-    service?: string;
-    sessionId: string;
-    name: string;
-    args: any[];
-    timeout?: number;
-  }) => {
-    const { nc } = await this.getEnv();
-    const subject = browserSubject({
-      account_id: this.client.account_id,
-      sessionId,
-      service,
-    });
-    const mesg = this.jc.encode({
-      name,
-      args,
-    });
-    // console.log("request to subject", { subject, name, args });
-    await waitUntilConnected();
-    const resp = await nc.request(subject, mesg, { timeout });
-    return this.jc.decode(resp.data);
-  };
-
-  browserApi = ({
-    sessionId,
-    timeout = DEFAULT_TIMEOUT,
-  }: {
-    sessionId: string;
-    timeout?: number;
-  }): BrowserApi => {
-    const callBrowserApi = async ({ name, args }) => {
-      return await this.callBrowser({
-        sessionId,
-        timeout,
-        service: "api",
-        name,
-        args,
-      });
-    };
-    return initBrowserApi(callBrowserApi);
+    const resp = await cn.request(subject, { name, args }, { timeout });
+    return resp.data;
   };
 
   request = async (subject: string, data: string) => {
@@ -451,6 +342,7 @@ export class NatsClient extends EventEmitter {
       sha1,
       jc: this.jc,
       nc: await this.getConnection(),
+      cn: this.conat(),
     };
   };
 
@@ -477,30 +369,6 @@ export class NatsClient extends EventEmitter {
     });
     await s.init();
     return s;
-  };
-
-  changefeedInterest = async (query, noError?: boolean) => {
-    // express interest
-    // (re-)start changefeed going
-    try {
-      await this.client.nats_client.callHub({
-        service: "db",
-        name: "userQuery",
-        args: [{ changes: true, query }],
-      });
-    } catch (err) {
-      if (noError) {
-        console.log(`WARNING: changefeed -- ${err}`, query);
-        return;
-      } else {
-        throw err;
-      }
-    }
-  };
-
-  changefeed = async (query, options?) => {
-    this.changefeedInterest(query, true);
-    return await this.synctable(query, options);
   };
 
   // DEPRECATED

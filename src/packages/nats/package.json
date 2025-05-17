@@ -36,18 +36,23 @@
     "@cocalc/comm": "workspace:*",
     "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@msgpack/msgpack": "^3.1.1",
     "@nats-io/jetstream": "3.0.0",
     "@nats-io/kv": "3.0.0",
     "@nats-io/nats-core": "3.0.0",
     "@nats-io/services": "3.0.0",
+    "@socket.io/redis-streams-adapter": "^0.2.2",
     "awaiting": "^3.0.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
+    "iovalkey": "^0.3.1",
     "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14"

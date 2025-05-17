@@ -128,3 +128,4 @@ export async function getNewConnection(): Promise<NatsConnection> {
     }
   }
 }
+

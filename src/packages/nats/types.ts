@@ -1,6 +1,7 @@
 import type { NatsConnection as NatsConnection0 } from "@nats-io/nats-core";
 import type { EventEmitter } from "events";
 export type ValueType = "json" | "binary";
+import { type Client as ConatClient } from "@cocalc/nats/server/client";
 
 export type NatsConnection = NatsConnection0 &
   Partial<EventEmitter> & {
@@ -13,6 +14,8 @@ export interface NatsEnv {
   // nats connection, but frontend extends it to be an EventEmitter
   nc: NatsConnection;
   jc; // jsoncodec
+
+  cn: ConatClient;
 }
 
 export type State = "disconnected" | "connected" | "closed";

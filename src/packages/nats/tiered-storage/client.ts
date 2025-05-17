@@ -63,7 +63,7 @@ function stringToLocation(s: string): Location | null {
 
 export const waitUntilReady = reuseInFlight(
   async (location: Location | string | null): Promise<void> => {
-    if(location == null) {
+    if (location == null) {
       return;
     }
     if (typeof location == "string") {
@@ -143,11 +143,15 @@ export async function info(location: Location): Promise<Info> {
 
 async function call(command: Command, location: Location) {
   const subject = tieredStorageSubject(location);
-  const { nc, jc } = await getEnv();
-  const resp = await nc.request(subject, jc.encode({ command }), {
-    timeout: TIMEOUT[command],
-  });
-  const x = jc.decode(resp.data);
+  const { cn } = await getEnv();
+  const resp = await cn.request(
+    subject,
+    { command },
+    {
+      timeout: TIMEOUT[command],
+    },
+  );
+  const x = resp.data;
   if (x?.error) {
     throw Error(x.error);
   } else {

@@ -64,16 +64,15 @@ await a.writeFile({stream, project_id, compute_server_id, path:'/tmp/a.ts'})
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import { readFile } from "./read";
 import { randomId } from "@cocalc/nats/names";
 import {
   close as closeReadService,
   createServer as createReadServer,
+  readFile,
 } from "./read";
 import { projectSubject } from "@cocalc/nats/names";
-import { type Subscription } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 import { type Readable } from "node:stream";
-import { runLoop } from "./util";
 
 function getWriteSubject({ project_id, compute_server_id }) {
   return projectSubject({
@@ -85,12 +84,12 @@ function getWriteSubject({ project_id, compute_server_id }) {
 
 let subs: { [name: string]: Subscription } = {};
 export async function close({ project_id, compute_server_id }) {
-  const key = getWriteSubject({ project_id, compute_server_id });
-  if (subs[key] == null) {
+  const subject = getWriteSubject({ project_id, compute_server_id });
+  if (subs[subject] == null) {
     return;
   }
-  const sub = subs[key];
-  delete subs[key];
+  const sub = subs[subject];
+  delete subs[subject];
   await sub.drain();
 }
 
@@ -111,14 +110,10 @@ export async function createServer({
   if (sub != null) {
     return;
   }
-  const { nc } = await getEnv();
-  runLoop({
-    listen,
-    subs,
-    subject,
-    nc,
-    opts: { createWriteStream, project_id, compute_server_id },
-  });
+  const { cn } = await getEnv();
+  sub = await cn.subscribe(subject);
+  subs[subject] = sub;
+  listen({ sub, createWriteStream, project_id, compute_server_id });
 }
 
 async function listen({
@@ -143,15 +138,14 @@ async function handleMessage({
   compute_server_id,
 }) {
   let error = "";
-  const { jc } = await getEnv();
   let writeStream: null | Awaited<ReturnType<typeof createWriteStream>> = null;
   try {
-    const { path, name, maxWait } = jc.decode(mesg.data);
+    const { path, name, maxWait } = mesg.data;
     writeStream = await createWriteStream(path);
     // console.log("created writeStream");
     writeStream.on("error", (err) => {
       error = `${err}`;
-      mesg.respond(jc.encode({ error, status: "error" }));
+      mesg.respond({ error, status: "error" });
       console.warn(`error writing ${path}: ${error}`);
       writeStream.emit("remove");
     });
@@ -176,10 +170,10 @@ async function handleMessage({
     }
     writeStream.end();
     writeStream.emit("rename");
-    mesg.respond(jc.encode({ status: "success", bytes, chunks }));
+    mesg.respond({ status: "success", bytes, chunks });
   } catch (err) {
     if (!error) {
-      mesg.respond(jc.encode({ error: `${err}`, status: "error" }));
+      mesg.respond({ error: `${err}`, status: "error" });
       writeStream?.emit("remove");
     }
   }
@@ -213,13 +207,13 @@ export async function writeFile({
       name,
     });
     // tell compute server to start reading our file.
-    const { nc, jc } = await getEnv();
-    const resp = await nc.request(
+    const { cn } = await getEnv();
+    const resp = await cn.request(
       getWriteSubject({ project_id, compute_server_id }),
-      jc.encode({ name, path, maxWait }),
+      { name, path, maxWait },
       { timeout: maxWait },
     );
-    const { error, bytes, chunks } = jc.decode(resp.data);
+    const { error, bytes, chunks } = resp.data;
     if (error) {
       throw Error(error);
     }

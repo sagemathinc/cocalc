@@ -12,7 +12,7 @@ your dev hub after doing the above.
 
 2. Run this script at the terminal:
 
-    echo "require('@cocalc/server/nats').default()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
+    echo "require('@cocalc/server/nats/api').initAPI()" | COCALC_MODE='single-user' DEBUG_CONSOLE=yes DEBUG=cocalc:* node
 
 
 3. Optional: start more servers -- requests get randomly routed to exactly one of them:
@@ -40,25 +40,17 @@ To view all requests (and replies) in realtime:
 And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 */
 
-import { JSONCodec } from "nats";
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
-import { getConnection } from "@cocalc/backend/nats";
+import { getEnv } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 import { terminate as terminateChangefeedServer } from "@cocalc/nats/changefeed/server";
-import { Svcm } from "@nats-io/services";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { terminate as terminateTieredStorage } from "@cocalc/server/nats/tiered-storage/api";
-import { respondMany } from "@cocalc/nats/service/many";
 import { delay } from "awaiting";
-import { waitUntilConnected } from "@cocalc/nats/util";
-
-const MONITOR_INTERVAL = 30000;
 
 const logger = getLogger("server:nats:api");
-
-const jc = JSONCodec();
 
 export function initAPI() {
   mainLoop();
@@ -88,93 +80,68 @@ async function mainLoop() {
   }
 }
 
-async function serviceMonitor({ nc, api, subject }) {
-  while (!terminate) {
-    logger.debug(`serviceMonitor: waiting ${MONITOR_INTERVAL}ms`);
-    await delay(MONITOR_INTERVAL);
-    try {
-      await waitUntilConnected();
-      await nc.request(subject, jc.encode({ name: "ping" }), {
-        timeout: 7500,
-      });
-      logger.debug("serviceMonitor: ping succeeded");
-    } catch (err) {
-      logger.debug(
-        `serviceMonitor: ping failed, so restarting service -- ${err}`,
-      );
-      api.stop();
-      return;
-    }
-  }
-}
-
 async function serve() {
   const subject = "hub.*.*.api";
   logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
   });
-  const nc = await getConnection();
-  // @ts-ignore
-  const svcm = new Svcm(nc);
-
-  await waitUntilConnected();
-  const service = await svcm.add({
-    name: "hub-server",
-    version: "0.1.0",
-    description: "CoCalc Hub Server",
-  });
-
-  const api = service.addEndpoint("api", { subject });
-  serviceMonitor({ api, subject, nc });
-  await listen({ api, subject });
+  const { cn } = await getEnv();
+  const api = await cn.subscribe(subject);
+  for await (const mesg of api) {
+    (async () => {
+      try {
+        await handleMessage({ api, subject, mesg });
+      } catch (err) {
+        logger.debug(`WARNING: unexpected error  - ${err}`);
+      }
+    })();
+  }
 }
 
-async function listen({ api, subject }) {
-  for await (const mesg of api) {
-    const request = jc.decode(mesg.data) ?? ({} as any);
-    if (request.name == "system.terminate") {
-      // special hook so admin can terminate handling. This is useful for development.
-      const { account_id } = getUserId(mesg.subject);
-      if (!(!!account_id && (await userIsInGroup(account_id, "admin")))) {
-        mesg.respond(jc.encode({ error: "only admin can terminate" }));
-        continue;
-      }
-      // TODO: could be part of handleApiRequest below, but done differently because
-      // one case halts this loop
-      const { service } = request.args[0] ?? {};
-      logger.debug(`Terminate service '${service}'`);
-      if (service == "db") {
-        terminateDatabase();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "auth") {
-        terminateAuth();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "tiered-storage") {
-        terminateTieredStorage();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "changefeeds") {
-        terminateChangefeedServer();
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        continue;
-      } else if (service == "api") {
-        // special hook so admin can terminate handling. This is useful for development.
-        console.warn("TERMINATING listening on ", subject);
-        logger.debug("TERMINATING listening on ", subject);
-        terminate = true;
-        mesg.respond(jc.encode({ status: "terminated", service }));
-        api.stop();
-        return;
-      } else {
-        mesg.respond(jc.encode({ error: `Unknown service ${service}` }));
-      }
-    } else {
-      // we explicitly do NOT await this, since we want this hub server to handle
-      // potentially many messages at once, not one at a time!
-      handleApiRequest({ request, mesg });
+async function handleMessage({ api, subject, mesg }) {
+  const request = mesg.data ?? ({} as any);
+  if (request.name == "system.terminate") {
+    // special hook so admin can terminate handling. This is useful for development.
+    const { account_id } = getUserId(mesg.subject);
+    if (!(!!account_id && (await userIsInGroup(account_id, "admin")))) {
+      mesg.respond({ error: "only admin can terminate" });
+      return;
     }
+    // TODO: could be part of handleApiRequest below, but done differently because
+    // one case halts this loop
+    const { service } = request.args[0] ?? {};
+    logger.debug(`Terminate service '${service}'`);
+    if (service == "db") {
+      terminateDatabase();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "auth") {
+      terminateAuth();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "tiered-storage") {
+      terminateTieredStorage();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "changefeeds") {
+      terminateChangefeedServer();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "api") {
+      // special hook so admin can terminate handling. This is useful for development.
+      console.warn("TERMINATING listening on ", subject);
+      logger.debug("TERMINATING listening on ", subject);
+      terminate = true;
+      mesg.respond({ status: "terminated", service });
+      api.stop();
+      return;
+    } else {
+      mesg.respond({ error: `Unknown service ${service}` });
+    }
+  } else {
+    // we explicitly do NOT await this, since we want this hub server to handle
+    // potentially many messages at once, not one at a time!
+    handleApiRequest({ request, mesg });
   }
 }
 
@@ -193,7 +160,7 @@ async function handleApiRequest({ request, mesg }) {
     resp = { error: `${err}` };
   }
   try {
-    await respondMany({ mesg, data: jc.encode(resp) });
+    await mesg.respond(resp);
   } catch (err) {
     // there's nothing we can do here, e.g., maybe NATS just died.
     logger.debug(

@@ -64,12 +64,18 @@ import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
 import type { JSONValue } from "@cocalc/util/types";
-import { headers as createHeaders } from "@nats-io/nats-core";
+import { headers as createHeaders, type Msg } from "@nats-io/nats-core";
 import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
-import { COCALC_MESSAGE_ID_HEADER, type RawMsg } from "./ephemeral-stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./ephemeral-stream";
+
+interface RawMsg extends Msg {
+  timestamp: number;
+  seq: number;
+  sessionId: string;
+}
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -1095,15 +1101,21 @@ export function headersFromRawMessages(messages?: (JsMsg | RawMsg)[]) {
   if (messages == null) {
     return undefined;
   }
-  const x: { [key: string]: string } = {};
+  let x: { [key: string]: string } = {};
   let hasHeaders = false;
   for (const raw of messages) {
     const { headers } = raw;
     if (headers == null) {
       continue;
     }
-    for (const [key, value] of headers) {
-      x[key] = value[0];
+    try {
+      for (const [key, value] of headers) {
+        x[key] = value[0];
+        hasHeaders = true;
+      }
+    } catch {
+      // [ ] TODO: rewrite with conat switch!
+      x = headers;
       hasHeaders = true;
     }
   }

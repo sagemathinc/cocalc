@@ -15,6 +15,7 @@
     "./nats": "./dist/nats/index.js",
     "./nats/api": "./dist/nats/api/index.js",
     "./nats/auth": "./dist/nats/auth/index.js",
+    "./nats/socketio": "./dist/nats/socketio/index.js",
     "./nats/tiered-storage": "./dist/nats/tiered-storage/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
@@ -36,7 +37,9 @@
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
-    "prepublishOnly": "test"
+    "prepublishOnly": "test",
+    "conat-server": "CONAT_WORKERS=1 node ./dist/nats/socketio/cluster.js",
+    "conat-cluster": "node ./dist/nats/socketio/cluster.js"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
@@ -73,6 +76,8 @@
     "@passport-next/passport-oauth2": "^2.1.4",
     "@sendgrid/client": "^8.1.4",
     "@sendgrid/mail": "^8.1.4",
+    "@socket.io/cluster-adapter": "^0.2.2",
+    "@socket.io/sticky": "^1.0.4",
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
@@ -84,6 +89,7 @@
     "base64-js": "^1.5.1",
     "bottleneck": "^2.19.5",
     "cloudflare": "^2.9.1",
+    "cookie": "^1.0.0",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.11",
     "dot-object": "^2.1.5",
@@ -121,6 +127,7 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
+    "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
     "uuid": "^8.3.2"
   },

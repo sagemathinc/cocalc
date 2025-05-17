@@ -1,4 +1,4 @@
-import getConnection from "./connection";
+import getConnection, { connectToConat } from "./connection";
 import { project_id } from "@cocalc/project/data";
 import { JSONCodec } from "nats";
 import {
@@ -16,6 +16,7 @@ const synctable: NatsSyncTableFunction = async (
   options?,
 ): Promise<NatsSyncTable> => {
   const nc = await getConnection();
+  const cn = connectToConat();
   query = parse_query(query);
   const table = keys(query)[0];
   const obj = options?.obj;
@@ -29,7 +30,7 @@ const synctable: NatsSyncTableFunction = async (
     project_id,
     ...options,
     query,
-    env: { jc, nc },
+    env: { jc, nc, cn },
   });
   await s.init();
   return s;

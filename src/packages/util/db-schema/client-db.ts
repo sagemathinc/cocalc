@@ -84,48 +84,6 @@ class ClientDB {
       throw Error("primary key must be a string or array of strings");
     }
   }
-
-  // Given rows (as objects) obtained by querying a table or virtual table,
-  // converts any non-null string ISO timestamps to Date objects.   This is
-  // needed because we transfer data from the database to the browser using
-  // JSONCodec (via NATS) and that turns Date objects into ISO timestamp strings.
-  // This turns them back, but by using the SCHEMA, *not* a heuristic or regexp
-  // to identify which fields to change.
-  // NOTE: this *mutates* rows.
-  processDates = ({
-    table,
-    rows,
-  }: {
-    table: string;
-    rows: object[] | object;
-  }) => {
-    let t = SCHEMA[table];
-    if (t == null) {
-      return;
-    }
-    if (typeof t.virtual == "string") {
-      t = SCHEMA[t.virtual];
-    }
-    const timeFields: string[] = [];
-    const { fields } = t;
-    for (const field in fields) {
-      if (fields[field].type == "timestamp") {
-        timeFields.push(field);
-      }
-    }
-    if (timeFields.length == 0) {
-      // nothing to do.
-      return;
-    }
-    const v = is_array(rows) ? rows : [rows];
-    for (const row of v) {
-      for (const field of timeFields) {
-        if (typeof row[field] == "string") {
-          row[field] = new Date(row[field]);
-        }
-      }
-    }
-  };
 }
 
 export const client_db = new ClientDB();

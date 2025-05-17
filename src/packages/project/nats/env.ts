@@ -1,5 +1,5 @@
 import { sha1 } from "@cocalc/backend/sha1";
-import getConnection from "./connection";
+import getConnection, { connectToConat } from "./connection";
 import { JSONCodec } from "nats";
 import { setNatsClient } from "@cocalc/nats/client";
 import { compute_server_id, project_id } from "@cocalc/project/data";
@@ -8,7 +8,8 @@ import { getLogger } from "@cocalc/project/logger";
 const jc = JSONCodec();
 export async function getEnv() {
   const nc = await getConnection();
-  return { sha1, nc, jc };
+  const cn = connectToConat();
+  return { sha1, nc, jc, cn };
 }
 
 export function init() {

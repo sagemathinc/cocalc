@@ -1,24 +1,33 @@
 /*
-Implement something that acts like a websocket as exposed in Primus, but using NATS.
+Implement something that acts like a project-specific websocket from 
+**Primus**, but using Conats (which is really socket-io through a central
+message broker).
 
 Development:
 
-1. Change to a directly like packages/project that imports nats and backend
+1. Change to a directory such as packages/project
 
 2. Example session:
 
 ~/cocalc/src/packages/project$ node
 ...
 
+# non-channel full communication
+
 Primus = require('@cocalc/nats/primus').Primus;
 env = await require('@cocalc/backend/nats').getEnv();
 server = new Primus({subject:'test',env,role:'server',id:'s'});
-sparks = []; server.on("connection", (spark) => sparks.push(spark))
+sparks = []; server.on("connection", (spark) => sparks.push(spark));
+
 client = new Primus({subject:'test',env,role:'client',id:'c0'});
 
-sparks[0]
 client.on('data',(data)=>console.log('client got', data));0
 sparks[0].write("foo")
+
+sparks[0].on('data', (data)=>console.log("server got", data));0
+client.write('bar')
+
+# communication via a channel.
 
 s9 = server.channel('9')
 c9 = client.channel('9')
@@ -27,6 +36,8 @@ s9.on("data", (data)=>console.log('s9 got', data));0
 
 c9.write("from client 9")
 s9.write("from the server 9")
+
+
 
 client_b = new Primus({subject:'test',env,role:'client',id:'cb'});
 c9b = client_b.channel('9')
@@ -40,14 +51,12 @@ import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { delay } from "awaiting";
 import { encodeBase64 } from "@cocalc/nats/util";
+import { type Subscription } from "@cocalc/nats/server/client";
 
 export type Role = "client" | "server";
 
-const PING_INTERVAL = 10000;
+const PING_INTERVAL = 30000;
 
-// function otherRole(role: Role): Role {
-//   return role == "client" ? "server" : "client";
-// }
 interface PrimusOptions {
   subject: string;
   channelName?: string;
@@ -115,7 +124,7 @@ export class Primus extends EventEmitter {
   // this is just for compat with primus api:
   address = { ip: "" };
   conn: { id: string };
-  subs: any[] = [];
+  subs: Subscription[] = [];
   OPEN = 1;
   CLOSE = 0;
   readyState: 0;
@@ -184,10 +193,14 @@ export class Primus extends EventEmitter {
       throw Error("only server can serve");
     }
     this.deleteSparks();
-    const sub = this.env.nc.subscribe(this.subjects.control);
+    const sub = await this.env.cn.subscribe(this.subjects.control);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
+      console.log("got ", { data: mesg.data });
+      const data = mesg.data;
+      if (data == null) {
+        continue;
+      }
       if (data.cmd == "ping") {
         const spark = this.sparks[data.id];
         if (spark != null) {
@@ -200,7 +213,7 @@ export class Primus extends EventEmitter {
         });
         this.sparks[data.id] = spark;
         this.emit("connection", spark);
-        mesg.respond(this.env.jc.encode({ status: "ok" }));
+        mesg.respond({ status: "ok" });
       }
     }
   };
@@ -221,32 +234,25 @@ export class Primus extends EventEmitter {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
-    const mesg = this.env.jc.encode({
-      cmd: "connect",
-      id: this.id,
-    });
+    const mesg = { cmd: "connect", id: this.id };
     console.log("Nats Primus: connecting...");
-    await this.env.nc.publish(this.subjects.control, mesg);
+    await this.env.cn.request(this.subjects.control, mesg);
     this.clientPing();
     console.log("Nats Primus: connected:");
-    const sub = this.env.nc.subscribe(this.subjects.client);
+    const sub = await this.env.cn.subscribe(this.subjects.client);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
   private clientPing = async () => {
     while (this.state != "closed") {
       try {
-        await this.env.nc.publish(
-          this.subjects.control,
-          this.env.jc.encode({
-            cmd: "ping",
-            id: this.id,
-          }),
-        );
+        await this.env.cn.publish(this.subjects.control, {
+          cmd: "ping",
+          id: this.id,
+        });
       } catch {
         // if ping fails, connection is not working, so die.
         this.destroy();
@@ -261,11 +267,10 @@ export class Primus extends EventEmitter {
       this.role == "client"
         ? this.subjects.clientChannel
         : this.subjects.serverChannel;
-    const sub = this.env.nc.subscribe(subject);
+    const sub = await this.env.cn.subscribe(subject);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
@@ -277,11 +282,15 @@ export class Primus extends EventEmitter {
       if (!this.channel) {
         throw Error("broadcast write not implemented when not in channel mode");
       }
+      // we are the server, so write to all clients in channel
       subject = this.subjects.clientChannel;
     } else {
-      subject = this.subjects.server;
+      // we are the client, so write to server (possibly a channel)
+      subject = this.channelName
+        ? this.subjects.serverChannel
+        : this.subjects.server;
     }
-    this.env.nc.publish(subject, this.env.jc.encode(data));
+    this.env.cn.publish(subject, data);
     return true;
   };
 
@@ -337,19 +346,15 @@ export class Spark extends EventEmitter {
   end = () => this.destroy();
 
   private init = async () => {
-    const sub = this.primus.env.nc.subscribe(this.subjects.server);
+    const sub = await this.primus.env.cn.subscribe(this.subjects.server);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.primus.env.jc.decode(mesg.data);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
   write = (data) => {
-    this.primus.env.nc.publish(
-      this.subjects.client,
-      this.primus.env.jc.encode(data),
-    );
+    this.primus.env.cn.publish(this.subjects.client, data);
     return true;
   };
 }

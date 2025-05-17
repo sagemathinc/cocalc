@@ -38,7 +38,7 @@ then after that code runs you can access x from the node console!
 
 import { getLogger } from "@cocalc/project/logger";
 import { JSONCodec } from "nats";
-import getConnection from "./connection";
+import getConnection, { connectToConat } from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { getSubject } from "./names";
@@ -49,26 +49,27 @@ const jc = JSONCodec();
 
 export async function init() {
   const nc = await getConnection();
+  const cn = connectToConat();
   const subject = getSubject({
     service: "browser-api",
   });
   logger.debug(`initAPI -- NATS project subject '${subject}'`);
-  const sub = nc.subscribe(subject);
+  const sub = await cn.subscribe(subject);
   const primus = getPrimusConnection({
     subject: getSubject({
       service: "primus",
     }),
-    env: { nc, jc },
+    env: { nc, jc, cn },
     role: "server",
     id: "project",
   });
   for await (const mesg of sub) {
-    const data = jc.decode(mesg.data) ?? ({} as any);
+    const data = mesg.data ?? ({} as any);
     if (data.cmd == "terminate") {
       logger.debug(
         "received terminate-handler, so will not handle any further messages",
       );
-      mesg.respond(jc.encode({ exiting: true }));
+      mesg.respond({ exiting: true });
       return;
     }
     handleRequest({ data, mesg, primus });
@@ -84,5 +85,5 @@ async function handleRequest({ data, mesg, primus }) {
     resp = { error: `${err}` };
   }
   //logger.debug("responded", resp);
-  mesg.respond(jc.encode(resp));
+  mesg.respond(resp);
 }

@@ -7,12 +7,10 @@ Multiresponse request/response NATS changefeed server.
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription, Empty, headers } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 import { isValidUUID, uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
-import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
-import { getMaxPayload } from "@cocalc/nats/util";
 
 export const DEFAULT_LIFETIME = 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
@@ -26,8 +24,6 @@ export const MAX_CHANGEFEEDS_PER_ACCOUNT = parseInt(
 export const MAX_CHANGEFEEDS_PER_SERVER = parseInt(
   process.env.MAX_CHANGEFEEDS_PER_SERVER ?? "5000",
 );
-
-export const LAST_CHUNK = "last-chunk";
 
 const logger = getLogger("changefeed:server");
 
@@ -67,36 +63,28 @@ export async function init(db) {
     MAX_CHANGEFEEDS_PER_SERVER,
     SUBJECT,
   });
-  changefeedMainLoop(db);
-  renewMainLoop();
+  changefeedService(db);
+  renewService();
 }
 
-async function changefeedMainLoop(db) {
-  while (!terminated) {
-    await waitUntilConnected();
-    const { nc } = await getEnv();
-    sub = nc.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
-    try {
-      await listen(db);
-    } catch (err) {
-      logger.debug(`WARNING: changefeedMainLoop error -- ${err}`);
-    }
-    await delay(15000);
+async function changefeedService(db) {
+  const { cn } = await getEnv();
+  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
+  try {
+    await listen(db);
+  } catch (err) {
+    logger.debug(`WARNING: exiting changefeed service -- ${err}`);
   }
 }
 
 let renew: Subscription | null = null;
-async function renewMainLoop() {
-  while (!terminated) {
-    await waitUntilConnected();
-    const { nc } = await getEnv();
-    renew = nc.subscribe(`${SUBJECT}.*.renew`);
-    try {
-      await listenRenew();
-    } catch (err) {
-      logger.debug(`WARNING: renewMainLoop error -- ${err}`);
-    }
-    await delay(15000);
+async function renewService() {
+  const { cn } = await getEnv();
+  renew = await cn.subscribe(`${SUBJECT}.*.renew`);
+  try {
+    await listenRenew();
+  } catch (err) {
+    logger.debug(`WARNING: exiting renewService error -- ${err}`);
   }
 }
 
@@ -108,7 +96,13 @@ async function listenRenew() {
     if (terminated) {
       return;
     }
-    handleRenew(mesg);
+    (async () => {
+      try {
+        await handleRenew(mesg);
+      } catch (err) {
+        logger.debug(`WARNING -- issue handling a renew message -- ${err}`);
+      }
+    })();
   }
 }
 
@@ -132,8 +126,7 @@ function getLifetime({ lifetime }): number {
 }
 
 async function handleRenew(mesg) {
-  const { jc } = await getEnv();
-  const request = jc.decode(mesg.data);
+  const request = mesg.data;
   if (!request) {
     return;
   }
@@ -142,7 +135,7 @@ async function handleRenew(mesg) {
     // it's ours so we respond
     const lifetime = getLifetime(request);
     endOfLife[id] = Date.now() + lifetime;
-    mesg.respond(jc.encode({ status: "ok" }));
+    mesg.respond({ status: "ok" });
   }
 }
 
@@ -166,7 +159,14 @@ async function listen(db) {
     if (terminated) {
       return;
     }
-    handleMessage(mesg, db);
+
+    (async () => {
+      try {
+        handleMessage(mesg, db);
+      } catch (err) {
+        logger.debug(`WARNING -- issue handling a changefeed -- ${err}`);
+      }
+    })();
   }
 }
 
@@ -177,31 +177,8 @@ function metrics() {
   logger.debug("changefeeds", { numChangefeeds });
 }
 
-async function send({ jc, mesg, resp }) {
-  const maxPayload = (await getMaxPayload()) - 1000; // slack for header
-  const data = jc.encode(resp);
-  const chunks: Buffer[] = [];
-  for (let i = 0; i < data.length; i += maxPayload) {
-    const slice = data.slice(i, i + maxPayload);
-    chunks.push(slice);
-  }
-  if (chunks.length > 1) {
-    logger.debug(`sending message with ${chunks.length} chunks`);
-  }
-  for (let i = 0; i < chunks.length; i++) {
-    if (i == chunks.length - 1) {
-      const h = headers();
-      h.append(LAST_CHUNK, "true");
-      mesg.respond(chunks[i], { headers: h });
-    } else {
-      mesg.respond(chunks[i]);
-    }
-  }
-}
-
 async function handleMessage(mesg, db) {
-  const { jc } = await getEnv();
-  const request = jc.decode(mesg.data);
+  const request = mesg.data;
   const account_id = getUserId(mesg.subject);
   const id = uuid();
 
@@ -215,7 +192,7 @@ async function handleMessage(mesg, db) {
     if (resp?.action == "close") {
       end();
     } else {
-      await send({ jc, mesg, resp: { resp, error, seq } });
+      mesg.respond({ resp, error, seq });
       seq += 1;
       if (error) {
         end();
@@ -235,8 +212,8 @@ async function handleMessage(mesg, db) {
     numChangefeeds -= 1;
     metrics();
     db().user_query_cancel_changefeed({ id });
-    // end response stream with empty payload.
-    mesg.respond(Empty);
+    // end response stream:
+    mesg.respond(null);
   };
 
   if (numChangefeedsPerAccount[account_id] > MAX_CHANGEFEEDS_PER_ACCOUNT) {

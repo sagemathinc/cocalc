@@ -46,12 +46,6 @@ export interface JupyterApi {
 
 export type JupyterApiEndpoint = keyof JupyterApi;
 
-// we use request many for all calls to the Jupyter server, because
-// at least one call -- more_output -- is very likely to return
-// very large results (it's kind of the point), and this makes
-// handling this very easy.
-const REQUEST_MANY = true;
-
 export function jupyterApiClient({
   project_id,
   path,
@@ -66,7 +60,6 @@ export function jupyterApiClient({
     path,
     service,
     timeout,
-    many: REQUEST_MANY,
   });
 }
 
@@ -85,6 +78,5 @@ export async function createNatsJupyterService({
     service,
     impl,
     description: "Jupyter notebook compute API",
-    many: REQUEST_MANY,
   });
 }

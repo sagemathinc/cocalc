@@ -34,6 +34,9 @@ export async function initNatsServer() {
   await loadNatsConfiguration();
   initAPI();
   await initAuth();
-  await initLLM();
+  
+  // do not block on initLLM because...
+  initLLM();
+  
   createTimeService();
 }

@@ -5,10 +5,26 @@ This is pure javascript and sets the basic interface,
 behavior and types for both client and server.
 
 See also @cocalc/server/nats/tiered-storage.
+
+DEVELOPMENT:
+
+cd to packages/backend, then
+
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/tiered-storage/server'); 
+    a.init({info:async ({project_id})=> { return "info about " + project_id}})
+
+In another console:
+
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/tiered-storage/client'); await a.info({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
+    
+Outputs:   
+
+   'info about 81e0c408-ac65-4114-bad5-5f4b6539bd0e'
+
 */
 
 import { getEnv, getLogger } from "@cocalc/nats/client";
-import { type Subscription } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Location } from "@cocalc/nats/types";
 import { delay } from "awaiting";
@@ -118,17 +134,18 @@ async function mainLoop() {
 }
 
 let sub: Subscription | null = null;
-export async function run() {
-  const { nc } = await getEnv();
+async function run() {
+  const { cn } = await getEnv();
   const subject = `${SUBJECT}.*.api`;
   logger.debug(`run: listening on '${subject}'`);
-  sub = nc.subscribe(subject, { queue: "0" });
+  sub = await cn.subscribe(subject, { queue: "0" });
   await listen(sub);
 }
 
 async function listen(sub) {
   logger.debug("listen");
   for await (const mesg of sub) {
+    logger.debug("got mesg", { mesg });
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
@@ -138,15 +155,14 @@ async function listen(sub) {
 
 async function handleMessage(mesg) {
   let resp;
-  const { jc } = await getEnv();
-  const location = getLocation(mesg.subject);
-  const { command } = jc.decode(mesg.data);
 
   try {
     if (tieredStorage == null) {
       throw Error("tiered storage not available");
     }
-    logger.debug("handleMessage", { location, command });
+    const location = getLocation(mesg.subject);
+    const { command } = mesg.data;
+    logger.debug("handleMessage", { location, command, from: mesg.from });
     if (command == "restore") {
       resp = await tieredStorage.restore(location);
     } else if (command == "archive") {
@@ -162,5 +178,5 @@ async function handleMessage(mesg) {
     resp = { error: `${err}` };
   }
   //logger.debug("handleMessage -- resp", { location, command, resp });
-  mesg.respond(jc.encode(resp));
+  mesg.respond(resp);
 }

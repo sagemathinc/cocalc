@@ -416,7 +416,7 @@ const openDoc = reuseInFlight(async (path: string) => {
     if (doc != null) {
       return;
     }
-     openTimes[path] = Date.now();
+    openTimes[path] = Date.now();
 
     if (path.endsWith(".term")) {
       const service = await createTerminalService(path);

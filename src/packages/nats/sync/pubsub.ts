@@ -1,12 +1,14 @@
 /*
 Use NATS simple pub/sub to share state for something *ephemeral* in a project.
+
+This is used, e.g., for broadcasting a user's cursors when they are editing a file.
 */
 
 import { projectSubject } from "@cocalc/nats/names";
 import { type NatsEnv, State } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import { isConnectedSync } from "@cocalc/nats/util";
-import { type Subscription } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 
 export class PubSub extends EventEmitter {
   private subject: string;
@@ -56,14 +58,14 @@ export class PubSub extends EventEmitter {
       // when disconnected, all state is dropped
       return;
     }
-    this.env.nc.publish(this.subject, this.env.jc.encode(obj));
+    this.env.cn.publish(this.subject, obj);
   };
 
   private subscribe = async () => {
-    this.sub = this.env.nc.subscribe(this.subject);
+    this.sub = await this.env.cn.subscribe(this.subject);
     this.setState("connected");
     for await (const mesg of this.sub) {
-      this.emit("change", this.env.jc.decode(mesg.data));
+      this.emit("change", mesg.data);
     }
   };
 }

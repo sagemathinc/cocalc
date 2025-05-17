@@ -15,6 +15,7 @@ import { db } from "@cocalc/database";
 import { getProject } from ".";
 import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { conatPath, conatServer } from "@cocalc/backend/data";
 import { natsPorts, natsServer } from "@cocalc/backend/data";
 
 const logger = getLogger("project-control:util");
@@ -109,12 +110,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = [
-    "cocalc-project",
-    "--daemon",
-    "--init",
-    "project_init.sh",
-  ];
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
@@ -290,6 +286,9 @@ export async function getEnvironment(
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       // url of the NATS websocket server the project will connect to:
       NATS_SERVER: await natsWebsocketServer(),
+      
+      CONAT_SERVER: conatServer,
+      CONAT_PATH: conatPath,
     },
   };
 }
