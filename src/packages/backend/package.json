@@ -10,24 +10,17 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit --runInBand",
-    "prepublishOnly": "pnpm test"
+    "prepublishOnly": "pnpm test",
+    "conat-watch": "node ./bin/conat-watch.cjs"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
