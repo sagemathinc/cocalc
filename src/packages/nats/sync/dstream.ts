@@ -489,6 +489,7 @@ export async function dstream<T>(
     noInventory?: boolean;
     leader?: boolean;
     ephemeral?: boolean;
+    persist?: boolean;
   },
 ): Promise<DStream<T>> {
   return await cache(options);

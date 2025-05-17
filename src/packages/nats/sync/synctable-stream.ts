@@ -101,6 +101,10 @@ export class SyncTableStream extends EventEmitter {
       desc: { path: this.path },
       start_seq: this.start_seq,
       noInventory: this.noInventory,
+      
+      // use conat persistent storage instead of jetstream
+      persist: true,
+      
       // ephemeral: true,
       // leader: typeof navigator == "undefined",
     });
