@@ -17,7 +17,7 @@ TERMINAL 1: This sets up the environment and starts the server running:
 
 TERMINAL 2: In another node session, create a client:
 
-    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x) }; console.log("DONE")
+    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
 
 // client also does this periodically to keep subscription alive:
 
@@ -25,13 +25,13 @@ TERMINAL 2: In another node session, create a client:
 
 TERMINAL 3:
 
-user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');0;
+user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');  const { messageData } =require("@cocalc/nats/server/client"); 0;
 
-   await set({user, storage, json:Math.random()})
+   await set({user, storage, messageData:messageData('hi')})
    
    await get({user, storage,  seq:1})
    
-   await set({user, storage, json:Math.random(), key:'bella'})
+   await set({user, storage, key:'bella', messageData:messageData('hi', {headers:{x:10}})})
    
    await get({user, storage,  key:'bella'})
    
@@ -207,6 +207,7 @@ async function listenPersist() {
     throw Error("must call init first");
   }
   for await (const mesg of sub) {
+    console.log("got mesg = ", { data: mesg.data, headers: mesg.headers });
     if (terminated) {
       return;
     }
@@ -223,7 +224,7 @@ function metrics() {
 
 async function handleMessage(mesg) {
   const request = mesg.headers;
-  console.log("handleMessage", { request });
+  console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
   const user_id = getUserId(mesg.subject);
 
   // [ ] TODO: permissions and sanity checks!
@@ -243,17 +244,21 @@ async function handleMessage(mesg) {
       mesg.respond({ resp });
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
+      console.log("got resp = ", resp);
       if (resp == null) {
         mesg.respond(null);
       } else {
-        const { raw, encoding, headers } = resp;
-        mesg.respond(null, { raw, encoding, headers });
+        const { raw, encoding, headers, seq, time, key } = resp;
+        mesg.respond(null, {
+          raw,
+          encoding,
+          headers: { ...headers, seq, time, key },
+        });
       }
     }
   } catch (err) {
     mesg.respond({ error: `${err}` });
   }
-  return;
 
   if (request.cmd != "getAll") {
     mesg.respond({ error: `unknown command ${request.cmd}` });
@@ -264,6 +269,7 @@ async function handleMessage(mesg) {
 }
 
 async function getAll({ mesg, request, user_id, stream }) {
+  console.log("getAll", request);
   // getAll sends multiple responses
   let seq = 0;
   let lastSend = 0;
@@ -280,7 +286,8 @@ async function getAll({ mesg, request, user_id, stream }) {
       end();
     }
     lastSend = Date.now();
-    if ((content as StoredMessage)?.raw) {
+    if ((content as StoredMessage)?.raw != null) {
+      console.log("content = ", content)
       // StoredMessage
       const { raw, encoding, time, ...headers } = content as StoredMessage;
       mesg.respond(null, { raw, encoding, headers: { headers, seq, time } });
@@ -372,7 +379,7 @@ async function getAll({ mesg, request, user_id, stream }) {
   }
 
   try {
-    // send the id first
+    console.log("send the id", { id, lifetime });
     await respond(undefined, { id, lifetime });
     if (done) {
       return;

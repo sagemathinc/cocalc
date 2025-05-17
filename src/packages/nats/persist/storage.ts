@@ -39,7 +39,7 @@ import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-import { DataEncoding } from "@cocalc/nats/server/client";
+import { DataEncoding, type Headers } from "@cocalc/nats/server/client";
 
 enum CompressionAlgorithm {
   None = 0,
@@ -70,7 +70,7 @@ export interface Message {
   // arbitrary binary data
   raw: Buffer;
   // arbitrary JSON-able object -- analogue of NATS headers, but anything JSON-able
-  headers?: JSONValue;
+  headers?: Headers;
 }
 
 export interface Options {

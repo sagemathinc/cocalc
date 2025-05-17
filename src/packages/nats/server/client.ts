@@ -309,7 +309,7 @@ export class Client {
   publish = async (
     subject: string,
     mesg,
-    { headers, raw, confirm, encoding = DEFAULT_ENCODING }: PublishOptions = {},
+    { headers, raw, encoding = DEFAULT_ENCODING, confirm }: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -387,8 +387,9 @@ export class Client {
       confirm: false,
     });
     const { count } = await this.publish(subject, mesg, {
+      ...options,
       confirm: true,
-      headers: { ...options, [REPLY_HEADER]: inboxSubject },
+      headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
       sub.stop();
@@ -424,8 +425,8 @@ export class Client {
       confirm: false,
     });
     const { count } = await this.publish(subject, mesg, {
-      headers: { ...options, [REPLY_HEADER]: inboxSubject },
       confirm: true,
+      headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
       sub.stop();
@@ -449,7 +450,7 @@ export class Client {
 
   watch = async (
     subject: string,
-    cb = (x) => console.log(`${x.subject}:`, x.data),
+    cb = (x) => console.log(`${x.subject}:`, x.data, x.headers),
     opts?,
   ) => {
     await this.waitUntilConnected();
@@ -468,7 +469,7 @@ export class Client {
 }
 
 interface PublishOptions {
-  headers?: JSONValue;
+  headers?: Headers;
   confirm?: boolean;
   // if encoding is given, it specifies the encoding used to encode the message
   encoding?: DataEncoding;

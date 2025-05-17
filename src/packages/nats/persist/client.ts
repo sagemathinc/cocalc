@@ -37,9 +37,12 @@ export async function getAll({
   });
   // the first element of the stream has the id, and the rest is the
   // stream user will consume
-  const { value } = await stream.next();
+  const { value, done } = await stream.next();
+  if (done) {
+    throw Error("got no response");
+  }
 
-  const x = value?.data;
+  const x = value?.headers?.content as any;
   if (typeof x?.id != "string" || typeof x?.lifetime != "number") {
     throw Error("invalid data from server");
   }
@@ -60,16 +63,16 @@ export async function set({
   const subject = persistSubject(user);
   const { cn } = await getEnv();
 
-  const resp = await cn.request(subject, null, {
+  const reply = await cn.request(subject, null, {
     raw: messageData.raw,
     encoding: messageData.encoding,
     headers: { headers: messageData.headers, cmd: "set", key, storage } as any,
   });
-  const { error, seq, time } = resp.data;
+  const { error, resp } = reply.data;
   if (error) {
     throw Error(error);
   }
-  return { seq, time };
+  return resp;
 }
 
 export async function get({

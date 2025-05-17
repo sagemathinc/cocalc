@@ -270,7 +270,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
       // todo typing is wrong
       const raw = {
         timestamp: time,
-        headers,
+        headers: (headers as any)?.headers,
         seq,
         data: m.raw,
       } as RawMsg;
