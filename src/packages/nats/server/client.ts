@@ -188,6 +188,7 @@ export class Client {
       this.info = info;
     });
     this.conn.on("connect", () => {
+      console.log(`Conat: Connected to ${this.options.address}`);
       this.syncSubscriptions();
     });
   }
@@ -204,7 +205,7 @@ export class Client {
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
     const subs = await this.getSubscriptions();
-    console.log({ subs });
+    // console.log(`Conat: restoring subscriptions`, Array.from(subs));
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
       // the server does not have

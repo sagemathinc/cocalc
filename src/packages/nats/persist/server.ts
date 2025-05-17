@@ -2,7 +2,7 @@
 
 Maybe storage available as a service.
 
-This is very similar to the changefeed server, because 
+This code is similar to the changefeed server, because 
 it provides a changefeed on a given persist storage, 
 and a way to see values.
 
@@ -17,9 +17,7 @@ TERMINAL 1: This sets up the environment and starts the server running:
 
 TERMINAL 2: In another node session, create a client:
 
-    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'/tmp/a.db'}
-
-    const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x) }; console.log("DONE")
+    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x) }; console.log("DONE")
 
 // client also does this periodically to keep subscription alive:
 
@@ -27,7 +25,7 @@ TERMINAL 2: In another node session, create a client:
 
 TERMINAL 3:
 
-user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'/tmp/a.db'}; const {set,get} = require('@cocalc/backend/nats/persist')
+user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');0;
 
    await set({user, storage, json:Math.random()})
    
@@ -44,12 +42,10 @@ Also getAll using start_seq:
 
 import { pstream, type Message as StoredMessage } from "./storage";
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription, Empty, headers } from "@nats-io/nats-core";
+import { type Subscription } from "@cocalc/nats/server/client";
 import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
-import { waitUntilConnected } from "@cocalc/nats/util";
 import { delay } from "awaiting";
-import { getMaxPayload } from "@cocalc/nats/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { JSONValue } from "@cocalc/util/types";
 import { join } from "path";
@@ -153,37 +149,29 @@ export async function init() {
     MAX_PERSISTS_PER_SERVER,
     SUBJECT,
   });
-  persistMainLoop();
-  renewMainLoop();
+  persistService();
+  renewService();
 }
 
-async function persistMainLoop() {
-  while (!terminated) {
-    await waitUntilConnected();
-    const { nc } = await getEnv();
-    sub = nc.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
-    try {
-      await listen();
-    } catch (err) {
-      logger.debug(`WARNING: persistMainLoop error -- ${err}`);
-    }
-    await delay(15000);
+async function noThrow(f) {
+  try {
+    await f();
+  } catch (err) {
+    logger.debug(`WARNING -- ${err}`);
   }
+}
+
+async function persistService() {
+  const { cn } = await getEnv();
+  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
+  await listenPersist();
 }
 
 let renew: Subscription | null = null;
-async function renewMainLoop() {
-  while (!terminated) {
-    await waitUntilConnected();
-    const { nc } = await getEnv();
-    renew = nc.subscribe(`${SUBJECT}.*.renew`);
-    try {
-      await listenRenew();
-    } catch (err) {
-      logger.debug(`WARNING: renewMainLoop error -- ${err}`);
-    }
-    await delay(15000);
-  }
+async function renewService() {
+  const { cn } = await getEnv();
+  renew = await cn.subscribe(`${SUBJECT}.*.renew`);
+  await listenRenew();
 }
 
 async function listenRenew() {
@@ -194,7 +182,7 @@ async function listenRenew() {
     if (terminated) {
       return;
     }
-    handleRenew(mesg);
+    noThrow(async () => await handleRenew(mesg));
   }
 }
 
@@ -218,8 +206,7 @@ function getLifetime({ lifetime }): number {
 }
 
 async function handleRenew(mesg) {
-  const { jc } = await getEnv();
-  const request = jc.decode(mesg.data);
+  const request = mesg.data;
   if (!request) {
     return;
   }
@@ -228,7 +215,7 @@ async function handleRenew(mesg) {
     // it's ours so we respond
     const lifetime = getLifetime(request);
     endOfLife[id] = Date.now() + lifetime;
-    mesg.respond(jc.encode({ status: "ok" }));
+    mesg.respond({ status: "ok" });
   }
 }
 
@@ -244,7 +231,7 @@ export async function terminate() {
   }
 }
 
-async function listen() {
+async function listenPersist() {
   if (sub == null) {
     throw Error("must call init first");
   }
@@ -252,7 +239,7 @@ async function listen() {
     if (terminated) {
       return;
     }
-    handleMessage(mesg);
+    noThrow(async () => await handleMessage(mesg));
   }
 }
 
@@ -263,218 +250,182 @@ function metrics() {
   logger.debug("persist", { numPersists });
 }
 
-async function send({ mesg, resp }) {
-  const chunks: (Buffer | typeof Empty)[] = [];
-  let respJson;
-  if (resp.content?.buffer) {
-    const buffer = resp.content.buffer;
-    respJson = JSON.stringify({
-      ...resp,
-      content: { ...resp.content, buffer: undefined },
-    });
-    const chunkSize = (await getMaxPayload()) - 1000 - respJson.length; // slack for header
-    for (let i = 0; i < buffer.length; i += chunkSize) {
-      const slice = buffer.slice(i, i + chunkSize);
-      chunks.push(slice);
-    }
-  } else {
-    chunks.push(Empty);
-    respJson = JSON.stringify(resp);
-  }
-  if (chunks.length > 1) {
-    logger.debug(`sending message with ${chunks.length} chunks`);
-  }
-  if (chunks.length == 0) {
-    throw Error("bug -- must be at least one cchunk");
-  }
-  for (let i = 0; i < chunks.length; i++) {
-    if (i == chunks.length - 1) {
-      const h = headers();
-      h.append(LAST_CHUNK, "true");
-      h.append("response", respJson);
-      mesg.respond(chunks[i], { headers: h });
-    } else {
-      mesg.respond(chunks[i]);
-    }
-  }
-}
-
-function getRequest(mesg) {
-  for (const [key, value] of mesg.headers) {
-    if (key == "request") {
-      const request = JSON.parse(value[0]);
-      request.cmd.buffer = mesg.data;
-      return request;
-    }
-  }
-  throw Error("missing request header");
-}
-
 async function handleMessage(mesg) {
-  const request = getRequest(mesg);
-  //console.log("handleMessage", request);
+  const request = mesg.data;
+  console.log("handleMessage", request);
   const user_id = getUserId(mesg.subject);
 
   // [ ] TODO: permissions and sanity checks!
   const path = join(syncFiles.local, request.storage.path);
   await ensureContainingDirectoryExists(path);
   const stream = pstream({ ...request.storage, path });
+  const { name, ...arg } = request.cmd;
 
+  // get and set using normal request/respond
+  if (["set", "get"].includes(name)) {
+    console.log("command", { path, name, arg });
+    try {
+      const resp = stream[name](arg);
+      console.log("resp = ", resp);
+      mesg.respond({ resp });
+    } catch (err) {
+      mesg.respond({ error: `${err}` });
+    }
+    return;
+  }
+
+  if (name != "getAll") {
+    mesg.respond({ error: `unknown command ${name}` });
+    return;
+  }
+
+  await getAll({ mesg, request, user_id, stream });
+}
+
+async function getAll({ mesg, request, user_id, stream }) {
+  // getAll sends multiple responses
   let seq = 0;
   let lastSend = 0;
   let end = () => {
     stream.close();
-    mesg.respond(Empty);
+    mesg.respond(null);
   };
   const respond = async (error, content?) => {
     if (terminated) {
       end();
     }
     lastSend = Date.now();
-    await send({ mesg, resp: { content, error, seq } });
+    mesg.respond({ content, error, seq });
     seq += 1;
     if (error) {
       end();
     }
   };
 
-  const { name, ...arg } = request.cmd;
-  if (["set", "get"].includes(name)) {
-    // console.log("doing command", { name, arg });
-    try {
-      await respond(undefined, stream[name](arg));
-      end();
-    } catch (err) {
-      await respond(`${err}`);
+  const id = uuid();
+  numPersists += 1;
+  metrics();
+  let done = false;
+  // more elaborate end.
+  end = () => {
+    if (done) {
+      return;
     }
+    done = true;
+    delete endOfLife[id];
+    numPersists -= 1;
+    metrics();
+    stream.close();
+    // end response stream with empty payload.
+    mesg.respond(null);
+  };
+
+  if (numPersistsPerUser[user_id] > MAX_PERSISTS_PER_USER) {
+    logger.debug(`numPersistsPerUser[${user_id}] >= MAX_PERSISTS_PER_USER`, {
+      numPersistsPerUserThis: numPersistsPerUser[user_id],
+      MAX_PERSISTS_PER_USER,
+    });
+    respond(
+      `This server has a limit of ${MAX_PERSISTS_PER_USER} persists per account`,
+    );
+    return;
+  }
+  if (numPersists >= MAX_PERSISTS_PER_SERVER) {
+    logger.debug("numPersists >= MAX_PERSISTS_PER_SERVER", {
+      numPersists,
+      MAX_PERSISTS_PER_SERVER,
+    });
+    // this will just cause the client to make another attempt, hopefully
+    // to another server
+    respond(`This server has a limit of ${MAX_PERSISTS_PER_SERVER} persists`);
     return;
   }
 
-  if (name == "getAll") {
-    const id = uuid();
-    numPersists += 1;
-    metrics();
-    let done = false;
-    // more elaborate end.
-    end = () => {
-      if (done) {
+  let { heartbeat } = request;
+  const lifetime = getLifetime(request);
+  delete request.lifetime;
+  delete request.heartbeat;
+
+  endOfLife[id] = Date.now() + lifetime;
+
+  async function lifetimeLoop() {
+    while (!done) {
+      await delay(7500);
+      if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
+        end();
         return;
       }
-      done = true;
-      delete endOfLife[id];
-      numPersists -= 1;
-      metrics();
-      stream.close();
-      // end response stream with empty payload.
-      mesg.respond(Empty);
-    };
-
-    if (numPersistsPerUser[user_id] > MAX_PERSISTS_PER_USER) {
-      logger.debug(`numPersistsPerUser[${user_id}] >= MAX_PERSISTS_PER_USER`, {
-        numPersistsPerUserThis: numPersistsPerUser[user_id],
-        MAX_PERSISTS_PER_USER,
-      });
-      respond(
-        `This server has a limit of ${MAX_PERSISTS_PER_USER} persists per account`,
-      );
-      return;
     }
-    if (numPersists >= MAX_PERSISTS_PER_SERVER) {
-      logger.debug("numPersists >= MAX_PERSISTS_PER_SERVER", {
-        numPersists,
-        MAX_PERSISTS_PER_SERVER,
-      });
-      // this will just cause the client to make another attempt, hopefully
-      // to another server
-      respond(`This server has a limit of ${MAX_PERSISTS_PER_SERVER} persists`);
-      return;
+  }
+  lifetimeLoop();
+
+  async function heartbeatLoop() {
+    let hb = parseFloat(heartbeat);
+    if (hb < MIN_HEARTBEAT) {
+      hb = MIN_HEARTBEAT;
+    } else if (hb > MAX_HEARTBEAT) {
+      hb = MAX_HEARTBEAT;
     }
-
-    let { heartbeat } = request;
-    const lifetime = getLifetime(request);
-    delete request.lifetime;
-    delete request.heartbeat;
-
-    endOfLife[id] = Date.now() + lifetime;
-
-    async function lifetimeLoop() {
-      while (!done) {
-        await delay(7500);
-        if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
-          end();
-          return;
-        }
+    await delay(hb);
+    while (!done) {
+      const timeSinceLast = Date.now() - lastSend;
+      if (timeSinceLast < hb) {
+        // no neeed to send heartbeat yet
+        await delay(hb - timeSinceLast);
+        continue;
       }
-    }
-    lifetimeLoop();
-
-    async function heartbeatLoop() {
-      let hb = parseFloat(heartbeat);
-      if (hb < MIN_HEARTBEAT) {
-        hb = MIN_HEARTBEAT;
-      } else if (hb > MAX_HEARTBEAT) {
-        hb = MAX_HEARTBEAT;
-      }
+      respond(undefined, "");
       await delay(hb);
-      while (!done) {
-        const timeSinceLast = Date.now() - lastSend;
-        if (timeSinceLast < hb) {
-          // no neeed to send heartbeat yet
-          await delay(hb - timeSinceLast);
-          continue;
-        }
-        respond(undefined, "");
-        await delay(hb);
-      }
+    }
+  }
+
+  try {
+    // send the id first
+    await respond(undefined, { id, lifetime });
+    if (done) {
+      return;
     }
 
-    try {
-      // send the id first
-      await respond(undefined, { id, lifetime });
+    // send the current data
+    // [ ] TODO: should we just send it all as a single message?
+    //     much faster, but uses much more RAM.  Maybe some
+    //     combination based on actual data!
+    for (const message of stream.getAll(request.arg)) {
       if (done) {
         return;
       }
+      await respond(undefined, message);
+    }
 
-      // send the current data
-      for (const message of stream.getAll(request.arg)) {
+    // send state change message
+    await respond(undefined, { state: "watch" });
+
+    const unsentMessages: StoredMessage[] = [];
+    const sendAllUnsentMessages = reuseInFlight(async () => {
+      while (!done && unsentMessages.length > 0) {
+        const message = unsentMessages.shift();
         if (done) {
           return;
         }
         await respond(undefined, message);
       }
+    });
 
-      // send state change message
-      await respond(undefined, { state: "watch" });
-
-      const unsentMessages: StoredMessage[] = [];
-      const sendAllUnsentMessages = reuseInFlight(async () => {
-        while (!done && unsentMessages.length > 0) {
-          const message = unsentMessages.shift();
-          if (done) {
-            return;
-          }
-          await respond(undefined, message);
-        }
-      });
-
-      stream.on("change", async (message) => {
-        if (done) {
-          return;
-        }
-        //console.log("stream change event", message);
-        unsentMessages.push(message);
-        sendAllUnsentMessages();
-      });
-
-      if (heartbeat) {
-        heartbeatLoop();
+    stream.on("change", async (message) => {
+      if (done) {
+        return;
       }
-    } catch (err) {
-      if (!done) {
-        respond(`${err}`);
-      }
+      //console.log("stream change event", message);
+      unsentMessages.push(message);
+      sendAllUnsentMessages();
+    });
+
+    if (heartbeat) {
+      heartbeatLoop();
     }
-  } else {
-    respond(`unknown command: '${name}'`);
+  } catch (err) {
+    if (!done) {
+      respond(`${err}`);
+    }
   }
 }

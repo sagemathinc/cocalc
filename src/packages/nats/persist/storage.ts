@@ -120,7 +120,7 @@ export class PersistentStream extends EventEmitter {
     const time = Date.now();
     const orig = { buffer, json };
 
-    if (buffer !== undefined) {
+    if (buffer != null) {
       buffer = compress(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
     }
     json = JSON.stringify(json);

@@ -2,16 +2,13 @@ import { getEnv } from "@cocalc/nats/client";
 import {
   persistSubject,
   renewSubject,
-  LAST_CHUNK,
   type User,
   type Command,
 } from "./server";
-import { waitUntilConnected } from "@cocalc/nats/util";
 export { DEFAULT_LIFETIME } from "./server";
 import { type Options as Storage, type Message } from "./storage";
 import type { JSONValue } from "@cocalc/util/types";
 export type { Storage };
-import { headers as createHeaders, Empty } from "@nats-io/nats-core";
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
@@ -34,13 +31,14 @@ export async function getAll({
   start_seq?: number;
   options?: ConnectionOptions;
 }): Promise<{ id: string; lifetime: number; stream }> {
-  const stream = await callApi({
+  const stream = await callApiGetAll({
     user,
     storage,
     options,
     cmd: { name: "getAll", start_seq },
   });
-  // the first element of the stream has the id, and the rest is the stream user will consume
+  // the first element of the stream has the id, and the rest is the
+  // stream user will consume
   const { value } = await stream.next();
   return { ...value, stream };
 }
@@ -87,13 +85,12 @@ export async function get({
   return await command({ user, storage, cmd: { name: "get", seq, key } });
 }
 
-async function* callApi({
+async function* callApiGetAll({
+  cmd,
   // who is accessing persistent storage
   user,
   // what storage they are accessing
   storage,
-  // command they want to do
-  cmd,
   // options for persistent connection
   options,
 }: {
@@ -103,9 +100,7 @@ async function* callApi({
   options?: ConnectionOptions;
 }) {
   const subject = persistSubject(user);
-  let lastSeq = -1;
-  const { nc } = await getEnv();
-  await waitUntilConnected();
+  const { cn } = await getEnv();
 
   const {
     heartbeat,
@@ -113,35 +108,16 @@ async function* callApi({
     maxActualLifetime = cmd.name == "getAll" ? 1000 * 60 * 60 * 2 : undefined,
   } = options ?? {};
 
-  const { buffer, ...cmd1 } = cmd as Command & { buffer?: any };
-
-  let payload = buffer ?? Empty;
-  const headers = createHeaders();
-  headers.append(
-    "request",
-    JSON.stringify({ cmd: cmd1, heartbeat, lifetime, storage }),
-  );
-
-  const chunks: Uint8Array[] = [];
-  //console.log({ storage, cmd, heartbeat, lifetime });
-  for await (const mesg of await nc.requestMany(subject, payload, {
+  const request = { cmd, heartbeat, lifetime, storage };
+  let lastSeq = -1;
+  for await (const resp of await cn.requestMany(subject, request, {
     maxWait: maxActualLifetime,
-    headers,
   })) {
-    const resp = getResponse(mesg);
-    if (resp == null && mesg.data.length == 0) {
+    if (resp.data == null) {
       // terminate requestMany
       return;
     }
-    if (mesg.data.length > 0) {
-      chunks.push(mesg.data);
-    }
-    if (!isLastChunk(mesg)) {
-      continue;
-    }
-    const buffer = Buffer.concat(chunks);
-    chunks.length = 0;
-    const { error, content, seq } = resp;
+    const { error, content, seq } = resp.data;
     if (error) {
       throw Error(error);
     }
@@ -149,35 +125,23 @@ async function* callApi({
       throw Error("missed response");
     }
     lastSeq = seq;
-    if (cmd.name != "set") {
-      content.buffer = buffer;
-    }
     yield content;
   }
 }
 
-async function command(opts) {
-  for await (const x of await callApi(opts)) {
-    return x;
+async function command({ user, storage, cmd }) {
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+  if (cmd.name == "getAll") {
+    throw Error("cmd name must not be getAll");
   }
-}
-
-function isLastChunk(mesg) {
-  for (const [key, _] of mesg.headers ?? []) {
-    if (key == LAST_CHUNK) {
-      return true;
-    }
+  const resp = await cn.request(subject, { cmd, storage });
+  const x = resp.data;
+  if (x.error) {
+    throw Error(x.error);
+  } else {
+    return x.resp;
   }
-  return false;
-}
-
-function getResponse(mesg) {
-  for (const [key, value] of mesg.headers ?? []) {
-    if (key == "response") {
-      return JSON.parse(value[0]);
-    }
-  }
-  return null;
 }
 
 export async function renew({
@@ -190,8 +154,7 @@ export async function renew({
   lifetime?: number;
 } & User) {
   const subject = renewSubject(user);
-  const { nc, jc } = await getEnv();
-  await waitUntilConnected();
-  const resp = await nc.request(subject, jc.encode({ id, lifetime }));
-  return jc.decode(resp.data);
+  const { cn } = await getEnv();
+  const resp = await cn.request(subject, { id, lifetime });
+  return resp.data;
 }

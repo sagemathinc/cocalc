@@ -1,6 +1,8 @@
 /*
 Define functions for using sqlite, the filesystem, compression, etc.
-These can only be defined from nodejs on the backend.
+These are functions that typically get set via nodejs on the backend,
+not from a browser.    Making this explicit helps clarify the dependence
+on the backend and make the code more unit testable.
 */
 
 import type BetterSqlite3 from "better-sqlite3";
@@ -10,11 +12,11 @@ export { type Database };
 let betterSqlite3: any = null;
 
 export let compress: (data: Buffer) => Buffer = () => {
-  throw Error("must initialize persiste.sqlite");
+  throw Error("must initialize persist.sqlite");
 };
 
 export let decompress: (data: Buffer) => Buffer = () => {
-  throw Error("must initialize persiste.sqlite");
+  throw Error("must initialize persist.sqlite");
 };
 
 export let syncFiles = { local: "", archive: "" };
