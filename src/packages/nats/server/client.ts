@@ -226,19 +226,23 @@ export class Client {
   ): Promise<SubscriptionEmitter> => {
     await this.waitUntilConnected();
     if (!isValidSubject(subject)) {
-      throw Error(`invalid subscribe subject ${subject}`);
+      throw Error(`invalid subscribe subject '${subject}'`);
     }
     if (!queue) {
       queue = randomId();
     }
     if (this.queueGroups[subject] != null) {
-      throw Error(`already subscribed to ${subject}`);
+      throw Error(`already subscribed to '${subject}'`);
     }
     this.queueGroups[subject] = queue;
     if (confirm) {
       const f = (cb) => {
         this.conn.emit("subscribe", { subject, queue }, (response) => {
-          cb(response?.error, response);
+          if (response?.error) {
+            cb(new ConatError(response.error, { code: response.code }));
+          } else {
+            cb(response?.error, response);
+          }
         });
       };
       await callback(f);
@@ -326,7 +330,11 @@ export class Client {
       if (confirm) {
         const f = (cb) => {
           this.conn.emit("publish", v, (response) => {
-            cb(response?.error, response);
+            if (response?.error) {
+              cb(new ConatError(response.error, { code: response.code }));
+            } else {
+              cb(response?.error, response);
+            }
           });
         };
         const promise = (async () => {
@@ -421,7 +429,7 @@ export class Client {
       }
     }
     sub.end();
-    throw Error("timeout");
+    throw new ConatError("timeout", { code: 408 });
   }
 
   watch = async (
@@ -543,7 +551,7 @@ class SubscriptionEmitter extends EventEmitter {
         // part of a dropped message -- by definition this should just
         // silently happen and be handled via application level protocols
         // elsewhere
-        console.log("drop -- first message has wrong seq", { seq });
+        console.log("WARNING: drop -- first message has wrong seq", { seq });
         this.emit("drop");
         return;
       }
@@ -551,7 +559,7 @@ class SubscriptionEmitter extends EventEmitter {
     } else {
       const prev = incoming[id].slice(-1)[0].seq ?? -100;
       if (prev + 1 != seq) {
-        console.log("drop -- seq mismatch", { prev, seq });
+        console.log("WARNING: drop -- seq mismatch", { prev, seq });
         // part of message was dropped -- discard everything
         delete incoming[id];
         this.emit("drop");
@@ -624,7 +632,7 @@ export class Message {
 
 export type Subscription = EventIterator<Message>;
 
-class ConatError extends Error {
+export class ConatError extends Error {
   code: string;
   constructor(mesg: string, { code }) {
     super(mesg);

@@ -39,6 +39,7 @@ import { randomId } from "@cocalc/nats/names";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { delay } from "awaiting";
+import { ConatError } from "./client";
 
 // This is just the default with socket.io, but we might want a bigger
 // size, which could mean more RAM usage by the servers.
@@ -274,7 +275,9 @@ export class ConatServer {
       return;
     }
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
-      throw Error("permission denied");
+      throw new ConatError(`permission denied subscribing to '${subject}'`, {
+        code: 403,
+      });
     }
     const room = socketSubjectRoom({ socket, subject });
     socket.join(room);
@@ -286,7 +289,9 @@ export class ConatServer {
       throw Error("invalid subject");
     }
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
-      throw Error("permission denied");
+      throw new ConatError(`permission denied publishing to '${subject}'`, {
+        code: 403,
+      });
     }
     let count = 0;
     for (const pattern in this.interest) {
@@ -329,7 +334,7 @@ export class ConatServer {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
       } catch (err) {
-        respond?.({ error: `${err}` });
+        respond?.({ error: `${err}`, code: err.code });
       }
     });
 
@@ -341,7 +346,7 @@ export class ConatServer {
         }
         respond?.({ status: "added" });
       } catch (err) {
-        respond?.({ error: `${err}` });
+        respond?.({ error: `${err}`, code: err.code });
       }
     });
 

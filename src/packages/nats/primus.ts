@@ -1,5 +1,7 @@
 /*
-Implement something that acts like a websocket as exposed in Primus, but using NATS.
+Implement something that acts like a project-specific websocket from 
+Primus, but using Conats (which is really socket-io through a central
+message broker).
 
 Development:
 

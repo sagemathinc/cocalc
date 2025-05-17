@@ -157,7 +157,7 @@ function extractProjectSubject(subject: string): string {
     return "";
   }
   const v = subject.split(".");
-  if (v[1].startsWith("project-")) {
+  if (v[1]?.startsWith("project-")) {
     const project_id = v[1].slice("project-".length);
     if (isValidUUID(project_id)) {
       return project_id;
