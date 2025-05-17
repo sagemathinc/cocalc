@@ -1,13 +1,9 @@
 import { conatPath, conatServer } from "@cocalc/backend/data";
-import {
-  connect as connectToConat,
-  Client as ConatClient,
-} from "@cocalc/nats/server/client";
+import { connect as getConnection, Client } from "@cocalc/nats/server/client";
 
-let _connection: any = null;
-export function connect(): ConatClient {
-  if (_connection == null) {
-    _connection = connectToConat(conatServer, { path: conatPath });
-  }
-  return _connection as ConatClient;
+export function connect(options?): Client {
+  return getConnection(options?.address ?? conatServer, {
+    path: conatPath,
+    ...options,
+  });
 }

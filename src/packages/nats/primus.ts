@@ -12,15 +12,22 @@ Development:
 ~/cocalc/src/packages/project$ node
 ...
 
+# non-channel full communication
+
 Primus = require('@cocalc/nats/primus').Primus;
 env = await require('@cocalc/backend/nats').getEnv();
 server = new Primus({subject:'test',env,role:'server',id:'s'});
-sparks = []; server.on("connection", (spark) => sparks.push(spark))
+sparks = []; server.on("connection", (spark) => sparks.push(spark));
+
 client = new Primus({subject:'test',env,role:'client',id:'c0'});
 
-sparks[0]
 client.on('data',(data)=>console.log('client got', data));0
 sparks[0].write("foo")
+
+sparks[0].on('data', (data)=>console.log("server got", data));0
+client.write('bar')
+
+# communication via a channel.
 
 s9 = server.channel('9')
 c9 = client.channel('9')
@@ -29,6 +36,8 @@ s9.on("data", (data)=>console.log('s9 got', data));0
 
 c9.write("from client 9")
 s9.write("from the server 9")
+
+
 
 client_b = new Primus({subject:'test',env,role:'client',id:'cb'});
 c9b = client_b.channel('9')
@@ -42,14 +51,12 @@ import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { delay } from "awaiting";
 import { encodeBase64 } from "@cocalc/nats/util";
+import { type Subscription } from "@cocalc/nats/server/client";
 
 export type Role = "client" | "server";
 
-const PING_INTERVAL = 10000;
+const PING_INTERVAL = 30000;
 
-// function otherRole(role: Role): Role {
-//   return role == "client" ? "server" : "client";
-// }
 interface PrimusOptions {
   subject: string;
   channelName?: string;
@@ -117,7 +124,7 @@ export class Primus extends EventEmitter {
   // this is just for compat with primus api:
   address = { ip: "" };
   conn: { id: string };
-  subs: any[] = [];
+  subs: Subscription[] = [];
   OPEN = 1;
   CLOSE = 0;
   readyState: 0;
@@ -189,6 +196,7 @@ export class Primus extends EventEmitter {
     const sub = await this.env.cn.subscribe(this.subjects.control);
     this.subs.push(sub);
     for await (const mesg of sub) {
+      console.log("got ", { data: mesg.data });
       const data = mesg.data;
       if (data == null) {
         continue;
@@ -228,7 +236,7 @@ export class Primus extends EventEmitter {
     }
     const mesg = { cmd: "connect", id: this.id };
     console.log("Nats Primus: connecting...");
-    await this.env.cn.publish(this.subjects.control, mesg);
+    await this.env.cn.request(this.subjects.control, mesg);
     this.clientPing();
     console.log("Nats Primus: connected:");
     const sub = await this.env.cn.subscribe(this.subjects.client);
@@ -274,9 +282,13 @@ export class Primus extends EventEmitter {
       if (!this.channel) {
         throw Error("broadcast write not implemented when not in channel mode");
       }
+      // we are the server, so write to all clients in channel
       subject = this.subjects.clientChannel;
     } else {
-      subject = this.subjects.server;
+      // we are the client, so write to server (possibly a channel)
+      subject = this.channelName
+        ? this.subjects.serverChannel
+        : this.subjects.server;
     }
     this.env.cn.publish(subject, data);
     return true;

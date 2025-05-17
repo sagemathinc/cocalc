@@ -124,8 +124,25 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 
-export function connect(address = "http://localhost:3000", options?) {
-  return new Client(address, options);
+interface Options {
+  inboxPrefix?: string;
+  path?: string;
+}
+
+let theClient: Client | undefined = undefined;
+export function connect(
+  address = "http://localhost:3000",
+  options?: Options & { noCache?: boolean },
+) {
+  const noCache = options?.noCache;
+  if (!noCache && theClient !== undefined) {
+    return theClient;
+  }
+  const client = new Client(address, options);
+  if (!noCache) {
+    theClient = client;
+  }
+  return client;
 }
 
 const INBOX_PREFIX = "_INBOX";
@@ -155,10 +172,7 @@ export class Client {
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions & { address: string };
 
-  constructor(
-    address: string,
-    options: { inboxPrefix?: string; path?: string; transports? } = {},
-  ) {
+  constructor(address: string, options: Options = {}) {
     this.options = { address, ...options };
     this.conn = connectToSocketIO(address, {
       path: options.path,
