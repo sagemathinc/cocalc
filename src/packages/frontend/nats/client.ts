@@ -10,13 +10,12 @@ import {
   NatsSyncTableFunction,
 } from "@cocalc/nats/sync/synctable";
 import { randomId, inboxPrefix } from "@cocalc/nats/names";
-import { browserSubject, projectSubject } from "@cocalc/nats/names";
+import { projectSubject } from "@cocalc/nats/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
-import { type BrowserApi, initBrowserApi } from "@cocalc/nats/browser-api";
 import { getPrimusConnection } from "@cocalc/nats/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/nats/sync/open-files";
@@ -31,7 +30,6 @@ import {
   type Stream,
 } from "@cocalc/nats/sync/stream";
 import { dstream } from "@cocalc/nats/sync/dstream";
-import { initApi } from "@cocalc/frontend/nats/api";
 import { delay } from "awaiting";
 import { callNatsService, createNatsService } from "@cocalc/nats/service";
 import type {
@@ -88,7 +86,6 @@ export class NatsClient extends EventEmitter {
     this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
-    this.initBrowserApi();
     this.initNatsClient();
     this.on("state", (state) => {
       this.emit(state);
@@ -145,30 +142,6 @@ export class NatsClient extends EventEmitter {
   };
 
   getEnv = async () => await getEnv();
-
-  private initBrowserApi = async () => {
-    if (!this.client.account_id) {
-      // it's impossible to initialize the browser api if user is not signed in,
-      // and there is no way to ever sign in without explicitly leaving this
-      // page and coming back.
-      return;
-    }
-    // have to delay so that this.client is fully created.
-    await delay(1);
-    let d = 2000;
-    while (true) {
-      try {
-        await initApi();
-        return;
-      } catch (err) {
-        console.log(
-          `WARNING: failed to initialize browser api (will retry) -- ${err}`,
-        );
-      }
-      d = Math.min(25000, d * 1.3) + Math.random();
-      await delay(d);
-    }
-  };
 
   private getConnection = reuseInFlight(async () => {
     if (this.nc != null) {
@@ -251,18 +224,18 @@ export class NatsClient extends EventEmitter {
     return createNatsService(options);
   };
 
-  // TODO: plan to deprecated...
+  // TODO: plan to deprecated...?
   projectWebsocketApi = async ({
     project_id,
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
-    const { nc } = await this.getEnv();
+    const { cn } = await this.getEnv();
     const subject = projectSubject({ project_id, service: "browser-api" });
-    const resp = await nc.request(subject, this.jc.encode(mesg), {
+    const resp = await cn.request(subject, mesg, {
       timeout,
     });
-    return this.jc.decode(resp.data);
+    return resp.data;
   };
 
   private callHub = async ({
@@ -349,54 +322,6 @@ export class NatsClient extends EventEmitter {
     const subject = projectSubject({ project_id, compute_server_id, service });
     const resp = await cn.request(subject, { name, args }, { timeout });
     return resp.data;
-  };
-
-  private callBrowser = async ({
-    service = "api",
-    sessionId,
-    name,
-    args = [],
-    timeout = DEFAULT_TIMEOUT,
-  }: {
-    service?: string;
-    sessionId: string;
-    name: string;
-    args: any[];
-    timeout?: number;
-  }) => {
-    const { nc } = await this.getEnv();
-    const subject = browserSubject({
-      account_id: this.client.account_id,
-      sessionId,
-      service,
-    });
-    const mesg = this.jc.encode({
-      name,
-      args,
-    });
-    // console.log("request to subject", { subject, name, args });
-    await waitUntilConnected();
-    const resp = await nc.request(subject, mesg, { timeout });
-    return this.jc.decode(resp.data);
-  };
-
-  browserApi = ({
-    sessionId,
-    timeout = DEFAULT_TIMEOUT,
-  }: {
-    sessionId: string;
-    timeout?: number;
-  }): BrowserApi => {
-    const callBrowserApi = async ({ name, args }) => {
-      return await this.callBrowser({
-        sessionId,
-        timeout,
-        service: "api",
-        name,
-        args,
-      });
-    };
-    return initBrowserApi(callBrowserApi);
   };
 
   request = async (subject: string, data: string) => {
