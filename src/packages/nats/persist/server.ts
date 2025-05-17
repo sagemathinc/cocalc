@@ -47,7 +47,6 @@ import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { JSONValue } from "@cocalc/util/types";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
 
@@ -71,34 +70,6 @@ const logger = getLogger("persist:server");
 export const SUBJECT = process.env.COCALC_TEST_MODE
   ? "persist-test"
   : "persist";
-
-export interface SetCommand {
-  name: "set";
-  buffer?: Buffer;
-  json?: JSONValue;
-  key?: string;
-}
-
-export interface GetByKeyCommand {
-  name: "get";
-  key: string;
-}
-
-export interface GetBySeqCommand {
-  name: "get";
-  seq: number;
-}
-
-export interface GetAllCommand {
-  name: "getAll";
-  start_seq?: number;
-}
-
-export type Command =
-  | SetCommand
-  | GetByKeyCommand
-  | GetBySeqCommand
-  | GetAllCommand;
 
 export type User = { account_id?: string; project_id?: string };
 export function persistSubject({ account_id, project_id }: User) {
@@ -251,31 +222,41 @@ function metrics() {
 }
 
 async function handleMessage(mesg) {
-  const request = mesg.data;
-  console.log("handleMessage", request);
+  const request = mesg.headers;
+  console.log("handleMessage", { request });
   const user_id = getUserId(mesg.subject);
 
   // [ ] TODO: permissions and sanity checks!
   const path = join(syncFiles.local, request.storage.path);
   await ensureContainingDirectoryExists(path);
   const stream = pstream({ ...request.storage, path });
-  const { name, ...arg } = request.cmd;
 
   // get and set using normal request/respond
-  if (["set", "get"].includes(name)) {
-    console.log("command", { path, name, arg });
-    try {
-      const resp = stream[name](arg);
-      console.log("resp = ", resp);
+  try {
+    if (request.cmd == "set") {
+      const resp = stream.set({
+        key: request.key,
+        raw: mesg.raw,
+        encoding: mesg.encoding,
+        headers: request.headers,
+      });
       mesg.respond({ resp });
-    } catch (err) {
-      mesg.respond({ error: `${err}` });
+    } else if (request.cmd == "get") {
+      const resp = stream.get({ key: request.key, seq: request.seq });
+      if (resp == null) {
+        mesg.respond(null);
+      } else {
+        const { raw, encoding, headers } = resp;
+        mesg.respond(null, { raw, encoding, headers });
+      }
     }
-    return;
+  } catch (err) {
+    mesg.respond({ error: `${err}` });
   }
+  return;
 
-  if (name != "getAll") {
-    mesg.respond({ error: `unknown command ${name}` });
+  if (request.cmd != "getAll") {
+    mesg.respond({ error: `unknown command ${request.cmd}` });
     return;
   }
 
@@ -286,28 +267,39 @@ async function getAll({ mesg, request, user_id, stream }) {
   // getAll sends multiple responses
   let seq = 0;
   let lastSend = 0;
-  let end = () => {
-    stream.close();
-    mesg.respond(null);
-  };
-  const respond = async (error, content?) => {
+
+  const respond = async (
+    error,
+    content?:
+      | ""
+      | { id: string; lifetime: number }
+      | { state: "watch" }
+      | StoredMessage,
+  ) => {
     if (terminated) {
       end();
     }
     lastSend = Date.now();
-    mesg.respond({ content, error, seq });
-    seq += 1;
+    if ((content as StoredMessage)?.raw) {
+      // StoredMessage
+      const { raw, encoding, time, ...headers } = content as StoredMessage;
+      mesg.respond(null, { raw, encoding, headers: { headers, seq, time } });
+    } else {
+      mesg.respond(null, { headers: { error, seq, content } });
+    }
     if (error) {
       end();
+      return;
     }
+
+    seq += 1;
   };
 
   const id = uuid();
   numPersists += 1;
   metrics();
   let done = false;
-  // more elaborate end.
-  end = () => {
+  const end = () => {
     if (done) {
       return;
     }
@@ -316,7 +308,7 @@ async function getAll({ mesg, request, user_id, stream }) {
     numPersists -= 1;
     metrics();
     stream.close();
-    // end response stream with empty payload.
+    // end response stream with empty payload and no headers.
     mesg.respond(null);
   };
 
@@ -390,7 +382,7 @@ async function getAll({ mesg, request, user_id, stream }) {
     // [ ] TODO: should we just send it all as a single message?
     //     much faster, but uses much more RAM.  Maybe some
     //     combination based on actual data!
-    for (const message of stream.getAll(request.arg)) {
+    for (const message of stream.getAll({ start_seq: request.start_seq })) {
       if (done) {
         return;
       }

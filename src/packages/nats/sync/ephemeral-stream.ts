@@ -31,6 +31,7 @@ import {
   type Subscription,
   type Message as Msg,
   type Headers,
+  messageData,
 } from "@cocalc/nats/server/client";
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
@@ -246,28 +247,37 @@ export class EphemeralStream<T = any> extends EventEmitter {
     console.log("getAll got ", { id });
     while (true) {
       const { value, done } = await stream.next();
-      if (done) {
+      if (done || value == null) {
         return;
       }
-      if (value?.state != "watch") {
-        const { seq, time, buffer, json } = value;
-        const mesg = buffer;
-        this.messages.push(mesg);
-        // todo typing is wrong
-        const raw = {
-          timestamp: time,
-          headers: json,
-          seq,
-          data: buffer,
-        } as RawMsg;
-        this.raw.push([raw]);
-        this.lastSeq = seq;
-        if (!noEmit) {
-          this.emit("change", mesg, [raw]);
-        }
-      } else {
+      const m = value as Msg;
+      if (m.headers == null) {
+        throw Error("missing header");
+      }
+      // @ts-ignore
+      if (m.headers?.content?.state == "watch") {
         // switched to watch mode
         return;
+      }
+      const { seq, time, headers } = m.headers;
+      if (typeof seq != "number") {
+        throw Error("seq must be a number");
+      }
+      // [] TODO: calling m.data wastes time and doubles memory usage --
+      //    MAYBE we need to just use raw and not this.messages at all?
+      const mesg = m.data;
+      this.messages.push(mesg);
+      // todo typing is wrong
+      const raw = {
+        timestamp: time,
+        headers,
+        seq,
+        data: m.raw,
+      } as RawMsg;
+      this.raw.push([raw]);
+      this.lastSeq = seq;
+      if (!noEmit) {
+        this.emit("change", mesg, [raw]);
       }
     }
   };
@@ -404,21 +414,27 @@ export class EphemeralStream<T = any> extends EventEmitter {
         throw Error("persistentStream must be defined");
       }
       console.log("listening...");
-      for await (const x of this.persistStream) {
-        const { seq, time, buffer, json } = x;
-        if (!seq) {
-          // TODO
-          return;
+      for await (const m of this.persistStream) {
+        if (m.headers == null) {
+          throw Error("missing header");
         }
-        // TODO: wrong typing
+        const { seq, time, headers } = m.headers;
+        if (!seq) {
+          throw Error("missing sequence header");
+        }
+        if (!time) {
+          throw Error("missing time header");
+        }
+
+        // TODO: wrong typing?
         const raw = {
           timestamp: time,
-          headers: json,
+          headers,
           seq,
-          data: buffer,
+          data: m.raw,
         } as RawMsg;
         this.lastSeq = raw.seq;
-        const mesg = buffer;
+        const mesg = m.data;
         this.messages.push(mesg);
         this.raw.push([raw]);
         this.lastSeq = raw.seq;
@@ -525,9 +541,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
       return await persistClient.set({
         user: this.user,
         storage: this.storage,
-        // @ts-ignore [ ] TODO
-        buffer: mesg,
-        json: options?.headers,
+        messageData: messageData(mesg, { headers: options?.headers }),
       });
     } else if (this.leader) {
       // sending from leader -- so assign seq, timestamp and sent it out.

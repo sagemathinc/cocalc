@@ -1,14 +1,12 @@
 import { getEnv } from "@cocalc/nats/client";
-import {
-  persistSubject,
-  renewSubject,
-  type User,
-  type Command,
-} from "./server";
+import { persistSubject, renewSubject, type User } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
-import { type Options as Storage, type Message } from "./storage";
-import type { JSONValue } from "@cocalc/util/types";
+import { type Options as Storage } from "./storage";
 export type { Storage };
+import {
+  Message as ConatMessage,
+  MessageData,
+} from "@cocalc/nats/server/client";
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with
@@ -35,39 +33,43 @@ export async function getAll({
     user,
     storage,
     options,
-    cmd: { name: "getAll", start_seq },
+    start_seq,
   });
   // the first element of the stream has the id, and the rest is the
   // stream user will consume
   const { value } = await stream.next();
-  return { ...value, stream };
+
+  const x = value?.data;
+  if (typeof x?.id != "string" || typeof x?.lifetime != "number") {
+    throw Error("invalid data from server");
+  }
+  return { ...x, stream };
 }
 
 export async function set({
   user,
   storage,
-  buffer,
-  json,
   key,
+  messageData,
 }: {
   user: User;
   storage: Storage;
-  buffer?: Buffer;
-  json?: JSONValue;
   key?: string;
+  messageData: MessageData;
 }): Promise<{ seq: number; time: number }> {
-  //   console.log("set", {
-  //     user,
-  //     storage,
-  //     buffer,
-  //     json,
-  //     key,
-  //   });
-  return await command({
-    user,
-    storage,
-    cmd: { name: "set", buffer, json, key },
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+
+  const resp = await cn.request(subject, null, {
+    raw: messageData.raw,
+    encoding: messageData.encoding,
+    headers: { headers: messageData.headers, cmd: "set", key, storage } as any,
   });
+  const { error, seq, time } = resp.data;
+  if (error) {
+    throw Error(error);
+  }
+  return { seq, time };
 }
 
 export async function get({
@@ -81,12 +83,21 @@ export async function get({
 } & (
   | { seq: number; key: undefined }
   | { key: string; seq: undefined }
-)): Promise<Message> {
-  return await command({ user, storage, cmd: { name: "get", seq, key } });
+)): Promise<ConatMessage | undefined> {
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+
+  const resp = await cn.request(subject, null, {
+    headers: { cmd: "get", storage, seq, key } as any,
+  });
+  if (resp.headers == null) {
+    return undefined;
+  }
+  return resp;
 }
 
 async function* callApiGetAll({
-  cmd,
+  start_seq,
   // who is accessing persistent storage
   user,
   // what storage they are accessing
@@ -94,9 +105,9 @@ async function* callApiGetAll({
   // options for persistent connection
   options,
 }: {
+  start_seq?: number;
   user: User;
   storage: Storage;
-  cmd: Command;
   options?: ConnectionOptions;
 }) {
   const subject = persistSubject(user);
@@ -105,42 +116,37 @@ async function* callApiGetAll({
   const {
     heartbeat,
     lifetime,
-    maxActualLifetime = cmd.name == "getAll" ? 1000 * 60 * 60 * 2 : undefined,
+    maxActualLifetime = 1000 * 60 * 60 * 2,
   } = options ?? {};
 
-  const request = { cmd, heartbeat, lifetime, storage };
   let lastSeq = -1;
-  for await (const resp of await cn.requestMany(subject, request, {
+  for await (const resp of await cn.requestMany(subject, null, {
     maxWait: maxActualLifetime,
+    headers: {
+      cmd: "getAll",
+      start_seq,
+      heartbeat,
+      lifetime,
+      storage,
+    } as any,
   })) {
-    if (resp.data == null) {
+    if (resp.headers == null) {
       // terminate requestMany
       return;
     }
-    const { error, content, seq } = resp.data;
+
+    const { error, seq } = resp.headers;
     if (error) {
-      throw Error(error);
+      throw Error(`${error}`);
+    }
+    if (typeof seq != "number") {
+      throw Error("seq must be a number");
     }
     if (lastSeq + 1 != seq) {
       throw Error("missed response");
     }
     lastSeq = seq;
-    yield content;
-  }
-}
-
-async function command({ user, storage, cmd }) {
-  const subject = persistSubject(user);
-  const { cn } = await getEnv();
-  if (cmd.name == "getAll") {
-    throw Error("cmd name must not be getAll");
-  }
-  const resp = await cn.request(subject, { cmd, storage });
-  const x = resp.data;
-  if (x.error) {
-    throw Error(x.error);
-  } else {
-    return x.resp;
+    yield resp;
   }
 }
 

@@ -309,7 +309,7 @@ export class Client {
   publish = async (
     subject: string,
     mesg,
-    { headers, confirm, encoding = DEFAULT_ENCODING, raw }: PublishOptions = {},
+    { headers, raw, confirm, encoding = DEFAULT_ENCODING }: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -322,9 +322,7 @@ export class Client {
       throw Error(`invalid publish subject ${subject}`);
     }
     await this.waitUntilConnected();
-    if (raw == undefined) {
-      raw = encode({ encoding, mesg });
-    }
+    raw = raw ?? encode({ encoding, mesg });
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
     let seq = 0;
@@ -627,13 +625,28 @@ function concatArrayBuffers(buffers) {
 
 export type Headers = { [key: string]: JSONValue };
 
-export class BaseMessage {
-  private client: Client;
+export class MessageData {
+  public readonly encoding: DataEncoding;
+  public readonly raw;
   public readonly headers?: Headers;
+
+  constructor({ encoding, raw, headers }) {
+    this.encoding = encoding;
+    this.raw = raw;
+    this.headers = headers;
+  }
+
+  get data() {
+    return decode({ encoding: this.encoding, data: this.raw });
+  }
+}
+
+export class Message extends MessageData {
+  private client: Client;
   public readonly subject;
 
-  constructor({ headers, client, subject }) {
-    this.headers = headers;
+  constructor({ encoding, raw, headers, client, subject }) {
+    super({ encoding, raw, headers });
     this.client = client;
     this.subject = subject;
   }
@@ -650,27 +663,15 @@ export class BaseMessage {
   };
 }
 
-// export class Message extends BaseMessage {
-//   public readonly data: any;
-//   constructor({ data, headers, client, subject }) {
-//     super({ headers, client, subject });
-//     this.data = data;
-//   }
-// }
-
-export class Message extends BaseMessage {
-  public readonly encoding: DataEncoding;
-  public readonly raw;
-
-  constructor({ encoding, raw, headers, client, subject }) {
-    super({ headers, client, subject });
-    this.encoding = encoding;
-    this.raw = raw;
-  }
-
-  get data() {
-    return decode({ encoding: this.encoding, data: this.raw });
-  }
+export function messageData(
+  mesg,
+  { headers, raw, encoding = DEFAULT_ENCODING }: PublishOptions = {},
+) {
+  return new MessageData({
+    encoding,
+    raw: raw ?? encode({ encoding, mesg }),
+    headers,
+  });
 }
 
 export type Subscription = EventIterator<Message>;
