@@ -1,11 +1,11 @@
 /*
 Implement something that acts like a project-specific websocket from 
-Primus, but using Conats (which is really socket-io through a central
+**Primus**, but using Conats (which is really socket-io through a central
 message broker).
 
 Development:
 
-1. Change to a directly like packages/project that imports nats and backend
+1. Change to a directory such as packages/project
 
 2. Example session:
 
@@ -186,10 +186,13 @@ export class Primus extends EventEmitter {
       throw Error("only server can serve");
     }
     this.deleteSparks();
-    const sub = this.env.nc.subscribe(this.subjects.control);
+    const sub = await this.env.cn.subscribe(this.subjects.control);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
+      const data = mesg.data;
+      if (data == null) {
+        continue;
+      }
       if (data.cmd == "ping") {
         const spark = this.sparks[data.id];
         if (spark != null) {
@@ -202,7 +205,7 @@ export class Primus extends EventEmitter {
         });
         this.sparks[data.id] = spark;
         this.emit("connection", spark);
-        mesg.respond(this.env.jc.encode({ status: "ok" }));
+        mesg.respond({ status: "ok" });
       }
     }
   };
@@ -223,32 +226,25 @@ export class Primus extends EventEmitter {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
-    const mesg = this.env.jc.encode({
-      cmd: "connect",
-      id: this.id,
-    });
+    const mesg = { cmd: "connect", id: this.id };
     console.log("Nats Primus: connecting...");
-    await this.env.nc.publish(this.subjects.control, mesg);
+    await this.env.cn.publish(this.subjects.control, mesg);
     this.clientPing();
     console.log("Nats Primus: connected:");
-    const sub = this.env.nc.subscribe(this.subjects.client);
+    const sub = await this.env.cn.subscribe(this.subjects.client);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
   private clientPing = async () => {
     while (this.state != "closed") {
       try {
-        await this.env.nc.publish(
-          this.subjects.control,
-          this.env.jc.encode({
-            cmd: "ping",
-            id: this.id,
-          }),
-        );
+        await this.env.cn.publish(this.subjects.control, {
+          cmd: "ping",
+          id: this.id,
+        });
       } catch {
         // if ping fails, connection is not working, so die.
         this.destroy();
@@ -263,11 +259,10 @@ export class Primus extends EventEmitter {
       this.role == "client"
         ? this.subjects.clientChannel
         : this.subjects.serverChannel;
-    const sub = this.env.nc.subscribe(subject);
+    const sub = await this.env.cn.subscribe(subject);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.env.jc.decode(mesg.data) ?? ({} as any);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
@@ -283,7 +278,7 @@ export class Primus extends EventEmitter {
     } else {
       subject = this.subjects.server;
     }
-    this.env.nc.publish(subject, this.env.jc.encode(data));
+    this.env.cn.publish(subject, data);
     return true;
   };
 
@@ -339,19 +334,15 @@ export class Spark extends EventEmitter {
   end = () => this.destroy();
 
   private init = async () => {
-    const sub = this.primus.env.nc.subscribe(this.subjects.server);
+    const sub = await this.primus.env.cn.subscribe(this.subjects.server);
     this.subs.push(sub);
     for await (const mesg of sub) {
-      const data = this.primus.env.jc.decode(mesg.data);
-      this.emit("data", data);
+      this.emit("data", mesg.data);
     }
   };
 
   write = (data) => {
-    this.primus.env.nc.publish(
-      this.subjects.client,
-      this.primus.env.jc.encode(data),
-    );
+    this.primus.env.cn.publish(this.subjects.client, data);
     return true;
   };
 }
