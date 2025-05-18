@@ -201,11 +201,14 @@ export class NatsService extends EventEmitter {
   // willl return. It does not throw an error.
   private runService = async () => {
     this.emit("starting");
-    this.log("starting service", {name:this.name, 
-                                  description:this.options.description, version:this.options.version});
+    this.log("starting service", {
+      name: this.name,
+      description: this.options.description,
+      version: this.options.version,
+    });
     const { cn } = await getEnv();
     const queue = this.options.all ? randomId() : "0";
-    this.sub = await cn.subscribe(this.subject, { queue, confirm:true });
+    this.sub = await cn.subscribe(this.subject, { queue });
     this.emit("running");
     await this.listen();
   };

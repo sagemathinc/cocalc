@@ -20,7 +20,77 @@ much better in so many ways:
        well with binary Buffer objects, which is nice.
      - JsonCodec: uses JSON.stringify and TextEncoder.  This does not work
        with Buffer or Date and is less compact, but can be very fast.
+       
+       
+THE CORE API
 
+This section contains the crucial information you have to know to build a distributed
+system using Conat.   It's our take on the NATS primitives (it's not exactly the
+same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond model 
+for messaging on which you can build distributed systems.  The tricky part, which 
+NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust 
+and scalable, in terms for authentication, real world browser connectivity and
+so on.  Our approach is to use proven mature technology like socket.io, sqlite
+and valkey, instead of writing everything from scratch.
+
+Clients: We view all clients as plugged into a common "dial tone", 
+except for optional permissions that are configured when starting the server.
+The methods you call on the client to build everything are:
+
+ - subscribe, subscribeSync - subscribe to a subject which returns an
+   async iterator over all messages that match the subject published by 
+   anyone with permission to do so.   If you provide the same optional 
+   queue parameter for multiple subscribers, then one subscriber receives 
+   each message. The async form confirms the subscription was created 
+   before returning. A client may only create one subscription to a 
+   given subject at a time, to greatly reduce the chance of leaks and 
+   simplify code.  There is no size limit on messages. 
+   Subscriptions are guaranteed to stay valid until the client ends them;
+   they do not stop working due to client or server reconnects or restarts.
+   
+ - publish, publishSync - publish to a subject. The async version returns
+   a count of the number of recipients, whereas the sync version is 
+   fire-and-forget.
+
+ - request - send a message to a subject, and if there is at least one
+   subscriber listening, it may respond.  If there are no subscribers,
+   it throws a 503 error.  To create a microservice, you just subscribe
+   to a subject pattern and called mesg.respond(...) on each message you
+   receive.
+   
+ - requestMany - send a message to a subject, and receive many
+   messages in reply.   Typically you end the response stream by sending
+   a null message, but what you do is up to you.  This is very useful
+   for streaming arbitrarily large data, long running changefeeds, LLM
+   responses, etc.
+   
+   
+Messages:  A message mesg is:
+  
+ - Data:
+   - subject  - the subject the message was sent to
+   - encoding - usually MessagePack
+   - raw      - encoded binary data
+   - headers  - a JSON-able Javascript object.
+ 
+ - Methods:
+   - data: this is a property, so if you do mesg.data, then it decodes raw
+     and returns the resulting Javascript object.
+   - respond, respondSync: if REPLY_HEADER is set, calling this publishes a 
+     respond message to the original sender of the message.
+   
+
+Persistence:
+
+We also implement persistent streams, where you can also set a key.  This can
+be used to build the analogue of Jetstream's streams and kv stores.  The object
+store isn't necessary since there is no limit on message size.  Conat's persistent
+streams are compressed by default and backed by individual sqlite files, which
+makes them very memory efficient and it is easy to tier storage to cloud storage.
+   
+   
+   
+MISC NOTES:
 
 NOTE: There is a socketio msgpack parser, but it just doesn't
 work at all, which is weird.  Also, I think it's impossible to
@@ -33,7 +103,7 @@ with opaque messages.
 
 SUBSCRIPTION ROBUSTNESS: When you call client.subscribe(...) you get back an async iterator.
 It ONLY ends when you explicitly do the standard ways of terminating
-such an iterator, including calling .stop() on it.  It is a MAJOR BUG
+such an iterator, including calling .close() on it.  It is a MAJOR BUG
 if it were to terminate for any other reason.  In particular, the subscription
 MUST NEVER throw an error or silently end when the connection is dropped 
 then resumed, or the server is restarted, or the client connects to 
@@ -43,12 +113,12 @@ a subscription that every message is received.  That said, we have enabled
 connectionStateRecovery (and added special conat support for it) so no messages
 are dropped for temporary disconnects, even up to several minutes,
 and even in valkey cluster mode!  Finally, any time a client disconnects
-and reconnects, it ensures that all subscriptions exist for it on the server
+and reconnects, the client ensures that all subscriptions exist for it on the server
 via a sync process.
 
-Subscription robustness is a major difference with nats.js, which would randomly
+Subscription robustness is a major difference with NATS.js, which would
 mysteriously terminate subscriptions for a variety of reasons, meaning that any
-code using subscriptions had to be wrapped in a page of ugly complexity to be
+code using subscriptions had to be wrapped in ugly complexity to be
 usable in production.
 
 USAGE:
@@ -167,6 +237,12 @@ export enum DataEncoding {
   JsonCodec = 1,
 }
 
+interface SubscriptionOptions {
+  maxWait?: number;
+  mesgLimit?: number;
+  queue?: string;
+}
+
 // WARNING!  This is the default and you can't just change it!
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
 // JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
@@ -205,6 +281,8 @@ export class Client {
     });
   }
 
+  // There should usually be no reason to call this because socket.io
+  // is so good at abstracting this away. It's useful for unit testing.
   waitUntilConnected = reuseInFlight(async () => {
     if (this.conn.connected) {
       return;
@@ -248,14 +326,14 @@ export class Client {
   };
 
   // returns EventEmitter that emits 'message', mesg: Message
-  private subscriptionEmitter = async (
+  private subscriptionEmitter = (
     subject: string,
     {
       closeWhenOffCalled,
       queue,
       confirm,
     }: { closeWhenOffCalled?: boolean; queue?: string; confirm?: boolean } = {},
-  ): Promise<SubscriptionEmitter> => {
+  ): { sub: SubscriptionEmitter; promise? } => {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
     }
@@ -266,6 +344,7 @@ export class Client {
       throw Error(`already subscribed to '${subject}'`);
     }
     this.queueGroups[subject] = queue;
+    let promise;
     if (confirm) {
       const f = (cb) => {
         this.conn.emit("subscribe", { subject, queue }, (response) => {
@@ -276,9 +355,10 @@ export class Client {
           }
         });
       };
-      await callback(f);
+      promise = callback(f);
     } else {
       this.conn.emit("subscribe", { subject, queue });
+      promise = undefined;
     }
     const sub = new SubscriptionEmitter({
       client: this,
@@ -289,51 +369,88 @@ export class Client {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     });
-    return sub;
+    return { sub, promise };
   };
 
-  subscribe = async (
-    subject: string,
-    {
-      maxWait,
-      mesgLimit,
-      queue,
-      confirm,
-    }: {
-      maxWait?: number;
-      mesgLimit?: number;
-      queue?: string;
-      confirm?: boolean;
-    } = {},
-  ): Promise<Subscription> => {
-    const sub = await this.subscriptionEmitter(subject, {
-      closeWhenOffCalled: true,
-      queue,
-      confirm,
-    });
+  private subscriptionIterator = (
+    sub,
+    opts?: SubscriptionOptions,
+  ): Subscription => {
     // @ts-ignore
     const iter = new EventIterator<Message>(sub, "message", {
-      idle: maxWait,
-      limit: mesgLimit,
+      idle: opts?.maxWait,
+      limit: opts?.mesgLimit,
       map: (args) => args[0],
     });
     return iter;
   };
 
+  subscribeSync = (
+    subject: string,
+    opts?: SubscriptionOptions,
+  ): Subscription => {
+    const { sub } = this.subscriptionEmitter(subject, {
+      closeWhenOffCalled: true,
+      queue: opts?.queue,
+      confirm: false,
+    });
+    return this.subscriptionIterator(sub, opts);
+  };
+
+  subscribe = async (
+    subject: string,
+    opts?: SubscriptionOptions,
+  ): Promise<Subscription> => {
+    const { sub, promise } = this.subscriptionEmitter(subject, {
+      closeWhenOffCalled: true,
+      queue: opts?.queue,
+      confirm: true,
+    });
+    await promise;
+    return this.subscriptionIterator(sub, opts);
+  };
+
   sub = this.subscribe;
+
+  publishSync = (
+    subject: string,
+    mesg,
+    opts?: PublishOptions,
+  ): { bytes: number } => {
+    return this._publish(subject, mesg, opts);
+  };
 
   publish = async (
     subject: string,
     mesg,
-    { headers, raw, encoding = DEFAULT_ENCODING, confirm }: PublishOptions = {},
+    opts?: PublishOptions,
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
-    // if confirm is true, count is the number of matching subscriptions
-    // that the server sent this message to. There's no guaranteee that
-    // the subscribers actually exist right now or received these messages.
-    count?: number;
+    // count is the number of matching subscriptions
+    // that the server *sent* this message to since the server knows about them.
+    // However, there's no guaranteee that the subscribers actually exist
+    // **right now** or received these messages.
+    count: number;
   }> => {
+    const { bytes, getCount, promise } = this._publish(subject, mesg, {
+      ...opts,
+      confirm: true,
+    });
+    await promise;
+    return { bytes, count: getCount?.()! };
+  };
+
+  private _publish = (
+    subject: string,
+    mesg,
+    {
+      headers,
+      raw,
+      encoding = DEFAULT_ENCODING,
+      confirm,
+    }: PublishOptions & { confirm?: boolean } = {},
+  ) => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
@@ -378,8 +495,11 @@ export class Client {
       seq += 1;
     }
     if (confirm) {
-      await Promise.all(promises);
-      return { bytes: raw.length, count };
+      return {
+        bytes: raw.length,
+        getCount: () => count,
+        promise: Promise.all(promises),
+      };
     }
     return { bytes: raw.length };
   };
@@ -395,14 +515,12 @@ export class Client {
     }: PublishOptions & { timeout?: number } = {},
   ): Promise<Message> => {
     const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = await this.subscribe(inboxSubject, {
+    const sub = this.subscribeSync(inboxSubject, {
       maxWait: timeout,
       mesgLimit: 1,
-      confirm: false,
     });
     const { count } = await this.publish(subject, mesg, {
       ...options,
-      confirm: true,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
@@ -432,13 +550,11 @@ export class Client {
     } = {},
   ) {
     const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = await this.subscribe(inboxSubject, {
+    const sub = this.subscribeSync(inboxSubject, {
       maxWait,
       mesgLimit: maxMessages,
-      confirm: false,
     });
     const { count } = await this.publish(subject, mesg, {
-      confirm: true,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
@@ -461,12 +577,13 @@ export class Client {
     throw new ConatError("timeout", { code: 408 });
   }
 
-  watch = async (
+  // watch: this is mainly for debugging and interactive use.
+  watch = (
     subject: string,
     cb = (x) => console.log(`${x.subject}:`, x.data, x.headers),
     opts?,
   ) => {
-    const sub = await this.subscribe(subject, opts);
+    const sub = this.subscribeSync(subject, opts);
     const f = async () => {
       for await (const x of sub) {
         cb(x);
@@ -482,7 +599,6 @@ export class Client {
 
 interface PublishOptions {
   headers?: Headers;
-  confirm?: boolean;
   // if encoding is given, it specifies the encoding used to encode the message
   encoding?: DataEncoding;
   // if raw is given, then it is assumed to be the raw binary
@@ -664,15 +780,30 @@ export class Message extends MessageData {
     this.subject = subject;
   }
 
-  respond = async (data: any, options: PublishOptions = {}) => {
+  private respondSubject = () => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
       console.log(
-        `WARNING: respond -- message to ${this.subject} is not a request`,
+        `WARNING: respond -- message to '${this.subject}' is not a request`,
       );
       return;
     }
-    await this.client.publish(`${subject}`, data, options);
+    return `${subject}`;
+  };
+
+  respondSync = (data, opts?: PublishOptions): { bytes: number } => {
+    const subject = this.respondSubject();
+    if (!subject) return { bytes: 0 };
+    return this.client.publishSync(subject, data, opts);
+  };
+
+  respond = async (
+    data,
+    opts: PublishOptions = {},
+  ): Promise<{ bytes: number; count: number }> => {
+    const subject = this.respondSubject();
+    if (!subject) return { bytes: 0, count: 0 };
+    return await this.client.publish(subject, data, opts);
   };
 }
 

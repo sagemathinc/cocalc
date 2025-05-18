@@ -1,6 +1,6 @@
 import { getPort } from "@cocalc/server/nats/test/util";
 import { initConatServer } from "@cocalc/server/nats/socketio";
-import { connect as connect0 } from "@cocalc/backend/nats/conat";
+import { connect } from "@cocalc/backend/nats/conat";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/server/nats/test/util";
 
@@ -13,7 +13,7 @@ beforeAll(async () => {
 describe("create server *after* client and ensure connects properly", () => {
   let cn;
   it("starts a client connecting to that port, despite there being no server yet", async () => {
-    cn = connect0(`http://localhost:${port}`, {
+    cn = connect(`http://localhost:${port}`, {
       path,
       reconnectionDelay: 25, // fast for tests
       randomizationFactor: 0,
@@ -53,18 +53,16 @@ describe("create server *after* client and ensure connects properly", () => {
 describe("create server after creating a subscription and publishing a message, and observe that it works and nothing is lost", () => {
   let cn;
   it("starts a client, despite there being no server yet", async () => {
-    cn = connect0(`http://localhost:${port}`, { path });
+    cn = connect(`http://localhost:${port}`, { path });
     expect(cn.conn.connected).toBe(false);
   });
 
   let sub;
   it("create a subscription before the server exists", () => {
-    const f = async () => {
-      sub = await cn.subscribe("xyz");
-    };
-    f();
-    cn.publish("xyz", "hello");
-    cn.publish("xyz", "conat");
+    sub = cn.subscribeSync("xyz");
+    const { bytes } = cn.publishSync("xyz", "hello");
+    expect(bytes).toBe(6);
+    cn.publishSync("xyz", "conat");
   });
 
   let server;
@@ -73,11 +71,17 @@ describe("create server after creating a subscription and publishing a message, 
     await wait({ until: () => cn.conn.connected });
   });
 
-  it("see the messages we sent arrive", async () => {
+  it("see both messages we sent before connecting arrive", async () => {
     const { value: mesg1 } = await sub.next();
     expect(mesg1.data).toBe("hello");
     const { value: mesg2 } = await sub.next();
     expect(mesg2.data).toBe("conat");
+  });
+
+  it("publish another message", async () => {
+    const { bytes, count } = await cn.publish("xyz", "more");
+    expect(count).toBe(1);
+    expect(bytes).toBe(5);
   });
 
   it("clean up", () => {
