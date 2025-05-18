@@ -31,7 +31,7 @@ import {
   enforceLimits,
   enforceRateLimits,
 } from "./stream";
-import { type NatsEnv, type ValueType } from "@cocalc/nats/types";
+import { type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import {
   type Subscription,
@@ -51,6 +51,8 @@ import { once } from "@cocalc/util/async-utils";
 import { callback, delay } from "awaiting";
 import { randomId } from "@cocalc/nats/names";
 import * as persistClient from "@cocalc/nats/persist/client";
+import type { Client } from "@cocalc/nats/core/client";
+import jsonStableStringify from "json-stable-stringify";
 
 export interface RawMsg extends Msg {
   timestamp: number;
@@ -87,6 +89,8 @@ export interface CoreStreamOptions {
   leader?: boolean;
   persist?: boolean;
 
+  client?: Client;
+
   noCache?: boolean;
   heartbeatInterval?: number;
 }
@@ -102,8 +106,6 @@ export class CoreStream<T = any> extends EventEmitter {
   public readonly messages: T[] = [];
   public readonly kv: { [key: string]: { mesg: T; raw: RawMsg[] } } = {};
   private readonly msgIDs = new Set<any>();
-
-  private env?: NatsEnv;
   private sub?: Subscription;
   private leader: boolean;
   private persist: boolean;
@@ -120,6 +122,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private user;
   private persistStream?;
   private storage?: persistClient.Storage;
+  private client?: Client;
 
   private sessionId?: string;
 
@@ -132,9 +135,12 @@ export class CoreStream<T = any> extends EventEmitter {
     valueType = "json",
     leader = false,
     persist = false,
+    client,
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
   }: CoreStreamOptions) {
     super();
+
+    this.client = client;
     this.user = { account_id, project_id };
     this.valueType = valueType;
     this.heartbeatInterval = heartbeatInterval;
@@ -176,7 +182,9 @@ export class CoreStream<T = any> extends EventEmitter {
   }
 
   init = async () => {
-    this.env = await getEnv();
+    if (this.client == null) {
+      this.client = (await getEnv()).cn;
+    }
     if (this.persist) {
       await this.getAllFromPersist({
         start_seq: this._start_seq,
@@ -190,12 +198,12 @@ export class CoreStream<T = any> extends EventEmitter {
       });
     } else {
       // start listening on the subject for new data
-      this.serve();
+      await this.serve();
     }
     // NOTE: if we miss a message between getAllFromLeader and when we start listening,
     // then the sequence number will have a gap, and we'll immediately reconnect, starting
     // at the right point. So no data can possibly be lost.
-    this.listen();
+    await this.listen();
     if (!this.leader && !this.persist) {
       this.heartbeatMonitor();
     }
@@ -220,7 +228,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   close = () => {
-    delete this.env;
+    delete this.client;
     this.removeAllListeners();
     // @ts-ignore
     this.sub?.close();
@@ -251,7 +259,6 @@ export class CoreStream<T = any> extends EventEmitter {
       start_seq,
     });
     this.persistStream = stream;
-    console.log("getAll got ", { id });
     while (true) {
       const { value, done } = await stream.next();
       if (done || value == null) {
@@ -286,7 +293,6 @@ export class CoreStream<T = any> extends EventEmitter {
     // [] TODO: calling m.data costs time and doubles memory usage; can
     // or should we avoid it until needed?
     const mesg = m.data;
-    console.log("processPersistentMessage", { key, seq, time, headers, mesg });
     this.messages.push(mesg);
     // [ ] todo: typing
     const raw = {
@@ -314,10 +320,9 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("this is the leader");
     }
     let d = 1000;
-    while (this.env != null) {
-      // console.log("getAllFromLeader", { start_seq });
+    while (this.client != null) {
       try {
-        for await (const raw0 of await this.env.cn.requestMany(
+        for await (const raw0 of await this.client.requestMany(
           this.subject + ".all",
           { start_seq },
           { maxWait },
@@ -336,7 +341,6 @@ export class CoreStream<T = any> extends EventEmitter {
             await this.reset();
             return;
           } else if (this.lastSeq && raw.seq > this.lastSeq + 1) {
-            // console.log("skipped a sequence number - reconnecting");
             await this.reconnect();
             return;
           } else if (raw.seq <= this.lastSeq) {
@@ -356,7 +360,6 @@ export class CoreStream<T = any> extends EventEmitter {
         }
         return;
       } catch (err) {
-        // console.log(`err connecting -- ${err}`);
         if (err.code == 503) {
           // leader just isn't ready yet?
           d = Math.min(15000, d * 1.3);
@@ -370,13 +373,17 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private serve = async () => {
-    if (this.env == null) {
+    if (this.client == null) {
       throw Error("closed");
     }
     this.sessionId = randomId();
     this.sendHeartbeats();
-    this.server = await this.env.cn.subscribe(this.subject + ".>");
-    for await (const raw of this.server) {
+    this.server = await this.client.subscribe(this.subject + ".>");
+    this.serveUntilDone(this.server);
+  };
+
+  private serveUntilDone = async (sub) => {
+    for await (const raw of sub) {
       if (raw.subject.endsWith(".all")) {
         const { start_seq = 0 } = raw.data ?? {};
         for (const [m] of this.raw) {
@@ -402,14 +409,14 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private sendHeartbeats = async () => {
-    while (this.env != null) {
+    while (this.client != null) {
       const now = Date.now();
       const wait = this.heartbeatInterval - (now - this.lastHeartbeat);
       if (wait > 100) {
         await delay(wait);
       } else {
         const now = Date.now();
-        this.env.cn.publish(this.subject, null);
+        this.client.publish(this.subject, null);
         this.lastHeartbeat = now;
         await delay(this.heartbeatInterval);
       }
@@ -417,10 +424,9 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private heartbeatMonitor = async () => {
-    while (this.env != null) {
+    while (this.client != null) {
       if (Date.now() - this.lastHeartbeat >= 2.1 * this.heartbeatInterval) {
         try {
-          // console.log("skipped a heartbeat -- reconnecting");
           await this.reconnect();
         } catch {}
       }
@@ -429,71 +435,58 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
-    if (this.env == null) {
+    if (this.client == null) {
       return;
     }
     if (this.persist) {
       if (this.persistStream == null) {
         throw Error("persistentStream must be defined");
       }
-      console.log("listening...");
       for await (const m of this.persistStream) {
         this.processPersistentMessage(m, false);
       }
-      console.log("finished listening");
       return;
-    }
-    while (this.env != null) {
-      // @ts-ignore
-      this.sub?.close();
-      this.sub = await this.env.cn.subscribe(this.subject);
-      try {
-        for await (const raw0 of this.sub) {
-          if (!this.leader) {
-            this.lastHeartbeat = Date.now();
-          }
-          if (raw0.data == null) {
-            // console.log("received heartbeat");
-            // it's a heartbeat probe
-            continue;
-          }
-          const raw = getRawMsg(raw0);
-          if (
-            !this.leader &&
-            this.sessionId &&
-            this.sessionId != raw.sessionId
-          ) {
-            await this.reset();
-            return;
-          } else if (
-            !this.leader &&
-            this.lastSeq &&
-            raw.seq > this.lastSeq + 1
-          ) {
-            // console.log("skipped a sequence number - reconnecting");
-            await this.reconnect();
-            return;
-          } else if (raw.seq <= this.lastSeq) {
-            // already saw this
-            continue;
-          }
-          if (!this.sessionId) {
-            this.sessionId = raw.sessionId;
-          }
-          // move sequence number forward one and record the data
-          this.lastSeq = raw.seq;
-          const mesg = raw.data;
-          this.messages.push(mesg);
-          this.raw.push([raw]);
-          this.lastSeq = raw.seq;
-          this.emit("change", mesg, [raw]);
-        }
-      } catch (err) {
-        console.log(`Error listening -- ${err}`);
-      }
-      await delay(3000);
+    } else {
+      this.sub = await this.client.subscribe(this.subject);
+      this.listenLoop();
     }
     this.enforceLimits();
+  };
+
+  private listenLoop = async () => {
+    if (this.sub == null) {
+      throw Error("subscription must be setup");
+    }
+    for await (const raw0 of this.sub) {
+      if (!this.leader) {
+        this.lastHeartbeat = Date.now();
+      }
+      if (raw0.data == null) {
+        // it's a heartbeat probe
+        continue;
+      }
+      const raw = getRawMsg(raw0);
+      if (!this.leader && this.sessionId && this.sessionId != raw.sessionId) {
+        await this.reset();
+        return;
+      } else if (!this.leader && this.lastSeq && raw.seq > this.lastSeq + 1) {
+        await this.reconnect();
+        return;
+      } else if (raw.seq <= this.lastSeq) {
+        // already saw this
+        continue;
+      }
+      if (!this.sessionId) {
+        this.sessionId = raw.sessionId;
+      }
+      // move sequence number forward one and record the data
+      this.lastSeq = raw.seq;
+      const mesg = raw.data;
+      this.messages.push(mesg);
+      this.raw.push([raw]);
+      this.lastSeq = raw.seq;
+      this.emit("change", mesg, [raw]);
+    }
   };
 
   private reconnect = reuseInFlight(async () => {
@@ -545,7 +538,7 @@ export class CoreStream<T = any> extends EventEmitter {
         messageData: messageData(mesg, { headers: options?.headers }),
       });
     } else if (this.leader) {
-      // sending from leader -- so assign seq, timestamp and sent it out.
+      // sending from leader -- so assign seq, timestamp and send it out.
       return await this.sendAsLeader(data, options);
     } else {
       const timeout = 15000; // todo
@@ -556,10 +549,10 @@ export class CoreStream<T = any> extends EventEmitter {
       } else {
         headers = undefined;
       }
-      if (this.env == null) {
+      if (this.client == null) {
         throw Error("closed");
       }
-      const resp = await this.env.cn.request(this.subject + ".send", data, {
+      const resp = await this.client.request(this.subject + ".send", data, {
         headers,
         timeout,
       });
@@ -592,7 +585,7 @@ export class CoreStream<T = any> extends EventEmitter {
     const { sessionId } = this;
     while (
       this.sendQueue.length > 0 &&
-      this.env != null &&
+      this.client != null &&
       this.sessionId == sessionId
     ) {
       const x = this.sendQueue.shift();
@@ -605,7 +598,7 @@ export class CoreStream<T = any> extends EventEmitter {
         cb();
         continue;
       }
-      if (this.env == null) {
+      if (this.client == null) {
         cb("closed");
         return;
       }
@@ -626,8 +619,10 @@ export class CoreStream<T = any> extends EventEmitter {
       // we publish it until we get it as a change event, and only
       // then do we respond, being sure it was sent.
       const now = Date.now();
-      while (this.env != null && this.sessionId == sessionId) {
-        this.env.cn.publish(this.subject, data, { headers });
+      while (this.client != null && this.sessionId == sessionId) {
+        // critical to use publishSync here so that we are waiting
+        // for the "change" below *before* it happens.
+        this.client.publishSync(this.subject, data, { headers });
         const start = Date.now();
         let done = false;
         try {
@@ -784,7 +779,6 @@ export class CoreStream<T = any> extends EventEmitter {
     });
     if (index > -1) {
       try {
-        // console.log("imposing limit via purge ", { index });
         await this.purge({ index });
       } catch (err) {
         if (err.code != "TIMEOUT") {
@@ -808,8 +802,11 @@ export const cache = refCache<CoreStreamOptions, CoreStream>({
     await estream.init();
     return estream;
   },
+  createKey: ({ client, ...options }) => {
+    return jsonStableStringify(options);
+  },
 });
-export async function stream<T>(
+export async function cstream<T>(
   options: CoreStreamOptions,
 ): Promise<CoreStream<T>> {
   return await cache(options);
