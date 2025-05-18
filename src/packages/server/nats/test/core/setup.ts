@@ -2,10 +2,10 @@ import { getPort } from "@cocalc/server/nats/test/util";
 import { initConatServer } from "@cocalc/server/nats/socketio";
 import { connect as connect0 } from "@cocalc/backend/nats/conat";
 
-let server;
-let port;
-const path = "/conat";
-let address;
+export let server; 
+export let port;
+export const path = "/conat";
+export let address;
 
 export async function before() {
   port = await getPort();

@@ -35,7 +35,6 @@ import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/nats/util";
-import { randomId } from "@cocalc/nats/names";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { delay } from "awaiting";
@@ -236,7 +235,7 @@ export class ConatServer {
     room,
   }: InterestUpdate) => {
     if (op == "add") {
-      if (queue == null) {
+      if (typeof queue != "string") {
         throw Error("queue must not be null for add");
       }
       if (this.interest[subject] == null) {
@@ -272,8 +271,8 @@ export class ConatServer {
     if (DEBUG) {
       this.log("subscribe ", { id: socket.id, subject, queue });
     }
-    if (!queue) {
-      queue = randomId();
+    if (typeof queue != "string") {
+      throw Error("queue must be defined");
     }
     if (!isValidSubject(subject)) {
       throw Error("invalid subject");
@@ -347,10 +346,11 @@ export class ConatServer {
 
     socket.on("subscribe", async ({ subject, queue }, respond) => {
       try {
-        if (!this.subscriptions[id].has(subject)) {
-          await this.subscribe({ socket, subject, queue, user });
-          this.subscriptions[id].add(subject);
+        if (this.subscriptions[id].has(subject)) {
+          throw Error(`already subscribed to '${subject}'`);
         }
+        await this.subscribe({ socket, subject, queue, user });
+        this.subscriptions[id].add(subject);
         respond?.({ status: "added" });
       } catch (err) {
         respond?.({ error: `${err}`, code: err.code });

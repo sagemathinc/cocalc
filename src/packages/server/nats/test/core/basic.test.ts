@@ -2,8 +2,9 @@
 Very basic test of conats core client and server.
 */
 
-import { connect, before, after } from "./setup";
+import { connect, before, after, server } from "./setup";
 import { wait } from "@cocalc/server/nats/test/util";
+import { delay } from "awaiting";
 
 beforeAll(before);
 
@@ -120,9 +121,10 @@ describe("basic test of publish and subscribe", () => {
   });
 
   it("queue groups -- same queue groups, so exactly one gets the message", async () => {
-    const sub1 = await cn.subscribe("pub", { queue: "1" });
-    const sub2 = await cn2.subscribe("pub", { queue: "1" });
-    await cn.publish("pub", "hello", { confirm: true });
+    const sub1 = await cn.subscribe("pub", { queue: "1", confirm: true });
+    const sub2 = await cn2.subscribe("pub", { queue: "1", confirm: true });
+    const { count } = await cn.publish("pub", "hello", { confirm: true });
+    expect(count).toBe(1);
     let count1 = 0;
     let count2 = 0;
     (async () => {
@@ -139,10 +141,11 @@ describe("basic test of publish and subscribe", () => {
     sub2.stop();
   });
 
-  it("queue groups -- distinct queue groups both get the message", async () => {
-    const sub1 = await cn.subscribe("pub", { queue: "1" });
-    const sub2 = await cn2.subscribe("pub", { queue: "2" });
-    cn.publish("pub", "hello");
+  it("queue groups -- distinct queue groups ALL get the message", async () => {
+    const sub1 = await cn.subscribe("pub3", { queue: "1", confirm: true });
+    const sub2 = await cn2.subscribe("pub3", { queue: "2", confirm: true });
+    const { count } = await cn.publish("pub3", "hello", { confirm: true });
+    expect(count).toBe(2);
     const { value: mesg1 } = await sub1.next();
     const { value: mesg2 } = await sub2.next();
     expect(mesg1.data).toBe("hello");
@@ -150,6 +153,8 @@ describe("basic test of publish and subscribe", () => {
   });
 });
 
-describe("basic tests of request/respond", () => {});
+describe("create server after client and ensure connects properly", () => {});
+
+//describe("basic tests of request/respond", () => {});
 
 afterAll(after);
