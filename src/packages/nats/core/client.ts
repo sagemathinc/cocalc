@@ -862,6 +862,13 @@ export class MessageData {
   get data() {
     return decode({ encoding: this.encoding, data: this.raw });
   }
+
+  get length() {
+    // raw is binary data so it's the closest thing we have to the
+    // size of this message.  It would also make sense to include
+    // the headers, but JSON'ing them would be expensive, so we don't.
+    return this.raw.length;
+  }
 }
 
 export class Message extends MessageData {

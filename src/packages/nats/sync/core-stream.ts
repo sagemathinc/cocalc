@@ -68,8 +68,8 @@ const HEADER_PREFIX = "CoCalc-";
 
 export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
 
-const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
-const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
+export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
+export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -258,6 +258,7 @@ export class CoreStream<T = any> extends EventEmitter {
       storage: this.storage,
       start_seq,
     });
+    console.log("getAll got ", { id });
     this.persistStream = stream;
     while (true) {
       const { value, done } = await stream.next();
@@ -728,7 +729,7 @@ export class CoreStream<T = any> extends EventEmitter {
     start_seq = 1,
   }: {
     start_seq?: number;
-  }): { count: number; bytes: number } | undefined => {
+  } = {}): { count: number; bytes: number } | undefined => {
     if (this.raw == null) {
       return;
     }
@@ -744,7 +745,7 @@ export class CoreStream<T = any> extends EventEmitter {
       }
       count += 1;
       for (const r of raw) {
-        bytes += r.data.length;
+        bytes += r.length;
       }
     }
     return { count, bytes };
