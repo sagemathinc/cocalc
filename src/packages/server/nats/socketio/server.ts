@@ -32,23 +32,11 @@ const logger = getLogger("conat-server");
 export async function init(options: Partial<Options> = {}) {
   logger.debug("init");
 
-  const server = createConatServer({
+  return createConatServer({
     logger: logger.debug,
     Server,
     getUser,
     isAllowed,
     ...options,
   });
-
-  // This might enable uWebosckets.js?
-  // pnpm i uws-pack
-  // Then uncomment the following
-  /*
-  // @ts-ignore
-  const { App } = await import("uws-pack");
-  const app = App();
-  server.io.attachApp(app);
-  */
-
-  return server;
 }

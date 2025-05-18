@@ -3,5 +3,5 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFiles: ['./test/setup.js'], // Path to your setup file
-  testMatch: ['**/?(*.)+(spec|test).ts?(x)'],
+  testMatch: ['**/?(*.)+(spec|test).(ts|js)?(x)'],
 };

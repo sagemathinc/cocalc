@@ -94,6 +94,7 @@ export class ConatServer {
   private isAllowed: AllowFunction;
   readonly options: Partial<Options>;
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
+  private sockets: { [id: string]: any } = {};
 
   constructor(options: Options) {
     const {
@@ -152,6 +153,10 @@ export class ConatServer {
     if (this.valkey != null) {
       this.initInterestSubscription();
     }
+  };
+
+  close = () => {
+    this.io.close();
   };
 
   private info = (): ServerInfo => {
@@ -318,6 +323,9 @@ export class ConatServer {
   };
 
   private handleSocket = async (socket) => {
+    this.sockets[socket.id] = socket;
+    socket.on("close", () => delete this.sockets[socket.id]);
+
     console.log(socket.id, "created");
     let user: any = null;
     user = await this.getUser(socket);

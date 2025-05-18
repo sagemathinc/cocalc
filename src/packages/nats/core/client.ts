@@ -123,6 +123,9 @@ import {
 } from "@cocalc/nats/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
+import { getLogger } from "@cocalc/nats/client";
+
+const logger = getLogger("core/client");
 
 interface Options {
   inboxPrefix?: string;
@@ -188,7 +191,7 @@ export class Client {
       this.info = info;
     });
     this.conn.on("connect", () => {
-      console.log(`Conat: Connected to ${this.options.address}`);
+      logger.debug(`Conat: Connected to ${this.options.address}`);
       this.syncSubscriptions();
     });
   }
@@ -201,11 +204,16 @@ export class Client {
     await once(this.conn, "connect");
   });
 
+  close = () => {
+    this.conn.close();
+    theClient = undefined;
+  };
+
   // syncSubscriptions ensures that we're subscribed on server
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
     const subs = await this.getSubscriptions();
-    // console.log(`Conat: restoring subscriptions`, Array.from(subs));
+    // logger.debug`Conat: restoring subscriptions`, Array.from(subs));
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
       // the server does not have
