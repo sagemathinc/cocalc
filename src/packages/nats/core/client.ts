@@ -109,7 +109,11 @@ other:
 
 */
 
-import { connect as connectToSocketIO } from "socket.io-client";
+import {
+  connect as connectToSocketIO,
+  type SocketOptions,
+  type ManagerOptions,
+} from "socket.io-client";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ServerInfo } from "./types";
 import * as msgpack from "@msgpack/msgpack";
@@ -132,7 +136,10 @@ interface Options {
   path?: string;
 }
 
-export type ConnectOptions = Options & { noCache?: boolean };
+export type ConnectOptions = Options & {
+  noCache?: boolean;
+} & Partial<SocketOptions> &
+  Partial<ManagerOptions>;
 
 let theClient: Client | undefined = undefined;
 export function connect(
@@ -241,7 +248,7 @@ export class Client {
   };
 
   // returns EventEmitter that emits 'message', mesg: Message
-  subscription = async (
+  private subscriptionEmitter = async (
     subject: string,
     {
       closeWhenOffCalled,
@@ -249,7 +256,6 @@ export class Client {
       confirm,
     }: { closeWhenOffCalled?: boolean; queue?: string; confirm?: boolean } = {},
   ): Promise<SubscriptionEmitter> => {
-    await this.waitUntilConnected();
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
     }
@@ -300,18 +306,18 @@ export class Client {
       confirm?: boolean;
     } = {},
   ): Promise<Subscription> => {
-    await this.waitUntilConnected();
-    const sub = await this.subscription(subject, {
+    const sub = await this.subscriptionEmitter(subject, {
       closeWhenOffCalled: true,
       queue,
       confirm,
     });
     // @ts-ignore
-    return new EventIterator<Message>(sub, "message", {
+    const iter = new EventIterator<Message>(sub, "message", {
       idle: maxWait,
       limit: mesgLimit,
       map: (args) => args[0],
     });
+    return iter;
   };
 
   sub = this.subscribe;
@@ -331,7 +337,6 @@ export class Client {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
-    await this.waitUntilConnected();
     raw = raw ?? encode({ encoding, mesg });
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
@@ -390,7 +395,6 @@ export class Client {
     }: PublishOptions & { timeout?: number } = {},
   ): Promise<Message> => {
     const inboxSubject = this.getTemporaryInboxSubject();
-    await this.waitUntilConnected();
     const sub = await this.subscribe(inboxSubject, {
       maxWait: timeout,
       mesgLimit: 1,
@@ -427,7 +431,6 @@ export class Client {
       maxMessages?: number;
     } = {},
   ) {
-    await this.waitUntilConnected();
     const inboxSubject = this.getTemporaryInboxSubject();
     const sub = await this.subscribe(inboxSubject, {
       maxWait,
@@ -463,7 +466,6 @@ export class Client {
     cb = (x) => console.log(`${x.subject}:`, x.data, x.headers),
     opts?,
   ) => {
-    await this.waitUntilConnected();
     const sub = await this.subscribe(subject, opts);
     const f = async () => {
       for await (const x of sub) {

@@ -2,9 +2,8 @@
 Very basic test of conats core client and server.
 */
 
-import { connect, before, after, server } from "./setup";
+import { connect, before, after } from "./setup";
 import { wait } from "@cocalc/server/nats/test/util";
-import { delay } from "awaiting";
 
 beforeAll(before);
 

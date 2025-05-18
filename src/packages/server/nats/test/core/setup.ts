@@ -1,8 +1,8 @@
 import { getPort } from "@cocalc/server/nats/test/util";
 import { initConatServer } from "@cocalc/server/nats/socketio";
-import { connect as connect0 } from "@cocalc/backend/nats/conat";
+import { connect as connect0, type Client } from "@cocalc/backend/nats/conat";
 
-export let server; 
+export let server;
 export let port;
 export const path = "/conat";
 export let address;
@@ -13,7 +13,7 @@ export async function before() {
   server = await initConatServer({ port, path });
 }
 
-const clients = [];
+const clients: Client[] = [];
 export function connect() {
   const cn = connect0(address, { path, noCache: true });
   clients.push(cn);
@@ -22,7 +22,7 @@ export function connect() {
 
 export async function after() {
   await server.close();
-  for (const nc of clients) {
-    nc.close();
+  for (const cn of clients) {
+    cn.close();
   }
 }
