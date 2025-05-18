@@ -27,7 +27,7 @@ describe("basic test of publish and subscribe", () => {
   let sub;
 
   let subject = "conat";
-  let cn;
+  let cn, cn2;
   it("creates a subscription to 'conat'", async () => {
     cn = connect();
     sub = await cn.subscribe(subject);
@@ -43,7 +43,7 @@ describe("basic test of publish and subscribe", () => {
 
   it("publishes using a second client", async () => {
     const data = "client2";
-    const cn2 = connect();
+    cn2 = connect();
     expect(cn === cn2).toEqual(false);
     await cn2.publish(subject, data, { confirm: true });
     const { value } = await sub.next();
@@ -105,6 +105,51 @@ describe("basic test of publish and subscribe", () => {
     const sub2 = await cn.subscribe(subject);
     sub2.stop();
   });
+
+  const subject2 = "foo.*.bar.>";
+  it(`tests using the subject '${subject2}' with a wildcard and >`, async () => {
+    const sub = await cn.subscribe(subject2);
+    // this is ignored
+    cn.publish("foo.x", "abc");
+    // this is received
+    cn.publish("foo.a.bar.b", "xxx", { headers: { a: "b" } });
+    const { value: mesg } = await sub.next();
+    expect(mesg.data).toBe("xxx");
+    expect(mesg.headers).toEqual({ a: "b" });
+    expect(mesg.subject).toBe("foo.a.bar.b");
+  });
+
+  it("queue groups -- same queue groups, so exactly one gets the message", async () => {
+    const sub1 = await cn.subscribe("pub", { queue: "1" });
+    const sub2 = await cn2.subscribe("pub", { queue: "1" });
+    await cn.publish("pub", "hello", { confirm: true });
+    let count1 = 0;
+    let count2 = 0;
+    (async () => {
+      await sub1.next();
+      count1 += 1;
+    })();
+    (async () => {
+      await sub2.next();
+      count2 += 1;
+    })();
+    await wait({ until: () => count1 + count2 > 0 });
+    expect(count1 + count2).toBe(1);
+    sub1.stop();
+    sub2.stop();
+  });
+
+  it("queue groups -- distinct queue groups both get the message", async () => {
+    const sub1 = await cn.subscribe("pub", { queue: "1" });
+    const sub2 = await cn2.subscribe("pub", { queue: "2" });
+    cn.publish("pub", "hello");
+    const { value: mesg1 } = await sub1.next();
+    const { value: mesg2 } = await sub2.next();
+    expect(mesg1.data).toBe("hello");
+    expect(mesg2.data).toBe("hello");
+  });
 });
+
+describe("basic tests of request/respond", () => {});
 
 afterAll(after);
