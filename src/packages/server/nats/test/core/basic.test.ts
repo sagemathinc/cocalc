@@ -153,8 +153,6 @@ describe("basic test of publish and subscribe", () => {
   });
 });
 
-describe("create server after client and ensure connects properly", () => {});
-
 //describe("basic tests of request/respond", () => {});
 
 afterAll(after);

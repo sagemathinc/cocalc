@@ -180,7 +180,6 @@ export class Client {
   constructor(address: string, options: Options = {}) {
     this.options = { address, ...options };
     this.conn = connectToSocketIO(address, {
-      path: options.path,
       // cocalc itself only works with new clients.
       // TODO: chunking + long polling is tricky; need to shrink chunk size a lot, since
       // I guess no binary protocol.
@@ -188,6 +187,7 @@ export class Client {
       // half the chunk size... because there is no way to know if recipients will be
       // using long polling to RECEIVE messages.
       transports: ["websocket"],
+      ...options,
     });
     this.conn.on("info", (info) => {
       this.info = info;
