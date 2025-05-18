@@ -27,7 +27,7 @@ import {
   userStreamOptionsKey,
   last,
 } from "./stream";
-import { EphemeralStream, type RawMsg } from "./ephemeral-stream";
+import { ConatStream, type RawMsg } from "./conat-stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -44,7 +44,7 @@ import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { type Msg } from "@nats-io/nats-core";
 import { headersFromRawMessages } from "./stream";
-import { COCALC_MESSAGE_ID_HEADER } from "./ephemeral-stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./conat-stream";
 
 const logger = getLogger("dstream");
 
@@ -60,7 +60,7 @@ export interface DStreamOptions extends StreamOptions {
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: Stream | EphemeralStream;
+  private stream?: Stream | ConatStream;
   private messages: T[];
   private raw: (JsMsg | Msg | RawMsg)[][];
   private noAutosave: boolean;
@@ -89,7 +89,7 @@ export class DStream<T = any> extends EventEmitter {
     this.name = opts.name;
     this.stream =
       opts.ephemeral || opts.persist
-        ? new EphemeralStream(opts)
+        ? new ConatStream(opts)
         : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
@@ -114,7 +114,7 @@ export class DStream<T = any> extends EventEmitter {
       delete this.saved[last(raw).seq];
       const headers = headersFromRawMessages(raw);
       if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
-        // this is critical with ephemeral-stream.ts, since otherwise there is a moment
+        // this is critical with conat-stream.ts, since otherwise there is a moment
         // when the same message is in both this.local *and* this.messages, and you'll
         // see it doubled in this.getAll().  I didn't see this ever with
         // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,

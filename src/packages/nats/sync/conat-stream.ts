@@ -1,12 +1,14 @@
 /*
-An Ephemeral Stream
+Conat Stream 
+
+This is the core data structure that ephemeral and persistent streams and kv stores are built upon.
 
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
 
 
-    require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/ephemeral-stream'); s = await a.estream({name:'test', leader:true})
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/conat-stream'); s = await a.stream({name:'test', leader:true})
 
 
 Testing two at once (a leader and non-leader):
@@ -16,7 +18,7 @@ Testing two at once (a leader and non-leader):
 
 With persistence:
 
-   require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/ephemeral-stream'); s = await a.estream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
+   require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/conat-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
    
 */
 
@@ -67,7 +69,7 @@ const PUBLISH_TIMEOUT = 7500;
 
 const DEFAULT_HEARTBEAT_INTERVAL = 30 * 1000;
 
-export interface EphemeralStreamOptions {
+export interface ConatStreamOptions {
   // what it's called
   name: string;
   // where it is located
@@ -85,7 +87,7 @@ export interface EphemeralStreamOptions {
   heartbeatInterval?: number;
 }
 
-export class EphemeralStream<T = any> extends EventEmitter {
+export class ConatStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
   private readonly limits: FilteredStreamLimitOptions;
@@ -94,6 +96,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
   // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
   public readonly raw: RawMsg[][] = [];
   public readonly messages: T[] = [];
+  public readonly kv: { [key: string]: { mesg: T; raw: RawMsg[] } } = {};
   private readonly msgIDs = new Set<any>();
 
   private env?: NatsEnv;
@@ -126,7 +129,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
     leader = false,
     persist = false,
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
-  }: EphemeralStreamOptions) {
+  }: ConatStreamOptions) {
     super();
     this.user = { account_id, project_id };
     this.valueType = valueType;
@@ -259,26 +262,42 @@ export class EphemeralStream<T = any> extends EventEmitter {
         // switched to watch mode
         return;
       }
-      const { seq, time, headers } = m.headers;
-      if (typeof seq != "number") {
-        throw Error("seq must be a number");
-      }
-      // [] TODO: calling m.data wastes time and doubles memory usage --
-      //    MAYBE we need to just use raw and not this.messages at all?
-      const mesg = m.data;
-      this.messages.push(mesg);
-      // todo typing is wrong
-      const raw = {
-        timestamp: time,
-        headers: (headers as any)?.headers,
-        seq,
-        data: m.raw,
-      } as RawMsg;
-      this.raw.push([raw]);
-      this.lastSeq = seq;
-      if (!noEmit) {
-        this.emit("change", mesg, [raw]);
-      }
+      this.processPersistentMessage(value, !!noEmit);
+    }
+  };
+
+  private processPersistentMessage = (m: Msg, noEmit: boolean) => {
+    if (m.headers == null) {
+      throw Error("missing header");
+    }
+    // @ts-ignore
+    if (m.headers?.content?.state == "watch") {
+      // switched to watch mode
+      return;
+    }
+    const { key, seq, time, headers } = m.headers;
+    if (typeof seq != "number") {
+      throw Error("seq must be a number");
+    }
+    // [] TODO: calling m.data costs time and doubles memory usage; can
+    // or should we avoid it until needed?
+    const mesg = m.data;
+    console.log("processPersistentMessage", { key, seq, time, headers, mesg });
+    this.messages.push(mesg);
+    // [ ] todo: typing
+    const raw = {
+      timestamp: time,
+      headers: (headers as any)?.headers,
+      seq,
+      data: m.raw,
+    } as RawMsg;
+    this.raw.push([raw]);
+    if (typeof key == "string") {
+      this.kv[key] = { raw: [raw], mesg };
+    }
+    this.lastSeq = seq;
+    if (!noEmit) {
+      this.emit("change", mesg, [raw], key);
     }
   };
 
@@ -415,30 +434,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
       }
       console.log("listening...");
       for await (const m of this.persistStream) {
-        if (m.headers == null) {
-          throw Error("missing header");
-        }
-        const { seq, time, headers } = m.headers;
-        if (!seq) {
-          throw Error("missing sequence header");
-        }
-        if (!time) {
-          throw Error("missing time header");
-        }
-
-        // TODO: wrong typing?
-        const raw = {
-          timestamp: time,
-          headers,
-          seq,
-          data: m.raw,
-        } as RawMsg;
-        this.lastSeq = raw.seq;
-        const mesg = m.data;
-        this.messages.push(mesg);
-        this.raw.push([raw]);
-        this.lastSeq = raw.seq;
-        this.emit("change", mesg, [raw]);
+        this.processPersistentMessage(m, false);
       }
       console.log("finished listening");
       return;
@@ -521,7 +517,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
 
   publish = async (
     mesg: T,
-    options?: { headers?: Headers; msgID?: string },
+    options?: { headers?: Headers; msgID?: string; key?: string },
   ) => {
     const data = mesg;
 
@@ -541,6 +537,7 @@ export class EphemeralStream<T = any> extends EventEmitter {
       return await persistClient.set({
         user: this.user,
         storage: this.storage,
+        key: options?.key,
         messageData: messageData(mesg, { headers: options?.headers }),
       });
     } else if (this.leader) {
@@ -800,17 +797,17 @@ export class EphemeralStream<T = any> extends EventEmitter {
   );
 }
 
-export const cache = refCache<EphemeralStreamOptions, EphemeralStream>({
-  name: "ephemeral-stream",
-  createObject: async (options: EphemeralStreamOptions) => {
-    const estream = new EphemeralStream(options);
+export const cache = refCache<ConatStreamOptions, ConatStream>({
+  name: "conat-stream",
+  createObject: async (options: ConatStreamOptions) => {
+    const estream = new ConatStream(options);
     await estream.init();
     return estream;
   },
 });
-export async function estream<T>(
-  options: EphemeralStreamOptions,
-): Promise<EphemeralStream<T>> {
+export async function stream<T>(
+  options: ConatStreamOptions,
+): Promise<ConatStream<T>> {
   return await cache(options);
 }
 

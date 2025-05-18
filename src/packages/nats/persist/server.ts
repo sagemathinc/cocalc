@@ -287,10 +287,14 @@ async function getAll({ mesg, request, user_id, stream }) {
     }
     lastSend = Date.now();
     if ((content as StoredMessage)?.raw != null) {
-      console.log("content = ", content)
+      console.log("content = ", content);
       // StoredMessage
-      const { raw, encoding, time, ...headers } = content as StoredMessage;
-      mesg.respond(null, { raw, encoding, headers: { headers, seq, time } });
+      const { raw, encoding, time, key, ...headers } = content as StoredMessage;
+      mesg.respond(null, {
+        raw,
+        encoding,
+        headers: { headers, seq, time, key },
+      });
     } else {
       mesg.respond(null, { headers: { error, seq, content } });
     }
