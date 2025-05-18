@@ -35,7 +35,7 @@ describe("basic test of publish and subscribe", () => {
 
   it("publishes to 'conat' and verifies that the subscription receives the message", async () => {
     const data = "cocalc";
-    await cn.publish(subject, data, { confirm: true });
+    await cn.publish(subject, data);
     const { value, done } = await sub.next();
     expect(value.data).toEqual(data);
     expect(done).toBe(false);
@@ -45,7 +45,7 @@ describe("basic test of publish and subscribe", () => {
     const data = "client2";
     cn2 = connect();
     expect(cn === cn2).toEqual(false);
-    await cn2.publish(subject, data, { confirm: true });
+    await cn2.publish(subject, data);
     const { value } = await sub.next();
     expect(value.data).toEqual(data);
   });
@@ -120,9 +120,9 @@ describe("basic test of publish and subscribe", () => {
   });
 
   it("queue groups -- same queue groups, so exactly one gets the message", async () => {
-    const sub1 = await cn.subscribe("pub", { queue: "1", confirm: true });
-    const sub2 = await cn2.subscribe("pub", { queue: "1", confirm: true });
-    const { count } = await cn.publish("pub", "hello", { confirm: true });
+    const sub1 = await cn.subscribe("pub", { queue: "1" });
+    const sub2 = await cn2.subscribe("pub", { queue: "1" });
+    const { count } = await cn.publish("pub", "hello");
     expect(count).toBe(1);
     let count1 = 0;
     let count2 = 0;
@@ -141,9 +141,9 @@ describe("basic test of publish and subscribe", () => {
   });
 
   it("queue groups -- distinct queue groups ALL get the message", async () => {
-    const sub1 = await cn.subscribe("pub3", { queue: "1", confirm: true });
-    const sub2 = await cn2.subscribe("pub3", { queue: "2", confirm: true });
-    const { count } = await cn.publish("pub3", "hello", { confirm: true });
+    const sub1 = await cn.subscribe("pub3", { queue: "1" });
+    const sub2 = await cn2.subscribe("pub3", { queue: "2" });
+    const { count } = await cn.publish("pub3", "hello");
     expect(count).toBe(2);
     const { value: mesg1 } = await sub1.next();
     const { value: mesg2 } = await sub2.next();
