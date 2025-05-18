@@ -132,10 +132,12 @@ interface Options {
   path?: string;
 }
 
+export type ConnectOptions = Options & { noCache?: boolean };
+
 let theClient: Client | undefined = undefined;
 export function connect(
   address = "http://localhost:3000",
-  options?: Options & { noCache?: boolean },
+  options?: ConnectOptions,
 ) {
   const noCache = options?.noCache;
   if (!noCache && theClient !== undefined) {

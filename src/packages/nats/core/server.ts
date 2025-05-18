@@ -326,7 +326,6 @@ export class ConatServer {
     this.sockets[socket.id] = socket;
     socket.on("close", () => delete this.sockets[socket.id]);
 
-    console.log(socket.id, "created");
     let user: any = null;
     user = await this.getUser(socket);
     const id = socket.id;
