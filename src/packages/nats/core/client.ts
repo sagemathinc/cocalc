@@ -259,9 +259,12 @@ export class Client {
   private queueGroups: { [subject: string]: string } = {};
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions & { address: string };
+  private inboxSubject: string;
+  private inbox?: EventEmitter;
 
   constructor(address: string, options: Options = {}) {
     this.options = { address, ...options };
+
     this.conn = connectToSocketIO(address, {
       // cocalc itself only works with new clients.
       // TODO: chunking + long polling is tricky; need to shrink chunk size a lot, since
@@ -279,7 +282,56 @@ export class Client {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       this.syncSubscriptions();
     });
+
+    this.initInbox();
   }
+
+  private temporaryInboxSubject = () => {
+    if (!this.inboxSubject) {
+      throw Error("inbox not setup properly");
+    }
+    return `${this.inboxSubject}.${randomId()}`;
+  };
+
+  private initInbox = () => {
+    // For request/respond instead of setting up one
+    // inbox *every time there is a request*, we setup a single
+    // inbox once and for all for all responses.  We listen for
+    // everything to inbox...Prefix.* and emit it via this.inbox.
+    // The request sender then listens on this.inbox for the response.
+    // We *could* use a regular subscription for each request,
+    // but (1) that massively increases the load on the server for
+    // every single request (having to create and destroy subscriptions)
+    // and (2) there is a race condition between creating that subscription
+    // and getting the response; it's fine with one server, but with
+    // multiple servers solving the race condition would slow everything down
+    // due to having to wait for so many acknowledgements.  Instead, we
+    // remove all those problems by just using a single inbox subscription.
+    const inboxPrefix = this.options.inboxPrefix ?? INBOX_PREFIX;
+    if (!inboxPrefix.startsWith(INBOX_PREFIX)) {
+      throw Error(`custom inboxPrefix must start with '${INBOX_PREFIX}'`);
+    }
+    this.inboxSubject = `${inboxPrefix}.${randomId()}`;
+    let sub;
+    try {
+      sub = this.subscribeSync(this.inboxSubject + ".*");
+    } catch (err) {
+      // this should only fail due to permissions issues, at which point
+      // request can't work, but pub/sub can.
+      logger.debug(`WARNING: inbox not available -- ${err}`);
+      this.inboxSubject = "";
+      return;
+    }
+    this.inbox = new EventEmitter();
+    (async () => {
+      for await (const mesg of sub) {
+        if (this.inbox == null) {
+          return;
+        }
+        this.inbox.emit(mesg.subject, mesg);
+      }
+    })();
+  };
 
   // There should usually be no reason to call this because socket.io
   // is so good at abstracting this away. It's useful for unit testing.
@@ -292,8 +344,21 @@ export class Client {
   });
 
   close = () => {
+    for (const subject in this.queueGroups) {
+      this.conn.emit("unsubscribe", { subject });
+      delete this.queueGroups[subject];
+    }
+    // @ts-ignore
+    delete this.queueGroups;
     this.conn.close();
     theClient = undefined;
+    // @ts-ignore
+    delete this.inboxSubject;
+    delete this.inbox;
+    // @ts-ignore
+    delete this.options;
+    // @ts-ignore
+    delete this.info;
   };
 
   // syncSubscriptions ensures that we're subscribed on server
@@ -366,6 +431,9 @@ export class Client {
       closeWhenOffCalled,
     });
     sub.once("close", () => {
+      if (this.queueGroups?.[subject] == null) {
+        return;
+      }
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     });
@@ -514,11 +582,19 @@ export class Client {
       ...options
     }: PublishOptions & { timeout?: number } = {},
   ): Promise<Message> => {
-    const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = this.subscribeSync(inboxSubject, {
-      maxWait: timeout,
-      mesgLimit: 1,
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    const inboxSubject = this.temporaryInboxSubject();
+    if (this.inbox == null) {
+      throw Error("inbox not configured");
+    }
+    const sub = new EventIterator<Message>(this.inbox, inboxSubject, {
+      idle: timeout,
+      limit: 1,
+      map: (args) => args[0],
     });
+
     const { count } = await this.publish(subject, mesg, {
       ...options,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
@@ -529,6 +605,7 @@ export class Client {
         code: 503,
       });
     }
+
     for await (const resp of sub) {
       sub.stop();
       return resp;
@@ -549,10 +626,20 @@ export class Client {
       maxMessages?: number;
     } = {},
   ) {
-    const inboxSubject = this.getTemporaryInboxSubject();
-    const sub = this.subscribeSync(inboxSubject, {
-      maxWait,
-      mesgLimit: maxMessages,
+    if (maxMessages != null && maxMessages <= 0) {
+      throw Error("maxMessages must be positive");
+    }
+    if (maxWait != null && maxWait <= 0) {
+      throw Error("maxWait must be positive");
+    }
+    const inboxSubject = this.temporaryInboxSubject();
+    if (this.inbox == null) {
+      throw Error("inbox not configured");
+    }
+    const sub = new EventIterator<Message>(this.inbox, inboxSubject, {
+      idle: maxWait,
+      limit: maxMessages,
+      map: (args) => args[0],
     });
     const { count } = await this.publish(subject, mesg, {
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
@@ -592,9 +679,6 @@ export class Client {
     f();
     return sub;
   };
-
-  private getTemporaryInboxSubject = () =>
-    `${this.options.inboxPrefix ?? INBOX_PREFIX}.${randomId()}`;
 }
 
 interface PublishOptions {

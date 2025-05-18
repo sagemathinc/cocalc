@@ -10,6 +10,7 @@ beforeAll(before);
 describe("connect to the server from a client", () => {
   it("creates a client and confirm it connects", async () => {
     const cn = connect();
+    expect(cn.conn.connected).toBe(false);
     await cn.waitUntilConnected();
     expect(cn.conn.connected).toBe(true);
     cn.close();
@@ -152,6 +153,108 @@ describe("basic test of publish and subscribe", () => {
   });
 });
 
-//describe("basic tests of request/respond", () => {});
+describe("basic tests of request/respond", () => {
+  let c1, c2;
+
+  it("create two clients", () => {
+    c1 = connect();
+    c2 = connect();
+  });
+
+  let sub;
+  it("make one client be an eval server", async () => {
+    sub = await c2.subscribe("eval");
+    (async () => {
+      for await (const mesg of sub) {
+        mesg.respond(eval(mesg.data));
+      }
+    })();
+  });
+
+  it("send a request and gets a response", async () => {
+    const resp = await c1.request("eval", "1+2+3+4+5+6+7+8+9+10");
+    expect(resp.data).toBe(55);
+  });
+
+  it("'server' can also send a request and gets a response", async () => {
+    const resp = await c2.request("eval", "1+2+3+4+5");
+    expect(resp.data).toBe(15);
+  });
+
+  it("send a request to a server that doesn't exist and get 503 error", async () => {
+    try {
+      await c2.request("does-not-exist", "1+2+3+4+5");
+    } catch (err) {
+      expect(err.code == 503);
+    }
+  });
+
+  it("stop our server above (close subscription) and confirm get 503 error", async () => {
+    sub.close();
+    try {
+      await c1.request("eval", "1+2+3+4+5");
+    } catch (err) {
+      expect(err.code == 503);
+    }
+  });
+
+  let callIter;
+  it("create a requestMany server that iterates over what you send it", async () => {
+    // This example illustrates how to define a requestMany server
+    // and includes error handling.  Note the technique of using
+    // the *headers* for control signalling (e.g., when we're done, or if 
+    // there is an error) and using the message payload for the actual data.
+    // In Conat headers are very well supported, encouraged, and easy to use
+    // (and arbitrary JSON), unlike NATS.js.
+
+    sub = await c2.subscribe("iter");
+    (async () => {
+      for await (const mesg of sub) {
+        try {
+          for (const x of mesg.data) {
+            mesg.respond(x, { headers: { done: false } });
+          }
+          mesg.respond(null, { headers: { done: true } });
+        } catch (err) {
+          mesg.respond(null, { headers: { done: true, error: `${err}` } });
+          return;
+        }
+      }
+    })();
+
+    // also function to do request
+    callIter = async (client, x) => {
+      const iter = await client.requestMany("iter", x);
+      const v: any[] = [];
+      for await (const resp of iter) {
+        if (resp.headers?.error) {
+          throw Error(resp.headers?.error);
+        }
+        if (resp.headers.done) {
+          return v;
+        }
+        v.push(resp.data);
+      }
+      return v;
+    };
+  });
+
+  it("call the iter server -- a simple test", async () => {
+    const w = [3, 8, 9];
+    const v = await callIter(c1, w);
+    expect(v).toEqual(w);
+    expect(v).not.toBe(w);
+
+    // also from other client
+    const v2 = await callIter(c2, w);
+    expect(v2).toEqual(w);
+  });
+
+  it("call the iter server -- test that throws an error", async () => {
+    await expect(async () => {
+      await callIter(c1, null);
+    }).rejects.toThrowError("is not iterable");
+  });
+});
 
 afterAll(after);
