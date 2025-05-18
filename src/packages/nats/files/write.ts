@@ -71,7 +71,7 @@ import {
   readFile,
 } from "./read";
 import { projectSubject } from "@cocalc/nats/names";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 import { type Readable } from "node:stream";
 
 function getWriteSubject({ project_id, compute_server_id }) {

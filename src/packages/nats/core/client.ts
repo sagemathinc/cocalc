@@ -59,7 +59,7 @@ For developing at the command line, cd to packages/backend, then in node:
    
 or
 
-   c = require('@cocalc/nats/server/client').connect('http://localhost:3000')
+   c = require('@cocalc/nats/core/client').connect('http://localhost:3000')
 
    c.watch('a')
 
@@ -92,10 +92,10 @@ then in another console
 Wildcard subject:
 
    
-   c = require('@cocalc/nats/server/client').connect(); c.watch('a.*');
+   c = require('@cocalc/nats/core/client').connect(); c.watch('a.*');
    
    
-   c = require('@cocalc/nats/server/client').connect(); c.publish('a.x', 'foo')
+   c = require('@cocalc/nats/core/client').connect(); c.publish('a.x', 'foo')
    
    
 Testing disconnect

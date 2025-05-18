@@ -40,7 +40,7 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 
 import { getEnv } from "@cocalc/nats/client";
 import { projectSubject } from "@cocalc/nats/names";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 
 let subs: { [name: string]: Subscription } = {};
 export async function close({ project_id, compute_server_id, name = "" }) {

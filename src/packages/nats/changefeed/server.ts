@@ -7,7 +7,7 @@ Multiresponse request/response NATS changefeed server.
 */
 
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 import { isValidUUID, uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
 import { delay } from "awaiting";

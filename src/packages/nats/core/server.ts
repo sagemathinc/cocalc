@@ -17,9 +17,9 @@ For clustering:
    
 Corresponding clients:
 
-   c0 = require('@cocalc/nats/server/client').connect('http://localhost:3000')
+   c0 = require('@cocalc/nats/core/client').connect('http://localhost:3000')
 
-   c1 = require('@cocalc/nats/server/client').connect('http://localhost:3001')
+   c1 = require('@cocalc/nats/core/client').connect('http://localhost:3001')
 
 ---
     

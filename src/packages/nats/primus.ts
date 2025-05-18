@@ -51,7 +51,7 @@ import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/nats/types";
 import { delay } from "awaiting";
 import { encodeBase64 } from "@cocalc/nats/util";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 
 export type Role = "client" | "server";
 

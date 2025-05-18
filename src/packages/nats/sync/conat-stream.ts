@@ -34,7 +34,7 @@ import {
   type Message as Msg,
   type Headers,
   messageData,
-} from "@cocalc/nats/server/client";
+} from "@cocalc/nats/core/client";
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
 import { encodeBase64 } from "@cocalc/nats/util";

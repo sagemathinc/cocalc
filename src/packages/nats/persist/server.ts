@@ -25,7 +25,7 @@ TERMINAL 2: In another node session, create a client:
 
 TERMINAL 3:
 
-user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');  const { messageData } =require("@cocalc/nats/server/client"); 0;
+user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');  const { messageData } =require("@cocalc/nats/core/client"); 0;
 
    await set({user, storage, messageData:messageData('hi')})
    
@@ -42,7 +42,7 @@ Also getAll using start_seq:
 
 import { pstream, type Message as StoredMessage } from "./storage";
 import { getEnv } from "@cocalc/nats/client";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/nats/client";
 import { delay } from "awaiting";
@@ -108,7 +108,7 @@ function getUserId(subject: string): string {
 
 let terminated = false;
 let sub: Subscription | null = null;
-export async function init() {
+export function init() {
   logger.debug("starting persist server");
   logger.debug({
     DEFAULT_LIFETIME,

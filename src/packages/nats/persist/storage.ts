@@ -39,7 +39,7 @@ import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-import { DataEncoding, type Headers } from "@cocalc/nats/server/client";
+import { DataEncoding, type Headers } from "@cocalc/nats/core/client";
 
 enum CompressionAlgorithm {
   None = 0,

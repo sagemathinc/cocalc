@@ -48,6 +48,7 @@ import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeed
 import { terminate as terminateChangefeedServer } from "@cocalc/nats/changefeed/server";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { terminate as terminateTieredStorage } from "@cocalc/server/nats/tiered-storage/api";
+import { terminate as terminatePersistServer } from "@cocalc/nats/persist/server";
 import { delay } from "awaiting";
 
 const logger = getLogger("server:nats:api");
@@ -125,6 +126,10 @@ async function handleMessage({ api, subject, mesg }) {
       return;
     } else if (service == "changefeeds") {
       terminateChangefeedServer();
+      mesg.respond({ status: "terminated", service });
+      return;
+    } else if (service == "persist") {
+      terminatePersistServer();
       mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "api") {

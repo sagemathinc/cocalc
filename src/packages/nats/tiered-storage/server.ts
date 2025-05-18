@@ -24,7 +24,7 @@ Outputs:
 */
 
 import { getEnv, getLogger } from "@cocalc/nats/client";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Location } from "@cocalc/nats/types";
 import { delay } from "awaiting";

@@ -8,7 +8,7 @@ import { projectSubject } from "@cocalc/nats/names";
 import { type NatsEnv, State } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import { isConnectedSync } from "@cocalc/nats/util";
-import { type Subscription } from "@cocalc/nats/server/client";
+import { type Subscription } from "@cocalc/nats/core/client";
 
 export class PubSub extends EventEmitter {
   private subject: string;

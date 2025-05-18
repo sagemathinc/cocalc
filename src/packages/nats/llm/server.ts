@@ -13,7 +13,7 @@ how paying for that would work.
 
 import { getEnv } from "@cocalc/nats/client";
 import { isValidUUID } from "@cocalc/util/misc";
-import type { Subscription } from "@cocalc/nats/server/client";
+import type { Subscription } from "@cocalc/nats/core/client";
 
 export const SUBJECT = process.env.COCALC_TEST_MODE ? "llm-test" : "llm";
 

@@ -6,7 +6,7 @@ export type { Storage };
 import {
   Message as ConatMessage,
   MessageData,
-} from "@cocalc/nats/server/client";
+} from "@cocalc/nats/core/client";
 
 interface ConnectionOptions {
   // maximum amount of time the persist can possibly stay alive, even with

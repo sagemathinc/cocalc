@@ -7,6 +7,7 @@ import { init as initAuth } from "./auth";
 import { init as initTieredStorage } from "./tiered-storage/api";
 import { loadNatsConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/nats/service/time";
+import { initServer as initPersistServer } from "@cocalc/backend/nats/persist";
 
 export { loadNatsConfiguration };
 
@@ -31,12 +32,15 @@ export async function initNatsTieredStorage() {
 
 export async function initNatsServer() {
   logger.debug("initializing nats cocalc hub server");
+  
   await loadNatsConfiguration();
   initAPI();
   await initAuth();
-  
+
   // do not block on initLLM because...
   initLLM();
   
+  initPersistServer();
+
   createTimeService();
 }
