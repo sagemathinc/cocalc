@@ -27,7 +27,7 @@ import {
   userStreamOptionsKey,
   last,
 } from "./stream";
-import { ConatStream, type RawMsg } from "./conat-stream";
+import { CoreStream, type RawMsg } from "./core-stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -44,7 +44,7 @@ import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
 import { type Msg } from "@nats-io/nats-core";
 import { headersFromRawMessages } from "./stream";
-import { COCALC_MESSAGE_ID_HEADER } from "./conat-stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
 
 const logger = getLogger("dstream");
 
@@ -60,7 +60,7 @@ export interface DStreamOptions extends StreamOptions {
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: Stream | ConatStream;
+  private stream?: Stream | CoreStream;
   private messages: T[];
   private raw: (JsMsg | Msg | RawMsg)[][];
   private noAutosave: boolean;
@@ -89,7 +89,7 @@ export class DStream<T = any> extends EventEmitter {
     this.name = opts.name;
     this.stream =
       opts.ephemeral || opts.persist
-        ? new ConatStream(opts)
+        ? new CoreStream(opts)
         : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;

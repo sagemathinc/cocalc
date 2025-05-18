@@ -1,7 +1,8 @@
 /*
+core/client.s -- core conats client 
 
-This is a client that has a similar API to NATS / Socket.io, but is much,
-much better in so many ways:
+This is a client that has a 
+similar API to NATS / Socket.io, but is much, much better in so many ways:
 
 - It has global pub/sub just like with NATS. This uses the server to
   rebroadcast messages, and for authentication. 
@@ -88,7 +89,7 @@ store isn't necessary since there is no limit on message size.  Conat's persiste
 streams are compressed by default and backed by individual sqlite files, which
 makes them very memory efficient and it is easy to tier storage to cloud storage.
    
-   
+UNIT TESTS: See packages/server/nats/test/core
    
 MISC NOTES:
 
@@ -122,6 +123,15 @@ code using subscriptions had to be wrapped in ugly complexity to be
 usable in production.
 
 USAGE:
+
+The following should mostly work to interactively play around with this
+code and develop it.  It's NOT automatically tested and depends on your
+environment though, so may break.  See the unit tests in 
+
+        packages/server/nats/test/core/ 
+
+for something that definitely works perfectly.
+
 
 For developing at the command line, cd to packages/backend, then in node:
 

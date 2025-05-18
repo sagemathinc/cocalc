@@ -20,7 +20,7 @@ Message = {value?:Buffer, headers?:Headers, timestamp?:number}
 
 Moreover, every time one client makes a change, a corresponding message gets
 published so all other clients can update their state. This will use exactly
-the protocol implemented in conat-stream.ts right now.
+the protocol implemented in core-stream.ts right now.
 
 Notes:
 

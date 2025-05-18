@@ -1,14 +1,18 @@
 /*
-Conat Stream 
+core-stream.ts  = the Core Stream data structure for conats.
 
-This is the core data structure that ephemeral and persistent streams and kv stores are built upon.
+This is the core data structure that easy-to-use ephemeral and persistent
+streams and kv stores are built on.  It is NOT meant to be super easy and 
+simple to use as synchronous with save in the background. Instead, operations
+are async, and the API is complicated. We build dkv, dstream, etc. on
+top of this with a much friendly API.
 
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
 
 
-    require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/conat-stream'); s = await a.stream({name:'test', leader:true})
+    require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/core-stream'); s = await a.stream({name:'test', leader:true})
 
 
 Testing two at once (a leader and non-leader):
@@ -18,7 +22,7 @@ Testing two at once (a leader and non-leader):
 
 With persistence:
 
-   require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/conat-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
+   require('@cocalc/backend/nats'); a = require('@cocalc/nats/sync/core-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
    
 */
 
@@ -69,7 +73,7 @@ const PUBLISH_TIMEOUT = 7500;
 
 const DEFAULT_HEARTBEAT_INTERVAL = 30 * 1000;
 
-export interface ConatStreamOptions {
+export interface CoreStreamOptions {
   // what it's called
   name: string;
   // where it is located
@@ -87,7 +91,7 @@ export interface ConatStreamOptions {
   heartbeatInterval?: number;
 }
 
-export class ConatStream<T = any> extends EventEmitter {
+export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
   private readonly limits: FilteredStreamLimitOptions;
@@ -129,7 +133,7 @@ export class ConatStream<T = any> extends EventEmitter {
     leader = false,
     persist = false,
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
-  }: ConatStreamOptions) {
+  }: CoreStreamOptions) {
     super();
     this.user = { account_id, project_id };
     this.valueType = valueType;
@@ -797,17 +801,17 @@ export class ConatStream<T = any> extends EventEmitter {
   );
 }
 
-export const cache = refCache<ConatStreamOptions, ConatStream>({
-  name: "conat-stream",
-  createObject: async (options: ConatStreamOptions) => {
-    const estream = new ConatStream(options);
+export const cache = refCache<CoreStreamOptions, CoreStream>({
+  name: "core-stream",
+  createObject: async (options: CoreStreamOptions) => {
+    const estream = new CoreStream(options);
     await estream.init();
     return estream;
   },
 });
 export async function stream<T>(
-  options: ConatStreamOptions,
-): Promise<ConatStream<T>> {
+  options: CoreStreamOptions,
+): Promise<CoreStream<T>> {
   return await cache(options);
 }
 

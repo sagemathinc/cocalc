@@ -69,7 +69,7 @@ import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
-import { COCALC_MESSAGE_ID_HEADER } from "./conat-stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
 
 interface RawMsg extends Msg {
   timestamp: number;
