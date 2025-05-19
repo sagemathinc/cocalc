@@ -70,6 +70,7 @@ import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
 import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
+import type { Client } from "@cocalc/nats/core/client";
 
 interface RawMsg extends Msg {
   timestamp: number;
@@ -921,13 +922,14 @@ export interface UserStreamOptions {
   noCache?: boolean;
   desc?: JSONValue;
   valueType?: ValueType;
+  client?: Client;
 }
 
 export function userStreamOptionsKey(options: UserStreamOptions) {
   if (!options.name) {
     throw Error("name must be specified");
   }
-  const { env, ...x } = options;
+  const { env, client, ...x } = options;
   return jsonStableStringify(x);
 }
 

@@ -7,6 +7,7 @@ import {
 import { wait } from "@cocalc/server/nats/test/util";
 import type { Client } from "@cocalc/nats/core/client";
 import { is_date as isDate } from "@cocalc/util/misc";
+import { dstream } from "@cocalc/nats/sync/dstream";
 
 beforeAll(before);
 
@@ -245,6 +246,58 @@ describe("test creating a non-leader first, then the leader", () => {
       streams[i]?.close();
       clients[i]?.close();
     }
+  });
+});
+
+describe("test using ephemeral dstream", () => {
+  let client;
+  let stream;
+  let name = `test-${Math.random()}`;
+
+  it("creates an ephemeral dstream", async () => {
+    client = connect();
+    stream = await dstream({ client, name, ephemeral: true, leader: true });
+    expect(stream.length).toBe(0);
+  });
+
+  it("publishes a value", () => {
+    stream.publish(0);
+    expect(stream.getAll()).toEqual([0]);
+  });
+
+  // [ ] TODO: this is be fast even for count=10000,
+  // but it is NOT. We use a smaller value for now.
+  const count = 100;
+  it(`publish ${count} messages`, async () => {
+    const v: number[] = [0];
+    for (let i = 1; i < count; i++) {
+      stream.publish(i);
+      v.push(i);
+      expect(stream.get(i)).toBe(i);
+      expect(stream.length).toBe(i + 1);
+    }
+    expect(stream.length).toBe(count);
+    expect(stream.getAll()).toEqual(v);
+    await stream.save();
+  });
+
+  let client2;
+  let stream2;
+  it("opens a second dstream non-leader", async () => {
+    client2 = connect();
+    stream2 = await dstream({
+      client: client2,
+      name,
+      ephemeral: true,
+      leader: true,
+    });
+    expect(stream2.length).toBe(count);
+  });
+
+  it("write to the second stream and see reflected in the first", async () => {
+    await stream2.publish("x");
+    wait({ until: () => stream.length == 101 });
+    expect(stream.get(stream.length - 1)).toBe("x");
   });
 });
 

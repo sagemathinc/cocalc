@@ -48,7 +48,7 @@ import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
 
 const logger = getLogger("dstream");
 
-const MAX_PARALLEL = 250;
+const MAX_PARALLEL = 50;
 
 export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
@@ -75,7 +75,6 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
-
     if (
       opts.noInventory ||
       opts.ephemeral ||
@@ -88,12 +87,10 @@ export class DStream<T = any> extends EventEmitter {
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
     this.stream =
-      opts.ephemeral || opts.persist
-        ? new CoreStream(opts)
-        : new Stream(opts);
+      opts.ephemeral || opts.persist ? new CoreStream(opts) : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
-    if (!this.noAutosave) {
+    if (!opts.ephemeral && !this.noAutosave) {
       this.client = getClient();
       this.client.on("connected", this.save);
     }
@@ -242,7 +239,7 @@ export class DStream<T = any> extends EventEmitter {
       }
       return obj;
     }
-    return this.opts.env.jc.decode(this.opts.env.jc.encode(obj));
+    return obj;
   };
 
   publish = (
@@ -453,12 +450,20 @@ export class DStream<T = any> extends EventEmitter {
   );
 }
 
-export const cache = refCache<UserStreamOptions, DStream>({
+type CreateOptions = UserStreamOptions & {
+  noAutosave?: boolean;
+  noInventory?: boolean;
+  leader?: boolean;
+  ephemeral?: boolean;
+  persist?: boolean;
+};
+
+export const cache = refCache<CreateOptions, DStream>({
   name: "dstream",
   createKey: userStreamOptionsKey,
   createObject: async (options) => {
-    await waitUntilConnected();
-    if (options.env == null) {
+    if (options.env == null && !options.ephemeral) {
+      await waitUntilConnected();
       options.env = await getEnv();
     }
     const { account_id, project_id, name, valueType = "json" } = options;
@@ -483,14 +488,6 @@ export const cache = refCache<UserStreamOptions, DStream>({
   },
 });
 
-export async function dstream<T>(
-  options: UserStreamOptions & {
-    noAutosave?: boolean;
-    noInventory?: boolean;
-    leader?: boolean;
-    ephemeral?: boolean;
-    persist?: boolean;
-  },
-): Promise<DStream<T>> {
+export async function dstream<T>(options: CreateOptions): Promise<DStream<T>> {
   return await cache(options);
 }
