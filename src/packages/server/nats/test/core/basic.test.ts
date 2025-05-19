@@ -42,8 +42,18 @@ describe("basic test of publish and subscribe", () => {
     expect(done).toBe(false);
   });
 
+  it("publishing undefined is not allowed", async () => {
+    await expect(
+      async () => await cn.publish(subject, undefined),
+    ).rejects.toThrowError("must not be undefined");
+
+    expect(() => cn.publishSync(subject, undefined)).toThrow(
+      "must not be undefined",
+    );
+  });
+
   it("publishes using a second client", async () => {
-    const data = "client2";
+    const data = null;
     cn2 = connect();
     expect(cn === cn2).toEqual(false);
     await cn2.publish(subject, data);
@@ -202,7 +212,7 @@ describe("basic tests of request/respond", () => {
   it("create a requestMany server that iterates over what you send it", async () => {
     // This example illustrates how to define a requestMany server
     // and includes error handling.  Note the technique of using
-    // the *headers* for control signalling (e.g., when we're done, or if 
+    // the *headers* for control signalling (e.g., when we're done, or if
     // there is an error) and using the message payload for the actual data.
     // In Conat headers are very well supported, encouraged, and easy to use
     // (and arbitrary JSON), unlike NATS.js.

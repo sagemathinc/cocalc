@@ -512,6 +512,9 @@ export class Client {
     // **right now** or received these messages.
     count: number;
   }> => {
+    if (mesg === undefined) {
+      throw Error("mesg must not be undefined");
+    }
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
