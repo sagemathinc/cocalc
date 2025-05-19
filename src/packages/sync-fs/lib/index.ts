@@ -166,7 +166,7 @@ export class SyncFS {
   }
 
   init = async () => {
-    await this.initNatsService();
+    await this.initConatService();
     await this.mountUnionFS();
     await this.bindMountExcludes();
     await this.makeScratchDir();
@@ -798,7 +798,7 @@ export class SyncFS {
     }
   };
 
-  initNatsService = async () => {
+  initConatService = async () => {
     if (this.role == "compute_server") {
       this.natsService = await initNatsClientService({
         syncfs: this,

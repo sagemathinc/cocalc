@@ -43,13 +43,13 @@ import { compute_server_id, project_id } from "@cocalc/project/data";
 import { init as initClient } from "@cocalc/project/client";
 import { delay } from "awaiting";
 import { type DKV } from "./sync";
-import { type NatsService } from "@cocalc/conat/service";
+import { type ConatService } from "@cocalc/conat/service";
 import { MultipathWatcher } from "@cocalc/backend/path-watcher";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project:nats:listings");
 
-let service: NatsService | null;
+let service: ConatService | null;
 export async function init() {
   logger.debug("init: initializing");
   initClient();

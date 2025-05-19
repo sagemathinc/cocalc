@@ -31,10 +31,10 @@ import {
 } from "@cocalc/conat/sync/stream";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
-import { callNatsService, createNatsService } from "@cocalc/conat/service";
+import { callConatService, createConatService } from "@cocalc/conat/service";
 import type {
-  CallNatsServiceFunction,
-  CreateNatsServiceFunction,
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { listingsClient } from "@cocalc/conat/service/listings";
 import {
@@ -216,12 +216,12 @@ export class NatsClient extends EventEmitter {
     }
   };
 
-  callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService(options);
+  callConatService: CallConatServiceFunction = async (options) => {
+    return await callConatService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = (options) => {
-    return createNatsService(options);
+  createConatService: CreateConatServiceFunction = (options) => {
+    return createConatService(options);
   };
 
   // TODO: plan to deprecated...?

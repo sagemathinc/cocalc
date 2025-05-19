@@ -1,13 +1,13 @@
 import {
-  callNatsService,
-  createNatsService,
-  pingNatsService,
-  waitForNatsService,
+  callConatService,
+  createConatService,
+  pingConatService,
+  waitForConatService,
 } from "./service";
 import type { Options, ServiceCall } from "./service";
 
 export interface Extra {
-  ping: typeof pingNatsService;
+  ping: typeof pingConatService;
   waitFor: (opts?: { maxWait?: number }) => Promise<void>;
 }
 
@@ -26,14 +26,14 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
         if (prop == "nats") {
           return {
             ping: async (opts: { id?: string; maxWait?: number } = {}) =>
-              await pingNatsService({ options, ...opts }),
+              await pingConatService({ options, ...opts }),
             waitFor: async (opts: { maxWait?: number } = {}) =>
-              await waitForNatsService({ options, ...opts }),
+              await waitForConatService({ options, ...opts }),
           };
         }
         return async (...args) => {
           try {
-            return await callNatsService({
+            return await callConatService({
               ...options,
               mesg: { name: prop, args },
             });
@@ -51,7 +51,7 @@ export async function createServiceHandler<Api>({
   impl,
   ...options
 }: Omit<Options, "handler"> & { impl: Api }) {
-  return await createNatsService({
+  return await createConatService({
     ...options,
     handler: async (mesg) => await impl[mesg.name](...mesg.args),
   });

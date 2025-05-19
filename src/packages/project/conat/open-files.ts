@@ -92,7 +92,7 @@ import { delay } from "awaiting";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { createFormatterService } from "./formatter";
-import { type NatsService } from "@cocalc/conat/service/service";
+import { type ConatService } from "@cocalc/conat/service/service";
 import { createTerminalService } from "./terminal";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
@@ -127,7 +127,7 @@ const FILE_DELETION_INITIAL_DELAY = 15000;
 
 let openFiles: OpenFiles | null = null;
 let formatter: any = null;
-const openDocs: { [path: string]: SyncDoc | NatsService } = {};
+const openDocs: { [path: string]: SyncDoc | ConatService } = {};
 let computeServers: ComputeServerManager | null = null;
 const openTimes: { [path: string]: number } = {};
 

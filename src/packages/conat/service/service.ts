@@ -1,8 +1,8 @@
 /*
 Simple to use UI to connect anything in cocalc via request/reply services.
 
-- callNatsService
-- createNatsService
+- callConatService
+- createConatService
 
 The input is basically where the service is (account, project, public),
 and either what message to send or how to handle messages.
@@ -46,8 +46,8 @@ export interface ServiceCall extends ServiceDescription {
   noRetry?: boolean;
 }
 
-export async function callNatsService(opts: ServiceCall): Promise<any> {
-  // console.log("callNatsService", opts);
+export async function callConatService(opts: ServiceCall): Promise<any> {
+  // console.log("callConatService", opts);
   const env = await getEnv();
   const { cn } = env;
   const subject = serviceSubject(opts);
@@ -79,7 +79,7 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
       if (err.code == 503) {
         // it's actually just not ready, so
         // wait for the service to be ready, then try again
-        await waitForNatsService({ options: opts, maxWait: timeout });
+        await waitForConatService({ options: opts, maxWait: timeout });
         try {
           return await doRequest();
         } catch (err) {
@@ -98,7 +98,7 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   }
 }
 
-export type CallNatsServiceFunction = typeof callNatsService;
+export type CallConatServiceFunction = typeof callConatService;
 
 export interface Options extends ServiceDescription {
   description?: string;
@@ -106,11 +106,11 @@ export interface Options extends ServiceDescription {
   handler: (mesg) => Promise<any>;
 }
 
-export function createNatsService(options: Options) {
-  return new NatsService(options);
+export function createConatService(options: Options) {
+  return new ConatService(options);
 }
 
-export type CreateNatsServiceFunction = typeof createNatsService;
+export type CreateConatServiceFunction = typeof createConatService;
 
 export function serviceSubject({
   service,
@@ -180,7 +180,7 @@ export function serviceDescription({
   return [description, path ? `\nPath: ${path}` : ""].join("");
 }
 
-export class NatsService extends EventEmitter {
+export class ConatService extends EventEmitter {
   private options: Options;
   private subject: string;
   private sub?;
@@ -264,11 +264,11 @@ interface ServiceClientOpts {
   id?: string;
 }
 
-export async function pingNatsService({
+export async function pingConatService({
   options,
   maxWait = 3000,
 }: ServiceClientOpts): Promise<string[]> {
-  const pong = await callNatsService({
+  const pong = await callConatService({
     ...options,
     mesg: "ping",
     timeout: Math.max(3000, maxWait),
@@ -278,7 +278,7 @@ export async function pingNatsService({
   return [pong];
 }
 
-export async function waitForNatsService({
+export async function waitForConatService({
   options,
   maxWait = 60000,
 }: {
@@ -290,7 +290,7 @@ export async function waitForNatsService({
   const start = Date.now();
   const getPing = async (m: number) => {
     try {
-      return await pingNatsService({ options, maxWait: m });
+      return await pingConatService({ options, maxWait: m });
     } catch {
       // ping can fail, e.g, if not connected to nats at all or the ping
       // service isn't up yet.

@@ -30,7 +30,7 @@ import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
-import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
+import { initConatService } from "@cocalc/jupyter/kernel/nats-service";
 import { type DKV, dkv } from "@cocalc/conat/sync/dkv";
 import { computeServerManager } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -223,7 +223,7 @@ export class JupyterActions extends JupyterActions0 {
       this.natsService.close();
       this.natsService = null;
     }
-    const service = (this.natsService = await initNatsService({
+    const service = (this.natsService = await initConatService({
       project_id: this.project_id,
       path: this.path,
     }));

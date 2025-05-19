@@ -53,10 +53,10 @@ import pubsub from "@cocalc/project/conat/pubsub";
 import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import { getEnv as getNatsEnv } from "@cocalc/project/conat/env";
 import {
-  callNatsService,
-  createNatsService,
-  type CallNatsServiceFunction,
-  type CreateNatsServiceFunction,
+  callConatService,
+  createConatService,
+  type CallConatServiceFunction,
+  type CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import type { NatsEnvFunction } from "@cocalc/conat/types";
 
@@ -528,12 +528,12 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await pubsub({ path, name });
   };
 
-  callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService(options);
+  callConatService: CallConatServiceFunction = async (options) => {
+    return await callConatService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = (options) => {
-    return createNatsService({
+  createConatService: CreateConatServiceFunction = (options) => {
+    return createConatService({
       ...options,
       project_id: this.project_id,
     });

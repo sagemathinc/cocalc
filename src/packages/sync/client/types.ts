@@ -1,8 +1,8 @@
 import type { EventEmitter } from "events";
 import type { CB } from "@cocalc/util/types/callback";
 import type {
-  CallNatsServiceFunction,
-  CreateNatsServiceFunction,
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 
 // What we need the client to implement so we can use
@@ -21,8 +21,8 @@ export interface Client extends EventEmitter {
   touch_project: (project_id: string, compute_server_id?: number) => void;
   set_connected?: Function;
   is_deleted: (path: string, project_id: string) => true | false | undefined;
-  callNatsService?: CallNatsServiceFunction;
-  createNatsService?: CreateNatsServiceFunction;
+  callConatService?: CallConatServiceFunction;
+  createConatService?: CreateConatServiceFunction;
   client_id?: () => string | undefined;
 }
 

@@ -1,8 +1,8 @@
 export type {
   ServiceDescription,
-  CallNatsServiceFunction,
+  CallConatServiceFunction,
   ServiceCall,
-  CreateNatsServiceFunction,
-  NatsService,
+  CreateConatServiceFunction,
+  ConatService,
 } from "./service";
-export { callNatsService, createNatsService } from "./service";
+export { callConatService, createConatService } from "./service";

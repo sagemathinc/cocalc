@@ -13,7 +13,7 @@ import { createNatsJupyterService } from "@cocalc/conat/service/jupyter";
 import { get_existing_kernel as getKernel } from "@cocalc/jupyter/kernel";
 import { bufferToBase64 } from "@cocalc/util/base64";
 
-export async function initNatsService({
+export async function initConatService({
   path,
   project_id,
 }: {

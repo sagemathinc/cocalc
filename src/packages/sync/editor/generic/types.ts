@@ -13,8 +13,8 @@ import { SyncTable } from "@cocalc/sync/table/synctable";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import type {
-  CallNatsServiceFunction,
-  CreateNatsServiceFunction,
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 
 export interface Patch {
@@ -130,8 +130,8 @@ export interface ProjectClient extends EventEmitter {
 
   synctable_nats: (query: any, obj?) => Promise<any>;
   pubsub_nats: (query: any, obj?) => Promise<any>;
-  callNatsService?: CallNatsServiceFunction;
-  createNatsService?: CreateNatsServiceFunction;
+  callConatService?: CallConatServiceFunction;
+  createConatService?: CreateConatServiceFunction;
 
   // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
