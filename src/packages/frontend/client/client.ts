@@ -21,7 +21,7 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
-import { NatsClient } from "@cocalc/frontend/nats/client";
+import { NatsClient } from "@cocalc/frontend/conat/client";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";

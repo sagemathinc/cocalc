@@ -5,7 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
-    "./nats": "./dist/nats/index.js",
+    "./conat": "./dist/conat/index.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"

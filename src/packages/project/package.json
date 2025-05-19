@@ -4,7 +4,7 @@
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
-    "./nats": "./dist/nats/index.js",
+    "./conat": "./dist/conat/index.js",
     "./*": "./dist/*.js"
   },
   "keywords": [

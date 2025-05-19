@@ -12,7 +12,7 @@ import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
 import type { PrimusWithChannels } from "@cocalc/terminal";
-import initNats from "@cocalc/project/nats";
+import initNats from "@cocalc/project/conat";
 
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
 // during project startup to save 100kb -- it just isn't worth it.  Obviously, it

@@ -33,7 +33,7 @@ import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
 import { initNatsServer } from "./nats";
-import { initConatServer } from "@cocalc/server/nats/socketio";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);

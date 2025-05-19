@@ -4,7 +4,7 @@ NATS service that provides tiered storage of data.
 This is pure javascript and sets the basic interface,
 behavior and types for both client and server.
 
-See also @cocalc/server/nats/tiered-storage.
+See also @cocalc/server/conat/tiered-storage.
 
 DEVELOPMENT:
 

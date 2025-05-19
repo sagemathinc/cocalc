@@ -47,7 +47,7 @@ import {
   initNatsChangefeedServer,
   initNatsTieredStorage,
   initNatsServer,
-} from "@cocalc/server/nats";
+} from "@cocalc/server/conat";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";

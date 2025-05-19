@@ -5,7 +5,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./accounts/*": "./dist/accounts/*.js",
-    "./nats/*": "./dist/nats/*.js",
+    "./conat/*": "./dist/conat/*.js",
     "./pool": "./dist/pool/index.js",
     "./pool/*": "./dist/pool/*.js",
     "./postgres/*": "./dist/postgres/*.js",

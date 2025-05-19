@@ -48,10 +48,10 @@ import * as sage_session from "./sage_session";
 import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import synctable_nats from "@cocalc/project/nats/synctable";
-import pubsub from "@cocalc/project/nats/pubsub";
+import synctable_nats from "@cocalc/project/conat/synctable";
+import pubsub from "@cocalc/project/conat/pubsub";
 import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
-import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
+import { getEnv as getNatsEnv } from "@cocalc/project/conat/env";
 import {
   callNatsService,
   createNatsService,

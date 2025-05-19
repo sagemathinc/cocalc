@@ -23,7 +23,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import * as misc from "@cocalc/util/misc";

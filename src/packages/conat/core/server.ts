@@ -4,16 +4,16 @@
 cd packages/server
 
 
-   s = await require('@cocalc/server/nats/socketio').initConatServer()
+   s = await require('@cocalc/server/conat/socketio').initConatServer()
    
-   s0 = await require('@cocalc/server/nats/socketio').initConatServer({port:3000})
+   s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000})
    
 
 For clustering:
 
-   s0 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
+   s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
    
-   s1 = await require('@cocalc/server/nats/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
+   s1 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
    
 Corresponding clients:
 
