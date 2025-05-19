@@ -28,18 +28,20 @@ or
     deletable : bool
 */
 
-import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import {
   redux,
   Rendered,
-  useState,
   useEffect,
+  useState,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
 import { TimeTravelActions } from "../time-travel-editor/actions";
@@ -50,7 +52,6 @@ import { get_file_editor } from "./register";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
-import { AccountState } from "@cocalc/frontend/account/types";
 
 interface FrameTreeProps {
   actions: Actions;
@@ -59,7 +60,7 @@ interface FrameTreeProps {
   complete: Map<string, any>;
   cursors: Map<string, any>;
   derived_file_types: Set<string>;
-  editor_settings?: AccountState["editor_settings"];
+  editor_settings: AccountState["editor_settings"];
   editor_spec: EditorSpec;
   editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
@@ -377,7 +378,9 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         component = spec != null ? spec.component : undefined;
         if (component == null) {
           throw Error(
-            `unknown type '${type}'. Known types for this editor: ${JSON.stringify(Object.keys(editor_spec))}`,
+            `unknown type '${type}'. Known types for this editor: ${JSON.stringify(
+              Object.keys(editor_spec),
+            )}`,
           );
         }
       } catch (err) {

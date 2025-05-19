@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Layout } from "antd";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -10,7 +12,6 @@ import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { Layout } from "antd";
 
 const dataSource: DataSource = [
   {

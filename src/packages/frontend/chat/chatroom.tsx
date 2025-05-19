@@ -20,7 +20,7 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
-import type { ChatActions } from "./actions";
+import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
 import { FoldAllThreads } from "./fold-threads";
@@ -65,15 +65,6 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   position: "relative",
 } as const;
 
-interface Props {
-  actions: ChatActions;
-  project_id: string;
-  path: string;
-  is_visible?: boolean;
-  font_size: number;
-  desc?;
-}
-
 export function ChatRoom({
   actions,
   project_id,
@@ -81,7 +72,7 @@ export function ChatRoom({
   is_visible,
   font_size,
   desc,
-}: Props) {
+}: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const [input, setInput] = useState("");
   const search = desc?.get("data-search") ?? "";
