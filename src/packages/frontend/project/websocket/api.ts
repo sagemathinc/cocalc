@@ -31,14 +31,14 @@ import type {
 } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { type ProjectApi } from "@cocalc/nats/project-api";
+import { type ProjectApi } from "@cocalc/conat/project-api";
 import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { formatterClient } from "@cocalc/nats/service/formatter";
-import { syncFsClientClient } from "@cocalc/nats/service/syncfs-client";
-// import { syncFsServerClient } from "@cocalc/nats/service/syncfs-server";
+import { formatterClient } from "@cocalc/conat/service/formatter";
+import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
+// import { syncFsServerClient } from "@cocalc/conat/service/syncfs-server";
 
 export class API {
   private conn;

@@ -7,7 +7,7 @@ pnpm test ./time.test.ts
 // this sets client
 import "@cocalc/backend/nats";
 
-import time, { getSkew } from "@cocalc/nats/time";
+import time, { getSkew } from "@cocalc/conat/time";
 
 describe("get time from nats", () => {
   it("tries to get the time before the skew, so it is not initialized yet", () => {
@@ -29,7 +29,7 @@ describe("get time from nats", () => {
   });
 });
 
-import { timeClient, createTimeService } from "@cocalc/nats/service/time";
+import { timeClient, createTimeService } from "@cocalc/conat/service/time";
 
 describe("start the time server and client and test that it works", () => {
   it("starts the time server and queries it", async () => {

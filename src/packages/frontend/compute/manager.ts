@@ -12,7 +12,7 @@ When doing dev from the browser console, do:
 import {
   computeServerManager,
   type ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
+} from "@cocalc/conat/compute/manager";
 
 const computeServerManagerCache: {
   [project_id: string]: ComputeServerManager;

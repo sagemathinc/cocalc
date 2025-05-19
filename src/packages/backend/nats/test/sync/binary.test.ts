@@ -10,7 +10,7 @@ pnpm exec jest --forceExit "binary.test.ts"
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup
-import { getMaxPayload } from "@cocalc/nats/util";
+import { getMaxPayload } from "@cocalc/conat/util";
 import { dstream, dkv } from "@cocalc/backend/nats/sync";
 
 describe("test binary data with a dstream", () => {

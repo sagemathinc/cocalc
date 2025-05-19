@@ -4,9 +4,9 @@
  */
 
 import { EventEmitter } from "events";
-import { changefeed, renew } from "@cocalc/nats/changefeed/client";
+import { changefeed, renew } from "@cocalc/conat/changefeed/client";
 import { delay } from "awaiting";
-import { waitUntilConnected } from "@cocalc/nats/util";
+import { waitUntilConnected } from "@cocalc/conat/util";
 
 const LIFETIME = 60000;
 const HEARTBEAT = 15000;

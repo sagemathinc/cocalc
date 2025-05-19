@@ -1,4 +1,4 @@
-import { inboxPrefix } from "@cocalc/nats/names";
+import { inboxPrefix } from "@cocalc/conat/names";
 import {
   getCoCalcUserType,
   getCoCalcUserId,

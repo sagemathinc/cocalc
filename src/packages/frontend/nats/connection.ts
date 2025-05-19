@@ -58,7 +58,7 @@ import type {
   Subscription,
 } from "@nats-io/nats-core";
 import { connect as natsConnect } from "nats.ws";
-import { inboxPrefix } from "@cocalc/nats/names";
+import { inboxPrefix } from "@cocalc/conat/names";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";

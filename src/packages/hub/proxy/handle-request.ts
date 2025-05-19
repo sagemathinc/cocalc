@@ -10,7 +10,7 @@ import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
-import { readFile as readProjectFile } from "@cocalc/nats/files/read";
+import { readFile as readProjectFile } from "@cocalc/conat/files/read";
 import { path_split } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";

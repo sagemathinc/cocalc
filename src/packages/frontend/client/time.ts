@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import getTime, { getLastSkew, getLastPingTime } from "@cocalc/nats/time";
+import getTime, { getLastSkew, getLastPingTime } from "@cocalc/conat/time";
 
 const PING_INTERVAL_MS = 10000;
 

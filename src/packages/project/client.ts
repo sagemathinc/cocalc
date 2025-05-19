@@ -50,15 +50,15 @@ import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import synctable_nats from "@cocalc/project/nats/synctable";
 import pubsub from "@cocalc/project/nats/pubsub";
-import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
 import {
   callNatsService,
   createNatsService,
   type CallNatsServiceFunction,
   type CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
-import type { NatsEnvFunction } from "@cocalc/nats/types";
+} from "@cocalc/conat/service";
+import type { NatsEnvFunction } from "@cocalc/conat/types";
 
 const winston = getLogger("client");
 

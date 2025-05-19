@@ -17,12 +17,12 @@ importers:
       '@cocalc/compute':
         specifier: 'link:'
         version: 'link:'
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
-      '@cocalc/nats':
-        specifier: workspace:*
-        version: link:../nats
       '@cocalc/project':
         specifier: workspace:*
         version: link:../project

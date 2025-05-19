@@ -17,7 +17,7 @@ import {
   listingsClient,
   type ListingsClient,
   type Listing,
-} from "@cocalc/nats/service/listings";
+} from "@cocalc/conat/service/listings";
 import { useAsyncEffect } from "use-async-effect";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 

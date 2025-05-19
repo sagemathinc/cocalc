@@ -4,10 +4,10 @@ import { JSONCodec } from "nats";
 import {
   createSyncTable,
   type NatsSyncTable,
-} from "@cocalc/nats/sync/synctable";
+} from "@cocalc/conat/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import { keys } from "lodash";
-import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
+import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
 
 const jc = JSONCodec();
 

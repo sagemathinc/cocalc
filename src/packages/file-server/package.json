@@ -19,7 +19,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.8.1",

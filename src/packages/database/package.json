@@ -20,7 +20,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nats-io/services": "3.0.0",
     "async": "^1.5.2",

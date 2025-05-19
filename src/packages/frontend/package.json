@@ -44,7 +44,7 @@
     "@cocalc/frontend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/local-storage-lru": "^2.4.3",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@cocalc/widgets": "^1.2.0",

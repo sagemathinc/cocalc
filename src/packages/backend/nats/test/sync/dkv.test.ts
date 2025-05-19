@@ -395,7 +395,7 @@ describe("tests involving null/undefined values", () => {
   });
 });
 
-import { numSubscriptions } from "@cocalc/nats/client";
+import { numSubscriptions } from "@cocalc/conat/client";
 
 describe("ensure there are no NATS subscription leaks", () => {
   // There is some slight slack at some point due to the clock stuff,

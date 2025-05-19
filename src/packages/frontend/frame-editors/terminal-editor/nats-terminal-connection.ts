@@ -2,14 +2,14 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
-import { type DStream } from "@cocalc/nats/sync/dstream";
+import { type DStream } from "@cocalc/conat/sync/dstream";
 import {
   createTerminalClient,
   type TerminalServiceApi,
   createBrowserService,
   SIZE_TIMEOUT_MS,
   createBrowserClient,
-} from "@cocalc/nats/service/terminal";
+} from "@cocalc/conat/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
 type State = "disconnected" | "init" | "running" | "closed";

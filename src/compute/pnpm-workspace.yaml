@@ -3,7 +3,7 @@ packages:
   - backend
   - comm
   - jupyter
-  - nats
+  - conat
   - project
   - sync
   - sync-fs

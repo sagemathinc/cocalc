@@ -79,7 +79,7 @@ import {
   type OpenFiles,
   type OpenFileEntry,
 } from "@cocalc/project/nats/sync";
-import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
+import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
@@ -92,7 +92,7 @@ import { delay } from "awaiting";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { createFormatterService } from "./formatter";
-import { type NatsService } from "@cocalc/nats/service/service";
+import { type NatsService } from "@cocalc/conat/service/service";
 import { createTerminalService } from "./terminal";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
@@ -101,7 +101,7 @@ import { join } from "path";
 import {
   computeServerManager,
   ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
+} from "@cocalc/conat/compute/manager";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
 // ensure nats connection stuff is initialized

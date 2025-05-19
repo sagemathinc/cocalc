@@ -3,7 +3,7 @@ This seems like it will be really useful... but we're not
 using it yet.
 */
 
-import { SystemKv } from "@cocalc/nats/system";
+import { SystemKv } from "@cocalc/conat/system";
 import { JSONCodec } from "nats";
 import { getConnection } from "@cocalc/backend/nats";
 import { sha1 } from "@cocalc/backend/misc_node";

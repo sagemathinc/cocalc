@@ -13,7 +13,7 @@
     "@cocalc/database": "workspace:*",
     "@cocalc/frontend": "workspace:*",
     "@cocalc/hub": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/next": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/static": "workspace:*",

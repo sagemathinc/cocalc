@@ -41,14 +41,14 @@ And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { type HubApi, getUserId, transformArgs } from "@cocalc/nats/hub-api";
+import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub-api";
 import { getEnv } from "@cocalc/backend/nats";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
-import { terminate as terminateChangefeedServer } from "@cocalc/nats/changefeed/server";
+import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
 import { terminate as terminateAuth } from "@cocalc/server/nats/auth";
 import { terminate as terminateTieredStorage } from "@cocalc/server/nats/tiered-storage/api";
-import { terminate as terminatePersistServer } from "@cocalc/nats/persist/server";
+import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
 import { delay } from "awaiting";
 
 const logger = getLogger("server:nats:api");

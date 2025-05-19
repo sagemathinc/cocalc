@@ -6,7 +6,7 @@ import { init as initLLM } from "./llm";
 import { init as initAuth } from "./auth";
 import { init as initTieredStorage } from "./tiered-storage/api";
 import { loadNatsConfiguration } from "./configuration";
-import { createTimeService } from "@cocalc/nats/service/time";
+import { createTimeService } from "@cocalc/conat/service/time";
 import { initServer as initPersistServer } from "@cocalc/backend/nats/persist";
 
 export { loadNatsConfiguration };

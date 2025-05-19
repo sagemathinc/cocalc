@@ -3,7 +3,7 @@ import {
   connect as connect0,
   Client,
   type ConnectOptions,
-} from "@cocalc/nats/core/client";
+} from "@cocalc/conat/core/client";
 
 export type { Client };
 

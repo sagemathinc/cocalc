@@ -2,7 +2,7 @@
 SyncFS Client Service, which runs on compute servers
 */
 
-import { createSyncFsClientService } from "@cocalc/nats/service/syncfs-client";
+import { createSyncFsClientService } from "@cocalc/conat/service/syncfs-client";
 import { type SyncFS } from "../index";
 
 export async function initNatsClientService({

@@ -40,7 +40,7 @@ import { getLogger } from "@cocalc/project/logger";
 import { JSONCodec } from "nats";
 import getConnection, { connectToConat } from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
-import { getPrimusConnection } from "@cocalc/nats/primus";
+import { getPrimusConnection } from "@cocalc/conat/primus";
 import { getSubject } from "./names";
 
 const logger = getLogger("project:nats:browser-websocket-api");

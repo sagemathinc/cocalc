@@ -14,7 +14,7 @@ DEBUG=cocalc*changefeed* DEBUG_CONSOLE=yes node
 
 In another session:
 
-    require('@cocalc/backend/nats'); c = require('@cocalc/nats/changefeed/client');
+    require('@cocalc/backend/nats'); c = require('@cocalc/conat/changefeed/client');
     account_id = '6aae57c6-08f1-4bb5-848b-3ceb53e61ede';
     cf = await c.changefeed({account_id,query:{accounts:[{account_id, first_name:null}]}, heartbeat:5000, lifetime:30000});
 
@@ -25,7 +25,7 @@ In another session:
     await c.renew({account_id, id})
 */
 
-import { init as initChangefeedServer } from "@cocalc/nats/changefeed/server";
+import { init as initChangefeedServer } from "@cocalc/conat/changefeed/server";
 import { db } from "@cocalc/database";
 import "@cocalc/backend/nats";
 

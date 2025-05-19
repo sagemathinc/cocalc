@@ -10,8 +10,8 @@ DEVELOPMENT:
 // this sets client
 import "@cocalc/backend/nats";
 
-import { init, close } from "@cocalc/nats/llm/server";
-import { llm } from "@cocalc/nats/llm/client";
+import { init, close } from "@cocalc/conat/llm/server";
+import { llm } from "@cocalc/conat/llm/client";
 
 describe("create an llm server, client, and stub evaluator, and run an evaluation", () => {
   // define trivial evaluate

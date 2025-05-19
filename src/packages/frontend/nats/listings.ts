@@ -15,10 +15,10 @@ import {
   createListingsApiClient,
   type ListingsApi,
   MIN_INTEREST_INTERVAL_MS,
-} from "@cocalc/nats/service/listings";
+} from "@cocalc/conat/service/listings";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { getLogger } from "@cocalc/nats/client";
+import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("listings");
 

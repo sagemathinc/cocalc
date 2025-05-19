@@ -51,7 +51,7 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { type ProjectApi } from "@cocalc/nats/project-api";
+import { type ProjectApi } from "@cocalc/conat/project-api";
 import { connectToConat } from "@cocalc/project/nats/connection";
 import { getSubject } from "../names";
 import { terminate as terminateOpenFiles } from "@cocalc/project/nats/open-files";

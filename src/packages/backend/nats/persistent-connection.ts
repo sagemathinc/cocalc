@@ -28,7 +28,7 @@ the connection object itself, so it's possible to do this at all! :-)
 import { getLogger } from "@cocalc/backend/logger";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { NatsConnection } from "@cocalc/nats/types";
+import type { NatsConnection } from "@cocalc/conat/types";
 import { connect as connectViaTCP } from "nats";
 import { connect as connectViaWebsocket } from "nats.ws";
 import { CONNECT_OPTIONS } from "@cocalc/util/nats";
@@ -59,7 +59,7 @@ const getConnection = reuseInFlight(async (): Promise<NatsConnection> => {
 export default getConnection;
 
 // NOTE: this monitorConnection also has to work properly with the
-// waitUntilConnected function from @cocalc/nats/util.
+// waitUntilConnected function from @cocalc/conat/util.
 
 // The NATS docs ensure us that "the client will always attempt to
 // reconnect if the connection is disrupted for a reason other than

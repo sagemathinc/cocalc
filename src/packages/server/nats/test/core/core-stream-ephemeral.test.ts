@@ -3,11 +3,11 @@ import {
   cstream,
   COCALC_STREAM_HEADER,
   type CoreStream,
-} from "@cocalc/nats/sync/core-stream";
+} from "@cocalc/conat/sync/core-stream";
 import { wait } from "@cocalc/server/nats/test/util";
-import type { Client } from "@cocalc/nats/core/client";
+import type { Client } from "@cocalc/conat/core/client";
 import { is_date as isDate } from "@cocalc/util/misc";
-import { dstream } from "@cocalc/nats/sync/dstream";
+import { dstream } from "@cocalc/conat/sync/dstream";
 
 beforeAll(before);
 

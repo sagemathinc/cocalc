@@ -15,7 +15,7 @@ import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-
 import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
+} from "@cocalc/conat/service";
 
 export interface Patch {
   // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just

@@ -1,22 +1,22 @@
-import { stream as createStream, type Stream } from "@cocalc/nats/sync/stream";
+import { stream as createStream, type Stream } from "@cocalc/conat/sync/stream";
 import {
   dstream as createDstream,
   type DStream,
-} from "@cocalc/nats/sync/dstream";
-import { kv as createKV, type KV } from "@cocalc/nats/sync/kv";
-import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
-import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
+} from "@cocalc/conat/sync/dstream";
+import { kv as createKV, type KV } from "@cocalc/conat/sync/kv";
+import { dkv as createDKV, type DKV } from "@cocalc/conat/sync/dkv";
+import { dko as createDKO, type DKO } from "@cocalc/conat/sync/dko";
 import { getEnv } from "./env";
 import { project_id } from "@cocalc/project/data";
 import {
   createOpenFiles,
   type OpenFiles,
   Entry as OpenFileEntry,
-} from "@cocalc/nats/sync/open-files";
+} from "@cocalc/conat/sync/open-files";
 import {
   inventory as createInventory,
   type Inventory,
-} from "@cocalc/nats/sync/inventory";
+} from "@cocalc/conat/sync/inventory";
 
 export type { Stream, DStream, KV, DKV, OpenFiles, OpenFileEntry };
 

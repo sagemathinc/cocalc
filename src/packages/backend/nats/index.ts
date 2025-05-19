@@ -9,8 +9,8 @@ import { readFile } from "node:fs/promises";
 import getLogger from "@cocalc/backend/logger";
 import { getEnv } from "./env";
 export { getEnv };
-import { inboxPrefix } from "@cocalc/nats/names";
-import { setNatsClient } from "@cocalc/nats/client";
+import { inboxPrefix } from "@cocalc/conat/names";
+import { setNatsClient } from "@cocalc/conat/client";
 import getConnection, {
   setConnectionOptions,
 } from "@cocalc/backend/nats/persistent-connection";

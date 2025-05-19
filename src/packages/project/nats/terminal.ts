@@ -17,7 +17,7 @@ import {
   createTerminalServer,
   createBrowserClient,
   SIZE_TIMEOUT_MS,
-} from "@cocalc/nats/service/terminal";
+} from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
 

@@ -38,12 +38,12 @@ import {
   INTEREST_CUTOFF_MS,
   type Listing,
   type Times,
-} from "@cocalc/nats/service/listings";
+} from "@cocalc/conat/service/listings";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { init as initClient } from "@cocalc/project/client";
 import { delay } from "awaiting";
 import { type DKV } from "./sync";
-import { type NatsService } from "@cocalc/nats/service";
+import { type NatsService } from "@cocalc/conat/service";
 import { MultipathWatcher } from "@cocalc/backend/path-watcher";
 import getLogger from "@cocalc/backend/logger";
 

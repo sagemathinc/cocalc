@@ -9,7 +9,7 @@ your terminal running the open files service to interact with anything here from
 In particular, set global.x = ..., etc.
 */
 
-import { createNatsJupyterService } from "@cocalc/nats/service/jupyter";
+import { createNatsJupyterService } from "@cocalc/conat/service/jupyter";
 import { get_existing_kernel as getKernel } from "@cocalc/jupyter/kernel";
 import { bufferToBase64 } from "@cocalc/util/base64";
 

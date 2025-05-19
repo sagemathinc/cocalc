@@ -52,8 +52,8 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
-import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
-import { readFile, type ReadFileOptions } from "@cocalc/nats/files/read";
+import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
+import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 
 export class ProjectClient {
   private client: WebappClient;

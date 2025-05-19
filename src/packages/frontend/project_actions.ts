@@ -107,7 +107,7 @@ import { get_editor } from "./editors/react-wrapper";
 import {
   computeServerManager,
   type ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
+} from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { defaults, required } = misc;

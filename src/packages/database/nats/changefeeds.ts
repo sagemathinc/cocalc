@@ -34,20 +34,20 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:database:nats:changefeeds
 import getLogger from "@cocalc/backend/logger";
 import userQuery from "@cocalc/database/user-query";
 import { getEnv } from "@cocalc/backend/nats/env";
-import { getUserId } from "@cocalc/nats/hub-api";
+import { getUserId } from "@cocalc/conat/hub-api";
 import { callback } from "awaiting";
 import { db } from "@cocalc/database";
 import {
   createSyncTable,
   CHANGEFEED_INTEREST_PERIOD_MS as CHANGEFEED_INTEREST_PERIOD_MS_USERS,
-} from "@cocalc/nats/sync/synctable";
+} from "@cocalc/conat/sync/synctable";
 import { sha1 } from "@cocalc/backend/misc_node";
 import jsonStableStringify from "json-stable-stringify";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Coordinator, now } from "./coordinator";
-import { numSubscriptions } from "@cocalc/nats/client";
+import { numSubscriptions } from "@cocalc/conat/client";
 
 const logger = getLogger("database:nats:changefeeds");
 

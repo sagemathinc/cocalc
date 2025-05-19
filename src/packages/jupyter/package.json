@@ -30,7 +30,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",

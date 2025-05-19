@@ -118,8 +118,8 @@ import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
-import { waitUntilConnected } from "@cocalc/nats/util";
-import { getLogger } from "@cocalc/nats/client";
+import { waitUntilConnected } from "@cocalc/conat/util";
+import { getLogger } from "@cocalc/conat/client";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";

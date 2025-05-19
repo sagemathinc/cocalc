@@ -47,8 +47,8 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
-import { type AKV, akv } from "@cocalc/nats/sync/akv";
+import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
+import { type AKV, akv } from "@cocalc/conat/sync/akv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { close, required, defaults } = misc;

@@ -6,7 +6,7 @@ pnpm test --forceExit service.test.ts
 
 */
 
-import { callNatsService, createNatsService } from "@cocalc/nats/service";
+import { callNatsService, createNatsService } from "@cocalc/conat/service";
 import { once } from "@cocalc/util/async-utils";
 import "@cocalc/backend/nats";
 

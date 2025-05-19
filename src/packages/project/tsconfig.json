@@ -12,7 +12,7 @@
     { "path": "../backend" },
     { "path": "../comm" },
     { "path": "../jupyter" },
-    { "path": "../nats" },
+    { "path": "../conat" },
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../sync-fs" },

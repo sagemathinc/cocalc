@@ -14,7 +14,7 @@ about potentially having to fork NATS.
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup
-import { getMaxPayload } from "@cocalc/nats/util";
+import { getMaxPayload } from "@cocalc/conat/util";
 import { createDstream } from "./util";
 import { dstream } from "@cocalc/backend/nats/sync";
 import { dkv as createDkv } from "@cocalc/backend/nats/sync";

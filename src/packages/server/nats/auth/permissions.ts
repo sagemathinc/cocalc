@@ -1,4 +1,4 @@
-import { inboxPrefix } from "@cocalc/nats/names";
+import { inboxPrefix } from "@cocalc/conat/names";
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 

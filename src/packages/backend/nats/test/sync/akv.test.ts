@@ -9,7 +9,7 @@ pnpm exec jest --forceExit "akv.test.ts"
 
 import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
-import { getMaxPayload } from "@cocalc/nats/util";
+import { getMaxPayload } from "@cocalc/conat/util";
 
 describe("test basics with an akv", () => {
   let kv;

@@ -7,9 +7,9 @@ import getPool from "@cocalc/database/pool";
 import type {
   FileUseTimesOptions,
   FileUseTimesResponse,
-} from "@cocalc/nats/hub-api/db";
-import { dstream } from "@cocalc/nats/sync/dstream";
-import { patchesStreamName } from "@cocalc/nats/sync/synctable-stream";
+} from "@cocalc/conat/hub-api/db";
+import { dstream } from "@cocalc/conat/sync/dstream";
+import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
 
 export async function fileUseTimes({
   project_id,

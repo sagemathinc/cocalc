@@ -38,7 +38,7 @@
     { "path": "../backend" },
     { "path": "../database" },
     { "path": "../frontend" },
-    { "path": "../nats" },
+    { "path": "../conat" },
     { "path": "../server" },
     { "path": "../util" }
   ]

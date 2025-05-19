@@ -7,7 +7,7 @@ pnpm exec jest --forceExit "headers.test.ts"
 */
 
 import "@cocalc/backend/nats"; // ensure client is setup
-import { getMaxPayload } from "@cocalc/nats/util";
+import { getMaxPayload } from "@cocalc/conat/util";
 import { dstream, stream, dkv, kv } from "@cocalc/backend/nats/sync";
 import { once } from "@cocalc/util/async-utils";
 

@@ -1,5 +1,5 @@
 import { getEnv } from "./env";
-import { PubSub } from "@cocalc/nats/sync/pubsub";
+import { PubSub } from "@cocalc/conat/sync/pubsub";
 import { project_id } from "@cocalc/project/data";
 
 export default async function pubsub({

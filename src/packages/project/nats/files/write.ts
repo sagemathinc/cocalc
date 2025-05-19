@@ -33,8 +33,8 @@ import { join } from "path";
 import {
   createServer,
   close as closeWriteServer,
-} from "@cocalc/nats/files/write";
-import { randomId } from "@cocalc/nats/names";
+} from "@cocalc/conat/files/write";
+import { randomId } from "@cocalc/conat/names";
 import { rimraf } from "rimraf";
 
 async function createWriteStream(path: string) {

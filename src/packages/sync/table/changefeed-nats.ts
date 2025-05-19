@@ -8,8 +8,8 @@
 import { EventEmitter } from "events";
 import type { State } from "./changefeed";
 import { delay } from "awaiting";
-import { CHANGEFEED_INTEREST_PERIOD_MS } from "@cocalc/nats/sync/synctable";
-import { waitUntilConnected } from "@cocalc/nats/util";
+import { CHANGEFEED_INTEREST_PERIOD_MS } from "@cocalc/conat/sync/synctable";
+import { waitUntilConnected } from "@cocalc/conat/util";
 
 export class NatsChangefeed extends EventEmitter {
   private client;

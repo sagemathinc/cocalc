@@ -19,7 +19,7 @@ import getConnection, {
 } from "@cocalc/backend/nats/persistent-connection";
 import { getLogger } from "@cocalc/project/logger";
 import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
-import { inboxPrefix as getInboxPrefix } from "@cocalc/nats/names";
+import { inboxPrefix as getInboxPrefix } from "@cocalc/conat/names";
 import { project_id } from "@cocalc/project/data";
 import secretToken from "@cocalc/project/servers/secret-token";
 export { connect as connectToConat } from "@cocalc/backend/nats/conat";

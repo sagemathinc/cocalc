@@ -3,7 +3,7 @@ import type { CB } from "@cocalc/util/types/callback";
 import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
+} from "@cocalc/conat/service";
 
 // What we need the client to implement so we can use
 // it to support a table.

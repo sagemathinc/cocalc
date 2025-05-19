@@ -32,7 +32,7 @@ import { join } from "path";
 import {
   createServer,
   close as closeReadServer,
-} from "@cocalc/nats/files/read";
+} from "@cocalc/conat/files/read";
 
 function createReadStream(path: string) {
   if (path[0] != "/" && process.env.HOME) {

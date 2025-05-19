@@ -15,14 +15,14 @@ and in another session:
     
 Then make a client connected to each:
 
-    c1 = require('@cocalc/nats/core/client').connect('http://localhost:3000');
-    c2 = require('@cocalc/nats/core/client').connect('http://localhost:3001');
+    c1 = require('@cocalc/conat/core/client').connect('http://localhost:3000');
+    c2 = require('@cocalc/conat/core/client').connect('http://localhost:3001');
 */
 
 import {
   init as createConatServer,
   type Options,
-} from "@cocalc/nats/core/server";
+} from "@cocalc/conat/core/server";
 import { Server } from "socket.io";
 import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";

@@ -8,57 +8,57 @@ import {
   createSyncTable,
   type NatsSyncTable,
   NatsSyncTableFunction,
-} from "@cocalc/nats/sync/synctable";
-import { randomId, inboxPrefix } from "@cocalc/nats/names";
-import { projectSubject } from "@cocalc/nats/names";
+} from "@cocalc/conat/sync/synctable";
+import { randomId, inboxPrefix } from "@cocalc/conat/names";
+import { projectSubject } from "@cocalc/conat/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
-import { type HubApi, initHubApi } from "@cocalc/nats/hub-api";
-import { type ProjectApi, initProjectApi } from "@cocalc/nats/project-api";
-import { getPrimusConnection } from "@cocalc/nats/primus";
+import { type HubApi, initHubApi } from "@cocalc/conat/hub-api";
+import { type ProjectApi, initProjectApi } from "@cocalc/conat/project-api";
+import { getPrimusConnection } from "@cocalc/conat/primus";
 import { isValidUUID } from "@cocalc/util/misc";
-import { createOpenFiles, OpenFiles } from "@cocalc/nats/sync/open-files";
-import { PubSub } from "@cocalc/nats/sync/pubsub";
+import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";
+import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
-import { kv, type KVOptions, type KV } from "@cocalc/nats/sync/kv";
-import { dkv, type DKVOptions, type DKV } from "@cocalc/nats/sync/dkv";
-import { dko, type DKO } from "@cocalc/nats/sync/dko";
+import { kv, type KVOptions, type KV } from "@cocalc/conat/sync/kv";
+import { dkv, type DKVOptions, type DKV } from "@cocalc/conat/sync/dkv";
+import { dko, type DKO } from "@cocalc/conat/sync/dko";
 import {
   stream,
   type UserStreamOptions,
   type Stream,
-} from "@cocalc/nats/sync/stream";
-import { dstream } from "@cocalc/nats/sync/dstream";
+} from "@cocalc/conat/sync/stream";
+import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
-import { callNatsService, createNatsService } from "@cocalc/nats/service";
+import { callNatsService, createNatsService } from "@cocalc/conat/service";
 import type {
   CallNatsServiceFunction,
   CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
-import { listingsClient } from "@cocalc/nats/service/listings";
+} from "@cocalc/conat/service";
+import { listingsClient } from "@cocalc/conat/service/listings";
 import {
   computeServerManager,
   type Options as ComputeServerManagerOptions,
-} from "@cocalc/nats/compute/manager";
-import getTime, { getSkew, init as initTime } from "@cocalc/nats/time";
-import { llm } from "@cocalc/nats/llm/client";
-import { inventory } from "@cocalc/nats/sync/inventory";
+} from "@cocalc/conat/compute/manager";
+import getTime, { getSkew, init as initTime } from "@cocalc/conat/time";
+import { llm } from "@cocalc/conat/llm/client";
+import { inventory } from "@cocalc/conat/sync/inventory";
 import { EventEmitter } from "events";
 import {
   getClient as getClientWithState,
   setNatsClient,
   type ClientWithState,
   getEnv,
-} from "@cocalc/nats/client";
+} from "@cocalc/conat/client";
 import type { ConnectionInfo } from "./types";
 import { fromJS } from "immutable";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
-import { isConnected, waitUntilConnected } from "@cocalc/nats/util";
+import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
-import * as tieredStorage from "@cocalc/nats/tiered-storage/client";
-import { connect as connectToConat } from "@cocalc/nats/core/client";
+import * as tieredStorage from "@cocalc/conat/tiered-storage/client";
+import { connect as connectToConat } from "@cocalc/conat/core/client";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 

@@ -12,8 +12,8 @@ pnpm exec jest --forceExit "general-kv.test.ts"
 // import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { getEnv } from "@cocalc/backend/nats/env";
-import { GeneralKV } from "@cocalc/nats/sync/general-kv";
-import { getMaxPayload } from "@cocalc/nats/util";
+import { GeneralKV } from "@cocalc/conat/sync/general-kv";
+import { getMaxPayload } from "@cocalc/conat/util";
 
 describe("create a general kv and do basic operations", () => {
   let kv, kv2, kv3, env;

@@ -2,7 +2,7 @@
 SyncFS Server Service, which runs in the home base.
 */
 
-import { createSyncFsServerService } from "@cocalc/nats/service/syncfs-server";
+import { createSyncFsServerService } from "@cocalc/conat/service/syncfs-server";
 import { type SyncFS } from "../index";
 
 export async function initNatsServerService({

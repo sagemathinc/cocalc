@@ -9,7 +9,7 @@ DEVELOPMENT:
 */
 
 import "@cocalc/backend/nats";
-import { close, createServer, writeFile } from "@cocalc/nats/files/write";
+import { close, createServer, writeFile } from "@cocalc/conat/files/write";
 import { createWriteStream, createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";
 import { writeFile as fsWriteFile, readFile } from "fs/promises";

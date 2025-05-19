@@ -1,14 +1,14 @@
-import { stream as createStream, type Stream } from "@cocalc/nats/sync/stream";
+import { stream as createStream, type Stream } from "@cocalc/conat/sync/stream";
 import {
   dstream as createDstream,
   type DStream,
-} from "@cocalc/nats/sync/dstream";
-import { kv as createKV, type KV } from "@cocalc/nats/sync/kv";
-import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
-import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
-import { akv as createAKV, type AKV } from "@cocalc/nats/sync/akv";
-import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
-export { inventory } from "@cocalc/nats/sync/inventory";
+} from "@cocalc/conat/sync/dstream";
+import { kv as createKV, type KV } from "@cocalc/conat/sync/kv";
+import { dkv as createDKV, type DKV } from "@cocalc/conat/sync/dkv";
+import { dko as createDKO, type DKO } from "@cocalc/conat/sync/dko";
+import { akv as createAKV, type AKV } from "@cocalc/conat/sync/akv";
+import { createOpenFiles, type OpenFiles } from "@cocalc/conat/sync/open-files";
+export { inventory } from "@cocalc/conat/sync/inventory";
 import "./index";
 
 export type { Stream, DStream, KV, DKV, DKO, AKV };

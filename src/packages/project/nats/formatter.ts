@@ -3,7 +3,7 @@ File formatting service.
 */
 
 import { run_formatter, type Options } from "../formatters";
-import { createFormatterService as create } from "@cocalc/nats/service/formatter";
+import { createFormatterService as create } from "@cocalc/conat/service/formatter";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 
 interface Message {

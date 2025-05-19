@@ -1,11 +1,11 @@
-import { type Info } from "@cocalc/nats/tiered-storage/server";
+import { type Info } from "@cocalc/conat/tiered-storage/server";
 import {
   jetstreamManager,
   type JetStreamManager,
   type StreamInfo,
 } from "@nats-io/jetstream";
 import { Kvm } from "@nats-io/kv";
-import { getConnection } from "@cocalc/nats/client";
+import { getConnection } from "@cocalc/conat/client";
 import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
 import { readFile } from "fs/promises";
