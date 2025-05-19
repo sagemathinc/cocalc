@@ -31,17 +31,16 @@ import {
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
-import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -86,7 +85,7 @@ export const NewProjectCreator: React.FC<Props> = ({
   );
 
   const customize_software = useTypedRedux("customize", "software");
-  const [dflt_software_img, software_images] = useMemo(
+  const [default_software_img, software_images] = useMemo(
     () => [
       customize_software.get("default"),
       customize_software.get("environments"),
@@ -283,7 +282,7 @@ export const NewProjectCreator: React.FC<Props> = ({
       <>
         <Form.Item label="Software environment">
           <ComputeImageSelector
-            current_image={DEFAULT_COMPUTE_IMAGE}
+            current_image={default_software_img ?? DEFAULT_COMPUTE_IMAGE}
             layout={"dropdown"}
             onSelect={(img) => {
               const display = software_images.get(img)?.get("title");
