@@ -41,7 +41,6 @@ import { timeClient } from "@cocalc/conat/service/time";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getClient } from "@cocalc/conat/client";
 import { delay } from "awaiting";
-import { waitUntilConnected } from "./util";
 
 // we use exponential backoff starting with a short interval
 // then making it longer
@@ -97,7 +96,6 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
     return skew;
   }
   try {
-    await waitUntilConnected();
     const start = Date.now();
     const client = getClient();
     const tc = timeClient(client);

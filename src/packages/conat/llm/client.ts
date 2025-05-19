@@ -6,7 +6,6 @@ import { getEnv } from "@cocalc/conat/client";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 import { llmSubject } from "./server";
-import { waitUntilConnected } from "@cocalc/conat/util";
 
 export async function llm(options: ChatOptions): Promise<string> {
   if (!options.system?.trim()) {
@@ -22,7 +21,6 @@ export async function llm(options: ChatOptions): Promise<string> {
   let lastSeq = -1;
   const { cn } = await getEnv();
   let { stream, ...opts } = options;
-  await waitUntilConnected();
   for await (const resp of await cn.requestMany(subject, opts, {
     maxWait: opts.timeout ?? 1000 * 60 * 10,
   })) {

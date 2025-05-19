@@ -6,7 +6,6 @@ import type { Info, Command } from "./server";
 import { tieredStorageSubject } from "./server";
 import { getEnv, getLogger } from "@cocalc/conat/client";
 import { type Location } from "@cocalc/conat/types";
-import { waitUntilConnected } from "@cocalc/conat/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 
@@ -84,7 +83,6 @@ export const waitUntilReady = reuseInFlight(
     logger.debug("waitUntilReady", location);
     let d = 1000;
     while (true) {
-      await waitUntilConnected();
       const locationInfo = await info(location);
       const active = lastActive(locationInfo);
       if (locationInfo.nats.kv != null || locationInfo.nats.stream != null) {

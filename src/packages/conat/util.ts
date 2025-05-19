@@ -188,14 +188,4 @@ export const getMaxPayload = reuseInFlight(async () => {
   }
 });
 
-export const waitUntilConnected = reuseInFlight(async () => {
-  const nc = (await getConnection()) as any;
-  if (nc.protocol?.connected) {
-    return;
-  }
-  console.log("NATS waitUntilConnected: waiting...");
-  while (!nc.protocol?.connected) {
-    await delay(500);
-  }
-  console.log("NATS waitUntilConnected: connected");
-});
+export const waitUntilConnected = reuseInFlight(async () => {});

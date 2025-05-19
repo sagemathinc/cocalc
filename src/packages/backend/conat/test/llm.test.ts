@@ -12,6 +12,9 @@ import "@cocalc/backend/conat";
 
 import { init, close } from "@cocalc/conat/llm/server";
 import { llm } from "@cocalc/conat/llm/client";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 describe("create an llm server, client, and stub evaluator, and run an evaluation", () => {
   // define trivial evaluate
@@ -82,3 +85,5 @@ describe("test an evaluate that throws an error half way through", () => {
     await close();
   });
 });
+
+afterAll(after);
