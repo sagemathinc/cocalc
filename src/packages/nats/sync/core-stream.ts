@@ -35,7 +35,7 @@ import { type ValueType } from "@cocalc/nats/types";
 import { EventEmitter } from "events";
 import {
   type Subscription,
-  type Message as Msg,
+  Message,
   type Headers,
   messageData,
 } from "@cocalc/nats/core/client";
@@ -54,7 +54,7 @@ import * as persistClient from "@cocalc/nats/persist/client";
 import type { Client } from "@cocalc/nats/core/client";
 import jsonStableStringify from "json-stable-stringify";
 
-export interface RawMsg extends Msg {
+export interface RawMsg extends Message {
   timestamp: number;
   seq: number;
   sessionId: string;
@@ -267,7 +267,7 @@ export class CoreStream<T = any> extends EventEmitter {
       if (done || value == null) {
         return;
       }
-      const m = value as Msg;
+      const m = value as Message;
       if (m.headers == null) {
         throw Error("missing header");
       }
@@ -280,7 +280,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
   };
 
-  private processPersistentMessage = (m: Msg, noEmit: boolean) => {
+  private processPersistentMessage = (m: Message, noEmit: boolean) => {
     if (m.headers == null) {
       throw Error("missing header");
     }
@@ -315,7 +315,6 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private getAllFromLeader = async ({
-    maxWait = 30000,
     start_seq = 0,
     noEmit,
   }: { maxWait?: number; start_seq?: number; noEmit?: boolean } = {}) => {
@@ -332,17 +331,12 @@ export class CoreStream<T = any> extends EventEmitter {
     let d = 250;
     while (this.client != null) {
       try {
-        for await (const raw0 of await this.client.requestMany(
-          this.subject + ".all",
-          { start_seq },
-          { maxWait },
-        )) {
-          this.lastHeartbeat = Date.now();
-          if (raw0.headers?.done) {
-            // done
-            return;
-          }
-          const raw = getRawMsg(raw0);
+        const resp = await this.client.request(this.subject + ".all", {
+          start_seq,
+        });
+        this.lastHeartbeat = Date.now();
+        for (const x of resp.data) {
+          const raw = getRawMsg(new Message(x));
           if (
             !this.leader &&
             this.sessionId &&
@@ -396,14 +390,15 @@ export class CoreStream<T = any> extends EventEmitter {
     for await (const raw of sub) {
       if (raw.subject.endsWith(".all")) {
         const { start_seq = 0 } = raw.data ?? {};
-        //const payload = this.raw.filter((x)=>x.seq >= start_seq)
-        for (const [m] of this.raw) {
-          if (m.seq >= start_seq) {
-            raw.respond(m.data, { headers: m.headers });
-          }
-        }
-        raw.respond(null, { headers: { done: true } });
-        continue;
+
+        const payload = this.raw
+          .filter((x) => x[0].seq >= start_seq)
+          .map((x) => {
+            const { headers, encoding, raw } = x[0];
+            return { headers, encoding, raw };
+          });
+
+        raw.respond(payload);
       } else if (raw.subject.endsWith(".send")) {
         const options = raw.headers?.[COCALC_OPTIONS_HEADER];
         let resp;
@@ -414,7 +409,6 @@ export class CoreStream<T = any> extends EventEmitter {
           return;
         }
         raw.respond(resp);
-        continue;
       }
     }
   };
@@ -828,7 +822,7 @@ export async function cstream<T>(
   return await cache(options);
 }
 
-function getRawMsg(raw: Msg): RawMsg {
+function getRawMsg(raw: Message): RawMsg {
   const {
     seq = 0,
     timestamp = 0,
