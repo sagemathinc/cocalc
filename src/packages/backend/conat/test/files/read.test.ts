@@ -4,11 +4,14 @@ Test async streaming read of files from a compute servers using NATS.
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "read.test.ts"
+pnpm test ./read.test.ts
 
 */
 
-import "@cocalc/backend/conat";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
+
 import { close, createServer, readFile } from "@cocalc/conat/files/read";
 import { createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";
@@ -103,3 +106,6 @@ describe("do a larger test that involves multiple chunks and a different name", 
     }
   });
 });
+
+
+afterAll(after);

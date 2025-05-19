@@ -19,7 +19,7 @@
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r test",
     "prettier-all": "cd packages/",
-    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/conat/install').main()\" && node -e \"require('@cocalc/backend/conat/conf').main()\" && node -e \"require('@cocalc/backend/conat/server').main()\"",
+    "nats-server": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/conat/server').main()\"",
     "build-nats": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/util && pnpm install && pnpm build && cd ${COCALC_ROOT:=$INIT_CWD}/packages/nats && pnpm install && pnpm build && cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && pnpm install && pnpm build",
     "nats-server-ci": "pnpm run build-nats && cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/conat/install').main()\" && node -e \"require('@cocalc/backend/conat/conf').main()\" && node -e \"require('@cocalc/backend/conat/server').main()\"",
     "nats-server-daemon": "cd ${COCALC_ROOT:=$INIT_CWD}/packages/backend && node -e \"require('@cocalc/backend/conat/install').main()\" && node -e \"require('@cocalc/backend/conat/conf').main()\" && node -e \"require('@cocalc/backend/conat/server').main({daemon:true})\"",

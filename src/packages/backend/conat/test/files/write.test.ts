@@ -4,11 +4,14 @@ Test async streaming writing of files to compute servers using NATS.
 
 DEVELOPMENT:
 
-  pnpm exec jest --watch --forceExit --detectOpenHandles "write.test.ts"
+  pnpm test ./write.test.ts
 
 */
 
-import "@cocalc/backend/conat";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
+
 import { close, createServer, writeFile } from "@cocalc/conat/files/write";
 import { createWriteStream, createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";
@@ -125,3 +128,8 @@ describe("do a more challenging test that involves a larger file that has to be 
     }
   });
 });
+
+
+
+
+afterAll(after);
