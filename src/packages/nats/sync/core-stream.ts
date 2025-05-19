@@ -70,6 +70,7 @@ export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
 
 export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
 export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
+export const COCALC_HEARTBEAT_HEADER = `${HEADER_PREFIX}Heartbeat`;
 
 const PUBLISH_TIMEOUT = 7500;
 
@@ -197,6 +198,7 @@ export class CoreStream<T = any> extends EventEmitter {
         noEmit: true,
       });
     } else {
+      // non-persist mode and we are the leader, so
       // start listening on the subject for new data
       await this.serve();
     }
@@ -322,7 +324,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     // be agressive about initial retrying since the leader
     // might just not be ready yet... but quickly back off.
-    // TODO: maybe we should add a primitive to the server 
+    // TODO: maybe we should add a primitive to the server
     // that is client.waitUntilSubscriber('subject', {queue:?}) that
     // waits until there is at least one subscribe to the given subject
     // and only then sends a message.  It would be doable, with a check
@@ -336,7 +338,7 @@ export class CoreStream<T = any> extends EventEmitter {
           { maxWait },
         )) {
           this.lastHeartbeat = Date.now();
-          if (raw0.data == null) {
+          if (raw0.headers?.done) {
             // done
             return;
           }
@@ -394,12 +396,13 @@ export class CoreStream<T = any> extends EventEmitter {
     for await (const raw of sub) {
       if (raw.subject.endsWith(".all")) {
         const { start_seq = 0 } = raw.data ?? {};
+        //const payload = this.raw.filter((x)=>x.seq >= start_seq)
         for (const [m] of this.raw) {
           if (m.seq >= start_seq) {
             raw.respond(m.data, { headers: m.headers });
           }
         }
-        raw.respond(null);
+        raw.respond(null, { headers: { done: true } });
         continue;
       } else if (raw.subject.endsWith(".send")) {
         const options = raw.headers?.[COCALC_OPTIONS_HEADER];
@@ -424,7 +427,9 @@ export class CoreStream<T = any> extends EventEmitter {
         await delay(wait);
       } else {
         const now = Date.now();
-        this.client.publish(this.subject, null);
+        this.client.publish(this.subject, null, {
+          headers: { [COCALC_HEARTBEAT_HEADER]: true },
+        });
         this.lastHeartbeat = now;
         await delay(this.heartbeatInterval);
       }
@@ -469,7 +474,7 @@ export class CoreStream<T = any> extends EventEmitter {
       if (!this.leader) {
         this.lastHeartbeat = Date.now();
       }
-      if (raw0.data == null) {
+      if (raw0.data == null && raw0.headers?.[COCALC_HEARTBEAT_HEADER]) {
         // it's a heartbeat probe
         continue;
       }
@@ -524,6 +529,9 @@ export class CoreStream<T = any> extends EventEmitter {
     mesg: T,
     options?: { headers?: Headers; msgID?: string; key?: string },
   ) => {
+    if (mesg === undefined) {
+      throw Error("mesg must not be undefined");
+    }
     const data = mesg;
 
     // this may throw an exception:

@@ -6,6 +6,7 @@ import {
 } from "@cocalc/nats/sync/core-stream";
 import { wait } from "@cocalc/server/nats/test/util";
 import type { Client } from "@cocalc/nats/core/client";
+import { is_date as isDate } from "@cocalc/util/misc";
 
 beforeAll(before);
 
@@ -22,9 +23,42 @@ describe("create a client, create an ephemeral leader core-stream, and do basic 
     expect(stream.start_seq).toBe(undefined);
   });
 
-  it("close and create and see that it's ephemeral", async () => {
-    await stream.publish("hi");
+  it("publish some messages", async () => {
+    // publish null
+    await stream.publish(null);
+    expect(stream.get(0)).toBe(null);
     expect(stream.length).toBe(1);
+    // publish a Buffer stays a Buffer
+    await stream.publish(Buffer.from("xyz"));
+    expect(stream.get(1)).toEqual(Buffer.from("xyz"));
+    expect(Buffer.isBuffer(stream.get(1))).toBe(true);
+    expect(stream.length).toBe(2);
+    // publish a Date stays a Date
+    const now = new Date();
+    await stream.publish(now);
+    expect(stream.get(2)).toEqual(now);
+    expect(isDate(stream.get(2))).toEqual(true);
+  });
+
+  it("publishing undefined is not allowed", async () => {
+    await expect(
+      async () => await stream.publish(undefined),
+    ).rejects.toThrowError("must not be undefined");
+  });
+
+  it("a second client has the same messages", async () => {
+    const client2 = connect();
+    const stream2 = await cstream({
+      client: client2,
+      name,
+      persist: false,
+      leader: false,
+    });
+    await wait({ until: () => stream2.length == 3 });
+    expect(stream2.getAll()).toEqual(stream.getAll());
+  });
+
+  it("close and create and see that it's ephemeral", async () => {
     stream.close();
     stream = await cstream({ client, name, persist: false, leader: true });
     expect(stream.length).toBe(0);

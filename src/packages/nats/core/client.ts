@@ -241,6 +241,7 @@ const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CoCalc-Reply";
 const DEFAULT_MAX_WAIT = 30000;
 const DEFAULT_REQUEST_TIMEOUT = 10000;
+const MAX_HEADER_SIZE = 100000;
 
 export enum DataEncoding {
   MsgPack = 0,
@@ -532,9 +533,15 @@ export class Client {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
+    if (mesg === undefined) {
+      throw Error("mesg must not be undefined");
+    }
     raw = raw ?? encode({ encoding, mesg });
     // default to 1MB is safe since it's at least that big.
-    const chunkSize = Math.max(1000, (this.info?.max_payload ?? 1e6) - 10000);
+    const chunkSize = Math.max(
+      1000,
+      (this.info?.max_payload ?? 1e6) - MAX_HEADER_SIZE,
+    );
     let seq = 0;
     let id = randomId();
     const promises: any[] = [];
