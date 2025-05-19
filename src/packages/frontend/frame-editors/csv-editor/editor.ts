@@ -13,9 +13,11 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-import Grid from "./grid";
+import Grid, { GridProps } from "./grid";
 
-const grid: EditorDescription = {
+const grid: Omit<EditorDescription, "component"> & {
+  component: React.FC<GridProps>;
+} = {
   type: "csv-grid",
   short: "Grid",
   name: "Grid",

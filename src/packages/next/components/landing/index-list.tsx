@@ -15,20 +15,26 @@ import { MAX_WIDTH } from "lib/config";
 import useCustomize, { CustomizeType } from "lib/use-customize";
 
 export interface Item {
-  link: string;
+  link: string | ((customize: CustomizeType) => string | undefined);
   linkText?: ReactNode;
   title: ReactNode;
   logo: IconName | StaticImageData;
   logoBackground?: string; // #color
   image?: StaticImageData;
   imageWidth?: string;
-  description: ReactNode;
+  description: ReactNode | ((customize: CustomizeType) => ReactNode);
   shareServer?: boolean; // only show if the share server is enabled
   landingPages?: boolean; // only show if landing pages are enabled.
   hide?: (customize: CustomizeType) => boolean; // if returns true, then this item will be hidden.
 }
 
 export type DataSource = Item[];
+
+// replaces the description attribute by {description: ReactNode}
+type ItemProcessed = Omit<Item, "description" | "link"> & {
+  description: ReactNode;
+  link: string;
+};
 
 interface Props {
   title: ReactNode;
@@ -41,13 +47,27 @@ interface Props {
 export default function IndexList({ title, description, dataSource }: Props) {
   const customize = useCustomize();
   const { shareServer, landingPages } = customize;
-  const filteredDataSource = useMemo(() => {
-    return dataSource.filter((item) => {
-      if (item.shareServer && !shareServer) return false;
-      if (item.landingPages && !landingPages) return false;
-      if (item.hide?.(customize)) return false;
-      return true;
-    });
+  const filteredDataSource: ItemProcessed[] = useMemo(() => {
+    return dataSource
+      .filter((item) => {
+        if (item.shareServer && !shareServer) return false;
+        if (item.landingPages && !landingPages) return false;
+        if (item.hide?.(customize)) return false;
+        return true;
+      })
+      .map((item) => {
+        return {
+          ...item,
+          description:
+            typeof item.description === "function"
+              ? item.description(customize)
+              : item.description,
+          link:
+            typeof item.link === "function"
+              ? item.link(customize) ?? ""
+              : item.link,
+        };
+      });
   }, [shareServer, landingPages, dataSource]);
   return (
     <Layout.Content
@@ -80,8 +100,8 @@ export default function IndexList({ title, description, dataSource }: Props) {
   );
 }
 
-function DataList({ dataSource }: { dataSource: Item[] }) {
-  function renderItem(item): ReactNode {
+function DataList({ dataSource }: { dataSource: ItemProcessed[] }) {
+  function renderItem(item: ItemProcessed): ReactNode {
     const icon = (
       <div>
         {isValidElement(item.logo) ? (

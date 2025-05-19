@@ -40,7 +40,7 @@ interface PDFJSProps {
   is_fullscreen: boolean;
   project_id: string;
   path: string;
-  reload: number;
+  reload?: number;
   font_size: number;
   is_current: boolean;
   is_visible: boolean;
@@ -82,7 +82,7 @@ export function PDFJS({
   usePinchToZoom({ target: divRef });
 
   useEffect(() => {
-    loadDoc(reload);
+    loadDoc(reload ?? 0);
   }, [reload]);
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export function PDFJS({
     }
     if (evt.key == "ArrowUp") {
       if (evt.ctrlKey || evt.metaKey) {
-        // begining of document
+        // beginning of document
         virtuosoRef.current?.scrollTo({ top: 0 });
       } else {
         virtuosoRef.current?.scrollBy({
