@@ -2,13 +2,16 @@
 
 DEVELOPMENT:
 
-pnpm test --forceExit service.test.ts
+pnpm test ./service.test.ts
 
 */
 
 import { callNatsService, createNatsService } from "@cocalc/conat/service";
 import { once } from "@cocalc/util/async-utils";
-import "@cocalc/backend/conat";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+import { wait } from "@cocalc/backend/conat/test/util";
+
+beforeAll(before);
 
 describe("create a service and test it out", () => {
   let s;
@@ -23,16 +26,34 @@ describe("create a service and test it out", () => {
     );
   });
 
-  it("closes the services", async () => {
+  it("closes the services and observes it doesn't work anymore", async () => {
     s.close();
 
     let t = "";
-    // expect( ...).toThrow doesn't seem to work with this:
-    try {
+    await expect(async () => {
       await callNatsService({ service: "echo", mesg: "hi", timeout: 1000 });
-    } catch (err) {
-      t = `${err}`;
-    }
-    expect(t).toContain("Error: timeout");
+    }).rejects.toThrowError("timeout");
   });
 });
+
+describe("verify that you can create a service AFTER calling it and things to still work fine", () => {
+  let result = "";
+  it("call a service that does not exist yet", () => {
+    (async () => {
+      result = await callNatsService({ service: "echo3", mesg: "hello " });
+    })();
+  });
+
+  it("create the echo3 service and observe that it answer the request we made before the service was created", async () => {
+    const s = createNatsService({
+      service: "echo3",
+      handler: (mesg) => mesg.repeat(3),
+    });
+    await wait({ until: () => result });
+    expect(result).toBe("hello hello hello ");
+
+    s.close();
+  });
+});
+
+afterAll(after);
