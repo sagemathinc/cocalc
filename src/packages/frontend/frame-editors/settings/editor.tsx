@@ -99,6 +99,6 @@ export const SETTINGS_SPEC: EditorDescription = {
   name: editor.editor_settings,
   icon: "wrench",
   commands: {},
-  component: Settings,
+  component: Settings as any, // TODO: Component incompatible with type, rewrite to React.FC
   hide_public: true,
 } as const;
