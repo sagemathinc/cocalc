@@ -71,9 +71,9 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   try {
     return await doRequest();
   } catch (err) {
-    //console.log(`request to '${subject}' failed -- ${err}`);
+    // console.log(`request to '${subject}' failed -- ${err}`);
     // it failed.
-    if (err.name == "NatsError" && !opts.noRetry) {
+    if (!opts.noRetry) {
       // it's a nats problem
       const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
       if (err.code == 503) {

@@ -62,7 +62,6 @@ export class ClientWithState extends EventEmitter {
         return this.env;
       }
       this.env = await client.getNatsEnv();
-      this.monitorConnectionState(this.env.nc);
       return this.env;
     });
     this.account_id = client.account_id;
@@ -85,7 +84,7 @@ export class ClientWithState extends EventEmitter {
   };
 
   close = () => {
-    this.env?.nc.close();
+    this.env?.nc?.close();
     this.setConnectionState("closed");
     this.removeAllListeners();
     delete this.env;
@@ -98,22 +97,6 @@ export class ClientWithState extends EventEmitter {
     this.state = state;
     this.emit(state);
     this.emit("state", state);
-  };
-
-  private monitorConnectionState = async (nc) => {
-    this.setConnectionState("connected");
-
-    for await (const { type } of nc.status()) {
-      if (this.state == "closed") {
-        return;
-      }
-      if (type.includes("ping") || type == "update" || type == "reconnect") {
-        // connection is working well
-        this.setConnectionState("connected");
-      } else if (type == "reconnecting") {
-        this.setConnectionState("connecting");
-      }
-    }
   };
 }
 

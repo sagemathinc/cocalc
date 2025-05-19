@@ -420,6 +420,11 @@ export class Client {
       throw Error(`already subscribed to '${subject}'`);
     }
     this.queueGroups[subject] = queue;
+    const sub = new SubscriptionEmitter({
+      client: this,
+      subject,
+      closeWhenOffCalled,
+    });
     let promise;
     if (confirm) {
       const f = (cb) => {
@@ -436,11 +441,6 @@ export class Client {
       this.conn.emit("subscribe", { subject, queue });
       promise = undefined;
     }
-    const sub = new SubscriptionEmitter({
-      client: this,
-      subject,
-      closeWhenOffCalled,
-    });
     sub.once("close", () => {
       if (this.queueGroups?.[subject] == null) {
         return;

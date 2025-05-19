@@ -289,7 +289,9 @@ export class ConatServer {
       });
     }
     const room = socketSubjectRoom({ socket, subject });
-    socket.join(room);
+    // critical to await socket.join so we don't advertise that there is 
+    // a subscriber before the socket is actually getting messages.
+    await socket.join(room); 
     await this.updateInterest({ op: "add", subject, room, queue });
   };
 

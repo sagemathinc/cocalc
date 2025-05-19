@@ -7,6 +7,8 @@ import {
 } from "@cocalc/conat/core/server";
 import { Server } from "socket.io";
 import getLogger from "@cocalc/backend/logger";
+import { setNatsClient } from "@cocalc/conat/client";
+import { sha1 } from "@cocalc/backend/sha1";
 
 const logger = getLogger("conat:test:setup");
 
@@ -35,6 +37,12 @@ export async function before() {
   port = await getPort();
   address = `http://localhost:${port}`;
   server = await initConatServer({ port, path });
+  setNatsClient({
+    getNatsEnv: async () => {
+      return { cn: connect(), sha1 } as any;
+    },
+    getLogger,
+  });
 }
 
 const clients: Client[] = [];

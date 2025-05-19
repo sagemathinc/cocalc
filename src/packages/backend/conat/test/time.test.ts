@@ -4,10 +4,11 @@ DEVELOPMENT:
 pnpm test ./time.test.ts
 */
 
-// this sets client
-import "@cocalc/backend/conat";
-
+import { timeClient, createTimeService } from "@cocalc/conat/service/time";
 import time, { getSkew } from "@cocalc/conat/time";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 describe("get time from nats", () => {
   it("tries to get the time before the skew, so it is not initialized yet", () => {
@@ -29,14 +30,13 @@ describe("get time from nats", () => {
   });
 });
 
-import { timeClient, createTimeService } from "@cocalc/conat/service/time";
-
 describe("start the time server and client and test that it works", () => {
   it("starts the time server and queries it", async () => {
-    await import("@cocalc/backend/conat");
     createTimeService();
     const client = timeClient();
     const t = await client.time();
     expect(Math.abs(Date.now() - t)).toBeLessThan(200);
   });
 });
+
+afterAll(after);

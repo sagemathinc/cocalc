@@ -1,3 +1,7 @@
+/*
+pnpm test ./connect.test.ts
+*/
+
 import { getPort } from "@cocalc/backend/conat/test/util";
 import { initConatServer } from "@cocalc/backend/conat/test/setup";
 import { connect } from "@cocalc/backend/conat/conat";
@@ -50,7 +54,7 @@ describe("create server *after* client and ensure connects properly", () => {
   });
 });
 
-describe("create server after creating a subscription and publishing a message, and observe that it works and nothing is lost", () => {
+describe("create server after sync creating a subscription and publishing a message, and observe that messages are dropped", () => {
   let cn;
   it("starts a client, despite there being no server yet", async () => {
     cn = connect(`http://localhost:${port}`, { path });
@@ -71,17 +75,53 @@ describe("create server after creating a subscription and publishing a message, 
     await wait({ until: () => cn.conn.connected });
   });
 
-  it("see both messages we sent before connecting arrive", async () => {
-    const { value: mesg1 } = await sub.next();
-    expect(mesg1.data).toBe("hello");
-    const { value: mesg2 } = await sub.next();
-    expect(mesg2.data).toBe("conat");
-  });
-
-  it("publish another message", async () => {
+  it("see that both messages we sent before connecting were dropped", async () => {
     const { bytes, count } = await cn.publish("xyz", "more");
     expect(count).toBe(1);
     expect(bytes).toBe(5);
+    const { value: mesg1 } = await sub.next();
+    // we just got a message but it's AFTER the two above.
+    expect(mesg1.data).toBe("more");
+  });
+
+  it("clean up", () => {
+    server.close();
+    cn.close();
+    sub.close();
+  });
+});
+
+describe("create server after async creating a subscription and async publishing a message, and observe that it DOES works", () => {
+  let cn;
+  it("starts a client, despite there being no server yet", async () => {
+    cn = connect(`http://localhost:${port}`, { path });
+    expect(cn.conn.connected).toBe(false);
+  });
+
+  let sub;
+  let recv: any[] = [];
+  it("create a sync subscription before the server exists", () => {
+    const f = async () => {
+      sub = await cn.subscribe("xyz");
+      await cn.publish("xyz", "hello");
+      const { value: mesg } = await sub.next();
+      recv.push(mesg.data);
+      await cn.publish("xyz", "conat");
+      const { value: mesg2 } = await sub.next();
+      recv.push(mesg2.data);
+    };
+    f();
+  });
+
+  let server;
+  it("start the server", async () => {
+    server = await initConatServer({ port, path });
+    await wait({ until: () => cn.conn.connected });
+  });
+
+  it("see that both messages we sent before connecting arrive", async () => {
+    await wait({ until: () => recv.length == 2 });
+    expect(recv).toEqual(["hello", "conat"]);
   });
 
   it("clean up", () => {
