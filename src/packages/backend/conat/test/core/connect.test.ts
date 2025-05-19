@@ -1,8 +1,8 @@
-import { getPort } from "@cocalc/server/conat/test/util";
-import { initConatServer } from "@cocalc/server/conat/socketio";
+import { getPort } from "@cocalc/backend/conat/test/util";
+import { initConatServer } from "@cocalc/backend/conat/test/setup";
 import { connect } from "@cocalc/backend/conat/conat";
 import { delay } from "awaiting";
-import { wait } from "@cocalc/server/conat/test/util";
+import { wait } from "@cocalc/backend/conat/test/util";
 
 const path = "/conat";
 let port;

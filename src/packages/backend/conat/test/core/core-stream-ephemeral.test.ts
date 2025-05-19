@@ -1,10 +1,10 @@
-import { connect, before, after } from "./setup";
+import { connect, before, after } from "@cocalc/backend/conat/test/setup";
 import {
   cstream,
   COCALC_STREAM_HEADER,
   type CoreStream,
 } from "@cocalc/conat/sync/core-stream";
-import { wait } from "@cocalc/server/conat/test/util";
+import { wait } from "@cocalc/backend/conat/test/util";
 import type { Client } from "@cocalc/conat/core/client";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { dstream } from "@cocalc/conat/sync/dstream";
@@ -299,8 +299,6 @@ describe("test using ephemeral dstream", () => {
     wait({ until: () => stream.length == 101 });
     expect(stream.get(stream.length - 1)).toBe("x");
   });
-  
-  
 });
 
 afterAll(after);

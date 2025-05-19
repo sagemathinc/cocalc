@@ -38,7 +38,12 @@ import {
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { delay } from "awaiting";
-import { ConatError } from "./client";
+import {
+  ConatError,
+  connect,
+  type Client,
+  type ConnectOptions,
+} from "./client";
 
 // This is just the default with socket.io, but we might want a bigger
 // size, which could mean more RAM usage by the servers.
@@ -388,6 +393,17 @@ export class ConatServer {
       } else {
         // console.log("client is back!");
       }
+    });
+  };
+
+  // create new client in the same process connected to this server.
+  // This is useful for unit testing and is not cached (i.e., multiple
+  // calls return distinct clients).
+  client = (options?: ConnectOptions): Client => {
+    return connect(`http://localhost:${this.options.port}`, {
+      path: this.options.path,
+      noCache: true,
+      ...options,
     });
   };
 }
