@@ -11,8 +11,7 @@ import {
   createServiceClient,
   createServiceHandler,
 } from "@cocalc/conat/service/typed";
-import { once } from "@cocalc/util/async-utils";
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { before, after } from "@cocalc/backend/conat/test/setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
@@ -23,14 +22,11 @@ beforeAll(before);
 
 describe("create a service and test it out", () => {
   let s;
-  let subject;
   it("creates a service", async () => {
     s = createConatService({
       service: "echo",
       handler: (mesg) => mesg.repeat(2),
     });
-    subject = s.subject;
-    await once(s, "running");
     expect(await callConatService({ service: "echo", mesg: "hello" })).toBe(
       "hellohello",
     );
@@ -41,16 +37,6 @@ describe("create a service and test it out", () => {
     await expect(async () => {
       await callConatService({ service: "echo", mesg: "hi", timeout: 250 });
     }).rejects.toThrowError("timeout");
-  });
-
-  // [ ] TODO: broken!
-  it.skip("creates a listener on the same subject and try to call to verify timeout works", async () => {
-    const client = connect();
-    const sub = await client.subscribe(subject);
-    await expect(async () => {
-      await callConatService({ service: "echo", mesg: "hi", timeout: 250 });
-    }).rejects.toThrowError("timeout");
-    sub.close();
   });
 });
 
@@ -228,6 +214,44 @@ describe("create a service with specified client, stop and start the server, and
     client.close();
     client2.close();
     server.close();
+  });
+});
+
+describe("create a slow service and check that the timeout parameter works", () => {
+  let s;
+  it("creates a slow service", async () => {
+    s = createConatService({
+      service: "slow",
+      handler: async (d) => {
+        await delay(d);
+        return { delay: d };
+      },
+    });
+  });
+
+  it("confirms it works", async () => {
+    const t0 = Date.now();
+    const r = await callConatService({
+      service: s.name,
+      mesg: 50,
+    });
+    expect(r).toEqual({ delay: 50 });
+    expect(Date.now() - t0).toBeGreaterThan(45);
+    expect(Date.now() - t0).toBeLessThan(500);
+  });
+
+  it("confirms it throws a timeout error", async () => {
+    await expect(async () => {
+      await callConatService({
+        service: s.name,
+        mesg: 5000,
+        timeout: 75,
+      });
+    }).rejects.toThrowError("imeout");
+  });
+
+  it("clean up", async () => {
+    s.close();
   });
 });
 

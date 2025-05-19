@@ -59,6 +59,7 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
   const data = opts.mesg ?? null;
 
   const doRequest = async () => {
+    // console.log("doRequest...");
     resp = await cn.request(subject, data, {
       timeout,
     });
@@ -69,8 +70,8 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
     return result;
   };
 
-  // we just try to call the service first
   try {
+    // try to call the service:
     return await doRequest();
   } catch (err) {
     // console.log(`request to '${subject}' failed -- ${err}`);
@@ -78,7 +79,6 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
     if (opts.noRetry) {
       throw err;
     }
-    // it's a nats problem
     const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
     if (err.code == 503) {
       // it's actually just not ready, so
@@ -92,10 +92,12 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
         }
         throw err;
       }
-    } else if (err.code == "TIMEOUT") {
+    } else if (err.code == 408) {
       throw Error(
-        `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,
+        `Timeout: service '${p}${opts.service}' did not respond for ${Math.round(timeout / 1000)} seconds`,
       );
+    } else {
+      throw err;
     }
   }
 }

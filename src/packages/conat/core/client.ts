@@ -619,13 +619,12 @@ export class Client {
         code: 503,
       });
     }
-
     for await (const resp of sub) {
       sub.stop();
       return resp;
     }
     sub.stop();
-    throw Error("timeout");
+    throw new ConatError("timeout", { code: 408 });
   };
 
   async *requestMany(
