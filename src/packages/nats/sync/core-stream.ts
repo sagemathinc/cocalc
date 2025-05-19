@@ -524,7 +524,7 @@ export class CoreStream<T = any> extends EventEmitter {
     options?: { headers?: Headers; msgID?: string; key?: string },
   ) => {
     if (mesg === undefined) {
-      throw Error("mesg must not be undefined");
+      throw Error("stream publish - mesg must not be 'undefined'");
     }
     const data = mesg;
 

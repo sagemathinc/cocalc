@@ -53,7 +53,8 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
-  const data = opts.mesg;
+  // ensure not undefined, since undefined can't be published.
+  const data = opts.mesg ?? null;
 
   const doRequest = async () => {
     resp = await cn.request(subject, data, {

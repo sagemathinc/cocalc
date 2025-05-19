@@ -42,16 +42,6 @@ describe("basic test of publish and subscribe", () => {
     expect(done).toBe(false);
   });
 
-  it("publishing undefined is not allowed", async () => {
-    await expect(
-      async () => await cn.publish(subject, undefined),
-    ).rejects.toThrowError("must not be undefined");
-
-    expect(() => cn.publishSync(subject, undefined)).toThrow(
-      "must not be undefined",
-    );
-  });
-
   it("publishes using a second client", async () => {
     const data = null;
     cn2 = connect();

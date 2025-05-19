@@ -44,7 +44,7 @@ describe("create a client, create an ephemeral leader core-stream, and do basic 
   it("publishing undefined is not allowed", async () => {
     await expect(
       async () => await stream.publish(undefined),
-    ).rejects.toThrowError("must not be undefined");
+    ).rejects.toThrowError("must not be 'undefined'");
   });
 
   it("a second client has the same messages", async () => {
@@ -299,6 +299,8 @@ describe("test using ephemeral dstream", () => {
     wait({ until: () => stream.length == 101 });
     expect(stream.get(stream.length - 1)).toBe("x");
   });
+  
+  
 });
 
 afterAll(after);

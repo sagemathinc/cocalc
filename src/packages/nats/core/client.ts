@@ -512,9 +512,6 @@ export class Client {
     // **right now** or received these messages.
     count: number;
   }> => {
-    if (mesg === undefined) {
-      throw Error("mesg must not be undefined");
-    }
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
@@ -535,9 +532,6 @@ export class Client {
   ) => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
-    }
-    if (mesg === undefined) {
-      throw Error("mesg must not be undefined");
     }
     raw = raw ?? encode({ encoding, mesg });
     // default to 1MB is safe since it's at least that big.
@@ -902,19 +896,21 @@ export class Message extends MessageData {
     return `${subject}`;
   };
 
-  respondSync = (data, opts?: PublishOptions): { bytes: number } => {
+  respondSync = (mesg, opts?: PublishOptions): { bytes: number } => {
     const subject = this.respondSubject();
     if (!subject) return { bytes: 0 };
-    return this.client.publishSync(subject, data, opts);
+    return this.client.publishSync(subject, mesg, opts);
   };
 
   respond = async (
-    data,
+    mesg,
     opts: PublishOptions = {},
   ): Promise<{ bytes: number; count: number }> => {
     const subject = this.respondSubject();
-    if (!subject) return { bytes: 0, count: 0 };
-    return await this.client.publish(subject, data, opts);
+    if (!subject) {
+      return { bytes: 0, count: 0 };
+    }
+    return await this.client.publish(subject, mesg, opts);
   };
 }
 

@@ -85,5 +85,5 @@ async function handleRequest({ data, mesg, primus }) {
     resp = { error: `${err}` };
   }
   //logger.debug("responded", resp);
-  mesg.respond(resp);
+  mesg.respond(resp ?? null);
 }
