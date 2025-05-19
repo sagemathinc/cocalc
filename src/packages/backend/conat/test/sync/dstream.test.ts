@@ -8,7 +8,7 @@ pnpm test dstream.test.ts
 */
 
 import { createDstream as create } from "./util";
-import { dstream as createDstream } from "@cocalc/backend/nats/sync";
+import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 
 describe("create a dstream and do some basic operations", () => {

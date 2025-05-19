@@ -41,11 +41,11 @@ The methods you call on the client to build everything are:
  - subscribe, subscribeSync - subscribe to a subject which returns an
    async iterator over all messages that match the subject published by 
    anyone with permission to do so.   If you provide the same optional 
-   queue parameter for multiple subscribers, then one subscriber receives 
-   each message. The async form confirms the subscription was created 
+   queue parameter for multiple subscribers, then one subscriber in each queue group
+   receives each message. The async form confirms the subscription was created 
    before returning. A client may only create one subscription to a 
    given subject at a time, to greatly reduce the chance of leaks and 
-   simplify code.  There is no size limit on messages. 
+   simplify code.  **There is no size limit on messages.**
    Subscriptions are guaranteed to stay valid until the client ends them;
    they do not stop working due to client or server reconnects or restarts.
    
@@ -55,7 +55,7 @@ The methods you call on the client to build everything are:
 
  - request - send a message to a subject, and if there is at least one
    subscriber listening, it may respond.  If there are no subscribers,
-   it throws a 503 error.  To create a microservice, you just subscribe
+   it throws a 503 error.  To create a microservice, subscribe
    to a subject pattern and called mesg.respond(...) on each message you
    receive.
    
@@ -135,7 +135,7 @@ for something that definitely works perfectly.
 
 For developing at the command line, cd to packages/backend, then in node:
 
-   c = require('@cocalc/backend/nats/conat').connect()
+   c = require('@cocalc/backend/conat/conat').connect()
    
 or
 
@@ -147,7 +147,7 @@ or
    
 // in another console
 
-   c = require('@cocalc/backend/nats/conat').connect()
+   c = require('@cocalc/backend/conat/conat').connect()
    c.publish('a', 'hello there')
 
 // in browser (right now)

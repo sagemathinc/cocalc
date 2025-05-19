@@ -5,7 +5,7 @@ using it yet.
 
 import { SystemKv } from "@cocalc/conat/system";
 import { JSONCodec } from "nats";
-import { getConnection } from "@cocalc/backend/nats";
+import { getConnection } from "@cocalc/backend/conat";
 import { sha1 } from "@cocalc/backend/misc_node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 

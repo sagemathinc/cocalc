@@ -3,7 +3,7 @@ Inventory of all streams and key:value stores in a specific project, account or 
 
 DEVELOPMENT:
 
-i = await require('@cocalc/backend/nats/sync').inventory({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'})
+i = await require('@cocalc/backend/conat/sync').inventory({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'})
 
 i.ls()
 

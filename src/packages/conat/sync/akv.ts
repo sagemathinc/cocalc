@@ -14,7 +14,7 @@ There is no need to close this because it is stateless.
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
-> t =  require("@cocalc/backend/nats/sync").akv({name:'test'})
+> t =  require("@cocalc/backend/conat/sync").akv({name:'test'})
 
 */
 

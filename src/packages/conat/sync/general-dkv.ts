@@ -47,7 +47,7 @@ DEVELOPMENT:
 ~/cocalc/src/packages/server$ node
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/sync/dkv"); s = new a.DKV({name:'test',env,filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/dkv"); s = new a.DKV({name:'test',env,filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
 
 
 In the browser console:

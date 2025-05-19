@@ -7,10 +7,10 @@ DEVELOPMENT:
 ~/cocalc/src/packages/backend n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> s = await require("@cocalc/backend/nats/sync").stream({name:'test'})
+> s = await require("@cocalc/backend/conat/sync").stream({name:'test'})
 
 
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = new a.Stream({name:'test',env,subjects:'foo',filter:'foo'}); await s.init();
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = new a.Stream({name:'test',env,subjects:'foo',filter:'foo'}); await s.init();
 
 
 With browser client using a project:
@@ -19,12 +19,12 @@ With browser client using a project:
 > s = await cc.client.nats_client.stream({project_id:cc.current().project_id,name:'foo'})
 
 # in node:
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env})
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env})
 
 
 # Involving limits:
 
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env, limits:{max_msgs:5,max_age:1000*15,max_bytes:10000,max_msg_size:1000}})
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/stream"); s = await a.stream({project_id:cc.current().project_id,name:'foo', env, limits:{max_msgs:5,max_age:1000*15,max_bytes:10000,max_msg_size:1000}})
 > s.getAll()
 
 In browser:

@@ -11,7 +11,7 @@ pnpm test estream.test.ts
 */
 
 import { createDstreamEphemeral as create } from "./util";
-import { dstream as createDstream0 } from "@cocalc/backend/nats/sync";
+import { dstream as createDstream0 } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 
 async function createDstream<T>(opts) {

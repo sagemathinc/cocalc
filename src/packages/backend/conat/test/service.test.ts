@@ -8,7 +8,7 @@ pnpm test --forceExit service.test.ts
 
 import { callNatsService, createNatsService } from "@cocalc/conat/service";
 import { once } from "@cocalc/util/async-utils";
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 
 describe("create a service and test it out", () => {
   let s;

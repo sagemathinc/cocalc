@@ -9,10 +9,10 @@ DEVELOPMENT:
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 
-> s = await require("@cocalc/backend/nats/sync").dstream({name:'test'});
+> s = await require("@cocalc/backend/conat/sync").dstream({name:'test'});
 
 
-> s = await require("@cocalc/backend/nats/sync").dstream({project_id:cc.current().project_id,name:'foo'});0
+> s = await require("@cocalc/backend/conat/sync").dstream({project_id:cc.current().project_id,name:'foo'});0
 
 
 See the guide for dkv, since it's very similar, especially for use in a browser.

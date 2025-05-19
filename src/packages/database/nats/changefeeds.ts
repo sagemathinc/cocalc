@@ -33,7 +33,7 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:database:nats:changefeeds
 
 import getLogger from "@cocalc/backend/logger";
 import userQuery from "@cocalc/database/user-query";
-import { getEnv } from "@cocalc/backend/nats/env";
+import { getEnv } from "@cocalc/backend/conat/env";
 import { getUserId } from "@cocalc/conat/hub-api";
 import { callback } from "awaiting";
 import { db } from "@cocalc/database";

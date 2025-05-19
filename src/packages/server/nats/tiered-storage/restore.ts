@@ -1,7 +1,7 @@
 import { executeCode } from "@cocalc/backend/execute-code";
 import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
-import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
+import { natsCoCalcUserEnv } from "@cocalc/backend/conat/cli";
 import { rmKV, rmStream } from "./archive";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import type { LocationType } from "./types";

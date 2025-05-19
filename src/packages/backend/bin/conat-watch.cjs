@@ -1,4 +1,4 @@
-const { getEnv } = require('@cocalc/backend/nats')
+const { getEnv } = require('@cocalc/backend/conat')
 
 async function main() {
     const subject = process.argv[2] ?? '>';

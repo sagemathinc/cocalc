@@ -42,7 +42,7 @@ And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub-api";
-import { getEnv } from "@cocalc/backend/nats";
+import { getEnv } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/nats/changefeeds";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";

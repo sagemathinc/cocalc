@@ -10,11 +10,11 @@ In a node session:
 
 DEBUG=cocalc*changefeed* DEBUG_CONSOLE=yes node
 
-    require('@cocalc/backend/nats'); require('@cocalc/database/nats/changefeed-api').init()
+    require('@cocalc/backend/conat'); require('@cocalc/database/nats/changefeed-api').init()
 
 In another session:
 
-    require('@cocalc/backend/nats'); c = require('@cocalc/conat/changefeed/client');
+    require('@cocalc/backend/conat'); c = require('@cocalc/conat/changefeed/client');
     account_id = '6aae57c6-08f1-4bb5-848b-3ceb53e61ede';
     cf = await c.changefeed({account_id,query:{accounts:[{account_id, first_name:null}]}, heartbeat:5000, lifetime:30000});
 
@@ -27,7 +27,7 @@ In another session:
 
 import { init as initChangefeedServer } from "@cocalc/conat/changefeed/server";
 import { db } from "@cocalc/database";
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 
 export function init() {
   initChangefeedServer(db);

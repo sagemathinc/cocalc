@@ -8,7 +8,7 @@ DEVELOPMENT:
 */
 
 // this sets client
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 
 import { init, close } from "@cocalc/conat/llm/server";
 import { llm } from "@cocalc/conat/llm/client";

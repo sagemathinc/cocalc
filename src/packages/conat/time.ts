@@ -17,15 +17,15 @@ In unit testing mode this just falls back to Date.now().
 
 DEVELOPMENT:
 
-See src/packages/backend/nats/test/time.test.ts for relevant unit test, though
+See src/packages/backend/conat/test/time.test.ts for relevant unit test, though
 in test mode this is basically disabled.
 
-Also do this, noting the directory and import of @cocalc/backend/nats.
+Also do this, noting the directory and import of @cocalc/backend/conat.
 
 ~/cocalc/src/packages/backend$ node
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> a = require('@cocalc/conat/time'); require('@cocalc/backend/nats')
+> a = require('@cocalc/conat/time'); require('@cocalc/backend/conat')
 {
   getEnv: [Getter],
   getConnection: [Function: debounced],

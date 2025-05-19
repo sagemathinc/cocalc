@@ -12,12 +12,12 @@ Change to the packages/backend directory and run node.
 
 TERMINAL 1: This sets up the environment and starts the server running:
 
-   require('@cocalc/backend/nats/persist').initServer()
+   require('@cocalc/backend/conat/persist').initServer()
 
 
 TERMINAL 2: In another node session, create a client:
 
-    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
+    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
 
 // client also does this periodically to keep subscription alive:
 
@@ -25,7 +25,7 @@ TERMINAL 2: In another node session, create a client:
 
 TERMINAL 3:
 
-user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/nats/persist');  const { messageData } =require("@cocalc/conat/core/client"); 0;
+user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/conat/persist');  const { messageData } =require("@cocalc/conat/core/client"); 0;
 
    await set({user, storage, messageData:messageData('hi')})
    
@@ -37,7 +37,7 @@ user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.d
    
 Also getAll using start_seq:
 
-   cf = const {id, lifetime, stream} = await require('@cocalc/backend/nats/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
+   cf = const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
 */
 
 import { pstream, type Message as StoredMessage } from "./storage";

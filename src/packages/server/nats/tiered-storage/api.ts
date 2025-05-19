@@ -19,7 +19,7 @@ or
 
 To *USE* this service in another terminal:
 
-> require('@cocalc/backend/nats'); c = require('@cocalc/conat/tiered-storage/client')
+> require('@cocalc/backend/conat'); c = require('@cocalc/conat/tiered-storage/client')
 {
   state: [AsyncFunction: state],
   restore: [AsyncFunction: restore],
@@ -46,7 +46,7 @@ import { restoreProject, restoreAccount } from "./restore";
 import { archiveProject, archiveAccount } from "./archive";
 import { getProjectInfo, getAccountInfo } from "./info";
 import { isValidUUID } from "@cocalc/util/misc";
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("tiered-storage:api");

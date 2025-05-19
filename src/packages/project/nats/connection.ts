@@ -16,13 +16,13 @@ servers.
 
 import getConnection, {
   setConnectionOptions,
-} from "@cocalc/backend/nats/persistent-connection";
+} from "@cocalc/backend/conat/persistent-connection";
 import { getLogger } from "@cocalc/project/logger";
 import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
 import { inboxPrefix as getInboxPrefix } from "@cocalc/conat/names";
 import { project_id } from "@cocalc/project/data";
 import secretToken from "@cocalc/project/servers/secret-token";
-export { connect as connectToConat } from "@cocalc/backend/nats/conat";
+export { connect as connectToConat } from "@cocalc/backend/conat/conat";
 
 export default getConnection;
 

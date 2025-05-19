@@ -82,7 +82,7 @@ Using a separate connection for each project is also just really bad practice.
 */
 
 import { Svcm } from "@nats-io/services";
-import { getConnection } from "@cocalc/backend/nats";
+import { getConnection } from "@cocalc/backend/conat";
 import type { NatsConnection } from "@nats-io/nats-core";
 import {
   natsAuthCalloutNSeed,

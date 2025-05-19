@@ -8,7 +8,7 @@ DEVELOPMENT:
 
 */
 
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 import { close, createServer, writeFile } from "@cocalc/conat/files/write";
 import { createWriteStream, createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";

@@ -1,6 +1,6 @@
 import { getPort } from "@cocalc/server/nats/test/util";
 import { initConatServer } from "@cocalc/server/nats/socketio";
-import { connect as connect0, type Client } from "@cocalc/backend/nats/conat";
+import { connect as connect0, type Client } from "@cocalc/backend/conat/conat";
 
 export let server;
 export let port;

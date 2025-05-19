@@ -13,11 +13,11 @@ If this suddenly breaks, see the comment in packages/nats/sync/general-kv.ts
 about potentially having to fork NATS.
 */
 
-import "@cocalc/backend/nats"; // ensure client is setup
+import "@cocalc/backend/conat"; // ensure client is setup
 import { getMaxPayload } from "@cocalc/conat/util";
 import { createDstream } from "./util";
-import { dstream } from "@cocalc/backend/nats/sync";
-import { dkv as createDkv } from "@cocalc/backend/nats/sync";
+import { dstream } from "@cocalc/backend/conat/sync";
+import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 
 describe("create a dstream and a dkv and write a large chunk to each", () => {
   let maxPayload = 0;

@@ -1,7 +1,7 @@
 /*
 Configure nats-server, i.e., generate configuration files.
 
-node -e "require('@cocalc/backend/nats/conf').main()"
+node -e "require('@cocalc/backend/conat/conf').main()"
 
 
 

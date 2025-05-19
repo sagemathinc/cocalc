@@ -8,7 +8,7 @@ pnpm exec jest --watch --forceExit --detectOpenHandles "read.test.ts"
 
 */
 
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 import { close, createServer, readFile } from "@cocalc/conat/files/read";
 import { createReadStream } from "fs";
 import { file as tempFile } from "tmp-promise";

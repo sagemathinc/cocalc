@@ -1,4 +1,4 @@
-import { dstream } from "@cocalc/backend/nats/sync";
+import { dstream } from "@cocalc/backend/conat/sync";
 
 export async function createDstream() {
   const name = `test-${Math.random()}`;

@@ -3,7 +3,7 @@ Archive inactive things to save on resources.
 */
 
 import { getKvManager, getStreamManager } from "./info";
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 import { isValidUUID } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
 import { archiveProject, archiveAccount } from "./archive";

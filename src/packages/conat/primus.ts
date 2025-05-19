@@ -15,7 +15,7 @@ Development:
 # non-channel full communication
 
 Primus = require('@cocalc/conat/primus').Primus;
-env = await require('@cocalc/backend/nats').getEnv();
+env = await require('@cocalc/backend/conat').getEnv();
 server = new Primus({subject:'test',env,role:'server',id:'s'});
 sparks = []; server.on("connection", (spark) => sparks.push(spark));
 

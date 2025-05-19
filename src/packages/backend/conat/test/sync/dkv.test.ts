@@ -7,7 +7,7 @@ pnpm test dkv.test.ts
 
 */
 
-import { dkv as createDkv } from "@cocalc/backend/nats/sync";
+import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 

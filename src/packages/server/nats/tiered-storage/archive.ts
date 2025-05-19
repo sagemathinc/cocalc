@@ -1,5 +1,5 @@
 import { executeCode } from "@cocalc/backend/execute-code";
-import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
+import { natsCoCalcUserEnv } from "@cocalc/backend/conat/cli";
 import { backupStream, backupKV, backupLocation } from "./backup";
 import { restoreKV } from "./restore";
 import type { LocationType } from "./types";

@@ -14,17 +14,17 @@ Installation happens automatically, e.g,. when you do 'pnpm nats-server' or
 start the hub via 'pnpm hub'.   However, you can explicitly do
 an install as follows:
 
-~/cocalc/src/packages/backend/nats$ DEBUG=cocalc:* DEBUG_CONSOLE=yes node
+~/cocalc/src/packages/backend/conat$ DEBUG=cocalc:* DEBUG_CONSOLE=yes node
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 
 Install latest tested version of nats-server and nats cli:
 
-    > await require('@cocalc/backend/nats/install').install()
+    > await require('@cocalc/backend/conat/install').install()
 
 Installing just the server:
 
-    > await require('@cocalc/backend/nats/install').installNatsServer()
+    > await require('@cocalc/backend/conat/install').installNatsServer()
 */
 
 import { nats } from "@cocalc/backend/data";

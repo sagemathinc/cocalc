@@ -7,7 +7,7 @@ pnpm exec jest --forceExit "dko.test.ts"
 
 */
 
-import { dko as createDko } from "@cocalc/backend/nats/sync";
+import { dko as createDko } from "@cocalc/backend/conat/sync";
 import { getMaxPayload } from "@cocalc/conat/util";
 
 describe("create a public dko and do a basic operation", () => {

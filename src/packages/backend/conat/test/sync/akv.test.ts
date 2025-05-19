@@ -7,7 +7,7 @@ pnpm exec jest --forceExit "akv.test.ts"
 
 */
 
-import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/nats/sync";
+import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { getMaxPayload } from "@cocalc/conat/util";
 

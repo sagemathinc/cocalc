@@ -5,7 +5,7 @@ pnpm test ./time.test.ts
 */
 
 // this sets client
-import "@cocalc/backend/nats";
+import "@cocalc/backend/conat";
 
 import time, { getSkew } from "@cocalc/conat/time";
 
@@ -33,7 +33,7 @@ import { timeClient, createTimeService } from "@cocalc/conat/service/time";
 
 describe("start the time server and client and test that it works", () => {
   it("starts the time server and queries it", async () => {
-    await import("@cocalc/backend/nats");
+    await import("@cocalc/backend/conat");
     createTimeService();
     const client = timeClient();
     const t = await client.time();

@@ -2,7 +2,7 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { natsBackup } from "@cocalc/backend/data";
 import { join } from "path";
 import mkdirp from "mkdirp";
-import { natsCoCalcUserEnv } from "@cocalc/backend/nats/cli";
+import { natsCoCalcUserEnv } from "@cocalc/backend/conat/cli";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("tiered-storage:backup");

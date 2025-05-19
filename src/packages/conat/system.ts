@@ -15,7 +15,7 @@ Development:
 ~/cocalc/src/packages/server$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/system"); s = new a.SystemKv(env); await s.init();
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/system"); s = new a.SystemKv(env); await s.init();
 
 */
 

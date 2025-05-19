@@ -75,13 +75,13 @@ TODO:
 
 DEVELOPMENT:
 
-(See packages/backend/nats/test/sync/general-kv.test.ts for a unit tested version of what is below that
+(See packages/backend/conat/test/sync/general-kv.test.ts for a unit tested version of what is below that
 actually works.)
 
 ~/cocalc/src/packages/server$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> env = await require("@cocalc/backend/nats/env").getEnv(); a = require("@cocalc/conat/sync/general-kv"); s = new a.GeneralKV({name:'test',env,filter:['foo.>']}); await s.init();
+> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/general-kv"); s = new a.GeneralKV({name:'test',env,filter:['foo.>']}); await s.init();
 
 > await s.set("foo.x", 10)
 > s.getAll()
@@ -1133,7 +1133,7 @@ function parseChunkedKey(key: string): {
 // https://github.com/nats-io/nats.js/issues/217
 // This was explicitly soundly rejected by the NATS developers.
 // It's thus important that we unit test this, which is done in
-// packages/backend/nats/test/sync/chunk.test.ts
+// packages/backend/conat/test/sync/chunk.test.ts
 // right now. I think it is highly unlikely NATS will break using
 // headers in some future version, based on how KV is implemented
 // on top of lower level primitives.  However, if they do, we will

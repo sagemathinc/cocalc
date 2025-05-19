@@ -11,7 +11,7 @@ pnpm exec jest --forceExit "general-kv.test.ts"
 */
 // import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
-import { getEnv } from "@cocalc/backend/nats/env";
+import { getEnv } from "@cocalc/backend/conat/env";
 import { GeneralKV } from "@cocalc/conat/sync/general-kv";
 import { getMaxPayload } from "@cocalc/conat/util";
 

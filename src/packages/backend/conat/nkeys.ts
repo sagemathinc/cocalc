@@ -1,10 +1,10 @@
 /*
 EXAMPLE:
 
-~/cocalc/src/packages/backend/nats$ n
+~/cocalc/src/packages/backend/conat$ n
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> a = require('@cocalc/backend/nats/nkeys')
+> a = require('@cocalc/backend/conat/nkeys')
 {
   publicKey: [Function: publicKey],
   createPrivateKey: [Function: createPrivateKey]

@@ -16,7 +16,7 @@ c = await require('@cocalc/database/nats/coordinator').coordinator({timeout:1000
 
 */
 
-import { dkv, type DKV } from "@cocalc/backend/nats/sync";
+import { dkv, type DKV } from "@cocalc/backend/conat/sync";
 import { randomId } from "@cocalc/conat/names";
 import getTime from "@cocalc/conat/time";
 

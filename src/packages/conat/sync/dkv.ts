@@ -46,7 +46,7 @@ From node.js
     ~/cocalc/src/packages/backend$ n
     Welcome to Node.js v18.17.1.
     Type ".help" for more information.
-    > t = await require("@cocalc/backend/nats/sync").dkv({name:'test'})
+    > t = await require("@cocalc/backend/conat/sync").dkv({name:'test'})
 
 From the browser:
 
@@ -81,7 +81,7 @@ If instead you need to share state with a project (or compute server), use
 > b = await cc.client.nats_client.dkv({name:'test', project_id:'...'})
 
 
-UNIT TESTS: See backend/nats/test/
+UNIT TESTS: See backend/conat/test/
 
 They aren't right here, because this module doesn't have info to connect to NATS.
 

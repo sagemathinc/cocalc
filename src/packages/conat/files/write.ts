@@ -50,11 +50,11 @@ Here's how it works from the side of whoever is sending the file:
 
 DEVELOPMENT:
 
-See src/packages/backend/nats/test/files/write.test.ts for unit tests.
+See src/packages/backend/conat/test/files/write.test.ts for unit tests.
 
 ~/cocalc/src/packages/backend$ node
 
-require('@cocalc/backend/nats'); a = require('@cocalc/conat/files/write');
+require('@cocalc/backend/conat'); a = require('@cocalc/conat/files/write');
 
 project_id = '00847397-d6a8-4cb0-96a8-6ef64ac3e6cf'; compute_server_id = 0; await a.createServer({project_id,compute_server_id,createWriteStream:require('fs').createWriteStream});
 

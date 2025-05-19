@@ -10,12 +10,12 @@ DEVELOPMENT:
 
 cd to packages/backend, then
 
-    require('@cocalc/backend/nats'); a = require('@cocalc/conat/tiered-storage/server'); 
+    require('@cocalc/backend/conat'); a = require('@cocalc/conat/tiered-storage/server'); 
     a.init({info:async ({project_id})=> { return "info about " + project_id}})
 
 In another console:
 
-    require('@cocalc/backend/nats'); a = require('@cocalc/conat/tiered-storage/client'); await a.info({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
+    require('@cocalc/backend/conat'); a = require('@cocalc/conat/tiered-storage/client'); await a.info({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'})
     
 Outputs:   
 

@@ -7,8 +7,8 @@ pnpm exec jest --forceExit "limits.test.ts"
 
 */
 
-import { dkv as createDkv } from "@cocalc/backend/nats/sync";
-import { dstream as createDstream } from "@cocalc/backend/nats/sync";
+import { dkv as createDkv } from "@cocalc/backend/conat/sync";
+import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 

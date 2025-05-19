@@ -7,7 +7,7 @@ pnpm exec jest --watch --forceExit "dkv-merge.test.ts"
 
 */
 
-import { dkv as createDkv } from "@cocalc/backend/nats/sync";
+import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { diff_match_patch } from "@cocalc/util/dmp";
 

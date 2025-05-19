@@ -1,6 +1,6 @@
 import { getPort } from "@cocalc/server/nats/test/util";
 import { initConatServer } from "@cocalc/server/nats/socketio";
-import { connect } from "@cocalc/backend/nats/conat";
+import { connect } from "@cocalc/backend/conat/conat";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/server/nats/test/util";
 

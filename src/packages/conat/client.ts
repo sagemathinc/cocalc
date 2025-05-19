@@ -2,7 +2,7 @@
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
-> require('@cocalc/backend/nats'); c = require('@cocalc/conat/client').getClient()
+> require('@cocalc/backend/conat'); c = require('@cocalc/conat/client').getClient()
 > c.state
 'connected'
 > Object.keys(await c.getNatsEnv())

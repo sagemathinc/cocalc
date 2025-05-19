@@ -12,17 +12,17 @@ DEVELOPMENT:
 ~/cocalc/src/packages/backend$ node
 
 
-    require('@cocalc/backend/nats'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', leader:true})
+    require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', leader:true})
 
 
 Testing two at once (a leader and non-leader):
 
-    require('@cocalc/backend/nats'); s = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:1, noAutosave:true}); t = await require('@cocalc/backend/nats/sync').dstream({ephemeral:true,name:'test', leader:0,noAutosave:true})
+    require('@cocalc/backend/conat'); s = await require('@cocalc/backend/conat/sync').dstream({ephemeral:true,name:'test', leader:1, noAutosave:true}); t = await require('@cocalc/backend/conat/sync').dstream({ephemeral:true,name:'test', leader:0,noAutosave:true})
 
 
 With persistence:
 
-   require('@cocalc/backend/nats'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
+   require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
    
 */
 

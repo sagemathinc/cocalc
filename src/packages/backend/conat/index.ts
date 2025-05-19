@@ -13,7 +13,7 @@ import { inboxPrefix } from "@cocalc/conat/names";
 import { setNatsClient } from "@cocalc/conat/client";
 import getConnection, {
   setConnectionOptions,
-} from "@cocalc/backend/nats/persistent-connection";
+} from "@cocalc/backend/conat/persistent-connection";
 import { hostname } from "os";
 
 export { getConnection };
