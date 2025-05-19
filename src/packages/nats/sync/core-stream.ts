@@ -320,7 +320,14 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.leader) {
       throw Error("this is the leader");
     }
-    let d = 1000;
+    // be agressive about initial retrying since the leader
+    // might just not be ready yet... but quickly back off.
+    // TODO: maybe we should add a primitive to the server 
+    // that is client.waitUntilSubscriber('subject', {queue:?}) that
+    // waits until there is at least one subscribe to the given subject
+    // and only then sends a message.  It would be doable, with a check
+    // each time the interest is updated.
+    let d = 250;
     while (this.client != null) {
       try {
         for await (const raw0 of await this.client.requestMany(
@@ -363,8 +370,8 @@ export class CoreStream<T = any> extends EventEmitter {
       } catch (err) {
         if (err.code == 503) {
           // leader just isn't ready yet?
-          d = Math.min(15000, d * 1.3);
           await delay(d);
+          d = Math.min(15000, d * 1.5);
           continue;
         } else {
           throw err;
