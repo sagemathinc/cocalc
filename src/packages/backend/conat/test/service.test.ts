@@ -12,20 +12,24 @@ import {
   createServiceHandler,
 } from "@cocalc/conat/service/typed";
 import { once } from "@cocalc/util/async-utils";
-import { before, after } from "@cocalc/backend/conat/test/setup";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
+import { initConatServer } from "@cocalc/backend/conat/test/setup";
+import { getPort } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
 
 describe("create a service and test it out", () => {
   let s;
+  let subject;
   it("creates a service", async () => {
     s = createConatService({
       service: "echo",
       handler: (mesg) => mesg.repeat(2),
     });
+    subject = s.subject;
     await once(s, "running");
     expect(await callConatService({ service: "echo", mesg: "hello" })).toBe(
       "hellohello",
@@ -35,8 +39,18 @@ describe("create a service and test it out", () => {
   it("closes the services and observes it doesn't work anymore", async () => {
     s.close();
     await expect(async () => {
-      await callConatService({ service: "echo", mesg: "hi", timeout: 1000 });
+      await callConatService({ service: "echo", mesg: "hi", timeout: 250 });
     }).rejects.toThrowError("timeout");
+  });
+
+  // [ ] TODO: broken!
+  it.skip("creates a listener on the same subject and try to call to verify timeout works", async () => {
+    const client = connect();
+    const sub = await client.subscribe(subject);
+    await expect(async () => {
+      await callConatService({ service: "echo", mesg: "hi", timeout: 250 });
+    }).rejects.toThrowError("timeout");
+    sub.close();
   });
 });
 
@@ -115,6 +129,105 @@ describe("create and test a more complicated service", () => {
 
   it("cleans up", () => {
     service.close();
+  });
+});
+
+describe("create a service with specified client, stop and start the server, and see service still works", () => {
+  let server;
+  let client;
+  let client2;
+  let port;
+  it("create a conat server and client", async () => {
+    port = await getPort();
+    server = await initConatServer({ port });
+    client = server.client({ reconnectionDelay: 50 });
+    client2 = server.client({ reconnectionDelay: 50 });
+  });
+
+  let service;
+  it("create a service using specific client and call it using both clients", async () => {
+    service = createConatService({
+      client,
+      service: "double",
+      handler: (mesg) => mesg.repeat(2),
+    });
+
+    expect(
+      await callConatService({ client, service: "double", mesg: "hello" }),
+    ).toBe("hellohello");
+
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
+
+  it("disconnect client and check service still works on reconnect", async () => {
+    // cause a disconnect -- client will connect again in 50ms soon
+    // and handle the request below:
+    client.conn.io.engine.close();
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
+
+  it("disconnect client2 and check service still works on reconnect", async () => {
+    // cause a disconnect -- client will connect again in 50ms soon
+    // and handle the request below:
+    client2.conn.io.engine.close();
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
+
+  it("disconnect both clients and check service still works on reconnect", async () => {
+    // cause a disconnect -- client will connect again in 50ms soon
+    // and handle the request below:
+    client.conn.io.engine.close();
+    client2.conn.io.engine.close();
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
+
+  it("kills the server, then makes another one serving on the same port", async () => {
+    await server.close();
+    server = await initConatServer({ port });
+    // Killing the server is not at all a normal thing to expect, and causes loss of
+    // its state.  The clients have to sync realize subscriptions are missing.  This
+    // takes a fraction of a second and the call below won't immediately work without
+    // a short delay, unfortunately.  TODO: should we handle this better?
+    await delay(100);
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+        noRetry: true,
+      }),
+    ).toBe("hellohello");
+  });
+
+  it("cleans up", () => {
+    service.close();
+    client.close();
+    client2.close();
+    server.close();
   });
 });
 

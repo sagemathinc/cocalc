@@ -17,6 +17,7 @@ import { randomId } from "@cocalc/conat/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { encodeBase64 } from "@cocalc/conat/util";
+import { type Client } from "@cocalc/conat/core/client";
 
 const DEFAULT_TIMEOUT = 10 * 1000;
 
@@ -40,16 +41,17 @@ export interface ServiceCall extends ServiceDescription {
   mesg: any;
   timeout?: number;
 
-  // if it fails with NatsError, we wait for service to be ready and try again,
+  // if it fails with error.code 503, we wait for service to be ready and try again,
   // unless this is set -- e.g., when waiting for the service in the first
   // place we set this to avoid an infinite loop.
   noRetry?: boolean;
+
+  client?: Client;
 }
 
 export async function callConatService(opts: ServiceCall): Promise<any> {
   // console.log("callConatService", opts);
-  const env = await getEnv();
-  const { cn } = env;
+  const cn = opts.client ?? (await getEnv()).cn;
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
@@ -73,28 +75,28 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
   } catch (err) {
     // console.log(`request to '${subject}' failed -- ${err}`);
     // it failed.
-    if (!opts.noRetry) {
-      // it's a nats problem
-      const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
-      if (err.code == 503) {
-        // it's actually just not ready, so
-        // wait for the service to be ready, then try again
-        await waitForConatService({ options: opts, maxWait: timeout });
-        try {
-          return await doRequest();
-        } catch (err) {
-          if (err.code == 503) {
-            err.message = `Not Available: service ${p}${opts.service} is not available`;
-          }
-          throw err;
-        }
-      } else if (err.code == "TIMEOUT") {
-        throw Error(
-          `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,
-        );
-      }
+    if (opts.noRetry) {
+      throw err;
     }
-    throw err;
+    // it's a nats problem
+    const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
+    if (err.code == 503) {
+      // it's actually just not ready, so
+      // wait for the service to be ready, then try again
+      await waitForConatService({ options: opts, maxWait: timeout });
+      try {
+        return await doRequest();
+      } catch (err) {
+        if (err.code == 503) {
+          err.message = `Not Available: service ${p}${opts.service} is not available`;
+        }
+        throw err;
+      }
+    } else if (err.code == "TIMEOUT") {
+      throw Error(
+        `Timeout: service ${p}${opts.service} did not respond for ${Math.round(timeout / 1000)} seconds`,
+      );
+    }
   }
 }
 
@@ -104,6 +106,7 @@ export interface Options extends ServiceDescription {
   description?: string;
   version?: string;
   handler: (mesg) => Promise<any>;
+  client?: Client;
 }
 
 export function createConatService(options: Options) {
@@ -182,9 +185,9 @@ export function serviceDescription({
 
 export class ConatService extends EventEmitter {
   private options: Options;
-  private subject: string;
+  public readonly subject: string;
+  public readonly name: string;
   private sub?;
-  private name: string;
 
   constructor(options: Options) {
     super();
@@ -207,7 +210,7 @@ export class ConatService extends EventEmitter {
       description: this.options.description,
       version: this.options.version,
     });
-    const { cn } = await getEnv();
+    const cn = this.options.client ?? (await getEnv()).cn;
     const queue = this.options.all ? randomId() : "0";
     this.sub = await cn.subscribe(this.subject, { queue });
     this.emit("running");

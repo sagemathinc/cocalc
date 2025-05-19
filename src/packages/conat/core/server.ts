@@ -159,8 +159,8 @@ export class ConatServer {
     }
   };
 
-  close = () => {
-    this.io.close();
+  close = async () => {
+    await this.io.close();
   };
 
   private info = (): ServerInfo => {
