@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Radio, Space, Tooltip } from "antd";
+import { Alert } from "antd";
 import * as immutable from "immutable";
 import * as _ from "lodash";
 import React from "react";
@@ -41,7 +41,6 @@ import {
 } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
-import { unreachable } from "@cocalc/util/misc";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { AccessErrors } from "./access-errors";
@@ -51,7 +50,6 @@ import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { TerminalModeDisplay } from "./file-listing/terminal-mode-display";
 import { default_ext, TERM_MODE_CHAR } from "./file-listing/utils";
-import { MiniTerminal } from "./mini-terminal";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
@@ -847,20 +845,8 @@ const SearchTerminalBar = React.forwardRef(
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
-    const [mode, setMode] = React.useState<"search" | "terminal">("search");
-
-    function renderTerminal() {
-      return (
-        <MiniTerminal
-          current_path={current_path}
-          actions={actions}
-          show_close_x={true}
-        />
-      );
-    }
-
-    function renderSearch() {
-      return (
+    return (
+      <div ref={ref} style={{ flex: "1 1 auto" }}>
         <SearchBar
           key={current_path}
           file_search={file_search}
@@ -879,41 +865,7 @@ const SearchTerminalBar = React.forwardRef(
           create_file={create_file}
           create_folder={create_folder}
         />
-      );
-    }
-
-    function renderBar() {
-      switch (mode) {
-        case "search":
-          return renderSearch();
-        case "terminal":
-          return renderTerminal();
-        default:
-          unreachable(mode);
-      }
-    }
-
-    return (
-      <Space.Compact style={{ flex: "1 1 auto" }}>
-        <Radio.Group
-          ref={ref}
-          value={mode}
-          onChange={(e) => setMode(e.target.value)}
-          style={{ whiteSpace: "nowrap" }}
-        >
-          <Tooltip title="Click to change the input box to filter files by their name and open them with return.">
-            <Radio.Button value="search">
-              <Icon name="search" />
-            </Radio.Button>
-          </Tooltip>
-          <Tooltip title="Click to change the input box to run commands.">
-            <Radio.Button value="terminal" style={{ borderRadius: 0 }}>
-              <Icon name="terminal" />
-            </Radio.Button>
-          </Tooltip>
-        </Radio.Group>
-        {renderBar()}
-      </Space.Compact>
+      </div>
     );
   },
 );

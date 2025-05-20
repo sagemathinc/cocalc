@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(או <keyboard>Shift+Return</keyboard> בתיבת החיפוש)",
   "project.explorer.file-listing.stale-warning": "מציג רשימת ספריות לא מעודכנת {is_missing, select, true {<b>קבצים חסרים {missing}</b>} other {}}. כדי לעדכן את רשימת הספריות <a>התחל את הפרויקט הזה</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "פותח את הספרייה הנוכחית במופע שרת {name}, הפועל בתוך פרויקט זה",
-  "project.explorer.search-bar.placeholder": "חפש או צור קובץ",
+  "project.explorer.search-bar.placeholder": "סנן קבצים או \"/\" למסוף...",
   "project.explorer.start_project.warning": "על מנת לראות את הקבצים בתיקייה זו, עליך <a>להתחיל את הפרויקט הזה</a>",
   "project.history.log-entry.invited_user": "משתמש מוזמן",
   "project.history.log-entry.invited_user_via": "הזמין משתמש חדש באמצעות",

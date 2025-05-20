@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(또는 검색 상자에서 <keyboard>Shift+Return</keyboard>)",
   "project.explorer.file-listing.stale-warning": "오래된 디렉토리 목록 표시 {is_missing, select, true {<b>누락된 {missing} 파일</b>} other {}}. 디렉토리 목록을 업데이트하려면 <a>이 프로젝트를 시작</a>하세요.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "현재 디렉토리를 이 프로젝트 내부에서 실행 중인 {name} 서버 인스턴스에서 엽니다.",
-  "project.explorer.search-bar.placeholder": "파일 검색 또는 생성",
+  "project.explorer.search-bar.placeholder": "파일 필터 또는 \"/\"로 터미널...",
   "project.explorer.start_project.warning": "이 디렉터리의 파일을 보려면 <a>이 프로젝트를 시작</a>해야 합니다.",
   "project.history.log-entry.invited_user": "초대된 사용자",
   "project.history.log-entry.invited_user_via": "새 사용자 초대 via",
