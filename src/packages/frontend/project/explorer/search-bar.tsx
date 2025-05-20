@@ -7,15 +7,28 @@ import { Alert, Flex } from "antd";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
-import { outputMinitermStyle } from "./mini-terminal";
 import { ListingItem } from "./types";
+
+export const outputMinitermStyle: React.CSSProperties = {
+  background: "white",
+  position: "absolute",
+  zIndex: 2,
+  boxShadow: "-4px 4px 7px #aaa",
+  maxHeight: "450px",
+  overflow: "auto",
+  right: 0,
+  marginTop: "36px",
+  marginRight: "5px",
+  borderRadius: "5px",
+  width: "100%",
+} as const;
 
 interface Props {
   file_search: string;
@@ -183,7 +196,10 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   // Miniterm functionality
-  function render_output(x, style): JSX.Element | undefined {
+  function render_output(
+    x: string | undefined,
+    style: CSS,
+  ): JSX.Element | undefined {
     if (x) {
       return (
         <pre style={style}>
@@ -284,7 +300,7 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage: "Filter files (/ for terminal)...",
+          defaultMessage: 'Filter files or "/" for terminal...',
         })}
         value={file_search}
         on_change={on_change}

@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "（または検索ボックスで<keyboard>Shift+Return</keyboard>）",
   "project.explorer.file-listing.stale-warning": "古いディレクトリリストを表示中 {is_missing, select, true {<b>欠落している {missing} ファイル</b>} other {}}。ディレクトリリストを更新するには<a>このプロジェクトを開始</a>してください。",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "このプロジェクト内で実行中の{name}サーバーインスタンスで現在のディレクトリを開きます。",
-  "project.explorer.search-bar.placeholder": "検索またはファイル作成",
+  "project.explorer.search-bar.placeholder": "ファイルをフィルターまたは\"/\"でターミナル...",
   "project.explorer.start_project.warning": "このディレクトリ内のファイルを見るには、<a>このプロジェクトを開始</a>する必要があります。",
   "project.history.log-entry.invited_user": "招待されたユーザー",
   "project.history.log-entry.invited_user_via": "経由で新しいユーザーを招待",
