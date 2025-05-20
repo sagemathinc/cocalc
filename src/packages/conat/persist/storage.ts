@@ -220,22 +220,24 @@ export class PersistentStream extends EventEmitter {
 
   *getAll({
     start_seq,
-  }: { start_seq?: number } = {}): IterableIterator<Message> {
+    end_seq,
+  }: { end_seq?: number; start_seq?: number } = {}): IterableIterator<Message> {
     let query: string, stmt;
-    if (!start_seq) {
-      query =
-        "SELECT seq, key, time, compress, encoding, raw, headers FROM messages ORDER BY seq";
-      stmt = this.db.prepare(query);
-      for (const row of stmt.iterate()) {
-        yield dbToMessage(row)!;
-      }
-    } else {
-      query =
-        "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE seq>=? ORDER BY seq";
-      stmt = this.db.prepare(query);
-      for (const row of stmt.iterate(start_seq)) {
-        yield dbToMessage(row)!;
-      }
+
+    const where: string[] = [];
+    const v: number[] = [];
+    if (start_seq != null) {
+      where.push("seq>=?");
+      v.push(start_seq);
+    }
+    if (end_seq != null) {
+      where.push("seq<=?");
+      v.push(end_seq);
+    }
+    query = `SELECT seq, key, time, compress, encoding, raw, headers FROM messages ${where.length == 0 ? "" : " where " + where.join(" AND ")} ORDER BY seq`;
+    stmt = this.db.prepare(query);
+    for (const row of stmt.iterate(...v)) {
+      yield dbToMessage(row)!;
     }
   }
 

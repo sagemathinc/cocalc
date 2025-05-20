@@ -250,10 +250,10 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("must have persist set");
     }
 
-    // [ ] TODO: just for initial testing!
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
+
     const { stream } = await persistClient.getAll({
       user: this.user,
       storage: this.storage,
@@ -297,7 +297,6 @@ export class CoreStream<T = any> extends EventEmitter {
     // [] TODO: calling m.data costs time and doubles memory usage; can
     // or should we avoid it until needed?
     const mesg = m.data;
-    this.messages.push(mesg);
     // [ ] todo: typing
     const raw = {
       timestamp: time,
@@ -305,11 +304,26 @@ export class CoreStream<T = any> extends EventEmitter {
       seq,
       data: m.raw,
     } as RawMsg;
-    this.raw.push([raw]);
+    if (seq > (this.raw.slice(-1)[0]?.[0].seq ?? 0)) {
+      // easy fast initial load at the end (common special case)
+      this.messages.push(mesg);
+      this.raw.push([raw]);
+    } else {
+      // [ ] TODO: insert in the correct place.  This should only
+      // happen when calling load.  The algorithm below is particularly
+      // dumb and could be replaced by a binary search.  However, we'll
+      // change how we batch load so there's no point.
+      let i = 0;
+      while (i < this.raw.length && this.raw[i][0].seq < seq) {
+        i += 1;
+      }
+      this.raw.splice(i, 0, [raw]);
+      this.messages.splice(i, 0, mesg);
+    }
     if (typeof key == "string") {
       this.kv[key] = { raw: [raw], mesg };
     }
-    this.lastSeq = seq;
+    this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
       this.emit("change", mesg, [raw], key);
     }
@@ -718,7 +732,8 @@ export class CoreStream<T = any> extends EventEmitter {
     return this.raw[n][0]?.headers;
   };
 
-  // load older messages starting at start_seq
+  // load older messages starting at start_seq up to the oldest message
+  // we currently have.
   load = async ({
     start_seq,
     noEmit,
@@ -727,15 +742,38 @@ export class CoreStream<T = any> extends EventEmitter {
     noEmit?: boolean;
   }) => {
     if (this.persist) {
-      // [ ] TODO:
+      // This is used for loading more TimeTravel history
+      if (this.raw.length == 0) {
+        // we have nothing right now, so just load everything from start_seq forward.
+        await this.getAllFromPersist({ start_seq, noEmit });
+        return;
+      }
+      if (this.storage == null) {
+        throw Error("bug");
+      }
+      // this is one before the oldest we have
+      const end_seq = this.raw[0][0].seq! - 1;
+      // we're moving start_seq back to this point
+      this._start_seq = start_seq;
+      const { stream } = await persistClient.getAll({
+        user: this.user,
+        storage: this.storage,
+        start_seq,
+        end_seq,
+      });
+      for await (const value of stream) {
+        this.processPersistentMessage(value, !!noEmit);
+      }
       return;
     }
+
+    // Ephemeral case below - lower priority since probably never used:
+    // [ ] TODO: this is NOT efficient - it just discards everything and starts over.
     if (this._start_seq == null || this._start_seq <= 1 || this.leader) {
       // we already loaded everything on initialization; there can't be anything older;
       // or we are leader, so we are the full source of truth.
       return;
     }
-    // this is NOT efficient - it just discards everything and starts over.
     const n = this.messages.length;
     this.resetState();
     this._start_seq = start_seq;

@@ -380,7 +380,9 @@ async function getAll({ mesg, request, user_id, stream }) {
   }
 
   try {
-    await respond(undefined, { id, lifetime });
+    if (!request.end_seq) {
+      await respond(undefined, { id, lifetime });
+    }
     if (done) {
       return;
     }
@@ -389,11 +391,18 @@ async function getAll({ mesg, request, user_id, stream }) {
     // [ ] TODO: should we just send it all as a single message?
     //     much faster, but uses much more RAM.  **Instead, obviously
     //     some combination based on actual data!**
-    for (const message of stream.getAll({ start_seq: request.start_seq })) {
+    for (const message of stream.getAll({
+      start_seq: request.start_seq,
+      end_seq: request.end_seq,
+    })) {
       if (done) {
         return;
       }
       await respond(undefined, message);
+    }
+    if (request.end_seq) {
+      end();
+      return;
     }
 
     // send state change message

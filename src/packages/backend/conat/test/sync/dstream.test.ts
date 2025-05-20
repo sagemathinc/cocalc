@@ -216,11 +216,41 @@ describe("testing start_seq", () => {
     expect(s.start_seq).toEqual(seq[2]);
   });
 
-  it.skip("it then pulls in the previous message, so now two messages are loaded", async () => {
+  it("it then pulls in the previous message, so now two messages are loaded", async () => {
     await s.load({ start_seq: seq[1] });
     expect(s.length).toBe(2);
     expect(s.getAll()).toEqual([2, 3]);
     expect(s.start_seq).toEqual(seq[1]);
+  });
+
+  it("a bigger example involving loading older messages", async () => {
+    for (let i = 4; i < 100; i++) {
+      s.push(i);
+    }
+    await s.save();
+    const last = s.seq(s.length - 1);
+    const mid = s.seq(s.length - 50);
+    await s.close();
+    s = await createDstream({
+      name,
+      noAutosave: true,
+      start_seq: last,
+    });
+    expect(s.length).toBe(1);
+    expect(s.getAll()).toEqual([99]);
+    expect(s.start_seq).toEqual(last);
+
+    await s.load({ start_seq: mid });
+    expect(s.length).toEqual(50);
+    expect(s.start_seq).toEqual(mid);
+    for (let i = 0; i < 50; i++) {
+      expect(s.get(i)).toBe(i + 50);
+    }
+
+    await s.load({ start_seq: 0 });
+    for (let i = 0; i < 99; i++) {
+      expect(s.get(i)).toBe(i+1);
+    }
   });
 });
 

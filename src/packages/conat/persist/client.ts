@@ -22,19 +22,25 @@ export async function getAll({
   user,
   storage,
   start_seq,
+  end_seq,
   options,
 }: {
   user: User;
   storage: Storage;
   start_seq?: number;
+  end_seq?: number;
   options?: ConnectionOptions;
-}): Promise<{ id: string; lifetime: number; stream }> {
+}): Promise<{ id?: string; lifetime?: number; stream }> {
   const stream = await callApiGetAll({
     user,
     storage,
     options,
     start_seq,
+    end_seq,
   });
+  if (end_seq) {
+    return { stream };
+  }
   // the first element of the stream has the id, and the rest is the
   // stream user will consume
   const { value, done } = await stream.next();
@@ -101,6 +107,7 @@ export async function get({
 
 async function* callApiGetAll({
   start_seq,
+  end_seq,
   // who is accessing persistent storage
   user,
   // what storage they are accessing
@@ -109,6 +116,7 @@ async function* callApiGetAll({
   options,
 }: {
   start_seq?: number;
+  end_seq?: number;
   user: User;
   storage: Storage;
   options?: ConnectionOptions;
@@ -128,6 +136,7 @@ async function* callApiGetAll({
     headers: {
       cmd: "getAll",
       start_seq,
+      end_seq,
       heartbeat,
       lifetime,
       storage,

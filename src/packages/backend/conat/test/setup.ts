@@ -17,6 +17,7 @@ import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
+import { delay } from "awaiting";
 
 const logger = getLogger("conat:test:setup");
 
@@ -57,6 +58,8 @@ export async function before() {
     },
     getLogger,
   });
+  // give persist server, etc time to startup
+  await delay(10);
 }
 
 const clients: Client[] = [];
