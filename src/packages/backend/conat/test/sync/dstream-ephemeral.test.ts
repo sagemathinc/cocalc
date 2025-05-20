@@ -6,16 +6,25 @@ The first tests are initially similar to those for dstream.test.ts, but with
 
 DEVELOPMENT:
 
-pnpm test estream.test.ts
+pnpm test ./dstream-estream.test.ts
 
 */
 
+import { connect, before, after } from "@cocalc/backend/conat/test/setup";
 import { createDstreamEphemeral as create } from "./util";
 import { dstream as createDstream0 } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 
+beforeAll(before);
+
 async function createDstream<T>(opts) {
-  return await createDstream0<T>({ ephemeral: true, leader: true, ...opts });
+  return await createDstream0<T>({
+    noCache: true,
+    noAutosave: true,
+    ephemeral: true,
+    leader: true,
+    ...opts,
+  });
 }
 
 describe("create a dstream and do some basic operations", () => {
@@ -65,14 +74,11 @@ describe("create a dstream and do some basic operations", () => {
 describe("create two dstreams and observe sync between them", () => {
   const name = `test-${Math.random()}`;
   let s1, s2;
+  let client2;
   it("creates two distinct dstream objects s1 and s2 with the same name", async () => {
-    s1 = await createDstream({ name, noAutosave: true, noCache: true });
-    s2 = await createDstream({
-      name,
-      noAutosave: true,
-      noCache: true,
-      leader: false,
-    });
+    client2 = connect();
+    s1 = await createDstream({ name });
+    s2 = await createDstream({ client: client2, name, leader: false });
     // definitely distinct
     expect(s1 === s2).toBe(false);
   });
@@ -108,21 +114,50 @@ describe("create two dstreams and observe sync between them", () => {
     expect(s2.getAll()).toEqual(["hello", "hi from s2"]);
   });
 
-  it("write to s1 and s2 and save at the same time and see some 'random choice' of order gets imposed by the server", async () => {
+  it("cleans up", () => {
+    s1.close();
+    s2.close();
+    client2.close();
+  });
+});
+
+describe("create two dstreams and test sync with parallel save", () => {
+  const name = `test-${Math.random()}`;
+  let s1, s2;
+  let client2;
+  it("creates two distinct dstream objects s1 and s2 with the same name", async () => {
+    client2 = connect();
+    s1 = await createDstream({ name });
+    s2 = await createDstream({ client: client2, name, leader: false });
+    // definitely distinct
+    expect(s1 === s2).toBe(false);
+  });
+
+  it("write to s1 and s2 and save at the same time", async () => {
     s1.push("s1");
     s2.push("s2");
     // our changes are reflected locally
-    expect(s1.getAll()).toEqual(["hello", "hi from s2", "s1"]);
-    expect(s2.getAll()).toEqual(["hello", "hi from s2", "s2"]);
+    expect(s1.getAll()).toEqual(["s1"]);
+    expect(s2.getAll()).toEqual(["s2"]);
     // now kick off the two saves *in parallel*
     s1.save();
     s2.save();
     await once(s1, "change");
-    while (s2.length != s1.length) {
-      await once(s2, "change");
+    while (s2.length != 2 || s1.length != 2) {
+      if (s1.length > 2 || s2.length > 2) {
+        throw Error("bug");
+      }
+      if (s2.length < 2) {
+        await once(s2, "change");
+      } else if (s1.length < 2) {
+        await once(s1, "change");
+      }
     }
     expect(s1.getAll()).toEqual(s2.getAll());
-    expect(s1.getAll()).toEqual(["hello", "hi from s2", "s1", "s2"]);
+  });
+
+  it("cleans up", () => {
+    client2.close();
   });
 });
 
@@ -195,7 +230,9 @@ describe("testing start_seq", () => {
 
   let t;
   it("it opens another copy of the stream, but starting with the last sequence number, so only one message", async () => {
+    const client = connect();
     t = await createDstream({
+      client,
       name,
       noAutosave: true,
       leader: false,
@@ -227,8 +264,9 @@ describe("a little bit of a stress test", () => {
       s.push({ i });
     }
     expect(s.length).toBe(count);
-    // NOTE: warning -- this is **MUCH SLOWER**, e.g., 10x slower,
-    // running under jest, hence why count is small.
+    // [ ] TODO rewrite this save to send everything in a single message
+    // which gets chunked, will we be much faster, then change the count
+    // above to 1000 or 10000.
     await s.save();
     expect(s.length).toBe(count);
   });
@@ -249,38 +287,39 @@ describe("dstream typescript test", () => {
   });
 });
 
-import { numSubscriptions } from "@cocalc/conat/client";
+describe("ensure there isn't a really obvious subscription leak", () => {
+  let client;
 
-describe("ensure there are no NATS subscription leaks", () => {
-  // There is some slight slack at some point due to the clock stuff,
-  // inventory, etc.  It is constant and small, whereas we allocate
-  // a large number of kv's in the test.
-  const SLACK = 4;
-
-  it("creates and closes many kv's and checks there is no leak", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
-    // create
-    const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
-      a[i] = await createDstream({
-        name: `${Math.random()}`,
-        noAutosave: true,
-      });
-    }
-    for (let i = 0; i < COUNT; i++) {
-      await a[i].close();
-    }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  it("create a client, which initially has only one subscription (the inbox)", async () => {
+    client = connect();
+    expect(client.numSubscriptions()).toBe(1);
   });
 
-  it("does another leak test, but with a set operation each time", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
+  const count = 100;
+  it(`creates and closes ${count} streams and checks there is no leak`, async () => {
+    const before = client.numSubscriptions();
     // create
     const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+      });
+    }
+    for (let i = 0; i < count; i++) {
+      await a[i].close();
+    }
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
+
+    // also check count on server went down.
+    expect((await client.getSubscriptions()).size).toBe(before);
+  });
+
+  it("does another leak test, but with a publish operation each time", async () => {
+    const before = client.numSubscriptions();
+    // create
+    const a: any = [];
+    for (let i = 0; i < count; i++) {
       a[i] = await createDstream({
         name: `${Math.random()}`,
         noAutosave: true,
@@ -288,11 +327,12 @@ describe("ensure there are no NATS subscription leaks", () => {
       a[i].publish(i);
       await a[i].save();
     }
-    for (let i = 0; i < COUNT; i++) {
-      await a[i].purge();
+    for (let i = 0; i < count; i++) {
       await a[i].close();
     }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
   });
 });
+
+afterAll(after);

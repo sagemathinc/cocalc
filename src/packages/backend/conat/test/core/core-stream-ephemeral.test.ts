@@ -249,6 +249,7 @@ describe("test creating a non-leader first, then the leader", () => {
   });
 });
 
+// There a lot more similar tests of dstream ephemeral in backend/conat/test/sync/dstream-ephemeral.test.ts
 describe("test using ephemeral dstream", () => {
   let client;
   let stream;

@@ -395,6 +395,8 @@ export class Client {
     }
   };
 
+  numSubscriptions = () => Object.keys(this.queueGroups).length;
+
   private getSubscriptions = async (): Promise<Set<string>> => {
     const f = (cb) =>
       this.conn.emit("subscriptions", null, (subs) => cb(undefined, subs));

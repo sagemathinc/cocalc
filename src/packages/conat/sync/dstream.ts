@@ -45,6 +45,7 @@ import { waitUntilConnected } from "@cocalc/conat/util";
 import { type Msg } from "@nats-io/nats-core";
 import { headersFromRawMessages } from "./stream";
 import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
+import type { Client } from "@cocalc/conat/core/client";
 
 const logger = getLogger("dstream");
 
@@ -56,6 +57,7 @@ export interface DStreamOptions extends StreamOptions {
   ephemeral?: boolean;
   persist?: boolean;
   leader?: boolean;
+  client?: Client;
 }
 
 export class DStream<T = any> extends EventEmitter {
@@ -111,7 +113,7 @@ export class DStream<T = any> extends EventEmitter {
       delete this.saved[last(raw).seq];
       const headers = headersFromRawMessages(raw);
       if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
-        // this is critical with conat-stream.ts, since otherwise there is a moment
+        // this is critical with core-stream.ts, since otherwise there is a moment
         // when the same message is in both this.local *and* this.messages, and you'll
         // see it doubled in this.getAll().  I didn't see this ever with
         // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,

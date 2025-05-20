@@ -67,7 +67,6 @@ export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
 const HEADER_PREFIX = "CoCalc-";
 
 export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
-
 export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
 export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
 export const COCALC_HEARTBEAT_HEADER = `${HEADER_PREFIX}Heartbeat`;
@@ -618,8 +617,8 @@ export class CoreStream<T = any> extends EventEmitter {
           seq,
           timestamp,
           sessionId: this.sessionId,
-          msgID: options?.msgID,
         },
+        [COCALC_MESSAGE_ID_HEADER]: options?.msgID,
       } as any;
       if (options?.headers) {
         for (const k in options.headers) {
@@ -719,7 +718,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   // get server assigned time of n-th message in stream
   time = (n: number): Date | undefined => {
-    const r = this.raw[n][0];
+    const r = this.raw[n]?.[0];
     if (r == null) {
       return;
     }
