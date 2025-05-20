@@ -747,14 +747,6 @@ export class CoreStream<T = any> extends EventEmitter {
     return [...this.messages];
   };
 
-  kvGet = (key: string): T | undefined => {
-    return this.kv[key]?.mesg;
-  };
-
-  kvSeq = (key: string): number | undefined => {
-    return this.kv[key]?.raw.seq;
-  };
-
   get length(): number {
     return this.messages.length;
   }
@@ -766,6 +758,31 @@ export class CoreStream<T = any> extends EventEmitter {
   headers = (n: number): { [key: string]: any } | undefined => {
     return this.raw[n]?.headers;
   };
+
+  // key:value interface for subset of messages pushed with key option set.
+  setKv = async (
+    key: string,
+    mesg: T,
+    options?: { headers?: Headers; msgID?: string },
+  ) => {
+    return await this.publish(mesg, { ...options, key });
+  };
+
+  getKv = (key: string): T | undefined => {
+    return this.kv[key]?.mesg;
+  };
+
+  seqKv = (key: string): number | undefined => {
+    return this.kv[key]?.raw.seq;
+  };
+
+  headersKv = (key: string): { [key: string]: any } | undefined => {
+    return this.kv[key]?.raw?.headers;
+  };
+
+  get lengthKv(): number {
+    return Object.keys(this.kv).length;
+  }
 
   // load older messages starting at start_seq up to the oldest message
   // we currently have.

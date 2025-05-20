@@ -327,9 +327,9 @@ describe("test basic key:value functionality for persistent core stream", () => 
   let seq;
 
   it("writes a key:value and confirms it was written", async () => {
-    await stream.publish("value", { key: "key" });
-    expect(await stream.kvGet("key")).toEqual("value");
-    seq = stream.kvSeq("key");
+    await stream.setKv("key", "value");
+    expect(await stream.getKv("key")).toEqual("value");
+    seq = stream.seqKv("key");
   });
 
   it("closes and reopens stream, to confirm the key was persisted", async () => {
@@ -337,11 +337,22 @@ describe("test basic key:value functionality for persistent core stream", () => 
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, persist: true });
     expect(stream.length).toBe(1);
-    expect(await stream.kvGet("key")).toEqual("value");
-    expect(stream.kvSeq("key")).toBe(seq);
+    expect(await stream.getKv("key")).toEqual("value");
+    expect(stream.seqKv("key")).toBe(seq);
   });
 
-  // it("call the other kv functions", async () => {});
+  let client2;
+  let stream2;
+  it("create a second client and observe it sees the correct value", async () => {
+    client2 = connect();
+    stream2 = await cstream({ client: client2, name, persist: true });
+    expect(await stream2.getKv("key")).toEqual("value");
+  });
+
+  it("modify the value via the second client and see it change in the first", async () => {
+    await stream2.setKv("key", "value2");
+    await wait({ until: () => stream.getKv("key") == "value2" });
+  });
 
   it("cleans up", () => {
     client.close();
