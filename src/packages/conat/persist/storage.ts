@@ -74,7 +74,7 @@ export interface Message {
 }
 
 export interface Options {
-  // relative path to sqlite database file.  This needs to be a valid filename
+  // absolute path to sqlite database file.  This needs to be a valid filename
   // path, and must also be kept under 1K so it can be stored in cloud storage.
   path: string;
   // if false (the default) do not require sync writes to disk on every set

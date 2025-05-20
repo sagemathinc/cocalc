@@ -259,7 +259,7 @@ export class CoreStream<T = any> extends EventEmitter {
       storage: this.storage,
       start_seq,
     });
-    console.log("getAll got ", { id });
+    console.log("got persistent stream", { id });
     this.persistStream = stream;
     while (true) {
       const { value, done } = await stream.next();
@@ -388,8 +388,12 @@ export class CoreStream<T = any> extends EventEmitter {
   private serveUntilDone = async (sub) => {
     for await (const raw of sub) {
       if (raw.subject.endsWith(".all")) {
+        // batch get
+
         const { start_seq = 0 } = raw.data ?? {};
 
+        // put exactly the entire data the client needs to get updated
+        // into a single payload
         const payload = this.raw
           .filter((x) => x[0].seq >= start_seq)
           .map((x) => {
@@ -397,8 +401,11 @@ export class CoreStream<T = any> extends EventEmitter {
             return { headers, encoding, raw };
           });
 
+        // send it out as a single response.
         raw.respond(payload);
       } else if (raw.subject.endsWith(".send")) {
+        // single send:  ([ ] TODO need to support a batch send)
+
         const options = raw.headers?.[COCALC_OPTIONS_HEADER];
         let resp;
         try {
@@ -445,18 +452,26 @@ export class CoreStream<T = any> extends EventEmitter {
       return;
     }
     if (this.persist) {
-      if (this.persistStream == null) {
-        throw Error("persistentStream must be defined");
-      }
-      for await (const m of this.persistStream) {
-        this.processPersistentMessage(m, false);
-      }
+      this.listenLoopPersist();
       return;
     } else {
       this.sub = await this.client.subscribe(this.subject);
       this.listenLoop();
     }
     this.enforceLimits();
+  };
+
+  private listenLoopPersist = async () => {
+    if (this.persistStream == null) {
+      throw Error("persistentStream must be defined");
+    }
+    for await (const m of this.persistStream) {
+      try {
+        this.processPersistentMessage(m, false);
+      } catch (err) {
+        console.log(`WARNING: issue processing persistent message -- ${err}`);
+      }
+    }
   };
 
   private listenLoop = async () => {

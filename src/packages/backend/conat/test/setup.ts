@@ -9,6 +9,14 @@ import { Server } from "socket.io";
 import getLogger from "@cocalc/backend/logger";
 import { setNatsClient } from "@cocalc/conat/client";
 import { sha1 } from "@cocalc/backend/sha1";
+import {
+  initServer as initPersistServer,
+  terminateServer as terminatePersistServer,
+} from "@cocalc/backend/conat/persist";
+import { syncFiles } from "@cocalc/conat/persist/context";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "path";
 
 const logger = getLogger("conat:test:setup");
 
@@ -33,10 +41,16 @@ export async function initConatServer(
 export let server;
 export let port;
 export let address;
+export let tempDir;
+
 export async function before() {
+  tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
   port = await getPort();
   address = `http://localhost:${port}`;
   server = await initConatServer({ port, path });
+  syncFiles.local = join(tempDir, "local");
+  syncFiles.archive = join(tempDir, "archive");
+  initPersistServer({ client: server.client() });
   setNatsClient({
     getNatsEnv: async () => {
       return { cn: connect(), sha1 } as any;
@@ -53,6 +67,8 @@ export function connect() {
 }
 
 export async function after() {
+  terminatePersistServer();
+  await rm(tempDir, { force: true, recursive: true });
   await server.close();
   for (const cn of clients) {
     cn.close();

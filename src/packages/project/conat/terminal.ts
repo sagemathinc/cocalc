@@ -337,6 +337,7 @@ class Session {
     this.state = "running";
     logger.debug("creating stream");
     await this.createStream();
+    logger.debug("created the stream");
     if ((this.state as State) == "closed") {
       return;
     }

@@ -42,7 +42,7 @@ Also getAll using start_seq:
 
 import { pstream, type Message as StoredMessage } from "./storage";
 import { getEnv } from "@cocalc/conat/client";
-import { type Subscription } from "@cocalc/conat/core/client";
+import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/conat/client";
 import { delay } from "awaiting";
@@ -67,9 +67,7 @@ export const LAST_CHUNK = "last-chunk";
 
 const logger = getLogger("persist:server");
 
-export const SUBJECT = process.env.COCALC_TEST_MODE
-  ? "persist-test"
-  : "persist";
+export const SUBJECT = "persist";
 
 export type User = { account_id?: string; project_id?: string };
 export function persistSubject({ account_id, project_id }: User) {
@@ -108,7 +106,7 @@ function getUserId(subject: string): string {
 
 let terminated = false;
 let sub: Subscription | null = null;
-export function init() {
+export async function init({ client }: { client?: Client } = {}) {
   logger.debug("starting persist server");
   logger.debug({
     DEFAULT_LIFETIME,
@@ -120,8 +118,9 @@ export function init() {
     MAX_PERSISTS_PER_SERVER,
     SUBJECT,
   });
-  persistService();
-  renewService();
+  client = client ?? (await getEnv()).cn;
+  persistService({ client });
+  renewService({ client });
 }
 
 async function noThrow(f) {
@@ -132,16 +131,14 @@ async function noThrow(f) {
   }
 }
 
-async function persistService() {
-  const { cn } = await getEnv();
-  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
+async function persistService({ client }) {
+  sub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
   await listenPersist();
 }
 
 let renew: Subscription | null = null;
-async function renewService() {
-  const { cn } = await getEnv();
-  renew = await cn.subscribe(`${SUBJECT}.*.renew`);
+async function renewService({ client }) {
+  renew = await client.subscribe(`${SUBJECT}.*.renew`);
   await listenRenew();
 }
 
@@ -383,7 +380,6 @@ async function getAll({ mesg, request, user_id, stream }) {
   }
 
   try {
-    console.log("send the id", { id, lifetime });
     await respond(undefined, { id, lifetime });
     if (done) {
       return;
@@ -391,8 +387,8 @@ async function getAll({ mesg, request, user_id, stream }) {
 
     // send the current data
     // [ ] TODO: should we just send it all as a single message?
-    //     much faster, but uses much more RAM.  Maybe some
-    //     combination based on actual data!
+    //     much faster, but uses much more RAM.  **Instead, obviously
+    //     some combination based on actual data!**
     for (const message of stream.getAll({ start_seq: request.start_seq })) {
       if (done) {
         return;

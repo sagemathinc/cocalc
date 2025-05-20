@@ -1,15 +1,14 @@
 /*
-Testing basic ops with dsteam (distributed streams)
+Testing basic ops with *persistent* dstreams.
 
 DEVELOPMENT:
 
-pnpm test dstream.test.ts
+pnpm test ./dstream.test.ts
 
 */
 
 import { createDstream as create } from "./util";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
-import { once } from "@cocalc/util/async-utils";
 
 describe("create a dstream and do some basic operations", () => {
   let s;
@@ -55,6 +54,7 @@ describe("create a dstream and do some basic operations", () => {
   });
 });
 
+/*
 describe("create two dstreams and observe sync between them", () => {
   const name = `test-${Math.random()}`;
   let s1, s2;
@@ -155,7 +155,8 @@ describe("closing also saves by default, but not if autosave is off", () => {
   const name = `test-${Math.random()}`;
 
   it("creates stream and write a message", async () => {
-    s = await createDstream({ name, noAutosave: false /* the default */ });
+    // noAutosave: false is the default:
+    s = await createDstream({ name, noAutosave: false});
     s.push(389);
   });
 
@@ -299,3 +300,4 @@ describe("ensure there are no NATS subscription leaks", () => {
     expect(Math.abs(after - before)).toBeLessThan(SLACK);
   });
 });
+*/

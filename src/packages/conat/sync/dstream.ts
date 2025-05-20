@@ -20,82 +20,88 @@ See the guide for dkv, since it's very similar, especially for use in a browser.
 */
 
 import { EventEmitter } from "events";
-import {
-  Stream,
-  type StreamOptions,
-  type UserStreamOptions,
-  userStreamOptionsKey,
-  last,
-} from "./stream";
+import { last } from "./stream";
 import { CoreStream, type RawMsg } from "./core-stream";
-import { jsName, streamSubject, randomId } from "@cocalc/conat/names";
+import { streamSubject, randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
-import { type JsMsg } from "@nats-io/jetstream";
-import { getEnv } from "@cocalc/conat/client";
-import { inventory, THROTTLE_MS, type Inventory } from "./inventory";
-import { asyncThrottle } from "@cocalc/util/async-utils";
-import { getClient, type ClientWithState } from "@cocalc/conat/client";
 import { encodeBase64 } from "@cocalc/conat/util";
-import { getLogger } from "@cocalc/conat/client";
-import { waitUntilConnected } from "@cocalc/conat/util";
-import { type Msg } from "@nats-io/nats-core";
-import { headersFromRawMessages } from "./stream";
 import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
-import type { Client } from "@cocalc/conat/core/client";
-
-const logger = getLogger("dstream");
+import type { Client, Headers } from "@cocalc/conat/core/client";
+import jsonStableStringify from "json-stable-stringify";
+import type { JSONValue } from "@cocalc/util/types";
+import { type ValueType } from "@cocalc/conat/types";
 
 const MAX_PARALLEL = 50;
 
-export interface DStreamOptions extends StreamOptions {
-  noAutosave?: boolean;
-  noInventory?: boolean;
-  ephemeral?: boolean;
-  persist?: boolean;
-  leader?: boolean;
+export interface FilteredStreamLimitOptions {
+  // How many messages may be in a Stream, oldest messages will be removed
+  // if the Stream exceeds this size. -1 for unlimited.
+  max_msgs: number;
+  // Maximum age of any message in the stream matching the filter,
+  // expressed in milliseconds. 0 for unlimited.
+  // **Note that max_age is in milliseoncds, NOT nanoseconds like in Nats!!!**
+  max_age: number;
+  // How big the Stream may be, when the combined stream size matching the filter
+  // exceeds this old messages are removed. -1 for unlimited.
+  // This is enforced only on write, so if you change it, it only applies
+  // to future messages.
+  max_bytes: number;
+  // The largest message that will be accepted by the Stream. -1 for unlimited.
+  max_msg_size: number;
+
+  // Attempting to publish a message that causes this to be exceeded
+  // throws an exception instead.  -1 (or 0) for unlimited
+  // For dstream, the messages are explicitly rejected and the client
+  // gets a "reject" event emitted.  E.g., the terminal running in the project
+  // writes [...] when it gets these rejects, indicating that data was
+  // dropped.
+  max_bytes_per_second: number;
+  max_msgs_per_second: number;
+}
+
+export interface DStreamOptions {
+  // what it's called by us
+  name: string;
+  subject: string;
+  limits?: Partial<FilteredStreamLimitOptions>;
+  // only load historic messages starting at the given seq number.
+  start_seq?: number;
+  desc?: JSONValue;
+  valueType?: ValueType;
+
   client?: Client;
+  noAutosave?: boolean;
+  ephemeral?: boolean;
+
+  // only relevant for ephemeral, in which case this will only work when there
+  // is exactly ONE leader.
+  leader?: boolean;
 }
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: Stream | CoreStream;
+  private stream?: CoreStream;
   private messages: T[];
-  private raw: (JsMsg | Msg | RawMsg)[][];
+  private raw: RawMsg[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
   private publishOptions: {
-    [id: string]: { headers?: { [key: string]: string } };
+    [id: string]: { headers?: Headers };
   } = {};
   private saved: { [seq: number]: T } = {};
-  private opts;
-  private client?: ClientWithState;
 
   constructor(opts: DStreamOptions) {
     super();
-    if (
-      opts.noInventory ||
-      opts.ephemeral ||
-      (process.env.COCALC_TEST_MODE && opts.noInventory == null)
-    ) {
-      // @ts-ignore
-      this.updateInventory = () => {};
-    }
-    this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream =
-      opts.ephemeral || opts.persist ? new CoreStream(opts) : new Stream(opts);
+    this.stream = new CoreStream({ ...opts, persist: !opts.ephemeral });
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
-    if (!opts.ephemeral && !this.noAutosave) {
-      this.client = getClient();
-      this.client.on("connected", this.save);
-    }
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -109,9 +115,9 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (mesg: T, raw: JsMsg[]) => {
+    this.stream.on("change", (mesg: T, raw: RawMsg[]) => {
       delete this.saved[last(raw).seq];
-      const headers = headersFromRawMessages(raw);
+      const headers = last(raw).headers;
       if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
         // this is critical with core-stream.ts, since otherwise there is a moment
         // when the same message is in both this.local *and* this.messages, and you'll
@@ -131,7 +137,6 @@ export class DStream<T = any> extends EventEmitter {
     });
     await this.stream.init();
     this.emit("connected");
-    this.updateInventory();
   });
 
   isStable = () => {
@@ -149,7 +154,6 @@ export class DStream<T = any> extends EventEmitter {
       return;
     }
     if (!this.noAutosave) {
-      this.client?.removeListener("connected", this.save);
       try {
         await this.save();
       } catch {
@@ -231,19 +235,6 @@ export class DStream<T = any> extends EventEmitter {
     );
   }
 
-  private toValue = (obj) => {
-    if (this.stream == null) {
-      throw Error("not initialized");
-    }
-    if (this.stream.valueType == "binary") {
-      if (!ArrayBuffer.isView(obj)) {
-        throw Error("value must be an array buffer");
-      }
-      return obj;
-    }
-    return obj;
-  };
-
   publish = (
     mesg: T,
     // NOTE: if you call this.headers(n) it is NOT visible until the publish is confirmed.
@@ -251,14 +242,13 @@ export class DStream<T = any> extends EventEmitter {
     options?: { headers?: { [key: string]: string } },
   ): void => {
     const id = randomId();
-    this.local[id] = this.toValue(mesg);
+    this.local[id] = mesg;
     if (options != null) {
       this.publishOptions[id] = options;
     }
     if (!this.noAutosave) {
       this.save();
     }
-    this.updateInventory();
   };
 
   headers = (n) => {
@@ -308,6 +298,8 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
+  // [ ] TODO: this critically needs to be rewritten to save everything
+  //     as a single message -- ie a batch write.
   private attemptToSave = reuseInFlight(async () => {
     const f = async (id) => {
       if (this.stream == null) {
@@ -368,7 +360,8 @@ export class DStream<T = any> extends EventEmitter {
     return this.stream?.start_seq;
   }
 
-  // returns largest sequence number known to this client.
+  /*
+    // returns largest sequence number known to this client.
   // not optimized to be super fast.
   private getCurSeq = (): number | undefined => {
     let s = 0;
@@ -403,7 +396,6 @@ export class DStream<T = any> extends EventEmitter {
           return;
         }
         const { account_id, project_id, desc, limits } = this.opts;
-        await waitUntilConnected();
         inv = await inventory({ account_id, project_id });
         if (this.stream == null) {
           return;
@@ -450,26 +442,37 @@ export class DStream<T = any> extends EventEmitter {
     THROTTLE_MS,
     { leading: true, trailing: true },
   );
+  */
 }
 
-type CreateOptions = UserStreamOptions & {
+interface CreateOptions {
+  name: string;
+  account_id?: string;
+  project_id?: string;
+  limits?: Partial<FilteredStreamLimitOptions>;
+  start_seq?: number;
+  noCache?: boolean;
+  desc?: JSONValue;
+  valueType?: ValueType;
+  client?: Client;
   noAutosave?: boolean;
   noInventory?: boolean;
   leader?: boolean;
   ephemeral?: boolean;
-  persist?: boolean;
-};
+}
 
 export const cache = refCache<CreateOptions, DStream>({
   name: "dstream",
-  createKey: userStreamOptionsKey,
-  createObject: async (options) => {
-    if (options.env == null && !options.ephemeral) {
-      await waitUntilConnected();
-      options.env = await getEnv();
+  createKey: (options: CreateOptions) => {
+    if (!options.name) {
+      throw Error("name must be specified");
     }
+    // @ts-ignore
+    const { env, client, ...x } = options;
+    return jsonStableStringify(x);
+  },
+  createObject: async (options: CreateOptions) => {
     const { account_id, project_id, name, valueType = "json" } = options;
-    const jsname = jsName({ account_id, project_id });
     const subjects = streamSubject({ account_id, project_id });
 
     // **CRITICAL:** do NOT change how the filter is computed as a function
@@ -480,10 +483,7 @@ export const cache = refCache<CreateOptions, DStream>({
     const dstream = new DStream({
       ...options,
       name,
-      jsname,
-      subjects,
       subject: filter,
-      filter,
     });
     await dstream.init();
     return dstream;

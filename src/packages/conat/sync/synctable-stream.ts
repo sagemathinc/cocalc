@@ -13,7 +13,6 @@ import { keys } from "lodash";
 import { cmp_Date, is_array, isValidUUID } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
-import { type NatsEnv } from "@cocalc/conat/types";
 import { dstream, DStream } from "./dstream";
 import { fromJS, Map } from "immutable";
 import { type FilteredStreamLimitOptions } from "./stream";
@@ -38,7 +37,6 @@ export class SyncTableStream extends EventEmitter {
   private string_id: string;
   private data: any = {};
   private state: State = "disconnected";
-  private env;
   private dstream?: DStream;
   private getHook: Function;
   private limits?: Partial<FilteredStreamLimitOptions>;
@@ -47,7 +45,6 @@ export class SyncTableStream extends EventEmitter {
 
   constructor({
     query,
-    env,
     account_id: _account_id,
     project_id,
     immutable,
@@ -56,7 +53,6 @@ export class SyncTableStream extends EventEmitter {
     noInventory,
   }: {
     query;
-    env: NatsEnv;
     account_id?: string;
     project_id?: string;
     immutable?: boolean;
@@ -68,7 +64,6 @@ export class SyncTableStream extends EventEmitter {
     this.noInventory = noInventory;
     this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
-    this.env = env;
     this.limits = limits;
     this.start_seq = start_seq;
     const table = keys(query)[0];
@@ -96,15 +91,11 @@ export class SyncTableStream extends EventEmitter {
     this.dstream = await dstream({
       name,
       project_id: this.project_id,
-      env: this.env,
       limits: this.limits,
       desc: { path: this.path },
       start_seq: this.start_seq,
       noInventory: this.noInventory,
-      
-      // use conat persistent storage instead of jetstream
-      persist: true,
-      
+
       // ephemeral: true,
       // leader: typeof navigator == "undefined",
     });
