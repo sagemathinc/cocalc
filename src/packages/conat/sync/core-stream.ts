@@ -69,6 +69,7 @@ export interface RawMsg extends Message {
 const HEADER_PREFIX = "CoCalc-";
 
 export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
+export const COCALC_TOMBSTONE_HEADER = `${HEADER_PREFIX}Tombstone`;
 export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
 export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
 export const COCALC_HEARTBEAT_HEADER = `${HEADER_PREFIX}Heartbeat`;
@@ -347,15 +348,19 @@ export class CoreStream<T = any> extends EventEmitter {
       this.messages.splice(i, 0, mesg);
     }
     if (typeof key == "string") {
-      if (this.kv[key] !== undefined) {
-        const { raw } = this.kv[key];
-        this.kvChangeBytes += raw.raw.length;
-      }
-      
-      this.kv[key] = { raw, mesg };
-      
-      if (this.kvChangeBytes >= KEY_GC_THRESH) {
-        this.gcKv();
+      if (raw.headers?.[COCALC_TOMBSTONE_HEADER]) {
+        delete this.kv[key];
+      } else {
+        if (this.kv[key] !== undefined) {
+          const { raw } = this.kv[key];
+          this.kvChangeBytes += raw.raw.length;
+        }
+
+        this.kv[key] = { raw, mesg };
+
+        if (this.kvChangeBytes >= KEY_GC_THRESH) {
+          this.gcKv();
+        }
       }
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
@@ -785,6 +790,18 @@ export class CoreStream<T = any> extends EventEmitter {
     options?: { headers?: Headers; msgID?: string },
   ) => {
     return await this.publish(mesg, { ...options, key });
+  };
+
+  deleteKv = async (key: string, options?: { msgID?: string }) => {
+    if (this.kv[key] === undefined) {
+      // nothing to do
+      return;
+    }
+    return await this.publish(null, {
+      ...options,
+      headers: { [COCALC_TOMBSTONE_HEADER]: true },
+      key,
+    });
   };
 
   getKv = (key: string): T | undefined => {

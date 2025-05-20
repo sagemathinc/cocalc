@@ -165,9 +165,9 @@ export class PersistentStream extends EventEmitter {
     const serializedHeaders = JSON.stringify(headers);
     const tx = this.db.transaction(
       (time, compress, encoding, raw, headers, key) => {
-        if (key) {
+        if (key !== undefined) {
           // insert with key -- delete all previous messages, as they will
-          // never be needed again and waste huge amounts of space.
+          // never be needed again and waste space.
           this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
         }
         return this.db

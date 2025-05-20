@@ -388,8 +388,67 @@ describe("test basic key:value functionality for persistent core stream", () => 
   });
 
   it("cleans up", () => {
-    client.close();
     stream.close();
+    stream2.close();
+    client.close();
+    client2.close();
+  });
+});
+
+describe("test key:value delete", () => {
+  let client;
+  let stream;
+  let name = "kvd";
+  let client2;
+  let stream2;
+
+  it("creates new persistent core stream with two copies/clients", async () => {
+    client = connect();
+    stream = await cstream({ client, name, persist: true });
+
+    client2 = connect();
+    stream2 = await cstream({
+      client: client2,
+      name,
+      persist: true,
+      noCache: true,
+    });
+  });
+
+  it("writes to key:value and confirms it was written", async () => {
+    await stream.setKv("key", "value");
+    expect(await stream.getKv("key")).toEqual("value");
+    await wait({ until: () => stream2.getKv("key") == "value" });
+
+    // also use an empty '' key
+    await stream.setKv("", "a value");
+    expect(await stream.getKv("")).toEqual("a value");
+    await wait({ until: () => stream2.getKv("") == "a value" });
+  });
+
+  it("deletes the key and confirms it was deleted", async () => {
+    await stream.deleteKv("key");
+    expect(await stream.getKv("key")).toEqual(undefined);
+    await wait({ until: () => stream2.getKv("key") === undefined });
+  });
+
+  it("also delete the empty key one", async () => {
+    await stream2.deleteKv("");
+    expect(await stream2.getKv("")).toEqual(undefined);
+    await wait({ until: () => stream.getKv("") === undefined });
+  });
+
+  it("delete a key that doesn't exist -- a no-op (shouldn't make sequence longer)", async () => {
+    const n = stream.length;
+    await stream.deleteKv("fake");
+    expect(stream.length).toBe(n);
+  });
+
+  it("cleans up", () => {
+    stream.close();
+    stream2.close();
+    client.close();
+    client2.close();
   });
 });
 
