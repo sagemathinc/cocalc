@@ -19,7 +19,7 @@
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest --forceExit --runInBand",
+    "test": "pnpm exec jest --forceExit",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs"
   },

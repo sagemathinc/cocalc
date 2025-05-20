@@ -30,7 +30,7 @@ import {
   type FilteredStreamLimitOptions,
   enforceLimits,
   enforceRateLimits,
-} from "./stream";
+} from "./limits";
 import { type ValueType } from "@cocalc/conat/types";
 import { EventEmitter } from "events";
 import {
@@ -101,10 +101,13 @@ export class CoreStream<T = any> extends EventEmitter {
   private readonly limits: FilteredStreamLimitOptions;
   private _start_seq?: number;
   public readonly valueType: ValueType;
-  // don't do "this.raw=" or "this.messages=" anywhere in this class!!!
-  public readonly raw: RawMsg[][] = [];
+
+  // don't do "this.raw=" or "this.messages=" anywhere in this class
+  // because dstream directly references the public raw/messages.
+  public readonly raw: RawMsg[] = [];
   public readonly messages: T[] = [];
-  public readonly kv: { [key: string]: { mesg: T; raw: RawMsg[] } } = {};
+  public readonly kv: { [key: string]: { mesg: T; raw: RawMsg } } = {};
+
   private readonly msgIDs = new Set<any>();
   private sub?: Subscription;
   private leader: boolean;
@@ -304,28 +307,28 @@ export class CoreStream<T = any> extends EventEmitter {
       seq,
       data: m.raw,
     } as RawMsg;
-    if (seq > (this.raw.slice(-1)[0]?.[0].seq ?? 0)) {
+    if (seq > (this.raw.slice(-1)[0]?.seq ?? 0)) {
       // easy fast initial load at the end (common special case)
       this.messages.push(mesg);
-      this.raw.push([raw]);
+      this.raw.push(raw);
     } else {
       // [ ] TODO: insert in the correct place.  This should only
       // happen when calling load.  The algorithm below is particularly
       // dumb and could be replaced by a binary search.  However, we'll
       // change how we batch load so there's no point.
       let i = 0;
-      while (i < this.raw.length && this.raw[i][0].seq < seq) {
+      while (i < this.raw.length && this.raw[i].seq < seq) {
         i += 1;
       }
-      this.raw.splice(i, 0, [raw]);
+      this.raw.splice(i, 0, raw);
       this.messages.splice(i, 0, mesg);
     }
     if (typeof key == "string") {
-      this.kv[key] = { raw: [raw], mesg };
+      this.kv[key] = { raw, mesg };
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
-      this.emit("change", mesg, [raw], key);
+      this.emit("change", mesg, raw, key);
     }
   };
 
@@ -372,9 +375,9 @@ export class CoreStream<T = any> extends EventEmitter {
           this.lastSeq = raw.seq;
           const mesg = raw.data;
           this.messages.push(mesg);
-          this.raw.push([raw]);
+          this.raw.push(raw);
           if (!noEmit) {
-            this.emit("change", mesg, [raw]);
+            this.emit("change", mesg, raw);
           }
         }
         return;
@@ -411,9 +414,8 @@ export class CoreStream<T = any> extends EventEmitter {
         // put exactly the entire data the client needs to get updated
         // into a single payload
         const payload = this.raw
-          .filter((x) => x[0].seq >= start_seq)
-          .map((x) => {
-            const { headers, encoding, raw } = x[0];
+          .filter(({ seq }) => seq >= start_seq)
+          .map(({ headers, encoding, raw }) => {
             return { headers, encoding, raw };
           });
 
@@ -520,9 +522,9 @@ export class CoreStream<T = any> extends EventEmitter {
       this.lastSeq = raw.seq;
       const mesg = raw.data;
       this.messages.push(mesg);
-      this.raw.push([raw]);
+      this.raw.push(raw);
       this.lastSeq = raw.seq;
-      this.emit("change", mesg, [raw]);
+      this.emit("change", mesg, raw);
     }
   };
 
@@ -566,7 +568,6 @@ export class CoreStream<T = any> extends EventEmitter {
       data,
       mesg,
     });
-
     if (this.persist) {
       if (this.storage == null) {
         throw Error("bug -- storage must be set");
@@ -686,7 +687,7 @@ export class CoreStream<T = any> extends EventEmitter {
             this.sessionId == sessionId
           ) {
             const [_, raw] = await once(this, "change", PUBLISH_TIMEOUT);
-            if (raw[0]?.seq == seq) {
+            if (raw?.seq == seq) {
               done = true;
               break;
             }
@@ -729,7 +730,7 @@ export class CoreStream<T = any> extends EventEmitter {
   }
 
   headers = (n: number): { [key: string]: any } | undefined => {
-    return this.raw[n][0]?.headers;
+    return this.raw[n]?.headers;
   };
 
   // load older messages starting at start_seq up to the oldest message
@@ -752,7 +753,7 @@ export class CoreStream<T = any> extends EventEmitter {
         throw Error("bug");
       }
       // this is one before the oldest we have
-      const end_seq = this.raw[0][0].seq! - 1;
+      const end_seq = this.raw[0].seq! - 1;
       // we're moving start_seq back to this point
       this._start_seq = start_seq;
       const { stream } = await persistClient.getAll({
@@ -788,7 +789,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   // get server assigned time of n-th message in stream
   time = (n: number): Date | undefined => {
-    const r = this.raw[n]?.[0];
+    const r = this.raw[n];
     if (r == null) {
       return;
     }
@@ -814,7 +815,7 @@ export class CoreStream<T = any> extends EventEmitter {
     let count = 0;
     let bytes = 0;
     for (const raw of this.raw) {
-      const seq = raw[0]?.seq;
+      const seq = raw.seq;
       if (seq == null) {
         continue;
       }
@@ -822,9 +823,7 @@ export class CoreStream<T = any> extends EventEmitter {
         continue;
       }
       count += 1;
-      for (const r of raw) {
-        bytes += r.length;
-      }
+      bytes += raw.length;
     }
     return { count, bytes };
   };
@@ -850,6 +849,7 @@ export class CoreStream<T = any> extends EventEmitter {
       // [ ] TODO:
       return;
     }
+    // ephemeral limits are enforced by all clients.
     const index = enforceLimits({
       messages: this.messages,
       // @ts-ignore [ ] TODO

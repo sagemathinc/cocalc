@@ -1,26 +1,19 @@
 /*
-Eventually Consistent Distributed Event Stream
+Eventually Consistent Distributed Message Stream
 
 DEVELOPMENT:
 
 
 # in node -- note the package directory!!
-~/cocalc/src/packages/backend n
-Welcome to Node.js v18.17.1.
-Type ".help" for more information.
+~/cocalc/src/packages/backend node
 
 > s = await require("@cocalc/backend/conat/sync").dstream({name:'test'});
-
-
 > s = await require("@cocalc/backend/conat/sync").dstream({project_id:cc.current().project_id,name:'foo'});0
 
-
 See the guide for dkv, since it's very similar, especially for use in a browser.
-
 */
 
 import { EventEmitter } from "events";
-import { last } from "./stream";
 import { CoreStream, type RawMsg } from "./core-stream";
 import { streamSubject, randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -86,7 +79,7 @@ export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
   private stream?: CoreStream;
   private messages: T[];
-  private raw: RawMsg[][];
+  private raw: RawMsg[];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
@@ -115,16 +108,17 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (mesg: T, raw: RawMsg[]) => {
-      delete this.saved[last(raw).seq];
-      const headers = last(raw).headers;
-      if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
+    this.stream.on("change", (mesg: T, raw: RawMsg) => {
+      delete this.saved[raw.seq];
+      const headers = raw.headers;
+      const msgID = headers?.[COCALC_MESSAGE_ID_HEADER];
+      if (msgID) {
         // this is critical with core-stream.ts, since otherwise there is a moment
         // when the same message is in both this.local *and* this.messages, and you'll
         // see it doubled in this.getAll().  I didn't see this ever with
         // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,
         // but still it would be a bug to not do this properly, which is what we do here.
-        delete this.local[headers[COCALC_MESSAGE_ID_HEADER]];
+        delete this.local[msgID as string];
       }
       this.emit("change", mesg);
       if (this.isStable()) {
@@ -204,7 +198,7 @@ export class DStream<T = any> extends EventEmitter {
   // sequence number of n-th message
   seq = (n: number): number | undefined => {
     if (n < this.raw.length) {
-      return last(this.raw[n])?.seq;
+      return this.raw[n].seq;
     }
     const v = Object.keys(this.saved);
     if (n < v.length + this.raw.length) {
@@ -315,7 +309,7 @@ export class DStream<T = any> extends EventEmitter {
         if (this.raw == null) {
           return;
         }
-        if ((last(this.raw[this.raw.length - 1])?.seq ?? -1) < seq) {
+        if ((this.raw[this.raw.length - 1]?.seq ?? -1) < seq) {
           // it still isn't in this.raw
           this.saved[seq] = mesg;
         }
@@ -380,6 +374,7 @@ export class DStream<T = any> extends EventEmitter {
     return s ? s : undefined;
   };
 
+  // [ ] TODO: this will be moved to persistence server, which is where it belongs.
   private updateInventory = asyncThrottle(
     async () => {
       if (this.stream == null || this.opts.noInventory) {
