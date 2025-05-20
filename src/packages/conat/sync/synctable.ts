@@ -3,7 +3,7 @@ import { SyncTableKV } from "./synctable-kv";
 import { SyncTableStream } from "./synctable-stream";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { type KVLimits } from "./general-kv";
-import { type FilteredStreamLimitOptions } from "./stream";
+import { type FilteredStreamLimitOptions } from "./limits";
 import jsonStableStringify from "json-stable-stringify";
 
 export type NatsSyncTable = SyncTableStream | SyncTableKV;
@@ -22,9 +22,9 @@ export type NatsSyncTableFunction = (
   },
 ) => Promise<NatsSyncTable>;
 
-// When the database is watching tables for changefeeds, if it doesn't get a clear expression
-// of interest from a client every this much time, it stops managing the changefeed to
-// save resources.
+// When the database is watching tables for changefeeds, if it doesn't 
+// get a clear expression of interest from a client every this much time, 
+// it stops managing the changefeed to save resources.
 
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
 // export const CHANGEFEED_INTEREST_PERIOD_MS = 3000;
@@ -42,18 +42,17 @@ interface Options {
   desc?: any;
   start_seq?: number;
   noInventory?: boolean;
-}
-
-function createObject(options: Options) {
-  if (options.stream) {
-    return new SyncTableStream(options);
-  } else {
-    return new SyncTableKV(options);
-  }
+  ephemeral?: boolean;
 }
 
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
   name: "synctable",
   createKey: (opts) => jsonStableStringify({ ...opts, env: undefined }),
-  createObject,
+  createObject: (options: Options) => {
+    if (options.stream) {
+      return new SyncTableStream(options);
+    } else {
+      return new SyncTableKV(options);
+    }
+  },
 });

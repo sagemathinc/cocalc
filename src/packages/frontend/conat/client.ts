@@ -24,11 +24,6 @@ import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions, type KV } from "@cocalc/conat/sync/kv";
 import { dkv, type DKVOptions, type DKV } from "@cocalc/conat/sync/dkv";
 import { dko, type DKO } from "@cocalc/conat/sync/dko";
-import {
-  stream,
-  type UserStreamOptions,
-  type Stream,
-} from "@cocalc/conat/sync/stream";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
 import { callConatService, createConatService } from "@cocalc/conat/service";
@@ -437,15 +432,6 @@ export class NatsClient extends EventEmitter {
   // AND it also always returns the result.
   llm = async (opts: ChatOptions): Promise<string> => {
     return await llm({ account_id: this.client.account_id, ...opts });
-  };
-
-  stream = async <T = any,>(
-    opts: Partial<UserStreamOptions> & { name: string },
-  ): Promise<Stream<T>> => {
-    if (!opts.account_id && !opts.project_id && opts.limits != null) {
-      throw Error("account client can't set limits on public stream");
-    }
-    return await stream<T>({ env: await this.getEnv(), ...opts });
   };
 
   dstream = dstream;

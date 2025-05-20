@@ -117,7 +117,11 @@ undefined
 import { EventEmitter } from "events";
 import { type NatsEnv } from "@cocalc/conat/types";
 import { Kvm } from "@nats-io/kv";
-import { getAllFromKv, matchesPattern, getMaxPayload } from "@cocalc/conat/util";
+import {
+  getAllFromKv,
+  matchesPattern,
+  getMaxPayload,
+} from "@cocalc/conat/util";
 import { isEqual } from "lodash";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { map as awaitMap } from "awaiting";
@@ -127,7 +131,7 @@ import { headers as createHeaders } from "@nats-io/nats-core";
 import type { MsgHdrs } from "@nats-io/nats-core";
 import type { ValueType } from "@cocalc/conat/types";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
-import { ENFORCE_LIMITS_THROTTLE_MS } from "./stream";
+import { ENFORCE_LIMITS_THROTTLE_MS } from "./limits";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/conat/tiered-storage/client";
 

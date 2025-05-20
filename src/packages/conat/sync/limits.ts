@@ -1,5 +1,11 @@
 import type { RawMsg } from "./core-stream";
 
+
+export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
+  ? 100
+  : 45000;
+
+
 class PublishRejectError extends Error {
   code: string;
   mesg: any;

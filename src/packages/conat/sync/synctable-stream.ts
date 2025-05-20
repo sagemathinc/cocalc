@@ -15,7 +15,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 import { dstream, DStream } from "./dstream";
 import { fromJS, Map } from "immutable";
-import { type FilteredStreamLimitOptions } from "./stream";
+import { type FilteredStreamLimitOptions } from "./limits";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -42,6 +42,7 @@ export class SyncTableStream extends EventEmitter {
   private limits?: Partial<FilteredStreamLimitOptions>;
   private start_seq?: number;
   private noInventory?: boolean;
+  private ephemeral?: boolean;
 
   constructor({
     query,
@@ -51,6 +52,7 @@ export class SyncTableStream extends EventEmitter {
     limits,
     start_seq,
     noInventory,
+    ephemeral,
   }: {
     query;
     account_id?: string;
@@ -59,9 +61,11 @@ export class SyncTableStream extends EventEmitter {
     limits?: Partial<FilteredStreamLimitOptions>;
     start_seq?: number;
     noInventory?: boolean;
+    ephemeral?: boolean;
   }) {
     super();
     this.noInventory = noInventory;
+    this.ephemeral = ephemeral;
     this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
     this.limits = limits;
@@ -95,9 +99,11 @@ export class SyncTableStream extends EventEmitter {
       desc: { path: this.path },
       start_seq: this.start_seq,
       noInventory: this.noInventory,
-
-      // ephemeral: true,
-      // leader: typeof navigator == "undefined",
+      ephemeral: this.ephemeral,
+      // ephemeral only supported for synctable when one synctable opened
+      // in project/compute-server and all others in browser; this is,
+      // of course our model for terminals, jupyter, etc.
+      leader: typeof navigator == "undefined",
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

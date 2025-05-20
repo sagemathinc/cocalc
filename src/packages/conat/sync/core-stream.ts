@@ -30,6 +30,7 @@ import {
   type FilteredStreamLimitOptions,
   enforceLimits,
   enforceRateLimits,
+  ENFORCE_LIMITS_THROTTLE_MS,
 } from "./limits";
 import { type ValueType } from "@cocalc/conat/types";
 import { EventEmitter } from "events";
@@ -59,10 +60,6 @@ export interface RawMsg extends Message {
   seq: number;
   sessionId: string;
 }
-
-export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
-  ? 100
-  : 45000;
 
 const HEADER_PREFIX = "CoCalc-";
 

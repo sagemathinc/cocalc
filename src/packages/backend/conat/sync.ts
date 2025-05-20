@@ -1,4 +1,3 @@
-import { stream as createStream, type Stream } from "@cocalc/conat/sync/stream";
 import {
   dstream as createDstream,
   type DStream,
@@ -12,10 +11,6 @@ export { inventory } from "@cocalc/conat/sync/inventory";
 import "./index";
 
 export type { Stream, DStream, KV, DKV, DKO, AKV };
-
-export async function stream<T = any>(opts): Promise<Stream<T>> {
-  return await createStream<T>(opts);
-}
 
 export async function dstream<T = any>(opts): Promise<DStream<T>> {
   return await createDstream<T>(opts);
