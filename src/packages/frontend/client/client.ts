@@ -21,7 +21,7 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
-import { NatsClient } from "@cocalc/frontend/conat/client";
+import { ConatClient } from "@cocalc/frontend/conat/client";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
@@ -79,7 +79,7 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
-  nats_client: NatsClient;
+  conat_client: ConatClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -91,7 +91,7 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_nats: NatsSyncTableFunction;
+  synctable_conat: NatsSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;
@@ -163,7 +163,7 @@ class Client extends EventEmitter implements WebappClient {
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
-  nats_client: NatsClient;
+  conat_client: ConatClient;
   hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
@@ -175,7 +175,7 @@ class Client extends EventEmitter implements WebappClient {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_nats: NatsSyncTableFunction;
+  synctable_conat: NatsSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;
@@ -246,7 +246,7 @@ class Client extends EventEmitter implements WebappClient {
     );
     this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
-    this.nats_client = bind_methods(new NatsClient(this));
+    this.conat_client = bind_methods(new ConatClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
     this.idle_client = bind_methods(new IdleClient(this));
 
@@ -269,11 +269,11 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_project = this.sync_client.synctable_project.bind(
       this.sync_client,
     );
-    this.synctable_nats = this.nats_client.synctable;
-    this.pubsub_nats = this.nats_client.pubsub;
-    this.callConatService = this.nats_client.callConatService;
-    this.createConatService = this.nats_client.createConatService;
-    this.getNatsEnv = this.nats_client.getEnv;
+    this.synctable_conat = this.conat_client.synctable;
+    this.pubsub_nats = this.conat_client.pubsub;
+    this.callConatService = this.conat_client.callConatService;
+    this.createConatService = this.conat_client.createConatService;
+    this.getNatsEnv = this.conat_client.getEnv;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);
@@ -358,7 +358,7 @@ class Client extends EventEmitter implements WebappClient {
     // if file is deleted, this explicitly undeletes it.
     setNotDeleted?: boolean;
   }) => {
-    const x = await this.nats_client.openFiles(project_id);
+    const x = await this.conat_client.openFiles(project_id);
     if (setNotDeleted) {
       x.setNotDeleted(path);
     }

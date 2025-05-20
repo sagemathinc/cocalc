@@ -8,46 +8,8 @@ pnpm exec jest --forceExit "headers.test.ts"
 
 import "@cocalc/backend/conat"; // ensure client is setup
 import { getMaxPayload } from "@cocalc/conat/util";
-import { dstream, stream, dkv, kv } from "@cocalc/backend/conat/sync";
+import { dstream, dkv, kv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
-
-describe("test headers with a stream", () => {
-  let s;
-  it("creates a stream and writes a value without a header", async () => {
-    s = await stream({ name: `${Math.random()}` });
-    expect(s.headers(s.length - 1)).toBe(undefined);
-    s.publish("x");
-    await once(s, "change");
-    expect(s.headers(s.length - 1)).toBe(undefined);
-  });
-
-  it("writes a value with a header", async () => {
-    s.publish("y", { headers: { my: "header" } });
-    await once(s, "change");
-    expect(s.headers(s.length - 1)).toEqual({ my: "header" });
-  });
-
-  it("writes a large value to a stream that requires chunking and a header", async () => {
-    s.publish("y".repeat((await getMaxPayload()) * 2), {
-      headers: { large: "chunks", multiple: "keys" },
-    });
-    await once(s, "change");
-    expect(s.headers(s.length - 1)).toEqual(
-      expect.objectContaining({ large: "chunks", multiple: "keys" }),
-    );
-    expect(s.headers(s.length - 1)).toEqual({
-      large: "chunks",
-      multiple: "keys",
-      // CoCalc- and Nats- headers get used internally, but are still visible.
-      // 3 because of how size was chosen above.
-      "CoCalc-Chunks": "3/3",
-    });
-  });
-
-  it("clean up", async () => {
-    await s.purge();
-  });
-});
 
 describe("test headers with a dstream", () => {
   let s;

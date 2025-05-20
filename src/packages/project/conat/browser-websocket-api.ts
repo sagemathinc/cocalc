@@ -6,7 +6,7 @@ How to do development (so in a dev project doing cc-in-cc dev):
 
 0. From the browser, send a terminate-handler message, so the handler running in the project stops:
 
-    await cc.client.nats_client.projectWebsocketApi({project_id:cc.current().project_id, mesg:{cmd:"terminate"}})
+    await cc.client.conat_client.projectWebsocketApi({project_id:cc.current().project_id, mesg:{cmd:"terminate"}})
 
 1. Open a terminal in the project itself, which sets up the required environment variables.  See api/index.ts for details!!
 
@@ -28,7 +28,7 @@ then after that code runs you can access x from the node console!
 
 4. Use the browser to see the project is on nats and works:
 
-    await cc.client.nats_client.projectWebsocketApi({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094', mesg:{cmd:"listing"}})
+    await cc.client.conat_client.projectWebsocketApi({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094', mesg:{cmd:"listing"}})
 
 5. In a terminal you can always tap into the message stream for a particular project (do `pnpm nats-shell` if necessary to setup your environment):
 

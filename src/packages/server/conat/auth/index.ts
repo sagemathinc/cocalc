@@ -38,7 +38,7 @@ DEVELOPMENT
 1. From the browser, turn off the nats auth that is being served by your development hub
 by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'auth'})
+   await cc.client.conat_client.hub.system.terminate({service:'auth'})
 
 2. Run this code in nodejs:
 

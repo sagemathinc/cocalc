@@ -30,7 +30,7 @@ export class LegacyHistory {
     path: string;
   }) {
     // this is only available on the frontend browser, which is all that matters.
-    this.db = (client as any).nats_client?.hub.db as any;
+    this.db = (client as any).conat_client?.hub.db as any;
     this.project_id = project_id;
     this.path = path;
   }

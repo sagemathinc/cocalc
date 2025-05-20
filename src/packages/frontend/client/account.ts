@@ -181,6 +181,6 @@ export class AccountClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    return await this.client.nats_client.hub.system.manageApiKeys(opts);
+    return await this.client.conat_client.hub.system.manageApiKeys(opts);
   }
 }

@@ -5,7 +5,7 @@ To do development:
 
 1. Turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'api'})
+   await cc.client.conat_client.hub.system.terminate({service:'api'})
 
 NOTE: there's no way to turn the auth back on in the hub, so you'll have to restart
 your dev hub after doing the above.
@@ -23,11 +23,11 @@ your dev hub after doing the above.
 
 To make use of this from a browser:
 
-    await cc.client.nats_client.hub.system.getCustomize(['siteName'])
+    await cc.client.conat_client.hub.system.getCustomize(['siteName'])
 
 or
 
-    await cc.client.nats_client.callHub({name:"system.getCustomize", args:[['siteName']]})
+    await cc.client.conat_client.callHub({name:"system.getCustomize", args:[['siteName']]})
 
 When you make changes, just restart the above.  All clients will instantly
 use the new version after you restart, and there is no need to restart the hub

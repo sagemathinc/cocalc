@@ -151,7 +151,7 @@ export class SyncTableKV extends EventEmitter {
         }
       }
       // change api was to emit array of keys.
-      // We also use this packages/sync/table/changefeed-nats.ts which needs the value,
+      // We also use this packages/sync/table/changefeed-conat.ts which needs the value,
       // so we emit that object second.
       this.emit("change", [x.key], x);
     });

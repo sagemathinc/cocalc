@@ -103,7 +103,7 @@ export class SyncTableStream extends EventEmitter {
       // ephemeral only supported for synctable when one synctable opened
       // in project/compute-server and all others in browser; this is,
       // of course our model for terminals, jupyter, etc.
-      leader: typeof navigator == "undefined",
+      leader: this.ephemeral && typeof navigator == "undefined",
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

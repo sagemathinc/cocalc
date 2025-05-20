@@ -112,7 +112,7 @@ function initTime() {
 }
 
 let globalClient: null | ClientWithState = null;
-export function setNatsClient(client: Client) {
+export function setConatClient(client: Client) {
   globalClient = new ClientWithState(client);
 }
 

@@ -6,14 +6,14 @@
 import { is_array } from "@cocalc/util/misc";
 import { validate_client_query } from "@cocalc/util/schema-validate";
 import { CB } from "@cocalc/util/types/database";
-import { NatsChangefeed } from "@cocalc/sync/table/changefeed-nats2";
+import { ConatChangefeed } from "@cocalc/sync/table/changefeed-conat";
 import { uuid } from "@cocalc/util/misc";
 
 declare const $: any; // jQuery
 
 export class QueryClient {
   private client: any;
-  private changefeeds: { [id: string]: NatsChangefeed } = {};
+  private changefeeds: { [id: string]: ConatChangefeed } = {};
 
   constructor(client: any) {
     this.client = client;
@@ -46,7 +46,7 @@ export class QueryClient {
       }
       let changefeed;
       try {
-        changefeed = new NatsChangefeed({
+        changefeed = new ConatChangefeed({
           account_id: this.client.account_id,
           query: opts.query,
           options: opts.options,
@@ -72,7 +72,7 @@ export class QueryClient {
         if (err) {
           throw Error(err);
         }
-        const query = await this.client.nats_client.hub.db.userQuery({
+        const query = await this.client.conat_client.hub.db.userQuery({
           query: opts.query,
           options: opts.options,
         });

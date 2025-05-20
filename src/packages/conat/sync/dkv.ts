@@ -54,11 +54,11 @@ If you want a persistent distributed key:value store in the browser,
 which shares state to all browser clients for a given **account_id**,
 do this in the dev console:
 
-    > a = await cc.client.nats_client.dkv({name:'test', account_id:cc.client.account_id})
+    > a = await cc.client.conat_client.dkv({name:'test', account_id:cc.client.account_id})
 
 Then do the same thing in another dev console in another browser window:
 
-    > a = await cc.client.nats_client.dkv({name:'test', account_id:cc.client.account_id})
+    > a = await cc.client.conat_client.dkv({name:'test', account_id:cc.client.account_id})
 
 Now do this in one:
 
@@ -78,7 +78,7 @@ For library code, replace cc.client by webapp_client, which you get via:
 
 If instead you need to share state with a project (or compute server), use
 
-> b = await cc.client.nats_client.dkv({name:'test', project_id:'...'})
+> b = await cc.client.conat_client.dkv({name:'test', project_id:'...'})
 
 
 UNIT TESTS: See backend/conat/test/

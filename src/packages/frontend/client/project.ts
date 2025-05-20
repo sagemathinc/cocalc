@@ -68,7 +68,7 @@ export class ProjectClient {
   }
 
   private natsApi = (project_id: string) => {
-    return this.client.nats_client.projectApi({ project_id });
+    return this.client.conat_client.projectApi({ project_id });
   };
 
   // This can write small text files in one message.
@@ -477,7 +477,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.client.nats_client.hub.db.touch({ project_id });
+      await this.client.conat_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
@@ -528,7 +528,7 @@ export class ProjectClient {
     noPool?: boolean;
   }): Promise<string> {
     const project_id =
-      await this.client.nats_client.hub.projects.createProject(opts);
+      await this.client.conat_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
@@ -621,7 +621,7 @@ export class ProjectClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    return await this.client.nats_client.hub.system.manageApiKeys(opts);
+    return await this.client.conat_client.hub.system.manageApiKeys(opts);
   }
 
   computeServers = (project_id) => {

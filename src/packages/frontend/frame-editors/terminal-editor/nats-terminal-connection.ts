@@ -56,7 +56,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
-    webapp_client.nats_client.on("connected", this.clearWriteQueue);
+    webapp_client.conat_client.on("connected", this.clearWriteQueue);
   }
 
   clearWriteQueue = () => {
@@ -155,7 +155,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   close = async () => {
-    webapp_client.nats_client.removeListener("connected", this.clearWriteQueue);
+    webapp_client.conat_client.removeListener("connected", this.clearWriteQueue);
     this.stream?.close();
     delete this.stream;
     this.service?.close();
@@ -204,8 +204,8 @@ export class NatsTerminalConnection extends EventEmitter {
   });
 
   private getStream = async () => {
-    const { nats_client } = webapp_client;
-    return await nats_client.dstream<string>({
+    const { conat_client } = webapp_client;
+    return await conat_client.dstream<string>({
       name: `terminal-${this.path}`,
       project_id: this.project_id,
       ephemeral: this.ephemeral,

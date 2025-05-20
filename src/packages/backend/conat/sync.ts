@@ -10,7 +10,7 @@ import { createOpenFiles, type OpenFiles } from "@cocalc/conat/sync/open-files";
 export { inventory } from "@cocalc/conat/sync/inventory";
 import "./index";
 
-export type { Stream, DStream, KV, DKV, DKO, AKV };
+export type { DStream, KV, DKV, DKO, AKV };
 
 export async function dstream<T = any>(opts): Promise<DStream<T>> {
   return await createDstream<T>(opts);

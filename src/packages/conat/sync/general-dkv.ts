@@ -52,7 +52,7 @@ Type ".help" for more information.
 
 In the browser console:
 
-> s = await cc.client.nats_client.dkv({filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}})
+> s = await cc.client.conat_client.dkv({filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}})
 
 # NOTE that the name is account-{account_id} or project-{project_id},
 # and if not given defaults to the account-{user's account id}

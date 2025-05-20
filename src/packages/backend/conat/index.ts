@@ -10,7 +10,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getEnv } from "./env";
 export { getEnv };
 import { inboxPrefix } from "@cocalc/conat/names";
-import { setNatsClient } from "@cocalc/conat/client";
+import { setConatClient } from "@cocalc/conat/client";
 import getConnection, {
   setConnectionOptions,
 } from "@cocalc/backend/conat/persistent-connection";
@@ -19,7 +19,7 @@ import { hostname } from "os";
 export { getConnection };
 
 export function init() {
-  setNatsClient({ getNatsEnv: getEnv, getLogger });
+  setConatClient({ getNatsEnv: getEnv, getLogger });
 }
 init();
 

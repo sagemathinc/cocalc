@@ -112,7 +112,7 @@ async function getLogo({
   if (!noCache && cache[key]) {
     return cache[key];
   }
-  const api = client.nats_client.projectApi({ project_id });
+  const api = client.conat_client.projectApi({ project_id });
   const { filename, base64 } = await api.editor.jupyterKernelLogo(kernel, {
     noCache,
   });

@@ -12,7 +12,7 @@ export async function getSyncDocType({
   let syncdocs;
   try {
     const string_id = client_db.sha1(project_id, path);
-    syncdocs = await client.synctable_nats(
+    syncdocs = await client.synctable_conat(
       { syncstrings: [{ project_id, path, string_id, doctype: null }] },
       {
         stream: false,

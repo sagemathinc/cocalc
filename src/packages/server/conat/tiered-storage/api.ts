@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 If you're running a dev server, turn off the tiered storage service running in it by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'tiered-storage'})
+   await cc.client.conat_client.hub.system.terminate({service:'tiered-storage'})
 
 
 To start this service:

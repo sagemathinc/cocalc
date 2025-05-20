@@ -318,7 +318,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     delete this.open_files;
     this.computeServerManager?.close();
     delete this.computeServerManager;
-    webapp_client.nats_client.closeOpenFiles(this.project_id);
+    webapp_client.conat_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -3510,7 +3510,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setRecentlyDeleted(path, 0);
     (async () => {
       try {
-        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        const o = await webapp_client.conat_client.openFiles(this.project_id);
         o.setNotDeleted(path);
       } catch (err) {
         console.log("WARNING: issue undeleting file", err);
@@ -3543,7 +3543,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   private initNatsPermissions = async () => {
     try {
-      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+      await webapp_client.conat_client.addProjectPermissions([this.project_id]);
     } catch (err) {
       console.log(
         `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
@@ -3650,7 +3650,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   projectApi = (opts?) => {
-    return webapp_client.nats_client.projectApi({
+    return webapp_client.conat_client.projectApi({
       ...opts,
       project_id: this.project_id,
     });

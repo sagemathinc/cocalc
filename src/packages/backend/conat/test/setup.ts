@@ -7,7 +7,7 @@ import {
 } from "@cocalc/conat/core/server";
 import { Server } from "socket.io";
 import getLogger from "@cocalc/backend/logger";
-import { setNatsClient } from "@cocalc/conat/client";
+import { setConatClient } from "@cocalc/conat/client";
 import { sha1 } from "@cocalc/backend/sha1";
 import {
   initServer as initPersistServer,
@@ -52,7 +52,7 @@ export async function before() {
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
   initPersistServer({ client: server.client() });
-  setNatsClient({
+  setConatClient({
     getNatsEnv: async () => {
       return { cn: connect(), sha1 } as any;
     },

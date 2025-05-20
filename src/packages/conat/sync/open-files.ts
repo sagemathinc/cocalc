@@ -24,7 +24,7 @@ Change to packages/backend, since packages/nats doesn't have a way to connect:
 
 Frontend Dev in browser:
 
-z = await cc.client.nats_client.openFiles({project_id:cc.current().project_id))
+z = await cc.client.conat_client.openFiles({project_id:cc.current().project_id))
 z.getAll()
 }
 */

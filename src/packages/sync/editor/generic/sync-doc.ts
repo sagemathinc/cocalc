@@ -19,7 +19,7 @@ EVENTS:
 - ... TODO
 */
 
-const USE_NATS = true;
+const USE_CONAT = true;
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
@@ -266,7 +266,7 @@ export class SyncDoc extends EventEmitter {
   // static because we want exactly one across all docs!
   private static computeServerManagerDoc?: SyncDoc;
 
-  private useNats: boolean;
+  private useConat: boolean;
   legacy: LegacyHistory;
 
   constructor(opts: SyncOpts) {
@@ -305,7 +305,7 @@ export class SyncDoc extends EventEmitter {
     // NOTE: Do not use nats in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't
     // use nats.  We also use this for the messages composer.
-    this.useNats = USE_NATS && !isTestClient(opts.client);
+    this.useConat = USE_CONAT && !isTestClient(opts.client);
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether
@@ -362,7 +362,7 @@ export class SyncDoc extends EventEmitter {
         //const t0 = new Date();
 
         log("initializing all tables...");
-        if (this.useNats) {
+        if (this.useConat) {
           await waitUntilConnected();
         }
         await this.initAll();
@@ -617,7 +617,7 @@ export class SyncDoc extends EventEmitter {
       // table not initialized yet
       return;
     }
-    if (this.useNats) {
+    if (this.useConat) {
       const time = this.client.server_time().valueOf();
       const x: {
         user_id: number;
@@ -660,7 +660,7 @@ export class SyncDoc extends EventEmitter {
 
   set_cursor_locs: typeof this.setCursorLocsNoThrottle = throttle(
     this.setCursorLocsNoThrottle,
-    USE_NATS ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
+    USE_CONAT ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
     {
       leading: true,
       trailing: true,
@@ -1238,7 +1238,7 @@ export class SyncDoc extends EventEmitter {
   // patches table uses the string_id, which is a SHA1 hash.
   private ensure_syncstring_exists_in_db = async (): Promise<void> => {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
-    if (this.useNats) {
+    if (this.useConat) {
       dbg("skipping -- no database");
       return;
     }
@@ -1278,7 +1278,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("synctable");
     const dbg = this.dbg("synctable");
     if (
-      !this.useNats &&
+      !this.useConat &&
       !this.ephemeral &&
       this.persistent &&
       this.data_server == "project"
@@ -1291,8 +1291,8 @@ export class SyncDoc extends EventEmitter {
       options.push({ ephemeral: true });
     }
     let synctable;
-    if (this.useNats && query.patches) {
-      synctable = await this.client.synctable_nats(query, {
+    if (this.useConat && query.patches) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1302,8 +1302,8 @@ export class SyncDoc extends EventEmitter {
         desc: { path: this.path },
         start_seq: this.last_seq,
       });
-    } else if (this.useNats && query.syncstrings) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && query.syncstrings) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1313,8 +1313,8 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         desc: { path: this.path },
       });
-    } else if (this.useNats && query.ipywidgets) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && query.ipywidgets) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1328,8 +1328,8 @@ export class SyncDoc extends EventEmitter {
         limits: { max_age: 1000 * 60 * 60 * 24 },
         desc: { path: this.path },
       });
-    } else if (this.useNats && (query.eval_inputs || query.eval_outputs)) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && (query.eval_inputs || query.eval_outputs)) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1340,8 +1340,8 @@ export class SyncDoc extends EventEmitter {
         limits: { max_age: 30000 },
         desc: { path: this.path },
       });
-    } else if (this.useNats) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1947,8 +1947,8 @@ export class SyncDoc extends EventEmitter {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
-    if (this.useNats) {
-      dbg("NATS cursors support using pub/sub");
+    if (this.useConat) {
+      dbg("cursors broadcast using pub/sub");
       this.cursors_table = await this.client.pubsub_nats({
         project_id: this.project_id,
         path: this.path,

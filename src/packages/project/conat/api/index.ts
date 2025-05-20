@@ -6,7 +6,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
 0. From the browser, terminate this api server running in the project:
 
-    await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'api'})
+    await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'api'})
 
 1. Create a file project-env.sh as explained in projects/nats/README.md, which defines these environment variables (your values will be different):
 
@@ -44,7 +44,7 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 
 3. Use the browser to see the project is on the conat network and works:
 
-    a = cc.client.nats_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'});
+    a = cc.client.conat_client.projectApi({project_id:'81e0c408-ac65-4114-bad5-5f4b6539bd0e'});
     await a.system.ping();
     await a.system.exec({command:'echo $COCALC_PROJECT_ID'});
 

@@ -32,7 +32,7 @@ export class PurchasesClient {
   }
 
   async getBalance(): Promise<number> {
-    return await this.client.nats_client.hub.purchases.getBalance();
+    return await this.client.conat_client.hub.purchases.getBalance();
   }
 
   async getSpendRate(): Promise<number> {

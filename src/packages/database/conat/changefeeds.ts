@@ -20,7 +20,7 @@ DEVELOPMENT:
 
 1. turn off nats-server handling for the hub by sending this message from a browser as an admin:
 
-   await cc.client.nats_client.hub.system.terminate({service:'db'})
+   await cc.client.conat_client.hub.system.terminate({service:'db'})
 
 2. Run this line in nodejs right here:
 
@@ -412,7 +412,7 @@ const createNewChangefeed = async ({ query, user, nc, opts, hash, cn }) => {
   watchManagerState();
 
   // If you change any settings below (i.e., atomic or immutable), you might also have to change them in
-  //   src/packages/sync/table/changefeed-nats.ts
+  //   src/packages/sync/table/changefeed-conat.ts
   const synctable = createSyncTable({
     query,
     env,

@@ -38,7 +38,7 @@ setInterval(()=>console.log(cc.redux.getStore('page').get('nats').toJS().data.nu
 
 If things are off, look at
 
-cc.client.nats_client.refCacheInfo()
+cc.client.conat_client.refCacheInfo()
 */
 
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -242,7 +242,7 @@ class CoCalcNatsConnection extends EventEmitter implements NatsConnection {
   };
 
   getConnectionInfo = async () => {
-    return await webapp_client.nats_client.info(this.conn);
+    return await webapp_client.conat_client.info(this.conn);
   };
 
   private subscriptionPenalty = 20000;

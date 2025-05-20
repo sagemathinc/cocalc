@@ -42,7 +42,7 @@ import { inventory } from "@cocalc/conat/sync/inventory";
 import { EventEmitter } from "events";
 import {
   getClient as getClientWithState,
-  setNatsClient,
+  setConatClient,
   type ClientWithState,
   getEnv,
 } from "@cocalc/conat/client";
@@ -63,7 +63,7 @@ const DEFAULT_TIMEOUT = 15000;
 
 declare var DEBUG: boolean;
 
-export class NatsClient extends EventEmitter {
+export class ConatClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
@@ -81,7 +81,7 @@ export class NatsClient extends EventEmitter {
     this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
-    this.initNatsClient();
+    this.initConatClient();
     this.on("state", (state) => {
       this.emit(state);
       this.setConnectionState(state);
@@ -98,7 +98,7 @@ export class NatsClient extends EventEmitter {
     return this._conatClient!;
   };
 
-  private initNatsClient = async () => {
+  private initConatClient = async () => {
     let d = 100;
     // wait until you're signed in -- usually the account_id cookie ensures this,
     // but if somehow it got deleted, the normal websocket sign in message from the
@@ -112,7 +112,7 @@ export class NatsClient extends EventEmitter {
       // we know the account_id, so set it so next time sign is faster.
       Cookies.set(ACCOUNT_ID_COOKIE, this.client.account_id);
     }
-    setNatsClient({
+    setConatClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
       reconnect: this.reconnect,

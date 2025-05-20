@@ -5,7 +5,7 @@ SyncFS Client Service, which runs on compute servers
 import { createSyncFsClientService } from "@cocalc/conat/service/syncfs-client";
 import { type SyncFS } from "../index";
 
-export async function initNatsClientService({
+export async function initConatClientService({
   syncfs,
   compute_server_id,
   project_id,

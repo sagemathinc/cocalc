@@ -46,7 +46,7 @@ export class Listings extends EventEmitter {
   }
 
   private createClient = async () => {
-    await webapp_client.nats_client.addProjectPermissions([this.project_id]);
+    await webapp_client.conat_client.addProjectPermissions([this.project_id]);
     let d = 3000;
     const MAX_DELAY_MS = 15000;
     while (this.state != "closed") {

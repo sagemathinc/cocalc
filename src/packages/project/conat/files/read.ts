@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 1. Stop files:read service running in the project by running this in your browser:
 
-   await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'files:read'})
+   await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'files:read'})
 
     {status: 'terminated', service: 'files:read'}
 

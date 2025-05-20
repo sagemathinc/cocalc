@@ -5,7 +5,7 @@ DEVELOPMENT:
 
 1. Stop the files:write service running in the project by running this in your browser:
 
-   await cc.client.nats_client.projectApi(cc.current()).system.terminate({service:'files:write'})
+   await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'files:write'})
 
     {status: 'terminated', service: 'files:write'}
 

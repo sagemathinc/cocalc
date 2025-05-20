@@ -102,12 +102,9 @@ export class IpywidgetsState extends EventEmitter {
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
-    if (this.syncdoc.data_server == "project") {
-      // options only supported for project...
-      // ephemeral -- don't store longterm in database
-      // persistent -- doesn't automatically vanish when all browser clients disconnect
-      this.table_options = [{ ephemeral: true, persistent: true }];
-    }
+    // [ ] TODO: once we have ephemeral kv
+    // this.table_options = [{ ephemeral: true }];
+    this.table_options = [];
     this.gc =
       !DISABLE_GC && client.is_project() // no-op if not project or DISABLE_GC
         ? debounce(() => {
