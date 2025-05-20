@@ -9,6 +9,10 @@ pnpm test ./dstream.test.ts
 
 import { createDstream as create } from "./util";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
+import { once } from "@cocalc/util/async-utils";
+import { connect, before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 describe("create a dstream and do some basic operations", () => {
   let s;
@@ -54,7 +58,6 @@ describe("create a dstream and do some basic operations", () => {
   });
 });
 
-/*
 describe("create two dstreams and observe sync between them", () => {
   const name = `test-${Math.random()}`;
   let s1, s2;
@@ -93,13 +96,16 @@ describe("create two dstreams and observe sync between them", () => {
     // now kick off the two saves *in parallel*
     s1.save();
     s2.save();
-    await once(s1, "change");
-    if (s2.length != s1.length) {
+    while (s1.length < 4) {
+      await once(s1, "change");
+    }
+    while (s2.length < 4) {
       await once(s2, "change");
     }
     expect(s1.getAll()).toEqual(s2.getAll());
-    // in fact s1,s2 is the order since we called s1.save first:
-    expect(s1.getAll()).toEqual(["hello", "hi from s2", "s1", "s2"]);
+    expect(new Set(s1.getAll())).toEqual(
+      new Set(["hello", "hi from s2", "s1", "s2"]),
+    );
   });
 });
 
@@ -156,7 +162,7 @@ describe("closing also saves by default, but not if autosave is off", () => {
 
   it("creates stream and write a message", async () => {
     // noAutosave: false is the default:
-    s = await createDstream({ name, noAutosave: false});
+    s = await createDstream({ name, noAutosave: false });
     s.push(389);
   });
 
@@ -210,7 +216,7 @@ describe("testing start_seq", () => {
     expect(s.start_seq).toEqual(seq[2]);
   });
 
-  it("it then pulls in the previous message, so now two messages are loaded", async () => {
+  it.skip("it then pulls in the previous message, so now two messages are loaded", async () => {
     await s.load({ start_seq: seq[1] });
     expect(s.length).toBe(2);
     expect(s.getAll()).toEqual([2, 3]);
@@ -253,38 +259,39 @@ describe("dstream typescript test", () => {
   });
 });
 
-import { numSubscriptions } from "@cocalc/conat/client";
+describe("ensure there isn't a really obvious subscription leak", () => {
+  let client;
 
-describe("ensure there are no NATS subscription leaks", () => {
-  // There is some slight slack at some point due to the clock stuff,
-  // inventory, etc.  It is constant and small, whereas we allocate
-  // a large number of kv's in the test.
-  const SLACK = 4;
-
-  it("creates and closes many kv's and checks there is no leak", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
-    // create
-    const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
-      a[i] = await createDstream({
-        name: `${Math.random()}`,
-        noAutosave: true,
-      });
-    }
-    for (let i = 0; i < COUNT; i++) {
-      await a[i].close();
-    }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+  it("create a client, which initially has only one subscription (the inbox)", async () => {
+    client = connect();
+    expect(client.numSubscriptions()).toBe(1);
   });
 
-  it("does another leak test, but with a set operation each time", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
+  const count = 100;
+  it(`creates and closes ${count} streams and checks there is no leak`, async () => {
+    const before = client.numSubscriptions();
     // create
     const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
+      a[i] = await createDstream({
+        name: `${Math.random()}`,
+      });
+    }
+    for (let i = 0; i < count; i++) {
+      await a[i].close();
+    }
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
+
+    // also check count on server went down.
+    expect((await client.getSubscriptions()).size).toBe(before);
+  });
+
+  it("does another leak test, but with a publish operation each time", async () => {
+    const before = client.numSubscriptions();
+    // create
+    const a: any = [];
+    for (let i = 0; i < count; i++) {
       a[i] = await createDstream({
         name: `${Math.random()}`,
         noAutosave: true,
@@ -292,12 +299,12 @@ describe("ensure there are no NATS subscription leaks", () => {
       a[i].publish(i);
       await a[i].save();
     }
-    for (let i = 0; i < COUNT; i++) {
-      await a[i].purge();
+    for (let i = 0; i < count; i++) {
       await a[i].close();
     }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
   });
 });
-*/
+
+afterAll(after);

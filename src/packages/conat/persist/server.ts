@@ -204,7 +204,7 @@ async function listenPersist() {
     throw Error("must call init first");
   }
   for await (const mesg of sub) {
-    console.log("got mesg = ", { data: mesg.data, headers: mesg.headers });
+    //console.log("got mesg = ", { data: mesg.data, headers: mesg.headers });
     if (terminated) {
       return;
     }
@@ -221,7 +221,7 @@ function metrics() {
 
 async function handleMessage(mesg) {
   const request = mesg.headers;
-  console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
+  //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
   const user_id = getUserId(mesg.subject);
 
   // [ ] TODO: permissions and sanity checks!
@@ -241,7 +241,7 @@ async function handleMessage(mesg) {
       mesg.respond({ resp });
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
-      console.log("got resp = ", resp);
+      //console.log("got resp = ", resp);
       if (resp == null) {
         mesg.respond(null);
       } else {
@@ -266,7 +266,7 @@ async function handleMessage(mesg) {
 }
 
 async function getAll({ mesg, request, user_id, stream }) {
-  console.log("getAll", request);
+  //console.log("getAll", request);
   // getAll sends multiple responses
   let seq = 0;
   let lastSend = 0;
@@ -284,7 +284,7 @@ async function getAll({ mesg, request, user_id, stream }) {
     }
     lastSend = Date.now();
     if ((content as StoredMessage)?.raw != null) {
-      console.log("content = ", content);
+      // console.log("content = ", content);
       // StoredMessage
       const { raw, encoding, time, key, ...headers } = content as StoredMessage;
       mesg.respond(null, {

@@ -254,12 +254,12 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    const { id, stream } = await persistClient.getAll({
+    const { stream } = await persistClient.getAll({
       user: this.user,
       storage: this.storage,
       start_seq,
     });
-    console.log("got persistent stream", { id });
+    //console.log("got persistent stream", { id });
     this.persistStream = stream;
     while (true) {
       const { value, done } = await stream.next();
@@ -288,7 +288,9 @@ export class CoreStream<T = any> extends EventEmitter {
       // switched to watch mode
       return;
     }
-    const { key, seq, time, headers } = m.headers;
+    const { key, time, headers } = m.headers;
+    // @ts-ignore
+    const seq = headers?.seq;
     if (typeof seq != "number") {
       throw Error("seq must be a number");
     }
@@ -555,12 +557,27 @@ export class CoreStream<T = any> extends EventEmitter {
       if (this.storage == null) {
         throw Error("bug -- storage must be set");
       }
-      return await persistClient.set({
+      if (options?.msgID && this.msgIDs.has(options.msgID)) {
+        // it's a dup
+        return;
+      }
+      const x = await persistClient.set({
         user: this.user,
         storage: this.storage,
         key: options?.key,
-        messageData: messageData(mesg, { headers: options?.headers }),
+        messageData: messageData(mesg, {
+          headers: {
+            ...options?.headers,
+            ...(options?.msgID
+              ? { [COCALC_MESSAGE_ID_HEADER]: options?.msgID }
+              : undefined),
+          },
+        }),
       });
+      if (options?.msgID) {
+        this.msgIDs.add(options.msgID);
+      }
+      return x;
     } else if (this.leader) {
       // sending from leader -- so assign seq, timestamp and send it out.
       return await this.sendAsLeader(data, options);

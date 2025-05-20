@@ -172,12 +172,12 @@ export class PersistentStream extends EventEmitter {
         }
         return this.db
           .prepare(
-            "INSERT INTO messages(time, compress, encoding, raw, headers, key) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO messages(time, compress, encoding, raw, headers, key) VALUES (?, ?, ?, ?, ?, ?)  RETURNING seq",
           )
-          .run(time / 1000, compress, encoding, raw, headers, key);
+          .get(time / 1000, compress, encoding, raw, headers, key);
       },
     );
-    const { lastInsertRowid } = tx(
+    const row = tx(
       time,
       compressedRaw.compress,
       encoding,
@@ -185,8 +185,8 @@ export class PersistentStream extends EventEmitter {
       serializedHeaders,
       key,
     );
+    const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
-    const seq = Number(lastInsertRowid);
     this.emit("change", { seq, time, key, encoding, raw, headers });
     return { time, seq };
   };

@@ -1,5 +1,7 @@
 /*
+
 pnpm test ./connect.test.ts
+
 */
 
 import { getPort } from "@cocalc/backend/conat/test/util";
@@ -55,6 +57,8 @@ describe("create server *after* client and ensure connects properly", () => {
 });
 
 describe("create server after sync creating a subscription and publishing a message, and observe that messages are dropped", () => {
+  // The moral here is do NOT use subscribeSync and publishSync 
+  // unless you don't care very much...
   let cn;
   it("starts a client, despite there being no server yet", async () => {
     cn = connect(`http://localhost:${port}`, { path });
@@ -73,6 +77,7 @@ describe("create server after sync creating a subscription and publishing a mess
   it("start the server", async () => {
     server = await initConatServer({ port, path });
     await wait({ until: () => cn.conn.connected });
+    await delay(50);
   });
 
   it("see that both messages we sent before connecting were dropped", async () => {

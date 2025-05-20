@@ -29,11 +29,11 @@ import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { encodeBase64 } from "@cocalc/conat/util";
-import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
 import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { type ValueType } from "@cocalc/conat/types";
+import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
 
 const MAX_PARALLEL = 50;
 
@@ -237,9 +237,9 @@ export class DStream<T = any> extends EventEmitter {
 
   publish = (
     mesg: T,
-    // NOTE: if you call this.headers(n) it is NOT visible until the publish is confirmed.
-    // This could be changed with more work if it matters.
-    options?: { headers?: { [key: string]: string } },
+    // NOTE: if you call this.headers(n) it is NOT visible until
+    // the publish is confirmed. This could be changed with more work if it matters.
+    options?: { headers?: Headers },
   ): void => {
     const id = randomId();
     this.local[id] = mesg;
@@ -312,6 +312,9 @@ export class DStream<T = any> extends EventEmitter {
           ...this.publishOptions[id],
           msgID: id,
         });
+        if (this.raw == null) {
+          return;
+        }
         if ((last(this.raw[this.raw.length - 1])?.seq ?? -1) < seq) {
           // it still isn't in this.raw
           this.saved[seq] = mesg;
