@@ -154,10 +154,11 @@ export class DStream<T = any> extends EventEmitter {
         // [ ] TODO: try localStorage or a file?!
       }
     }
-    this.stream.close();
+    const stream = this.stream;
+    delete this.stream;
+    stream.close();
     this.emit("closed");
     this.removeAllListeners();
-    delete this.stream;
     // @ts-ignore
     delete this.local;
     // @ts-ignore

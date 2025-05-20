@@ -1,3 +1,11 @@
+/*
+DEVELOPMENT:
+
+
+   pnpm test ./core-stream-ephemeral.test.ts
+
+*/
+
 import { connect, before, after } from "@cocalc/backend/conat/test/setup";
 import {
   cstream,
@@ -235,8 +243,10 @@ describe("test creating a non-leader first, then the leader", () => {
       leader: true,
     });
 
-    await wait({ until: () => streams[0] != null });
-    await wait({ until: () => (streams[1]?.length ?? 0) > 0 });
+    await wait({
+      until: () =>
+        (streams[0]?.length ?? 0) > 0 && (streams[1]?.length ?? 0) > 0,
+    });
     expect(streams[1].getAll()).toEqual(["before"]);
     expect(streams[0]?.getAll()).toEqual(["before"]);
   });
@@ -301,5 +311,44 @@ describe("test using ephemeral dstream", () => {
     expect(stream.get(stream.length - 1)).toBe("x");
   });
 });
+
+describe("test basic key:value functionality for persistent core stream", () => {
+  let client;
+  let stream;
+  let name = "kv0";
+
+  it("creates persistent core stream", async () => {
+    client = connect();
+    stream = await cstream({ client, name, persist: true });
+    expect(stream.length).toBe(0);
+    expect(stream.start_seq).toBe(undefined);
+  });
+
+  let seq;
+
+  it("writes a key:value and confirms it was written", async () => {
+    await stream.publish("value", { key: "key" });
+    expect(await stream.kvGet("key")).toEqual("value");
+    seq = stream.kvSeq("key");
+  });
+
+  it("closes and reopens stream, to confirm the key was persisted", async () => {
+    stream.close();
+    expect(stream.kv).toBe(undefined);
+    stream = await cstream({ client, name, persist: true });
+    expect(stream.length).toBe(1);
+    expect(await stream.kvGet("key")).toEqual("value");
+    expect(stream.kvSeq("key")).toBe(seq);
+  });
+
+  // it("call the other kv functions", async () => {});
+
+  it("cleans up", () => {
+    client.close();
+    stream.close();
+  });
+});
+
+// TODO ephemeral kv store
 
 afterAll(after);

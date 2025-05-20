@@ -110,8 +110,8 @@ export class CoreStream<T = any> extends EventEmitter {
   private leader: boolean;
   private persist: boolean;
   private server?: Subscription;
-  // seq used by the *leader* only to assign sequence numbers
-  private seq: number = 1;
+  // ephemeralSeq = sequence number used by the *leader* only to assign sequence numbers
+  private ephemeralSeq: number = 1;
   private lastHeartbeat: number = 0;
   private heartbeatInterval: number;
   // lastSeq used by clients to keep track of what they have received; if one
@@ -216,7 +216,7 @@ export class CoreStream<T = any> extends EventEmitter {
     this.msgIDs.clear();
     this.raw.length = 0;
     this.messages.length = 0;
-    this.seq = 0;
+    this.ephemeralSeq = 0;
     this.sendQueue.length = 0;
     this.lastSeq = 0;
     delete this._start_seq;
@@ -237,6 +237,20 @@ export class CoreStream<T = any> extends EventEmitter {
     // @ts-ignore
     this.server?.close();
     delete this.server;
+    // @ts-ignore
+    delete this.kv;
+    // @ts-ignore
+    delete this.messages;
+    // @ts-ignore
+    delete this.raw;
+    // @ts-ignore
+    delete this.msgIDs;
+    // @ts-ignore
+    delete this.sendQueue;
+    // @ts-ignore
+    delete this.bytesSent;
+    // @ts-ignore
+    delete this.storage;
   };
 
   private getAllFromPersist = async ({
@@ -280,6 +294,10 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private processPersistentMessage = (m: Message, noEmit: boolean) => {
+    if (this.raw === undefined) {
+      // closed
+      return;
+    }
     if (m.headers == null) {
       throw Error("missing header");
     }
@@ -587,7 +605,7 @@ export class CoreStream<T = any> extends EventEmitter {
         }),
       });
       if (options?.msgID) {
-        this.msgIDs.add(options.msgID);
+        this.msgIDs?.add(options.msgID);
       }
       return x;
     } else if (this.leader) {
@@ -621,9 +639,13 @@ export class CoreStream<T = any> extends EventEmitter {
     if (!this.leader) {
       throw Error("must be the leader");
     }
-    const seq = this.seq;
-    this.seq += 1;
+    const seq = this.ephemeralSeq;
+    this.ephemeralSeq += 1;
     const f = (cb) => {
+      if (this.sendQueue == null) {
+        cb();
+        return;
+      }
       this.sendQueue.push({ data, options, seq, cb });
       this.processQueue();
     };
@@ -635,9 +657,12 @@ export class CoreStream<T = any> extends EventEmitter {
     if (!this.leader) {
       throw Error("must be the leader");
     }
+    if (this.sendQueue == null) {
+      return;
+    }
     const { sessionId } = this;
     while (
-      this.sendQueue.length > 0 &&
+      (this.sendQueue?.length ?? 0) > 0 &&
       this.client != null &&
       this.sessionId == sessionId
     ) {
@@ -714,8 +739,20 @@ export class CoreStream<T = any> extends EventEmitter {
     }
   };
 
+  seq = (n: number): number | undefined => {
+    return this.raw[n]?.seq;
+  };
+
   getAll = () => {
     return [...this.messages];
+  };
+
+  kvGet = (key: string): T | undefined => {
+    return this.kv[key]?.mesg;
+  };
+
+  kvSeq = (key: string): number | undefined => {
+    return this.kv[key]?.raw.seq;
   };
 
   get length(): number {
