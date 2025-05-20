@@ -27,12 +27,12 @@ const log = LOW_LEVEL_DEBUG
     }
   : (..._args) => {};
 
-export class NatsChangefeed extends EventEmitter {
+export class ConatChangefeed extends EventEmitter {
   private account_id: string;
   private query;
   private options;
   private state: "disconnected" | "connected" | "closed" = "disconnected";
-  private natsSynctable?;
+  private conatSyncTable?;
   private last_hb = 0;
   private id?: string;
   private lifetime?: number;
@@ -55,7 +55,7 @@ export class NatsChangefeed extends EventEmitter {
   connect = async () => {
     log("creating new changefeed", this.query);
     if (this.state == "closed") return;
-    this.natsSynctable = await changefeed({
+    this.conatSyncTable = await changefeed({
       account_id: this.account_id,
       query: this.query,
       options: this.options,
@@ -70,7 +70,7 @@ export class NatsChangefeed extends EventEmitter {
     this.state = "connected";
     const {
       value: { id, lifetime },
-    } = await this.natsSynctable.next();
+    } = await this.conatSyncTable.next();
     this.id = id;
     this.lifetime = lifetime;
     log("got changefeed", { id, lifetime, query: this.query });
@@ -78,7 +78,7 @@ export class NatsChangefeed extends EventEmitter {
 
     // @ts-ignore
     while (this.state != "closed") {
-      const { value } = await this.natsSynctable.next();
+      const { value } = await this.conatSyncTable.next();
       this.last_hb = Date.now();
       if (value) {
         this.startWatch();
@@ -102,11 +102,11 @@ export class NatsChangefeed extends EventEmitter {
   };
 
   private startWatch = async () => {
-    if (this.natsSynctable == null || this.state == "closed") {
+    if (this.conatSyncTable == null || this.state == "closed") {
       return;
     }
     try {
-      for await (const x of this.natsSynctable) {
+      for await (const x of this.conatSyncTable) {
         // @ts-ignore
         if (this.state == "closed") {
           return;

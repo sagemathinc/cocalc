@@ -38,7 +38,7 @@ import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Changefeed } from "./changefeed";
-import { NatsChangefeed } from "./changefeed-nats2";
+import { ConatChangefeed } from "./changefeed-conat";
 import { parse_query, to_key } from "./util";
 import { isTestClient } from "@cocalc/sync/editor/generic/util";
 
@@ -67,7 +67,7 @@ function is_fatal(err: string): boolean {
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
-  private changefeed?: Changefeed | NatsChangefeed;
+  private changefeed?: Changefeed | ConatChangefeed;
   private query: Query;
   private client_query: any;
   private primary_keys: string[];
@@ -730,7 +730,7 @@ export class SyncTable extends EventEmitter {
         this.client.is_browser() &&
         !this.project_id
       ) {
-        this.changefeed = new NatsChangefeed({
+        this.changefeed = new ConatChangefeed({
           account_id: this.client.client_id?.()!,
           query: this.query,
           options: this.options,
@@ -802,7 +802,7 @@ export class SyncTable extends EventEmitter {
   }
 
   // awkward code due to typescript weirdness using both
-  // NatsChangefeed and Changefeed types (for unit testing).
+  // ConatChangefeed and Changefeed types (for unit testing).
   private init_changefeed_handlers(): void {
     const c = this.changefeed as EventEmitter | null;
     if (c == null) return;
