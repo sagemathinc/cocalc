@@ -590,7 +590,25 @@ export class CoreStream<T = any> extends EventEmitter {
 
   publish = async (
     mesg: T,
-    options?: { headers?: Headers; msgID?: string; key?: string },
+    options?: {
+      // headers for this message
+      headers?: Headers;
+      // unique id for this message to dedup so if you send the same
+      // message more than once with the same id it doesn't get published
+      // multiple times.
+      msgID?: string;
+      // key -- if specified a key field is also stored on the server,
+      // and any previous messages with the same key are deleted. Also,
+      // an entry is set in this.kv[key] so that this.getKv(key), etc. work.
+      key?: string;
+      // if key is specified and previousSeq is set, the server throws
+      // an error if the sequence number of the current key is
+      // not previousSeq.  We use this with this.seqKv(key) to
+      // provide read/change/write semantics and to know when we
+      // should resovle a merge conflict. This is ignored if
+      // key is not specified.
+      previousSeq?: number;
+    },
   ) => {
     if (mesg === undefined) {
       throw Error("stream publish - mesg must not be 'undefined'");
@@ -627,6 +645,7 @@ export class CoreStream<T = any> extends EventEmitter {
         storage: this.storage,
         key: options?.key,
         messageData: md,
+        previousSeq: options?.previousSeq,
       });
       if (options?.msgID) {
         this.msgIDs?.add(options.msgID);
@@ -787,7 +806,10 @@ export class CoreStream<T = any> extends EventEmitter {
   setKv = async (
     key: string,
     mesg: T,
-    options?: { headers?: Headers; msgID?: string },
+    options?: {
+      headers?: Headers;
+      previousSeq?: number;
+    },
   ) => {
     return await this.publish(mesg, { ...options, key });
   };
@@ -797,7 +819,7 @@ export class CoreStream<T = any> extends EventEmitter {
       // nothing to do
       return;
     }
-    return await this.publish(null, {
+    return await this.publish(null as any, {
       ...options,
       headers: { [COCALC_TOMBSTONE_HEADER]: true },
       key,

@@ -452,6 +452,43 @@ describe("test key:value delete", () => {
   });
 });
 
+describe("test previousSeq when setting keys, which can be used to ensure consistent read/writes", () => {
+  let client;
+  let stream;
+  let name = "prev";
+
+  it("creates persistent stream", async () => {
+    client = connect();
+    stream = await cstream({ client, name, persist: true });
+  });
+
+  let seq;
+  it("sets a value", async () => {
+    const { seq: seq0 } = await stream.setKv("my", "value");
+    expect(seq0).toBeGreaterThan(0);
+    seq = seq0;
+  });
+
+  it("tries to change the value using the wrong previousSeq", async () => {
+    await expect(async () => {
+      await stream.setKv("my", "newval", { previousSeq: 0 });
+    }).rejects.toThrowError("wrong last sequence");
+  });
+
+  it("changes the value using the correct previousSeq", async () => {
+    const { seq: seq1 } = await stream.setKv("my", "newval", {
+      previousSeq: seq,
+    });
+    expect(stream.getKv("my")).toBe("newval");
+    expect(stream.seqKv("my")).toBe(seq1);
+  });
+
+  it("previousSeq is ignored with non-key sets", async () => {
+    await stream.publish("stuff", { previousSeq: 0 });
+    expect(stream.get(stream.length - 1)).toBe("stuff");
+  });
+});
+
 // TODO ephemeral kv store
 
 afterAll(after);

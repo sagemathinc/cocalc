@@ -234,6 +234,7 @@ async function handleMessage(mesg) {
     if (request.cmd == "set") {
       const resp = stream.set({
         key: request.key,
+        previousSeq: request.previousSeq,
         raw: mesg.raw,
         encoding: mesg.encoding,
         headers: request.headers,

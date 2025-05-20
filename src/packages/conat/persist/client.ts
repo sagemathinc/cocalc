@@ -59,11 +59,13 @@ export async function set({
   user,
   storage,
   key,
+  previousSeq,
   messageData,
 }: {
   user: User;
   storage: Storage;
   key?: string;
+  previousSeq?: number;
   messageData: MessageData;
 }): Promise<{ seq: number; time: number }> {
   const subject = persistSubject(user);
@@ -72,7 +74,13 @@ export async function set({
   const reply = await cn.request(subject, null, {
     raw: messageData.raw,
     encoding: messageData.encoding,
-    headers: { headers: messageData.headers, cmd: "set", key, storage } as any,
+    headers: {
+      headers: messageData.headers,
+      cmd: "set",
+      key,
+      previousSeq,
+      storage,
+    } as any,
   });
   const { error, resp } = reply.data;
   if (error) {

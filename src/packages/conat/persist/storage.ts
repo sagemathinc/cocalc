@@ -154,12 +154,24 @@ export class PersistentStream extends EventEmitter {
     raw,
     headers,
     key,
+    previousSeq,
   }: {
     encoding: DataEncoding;
     raw: Buffer;
     headers?: JSONValue;
     key?: string;
+    previousSeq?: number;
   }): { seq: number; time: number } => {
+    if (key !== undefined && previousSeq !== undefined) {
+      // throw error if current seq number for the row
+      // with this key is not previousSeq.
+      const { seq } = this.db // there is an index on the key so this is fast
+        .prepare("SELECT seq FROM messages WHERE key=?")
+        .get(key) as any;
+      if (seq != previousSeq) {
+        throw Error("wrong last sequence");
+      }
+    }
     const time = Date.now();
     const compressedRaw = this.compress(raw);
     const serializedHeaders = JSON.stringify(headers);

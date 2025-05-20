@@ -488,7 +488,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
           this.emit("reject", { key: err.key, value });
         }
         if (
-          err.code == "10071" &&
           err.message.startsWith("wrong last sequence")
         ) {
           // this happens when another client has published a NEWER version of this key,

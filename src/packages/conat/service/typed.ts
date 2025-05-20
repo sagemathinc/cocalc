@@ -47,11 +47,11 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
   ) as Api & ServiceApi;
 }
 
-export async function createServiceHandler<Api>({
+export function createServiceHandler<Api>({
   impl,
   ...options
 }: Omit<Options, "handler"> & { impl: Api }) {
-  return await createConatService({
+  return createConatService({
     ...options,
     handler: async (mesg) => await impl[mesg.name](...mesg.args),
   });
