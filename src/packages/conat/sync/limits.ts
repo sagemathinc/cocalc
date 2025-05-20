@@ -1,10 +1,8 @@
 import type { RawMsg } from "./core-stream";
 
-
 export const ENFORCE_LIMITS_THROTTLE_MS = process.env.COCALC_TEST_MODE
   ? 100
   : 45000;
-
 
 class PublishRejectError extends Error {
   code: string;
@@ -113,14 +111,12 @@ export function enforceRateLimits({
   limits,
   bytesSent,
   subject,
-  data,
-  mesg,
+  bytes,
 }: {
   limits: { max_bytes_per_second: number; max_msgs_per_second: number };
   bytesSent: { [time: number]: number };
   subject?: string;
-  data;
-  mesg;
+  bytes;
 }) {
   const now = Date.now();
   if (!(limits.max_bytes_per_second > 0) && !(limits.max_msgs_per_second > 0)) {
@@ -128,25 +124,24 @@ export function enforceRateLimits({
   }
 
   const cutoff = now - 1000;
-  let bytes = 0,
+  let totalBytes = 0,
     msgs = 0;
   for (const t in bytesSent) {
     if (parseInt(t) < cutoff) {
       delete bytesSent[t];
     } else {
-      bytes += bytesSent[t];
+      totalBytes += bytesSent[t];
       msgs += 1;
     }
   }
   if (
     limits.max_bytes_per_second > 0 &&
-    bytes + data.length > limits.max_bytes_per_second
+    totalBytes + bytes > limits.max_bytes_per_second
   ) {
     const err = new PublishRejectError(
       `bytes per second limit of ${limits.max_bytes_per_second} exceeded`,
     );
     err.code = "REJECT";
-    err.mesg = mesg;
     err.subject = subject;
     err.limit = "max_bytes_per_second";
     throw err;
@@ -156,10 +151,9 @@ export function enforceRateLimits({
       `messages per second limit of ${limits.max_msgs_per_second} exceeded`,
     );
     err.code = "REJECT";
-    err.mesg = mesg;
     err.subject = subject;
     err.limit = "max_msgs_per_second";
     throw err;
   }
-  bytesSent[now] = data.length;
+  bytesSent[now] = bytes;
 }

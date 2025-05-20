@@ -55,10 +55,15 @@ import * as persistClient from "@cocalc/conat/persist/client";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 
+// when this many bytes of key:value have been changed (so need to be freed),
+// we do a garbage collection pass.
+export const KEY_GC_THRESH = 10 * 1e6;
+
 export interface RawMsg extends Message {
   timestamp: number;
   seq: number;
   sessionId: string;
+  key?: string;
 }
 
 const HEADER_PREFIX = "CoCalc-";
@@ -78,6 +83,7 @@ export interface CoreStreamOptions {
   // where it is located
   account_id?: string;
   project_id?: string;
+  // note: rate limits are only supported right now for string messages.
   limits?: Partial<FilteredStreamLimitOptions>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
@@ -104,6 +110,7 @@ export class CoreStream<T = any> extends EventEmitter {
   public readonly raw: RawMsg[] = [];
   public readonly messages: T[] = [];
   public readonly kv: { [key: string]: { mesg: T; raw: RawMsg } } = {};
+  private kvChangeBytes = 0;
 
   private readonly msgIDs = new Set<any>();
   private sub?: Subscription;
@@ -320,7 +327,8 @@ export class CoreStream<T = any> extends EventEmitter {
       timestamp: time,
       headers: (headers as any)?.headers,
       seq,
-      data: m.raw,
+      raw: m.raw,
+      key,
     } as RawMsg;
     if (seq > (this.raw.slice(-1)[0]?.seq ?? 0)) {
       // easy fast initial load at the end (common special case)
@@ -339,7 +347,16 @@ export class CoreStream<T = any> extends EventEmitter {
       this.messages.splice(i, 0, mesg);
     }
     if (typeof key == "string") {
+      if (this.kv[key] !== undefined) {
+        const { raw } = this.kv[key];
+        this.kvChangeBytes += raw.raw.length;
+      }
+      
       this.kv[key] = { raw, mesg };
+      
+      if (this.kvChangeBytes >= KEY_GC_THRESH) {
+        this.gcKv();
+      }
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
@@ -575,14 +592,15 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     const data = mesg;
 
-    // this may throw an exception:
-    enforceRateLimits({
-      limits: this.limits,
-      bytesSent: this.bytesSent,
-      subject: this.subject,
-      data,
-      mesg,
-    });
+    if (typeof mesg == "string") {
+      // this may throw an exception preventing publishing.
+      enforceRateLimits({
+        limits: this.limits,
+        bytesSent: this.bytesSent,
+        subject: this.subject,
+        bytes: mesg.length,
+      });
+    }
     if (this.persist) {
       if (this.storage == null) {
         throw Error("bug -- storage must be set");
@@ -591,18 +609,19 @@ export class CoreStream<T = any> extends EventEmitter {
         // it's a dup
         return;
       }
+      const md = messageData(mesg, {
+        headers: {
+          ...options?.headers,
+          ...(options?.msgID
+            ? { [COCALC_MESSAGE_ID_HEADER]: options?.msgID }
+            : undefined),
+        },
+      });
       const x = await persistClient.set({
         user: this.user,
         storage: this.storage,
         key: options?.key,
-        messageData: messageData(mesg, {
-          headers: {
-            ...options?.headers,
-            ...(options?.msgID
-              ? { [COCALC_MESSAGE_ID_HEADER]: options?.msgID }
-              : undefined),
-          },
-        }),
+        messageData: md,
       });
       if (options?.msgID) {
         this.msgIDs?.add(options.msgID);
@@ -923,6 +942,24 @@ export class CoreStream<T = any> extends EventEmitter {
     ENFORCE_LIMITS_THROTTLE_MS,
     { leading: false, trailing: true },
   );
+
+  // delete messages that are no longer needed since newer values have been written
+  gcKv = () => {
+    this.kvChangeBytes = 0;
+    for (let i = 0; i < this.raw.length; i++) {
+      const key = this.raw[i].key;
+      if (key !== undefined) {
+        if (this.raw[i].raw.length > 0 && this.raw[i] !== this.kv[key].raw) {
+          this.raw[i] = {
+            ...this.raw[i],
+            headers: undefined,
+            raw: Buffer.from(""),
+          } as RawMsg;
+          this.messages[i] = undefined as T;
+        }
+      }
+    }
+  };
 }
 
 export const cache = refCache<CoreStreamOptions, CoreStream>({

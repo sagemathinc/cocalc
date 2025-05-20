@@ -11,6 +11,7 @@ import {
   cstream,
   COCALC_STREAM_HEADER,
   type CoreStream,
+  KEY_GC_THRESH,
 } from "@cocalc/conat/sync/core-stream";
 import { wait } from "@cocalc/backend/conat/test/util";
 import type { Client } from "@cocalc/conat/core/client";
@@ -345,13 +346,45 @@ describe("test basic key:value functionality for persistent core stream", () => 
   let stream2;
   it("create a second client and observe it sees the correct value", async () => {
     client2 = connect();
-    stream2 = await cstream({ client: client2, name, persist: true });
+    stream2 = await cstream({
+      client: client2,
+      name,
+      persist: true,
+      noCache: true,
+    });
     expect(await stream2.getKv("key")).toEqual("value");
   });
 
   it("modify the value via the second client and see it change in the first", async () => {
     await stream2.setKv("key", "value2");
     await wait({ until: () => stream.getKv("key") == "value2" });
+  });
+
+  it("verify that the overwritten message is cleared to save space in both streams", () => {
+    expect(stream.get(0)).not.toBe(undefined);
+    expect(stream2.get(0)).not.toBe(undefined);
+    stream.gcKv();
+    stream2.gcKv();
+    expect(stream.get(0)).toBe(undefined);
+    expect(stream2.get(0)).toBe(undefined);
+    expect(stream.headers(0)).toBe(undefined);
+    expect(stream2.headers(0)).toBe(undefined);
+  });
+
+  it("write a large key:value, then write it again to cause automatic garbage collection", async () => {
+    await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
+    expect(stream.get(stream.length - 1).length).toBe(KEY_GC_THRESH + 10);
+    await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
+    // it's gone
+    expect(stream.get(stream.length - 2)).toBe(undefined);
+  });
+
+  it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {
+    stream.close();
+    expect(stream.kv).toBe(undefined);
+    stream = await cstream({ client, name, persist: true });
+    expect(stream.length).toBe(1);
+    expect(stream.seqKv(0)).toBe(stream2.seqKv(1));
   });
 
   it("cleans up", () => {
