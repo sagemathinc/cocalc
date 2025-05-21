@@ -35,7 +35,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
     const actions = useActions({ project_id });
 
     function make_path() {
-      const v: ReturnType<typeof createPathSegmentLink>[] = [];
+      const v: any[] = [];
 
       const current_path_depth =
         (current_path == "" ? 0 : current_path.split("/").length) - 1;
