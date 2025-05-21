@@ -32,7 +32,6 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { initNatsServer } from "./nats";
 import { initConatServer } from "@cocalc/server/conat/socketio";
 
 // Used for longterm caching of files. This should be in units of seconds.
@@ -147,8 +146,6 @@ export default async function init(opts: Options): Promise<{
     app,
   });
 
-  initNatsServer({ router, httpServer });
-
   if (opts.proxyServer) {
     winston.info(`initializing the http proxy server`);
     initProxy({
@@ -161,7 +158,7 @@ export default async function init(opts: Options): Promise<{
   }
 
   if (opts.conatServer) {
-    winston.info(`initializing the CoNat Server`);
+    winston.info(`initializing the Conat Server`);
     initConatServer({ httpServer, path: join(basePath, "conat") });
   }
 
