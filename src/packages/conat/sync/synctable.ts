@@ -22,8 +22,8 @@ export type NatsSyncTableFunction = (
   },
 ) => Promise<NatsSyncTable>;
 
-// When the database is watching tables for changefeeds, if it doesn't 
-// get a clear expression of interest from a client every this much time, 
+// When the database is watching tables for changefeeds, if it doesn't
+// get a clear expression of interest from a client every this much time,
 // it stops managing the changefeed to save resources.
 
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
@@ -47,7 +47,7 @@ interface Options {
 
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
   name: "synctable",
-  createKey: (opts) => jsonStableStringify({ ...opts, env: undefined }),
+  createKey: (opts) => jsonStableStringify({ ...opts, env: undefined })!,
   createObject: (options: Options) => {
     if (options.stream) {
       return new SyncTableStream(options);
