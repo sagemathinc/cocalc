@@ -22,7 +22,7 @@ import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions, type KV } from "@cocalc/conat/sync/kv";
-import { dkv, type DKVOptions, type DKV } from "@cocalc/conat/sync/dkv";
+import { dkv, type DKVOptions } from "@cocalc/conat/sync/dkv";
 import { dko, type DKO } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
