@@ -46,7 +46,6 @@ import { getEnv } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/conat/changefeeds";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
-import { terminate as terminateAuth } from "@cocalc/server/conat/auth";
 import { terminate as terminateTieredStorage } from "@cocalc/server/conat/tiered-storage/api";
 import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
 import { delay } from "awaiting";
@@ -114,10 +113,6 @@ async function handleMessage({ api, subject, mesg }) {
     logger.debug(`Terminate service '${service}'`);
     if (service == "db") {
       terminateDatabase();
-      mesg.respond({ status: "terminated", service });
-      return;
-    } else if (service == "auth") {
-      terminateAuth();
       mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "tiered-storage") {

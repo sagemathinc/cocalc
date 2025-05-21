@@ -1,9 +1,4 @@
 import { inboxPrefix } from "@cocalc/conat/names";
-import {
-  getCoCalcUserType,
-  getCoCalcUserId,
-  type CoCalcUser,
-} from "@cocalc/server/conat/auth/permissions";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
@@ -165,3 +160,45 @@ function extractProjectSubject(subject: string): string {
   }
   return "";
 }
+
+
+// A CoCalc User is (so far): a project or account or a hub (not covered here).
+export type CoCalcUser =
+  | {
+      account_id: string;
+      project_id?: string;
+    }
+  | {
+      account_id?: string;
+      project_id: string;
+    };
+
+export function getCoCalcUserType({
+  account_id,
+  project_id,
+}: CoCalcUser): "account" | "project" {
+  if (account_id) {
+    if (project_id) {
+      throw Error("exactly one of account_id or project_id must be specified");
+    }
+    return "account";
+  }
+  if (project_id) {
+    return "project";
+  }
+  throw Error("account_id or project_id must be specified");
+}
+
+export function getCoCalcUserId({ account_id, project_id }: CoCalcUser): string {
+  if (account_id) {
+    if (project_id) {
+      throw Error("exactly one of account_id or project_id must be specified");
+    }
+    return account_id;
+  }
+  if (project_id) {
+    return project_id;
+  }
+  throw Error("account_id or project_id must be specified");
+}
+
