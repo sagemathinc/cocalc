@@ -126,6 +126,20 @@ export class AKV<T = any> {
       timeout,
     });
   };
+
+  sqlite = async (
+    statement: string,
+    params?: any[],
+    { timeout }: { timeout?: number } = {},
+  ): Promise<any[]> => {
+    return await persistClient.sqlite({
+      user: this.user,
+      storage: this.storage,
+      timeout,
+      statement,
+      params,
+    });
+  };
 }
 
 export function akv<T>(opts: DKVOptions) {

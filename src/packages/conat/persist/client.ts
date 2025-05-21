@@ -142,6 +142,33 @@ export async function keys({
   return resp;
 }
 
+export async function sqlite({
+  user,
+  storage,
+  timeout,
+  statement,
+  params,
+}: {
+  user;
+  storage;
+  timeout?: number;
+  statement: string;
+  params?: any[];
+}): Promise<any[]> {
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+
+  const reply = await cn.request(subject, null, {
+    headers: { cmd: "sqlite", storage, statement, params } as any,
+    timeout,
+  });
+  const { error, resp } = reply.data;
+  if (error) {
+    throw Error(error);
+  }
+  return resp;
+}
+
 async function* callApiGetAll({
   start_seq,
   end_seq,

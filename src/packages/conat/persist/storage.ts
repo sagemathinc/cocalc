@@ -285,10 +285,26 @@ export class PersistentStream extends EventEmitter {
   }
 
   keys = (): string[] => {
-    const v = this.db.prepare("SELECT key FROM messages WHERE key IS NOT NULL").all() as {
+    const v = this.db
+      .prepare("SELECT key FROM messages WHERE key IS NOT NULL")
+      .all() as {
       key: string;
     }[];
     return v.map(({ key }) => key);
+  };
+
+  sqlite = (statement: string, params: any[] = []): any[] => {
+    const stmt = this.db.prepare(statement);
+    try {
+      return stmt.all(...params);
+    } catch (err) {
+      if (err.message.includes("run() instead")) {
+        stmt.run(...params);
+        return [];
+      } else {
+        throw err;
+      }
+    }
   };
 }
 

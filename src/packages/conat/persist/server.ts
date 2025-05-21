@@ -256,6 +256,9 @@ async function handleMessage(mesg) {
     } else if (request.cmd == "keys") {
       const resp = stream.keys();
       mesg.respond({ resp });
+    } else if (request.cmd == "sqlite") {
+      const resp = stream.sqlite(request.statement, request.params);
+      mesg.respond({ resp });
     }
   } catch (err) {
     mesg.respond({ error: `${err}` });
