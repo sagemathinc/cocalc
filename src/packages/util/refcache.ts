@@ -34,7 +34,7 @@ export default function refCache<
   const count: { [key: string]: number } = {};
   const close: { [key: number]: Function } = {};
   if (createKey == null) {
-    createKey = jsonStableStringify;
+    createKey = (x) => jsonStableStringify(x) ?? "";
   }
   const createObjectReuseInFlight = reuseInFlight(createObject, {
     createKey: (args) => createKey(args[0]),
@@ -116,7 +116,7 @@ export function refCacheSync<
   const count: { [key: string]: number } = {};
   const close: { [key: number]: Function } = {};
   if (createKey == null) {
-    createKey = jsonStableStringify;
+    createKey = (x) => jsonStableStringify(x) ?? "";
   }
   const get = (opts: Options): T => {
     if (opts.noCache) {
