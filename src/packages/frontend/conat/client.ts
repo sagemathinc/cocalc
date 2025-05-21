@@ -1,8 +1,6 @@
-import * as nats from "nats.ws";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import * as jetstream from "@nats-io/jetstream";
 import {
   createSyncTable,
   type NatsSyncTable,
@@ -67,11 +65,9 @@ declare var DEBUG: boolean;
 
 export class ConatClient extends EventEmitter {
   client: WebappClient;
-  private sc = nats.StringCodec();
-  private jc = nats.JSONCodec();
+  private sc: any = null;
+  private jc: any = null;
   private nc?: any;
-  public nats = nats;
-  public jetstream = jetstream;
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
@@ -310,12 +306,6 @@ export class ConatClient extends EventEmitter {
     await waitUntilConnected();
     const resp = await nc.request(subject, this.sc.encode(data));
     return this.sc.decode(resp.data);
-  };
-
-  consumer = async (stream: string) => {
-    const { nc } = await this.getEnv();
-    const js = jetstream.jetstream(nc);
-    return await js.consumers.get(stream);
   };
 
   private getNatsEnv = async () => {

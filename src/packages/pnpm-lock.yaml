@@ -436,18 +436,6 @@ importers:
       '@microlink/react-json-view':
         specifier: ^1.23.3
         version: 1.26.1(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@nats-io/jetstream':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/kv':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/nats-core':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/services':
-        specifier: 3.0.0
-        version: 3.0.0
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -658,9 +646,6 @@ importers:
       mermaid:
         specifier: ^11.4.1
         version: 11.6.0
-      nats.ws:
-        specifier: ^1.30.2
-        version: 1.30.2
       node-forge:
         specifier: ^1.0.0
         version: 1.3.1
