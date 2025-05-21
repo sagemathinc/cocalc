@@ -15,7 +15,7 @@ pnpm test ./open-files.test.ts
 import { openFiles as createOpenFiles } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { before, after } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
