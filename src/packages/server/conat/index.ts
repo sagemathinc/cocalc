@@ -3,7 +3,6 @@ import { initAPI } from "./api";
 import { init as initDatabase } from "@cocalc/database/conat/changefeeds";
 import { init as initChangefeedServer } from "@cocalc/database/conat/changefeed-api";
 import { init as initLLM } from "./llm";
-import { init as initAuth } from "./auth";
 import { init as initTieredStorage } from "./tiered-storage/api";
 import { loadNatsConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
@@ -35,7 +34,6 @@ export async function initNatsServer() {
   
   await loadNatsConfiguration();
   initAPI();
-  await initAuth();
 
   // do not block on initLLM because...
   initLLM();

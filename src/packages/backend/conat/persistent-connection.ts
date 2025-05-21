@@ -48,12 +48,13 @@ let nc: NatsConnection | null = null;
 
 // gets the singleton connection
 const getConnection = reuseInFlight(async (): Promise<NatsConnection> => {
+  return null as any;
   if (nc == null) {
     logger.debug("initializing nats cocalc backend connection");
     nc = await getNewConnection();
     monitorConnection(nc);
   }
-  return nc;
+  return nc as any;
 });
 
 export default getConnection;

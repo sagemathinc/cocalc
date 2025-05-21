@@ -298,7 +298,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
-    this.initNatsPermissions();
     this.initComputeServers();
   }
 
@@ -3539,16 +3538,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       "change",
       this.handleComputeServerManagerChange,
     );
-  };
-
-  private initNatsPermissions = async () => {
-    try {
-      await webapp_client.conat_client.addProjectPermissions([this.project_id]);
-    } catch (err) {
-      console.log(
-        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
-      );
-    }
   };
 
   private closeComputeServers = () => {

@@ -19,7 +19,7 @@ let DEBUG: boolean = false;
 
 // enable experimental nats database backed changefeed.
 // for this to work you must explicitly run the server in @cocalc/database/conat/changefeeds
-const USE_NATS = true && !process.env.COCALC_TEST_MODE;
+const USE_CONAT = true && !process.env.COCALC_TEST_MODE;
 
 export function set_debug(x: boolean): void {
   DEBUG = x;
@@ -725,7 +725,7 @@ export class SyncTable extends EventEmitter {
     while (true) {
       this.close_changefeed();
       if (
-        USE_NATS &&
+        USE_CONAT &&
         !isTestClient(this.client) &&
         this.client.is_browser() &&
         !this.project_id

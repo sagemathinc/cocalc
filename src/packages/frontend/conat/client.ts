@@ -139,14 +139,16 @@ export class ConatClient extends EventEmitter {
   getEnv = async () => await getEnv();
 
   private getConnection = reuseInFlight(async () => {
-    if (this.nc != null) {
-      return this.nc;
-    }
-    this.nc = await connect();
-    this.setConnectionState("connected");
-    this.monitorConnectionState(this.nc);
-    this.reportConnectionStats(this.nc);
-    return this.nc;
+    return null as any;
+    
+//     if (this.nc != null) {
+//       return this.nc;
+//     }
+//     this.nc = await connect();
+//     this.setConnectionState("connected");
+//     this.monitorConnectionState(this.nc);
+//     this.reportConnectionStats(this.nc);
+//     return this.nc;
   });
 
   reconnect = reuseInFlight(async () => {
@@ -165,16 +167,6 @@ export class ConatClient extends EventEmitter {
   // if there is a connection, resume it
   resume = async () => {
     await this.nc?.resume();
-  };
-
-  // reconnect to nats with access to additional projects.
-  // If you request projects that you're not actually a collaborator
-  // on, then it will silently NOT give you permission to use them.
-  addProjectPermissions = async (project_ids: string[]) => {
-    if (this.nc == null) {
-      throw Error("must have a connection");
-    }
-    await this.nc.addProjectPermissions(project_ids);
   };
 
   private setConnectionState = (state?) => {
@@ -464,21 +456,9 @@ export class ConatClient extends EventEmitter {
   };
 
   computeServerManager = async (options: ComputeServerManagerOptions) => {
-    const f = async () => {
-      const M = computeServerManager(options);
-      await M.init();
-      return M;
-    };
-    try {
-      return await f();
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION" && options.project_id) {
-        await this.addProjectPermissions([options.project_id]);
-        return await f();
-      } else {
-        throw err;
-      }
-    }
+    const M = computeServerManager(options);
+    await M.init();
+    return M;
   };
 
   getTime = (): number => {

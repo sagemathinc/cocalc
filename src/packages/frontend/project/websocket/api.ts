@@ -96,19 +96,7 @@ export class API {
   };
 
   call = async (mesg: Mesg, timeout: number) => {
-    try {
-      return await this._call(mesg, timeout);
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION") {
-        // request update of our credentials to include this project, then try again
-        await webapp_client.conat_client.addProjectPermissions([
-          this.project_id,
-        ]);
-        return await this._call(mesg, timeout);
-      } else {
-        throw err;
-      }
-    }
+    return await this._call(mesg, timeout);
   };
 
   getComputeServerId = (path: string) => {

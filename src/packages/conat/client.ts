@@ -169,14 +169,15 @@ export function getLogger(name) {
 let theConnection: NatsConnection | null = null;
 export const getConnection = reuseInFlight(
   async (): Promise<NatsConnection> => {
-    if (theConnection == null) {
-      const { nc } = await getEnv();
-      if (nc == null) {
-        throw Error("bug");
-      }
-      theConnection = nc;
-    }
-    return theConnection;
+    return null as any;
+//     if (theConnection == null) {
+//       const { nc } = await getEnv();
+//       if (nc == null) {
+//         throw Error("bug");
+//       }
+//       theConnection = nc;
+//     }
+//     return theConnection;
   },
 );
 
