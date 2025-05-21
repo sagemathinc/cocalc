@@ -5,12 +5,4 @@ module.exports = {
   setupFiles: ["./test/setup.js"],
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   maxConcurrency: 1,
-  transform: {
-    ".*\\.tsx?$": [
-      "ts-jest",
-      {
-        isolatedModules: true,
-      },
-    ],
-  },
 };
