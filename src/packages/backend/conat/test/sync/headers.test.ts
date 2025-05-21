@@ -3,13 +3,14 @@ Test using user-defined headers with kv and stream.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "headers.test.ts"
+pnpm test ./headers.test.ts
 */
 
-import "@cocalc/backend/conat"; // ensure client is setup
-import { getMaxPayload } from "@cocalc/conat/util";
-import { dstream, dkv, kv } from "@cocalc/backend/conat/sync";
+import { dstream, dkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 describe("test headers with a dstream", () => {
   let s;
@@ -50,59 +51,6 @@ describe("test headers with a dstream", () => {
   });
 });
 
-describe("test headers with low level general kv", () => {
-  let s, gkv;
-  it("creates a kv and writes a value without a header", async () => {
-    s = await kv({ name: `${Math.random()}` });
-    gkv = s.generalKV;
-    const key = `${s.prefix}.x`;
-    expect(gkv.headers(key)).toBe(undefined);
-    gkv.set(key, 10);
-    await once(gkv, "change");
-    expect(gkv.headers(key)).toBe(undefined);
-  });
-
-  it("writes a value with a header", async () => {
-    const key = `${s.prefix}.y`;
-    gkv.set(key, 20, { headers: { my: "header" } });
-    await once(gkv, "change");
-    expect(gkv.headers(key)).toEqual({ my: "header" });
-  });
-
-  it("changes header without changing value", async () => {
-    const key = `${s.prefix}.y`;
-    gkv.set(key, 20, { headers: { my: "header2", second: "header" } });
-    await once(gkv, "change");
-    expect(gkv.headers(key)).toEqual(
-      expect.objectContaining({ my: "header2", second: "header" }),
-    );
-  });
-
-  it("removes header without changing value", async () => {
-    const key = `${s.prefix}.y`;
-    gkv.set(key, 20, { headers: { my: null, second: "header" } });
-    await once(gkv, "change");
-    expect(gkv.headers(key)).toEqual(
-      expect.objectContaining({ second: "header" }),
-    );
-  });
-
-  it("writes a large value to a kv that requires chunking and a header", async () => {
-    const key = `${s.prefix}.big`;
-    gkv.set(key, "x".repeat((await getMaxPayload()) * 2), {
-      headers: { the: "header" },
-    });
-    await once(gkv, "change");
-    expect(gkv.headers(key)).toEqual(
-      expect.objectContaining({ the: "header" }),
-    );
-  });
-
-  it("clean up", async () => {
-    await s.clear();
-  });
-});
-
 describe("test headers with a dkv", () => {
   let s;
   const name = `${Math.random()}`;
@@ -118,11 +66,8 @@ describe("test headers with a dkv", () => {
     }
   });
 
-  it("writes a value with a header", async () => {
+  it("writes a value with a header - defined even before saving", async () => {
     s.set("y", 20, { headers: { my: "header" } });
-    // NOTE: not optimal but this is what is implemented and documented!
-    expect(s.headers("y")).toEqual(undefined);
-    await once(s, "change");
     expect(s.headers("y")).toEqual(expect.objectContaining({ my: "header" }));
   });
 
@@ -130,3 +75,5 @@ describe("test headers with a dkv", () => {
     await s.clear();
   });
 });
+
+afterAll(after);

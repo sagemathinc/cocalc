@@ -16,10 +16,19 @@ Type ".help" for more information.
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
-import { userKvKey } from "./kv";
 import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/conat/client";
+import jsonStableStringify from "json-stable-stringify";
+
+export function userKvKey(options: DKVOptions) {
+  if (!options.name) {
+    throw Error("name must be specified");
+  }
+  const { client, ...x } = options;
+  return jsonStableStringify(x);
+}
+
 
 interface DKOOptions extends DKVOptions {
   // TODO

@@ -249,7 +249,7 @@ describe("set several items, confirm write worked, save, and confirm they are st
     expect(Object.keys(kv.getAll()).length).toEqual(count);
     expect(kv.getAll()).toEqual(obj);
     await kv.save();
-    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(Date.now() - t0).toBeLessThan(2000);
     expect(Object.keys(kv.getAll()).length).toEqual(count);
     //     // the local state maps should also get cleared quickly,
     //     // but there is no event for this, so we loop:

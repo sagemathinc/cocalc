@@ -3,12 +3,15 @@ Testing basic ops with dko = distributed key:object store with SPARSE updates.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "dko.test.ts"
+pnpm test ./dko.test.ts
 
 */
 
 import { dko as createDko } from "@cocalc/backend/conat/sync";
-import { getMaxPayload } from "@cocalc/conat/util";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { wait } from "@cocalc/backend/conat/test/util";
+
+beforeAll(before);
 
 describe("create a public dko and do a basic operation", () => {
   let kv;
@@ -72,12 +75,20 @@ describe("test a large value that requires chunking", () => {
   let kv;
   const name = `test-${Math.random()}`;
 
+  let maxPayload = 0;
+
+  it("sanity check on the max payload", async () => {
+    const client = connect();
+    await wait({ until: () => client.info != null });
+    maxPayload = client.info.max_payload;
+    expect(maxPayload).toBeGreaterThan(500000);
+  });
+
   it("creates the dko", async () => {
     kv = await createDko({ name });
     expect(kv.getAll()).toEqual({});
 
-    const n = await getMaxPayload();
-    const big = { foo: "b".repeat(n * 1.3) };
+    const big = { foo: "b".repeat(maxPayload * 1.3) };
     kv.set("big", big);
     expect(kv.get("big")).toEqual(big);
   });
@@ -87,3 +98,5 @@ describe("test a large value that requires chunking", () => {
     await kv.close();
   });
 });
+
+afterAll(after);

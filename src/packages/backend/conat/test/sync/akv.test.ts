@@ -7,10 +7,10 @@ pnpm test ./akv.test.ts
 
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/backend/conat/test/util";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 

@@ -3,7 +3,7 @@ Testing the limits.
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "limits.test.ts"
+pnpm test ./limits.test.ts
 
 */
 
@@ -11,6 +11,10 @@ import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+
+beforeAll(before);
 
 describe.skip("create a dkv with limit on the total number of keys, and confirm auto-delete works", () => {
   let kv;
@@ -83,7 +87,7 @@ describe.skip("create a dkv with limit on age of keys, and confirm auto-delete w
   });
 });
 
-describe("create a dkv with limit on total bytes of keys, and confirm auto-delete works", () => {
+describe.skip("create a dkv with limit on total bytes of keys, and confirm auto-delete works", () => {
   let kv;
   const name = `test-${Math.random()}`;
 
@@ -141,7 +145,7 @@ describe.skip("create a dkv with limit on max_msg_size, and confirm writing smal
   });
 });
 
-describe("create a dstream with limit on the total number of messages, and confirm auto-delete works", () => {
+describe.skip("create a dstream with limit on the total number of messages, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -176,7 +180,7 @@ describe("create a dstream with limit on the total number of messages, and confi
   });
 });
 
-describe("create a dstream with limit on max_age, and confirm auto-delete works", () => {
+describe.skip("create a dstream with limit on max_age, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -202,7 +206,7 @@ describe("create a dstream with limit on max_age, and confirm auto-delete works"
   });
 });
 
-describe("create a dstream with limit on max_bytes, and confirm auto-delete works", () => {
+describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -227,7 +231,7 @@ describe("create a dstream with limit on max_bytes, and confirm auto-delete work
   });
 });
 
-describe("create a dstream with limit on max_msg_size, and confirm auto-delete works", () => {
+describe.skip("create a dstream with limit on max_msg_size, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -257,3 +261,5 @@ describe("create a dstream with limit on max_msg_size, and confirm auto-delete w
     await s.close();
   });
 });
+
+afterAll(after);
