@@ -80,9 +80,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@nats-io/nkeys':
-        specifier: ^2.0.3
-        version: 2.0.3
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
@@ -113,12 +110,6 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
-      nats:
-        specifier: ^2.29.3
-        version: 2.29.3
-      nats.ws:
-        specifier: ^1.30.2
-        version: 1.30.2
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -269,9 +260,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@nats-io/services':
-        specifier: 3.0.0
-        version: 3.0.0
       async:
         specifier: ^1.5.2
         version: 1.5.2
@@ -280,7 +268,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.4.0
-        version: 4.4.0(supports-color@8.1.1)
+        version: 4.4.0
       immutable:
         specifier: ^4.3.0
         version: 4.3.7
@@ -293,9 +281,6 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
-      nats:
-        specifier: ^2.29.3
-        version: 2.29.3
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7(encoding@0.1.13)
@@ -9071,13 +9056,6 @@ packages:
   native-promise-only@0.8.1:
     resolution: {integrity: sha512-zkVhZUA3y8mbz652WrL5x0fB0ehrBkulWT3TomAQ9iDtyXZvzKeEA6GPxAItBYeNYl5yngKRX612qHOhvMkDeg==}
 
-  nats.ws@1.30.2:
-    resolution: {integrity: sha512-hIdw6XC8Mr8I5/0MvaHRhq+Elg2XBFi2TNV7ZI4MtUKHfGGnEgAdqUacqnseIztM2jatspgy12vhDtsqb8wdJA==}
-
-  nats@2.29.3:
-    resolution: {integrity: sha512-tOQCRCwC74DgBTk4pWZ9V45sk4d7peoE2njVprMRCBXrhJ5q5cYM7i6W+Uvw2qUrcfOSnuisrX7bEx3b3Wx4QA==}
-    engines: {node: '>= 14.0.0'}
-
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
@@ -9143,10 +9121,6 @@ packages:
 
   nise@1.5.3:
     resolution: {integrity: sha512-Ymbac/94xeIrMf59REBPOv0thr+CJVFMhrlAkW/gjCIE58BGQdCj0x7KRCb3yz+Ga2Rz3E9XXSvUyyxqqhjQAQ==}
-
-  nkeys.js@1.1.0:
-    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
-    engines: {node: '>=10.0.0'}
 
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
@@ -20596,14 +20570,6 @@ snapshots:
 
   native-promise-only@0.8.1: {}
 
-  nats.ws@1.30.2:
-    optionalDependencies:
-      nkeys.js: 1.1.0
-
-  nats@2.29.3:
-    dependencies:
-      nkeys.js: 1.1.0
-
   natural-compare@1.4.0: {}
 
   ncp@2.0.0:
@@ -20718,10 +20684,6 @@ snapshots:
       just-extend: 4.2.1
       lolex: 5.1.2
       path-to-regexp: 1.9.0
-
-  nkeys.js@1.1.0:
-    dependencies:
-      tweetnacl: 1.0.3
 
   no-case@3.0.4:
     dependencies:

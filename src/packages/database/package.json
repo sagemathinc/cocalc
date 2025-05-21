@@ -19,10 +19,9 @@
   },
   "dependencies": {
     "@cocalc/backend": "workspace:*",
-    "@cocalc/database": "workspace:*",
     "@cocalc/conat": "workspace:*",
+    "@cocalc/database": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@nats-io/services": "3.0.0",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
@@ -30,7 +29,6 @@
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
-    "nats": "^2.29.3",
     "node-fetch": "2.6.7",
     "pg": "^8.7.1",
     "random-key": "^0.3.2",
@@ -40,8 +38,8 @@
     "validator": "^13.6.0"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14",
     "@types/lodash": "^4.14.202",
+    "@types/node": "^18.16.14",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
     "coffeescript": "^2.5.1"
@@ -59,7 +57,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

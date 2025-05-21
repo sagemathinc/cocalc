@@ -2,7 +2,7 @@
 
 DEVELOPMENT:
 
-Turn off nats-server handling for the hub for changefeeds by sending this message from a browser as an admin:
+Turn off conat-server handling for the hub for changefeeds by sending this message from a browser as an admin:
 
    await cc.client.conat_client.hub.system.terminate({service:'changefeeds'})
 

@@ -268,24 +268,6 @@ export const natsBackup =
 
 export const natsUser = "cocalc";
 
-// Secrets used for cryptography between the auth callout service and
-// and the nats server.   The *secret keys* are only needed by
-// the auth callout service, and the corresponding public keys are
-// only needed by the nats server, but right now (and since password is already
-// known to both), we are just making the private keys available to both.
-// These keys make it so if somebody tries to listen in on nats traffic
-// between the server and auth callout, they can't impersonate users, etc.
-// In particular:
-//      - nseed = account key - used by server to sign message to the auth callout
-//      - xseed = curve key - used by auth callout to encrypt response
-// These are both arbitrary elliptic curve ed25519 secrets (nkeys),
-// which are the "seed" generated using https://www.npmjs.com/package/@nats-io/nkeys
-// or https://github.com/nats-io/nkeys?tab=readme-ov-file#installation
-// E.g.,
-//    ~/cocalc/src/data/secrets$ go get github.com/nats-io/nkeys
-//    ~/cocalc/src/data/secrets$ nk -gen account > nats_auth_nseed
-//    ~/cocalc/src/data/secrets$ nk -gen curve > nats_auth_xseed
-
 export let natsAuthCalloutNSeed = "";
 export const natsAuthCalloutNSeedPath = join(secrets, "nats_auth_nseed");
 try {
