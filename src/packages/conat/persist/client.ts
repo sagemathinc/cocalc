@@ -61,12 +61,14 @@ export async function set({
   key,
   previousSeq,
   messageData,
+  timeout,
 }: {
   user: User;
   storage: Storage;
   key?: string;
   previousSeq?: number;
   messageData: MessageData;
+  timeout?: number;
 }): Promise<{ seq: number; time: number }> {
   const subject = persistSubject(user);
   const { cn } = await getEnv();
@@ -81,6 +83,7 @@ export async function set({
       previousSeq,
       storage,
     } as any,
+    timeout,
   });
   const { error, resp } = reply.data;
   if (error) {
@@ -94,18 +97,21 @@ export async function get({
   storage,
   seq,
   key,
+  timeout,
 }: {
   user;
   storage;
+  timeout?: number;
 } & (
-  | { seq: number; key: undefined }
-  | { key: string; seq: undefined }
+  | { seq: number; key?: undefined }
+  | { key: string; seq?: undefined }
 )): Promise<ConatMessage | undefined> {
   const subject = persistSubject(user);
   const { cn } = await getEnv();
 
   const resp = await cn.request(subject, null, {
     headers: { cmd: "get", storage, seq, key } as any,
+    timeout,
   });
   if (resp.headers == null) {
     return undefined;

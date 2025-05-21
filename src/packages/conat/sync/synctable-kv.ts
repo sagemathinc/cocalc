@@ -15,7 +15,7 @@ import jsonStableStringify from "json-stable-stringify";
 import { toKey } from "@cocalc/conat/util";
 import { wait } from "@cocalc/util/async-wait";
 import { fromJS, Map } from "immutable";
-import { type KVLimits } from "./general-kv";
+import { type KVLimits } from "./limits";
 import type { JSONValue } from "@cocalc/util/types";
 
 export class SyncTableKV extends EventEmitter {

@@ -37,6 +37,25 @@ export interface FilteredStreamLimitOptions {
   max_msgs_per_second: number;
 }
 
+export interface KVLimits {
+  // How many keys may be in the KV store. Oldest keys will be removed
+  // if the key-value store exceeds this size. -1 for unlimited.
+  max_msgs: number;
+
+  // Maximum age of any key, expressed in milliseconds. 0 for unlimited.
+  // Age is updated whenever value of the key is changed.
+  max_age: number;
+
+  // The maximum number of bytes to store in this KV, which means
+  // the total of the bytes used to store everything.  Since we store
+  // the key with each value (to have arbitrary keys), this includes
+  // the size of the keys.
+  max_bytes: number;
+
+  // The maximum size of any single value, including the key.
+  max_msg_size: number;
+}
+
 export function enforceLimits<T>({
   messages,
   raw,

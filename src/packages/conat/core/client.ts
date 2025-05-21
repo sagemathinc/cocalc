@@ -853,7 +853,7 @@ function concatArrayBuffers(buffers) {
 
 export type Headers = { [key: string]: JSONValue };
 
-export class MessageData {
+export class MessageData<T = any> {
   public readonly encoding: DataEncoding;
   public readonly raw;
   public readonly headers?: Headers;
@@ -864,11 +864,11 @@ export class MessageData {
     this.headers = headers;
   }
 
-  get data() {
+  get data(): T {
     return decode({ encoding: this.encoding, data: this.raw });
   }
 
-  get length() {
+  get length(): number {
     // raw is binary data so it's the closest thing we have to the
     // size of this message.  It would also make sense to include
     // the headers, but JSON'ing them would be expensive, so we don't.
@@ -876,7 +876,7 @@ export class MessageData {
   }
 }
 
-export class Message extends MessageData {
+export class Message<T = any> extends MessageData<T> {
   private client: Client;
   public readonly subject;
 

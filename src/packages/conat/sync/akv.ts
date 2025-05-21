@@ -1,186 +1,122 @@
 /*
-Asynchronous Memory Efficient Access to Key:Value Store
+Asynchronous Memory Efficient Access to Persistent Key:Value Store
 
-This provides the same abstraction as dkv, except it doesn't download any
+This provides access to the same data as dkv, except it doesn't download any
 data to the client until you actually call get.   The calls to get and
 set are thus async.
-
-Because AsyncKV has no global knowledge of this key:value store, the inventory
-is not updated and limits are not enforced.  Of course chunking (storing large
-values properly) is supported.
 
 There is no need to close this because it is stateless.
 
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
-> t =  require("@cocalc/backend/conat/sync").akv({name:'test'})
+
+a = await require("@cocalc/backend/conat/sync").dkv({name:'test'}); a.set('x',5)
+
+
+b = require("@cocalc/backend/conat/sync").akv({name:'test'})
+await b.set('x',10)
+
+a.get('x')
+
+await b.get('x')
 
 */
 
-import { GeneralKV } from "./general-kv";
-import { getEnv } from "@cocalc/conat/client";
-import { localLocationName } from "@cocalc/conat/names";
+import * as persistClient from "@cocalc/conat/persist/client";
 import { type DKVOptions } from "./dkv";
-import { once } from "@cocalc/util/async-utils";
-import { jsName } from "@cocalc/conat/names";
-import { encodeBase64 } from "@cocalc/conat/util";
-
-export function getPrefix({ name, valueType, options }) {
-  return encodeBase64(
-    JSON.stringify([name, valueType, localLocationName(options)]),
-  );
-}
-
-interface AKVOptions extends DKVOptions {
-  // TODO
-  env?: any;
-  valueType?: any;
-}
+import {
+  type Headers,
+  messageData,
+  type Message,
+} from "@cocalc/conat/core/client";
+import { storagePath, type User, COCALC_TOMBSTONE_HEADER } from "./core-stream";
 
 export class AKV<T = any> {
-  private options: AKVOptions;
-  private prefix: string;
-  private noChunks?: boolean;
+  private storage: persistClient.Storage;
+  private user: User;
 
-  constructor({ noChunks, ...options }: AKVOptions & { noChunks?: boolean }) {
-    this.options = options;
-    this.noChunks = noChunks;
-    const { name, valueType = "json" } = options;
-    this.prefix = getPrefix({
-      name,
-      valueType,
-      options,
-    });
+  constructor(options: DKVOptions) {
+    this.user = {
+      account_id: options.account_id,
+      project_id: options.project_id,
+    };
+    this.storage = { path: storagePath(options) };
   }
 
-  private encodeKey = (key) => {
-    if (typeof key != "string") {
-      key = `${key}`;
-    }
-    return key ? `${this.prefix}.${encodeBase64(key)}` : this.prefix;
-  };
-
-  private getGeneralKVForOneKey = async (
+  getMessage = async (
     key: string,
-    { noWatch = true }: { noWatch?: boolean } = {},
-  ): Promise<GeneralKV<T>> => {
-    const { valueType = "json", limits, account_id, project_id } = this.options;
-    const filter = this.encodeKey(key);
-    const kv = new GeneralKV<T>({
-      name: jsName({ account_id, project_id }),
-      env: await getEnv(),
-      // IMPORTANT: need both filter and .> to get CHUNKS in case of chunked data!
-      filter: [filter, filter + ".>"],
-      limits,
-      valueType,
-      noWatch,
-      noGet: noWatch && this.noChunks,
+    { timeout }: { timeout?: number } = {},
+  ): Promise<Message<T> | undefined> => {
+    const mesg = await persistClient.get({
+      user: this.user,
+      storage: this.storage,
+      key,
+      timeout,
     });
-    await kv.init();
-    return kv;
+    if (mesg?.headers?.[COCALC_TOMBSTONE_HEADER]) {
+      return undefined;
+    }
+    return mesg;
   };
 
-  // Just get one value asynchronously, rather than the entire dkv.
-  // If the timeout option is given and the value of key is not set,
-  // will wait until that many ms for the key to get
-  get = async (key: string, { timeout }: { timeout?: number } = {}) => {
-    const start = Date.now();
-    let noWatch = true;
-    if (timeout) {
-      // there's a timeout so in this unusual nondefault case we will watch:
-      noWatch = false;
-    }
-    const kv = await this.getGeneralKVForOneKey(key, { noWatch });
-    const filter = this.encodeKey(key);
-    if (noWatch && this.noChunks) {
-      const x = await kv.getDirect(filter);
-      await kv.close();
-      return x;
-    }
-    try {
-      let value = kv.get(filter);
-      if (!timeout) {
-        return value;
-      }
-      while (value === undefined && Date.now() - start <= timeout) {
-        try {
-          await once(kv, "change", timeout - (Date.now() - start));
-        } catch {
-          // failed due to timeout -- result is undefined since key isn't set
-          return undefined;
-        }
-        value = kv.get(filter);
-      }
-      return value;
-    } finally {
-      await kv.close();
-    }
+  //   // Just get one value asynchronously, rather than the entire dkv.
+  //   // If the timeout option is given and the value of key is not set,
+  //   // will wait until that many ms to get the key.
+  get = async (
+    key: string,
+    opts?: { timeout?: number },
+  ): Promise<T | undefined> => {
+    return (await this.getMessage(key, opts))?.data;
   };
 
-  headers = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key);
-    const filter = this.encodeKey(key);
-    if (this.noChunks) {
-      const x = await kv.getDirect(filter);
-      if (x === undefined) {
-        return;
-      }
-    }
-    const h = kv.headers(filter);
-    await kv.close();
-    return h;
+  headers = async (
+    key: string,
+    opts?: { timeout?: number },
+  ): Promise<Headers | undefined> => {
+    return (await this.getMessage(key, opts))?.headers;
   };
 
-  time = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key);
-    const filter = this.encodeKey(key);
-    if (this.noChunks) {
-      const x = await kv.getDirect(filter);
-      if (x === undefined) {
-        return;
-      }
-    }
-    const t = kv.time(filter);
-    await kv.close();
-    return t;
+  time = async (
+    key: string,
+    opts?: { timeout?: number },
+  ): Promise<Date | undefined> => {
+    const time = (await this.getMessage(key, opts))?.headers?.time;
+    return time !== undefined ? new Date(time as number) : undefined;
   };
 
-  delete = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key);
-    const filter = this.encodeKey(key);
-    await kv.delete(filter);
-    await kv.close();
+  delete = async (key: string, opts?: { timeout?: number }): Promise<void> => {
+    await this.set(key, null as any, {
+      ...opts,
+      headers: { [COCALC_TOMBSTONE_HEADER]: true },
+    });
   };
 
-  // NOTE: set does NOT update the inventory or apply limits, since this
-  // has no global knowledge of the kv.
+  seq = async (
+    key: string,
+    opts?: { timeout?: number },
+  ): Promise<number | undefined> => {
+    return (await this.getMessage(key, opts))?.headers?.seq as
+      | number
+      | undefined;
+  };
+
   set = async (
     key: string,
     value: T,
-    options?: { headers?: { [key: string]: string }; previousSeq?: number },
+    options?: { headers?: Headers; previousSeq?: number; timeout?: number },
   ) => {
-    const kv = await this.getGeneralKVForOneKey(key);
-    const filter = this.encodeKey(key);
-    await kv.set(filter, value, {
-      ...options,
-      headers: { ...options?.headers },
+    return await persistClient.set({
+      user: this.user,
+      storage: this.storage,
+      key,
+      messageData: messageData(value, { headers: options?.headers }),
+      previousSeq: options?.previousSeq,
+      timeout: options?.timeout,
     });
-  };
-
-  seq = async (key: string) => {
-    const kv = await this.getGeneralKVForOneKey(key);
-    const filter = this.encodeKey(key);
-    if (this.noChunks) {
-      const x = await kv.getDirect(filter);
-      if (x === undefined) {
-        return;
-      }
-    }
-    return kv.seq(filter);
   };
 }
 
-export function akv<T>(opts: AKVOptions) {
+export function akv<T>(opts: DKVOptions) {
   return new AKV<T>(opts);
 }

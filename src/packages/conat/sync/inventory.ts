@@ -19,7 +19,7 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import type { ValueType } from "@cocalc/conat/types";
-import { type KVLimits } from "./general-kv";
+import { type KVLimits } from "./limits";
 import { type FilteredStreamLimitOptions } from "./limits";
 import { DKO_PREFIX } from "./dko";
 import { waitUntilTimeAvailable } from "@cocalc/conat/time";

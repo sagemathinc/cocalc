@@ -2,7 +2,7 @@ import { type NatsEnv } from "@cocalc/conat/types";
 import { SyncTableKV } from "./synctable-kv";
 import { SyncTableStream } from "./synctable-stream";
 import { refCacheSync } from "@cocalc/util/refcache";
-import { type KVLimits } from "./general-kv";
+import { type KVLimits } from "./limits";
 import { type FilteredStreamLimitOptions } from "./limits";
 import jsonStableStringify from "json-stable-stringify";
 

@@ -105,9 +105,25 @@ export interface CoreStreamOptions {
   heartbeatInterval?: number;
 }
 
-interface User {
+export interface User {
   account_id?: string;
   project_id?: string;
+}
+
+export function storagePath({
+  account_id,
+  project_id,
+  name,
+}: User & { name: string }) {
+  let top;
+  if (account_id) {
+    top = `accounts/${account_id}`;
+  } else if (project_id) {
+    top = `projects/${project_id}`;
+  } else {
+    top = "global";
+  }
+  return `${top}/${name}.db`;
 }
 
 export class CoreStream<T = any> extends EventEmitter {
@@ -169,16 +185,8 @@ export class CoreStream<T = any> extends EventEmitter {
     const subject = streamSubject({ account_id, project_id, ephemeral: true });
     this.subject = subject.replace(">", encodeBase64(name));
     if (persist) {
-      let top;
-      if (account_id) {
-        top = `accounts/${account_id}`;
-      } else if (project_id) {
-        top = `projects/${project_id}`;
-      } else {
-        top = "global";
-      }
       this.storage = {
-        path: `${top}/${name}.db`,
+        path: storagePath({ account_id, project_id, name }),
       };
     }
     this._start_seq = start_seq;
@@ -642,7 +650,7 @@ export class CoreStream<T = any> extends EventEmitter {
       if (options?.key !== undefined) {
         // undefined can't be JSON encoded, so we can't possibly represent it, and this
         // *must* be treated as a delete.
-        this.deleteKv(options?.key);
+        this.deleteKv(options?.key, { previousSeq: options?.previousSeq });
         return;
       } else {
         throw Error("stream non-kv publish - mesg must not be 'undefined'");
@@ -852,7 +860,10 @@ export class CoreStream<T = any> extends EventEmitter {
     return await this.publish(mesg, { ...options, key });
   };
 
-  deleteKv = async (key: string, options?: { msgID?: string }) => {
+  deleteKv = async (
+    key: string,
+    options?: { msgID?: string; previousSeq?: number },
+  ) => {
     if (this.kv[key] === undefined) {
       // nothing to do
       return;
