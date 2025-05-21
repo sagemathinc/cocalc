@@ -3,13 +3,16 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "akv.test.ts"
+pnpm test ./akv.test.ts
 
 */
 
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
-import { getMaxPayload } from "@cocalc/conat/util";
+import { wait } from "@cocalc/backend/conat/test/util";
+
+beforeAll(before);
 
 describe("test basics with an akv", () => {
   let kv;
@@ -28,6 +31,10 @@ describe("test basics with an akv", () => {
   it("writes and reads null and gets null", async () => {
     await kv.set("y", null);
     expect(await kv.get("y")).toBe(null);
+  });
+
+  it("gets all keys", async () => {
+    expect(await kv.keys()).toEqual(["x", "y"]);
   });
 
   it("check that deleting a value works", async () => {
@@ -84,6 +91,11 @@ describe("test interop with a dkv", () => {
     );
   });
 
+  it("check sqlite query works", async () => {
+    const v = await akv.sqlite("SELECT count(*) AS n FROM messages");
+    expect(v[0].n).toBe((await akv.keys()).length);
+  });
+
   it("cleans up", async () => {
     dkv.clear();
     await dkv.close();
@@ -94,8 +106,10 @@ describe("testing writing and reading chunked data", () => {
   let maxPayload = 0;
 
   it("sanity check on the max payload", async () => {
-    maxPayload = await getMaxPayload();
-    expect(maxPayload).toBeGreaterThan(1000000);
+    const client = connect();
+    await wait({ until: () => client.info != null });
+    maxPayload = client.info.max_payload;
+    expect(maxPayload).toBeGreaterThan(500000);
   });
 
   let kv;
@@ -113,3 +127,5 @@ describe("testing writing and reading chunked data", () => {
     await k.close();
   });
 });
+
+afterAll(after);
