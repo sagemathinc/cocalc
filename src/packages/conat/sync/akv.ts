@@ -34,8 +34,8 @@ export function getPrefix({ name, valueType, options }) {
 
 interface AKVOptions extends DKVOptions {
   // TODO
-  env: any;
-  valueType: any;
+  env?: any;
+  valueType?: any;
 }
 
 export class AKV<T = any> {
