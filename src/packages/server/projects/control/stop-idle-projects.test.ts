@@ -104,6 +104,9 @@ describe("creates a project, set various parameters, and runs idle project funct
     // first confirm stopProject2 will get called
     reset();
     await stopIdleProjects(stopProject);
+    while (!projectsThatGotStopped.has(project_id)) {
+      await delay(30);
+    }
     expect(projectsThatGotStopped.has(project_id)).toBe(true);
     // now call again with error but doesn't break anything
     const stopProject2 = async (project_id) => {
@@ -112,6 +115,9 @@ describe("creates a project, set various parameters, and runs idle project funct
     };
     reset();
     await stopIdleProjects(stopProject2);
+    while (!projectsThatGotStopped.has(project_id)) {
+      await delay(30);
+    }
     expect(projectsThatGotStopped.has(project_id)).toBe(true);
   });
 });
