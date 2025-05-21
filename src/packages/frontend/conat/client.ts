@@ -445,14 +445,7 @@ export class ConatClient extends EventEmitter {
     return await kv<T>({ env: await this.getEnv(), ...opts });
   };
 
-  dkv = async <T = any,>(
-    opts: Partial<DKVOptions> & { name: string },
-  ): Promise<DKV<T>> => {
-    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
-    //       throw Error("account client can't set limits on public stream");
-    //     }
-    return await dkv<T>({ env: await this.getEnv(), ...opts });
-  };
+  dkv = dkv;
 
   dko = async <T = any,>(
     opts: Partial<DKVOptions> & { name: string },
