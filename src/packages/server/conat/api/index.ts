@@ -33,9 +33,10 @@ When you make changes, just restart the above.  All clients will instantly
 use the new version after you restart, and there is no need to restart the hub
 itself or any clients.
 
-To view all requests (and replies) in realtime:
+To view requests in realtime
 
-    nats sub 'hub.*.*.api' --match-replies
+cd packages/backend
+pnpm conat-watch 'hub.*.*.api' --match-replies
 
 And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 */
@@ -46,7 +47,6 @@ import { getEnv } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateDatabase } from "@cocalc/database/conat/changefeeds";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
-import { terminate as terminateTieredStorage } from "@cocalc/server/conat/tiered-storage/api";
 import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
 import { delay } from "awaiting";
 
@@ -113,10 +113,6 @@ async function handleMessage({ api, subject, mesg }) {
     logger.debug(`Terminate service '${service}'`);
     if (service == "db") {
       terminateDatabase();
-      mesg.respond({ status: "terminated", service });
-      return;
-    } else if (service == "tiered-storage") {
-      terminateTieredStorage();
       mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "changefeeds") {
