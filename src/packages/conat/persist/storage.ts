@@ -283,6 +283,13 @@ export class PersistentStream extends EventEmitter {
       .get() as { length: number };
     return length;
   }
+
+  keys = (): string[] => {
+    const v = this.db.prepare("SELECT key FROM messages WHERE key IS NOT NULL").all() as {
+      key: string;
+    }[];
+    return v.map(({ key }) => key);
+  };
 }
 
 function dbToMessage(

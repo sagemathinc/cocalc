@@ -119,6 +119,29 @@ export async function get({
   return resp;
 }
 
+export async function keys({
+  user,
+  storage,
+  timeout,
+}: {
+  user;
+  storage;
+  timeout?: number;
+}): Promise<string[]> {
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+
+  const reply = await cn.request(subject, null, {
+    headers: { cmd: "keys", storage } as any,
+    timeout,
+  });
+  const { error, resp } = reply.data;
+  if (error) {
+    throw Error(error);
+  }
+  return resp;
+}
+
 async function* callApiGetAll({
   start_seq,
   end_seq,

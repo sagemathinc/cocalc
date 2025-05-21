@@ -812,7 +812,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // has processed it!
       const version = this.syncdb.newestVersion();
       try {
-        await this.api({ timeout: 30000 }).save_ipynb_file({ version });
+        await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
       } catch (err) {
         console.log(err);
         throw Error(

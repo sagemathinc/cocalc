@@ -20,6 +20,7 @@ import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { kv, type KVOptions, type KV } from "@cocalc/conat/sync/kv";
 import { dkv, type DKVOptions } from "@cocalc/conat/sync/dkv";
+import { akv } from "@cocalc/conat/sync/akv";
 import { dko, type DKO } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
@@ -422,6 +423,8 @@ export class ConatClient extends EventEmitter {
 
   dkv = dkv;
 
+  akv = akv;
+
   dko = async <T = any,>(
     opts: Partial<DKVOptions> & { name: string },
   ): Promise<DKO<T>> => {
@@ -477,7 +480,6 @@ export class ConatClient extends EventEmitter {
   waitUntilConnected = async () => await waitUntilConnected();
 
   refCacheInfo = () => refCacheInfo();
-
 }
 
 function setDeleted({ project_id, path, deleted }) {

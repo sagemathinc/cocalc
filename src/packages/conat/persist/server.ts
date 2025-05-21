@@ -253,6 +253,9 @@ async function handleMessage(mesg) {
           headers: { ...headers, seq, time, key },
         });
       }
+    } else if (request.cmd == "keys") {
+      const resp = stream.keys();
+      mesg.respond({ resp });
     }
   } catch (err) {
     mesg.respond({ error: `${err}` });

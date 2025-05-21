@@ -7,6 +7,9 @@ set are thus async.
 
 There is no need to close this because it is stateless.
 
+[ ] TODO: efficiently get or set many values at once in a single call. This will be
+very useful, e.g., for jupyter notebook timetravel browsing.
+
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
@@ -113,6 +116,14 @@ export class AKV<T = any> {
       messageData: messageData(value, { headers: options?.headers }),
       previousSeq: options?.previousSeq,
       timeout: options?.timeout,
+    });
+  };
+
+  keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
+    return await persistClient.keys({
+      user: this.user,
+      storage: this.storage,
+      timeout,
     });
   };
 }
