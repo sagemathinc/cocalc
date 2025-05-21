@@ -1,14 +1,7 @@
-import type { NatsConnection as NatsConnection0 } from "@nats-io/nats-core";
-import type { EventEmitter } from "events";
 export type ValueType = "json" | "binary";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
-export type NatsConnection = NatsConnection0 &
-  Partial<EventEmitter> & {
-    getProjectPermissions?: () => Promise<string[]>;
-    getConnectionInfo?: Function;
-    addProjectPermissions: (project_ids: string[]) => Promise<void>;
-  };
+export type NatsConnection = any;
 
 export interface NatsEnv {
   // nats connection, but frontend extends it to be an EventEmitter

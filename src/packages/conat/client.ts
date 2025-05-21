@@ -13,7 +13,8 @@ import type { NatsEnv, NatsEnvFunction } from "@cocalc/conat/types";
 import { init } from "./time";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { NatsConnection } from "@nats-io/nats-core";
+
+type NatsConnection = any;
 
 interface Client {
   getNatsEnv: NatsEnvFunction;

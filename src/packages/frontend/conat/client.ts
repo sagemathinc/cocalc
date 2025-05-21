@@ -18,10 +18,9 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
-import { kv, type KVOptions, type KV } from "@cocalc/conat/sync/kv";
-import { dkv, type DKVOptions } from "@cocalc/conat/sync/dkv";
+import { dkv } from "@cocalc/conat/sync/dkv";
 import { akv } from "@cocalc/conat/sync/akv";
-import { dko, type DKO } from "@cocalc/conat/sync/dko";
+import { dko } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
 import { callConatService, createConatService } from "@cocalc/conat/service";
@@ -411,28 +410,9 @@ export class ConatClient extends EventEmitter {
   };
 
   dstream = dstream;
-
-  kv = async <T = any,>(
-    opts: Partial<KVOptions> & { name: string },
-  ): Promise<KV<T>> => {
-    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
-    //       throw Error("account client can't set limits on public stream");
-    //     }
-    return await kv<T>({ env: await this.getEnv(), ...opts });
-  };
-
   dkv = dkv;
-
   akv = akv;
-
-  dko = async <T = any,>(
-    opts: Partial<DKVOptions> & { name: string },
-  ): Promise<DKO<T>> => {
-    //     if (!opts.account_id && !opts.project_id && opts.limits != null) {
-    //       throw Error("account client can't set limits on public stream");
-    //     }
-    return await dko<T>({ env: await this.getEnv(), ...opts });
-  };
+  dko = dko;
 
   listings = async (opts: {
     project_id: string;

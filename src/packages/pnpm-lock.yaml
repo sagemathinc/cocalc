@@ -193,18 +193,6 @@ importers:
       '@msgpack/msgpack':
         specifier: ^3.1.1
         version: 3.1.1
-      '@nats-io/jetstream':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/kv':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/nats-core':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@nats-io/services':
-        specifier: 3.0.0
-        version: 3.0.0
       '@socket.io/redis-streams-adapter':
         specifier: ^0.2.2
         version: 0.2.2(socket.io-adapter@2.5.5)
@@ -231,7 +219,7 @@ importers:
         version: 4.17.21
       socket.io-client:
         specifier: ^4.8.1
-        version: 4.8.1(supports-color@9.4.0)
+        version: 4.8.1
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -3567,26 +3555,6 @@ packages:
 
   '@napi-rs/triples@1.2.0':
     resolution: {integrity: sha512-HAPjR3bnCsdXBsATpDIP5WCrw0JcACwhhrwIAQhiR46n+jm+a2F8kBsfseAuWtSyQ+H3Yebt2k43B5dy+04yMA==}
-
-  '@nats-io/jetstream@3.0.0':
-    resolution: {integrity: sha512-pNJDQJfRmRoDsBYSysvk+kPr9cSj1XnLnAxSC7KHVTsu2YqMEWSqgs5YzIULbq1S12oFhM/vvlOiEj/9jY39lg==}
-
-  '@nats-io/kv@3.0.0':
-    resolution: {integrity: sha512-ybERTWMemaBpMdbFv4718Ffnb427ykzlci+6oAmtaeyw3oM25aACEo+xgra9UKxQVubj1UGx2WcNUy9ojiU9zA==}
-
-  '@nats-io/nats-core@3.0.0':
-    resolution: {integrity: sha512-Ma2VrFkSew35cIRxMvnbQ2VOE2crP7BCIIsGoCqVwvn6Jwmk2ypcHjj9pWn+bPXqmFlamLUrYGH6ncMDb4eXsQ==}
-
-  '@nats-io/nkeys@2.0.3':
-    resolution: {integrity: sha512-JVt56GuE6Z89KUkI4TXUbSI9fmIfAmk6PMPknijmuL72GcD+UgIomTcRWiNvvJKxA01sBbmIPStqJs5cMRBC3A==}
-    engines: {node: '>=18.0.0'}
-
-  '@nats-io/nuid@2.0.3':
-    resolution: {integrity: sha512-TpA3HEBna/qMVudy+3HZr5M3mo/L1JPofpVT4t0HkFGkz2Cn9wrlrQC8tvR8Md5Oa9//GtGG26eN0qEWF5Vqew==}
-    engines: {node: '>= 18.x'}
-
-  '@nats-io/services@3.0.0':
-    resolution: {integrity: sha512-tsZu5Chd616p2sP9QWZT0gBkO2zcRjbENhcJcV2hBGA6t5jgP5+iynwMAs+9HKFUNVdUgDxdpUYn8NUpaslzPw==}
 
   '@nestjs/axios@4.0.0':
     resolution: {integrity: sha512-1cB+Jyltu/uUPNQrpUimRHEQHrnQrpLzVj6dU3dgn6iDDDdahr10TgHFGTmw5VuJ9GzKZsCLDL78VSwJAs/9JQ==}
@@ -11540,9 +11508,6 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  tweetnacl@1.0.3:
-    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
-
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -13977,30 +13942,6 @@ snapshots:
 
   '@napi-rs/triples@1.2.0': {}
 
-  '@nats-io/jetstream@3.0.0':
-    dependencies:
-      '@nats-io/nats-core': 3.0.0
-
-  '@nats-io/kv@3.0.0':
-    dependencies:
-      '@nats-io/jetstream': 3.0.0
-      '@nats-io/nats-core': 3.0.0
-
-  '@nats-io/nats-core@3.0.0':
-    dependencies:
-      '@nats-io/nkeys': 2.0.3
-      '@nats-io/nuid': 2.0.3
-
-  '@nats-io/nkeys@2.0.3':
-    dependencies:
-      tweetnacl: 1.0.3
-
-  '@nats-io/nuid@2.0.3': {}
-
-  '@nats-io/services@3.0.0':
-    dependencies:
-      '@nats-io/nats-core': 3.0.0
-
   '@nestjs/axios@4.0.0(@nestjs/common@11.0.20(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.8.4)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.0.20(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -14637,8 +14578,8 @@ snapshots:
   '@socket.io/redis-streams-adapter@0.2.2(socket.io-adapter@2.5.5)':
     dependencies:
       '@msgpack/msgpack': 2.8.0
-      debug: 4.3.7(supports-color@9.4.0)
-      socket.io-adapter: 2.5.5(supports-color@9.4.0)
+      debug: 4.3.7
+      socket.io-adapter: 2.5.5
     transitivePeerDependencies:
       - supports-color
 
@@ -17407,6 +17348,18 @@ snapshots:
     dependencies:
       once: 1.4.0
 
+  engine.io-client@6.6.3:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+      xmlhttprequest-ssl: 2.1.2
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   engine.io-client@6.6.3(supports-color@9.4.0):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -19079,7 +19032,7 @@ snapshots:
     dependencies:
       '@iovalkey/commands': 0.1.0
       cluster-key-slot: 1.1.2
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
       denque: 2.1.0
       lodash.defaults: 4.2.0
       lodash.isarguments: 3.1.0
@@ -22918,6 +22871,17 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  socket.io-client@4.8.1:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-client: 6.6.3
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   socket.io-client@4.8.1(supports-color@9.4.0):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -23584,8 +23548,6 @@ snapshots:
   tunnel-agent@0.6.0:
     dependencies:
       safe-buffer: 5.2.1
-
-  tweetnacl@1.0.3: {}
 
   type-check@0.4.0:
     dependencies:
