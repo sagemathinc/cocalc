@@ -1,5 +1,8 @@
 /*
-Async Consistent Centralized Key Value Store
+** DEPRECATED**
+
+
+Async Consistent Centralized Key:Value Store
 
 - You give one or more subjects and this provides an asynchronous but consistent
   way to work with the KV store of keys matching any of those subjects,
@@ -7,16 +10,13 @@ Async Consistent Centralized Key Value Store
 - The get operation is sync. (It can of course be slightly out of date, but that is detected
   if you try to immediately write it.)
 - The set will fail if the local cached value (returned by get) turns out to be out of date.
-- Also delete and set will fail if the NATS connection is down or times out.
+- Also delete and set will fail if the Conat connection is down or times out.
 - For an eventually consistent sync wrapper around this, use DKV, defined in the sibling file dkv.ts.
 
-WARNING: Nats itself actually currently seems to have no model for consistency, especially
-with multiple nodes.  See https://github.com/nats-io/nats-server/issues/6557
-
-This is a simple KV wrapper around NATS's KV, for small KV stores. Each client holds a local cache
-of all data, which is used to ensure set's are a no-op if there is no change.  Also, this automates
-ensuring that if you do a read-modify-write, this will succeed only if nobody else makes a change
-before you.
+This is a simple KV wrapper around core-stream, for small KV stores.  Thus each client holds a 
+local cache of all data, which is used to ensure set's are a no-op if there is no change.  
+Also, this automates ensuring that if you do a read-modify-write, this will succeed only 
+if nobody else makes a change before you.
 
 - You must explicitly call "await store.init()" to initialize it before using it.
 
@@ -47,15 +47,14 @@ before you.
 - Use "await store.expire(ageMs)" to delete every key that was last changed at least ageMs
   milliseconds in the past.
 
-  TODO/WARNING: the timestamps are defined by NATS (and its clock), but
+  TODO/WARNING: the timestamps are defined by Conat (and its clock), but
   the definition of "ageMs in the past" is defined by the client where this is called. Thus
-  if the client's clock is off, that would be a huge problem.  An obvious solution is to
-  get the current time from NATS, and use that.  I don't know a "good" way to get the current
-  time except maybe publishing a message to myself...?
+  if the client's clock is off, that would be a huge problem for expire.
+  
+  [ ] TODO: just move the expire functionality server side -- we should anyways.
 
 
 CHUNKING:
-
 
 Similar to streams, unlike NATS itself, hwere we allow storing arbitrarily large
 values, in particular, values that could be much larger than the configured message

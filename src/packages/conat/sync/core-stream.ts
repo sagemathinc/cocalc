@@ -7,6 +7,14 @@ simple to use as synchronous with save in the background. Instead, operations
 are async, and the API is complicated. We build dkv, dstream, etc. on
 top of this with a much friendly API.
 
+
+NOTE: unlike in NATS, in kv mode, the keys can be any utf-8 string.
+We use the subject to track communication involving this stream, but
+otherwise it has no relevant to the keys.   Conat's core pub/sub/request/
+reply model is very similar to NATS, but the analogue of Jetstream is
+different because I don't find Jetstream useful at all, and find this
+much more useful.
+  
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
@@ -155,8 +163,8 @@ export class CoreStream<T = any> extends EventEmitter {
     this.name = name;
     this.leader = !!leader;
     this.persist = !!persist;
-    const subjects = streamSubject({ account_id, project_id, ephemeral: true });
-    this.subject = subjects.replace(">", encodeBase64(name));
+    const subject = streamSubject({ account_id, project_id, ephemeral: true });
+    this.subject = subject.replace(">", encodeBase64(name));
     if (persist) {
       let top;
       if (account_id) {
@@ -309,21 +317,15 @@ export class CoreStream<T = any> extends EventEmitter {
     if (m.headers == null) {
       throw Error("missing header");
     }
-    // @ts-ignore
-    if (m.headers?.content?.state == "watch") {
-      // switched to watch mode
-      return;
-    }
     const { key, time, headers } = m.headers;
     // @ts-ignore
     const seq = headers?.seq;
     if (typeof seq != "number") {
       throw Error("seq must be a number");
     }
-    // [] TODO: calling m.data costs time and doubles memory usage; can
+    // question: calling m.data costs time and memory usage; can
     // or should we avoid it until needed?
     const mesg = m.data;
-    // [ ] todo: typing
     const raw = {
       timestamp: time,
       headers: (headers as any)?.headers,
@@ -337,7 +339,7 @@ export class CoreStream<T = any> extends EventEmitter {
       this.raw.push(raw);
     } else {
       // [ ] TODO: insert in the correct place.  This should only
-      // happen when calling load.  The algorithm below is particularly
+      // happen when calling load.  The algorithm below is
       // dumb and could be replaced by a binary search.  However, we'll
       // change how we batch load so there's no point.
       let i = 0;
@@ -347,7 +349,9 @@ export class CoreStream<T = any> extends EventEmitter {
       this.raw.splice(i, 0, raw);
       this.messages.splice(i, 0, mesg);
     }
+    let prev: T | undefined = undefined;
     if (typeof key == "string") {
+      prev = this.kv[key]?.mesg;
       if (raw.headers?.[COCALC_TOMBSTONE_HEADER]) {
         delete this.kv[key];
       } else {
@@ -365,7 +369,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
-      this.emit("change", mesg, raw, key);
+      this.emit("change", mesg, raw, key, prev);
     }
   };
 
@@ -524,7 +528,7 @@ export class CoreStream<T = any> extends EventEmitter {
       try {
         this.processPersistentMessage(m, false);
       } catch (err) {
-        console.log(`WARNING: issue processing persistent message -- ${err}`);
+        console.trace(`WARNING: issue processing persistent message -- ${err}`);
       }
     }
   };
@@ -786,7 +790,7 @@ export class CoreStream<T = any> extends EventEmitter {
     return this.raw[n]?.seq;
   };
 
-  getAll = () => {
+  getAll = (): T[] => {
     return [...this.messages];
   };
 
@@ -803,6 +807,8 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   // key:value interface for subset of messages pushed with key option set.
+  // NOTE: This does NOT throw an error if our local seq is out of date (leave that
+  // to dkv built on this).
   setKv = async (
     key: string,
     mesg: T,
@@ -830,8 +836,35 @@ export class CoreStream<T = any> extends EventEmitter {
     return this.kv[key]?.mesg;
   };
 
+  hasKv = (key: string): boolean => {
+    return this.kv?.[key] !== undefined;
+  };
+
+  getAllKv = (): { [key: string]: T } => {
+    const all: { [key: string]: T } = {};
+    for (const key in this.kv) {
+      all[key] = this.kv[key].mesg;
+    }
+    return all;
+  };
+
   seqKv = (key: string): number | undefined => {
     return this.kv[key]?.raw.seq;
+  };
+
+  timeKv = (key?: string): Date | { [key: string]: Date } | undefined => {
+    if (key === undefined) {
+      const all: { [key: string]: Date } = {};
+      for (const key in this.kv) {
+        all[key] = new Date(this.kv[key].raw.timestamp);
+      }
+      return all;
+    }
+    const r = this.kv[key]?.raw;
+    if (r == null) {
+      return;
+    }
+    return new Date(r.timestamp);
   };
 
   headersKv = (key: string): { [key: string]: any } | undefined => {
@@ -923,8 +956,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     let count = 0;
     let bytes = 0;
-    for (const raw of this.raw) {
-      const seq = raw.seq;
+    for (const { raw, seq } of this.raw) {
       if (seq == null) {
         continue;
       }

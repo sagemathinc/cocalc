@@ -333,10 +333,16 @@ describe("test basic key:value functionality for persistent core stream", () => 
     seq = stream.seqKv("key");
   });
 
+  it("also confirm via getAllKv", () => {
+    expect(stream.getAllKv()).toEqual({ key: "value" });
+  });
+
   it("closes and reopens stream, to confirm the key was persisted", async () => {
     stream.close();
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, persist: true });
+    expect(stream.hasKv("key")).toBe(true);
+    expect(stream.hasKv("key2")).toBe(false);
     expect(stream.length).toBe(1);
     expect(await stream.getKv("key")).toEqual("value");
     expect(stream.seqKv("key")).toBe(seq);

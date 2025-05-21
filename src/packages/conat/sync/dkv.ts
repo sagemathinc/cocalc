@@ -157,7 +157,7 @@ export class DKV<T = any> extends EventEmitter {
       name: jsName({ account_id, project_id }),
       desc,
       noInventory,
-      filter: [this.prefix, `${this.prefix}.>`],
+      subject: this.prefix,
       env,
       merge,
       noAutosave,

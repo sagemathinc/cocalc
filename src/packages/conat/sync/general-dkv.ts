@@ -1,16 +1,21 @@
 /*
 Eventually Consistent Distributed Key:Value Store
 
-- You give one or more subjects and this provides a synchronous eventually consistent
-  "multimaster" distributed way to work with the KV store of keys matching any of those subjects,
+- You give one subject and general-dkv provides a synchronous eventually consistent
+  "multimaster" distributed way to work with the KV store of keys matching that subject,
   inside of the named KV store.
-- You should define a 3-way merge function, which is used to automatically resolve all
-  conflicting writes.   The default is to use our local version, i.e., "last write to remote wins".
+
+- You may define a 3-way merge function, which is used to automatically resolve all
+  conflicting writes.   The default is to use our local version, i.e., "last write 
+  to remote wins".  The function is run locally so can have access to any state.
+  
 - All set/get/delete operations are synchronous.
-- The state gets sync'd in the backend to NATS as soon as possible.
+
+- The state gets sync'd in the backend to persistent storage on Conat as soon as possible,
+  and there is an async save function.
 
 This class is based on top of the Consistent Centralized Key:Value Store defined in kv.ts.
-You can use the same key:value store at the same time via both interfaces, and if store
+You can use the same key:value store at the same time via both interfaces, and if the store
 is a DKV, you can also access the underlying KV via "store.kv".
 
 - You must explicitly call "await store.init()" to initialize this before using it.
@@ -22,7 +27,7 @@ is a DKV, you can also access the underlying KV via "store.kv".
 - Use "store.set(key,value)" or "store.set({key:value, key2:value2, ...})" to set data,
   with the following semantics:
 
-  - in the background, changes propagate to NATS.  You do not do anything explicitly and
+  - in the background, changes propagate to Conat.  You do not do anything explicitly and
     this should never raise an exception.
 
   - you can call "store.hasUnsavedChanges()" to see if there are any unsaved changes.
@@ -44,10 +49,9 @@ is a DKV, you can also access the underlying KV via "store.kv".
 
 DEVELOPMENT:
 
-~/cocalc/src/packages/server$ node
-Welcome to Node.js v18.17.1.
-Type ".help" for more information.
-> env = await require("@cocalc/backend/conat/env").getEnv(); a = require("@cocalc/conat/sync/dkv"); s = new a.DKV({name:'test',env,filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
+~/cocalc/src/packages/backend$ node
+
+require("@cocalc/backend/conat"); a = require("@cocalc/conat/sync/general-dkv"); s = new a.GeneralDKV({name:'test',merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
 
 
 In the browser console:
@@ -61,26 +65,38 @@ In the browser console:
 
 > s.on('change',(key)=>console.log(key));0;
 
-
-TODO:
- - require not-everything subject or have an explicit size limit?
- - some history would be VERY useful here due to the merge conflicts.
- - for conflict resolution maybe instead of local and remote, just give
-   two values along with their assigned sequence numbers (?).  I.e., something
-   where the resolution doesn't depend on where it is run.  ?  Or maybe this doesn't matter.
 */
 
 import { EventEmitter } from "events";
-import { GeneralKV, type KVLimits } from "./general-kv";
+import { CoreStream } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type NatsEnv, type ValueType } from "@cocalc/conat/types";
+import { type ValueType } from "@cocalc/conat/types";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
-import { getClient, type ClientWithState } from "@cocalc/conat/client";
+import type { Client, Headers } from "@cocalc/conat/core/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
+
+export interface KVLimits {
+  // How many keys may be in the KV store. Oldest keys will be removed
+  // if the key-value store exceeds this size. -1 for unlimited.
+  max_msgs: number;
+
+  // Maximum age of any key, expressed in milliseconds. 0 for unlimited.
+  // Age is updated whenever value of the key is changed.
+  max_age: number;
+
+  // The maximum number of bytes to store in this KV, which means
+  // the total of the bytes used to store everything.  Since we store
+  // the key with each value (to have arbitrary keys), this includes
+  // the size of the keys.
+  max_bytes: number;
+
+  // The maximum size of any single value, including the key.
+  max_msg_size: number;
+}
 
 export type MergeFunction = (opts: {
   key: string;
@@ -89,39 +105,39 @@ export type MergeFunction = (opts: {
   remote: any;
 }) => any;
 
-interface Options {
-  headers?: { [name: string]: string | null };
+interface SetOptions {
+  headers?: Headers;
 }
 
 export class GeneralDKV<T = any> extends EventEmitter {
-  private kv?: GeneralKV<T>;
-  private jc?;
+  private kv?: CoreStream<T>;
   private merge?: MergeFunction;
   private local: { [key: string]: T | typeof TOMBSTONE } = {};
-  private options: { [key: string]: Options } = {};
+  private options: { [key: string]: SetOptions } = {};
   private saved: { [key: string]: T | typeof TOMBSTONE } = {};
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
-  private client?: ClientWithState;
   public readonly valueType: ValueType;
   public readonly name: string;
   public readonly desc?: string;
 
   constructor({
     name,
-    env,
-    filter,
-    merge,
-    options,
-    noAutosave,
-    limits,
-    valueType,
+    project_id,
+    account_id,
     desc,
+    client,
+    merge,
+    limits,
+    noAutosave,
+    valueType,
   }: {
     name: string;
+    account_id?: string;
+    project_id?: string;
     // used for log and error messages
-    desc: string;
-    env: NatsEnv;
+    desc?: string;
+    client?: Client;
     // 3-way merge conflict resolution
     merge?: (opts: {
       key: string;
@@ -129,15 +145,11 @@ export class GeneralDKV<T = any> extends EventEmitter {
       local?: any;
       remote?: any;
     }) => any;
-    // filter: optionally restrict to subset of named kv store matching these subjects.
-    // NOTE: any key name that you *set or delete* must match one of these
-    filter: string | string[];
     limits?: KVLimits;
     // if noAutosave is set, local changes are never saved until you explicitly
     // call "await this.save()", which will try once to save.  Changes made during
     // the save may not be saved though.
     noAutosave?: boolean;
-    options?;
     valueType?: ValueType;
   }) {
     super();
@@ -145,13 +157,17 @@ export class GeneralDKV<T = any> extends EventEmitter {
     this.desc = desc;
     this.merge = merge;
     this.noAutosave = !!noAutosave;
-    this.jc = env.jc;
     this.valueType = valueType ?? "json";
-    this.kv = new GeneralKV({ name, env, filter, options, limits, valueType });
-    if (!noAutosave) {
-      this.client = getClient();
-      this.client.on("connected", this.save);
-    }
+    this.kv = new CoreStream({
+      name,
+      project_id,
+      account_id,
+      client,
+      limits,
+      valueType,
+      // we do not have any notion of ephemeral kv yet
+      persist: true,
+    });
   }
 
   init = reuseInFlight(async () => {
@@ -176,7 +192,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
           `WARNING: unable to save some data when closing a general-dkv -- ${err}`,
         );
       }
-      this.client?.removeListener("connected", this.save);
     }
     this.kv.close();
     this.emit("closed");
@@ -208,7 +223,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     return true;
   };
 
-  private handleRemoteChange = ({ key, value: remote, prev }) => {
+  private handleRemoteChange = (remote, _raw, key, prev) => {
     const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
     let value: any = remote;
     if (local !== undefined) {
@@ -260,7 +275,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (this.kv == null) {
       throw Error("closed");
     }
-    this.assertValidKey(key);
     const local = this.local[key];
     if (local === TOMBSTONE) {
       return undefined;
@@ -268,7 +282,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (local !== undefined) {
       return local;
     }
-    return this.kv.get(key);
+    return this.kv.getKv(key);
   };
 
   get length(): number {
@@ -280,7 +294,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (this.kv == null) {
       throw Error("closed");
     }
-    const x = { ...this.kv.getAll(), ...this.local };
+    const x = { ...this.kv.getAllKv(), ...this.local };
     for (const key in this.local) {
       if (this.local[key] === TOMBSTONE) {
         delete x[key];
@@ -300,21 +314,21 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (a !== undefined) {
       return true;
     }
-    return this.kv.has(key);
+    return this.kv.hasKv(key);
   };
 
   time = (key?: string): { [key: string]: Date } | Date | undefined => {
     if (this.kv == null) {
       throw Error("closed");
     }
-    return this.kv.time(key);
+    return this.kv.timeKv(key);
   };
 
-  private assertValidKey = (key): void => {
+  seq = (key: string): number | undefined => {
     if (this.kv == null) {
       throw Error("closed");
     }
-    this.kv.assertValidKey(key);
+    return this.kv.seqKv(key);
   };
 
   private _delete = (key) => {
@@ -323,7 +337,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
   };
 
   delete = (key) => {
-    this.assertValidKey(key);
     this._delete(key);
     if (!this.noAutosave) {
       this.save();
@@ -334,7 +347,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (this.kv == null) {
       throw Error("closed");
     }
-    for (const key in this.kv.getAll()) {
+    for (const key in this.kv.getAllKv()) {
       this._delete(key);
     }
     for (const key in this.local) {
@@ -349,25 +362,18 @@ export class GeneralDKV<T = any> extends EventEmitter {
     if (obj === undefined) {
       return TOMBSTONE;
     }
-    if (this.valueType == "binary") {
-      if (!ArrayBuffer.isView(obj)) {
-        throw Error("value must be an array buffer");
-      }
-      return obj;
+    return obj;
+  };
+
+  headers = (key: string): Headers | undefined => {
+    if (this.options[key] != null) {
+      return this.options[key]?.headers;
+    } else {
+      return this.kv?.headersKv(key);
     }
-    // It's EXTREMELY important that anything we save to NATS has the property that
-    // jc.decode(jc.encode(obj)) is the identity map. That is very much NOT
-    // the case for stuff that set gets called on, e.g., {a:new Date()}.
-    // Thus before storing it in in any way, we ensure this immediately:
-    return this.jc.decode(this.jc.encode(obj));
   };
 
-  headers = (key: string): { [key: string]: string } | undefined => {
-    return this.kv?.headers(key);
-  };
-
-  set = (key: string, value: T, options?: Options) => {
-    this.assertValidKey(key);
+  set = (key: string, value: T, options?: SetOptions) => {
     const obj = this.toValue(value);
     this.local[key] = obj;
     if (options != null) {
@@ -381,7 +387,6 @@ export class GeneralDKV<T = any> extends EventEmitter {
 
   setMany = (obj) => {
     for (const key in obj) {
-      this.assertValidKey(key);
       this.local[key] = this.toValue(obj[key]);
       this.changed.add(key);
     }
@@ -397,7 +402,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     return this.unsavedChanges().length > 0;
   };
 
-  unsavedChanges = () => {
+  unsavedChanges = (): string[] => {
     return Object.keys(this.local).filter(
       (key) => this.local[key] !== this.saved[key],
     );
@@ -442,7 +447,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
     for (const key in obj) {
       if (obj[key] === TOMBSTONE) {
         status.unsaved += 1;
-        await this.kv.delete(key);
+        await this.kv.deleteKv(key);
         status.delete += 1;
         status.unsaved -= 1;
         delete obj[key];
@@ -459,7 +464,11 @@ export class GeneralDKV<T = any> extends EventEmitter {
       }
       try {
         status.unsaved += 1;
-        await this.kv.set(key, obj[key] as T, this.options[key]);
+        const previousSeq = this.seq(key);
+        await this.kv.setKv(key, obj[key] as T, {
+          ...this.options[key],
+          previousSeq,
+        });
         //         console.log("kv store -- attemptToSave succeed", this.desc, {
         //           key,
         //           value: obj[key],
@@ -473,7 +482,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
         // note that we CANNOT call  this.discardLocalState(key) here, because
         // this.get(key) needs to work immediately after save, but if this.local[key]
         // is deleted, then this.get(key) would be undefined, because
-        // this.kv.get(key) only has value in it once the value is
+        // this.kv.getKv(key) only has value in it once the value is
         // echoed back from the server.
       } catch (err) {
         //         console.log("kv store -- attemptToSave failed", this.desc, err, {
@@ -487,9 +496,7 @@ export class GeneralDKV<T = any> extends EventEmitter {
           status.unsaved -= 1;
           this.emit("reject", { key: err.key, value });
         }
-        if (
-          err.message.startsWith("wrong last sequence")
-        ) {
+        if (err.message.startsWith("wrong last sequence")) {
           // this happens when another client has published a NEWER version of this key,
           // so the right thing is to just ignore this.  In a moment there will be no
           // need to save anything, since we'll receive a message that overwrites this key.
