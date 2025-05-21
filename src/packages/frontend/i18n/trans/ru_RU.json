@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(или <keyboard>Shift+Return</keyboard> в строке поиска)",
   "project.explorer.file-listing.stale-warning": "Отображение устаревшего списка каталогов {is_missing, select, true {<b>отсутствуют {missing} файлы</b>} other {}}. Чтобы обновить список каталогов, <a>запустите этот проект</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Открывает текущий каталог в экземпляре сервера {name}, работающем внутри этого проекта",
-  "project.explorer.search-bar.placeholder": "Найти или создать файл",
+  "project.explorer.search-bar.placeholder": "Фильтровать файлы или \"/\" для терминала...",
   "project.explorer.start_project.warning": "Чтобы увидеть файлы в этом каталоге, вам нужно <a>запустить этот проект</a>.",
   "project.history.log-entry.invited_user": "приглашенный пользователь",
   "project.history.log-entry.invited_user_via": "пригласил нового пользователя через",

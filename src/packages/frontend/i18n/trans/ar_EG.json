@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(أو <keyboard>Shift+Return</keyboard> في مربع البحث)",
   "project.explorer.file-listing.stale-warning": "عرض قائمة الدليل القديم {is_missing, select, true {<b>الملفات المفقودة {missing}</b>} other {}}. لتحديث قائمة الدليل <a>ابدأ هذا المشروع</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "يفتح الدليل الحالي في مثيل خادم {name}، الذي يعمل داخل هذا المشروع",
-  "project.explorer.search-bar.placeholder": "ابحث أو أنشئ ملف",
+  "project.explorer.search-bar.placeholder": "تصفية الملفات أو \"/\" للمحطة...",
   "project.explorer.start_project.warning": "لمشاهدة الملفات في هذا الدليل، عليك <a>بدء هذا المشروع</a>",
   "project.history.log-entry.invited_user": "المستخدم المدعو",
   "project.history.log-entry.invited_user_via": "دعا مستخدم جديد عبر",
