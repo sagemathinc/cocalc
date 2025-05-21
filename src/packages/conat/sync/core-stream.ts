@@ -105,6 +105,11 @@ export interface CoreStreamOptions {
   heartbeatInterval?: number;
 }
 
+interface User {
+  account_id?: string;
+  project_id?: string;
+}
+
 export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
@@ -132,10 +137,13 @@ export class CoreStream<T = any> extends EventEmitter {
   private lastSeq: number = 0;
   private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
   private bytesSent: { [time: number]: number } = {};
-  private user;
+  private user: User;
   private persistStream?;
   private storage?: persistClient.Storage;
   private client?: Client;
+
+  private renewLoopParams: { id: string; lifetime: number; user: User } | null =
+    null;
 
   private sessionId?: string;
 
@@ -241,6 +249,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   close = () => {
     delete this.client;
+    this.renewLoopParams = null;
     this.removeAllListeners();
     // @ts-ignore
     this.sub?.close();
@@ -279,11 +288,15 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("bug -- storage must be set");
     }
 
-    const { stream } = await persistClient.getAll({
+    const { id, lifetime, stream } = await persistClient.getAll({
       user: this.user,
       storage: this.storage,
       start_seq,
     });
+    if (id && lifetime) {
+      this.renewLoopParams = { id, lifetime, user: this.user };
+      this.startRenewLoop();
+    }
     //console.log("got persistent stream", { id });
     this.persistStream = stream;
     while (true) {
@@ -303,6 +316,22 @@ export class CoreStream<T = any> extends EventEmitter {
       this.processPersistentMessage(value, !!noEmit);
     }
   };
+
+  private startRenewLoop = reuseInFlight(async () => {
+    while (this.renewLoopParams?.lifetime && this.renewLoopParams?.id) {
+      // max to avoid weird situation bombarding server or infinite loop
+      await delay(Math.max(7500, this.renewLoopParams.lifetime / 3));
+      if (this.renewLoopParams == null) {
+        return;
+      }
+      //console.log("renewing with lifetime ", this.renewLoopParams.lifetime);
+      try {
+        await persistClient.renew(this.renewLoopParams);
+      } catch (err) {
+        console.log(`WARNING: core-stream renew failed -- ${err}`);
+      }
+    }
+  });
 
   private processPersistentMessage = (m: Message, noEmit: boolean) => {
     if (this.raw === undefined) {
@@ -889,16 +918,15 @@ export class CoreStream<T = any> extends EventEmitter {
   }) => {
     if (this.persist) {
       // This is used for loading more TimeTravel history
-      if (this.raw.length == 0) {
-        // we have nothing right now, so just load everything from start_seq forward.
-        await this.getAllFromPersist({ start_seq, noEmit });
-        return;
-      }
       if (this.storage == null) {
         throw Error("bug");
       }
       // this is one before the oldest we have
-      const end_seq = this.raw[0].seq! - 1;
+      const end_seq = (this.raw[0]?.seq ?? this._start_seq ?? 1) - 1;
+      if (start_seq > end_seq) {
+        // nothing to load
+        return;
+      }
       // we're moving start_seq back to this point
       this._start_seq = start_seq;
       const { stream } = await persistClient.getAll({
