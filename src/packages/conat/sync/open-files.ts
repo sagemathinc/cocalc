@@ -33,7 +33,6 @@ import { type State } from "@cocalc/conat/types";
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 import { EventEmitter } from "events";
 import getTime, { getSkew } from "@cocalc/conat/time";
-import { getEnv } from "@cocalc/conat/client";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
@@ -166,7 +165,6 @@ export class OpenFiles extends EventEmitter {
     const d = await dkv<KVEntry>({
       name: "open-files",
       project_id: this.project_id,
-      env: await getEnv(),
       limits: {
         max_age: MAX_AGE_MS,
       },

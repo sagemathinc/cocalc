@@ -40,7 +40,6 @@ import {
   enforceRateLimits,
   ENFORCE_LIMITS_THROTTLE_MS,
 } from "./limits";
-import { type ValueType } from "@cocalc/conat/types";
 import { EventEmitter } from "events";
 import {
   type Subscription,
@@ -97,7 +96,6 @@ export interface CoreStreamOptions {
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
-  valueType?: ValueType;
   leader?: boolean;
   persist?: boolean;
 
@@ -112,7 +110,6 @@ export class CoreStream<T = any> extends EventEmitter {
   private readonly subject: string;
   private readonly limits: FilteredStreamLimitOptions;
   private _start_seq?: number;
-  public readonly valueType: ValueType;
 
   // don't do "this.raw=" or "this.messages=" anywhere in this class
   // because dstream directly references the public raw/messages.
@@ -148,7 +145,6 @@ export class CoreStream<T = any> extends EventEmitter {
     account_id,
     limits,
     start_seq,
-    valueType = "json",
     leader = false,
     persist = false,
     client,
@@ -158,7 +154,6 @@ export class CoreStream<T = any> extends EventEmitter {
 
     this.client = client;
     this.user = { account_id, project_id };
-    this.valueType = valueType;
     this.heartbeatInterval = heartbeatInterval;
     this.name = name;
     this.leader = !!leader;
@@ -615,8 +610,16 @@ export class CoreStream<T = any> extends EventEmitter {
     },
   ) => {
     if (mesg === undefined) {
-      throw Error("stream publish - mesg must not be 'undefined'");
+      if (options?.key !== undefined) {
+        // undefined can't be JSON encoded, so we can't possibly represent it, and this
+        // *must* be treated as a delete.
+        this.deleteKv(options?.key);
+        return;
+      } else {
+        throw Error("stream non-kv publish - mesg must not be 'undefined'");
+      }
     }
+
     const data = mesg;
 
     if (typeof mesg == "string") {

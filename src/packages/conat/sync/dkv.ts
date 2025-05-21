@@ -1,171 +1,167 @@
 /*
-Eventually Consistent Distributed Key Value Store
+Eventually Consistent Distributed Key:Value Store
 
-Supports:
+- You give one subject and general-dkv provides a synchronous eventually consistent
+  "multimaster" distributed way to work with the KV store of keys matching that subject,
+  inside of the named KV store.
 
- - automatic value chunking to store arbitrarily large values
- - type checking the values
- - arbitrary name
- - arbitrary keys
- - limits
+- You may define a 3-way merge function, which is used to automatically resolve all
+  conflicting writes.   The default is to use our local version, i.e., "last write 
+  to remote wins".  The function is run locally so can have access to any state.
+  
+- All set/get/delete operations are synchronous.
 
-This downloads ALL data for the key:value store to the client,
-then keeps it is in sync with NATS.
+- The state gets sync'd in the backend to persistent storage on Conat as soon as possible,
+  and there is an async save function.
 
-For an alternative space efficient async interface to the EXACT SAME DATA,
-see akv.ts.
+This class is based on top of the Consistent Centralized Key:Value Store defined in kv.ts.
+You can use the same key:value store at the same time via both interfaces, and if the store
+is a DKV, you can also access the underlying KV via "store.kv".
 
-IMPORTANT: When you set data in a dkv, it is NOT guaranteed to be saved remotely
-forever immediately, obviously.  The dkv attempts to save to NATS in the background.
-**There are reasons whey saving might fail or data you have set could disappear!**
-E.g., if you set the max_msg_size limit, and try to set a value that is too
-large, then it is removed during save and a 'reject' event is fired.
-The other limits will silently delete data for other reasons as well (e.g., too old,
-too many messages).
+- You must explicitly call "await store.init()" to initialize this before using it.
 
-EVENTS:
+- The store emits an event ('change', key) whenever anything changes.
 
-- 'change', {key:string, value?:T, prev:T} -- there is a change.
-    if value===undefined, that means that key is deleted and the value used to be prev.
+- Calling "store.getAll()" provides ALL the data, and "store.get(key)" gets one value.
 
-- 'reject',  {key, value} -- data you set is rejected when trying to save, e.g., if too large
+- Use "store.set(key,value)" or "store.set({key:value, key2:value2, ...})" to set data,
+  with the following semantics:
 
-- 'stable' -- there are no unsaved changes and all saved changes have been
-            echoed back from server.
+  - in the background, changes propagate to Conat.  You do not do anything explicitly and
+    this should never raise an exception.
 
-- 'closed' -- the dkv is now closed.  Note that close's are reference counted, e.g., you can
-   grab the same dkv in multiple places in your code, close it when do with each, and it
-   is freed when the number of closes equals the number of objects you created.
+  - you can call "store.hasUnsavedChanges()" to see if there are any unsaved changes.
 
-Merge conflicts are handled by your custom merge function, and no event is fired.
+  - call "store.unsavedChanges()" to see the unsaved keys.
+
+- The 3-way merge function takes as input {local,remote,prev,key}, where
+    - key = the key where there's a conflict
+    - local = your version of the value
+    - remote = the remote value, which conflicts in that isEqual(local,remote) is false.
+    - prev = a known common prev of local and remote.
+
+    (any of local, remote or prev can be undefined, e.g., no previous value or a key was deleted)
+
+  You can do anything synchronously you want to resolve such conflicts, i.e., there are no
+  axioms that have to be satisifed.  If the 3-way merge function throws an exception (or is
+  not specified) we silently fall back to "last write wins".
+
 
 DEVELOPMENT:
 
-From node.js
+~/cocalc/src/packages/backend$ node
 
-    ~/cocalc/src/packages/backend$ n
-    Welcome to Node.js v18.17.1.
-    Type ".help" for more information.
-    > t = await require("@cocalc/backend/conat/sync").dkv({name:'test'})
-
-From the browser:
-
-If you want a persistent distributed key:value store in the browser,
-which shares state to all browser clients for a given **account_id**,
-do this in the dev console:
-
-    > a = await cc.client.conat_client.dkv({name:'test', account_id:cc.client.account_id})
-
-Then do the same thing in another dev console in another browser window:
-
-    > a = await cc.client.conat_client.dkv({name:'test', account_id:cc.client.account_id})
-
-Now do this in one:
-
-    > a.x = 10
-
-and
-
-    > a.x
-    10
-
-in the other.  Yes, it's that easy to have a persistent distributed eventually consistent
-synchronized key-value store!
-
-For library code, replace cc.client by webapp_client, which you get via:
-
-    import { webapp_client } from "@cocalc/frontend/webapp-client"
-
-If instead you need to share state with a project (or compute server), use
-
-> b = await cc.client.conat_client.dkv({name:'test', project_id:'...'})
+require("@cocalc/backend/conat"); a = require("@cocalc/conat/sync/general-dkv"); s = new a.GeneralDKV({name:'test',merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
 
 
-UNIT TESTS: See backend/conat/test/
+In the browser console:
 
-They aren't right here, because this module doesn't have info to connect to NATS.
+> s = await cc.client.conat_client.dkv({filter:['foo.>'],merge:({local,remote})=>{return {...remote,...local}}})
+
+# NOTE that the name is account-{account_id} or project-{project_id},
+# and if not given defaults to the account-{user's account id}
+> s.kv.name
+'account-6aae57c6-08f1-4bb5-848b-3ceb53e61ede'
+
+> s.on('change',(key)=>console.log(key));0;
 
 */
 
 import { EventEmitter } from "events";
+import { CoreStream } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { GeneralDKV, TOMBSTONE, type MergeFunction } from "./general-dkv";
-import { jsName } from "@cocalc/conat/names";
-import { userKvKey, type KVOptions } from "./kv";
-import { localLocationName } from "@cocalc/conat/names";
-import refCache from "@cocalc/util/refcache";
-import { getEnv } from "@cocalc/conat/client";
-import {
-  inventory,
-  INVENTORY_NAME,
-  THROTTLE_MS,
-  type Inventory,
-} from "./inventory";
-import { asyncThrottle } from "@cocalc/util/async-utils";
+import { isEqual } from "lodash";
 import { delay } from "awaiting";
-import { decodeBase64, encodeBase64 } from "@cocalc/conat/util";
-import { getLogger } from "@cocalc/conat/client";
-import { waitUntilConnected } from "@cocalc/conat/util";
+import { map as awaitMap } from "awaiting";
+import type { Client, Headers } from "@cocalc/conat/core/client";
+import refCache from "@cocalc/util/refcache";
+import type { JSONValue } from "@cocalc/util/types";
 
-const logger = getLogger("dkv");
+export const TOMBSTONE = Symbol("tombstone");
+const MAX_PARALLEL = 250;
 
-export interface DKVOptions extends KVOptions {
-  merge?: MergeFunction;
+export interface KVLimits {
+  // How many keys may be in the KV store. Oldest keys will be removed
+  // if the key-value store exceeds this size. -1 for unlimited.
+  max_msgs: number;
+
+  // Maximum age of any key, expressed in milliseconds. 0 for unlimited.
+  // Age is updated whenever value of the key is changed.
+  max_age: number;
+
+  // The maximum number of bytes to store in this KV, which means
+  // the total of the bytes used to store everything.  Since we store
+  // the key with each value (to have arbitrary keys), this includes
+  // the size of the keys.
+  max_bytes: number;
+
+  // The maximum size of any single value, including the key.
+  max_msg_size: number;
+}
+
+export type MergeFunction = (opts: {
+  key: string;
+  prev: any;
+  local: any;
+  remote: any;
+}) => any;
+
+interface SetOptions {
+  headers?: Headers;
+}
+
+export interface DKVOptions {
+  name: string;
+  account_id?: string;
+  project_id?: string;
+  desc?: JSONValue;
+  client?: Client;
+  // 3-way merge conflict resolution
+  merge?: (opts: { key: string; prev?: any; local?: any; remote?: any }) => any;
+  limits?: Partial<KVLimits>;
+  // if noAutosave is set, local changes are never saved until you explicitly
+  // call "await this.save()", which will try once to save.  Changes made during
+  // the save may not be saved though.
   noAutosave?: boolean;
-  noInventory?: boolean;
+  noCache?: boolean;
 }
 
 export class DKV<T = any> extends EventEmitter {
-  generalDKV?: GeneralDKV;
-  name: string;
-  private prefix: string;
-  private opts;
-  private keys: { [encodedKey: string]: string } = {};
+  private kv?: CoreStream<T>;
+  private merge?: MergeFunction;
+  private local: { [key: string]: T | typeof TOMBSTONE } = {};
+  private options: { [key: string]: SetOptions } = {};
+  private saved: { [key: string]: T | typeof TOMBSTONE } = {};
+  private changed: Set<string> = new Set();
+  private noAutosave: boolean;
+  public readonly name: string;
+  public readonly desc?: JSONValue;
 
-  constructor(options: DKVOptions) {
+  constructor({
+    name,
+    project_id,
+    account_id,
+    desc,
+    client,
+    merge,
+    limits,
+    noAutosave,
+  }: DKVOptions) {
     super();
-    const {
-      name,
-      account_id,
-      project_id,
-      merge,
-      env,
-      noAutosave,
-      limits,
-      noInventory,
-      desc,
-      valueType = "json",
-    } = options;
-    if (env == null) {
-      throw Error("env must not be null");
-    }
-    if (
-      noInventory ||
-      (process.env.COCALC_TEST_MODE && noInventory == null) ||
-      name == INVENTORY_NAME
-    ) {
-      // @ts-ignore
-      this.updateInventory = () => {};
-    }
-    // name of the jetstream key:value store.
     this.name = name;
-
-    this.prefix = getPrefix({ name, valueType, options });
-
-    this.opts = {
-      location: { account_id, project_id },
-      name: jsName({ account_id, project_id }),
-      desc,
-      noInventory,
-      subject: this.prefix,
-      env,
-      merge,
-      noAutosave,
+    this.desc = desc;
+    this.merge = merge;
+    this.noAutosave = !!noAutosave;
+    this.kv = new CoreStream({
+      name,
+      project_id,
+      account_id,
+      client,
       limits,
-      valueType,
-    };
+      // we do not have any notion of ephemeral kv yet
+      persist: true,
+    });
 
-    this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
         if (typeof prop == "string") {
@@ -192,307 +188,356 @@ export class DKV<T = any> extends EventEmitter {
   }
 
   init = reuseInFlight(async () => {
-    if (this.generalDKV != null) {
-      return;
+    if (this.kv == null) {
+      throw Error("closed");
     }
-    // the merge conflict algorithm must be adapted since we encode
-    // the key in the header.
-    const merge = (opts) => {
-      // here is what the input might look like:
-      //   opts = {
-      //   key: '71d7616250fed4dc27b70ee3b934178a3b196bbb.11f6ad8ec52a2984abaafd7c3b516503785c2072',
-      //   remote: { key: 'x', value: 10 },
-      //   local: { key: 'x', value: 5 },
-      //   prev:  { key: 'x', value: 3 }
-      //   }
-      const key = this.getKey(opts.key);
-      if (key == null) {
-        console.warn("BUG in merge conflict resolution", opts);
-        throw Error("local key must be defined");
-      }
-      const { local, remote, prev } = opts;
-      try {
-        return this.opts.merge?.({ key, local, remote, prev }) ?? local;
-      } catch (err) {
-        console.warn("exception in merge conflict resolution", err);
-        return local;
-      }
-    };
-    this.generalDKV = new GeneralDKV({
-      ...this.opts,
-      merge,
-      desc: `${this.name} ${this.opts.desc ?? ""}`,
-    });
-    this.generalDKV.on("change", ({ key, value, prev }) => {
-      if (this.generalDKV == null) {
-        return;
-      }
-      let decodedKey;
-      try {
-        decodedKey = this.getKey(key);
-      } catch (err) {
-        // key is missing so at this point there is no knowledge of it and
-        // nothing we can alert on.
-        // TODO: may remove this when/if we completely understand why
-        // this ever happens
-        // console.log("WARNING: missing key for -- ", { key, err });
-        return;
-      }
-      if (value !== undefined && value !== TOMBSTONE) {
-        this.emit("change", {
-          key: decodedKey,
-          value,
-          prev,
-        });
-      } else {
-        // value is undefined or TOMBSTONE, so it's a delete, so do not set value here
-        this.emit("change", { key: decodedKey, prev });
-      }
-    });
-    this.generalDKV.on("reject", ({ key, value }) => {
-      if (this.generalDKV == null) {
-        return;
-      }
-      if (value != null) {
-        this.emit("reject", { key: this.getKey(key), value });
-      }
-    });
-    this.generalDKV.on("stable", () => this.emit("stable"));
-    await this.generalDKV.init();
-    this.updateInventory();
+    this.kv.on("change", this.handleRemoteChange);
+    await this.kv.init();
+    this.emit("connected");
   });
 
   close = async () => {
-    const generalDKV = this.generalDKV;
-    if (generalDKV == null) {
+    if (this.kv == null) {
       return;
     }
-    delete this.generalDKV;
-    await generalDKV.close();
-    // @ts-ignore
-    delete this.opts;
+    if (!this.noAutosave) {
+      try {
+        await this.save();
+      } catch (err) {
+        // [ ] TODO: try localStorage or a file?!  throw?
+        console.log(
+          `WARNING: unable to save some data when closing a general-dkv -- ${err}`,
+        );
+      }
+    }
+    this.kv.close();
     this.emit("closed");
     this.removeAllListeners();
+    delete this.kv;
+    // @ts-ignore
+    delete this.local;
+    // @ts-ignore
+    delete this.options;
+    // @ts-ignore
+    delete this.changed;
+    delete this.merge;
   };
 
-  delete = (key: string) => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
+  private discardLocalState = (key: string) => {
+    delete this.local[key];
+    delete this.options[key];
+    delete this.saved[key];
+    if (this.isStable()) {
+      this.emit("stable");
     }
-    this.generalDKV.delete(this.encodeKey(key));
-    this.updateInventory();
   };
 
-  clear = () => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
+  // stable = everything is saved *and* also echoed back from the server as confirmation.
+  isStable = () => {
+    for (const _ in this.local) {
+      return false;
     }
-    this.generalDKV.clear();
-    this.updateInventory();
+    return true;
   };
 
-  // server assigned time
-  time = (key?: string): Date | undefined | { [key: string]: Date } => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
+  private handleRemoteChange = (remote, _raw, key, prev) => {
+    if (key === undefined) {
+      // not part of kv store.
+      return;
     }
-    const times = this.generalDKV.time(key ? this.encodeKey(key) : undefined);
-    if (key != null || times == null) {
-      return times;
+    const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
+    let value: any = remote;
+    if (local !== undefined) {
+      // we have an unsaved local value, so let's check to see if there is a
+      // conflict or not.
+      if (isEqual(local, remote)) {
+        // incoming remote value is equal to unsaved local value, so we can
+        // just discard our local value (no need to save it).
+        this.discardLocalState(key);
+      } else {
+        // There is a conflict.  Let's resolve the conflict:
+        // console.log("merge conflict", { key, remote, local, prev });
+        try {
+          value = this.merge?.({ key, local, remote, prev }) ?? local;
+          // console.log("merge conflict --> ", value);
+          //           console.log("handle merge conflict", {
+          //             key,
+          //             local,
+          //             remote,
+          //             prev,
+          //             value,
+          //           });
+        } catch (err) {
+          console.warn("exception in merge conflict resolution", err);
+          // user provided a merge function that throws an exception. We select local, since
+          // it is the newest, i.e., "last write wins"
+          value = local;
+          // console.log("merge conflict ERROR --> ", err, value);
+        }
+        if (isEqual(value, remote)) {
+          // no change, so forget our local value
+          this.discardLocalState(key);
+        } else {
+          // resolve with the new value, or if it is undefined, a TOMBSTONE,
+          // meaning choice is to delete.
+          // console.log("conflict resolution: ", { key, value });
+          if (value === TOMBSTONE) {
+            this.delete(key);
+          } else {
+            this.set(key, value);
+          }
+        }
+      }
     }
-    const obj = this.generalDKV.getAll();
-    const x: any = {};
-    for (const k in obj) {
-      const { key } = obj[k];
-      x[key] = times[k];
-    }
-    return x;
-  };
-
-  // WARNING: (1) DO NOT CHANGE THIS or all stored data will become invalid.
-  //          (2) This definition is used implicitly in akv.ts also!
-  // The encoded key which we actually store in NATS.   It has to have
-  // a restricted form, and a specified prefix, which
-  // is why the hashing, etc.  This allows arbitrary keys.
-  // We have to monkey patch nats to accept even base64 keys!)
-  // There are NOT issues with key length though.  This same strategy of encoding
-  // keys using base64 is used by Nats object store:
-  //   https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-20.md#object-name
-  private encodeKey = (key) => {
-    if (typeof key != "string") {
-      key = `${key}`;
-    }
-    return key ? `${this.prefix}.${encodeBase64(key)}` : this.prefix;
-  };
-
-  // decodeKey is the inverse of encodeKey
-  private decodeKey = (encodedKey) => {
-    const v = encodedKey.split(".");
-    return v[1] ? decodeBase64(v[1]) : "";
-  };
-
-  has = (key: string): boolean => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
-    }
-    return this.generalDKV.has(this.encodeKey(key));
+    this.emit("change", { key, value, prev });
   };
 
   get = (key: string): T | undefined => {
-    if (this.generalDKV == null) {
+    if (this.kv == null) {
       throw Error("closed");
     }
-    return this.generalDKV.get(this.encodeKey(key));
-  };
-
-  getAll = (): { [key: string]: T } => {
-    if (this.generalDKV == null) {
-      throw Error("closed");
+    const local = this.local[key];
+    if (local === TOMBSTONE) {
+      return undefined;
     }
-    const obj = this.generalDKV.getAll();
-    const x: any = {};
-    for (const k in obj) {
-      const key = this.getKey(k);
-      x[key] = obj[k];
+    if (local !== undefined) {
+      return local;
     }
-    return x;
-  };
-
-  private getKey = (k) => {
-    if (this.keys[k] != null) {
-      return this.keys[k];
-    }
-    return this.decodeKey(k);
-  };
-
-  headers = (key: string) => {
-    return this.generalDKV?.headers(this.encodeKey(key));
+    return this.kv.getKv(key);
   };
 
   get length(): number {
-    if (this.generalDKV == null) {
-      throw Error("closed");
-    }
-    return this.generalDKV.length;
+    // not efficient
+    return Object.keys(this.getAll()).length;
   }
 
-  set = (
-    key: string,
-    value: T,
-    // NOTE: if you call this.headers(n) it is NOT visible until the publish is confirmed.
-    // This could be changed with more work if it matters.
-    options?: { headers?: { [key: string]: string } },
-  ): void => {
-    if (this.generalDKV == null) {
+  getAll = (): { [key: string]: T } => {
+    if (this.kv == null) {
       throw Error("closed");
     }
-    if (value === undefined) {
-      // undefined can't be JSON encoded, so we can't possibly represent it, and this
-      // *must* be treated as a delete.
-      // NOTE that jc.encode encodes null and undefined the same, so supporting this
-      // as a value is just begging for misery.
-      this.delete(key);
-      this.updateInventory();
-      return;
+    const x = { ...this.kv.getAllKv(), ...this.local };
+    for (const key in this.local) {
+      if (this.local[key] === TOMBSTONE) {
+        delete x[key];
+      }
     }
-    const encodedKey = this.encodeKey(key);
-    this.keys[encodedKey] = key;
-    this.generalDKV.set(encodedKey, value, {
-      headers: { ...options?.headers },
-    });
-    this.updateInventory();
+    return x as { [key: string]: T };
   };
 
-  hasUnsavedChanges = (): boolean => {
-    if (this.generalDKV == null) {
+  has = (key: string): boolean => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    const a = this.local[key];
+    if (a === TOMBSTONE) {
       return false;
     }
-    return this.generalDKV.hasUnsavedChanges();
+    if (a !== undefined) {
+      return true;
+    }
+    return this.kv.hasKv(key);
+  };
+
+  time = (key?: string): { [key: string]: Date } | Date | undefined => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    return this.kv.timeKv(key);
+  };
+
+  seq = (key: string): number | undefined => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    return this.kv.seqKv(key);
+  };
+
+  private _delete = (key) => {
+    this.local[key] = TOMBSTONE;
+    this.changed.add(key);
+  };
+
+  delete = (key) => {
+    this._delete(key);
+    if (!this.noAutosave) {
+      this.save();
+    }
+  };
+
+  clear = () => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    for (const key in this.kv.getAllKv()) {
+      this._delete(key);
+    }
+    for (const key in this.local) {
+      this._delete(key);
+    }
+    if (!this.noAutosave) {
+      this.save();
+    }
+  };
+
+  private toValue = (obj) => {
+    if (obj === undefined) {
+      return TOMBSTONE;
+    }
+    return obj;
+  };
+
+  headers = (key: string): Headers | undefined => {
+    if (this.options[key] != null) {
+      return this.options[key]?.headers;
+    } else {
+      return this.kv?.headersKv(key);
+    }
+  };
+
+  set = (key: string, value: T, options?: SetOptions) => {
+    const obj = this.toValue(value);
+    this.local[key] = obj;
+    if (options != null) {
+      this.options[key] = options;
+    }
+    this.changed.add(key);
+    if (!this.noAutosave) {
+      this.save();
+    }
+  };
+
+  setMany = (obj) => {
+    for (const key in obj) {
+      this.local[key] = this.toValue(obj[key]);
+      this.changed.add(key);
+    }
+    if (!this.noAutosave) {
+      this.save();
+    }
+  };
+
+  hasUnsavedChanges = () => {
+    if (this.kv == null) {
+      return false;
+    }
+    return this.unsavedChanges().length > 0;
   };
 
   unsavedChanges = (): string[] => {
-    const generalDKV = this.generalDKV;
-    if (generalDKV == null) {
-      return [];
+    return Object.keys(this.local).filter(
+      (key) => this.local[key] !== this.saved[key],
+    );
+  };
+
+  save = reuseInFlight(async () => {
+    if (this.noAutosave) {
+      return await this.attemptToSave();
+      // one example error when there's a conflict brewing:
+      /*
+        {
+          code: 10071,
+          name: 'JetStreamApiError',
+          message: 'wrong last sequence: 84492'
+        }
+        */
     }
-    return generalDKV.unsavedChanges().map((key) => this.getKey(key));
-  };
-
-  isStable = () => {
-    return this.generalDKV?.isStable();
-  };
-
-  save = async () => {
-    return await this.generalDKV?.save();
-  };
-
-  private updateInventory = asyncThrottle(
-    async () => {
-      if (this.generalDKV == null || this.opts.noInventory) {
-        return;
-      }
-      await delay(500);
-      if (this.generalDKV == null) {
-        return;
-      }
-      const { valueType } = this.opts;
-      const name = this.name;
-      let inv: null | Inventory = null;
-
+    let d = 100;
+    while (true) {
+      let status;
       try {
-        await waitUntilConnected();
-        inv = await inventory(this.opts.location);
-        if (this.generalDKV == null) {
-          return;
-        }
-        if (!inv.needsUpdate({ name, type: "kv", valueType })) {
-          return;
-        }
-        const stats = this.generalDKV.stats();
-        if (stats == null) {
-          return;
-        }
-        const { count, bytes } = stats;
-        inv.set({
-          type: "kv",
-          name,
-          count,
-          bytes,
-          desc: this.opts.desc,
-          valueType: this.opts.valueType,
-          limits: this.opts.limits,
-        });
-      } catch (err) {
-        logger.debug(
-          `WARNING: unable to update inventory for ${this.opts?.name} -- ${err}`,
-        );
-      } finally {
-        await inv?.close();
+        status = await this.attemptToSave();
+        //console.log("successfully saved");
+      } catch (_err) {
+        //console.log("temporary issue saving", this.kv?.name, _err);
       }
-    },
-    THROTTLE_MS,
-    { leading: true, trailing: true },
-  );
-}
+      if (!this.hasUnsavedChanges()) {
+        return status;
+      }
+      d = Math.min(10000, d * 1.3) + Math.random() * 100;
+      await delay(d);
+    }
+  });
 
-// *** WARNING: THIS CAN NEVER BE CHANGE! **
-// The recipe for 'this.prefix' must never be changed, because
-// it determines where the data is actually stored.  If you change
-// it, then every user's data vanishes.
-export function getPrefix({ name, valueType, options }) {
-  return encodeBase64(
-    JSON.stringify([name, valueType, localLocationName(options)]),
-  );
+  private attemptToSave = reuseInFlight(async () => {
+    if (this.kv == null) {
+      throw Error("closed");
+    }
+    this.changed.clear();
+    const status = { unsaved: 0, set: 0, delete: 0 };
+    const obj = { ...this.local };
+    for (const key in obj) {
+      if (obj[key] === TOMBSTONE) {
+        status.unsaved += 1;
+        await this.kv.deleteKv(key);
+        status.delete += 1;
+        status.unsaved -= 1;
+        delete obj[key];
+        if (!this.changed.has(key)) {
+          // successfully saved this and user didn't make a change *during* the set
+          this.discardLocalState(key);
+        }
+      }
+    }
+    const f = async (key) => {
+      if (this.kv == null) {
+        // closed
+        return;
+      }
+      try {
+        status.unsaved += 1;
+        const previousSeq = this.seq(key);
+        await this.kv.setKv(key, obj[key] as T, {
+          ...this.options[key],
+          previousSeq,
+        });
+        //         console.log("kv store -- attemptToSave succeed", this.desc, {
+        //           key,
+        //           value: obj[key],
+        //         });
+        status.unsaved -= 1;
+        status.set += 1;
+        if (!this.changed.has(key)) {
+          // successfully saved this and user didn't make a change *during* the set
+          this.discardLocalState(key);
+        }
+        // note that we CANNOT call  this.discardLocalState(key) here, because
+        // this.get(key) needs to work immediately after save, but if this.local[key]
+        // is deleted, then this.get(key) would be undefined, because
+        // this.kv.getKv(key) only has value in it once the value is
+        // echoed back from the server.
+      } catch (err) {
+        //         console.log("kv store -- attemptToSave failed", this.desc, err, {
+        //           key,
+        //           value: obj[key],
+        //         });
+        if (err.code == "REJECT" && err.key) {
+          const value = this.local[err.key];
+          // can never save this.
+          this.discardLocalState(err.key);
+          status.unsaved -= 1;
+          this.emit("reject", { key: err.key, value });
+        }
+        if (err.message.startsWith("wrong last sequence")) {
+          // this happens when another client has published a NEWER version of this key,
+          // so the right thing is to just ignore this.  In a moment there will be no
+          // need to save anything, since we'll receive a message that overwrites this key.
+          return;
+        }
+        throw err;
+      }
+    };
+    await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
+    return status;
+  });
+
+  stats = () => this.kv?.stats();
 }
 
 export const cache = refCache<DKVOptions, DKV>({
   name: "dkv",
-  createKey: userKvKey,
+  createKey: ({ name, account_id, project_id }) =>
+    JSON.stringify({ name, account_id, project_id }),
   createObject: async (opts) => {
-    await waitUntilConnected();
-    if (opts.env == null) {
-      opts.env = await getEnv();
-    }
     const k = new DKV(opts);
     await k.init();
     return k;

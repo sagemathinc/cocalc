@@ -21,11 +21,16 @@ import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import { getEnv } from "@cocalc/conat/client";
 
+interface DKOOptions extends DKVOptions {
+  // TODO
+  env?: any;
+}
+
 export class DKO<T = any> extends EventEmitter {
   opts: DKVOptions;
   dkv?: DKV; // can't type this
 
-  constructor(opts: DKVOptions) {
+  constructor(opts: DKOOptions) {
     super();
     this.opts = opts;
     this.init();
@@ -223,7 +228,7 @@ export class DKO<T = any> extends EventEmitter {
   };
 }
 
-export const cache = refCache<DKVOptions, DKO>({
+export const cache = refCache<DKOOptions, DKO>({
   name: "dko",
   createKey: userKvKey,
   createObject: async (opts) => {
@@ -243,6 +248,6 @@ function dkoPrefix(name: string): string {
   return `${DKO_PREFIX}${name}`;
 }
 
-export async function dko<T>(options: DKVOptions): Promise<DKO<T>> {
+export async function dko<T>(options: DKOOptions): Promise<DKO<T>> {
   return await cache(options);
 }

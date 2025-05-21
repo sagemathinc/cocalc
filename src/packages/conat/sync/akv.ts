@@ -20,17 +20,30 @@ DEVELOPMENT:
 
 import { GeneralKV } from "./general-kv";
 import { getEnv } from "@cocalc/conat/client";
-import { type DKVOptions, getPrefix } from "./dkv";
+import { localLocationName } from "@cocalc/conat/names";
+import { type DKVOptions } from "./dkv";
 import { once } from "@cocalc/util/async-utils";
 import { jsName } from "@cocalc/conat/names";
 import { encodeBase64 } from "@cocalc/conat/util";
 
+export function getPrefix({ name, valueType, options }) {
+  return encodeBase64(
+    JSON.stringify([name, valueType, localLocationName(options)]),
+  );
+}
+
+interface AKVOptions extends DKVOptions {
+  // TODO
+  env: any;
+  valueType: any;
+}
+
 export class AKV<T = any> {
-  private options: DKVOptions;
+  private options: AKVOptions;
   private prefix: string;
   private noChunks?: boolean;
 
-  constructor({ noChunks, ...options }: DKVOptions & { noChunks?: boolean }) {
+  constructor({ noChunks, ...options }: AKVOptions & { noChunks?: boolean }) {
     this.options = options;
     this.noChunks = noChunks;
     const { name, valueType = "json" } = options;
@@ -168,6 +181,6 @@ export class AKV<T = any> {
   };
 }
 
-export function akv<T>(opts: DKVOptions) {
+export function akv<T>(opts: AKVOptions) {
   return new AKV<T>(opts);
 }

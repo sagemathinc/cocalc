@@ -31,7 +31,6 @@ export class SyncTableKV extends EventEmitter {
   private getHook: Function;
   private limits?: Partial<KVLimits>;
   private desc?: JSONValue;
-  private noInventory?: boolean;
 
   constructor({
     query,
@@ -42,7 +41,6 @@ export class SyncTableKV extends EventEmitter {
     immutable,
     limits,
     desc,
-    noInventory,
   }: {
     query;
     env: NatsEnv;
@@ -52,10 +50,8 @@ export class SyncTableKV extends EventEmitter {
     immutable?: boolean;
     limits?: Partial<KVLimits>;
     desc?: JSONValue;
-    noInventory?: boolean;
   }) {
     super();
-    this.noInventory = noInventory;
     this.setMaxListeners(100);
     this.atomic = !!atomic;
     this.getHook = immutable ? fromJS : (x) => x;
@@ -121,20 +117,16 @@ export class SyncTableKV extends EventEmitter {
         name,
         account_id: this.account_id,
         project_id: this.project_id,
-        env: this.env,
         limits: this.limits,
         desc: this.desc,
-        noInventory: this.noInventory,
       });
     } else {
       this.dkv = await createDko({
         name,
         account_id: this.account_id,
         project_id: this.project_id,
-        env: this.env,
         limits: this.limits,
         desc: this.desc,
-        noInventory: this.noInventory,
       });
     }
     // For some reason this one line confuses typescript and break building the compute server package (nothing else similar happens).

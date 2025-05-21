@@ -1,10 +1,10 @@
 /*
 DEVELOPMENT:
 
-pnpm test ./general-dkv.test.ts
+pnpm test ./dkv-basics.test.ts
 
 */
-import { GeneralDKV } from "@cocalc/conat/sync/general-dkv";
+import { DKV } from "@cocalc/conat/sync/dkv";
 import { connect, before, after } from "@cocalc/backend/conat/test/setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 
@@ -16,7 +16,7 @@ describe("create a general kv and do basic operations", () => {
 
   it("creates the kv", async () => {
     client = connect();
-    kv = new GeneralDKV({ name, client });
+    kv = new DKV({ name, client });
     await kv.init();
   });
 
@@ -34,7 +34,7 @@ describe("create a general kv and do basic operations", () => {
   let client2, kv2;
   it("view the kv from a second client via sync, set a date value and observe it syncs", async () => {
     client2 = connect();
-    kv2 = new GeneralDKV({ name, client });
+    kv2 = new DKV({ name, client });
     await kv2.init();
     expect(kv2.getAll()).toEqual({ co: "nat" });
 
@@ -98,7 +98,7 @@ describe("create a general kv and do basic operations", () => {
     expect(seq).toBeGreaterThan(0);
     kv.set("x", 15);
     await kv.save();
-    expect(kv.seq('x')-seq).toBe(1);
+    expect(kv.seq("x") - seq).toBe(1);
   });
 
   it("clean up", async () => {
