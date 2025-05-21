@@ -26,26 +26,24 @@ A nice thing about doing that is if you write this deep in some code:
 
 then after that code runs you can access x from the node console!
 
-4. Use the browser to see the project is on nats and works:
+4. Use the browser to see the project is on conat and works:
 
     await cc.client.conat_client.projectWebsocketApi({project_id:'56eb622f-d398-489a-83ef-c09f1a1e8094', mesg:{cmd:"listing"}})
 
-5. In a terminal you can always tap into the message stream for a particular project (do `pnpm nats-shell` if necessary to setup your environment):
+5. In a terminal you can always tap into the message stream for a particular project:
 
-   nats sub --match-replies project.56eb622f-d398-489a-83ef-c09f1a1e8094.browser-api
+   cd packages/backend
+   pnpm conat-watch project.56eb622f-d398-489a-83ef-c09f1a1e8094.browser-api --match-replies
 
 */
 
 import { getLogger } from "@cocalc/project/logger";
-import { JSONCodec } from "nats";
 import getConnection, { connectToConat } from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getPrimusConnection } from "@cocalc/conat/primus";
 import { getSubject } from "./names";
 
 const logger = getLogger("project:nats:browser-websocket-api");
-
-const jc = JSONCodec();
 
 export async function init() {
   const nc = await getConnection();
@@ -59,7 +57,7 @@ export async function init() {
     subject: getSubject({
       service: "primus",
     }),
-    env: { nc, jc, cn },
+    env: { nc, jc: null as any, cn },
     role: "server",
     id: "project",
   });

@@ -1,6 +1,5 @@
 import getConnection, { connectToConat } from "./connection";
 import { project_id } from "@cocalc/project/data";
-import { JSONCodec } from "nats";
 import {
   createSyncTable,
   type NatsSyncTable,
@@ -9,7 +8,7 @@ import { parse_query } from "@cocalc/sync/table/util";
 import { keys } from "lodash";
 import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
 
-const jc = JSONCodec();
+const jc = null as any;
 
 const synctable: NatsSyncTableFunction = async (
   query,

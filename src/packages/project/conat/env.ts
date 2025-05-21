@@ -1,11 +1,10 @@
 import { sha1 } from "@cocalc/backend/sha1";
 import getConnection, { connectToConat } from "./connection";
-import { JSONCodec } from "nats";
 import { setConatClient } from "@cocalc/conat/client";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
 
-const jc = JSONCodec();
+const jc = null as any;
 export async function getEnv() {
   const nc = await getConnection();
   const cn = connectToConat();

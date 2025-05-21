@@ -8,7 +8,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
     await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'api'})
 
-1. Create a file project-env.sh as explained in projects/nats/README.md, which defines these environment variables (your values will be different):
+1. Create a file project-env.sh as explained in projects/conat/README.md, which defines these environment variables (your values will be different):
 
     export COCALC_PROJECT_ID="00847397-d6a8-4cb0-96a8-6ef64ac3e6cf"
     export COCALC_USERNAME=`echo $COCALC_PROJECT_ID | tr -d '-'`
@@ -60,7 +60,7 @@ import { project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/conat/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/conat/files/write";
 
-const logger = getLogger("project:nats:api");
+const logger = getLogger("project:conat:api");
 
 export function init() {
   serve();
@@ -68,7 +68,7 @@ export function init() {
 
 let terminate = false;
 async function serve() {
-  logger.debug("serve: create project nats api service");
+  logger.debug("serve: create project conat api service");
   const cn = connectToConat();
   const subject = getSubject({ service: "api" });
   // @ts-ignore
