@@ -8,13 +8,16 @@ to open so they can fulfill their backend responsibilities:
 
 DEVELOPMENT:
 
-pnpm exec jest --forceExit "open-files.test.ts"
+pnpm test ./open-files.test.ts
 
 */
 
 import { openFiles as createOpenFiles } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 const project_id = "00000000-0000-4000-8000-000000000000";
 async function create() {
@@ -130,3 +133,5 @@ describe("create open file tracker and do some basic operations", () => {
     expect(o2.get(file2).error).toBe(undefined);
   });
 });
+
+afterAll(after);

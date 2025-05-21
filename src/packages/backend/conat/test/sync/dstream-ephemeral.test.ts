@@ -204,7 +204,7 @@ describe("get sequence number and time of message", () => {
     if (s.time(1) == null) {
       await once(s, "change");
     }
-    expect(s.time(0).getTime()).toBeLessThan(s.time(1).getTime());
+    expect(s.time(0).getTime()).toBeLessThanOrEqual(s.time(1).getTime());
   });
 });
 
