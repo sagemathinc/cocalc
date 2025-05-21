@@ -1,5 +1,4 @@
 import * as nats from "nats.ws";
-import { connect, type CoCalcNatsConnection } from "./connection";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -47,7 +46,6 @@ import {
   getEnv,
 } from "@cocalc/conat/client";
 import type { ConnectionInfo } from "./types";
-import { fromJS } from "immutable";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
@@ -57,7 +55,11 @@ import { connect as connectToConat } from "@cocalc/conat/core/client";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
-const NATS_STATS_INTERVAL = 2500;
+export interface ConatConnectionStatus {
+  state: "connected" | "disconnected";
+  reason: string;
+  details: any;
+}
 
 const DEFAULT_TIMEOUT = 15000;
 
@@ -67,7 +69,7 @@ export class ConatClient extends EventEmitter {
   client: WebappClient;
   private sc = nats.StringCodec();
   private jc = nats.JSONCodec();
-  private nc?: CoCalcNatsConnection;
+  private nc?: any;
   public nats = nats;
   public jetstream = jetstream;
   public hub: HubApi;
@@ -88,11 +90,28 @@ export class ConatClient extends EventEmitter {
     });
   }
 
+  private setConnectionStatus = (status: ConatConnectionStatus) => {
+    if (redux == null) {
+      return;
+    }
+    redux.getActions("page")?.setState({ conat: status } as any);
+  };
+
   conat = () => {
     if (this._conatClient == null) {
       this._conatClient = connectToConat("/", {
         path: join(appBasePath, "conat"),
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
+      });
+      this._conatClient.conn.on("connect", () => {
+        this.setConnectionStatus({
+          state: "connected",
+          reason: "",
+          details: "",
+        });
+      });
+      this._conatClient.conn.on("disconnect", (reason, details) => {
+        this.setConnectionStatus({ state: "disconnected", reason, details });
       });
     }
     return this._conatClient!;
@@ -140,24 +159,20 @@ export class ConatClient extends EventEmitter {
 
   private getConnection = reuseInFlight(async () => {
     return null as any;
-    
-//     if (this.nc != null) {
-//       return this.nc;
-//     }
-//     this.nc = await connect();
-//     this.setConnectionState("connected");
-//     this.monitorConnectionState(this.nc);
-//     this.reportConnectionStats(this.nc);
-//     return this.nc;
+
+    //     if (this.nc != null) {
+    //       return this.nc;
+    //     }
+    //     this.nc = await connect();
+    //     this.setConnectionState("connected");
+    //     this.monitorConnectionState(this.nc);
+    //     this.reportConnectionStats(this.nc);
+    //     return this.nc;
   });
 
   reconnect = reuseInFlight(async () => {
-    if (this.nc != null) {
-      console.log("NATS connection: reconnecting...");
-      this.standby();
-      await delay(50);
-      await this.resume();
-    }
+    this._conatClient?.conn.io.engine.close();
+    this._conatClient?.conn.connect();
   });
 
   // if there is a connection, put it in standby
@@ -180,27 +195,6 @@ export class ConatClient extends EventEmitter {
         data: this.nc?.stats(),
       },
     } as any);
-  };
-
-  private monitorConnectionState = async (nc) => {
-    for await (const _ of nc.statusOfCurrentConnection()) {
-      this.setConnectionState();
-    }
-  };
-
-  private reportConnectionStats = async (nc) => {
-    while (true) {
-      const store = redux?.getStore("page");
-      const actions = redux?.getActions("page");
-      if (store != null && actions != null) {
-        const cur = store.get("nats") ?? (fromJS({}) as any);
-        const nats = cur.set("data", fromJS(nc.stats()));
-        if (!cur.equals(nats)) {
-          actions.setState({ nats });
-        }
-      }
-      await delay(NATS_STATS_INTERVAL);
-    }
   };
 
   callConatService: CallConatServiceFunction = async (options) => {
