@@ -34,7 +34,7 @@ describe("create a general kv and do basic operations", () => {
   let client2, kv2;
   it("view the kv from a second client via sync, set a date value and observe it syncs", async () => {
     client2 = connect();
-    kv2 = new DKV({ name, client });
+    kv2 = new DKV({ name, client: client2 });
     await kv2.init();
     expect(kv2.getAll()).toEqual({ co: "nat" });
 

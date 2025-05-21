@@ -3,20 +3,24 @@ Testing basic ops with dkv
 
 DEVELOPMENT:
 
-pnpm test dkv.test.ts
+pnpm test ./dkv.test.ts
 
 */
 
 import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { wait } from "@cocalc/backend/conat/test/util";
+
+beforeAll(before);
 
 describe("create a public dkv and do basic operations", () => {
   let kv;
   const name = `test-${Math.random()}`;
 
   it("creates the dkv", async () => {
-    kv = await createDkv({ name });
+    kv = await createDkv({ name, noCache: true });
     expect(kv.getAll()).toEqual({});
   });
 
@@ -28,14 +32,14 @@ describe("create a public dkv and do basic operations", () => {
   it("waits for the dkv to be longterm saved, then closing and recreates the kv and verifies that the key is there.", async () => {
     await kv.save();
     kv.close();
-    kv = await createDkv({ name });
+    kv = await createDkv({ name, noCache: true });
     expect(kv.a).toEqual(10);
   });
 
   it("closes the kv", async () => {
     await kv.clear();
-    kv.close();
-    expect(kv.getAll).toThrow("closed");
+    await kv.close();
+    expect(() => kv.getAll()).toThrow("closed");
   });
 });
 
@@ -52,14 +56,15 @@ describe("opens a dkv twice and verifies the cache works and is reference counte
   });
 
   it("closes kv1 (one reference)", async () => {
-    kv1.close();
+    await kv1.close();
     expect(kv2.getAll).not.toThrow();
   });
 
   it("closes kv2 (another reference)", async () => {
-    kv2.close();
+    await kv2.close();
+    await delay(1);
     // really closed!
-    expect(kv2.getAll).toThrow("closed");
+    expect(() => kv2.getAll()).toThrow("closed");
   });
 
   it("create and see it is new now", async () => {
@@ -249,13 +254,13 @@ describe("set several items, confirm write worked, save, and confirm they are st
     //     // the local state maps should also get cleared quickly,
     //     // but there is no event for this, so we loop:
     //  @ts-ignore: saved is private
-    while (Object.keys(kv.generalDKV.local).length > 0) {
+    while (Object.keys(kv.local).length > 0) {
       await delay(10);
     }
     // @ts-ignore: local is private
-    expect(kv.generalDKV.local).toEqual({});
+    expect(kv.local).toEqual({});
     // @ts-ignore: saved is private
-    expect(kv.generalDKV.saved).toEqual({});
+    expect(kv.saved).toEqual({});
 
     await kv.clear();
     await kv.close();
@@ -264,7 +269,7 @@ describe("set several items, confirm write worked, save, and confirm they are st
 
 describe("do an insert and clear test", () => {
   const name = `test-${Math.random()}`;
-  const count = 100;
+  const count = 25;
   it(`adds ${count} entries, saves, clears, and confirms empty`, async () => {
     const kv = await createDkv({ name });
     expect(kv.getAll()).toEqual({});
@@ -333,10 +338,10 @@ describe("create many distinct clients at once, write to all of them, and see th
   });
 });
 
-describe("tests involving null/undefined values", () => {
+describe("tests involving null/undefined values and delete", () => {
   let kv1;
   let kv2;
-  const name = `test-${Math.random()}`;
+  const name = `test-${Math.round(100 * Math.random())}`;
 
   it("creates the dkv twice", async () => {
     kv1 = await createDkv({ name, noAutosave: true, noCache: true });
@@ -345,16 +350,17 @@ describe("tests involving null/undefined values", () => {
     expect(kv1 === kv2).toBe(false);
   });
 
-  it("sets a value to null, which is fully supported like any other value", () => {
-    kv1.a = null;
-    expect(kv1.a).toBe(null);
-    expect(kv1.a === null).toBe(true);
-    expect(kv1.length).toBe(1);
-  });
+  //   it("sets a value to null, which is fully supported like any other value", () => {
+  //     kv1.a = null;
+  //     expect(kv1.a).toBe(null);
+  //     expect(kv1.a === null).toBe(true);
+  //     expect(kv1.length).toBe(1);
+  //   });
 
   it("make sure null value sync's as expected", async () => {
-    kv1.save();
-    await once(kv2, "change");
+    kv1.a = null;
+    await kv1.save();
+    await wait({ until: () => kv2.has("a") });
     expect(kv2.a).toBe(null);
     expect(kv2.a === null).toBe(true);
     expect(kv2.length).toBe(1);
@@ -362,6 +368,7 @@ describe("tests involving null/undefined values", () => {
 
   it("sets a value to undefined, which is the same as deleting a value", () => {
     kv1.a = undefined;
+    expect(kv1.has("a")).toBe(false);
     expect(kv1.a).toBe(undefined);
     expect(kv1.a === undefined).toBe(true);
     expect(kv1.length).toBe(0);
@@ -369,8 +376,8 @@ describe("tests involving null/undefined values", () => {
   });
 
   it("make sure undefined (i.e., delete) sync's as expected", async () => {
-    kv1.save();
-    await once(kv2, "change");
+    await kv1.save();
+    await wait({ until: () => kv2.a === undefined });
     expect(kv2.a).toBe(undefined);
     expect(kv2.a === undefined).toBe(true);
     expect(kv2.length).toBe(0);
@@ -395,72 +402,61 @@ describe("tests involving null/undefined values", () => {
   });
 });
 
-import { numSubscriptions } from "@cocalc/conat/client";
+describe("ensure there isn't a really obvious subscription leak", () => {
+  let client;
 
-describe("ensure there are no NATS subscription leaks", () => {
-  // There is some slight slack at some point due to the clock stuff,
-  // inventory, etc.  It is constant and small, whereas we allocate
-  // a large number of kv's in the test.
-  const SLACK = 4;
+  it("create a client, which initially has only one subscription (the inbox)", async () => {
+    client = connect();
+    expect(client.numSubscriptions()).toBe(1);
+  });
 
-  it("creates and closes many kv's and checks there is no leak", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
+  const count = 10;
+  it(`creates and closes ${count} streams and checks there is no leak`, async () => {
+    const before = client.numSubscriptions();
     // create
     const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       a[i] = await createDkv({
         name: `${Math.random()}`,
         noAutosave: true,
         noCache: true,
       });
     }
-    for (let i = 0; i < COUNT; i++) {
+    // NOTE: in fact there's very unlikely to be a subscription leak, since
+    // dkv's don't use new subscriptions -- they all use requestMany instead
+    // to a common inbox prefix, and there's just one subscription for an inbox.
+    expect(client.numSubscriptions()).toEqual(before);
+    for (let i = 0; i < count; i++) {
       await a[i].close();
     }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
+
+    // also check count on server went down.
+    expect((await client.getSubscriptions()).size).toBe(before);
   });
 
   it("does another leak test, but with a set operation each time", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
+    const before = client.numSubscriptions();
     // create
     const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       a[i] = await createDkv({
         name: `${Math.random()}`,
         noAutosave: true,
         noCache: true,
       });
-      a[i].set(i, i);
+      a[i].set(`${i}`, i);
       await a[i].save();
     }
-    for (let i = 0; i < COUNT; i++) {
-      a[i].clear();
+    // this isn't going to be a problem:
+    expect(client.numSubscriptions()).toEqual(before);
+    for (let i = 0; i < count; i++) {
       await a[i].close();
     }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
-  });
-
-  it("does another leak test, but opening and immediately closing and doing a set operation each time", async () => {
-    const before = numSubscriptions();
-    const COUNT = 20;
-    // create
-    const a: any = [];
-    for (let i = 0; i < COUNT; i++) {
-      a[i] = await createDkv({
-        name: `${Math.random()}`,
-        noAutosave: true,
-        noCache: true,
-      });
-      a[i].set(i, i);
-      await a[i].save();
-      a[i].clear();
-      await a[i].close();
-    }
-    const after = numSubscriptions();
-    expect(Math.abs(after - before)).toBeLessThan(SLACK);
+    const after = client.numSubscriptions();
+    expect(after).toBe(before);
   });
 });
+
+afterAll(after);

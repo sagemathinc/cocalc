@@ -3,16 +3,19 @@ Testing merge conflicts with dkv
 
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit "dkv-merge.test.ts"
+pnpm test ./dkv-merge.test.ts
 
 */
 
 import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { diff_match_patch } from "@cocalc/util/dmp";
+import { before, after } from "@cocalc/backend/conat/test/setup";
+
+beforeAll(before);
 
 async function getKvs(opts?) {
-  const name = `test-${Math.random()}`;
+  const name = `test${Math.round(1000 * Math.random())}`;
   // We disable autosave so that we have more precise control of how conflicts
   // get resolved, etc. for testing purposes.
   const kv1 = await createDkv({
@@ -27,6 +30,10 @@ async function getKvs(opts?) {
     ...opts,
     noCache: true,
   });
+  // @ts-ignore -- a little double check
+  if (kv1.kv === kv2.kv) {
+    throw Error("must not being using same underlying kv");
+  }
   return { kv1, kv2 };
 }
 
@@ -181,3 +188,5 @@ describe("test a 3-way merge of that merges objects", () => {
     expect(kv2.get("x")).toEqual({ a: 5, b: 15, c: 12, d: 3 });
   });
 });
+
+afterAll(after);

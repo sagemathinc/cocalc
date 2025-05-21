@@ -119,10 +119,16 @@ export interface DKVOptions {
   // 3-way merge conflict resolution
   merge?: (opts: { key: string; prev?: any; local?: any; remote?: any }) => any;
   limits?: Partial<KVLimits>;
+
   // if noAutosave is set, local changes are never saved until you explicitly
   // call "await this.save()", which will try once to save.  Changes made during
   // the save may not be saved though.
+  // CAUTION: noAutosave is really  only meant for unit testing!  The save is
+  // reuseInFlighted so a safe somewhere far away could be in progress starting
+  // before your call to save, and when it finishes that's it, so what you just
+  // did is not saved.  Take care.
   noAutosave?: boolean;
+
   noCache?: boolean;
 }
 
