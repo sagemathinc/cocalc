@@ -132,7 +132,6 @@ import type { ValueType } from "@cocalc/conat/types";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { ENFORCE_LIMITS_THROTTLE_MS } from "./limits";
 import { asyncDebounce } from "@cocalc/util/async-utils";
-import { waitUntilReady } from "@cocalc/conat/tiered-storage/client";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -233,7 +232,6 @@ export class GeneralKV<T = any> extends EventEmitter {
     if (this.all != null) {
       return;
     }
-    await waitUntilReady(this.name);
     const kvm = new Kvm(this.env.nc);
     await waitUntilConnected();
     this.kv = await kvm.create(this.name, {

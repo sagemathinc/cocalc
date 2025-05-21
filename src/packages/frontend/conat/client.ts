@@ -48,7 +48,6 @@ import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
-import * as tieredStorage from "@cocalc/conat/tiered-storage/client";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -479,7 +478,6 @@ export class ConatClient extends EventEmitter {
 
   refCacheInfo = () => refCacheInfo();
 
-  tieredStorage = tieredStorage;
 }
 
 function setDeleted({ project_id, path, deleted }) {

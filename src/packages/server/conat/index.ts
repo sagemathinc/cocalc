@@ -1,6 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
 import { initAPI } from "./api";
-import { init as initDatabase } from "@cocalc/database/conat/changefeeds";
 import { init as initChangefeedServer } from "@cocalc/database/conat/changefeed-api";
 import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
@@ -23,7 +22,6 @@ export async function initConatMicroservices() {
   
   // do not block on any of these!
   initAPI();
-  initDatabase();
   initLLM();
   initPersistServer();
   createTimeService();

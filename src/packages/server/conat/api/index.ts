@@ -45,7 +45,6 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub-api";
 import { getEnv } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import { terminate as terminateDatabase } from "@cocalc/database/conat/changefeeds";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
 import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
 import { delay } from "awaiting";
@@ -111,11 +110,7 @@ async function handleMessage({ api, subject, mesg }) {
     // one case halts this loop
     const { service } = request.args[0] ?? {};
     logger.debug(`Terminate service '${service}'`);
-    if (service == "db") {
-      terminateDatabase();
-      mesg.respond({ status: "terminated", service });
-      return;
-    } else if (service == "changefeeds") {
+    if (service == "changefeeds") {
       terminateChangefeedServer();
       mesg.respond({ status: "terminated", service });
       return;
