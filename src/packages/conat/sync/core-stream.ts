@@ -2,7 +2,7 @@
 core-stream.ts  = the Core Stream data structure for conats.
 
 This is the core data structure that easy-to-use ephemeral and persistent
-streams and kv stores are built on.  It is NOT meant to be super easy and 
+streams and kv stores are built on.  It is NOT meant to be super easy and
 simple to use as synchronous with save in the background. Instead, operations
 are async, and the API is complicated. We build dkv, dstream, etc. on
 top of this with a much friendly API.
@@ -14,7 +14,7 @@ otherwise it has no relevant to the keys.   Conat's core pub/sub/request/
 reply model is very similar to NATS, but the analogue of Jetstream is
 different because I don't find Jetstream useful at all, and find this
 much more useful.
-  
+
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
@@ -31,7 +31,7 @@ Testing two at once (a leader and non-leader):
 With persistence:
 
    require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
-   
+
 */
 
 import {
@@ -1083,7 +1083,7 @@ export const cache = refCache<CoreStreamOptions, CoreStream>({
     return estream;
   },
   createKey: ({ client, ...options }) => {
-    return jsonStableStringify(options);
+    return jsonStableStringify(options)!;
   },
 });
 export async function cstream<T>(

@@ -468,7 +468,7 @@ export const cache = refCache<CreateOptions, DStream>({
     }
     // @ts-ignore
     const { env, client, ...x } = options;
-    return jsonStableStringify(x);
+    return jsonStableStringify(x)!;
   },
   createObject: async (options: CreateOptions) => {
     const { account_id, project_id, name, valueType = "json" } = options;

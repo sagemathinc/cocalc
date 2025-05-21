@@ -26,7 +26,7 @@ export function userKvKey(options: DKVOptions) {
     throw Error("name must be specified");
   }
   const { client, ...x } = options;
-  return jsonStableStringify(x);
+  return jsonStableStringify(x)!;
 }
 
 
