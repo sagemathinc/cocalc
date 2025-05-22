@@ -91,7 +91,13 @@ describe("test interop with a dkv", () => {
     );
   });
 
-  it("check sqlite query works", async () => {
+  it("check sqlite query fails", async () => {
+    await expect(async () => {
+      await akv.sqlite("SELECT count(*) AS n FROM messages");
+    }).rejects.toThrowError("sqlite command not currently supported");
+  });
+  // intentially skipped!
+  it.skip("check sqlite query works", async () => {
     const v = await akv.sqlite("SELECT count(*) AS n FROM messages");
     expect(v[0].n).toBe((await akv.keys()).length);
   });
