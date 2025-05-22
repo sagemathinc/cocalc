@@ -57,7 +57,8 @@ export function Localize({ children }: { children: React.ReactNode }) {
     // NOTE: the locale will be set from the other_settings, on the "page".
     // So, for the default (english) we always have to render it, and then, maybe, a locale is set...
     if (locale === DEFAULT_LOCALE) {
-      return children;
+      // we are explicitly returning as any since ts is suddenly complaining about a potential bigint
+      return children as any;
     } else {
       if (isEmpty(messages)) {
         return (
@@ -68,7 +69,7 @@ export function Localize({ children }: { children: React.ReactNode }) {
           />
         );
       } else {
-        return children;
+        return children as any;
       }
     }
   }
