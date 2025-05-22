@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(veya arama kutusunda <keyboard>Shift+Return</keyboard>)",
   "project.explorer.file-listing.stale-warning": "Durağan dizin listesi gösteriliyor {is_missing, select, true {<b>eksik {missing} dosyalar</b>} other {}}. Dizin listesini güncellemek için <a>bu projeyi başlatın</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Bu projede çalışan bir {name} sunucu örneğinde geçerli dizini açar.",
-  "project.explorer.search-bar.placeholder": "Dosya ara veya oluştur",
+  "project.explorer.search-bar.placeholder": "Dosyaları filtrele veya terminal için \"/\"...",
   "project.explorer.start_project.warning": "Bu dizindeki dosyaları görmek için <a>bu projeyi başlatmalısınız</a>.",
   "project.history.log-entry.invited_user": "davet edilen kullanıcı",
   "project.history.log-entry.invited_user_via": "davet edilen yeni kullanıcı üzerinden",
