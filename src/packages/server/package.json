@@ -34,8 +34,7 @@
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
     "prepublishOnly": "test",
-    "conat-server": "CONAT_WORKERS=1 node ./dist/conat/socketio/cluster.js",
-    "conat-cluster": "node ./dist/conat/socketio/cluster.js"
+    "conat-server": "node ./dist/conat/socketio/start-server.js"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",

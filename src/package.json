@@ -20,8 +20,7 @@
     "test": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r test",
     "prettier-all": "cd packages/",
     "local-ci": "./scripts/ci.sh",
-    "conat-server": "cd packages/server && pnpm conat-server",
-    "conat-cluster": "cd packages/server && pnpm conat-cluster"
+    "conat-server": "cd packages/server && pnpm conat-server"
   },
   "repository": {
     "type": "git",
