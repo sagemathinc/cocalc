@@ -1,5 +1,5 @@
 import { getPort } from "@cocalc/backend/conat/test/util";
-import { type Client } from "@cocalc/backend/conat/conat";
+import { type Client } from "@cocalc/conat/core/client";
 import {
   init as createConatServer,
   type Options,
@@ -63,7 +63,7 @@ export async function before() {
 }
 
 const clients: Client[] = [];
-export function connect() {
+export function connect(): Client {
   const cn = server.client();
   clients.push(cn);
   return cn;

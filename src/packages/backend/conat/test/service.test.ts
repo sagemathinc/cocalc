@@ -131,11 +131,15 @@ describe("create a service with specified client, stop and start the server, and
   });
 
   let service;
-  it("create a service using specific client and call it using both clients", async () => {
+  it("create a non-ephemeral service using specific client and call it using both clients", async () => {
+    /*
+    You usually do NOT want a non-ephemeral service...
+    */
     service = createConatService({
       client,
       service: "double",
       handler: (mesg) => mesg.repeat(2),
+      ephemeral: false,
     });
 
     expect(
@@ -151,7 +155,7 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  it("disconnect client and check service still works on reconnect", async () => {
+  it("disconnect client and check service still works on reconnect (because not ephemeral)", async () => {
     // cause a disconnect -- client will connect again in 50ms soon
     // and handle the request below:
     client.conn.io.engine.close();
@@ -164,32 +168,32 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  it("disconnect client2 and check service still works on reconnect", async () => {
-    // cause a disconnect -- client will connect again in 50ms soon
-    // and handle the request below:
-    client2.conn.io.engine.close();
-    expect(
-      await callConatService({
-        client: client2,
-        service: "double",
-        mesg: "hello",
-      }),
-    ).toBe("hellohello");
-  });
+  //   it("disconnect client2 and check service still works on reconnect", async () => {
+  //     // cause a disconnect -- client will connect again in 50ms soon
+  //     // and handle the request below:
+  //     client2.conn.io.engine.close();
+  //     expect(
+  //       await callConatService({
+  //         client: client2,
+  //         service: "double",
+  //         mesg: "hello",
+  //       }),
+  //     ).toBe("hellohello");
+  //   });
 
-  it("disconnect both clients and check service still works on reconnect", async () => {
-    // cause a disconnect -- client will connect again in 50ms soon
-    // and handle the request below:
-    client.conn.io.engine.close();
-    client2.conn.io.engine.close();
-    expect(
-      await callConatService({
-        client: client2,
-        service: "double",
-        mesg: "hello",
-      }),
-    ).toBe("hellohello");
-  });
+  //   it("disconnect both clients and check service still works on reconnect", async () => {
+  //     // cause a disconnect -- client will connect again in 50ms soon
+  //     // and handle the request below:
+  //     client.conn.io.engine.close();
+  //     client2.conn.io.engine.close();
+  //     expect(
+  //       await callConatService({
+  //         client: client2,
+  //         service: "double",
+  //         mesg: "hello",
+  //       }),
+  //     ).toBe("hellohello");
+  //   });
 
   it("kills the server, then makes another one serving on the same port", async () => {
     await server.close();

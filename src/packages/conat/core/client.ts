@@ -252,6 +252,8 @@ interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
   queue?: string;
+  ephemeral?: boolean;
+  respond?: Function;
 }
 
 // WARNING!  This is the default and you can't just change it!
@@ -376,6 +378,10 @@ export class Client {
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
     const subs = await this.getSubscriptions();
+    //     console.log("syncSubscriptions", {
+    //       server: subs,
+    //       clent: Object.keys(this.queueGroups),
+    //     });
     // logger.debug`Conat: restoring subscriptions`, Array.from(subs));
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
@@ -410,7 +416,33 @@ export class Client {
       closeWhenOffCalled,
       queue,
       confirm,
-    }: { closeWhenOffCalled?: boolean; queue?: string; confirm?: boolean } = {},
+      ephemeral,
+    }: {
+      // if true, when the off method of the event emitter is called, then
+      // the entire subscription is closed. This is very useful when we wrap the
+      // EvenEmitter in an async iterator.
+      closeWhenOffCalled?: boolean;
+
+      // the queue group -- if not given, then one is randomly assigned.
+      queue?: string;
+
+      // confirm -- get confirmation back from server that subscription was created
+      confirm?: boolean;
+
+      // If ephemeral is true this subscription is deleted from the server
+      // the moment the client disconnects, so that the server doesn't queue
+      // up messages to to this subscription.
+      // IMPORTANT: the *subscription itself* doesn't get killed on disconnect!
+      // The subscription will be resumed automatically when the client reconnects.
+      // The idea is that there will be no old queued up messages waiting for it.
+      //
+      // If ephemeral is false, this subscription is acting more as a client
+      // to receive data, so we want it to persist on the server longterm
+      // even while disconnected (and leverage connectionStateRecovery). E.g.,
+      // it might be listening for updates to a stream.  After a few minutes
+      // it still stops queuing up messages though.
+      ephemeral?: boolean;
+    } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
@@ -430,17 +462,21 @@ export class Client {
     let promise;
     if (confirm) {
       const f = (cb) => {
-        this.conn.emit("subscribe", { subject, queue }, (response) => {
-          if (response?.error) {
-            cb(new ConatError(response.error, { code: response.code }));
-          } else {
-            cb(response?.error, response);
-          }
-        });
+        this.conn.emit(
+          "subscribe",
+          { subject, queue, ephemeral },
+          (response) => {
+            if (response?.error) {
+              cb(new ConatError(response.error, { code: response.code }));
+            } else {
+              cb(response?.error, response);
+            }
+          },
+        );
       };
       promise = callback(f);
     } else {
-      this.conn.emit("subscribe", { subject, queue });
+      this.conn.emit("subscribe", { subject, queue, ephemeral });
       promise = undefined;
     }
     sub.once("close", () => {
@@ -471,9 +507,10 @@ export class Client {
     opts?: SubscriptionOptions,
   ): Subscription => {
     const { sub } = this.subscriptionEmitter(subject, {
+      confirm: false,
       closeWhenOffCalled: true,
       queue: opts?.queue,
-      confirm: false,
+      ephemeral: opts?.ephemeral,
     });
     return this.subscriptionIterator(sub, opts);
   };
@@ -483,15 +520,90 @@ export class Client {
     opts?: SubscriptionOptions,
   ): Promise<Subscription> => {
     const { sub, promise } = this.subscriptionEmitter(subject, {
+      confirm: true,
       closeWhenOffCalled: true,
       queue: opts?.queue,
-      confirm: true,
+      ephemeral: opts?.ephemeral,
     });
     await promise;
     return this.subscriptionIterator(sub, opts);
   };
 
   sub = this.subscribe;
+
+  /*
+  A service is a subscription with a function to respond to requests by name.
+  Call service with an implementation:
+
+     service = await client1.service('arith',  {mul : async (a,b)=>{a*b}, add : async (a,b)=>a+b}, {ephemeral:true})
+
+  Use the service:
+     arith = await client2.call('arith')
+     await arith.mul(2,3)
+     await arith.add(2,3)
+     
+  There's by default a single queue group '0', so if you create multiple services on various
+  computers, then requests are load balanced across them automatically.
+   
+  Close the service when done:
+  
+     service.close();
+  */
+  service: <T = any>(
+    subject: string,
+    impl: T,
+    // default to ephemeral:true for services
+    opts?: SubscriptionOptions,
+  ) => Promise<Subscription> = async (subject, impl, opts) => {
+    const sub = await this.subscribe(subject, {
+      ephemeral: true,
+      ...opts,
+      queue: "0",
+    });
+    const respond = async (mesg: Message) => {
+      try {
+        const [name, args] = mesg.data;
+        mesg.respondSync(await impl[name](...args));
+      } catch (err) {
+        mesg.respondSync(null, { headers: { error: `${err}` } });
+      }
+    };
+    const loop = async () => {
+      // todo -- param to set max number of responses at once.
+      for await (const mesg of sub) {
+        respond(mesg);
+      }
+    };
+    loop();
+    return sub;
+  };
+
+  // Call a service as defined above.
+  call<T = any>(
+    subject: string,
+    opts?: PublishOptions & { timeout?: number },
+  ): T {
+    const call = async (name: string, args: any[]) => {
+      const resp = await this.request(subject, [name, args], opts);
+      if (resp.headers?.error) {
+        throw Error(`${resp.headers.error}`);
+      } else {
+        return resp.data;
+      }
+    };
+
+    return new Proxy(
+      {},
+      {
+        get: (_, name) => {
+          if (typeof name !== "string") {
+            return undefined;
+          }
+          return async (...args) => await call(name, args);
+        },
+      },
+    ) as T;
+  }
 
   publishSync = (
     subject: string,
@@ -617,7 +729,7 @@ export class Client {
     });
     if (!count) {
       sub.stop();
-      throw new ConatError(`request -- no subscribers matching ${subject}`, {
+      throw new ConatError(`request -- no subscribers matching '${subject}'`, {
         code: 503,
       });
     }

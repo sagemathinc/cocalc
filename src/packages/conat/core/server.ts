@@ -99,6 +99,8 @@ export class ConatServer {
   readonly options: Partial<Options>;
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
   private sockets: { [id: string]: any } = {};
+  // which subscriptions are ephemeral
+  private ephemeral: { [id: string]: Set<string> } = {};
 
   constructor(options: Options) {
     const {
@@ -161,6 +163,9 @@ export class ConatServer {
 
   close = async () => {
     await this.io.close();
+    for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
+      delete this[prop];
+    }
   };
 
   private info = (): ServerInfo => {
@@ -179,6 +184,7 @@ export class ConatServer {
     }
     const room = socketSubjectRoom({ socket, subject });
     socket.leave(room);
+    (this.ephemeral[socket.id] ?? new Set<string>()).delete(subject);
     await this.updateInterest({ op: "delete", subject, room });
   };
 
@@ -272,7 +278,7 @@ export class ConatServer {
     }
   };
 
-  private subscribe = async ({ socket, subject, queue, user }) => {
+  private subscribe = async ({ socket, subject, queue, ephemeral, user }) => {
     if (DEBUG) {
       this.log("subscribe ", { id: socket.id, subject, queue });
     }
@@ -289,10 +295,18 @@ export class ConatServer {
       });
     }
     const room = socketSubjectRoom({ socket, subject });
-    // critical to await socket.join so we don't advertise that there is 
+    // critical to await socket.join so we don't advertise that there is
     // a subscriber before the socket is actually getting messages.
-    await socket.join(room); 
+    await socket.join(room);
     await this.updateInterest({ op: "add", subject, room, queue });
+    if (this.ephemeral[socket.id] === undefined) {
+      this.ephemeral[socket.id] = new Set<string>();
+    }
+    if (ephemeral) {
+      this.ephemeral[socket.id].add(subject);
+    } else {
+      this.ephemeral[socket.id].delete(subject);
+    }
   };
 
   private publish = async ({ subject, data, from }): Promise<number> => {
@@ -351,12 +365,12 @@ export class ConatServer {
       }
     });
 
-    socket.on("subscribe", async ({ subject, queue }, respond) => {
+    socket.on("subscribe", async ({ subject, queue, ephemeral }, respond) => {
       try {
         if (this.subscriptions[id].has(subject)) {
           throw Error(`already subscribed to '${subject}'`);
         }
-        await this.subscribe({ socket, subject, queue, user });
+        await this.subscribe({ socket, subject, queue, user, ephemeral });
         this.subscriptions[id].add(subject);
         respond?.({ status: "added" });
       } catch (err) {
@@ -381,6 +395,10 @@ export class ConatServer {
     });
 
     socket.on("disconnecting", async () => {
+      for (const subject of this.ephemeral[socket.id] ?? []) {
+        this.unsubscribe({ socket, subject });
+        this.subscriptions[id].delete(subject);
+      }
       const rooms = Array.from(socket.rooms) as string[];
       const d = this.options.maxDisconnectionDuration ?? 0;
       // console.log(`will unsubscribe in ${d}ms unless client reconnects`);

@@ -114,7 +114,7 @@ describe("testing writing and reading chunked data", () => {
   it("sanity check on the max payload", async () => {
     const client = connect();
     await wait({ until: () => client.info != null });
-    maxPayload = client.info.max_payload;
+    maxPayload = client.info?.max_payload ?? 0;
     expect(maxPayload).toBeGreaterThan(500000);
   });
 

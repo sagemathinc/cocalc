@@ -282,10 +282,12 @@ export class DStream<T = any> extends EventEmitter {
       } catch (err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-        console.warn(
-          `WARNING stream attemptToSave failed -- ${err}`,
-          this.name,
-        );
+        if (!process.env.COCALC_TEST_MODE) {
+          console.warn(
+            `WARNING stream attemptToSave failed -- ${err}`,
+            this.name,
+          );
+        }
       }
       if (!this.hasUnsavedChanges()) {
         return;

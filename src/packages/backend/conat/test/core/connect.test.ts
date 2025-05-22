@@ -57,7 +57,7 @@ describe("create server *after* client and ensure connects properly", () => {
 });
 
 describe("create server after sync creating a subscription and publishing a message, and observe that messages are dropped", () => {
-  // The moral here is do NOT use subscribeSync and publishSync 
+  // The moral here is do NOT use subscribeSync and publishSync
   // unless you don't care very much...
   let cn;
   it("starts a client, despite there being no server yet", async () => {
