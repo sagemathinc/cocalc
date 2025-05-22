@@ -123,8 +123,9 @@ export async function init({ client }: { client?: Client } = {}) {
     SUBJECT,
   });
   client = client ?? (await getEnv()).cn;
-  persistService({ client });
-  renewService({ client });
+  // this returns one the service is listening
+  await persistService({ client });
+  await renewService({ client });
 }
 
 async function noThrow(f) {
@@ -137,13 +138,13 @@ async function noThrow(f) {
 
 async function persistService({ client }) {
   sub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
-  await listenPersist();
+  listenPersist();
 }
 
 let renew: Subscription | null = null;
 async function renewService({ client }) {
   renew = await client.subscribe(`${SUBJECT}.*.renew`);
-  await listenRenew();
+  listenRenew();
 }
 
 async function listenRenew() {

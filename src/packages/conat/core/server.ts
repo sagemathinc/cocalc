@@ -54,6 +54,8 @@ const MAX_PAYLOAD = 1 * MB;
 
 const MAX_DISCONNECTION_DURATION = 2 * 60 * 1000;
 
+const MAX_SUBSCRIPTIONS_PER_CLIENT = 250;
+
 const DEBUG = false;
 
 interface InterestUpdate {
@@ -85,6 +87,7 @@ export interface Options {
   isAllowed?: AllowFunction;
   valkey?: string;
   maxDisconnectionDuration?: number;
+  maxSubscriptionsPerClient?: number;
 }
 
 export class ConatServer {
@@ -114,8 +117,16 @@ export class ConatServer {
       isAllowed,
       valkey,
       maxDisconnectionDuration = MAX_DISCONNECTION_DURATION,
+      maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
     } = options;
-    this.options = { port, id, path, valkey, maxDisconnectionDuration };
+    this.options = {
+      port,
+      id,
+      path,
+      valkey,
+      maxDisconnectionDuration,
+      maxSubscriptionsPerClient,
+    };
     this.getUser = getUser ?? (async () => null);
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
@@ -293,6 +304,17 @@ export class ConatServer {
       throw new ConatError(`permission denied subscribing to '${subject}'`, {
         code: 403,
       });
+    }
+    const maxSubs = this.options.maxSubscriptionsPerClient ?? 0;
+    if (maxSubs) {
+      const numSubs = this.subscriptions?.[socket.id]?.size ?? 0;
+      if (numSubs >= maxSubs) {
+        // error 429 == "too many requests"
+        throw new ConatError(
+          `there is a limit of at most ${maxSubs} subscriptions and you currently have ${numSubs} subscriptions`,
+          { code: 429 },
+        );
+      }
     }
     const room = socketSubjectRoom({ socket, subject });
     // critical to await socket.join so we don't advertise that there is

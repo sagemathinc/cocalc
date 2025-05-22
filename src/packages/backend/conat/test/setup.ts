@@ -40,31 +40,32 @@ export async function initConatServer(
 }
 
 export let server;
-export let port;
-export let address;
 export let tempDir;
+
+export async function createServer(opts?) {
+  const port = await getPort();
+  const address = `http://localhost:${port}`;
+  server = await initConatServer({ port, path, ...opts });
+  await initPersistServer({ client: connect() });
+  return server;
+}
 
 export async function before() {
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
-  port = await getPort();
-  address = `http://localhost:${port}`;
-  server = await initConatServer({ port, path });
+  server = await createServer();
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
-  initPersistServer({ client: server.client() });
   setConatClient({
     getNatsEnv: async () => {
       return { cn: connect(), sha1 } as any;
     },
     getLogger,
   });
-  // give persist server, etc time to startup
-  await delay(10);
 }
 
 const clients: Client[] = [];
-export function connect(): Client {
-  const cn = server.client();
+export function connect(...args): Client {
+  const cn = server.client(...args);
   clients.push(cn);
   return cn;
 }
