@@ -294,6 +294,10 @@ export class PersistentStream extends EventEmitter {
   };
 
   sqlite = (statement: string, params: any[] = []): any[] => {
+    // Matches "attach database" (case-insensitive, ignores whitespace)
+    if (/\battach\s+database\b/i.test(statement)) {
+      throw Error("ATTACH DATABASE not allowed");
+    }
     const stmt = this.db.prepare(statement);
     try {
       return stmt.all(...params);

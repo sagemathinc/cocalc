@@ -50,6 +50,10 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
 
+// I added an experimental way to run any sqlite query... but it is disabled
+// since of course there are major DOS and security concerns.
+const ENABLE_SQLITE_GENERAL_QUERIES = false;
+
 export const DEFAULT_LIFETIME = 5 * 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
 export const MIN_LIFETIME = 30 * 1000;
@@ -257,6 +261,9 @@ async function handleMessage(mesg) {
       const resp = stream.keys();
       mesg.respond({ resp });
     } else if (request.cmd == "sqlite") {
+      if (!ENABLE_SQLITE_GENERAL_QUERIES) {
+        throw Error("sqlite command not currently supported");
+      }
       const resp = stream.sqlite(request.statement, request.params);
       mesg.respond({ resp });
     }
