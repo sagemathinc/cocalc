@@ -49,6 +49,7 @@ import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
+import { is_array } from "@cocalc/util/misc";
 
 // I added an experimental way to run any sqlite query... but it is disabled
 // since of course there are major DOS and security concerns.
@@ -292,23 +293,19 @@ async function getAll({ mesg, request, user_id, stream }) {
       | ""
       | { id: string; lifetime: number }
       | { state: "watch" }
-      | StoredMessage,
+      | StoredMessage[],
   ) => {
     if (terminated) {
       end();
     }
     lastSend = Date.now();
-    if ((content as StoredMessage)?.raw != null) {
+    if (!error && is_array(content)) {
       // console.log("content = ", content);
       // StoredMessage
-      const { raw, encoding, time, key, ...headers } = content as StoredMessage;
-      mesg.respond(null, {
-        raw,
-        encoding,
-        headers: { headers, seq, time, key },
-      });
+      const messages = content as StoredMessage[];
+      await mesg.respond(messages, { headers: { seq } });
     } else {
-      mesg.respond(null, { headers: { error, seq, content } });
+      await mesg.respond(null, { headers: { error, seq, content } });
     }
     if (error) {
       end();
@@ -403,18 +400,19 @@ async function getAll({ mesg, request, user_id, stream }) {
     }
 
     // send the current data
-    // [ ] TODO: should we just send it all as a single message?
-    //     much faster, but uses much more RAM.  **Instead, obviously
-    //     some combination based on actual data!**
+    const messages: any[] = [];
+    // [ ] TODO: limit the size
     for (const message of stream.getAll({
       start_seq: request.start_seq,
       end_seq: request.end_seq,
     })) {
-      if (done) {
-        return;
-      }
-      await respond(undefined, message);
+      messages.push(message);
     }
+
+    if (done) return;
+    await respond(undefined, messages);
+    if (done) return;
+
     if (request.end_seq) {
       end();
       return;
@@ -426,11 +424,14 @@ async function getAll({ mesg, request, user_id, stream }) {
     const unsentMessages: StoredMessage[] = [];
     const sendAllUnsentMessages = reuseInFlight(async () => {
       while (!done && unsentMessages.length > 0) {
-        const message = unsentMessages.shift();
-        if (done) {
-          return;
+        if (done) return;
+        // [ ] TODO: limit the size
+        const messages: StoredMessage[] = [];
+        while (unsentMessages.length > 0) {
+          const message = unsentMessages.shift();
+          messages.push(message!);
         }
-        await respond(undefined, message);
+        await respond(undefined, messages);
       }
     });
 

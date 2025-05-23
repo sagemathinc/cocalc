@@ -17,7 +17,6 @@ import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
-import { delay } from "awaiting";
 
 const logger = getLogger("conat:test:setup");
 
@@ -44,7 +43,6 @@ export let tempDir;
 
 export async function createServer(opts?) {
   const port = await getPort();
-  const address = `http://localhost:${port}`;
   server = await initConatServer({ port, path, ...opts });
   await initPersistServer({ client: connect() });
   return server;

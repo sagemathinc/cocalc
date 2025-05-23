@@ -46,6 +46,7 @@ import {
   Message,
   type Headers,
   messageData,
+  decode,
 } from "@cocalc/conat/core/client";
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
@@ -61,6 +62,7 @@ import { randomId } from "@cocalc/conat/names";
 import * as persistClient from "@cocalc/conat/persist/client";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
+import { type Message as StoredMessage } from "@cocalc/conat/persist/storage";
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -312,16 +314,13 @@ export class CoreStream<T = any> extends EventEmitter {
       if (done || value == null) {
         return;
       }
-      const m = value as Message;
-      if (m.headers == null) {
-        throw Error("missing header");
-      }
-      // @ts-ignore
-      if (m.headers?.content?.state == "watch") {
+      if (value.headers?.content?.state == "watch") {
         // switched to watch mode
         return;
       }
-      this.processPersistentMessage(value, !!noEmit);
+      // console.log("got persistent data", value.raw.length, "bytes");
+      const messages = value.data as StoredMessage[];
+      this.processPersistentMessages(messages, noEmit);
     }
   };
 
@@ -341,39 +340,45 @@ export class CoreStream<T = any> extends EventEmitter {
     }
   });
 
-  private processPersistentMessage = (m: Message, noEmit: boolean) => {
+  private processPersistentMessages = (
+    messages: StoredMessage[],
+    noEmit?: boolean,
+  ) => {
+    //console.log("processPersistentMessages", messages.length, " messages");
+    for (const mesg of messages) {
+      try {
+        this.processPersistentMessage(mesg, noEmit);
+      } catch (err) {
+        console.log("WARNING: issue processing message", mesg, err);
+      }
+    }
+  };
+
+  private processPersistentMessage = (
+    { seq, time, key, encoding, raw: data, headers }: StoredMessage,
+    noEmit?: boolean,
+  ) => {
     if (this.raw === undefined) {
       // closed
       return;
     }
-    if (m.headers == null) {
-      throw Error("missing header");
-    }
-    const { key, time, headers } = m.headers;
-    // @ts-ignore
-    const seq = headers?.seq;
-    if (typeof seq != "number") {
-      throw Error("seq must be a number");
-    }
-    // question: calling m.data costs time and memory usage; can
-    // or should we avoid it until needed?
-    const mesg = m.data;
+    const mesg = decode({ encoding, data });
     const raw = {
       timestamp: time,
-      headers: (headers as any)?.headers,
+      headers,
       seq,
-      raw: m.raw,
+      raw: data,
       key,
     } as RawMsg;
     if (seq > (this.raw.slice(-1)[0]?.seq ?? 0)) {
-      // easy fast initial load at the end (common special case)
+      // easy fast initial load to the end of the list (common special case)
       this.messages.push(mesg);
       this.raw.push(raw);
     } else {
       // [ ] TODO: insert in the correct place.  This should only
-      // happen when calling load.  The algorithm below is
+      // happen when calling load of old ata.  The algorithm below is
       // dumb and could be replaced by a binary search.  However, we'll
-      // change how we batch load so there's no point.
+      // change how we batch load so there's less point.
       let i = 0;
       while (i < this.raw.length && this.raw[i].seq < seq) {
         i += 1;
@@ -556,12 +561,8 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.persistStream == null) {
       throw Error("persistentStream must be defined");
     }
-    for await (const m of this.persistStream) {
-      try {
-        this.processPersistentMessage(m, false);
-      } catch (err) {
-        console.trace(`WARNING: issue processing persistent message -- ${err}`);
-      }
+    for await (const { data } of this.persistStream) {
+      this.processPersistentMessages(data, false);
     }
   };
 
@@ -946,8 +947,8 @@ export class CoreStream<T = any> extends EventEmitter {
         start_seq,
         end_seq,
       });
-      for await (const value of stream) {
-        this.processPersistentMessage(value, !!noEmit);
+      for await (const { data } of stream) {
+        this.processPersistentMessages(data, noEmit);
       }
       return;
     }
@@ -1014,7 +1015,8 @@ export class CoreStream<T = any> extends EventEmitter {
   // delete all messages up to and including the
   // one at position index, i.e., this.messages[index]
   // is deleted.
-  // NOTE: other clients will NOT see the result of a purge.
+  // NOTE: other clients will NOT see the result of a purge,
+  // except when they load the stream later.
   purge = async ({ index = -1 }: { index?: number } = {}) => {
     if (this.persist) {
       // [ ] TODO:

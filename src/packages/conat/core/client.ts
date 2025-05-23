@@ -818,7 +818,7 @@ interface PublishOptions {
   raw?;
 }
 
-function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }) {
+export function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }) {
   if (encoding == DataEncoding.MsgPack) {
     return msgpack.encode(mesg);
   } else if (encoding == DataEncoding.JsonCodec) {
@@ -828,7 +828,7 @@ function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }) {
   }
 }
 
-function decode({ encoding, data }: { encoding: DataEncoding; data }): any {
+export function decode({ encoding, data }: { encoding: DataEncoding; data }): any {
   if (encoding == DataEncoding.MsgPack) {
     return msgpack.decode(data);
   } else if (encoding == DataEncoding.JsonCodec) {
