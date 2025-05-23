@@ -141,6 +141,7 @@ export class CoreStream<T = any> extends EventEmitter {
   public readonly kv: { [key: string]: { mesg: T; raw: RawMsg } } = {};
   private kvChangeBytes = 0;
 
+  // this msgID's is ONLY used in ephemeral mode by the leader.
   private readonly msgIDs = new Set<any>();
   private sub?: Subscription;
   private leader: boolean;
@@ -319,14 +320,14 @@ export class CoreStream<T = any> extends EventEmitter {
         return;
       }
       const messages = value.data as StoredMessage[];
-      console.log(
-        "got persistent data",
-        value.raw.length,
-        "bytes",
-        " and ",
-        messages.length,
-        "messages",
-      );
+      //       console.log(
+      //         "got persistent data",
+      //         value.raw.length,
+      //         "bytes",
+      //         " and ",
+      //         messages.length,
+      //         "messages",
+      //       );
       this.processPersistentMessages(messages, noEmit);
     }
   };
@@ -507,7 +508,7 @@ export class CoreStream<T = any> extends EventEmitter {
         // send it out as a single response.
         raw.respond(payload);
       } else if (raw.subject.endsWith(".send")) {
-        // single send:  ([ ] TODO need to support a batch send)
+        // single send:  ([ ] TODO need to support a batch send?)
 
         const options = raw.headers?.[COCALC_OPTIONS_HEADER];
         let resp;
@@ -680,10 +681,6 @@ export class CoreStream<T = any> extends EventEmitter {
       if (this.storage == null) {
         throw Error("bug -- storage must be set");
       }
-      if (options?.msgID && this.msgIDs.has(options.msgID)) {
-        // it's a dup
-        return;
-      }
       const md = messageData(mesg, {
         headers: {
           ...options?.headers,
@@ -699,9 +696,6 @@ export class CoreStream<T = any> extends EventEmitter {
         messageData: md,
         previousSeq: options?.previousSeq,
       });
-      if (options?.msgID) {
-        this.msgIDs?.add(options.msgID);
-      }
       return x;
     } else if (this.leader) {
       // sending from leader -- so assign seq, timestamp and send it out.

@@ -17,6 +17,7 @@ import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { initConatServer } from "@cocalc/backend/conat/test/setup";
 import { getPort } from "@cocalc/backend/conat/test/util";
+import { once } from "@cocalc/util/async-utils";
 
 beforeAll(before);
 
@@ -27,6 +28,7 @@ describe("create a service and test it out", () => {
       service: "echo",
       handler: (mesg) => mesg.repeat(2),
     });
+    await once(s, "running");
     expect(await callConatService({ service: "echo", mesg: "hello" })).toBe(
       "hellohello",
     );
@@ -141,6 +143,7 @@ describe("create a service with specified client, stop and start the server, and
       handler: (mesg) => mesg.repeat(2),
       ephemeral: false,
     });
+    await once(service, "running");
 
     expect(
       await callConatService({ client, service: "double", mesg: "hello" }),
@@ -231,6 +234,7 @@ describe("create a slow service and check that the timeout parameter works", () 
         return { delay: d };
       },
     });
+    await once(s, "running");
   });
 
   it("confirms it works", async () => {
