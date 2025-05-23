@@ -55,6 +55,16 @@ import { is_array } from "@cocalc/util/misc";
 // since of course there are major DOS and security concerns.
 const ENABLE_SQLITE_GENERAL_QUERIES = false;
 
+// When sending a large number of message for
+// getAll or change updates, we combine together messages
+// until hitting this size, then send them all at once.
+// This bound is to avoid potentially using a huge amount of RAM
+// when streaming a large saved database to the client.
+// Note: if a single message is larger than this, it still
+// gets sent, just individually.
+const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
+//const DEFAULT_MESSAGES_THRESH = 1e5;
+
 export const DEFAULT_LIFETIME = 5 * 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
 export const MIN_LIFETIME = 30 * 1000;
@@ -111,7 +121,16 @@ function getUserId(subject: string): string {
 
 let terminated = false;
 let sub: Subscription | null = null;
-export async function init({ client }: { client?: Client } = {}) {
+
+interface Options {
+  messagesThresh?: number;
+  client?: Client;
+}
+
+export async function init({
+  client,
+  messagesThresh = DEFAULT_MESSAGES_THRESH,
+}: Options = {}) {
   logger.debug("starting persist server");
   logger.debug({
     DEFAULT_LIFETIME,
@@ -125,7 +144,7 @@ export async function init({ client }: { client?: Client } = {}) {
   });
   client = client ?? (await getEnv()).cn;
   // this returns one the service is listening
-  await persistService({ client });
+  await persistService({ client, messagesThresh });
   await renewService({ client });
 }
 
@@ -137,9 +156,12 @@ async function noThrow(f) {
   }
 }
 
-async function persistService({ client }) {
-  sub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
-  listenPersist();
+async function persistService({ client, messagesThresh }) {
+  sub = await client.subscribe(`${SUBJECT}.*.api`, {
+    queue: "q",
+    ephemeral: true,
+  });
+  listenPersist({ messagesThresh });
 }
 
 let renew: Subscription | null = null;
@@ -205,7 +227,7 @@ export async function terminate() {
   }
 }
 
-async function listenPersist() {
+async function listenPersist({ messagesThresh }) {
   if (sub == null) {
     throw Error("must call init first");
   }
@@ -214,7 +236,7 @@ async function listenPersist() {
     if (terminated) {
       return;
     }
-    noThrow(async () => await handleMessage(mesg));
+    noThrow(async () => await handleMessage({ mesg, messagesThresh }));
   }
 }
 
@@ -225,7 +247,7 @@ function metrics() {
   logger.debug("persist", { numPersists });
 }
 
-async function handleMessage(mesg) {
+async function handleMessage({ mesg, messagesThresh }) {
   const request = mesg.headers;
   //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
   const user_id = getUserId(mesg.subject);
@@ -278,10 +300,10 @@ async function handleMessage(mesg) {
     return;
   }
 
-  await getAll({ mesg, request, user_id, stream });
+  await getAll({ mesg, request, user_id, stream, messagesThresh });
 }
 
-async function getAll({ mesg, request, user_id, stream }) {
+async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
   //console.log("getAll", request);
   // getAll sends multiple responses
   let seq = 0;
@@ -401,16 +423,25 @@ async function getAll({ mesg, request, user_id, stream }) {
 
     // send the current data
     const messages: any[] = [];
+    let size = 0;
     // [ ] TODO: limit the size
     for (const message of stream.getAll({
       start_seq: request.start_seq,
       end_seq: request.end_seq,
     })) {
       messages.push(message);
+      size += message.raw.length;
+      if (size >= messagesThresh) {
+        await respond(undefined, messages);
+        messages.length = 0;
+        size = 0;
+      }
+      if (done) return;
     }
 
-    if (done) return;
-    await respond(undefined, messages);
+    if (messages.length > 0) {
+      await respond(undefined, messages);
+    }
     if (done) return;
 
     if (request.end_seq) {
@@ -427,10 +458,19 @@ async function getAll({ mesg, request, user_id, stream }) {
         if (done) return;
         // [ ] TODO: limit the size
         const messages: StoredMessage[] = [];
-        while (unsentMessages.length > 0) {
+        let size = 0;
+        while (unsentMessages.length > 0 && !done) {
           const message = unsentMessages.shift();
+          size += message!.raw.length;
           messages.push(message!);
+          if (size >= messagesThresh) {
+            await respond(undefined, messages);
+            if (done) return;
+            size = 0;
+            messages.length = 0;
+          }
         }
+        if (done) return;
         await respond(undefined, messages);
       }
     });

@@ -318,8 +318,15 @@ export class CoreStream<T = any> extends EventEmitter {
         // switched to watch mode
         return;
       }
-      // console.log("got persistent data", value.raw.length, "bytes");
       const messages = value.data as StoredMessage[];
+      console.log(
+        "got persistent data",
+        value.raw.length,
+        "bytes",
+        " and ",
+        messages.length,
+        "messages",
+      );
       this.processPersistentMessages(messages, noEmit);
     }
   };
