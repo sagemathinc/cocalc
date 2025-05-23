@@ -37,7 +37,7 @@ leak memory. So zstd-napi it is.  And I like zstandard anyways.
 DEVELOPMENT:
 
 
-   a = require('@cocalc/backend/conat/persist'); s = a.pstream({path:'/tmp/a.db'})
+   s = require('@cocalc/backend/conat/persist').pstream({path:'/tmp/a.db'})
 
 */
 
@@ -463,6 +463,20 @@ export class PersistentStream extends EventEmitter {
             `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages ORDER BY seq ASC LIMIT ?) RETURNING seq`,
           )
           .all(length - this.conf.max_msgs);
+        if (rows.length > 0) {
+          const seqs = rows.map((row: { seq: number }) => row.seq);
+          this.emit("change", { op: "delete", seqs });
+        }
+      }
+    }
+
+    if (this.conf.max_age > 0) {
+      const rows = this.db
+        .prepare(
+          `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages WHERE time <= ?) RETURNING seq`,
+        )
+        .all((Date.now() - this.conf.max_age) / 1000);
+      if (rows.length > 0) {
         const seqs = rows.map((row: { seq: number }) => row.seq);
         this.emit("change", { op: "delete", seqs });
       }

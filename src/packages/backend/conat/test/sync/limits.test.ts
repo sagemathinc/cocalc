@@ -11,8 +11,7 @@ import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
-import { before, after } from "@cocalc/backend/conat/test/setup";
-
+import { before, after, wait, connect } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -145,28 +144,35 @@ describe.skip("create a dkv with limit on max_msg_size, and confirm writing smal
   });
 });
 
-describe.skip("create a dstream with limit on the total number of messages, and confirm auto-delete works", () => {
-  let s;
+describe("create a dstream with limit on the total number of messages, and confirm max_msgs, max_age works", () => {
+  let s, s2;
   const name = `test-${Math.random()}`;
 
-  it("creates the dstream", async () => {
-    s = await createDstream({ name, limits: { max_msgs: 2 } });
+  it("creates the dstream and another with a different client", async () => {
+    s = await createDstream({ name, config: { max_msgs: 2 } });
+    s2 = await createDstream({
+      client: connect(),
+      name,
+      config: { max_msgs: 2 },
+      noCache: true,
+    });
     expect(s.get()).toEqual([]);
+    expect((await s.config()).max_msgs).toBe(2);
+    expect((await s2.config()).max_msgs).toBe(2);
   });
 
-  it("push 2 messages, then a third, and sees first is gone", async () => {
+  it("push 2 messages, then a third, and see first is gone and that this is reflected on both clients", async () => {
     s.push({ a: 10 });
     s.push({ b: 20 });
     expect(s.get()).toEqual([{ a: 10 }, { b: 20 }]);
+    await wait({ until: () => s2.length == 2 });
     s.push({ c: 30 });
     expect(s.get(2)).toEqual({ c: 30 });
-    // have to wait until it's all saved and acknowledged before enforcing limit
-    if (!s.isStable()) {
-      await once(s, "stable");
-    }
-    // cause limit enforcement immediately so unit tests aren't slow
-    await s.stream.enforceLimitsNow();
+    await s.save();
+    await wait({ until: () => s.length == 2 });
     expect(s.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
+    await wait({ until: () => s2.length == 2 });
+    expect(s2.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
 
     // also check limits was enforced if we close, then open new one:
     await s.close();
@@ -174,9 +180,17 @@ describe.skip("create a dstream with limit on the total number of messages, and 
     expect(s.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
   });
 
+  it("verifies that max_age works", async () => {
+    await delay(30);
+    s.push("new");
+    s.config({ max_age: 25 }); // anything older than 25ms should be deleted
+    await wait({ until: () => s.length == 1 });
+    expect(s.getAll()).toEqual(["new"]);
+  });
+
   it("closes the stream", async () => {
-    await s.delete({all:true});
     await s.close();
+    await s2.close();
   });
 });
 
@@ -201,7 +215,7 @@ describe.skip("create a dstream with limit on max_age, and confirm auto-delete w
   });
 
   it("closes the stream", async () => {
-    await s.delete({all:true});
+    await s.delete({ all: true });
     await s.close();
   });
 });
@@ -226,7 +240,7 @@ describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete
   });
 
   it("closes the stream", async () => {
-    await s.delete({all:true});
+    await s.delete({ all: true });
     await s.close();
   });
 });
@@ -257,7 +271,7 @@ describe.skip("create a dstream with limit on max_msg_size, and confirm auto-del
   });
 
   it("closes the stream", async () => {
-    await s.delete({all:true});
+    await s.delete({ all: true });
     await s.close();
   });
 });
