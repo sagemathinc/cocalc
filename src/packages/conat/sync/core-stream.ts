@@ -695,6 +695,7 @@ export class CoreStream<T = any> extends EventEmitter {
         key: options?.key,
         messageData: md,
         previousSeq: options?.previousSeq,
+        msgID: options?.msgID,
       });
       return x;
     } else if (this.leader) {

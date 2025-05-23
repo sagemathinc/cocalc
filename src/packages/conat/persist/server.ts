@@ -40,7 +40,11 @@ Also getAll using start_seq:
    cf = const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
 */
 
-import { pstream, type Message as StoredMessage } from "./storage";
+import {
+  pstream,
+  type Message as StoredMessage,
+  PersistentStream,
+} from "./storage";
 import { getEnv } from "@cocalc/conat/client";
 import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { uuid } from "@cocalc/util/misc";
@@ -252,11 +256,17 @@ async function handleMessage({ mesg, messagesThresh }) {
   //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
   const user_id = getUserId(mesg.subject);
 
-  // [ ] TODO: permissions and sanity checks!
+  // [ ] TODO: more permissions and other sanity checks!
+  
   const path = join(syncFiles.local, request.storage.path);
   await ensureContainingDirectoryExists(path);
-  const stream = pstream({ ...request.storage, path });
+  let stream: undefined | PersistentStream = undefined;
+  const respond = (...args) => {
+    stream?.close();
+    mesg.respond(...args);
+  };
 
+  stream = pstream({ ...request.storage, path });
   // get and set using normal request/respond
   try {
     if (request.cmd == "set") {
@@ -266,16 +276,17 @@ async function handleMessage({ mesg, messagesThresh }) {
         raw: mesg.raw,
         encoding: mesg.encoding,
         headers: request.headers,
+        msgID: request.msgID,
       });
-      mesg.respond({ resp });
+      respond({ resp });
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
       //console.log("got resp = ", resp);
       if (resp == null) {
-        mesg.respond(null);
+        respond(null);
       } else {
         const { raw, encoding, headers, seq, time, key } = resp;
-        mesg.respond(null, {
+        respond(null, {
           raw,
           encoding,
           headers: { ...headers, seq, time, key },
@@ -283,24 +294,22 @@ async function handleMessage({ mesg, messagesThresh }) {
       }
     } else if (request.cmd == "keys") {
       const resp = stream.keys();
-      mesg.respond({ resp });
+      respond({ resp });
     } else if (request.cmd == "sqlite") {
       if (!ENABLE_SQLITE_GENERAL_QUERIES) {
         throw Error("sqlite command not currently supported");
       }
       const resp = stream.sqlite(request.statement, request.params);
-      mesg.respond({ resp });
+      respond({ resp });
+    } else if (request.cmd == "getAll") {
+      // getAll will free reference to stream when it is done:
+      getAll({ mesg, request, user_id, stream, messagesThresh });
+    } else {
+      respond({ error: `unknown command ${request.cmd}` });
     }
   } catch (err) {
-    mesg.respond({ error: `${err}` });
+    respond({ error: `${err}` });
   }
-
-  if (request.cmd != "getAll") {
-    mesg.respond({ error: `unknown command ${request.cmd}` });
-    return;
-  }
-
-  await getAll({ mesg, request, user_id, stream, messagesThresh });
 }
 
 async function getAll({ mesg, request, user_id, stream, messagesThresh }) {

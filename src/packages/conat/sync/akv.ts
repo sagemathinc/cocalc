@@ -107,7 +107,12 @@ export class AKV<T = any> {
   set = async (
     key: string,
     value: T,
-    options?: { headers?: Headers; previousSeq?: number; timeout?: number },
+    options?: {
+      headers?: Headers;
+      previousSeq?: number;
+      timeout?: number;
+      msgID?: string;
+    },
   ) => {
     return await persistClient.set({
       user: this.user,
@@ -115,6 +120,7 @@ export class AKV<T = any> {
       key,
       messageData: messageData(value, { headers: options?.headers }),
       previousSeq: options?.previousSeq,
+      msgID: options?.msgID,
       timeout: options?.timeout,
     });
   };

@@ -60,6 +60,7 @@ export async function set({
   storage,
   key,
   previousSeq,
+  msgID,
   messageData,
   timeout,
 }: {
@@ -67,6 +68,7 @@ export async function set({
   storage: Storage;
   key?: string;
   previousSeq?: number;
+  msgID?: string;
   messageData: MessageData;
   timeout?: number;
 }): Promise<{ seq: number; time: number }> {
@@ -81,6 +83,7 @@ export async function set({
       cmd: "set",
       key,
       previousSeq,
+      msgID,
       storage,
     } as any,
     timeout,

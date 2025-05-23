@@ -155,12 +155,14 @@ export class PersistentStream extends EventEmitter {
     headers,
     key,
     previousSeq,
+    msgID,
   }: {
     encoding: DataEncoding;
     raw: Buffer;
     headers?: JSONValue;
     key?: string;
     previousSeq?: number;
+    msgID?: string;
   }): { seq: number; time: number } => {
     if (key !== undefined && previousSeq !== undefined) {
       // throw error if current seq number for the row
