@@ -10,7 +10,7 @@ pnpm test ./dstream.test.ts
 import { createDstream as create } from "./util";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
-import { connect, before, after } from "@cocalc/backend/conat/test/setup";
+import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -334,6 +334,85 @@ describe("ensure there isn't a really obvious subscription leak", () => {
     }
     const after = client.numSubscriptions();
     expect(after).toBe(before);
+  });
+});
+
+describe("test delete of messages from stream", () => {
+  let client1, client2, s1, s2;
+  const name = "test-delete";
+  it("create two clients", async () => {
+    client1 = connect();
+    client2 = connect();
+    s1 = await createDstream({
+      client: client1,
+      name,
+      noAutosave: true,
+      noCache: true,
+    });
+    s2 = await createDstream({
+      client: client2,
+      name,
+      noAutosave: true,
+      noCache: true,
+    });
+  });
+
+  it("writes message one, confirm seen by other, then delete and confirm works", async () => {
+    s1.push("hello");
+    await s1.save();
+    await wait({ until: () => s2.length > 0 });
+    s1.delete({ all: true });
+    await wait({ until: () => s2.length == 0 && s1.length == 0 });
+  });
+
+  it("same delete test as above but with a few more items and delete on s2 instead", async () => {
+    for (let i = 0; i < 10; i++) {
+      s1.push(i);
+    }
+    await s1.save();
+    await wait({ until: () => s2.length == 10 });
+    s2.delete({ all: true });
+    await wait({ until: () => s2.length == 0 && s1.length == 0 });
+  });
+
+  it("delete specific index", async () => {
+    s1.push("x", "y", "z");
+    await s1.save();
+    await wait({ until: () => s2.length == 3 });
+    s2.delete({ last_index: 1 });
+    await wait({ until: () => s2.length == 1 && s1.length == 1 });
+    expect(s1.get()).toEqual(["z"]);
+  });
+
+  it("delete specific seq number", async () => {
+    s1.push("x", "y");
+    await s1.save();
+    expect(s1.get()).toEqual(["z", "x", "y"]);
+    const seq = s1.seq(1);
+    const { seqs } = await s1.delete({ seq });
+    expect(seqs).toEqual([seq]);
+    setTimeout(() => console.log(s2.get()), 1000);
+    await wait({ until: () => s2.length == 2 && s1.length == 2 });
+    expect(s1.get()).toEqual(["z", "y"]);
+  });
+
+  it("delete up to a sequence number", async () => {
+    s1.push("x", "y");
+    await s1.save();
+    expect(s1.get()).toEqual(["z", "y", "x", "y"]);
+    const seq = s1.seq(1);
+    const { seqs } = await s1.delete({ last_seq: seq });
+    expect(seqs.length).toBe(2);
+    expect(seqs[1]).toBe(seq);
+    expect(s1.get()).toEqual(["x", "y"]);
+  });
+
+  it("delete specific key", async () => {
+    s1.stream.setKv("my-key", 5);
+    s1.delete({ key: "my-key" });
+    await s1.save();
+    expect(s1.stream.getKv("my-key")).toBe(undefined);
+    expect(s2.stream.getKv("my-key")).toBe(undefined);
   });
 });
 

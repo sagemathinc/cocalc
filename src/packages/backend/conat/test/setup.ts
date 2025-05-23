@@ -17,6 +17,7 @@ import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
+export { wait } from "@cocalc/backend/conat/test/util";
 
 const logger = getLogger("conat:test:setup");
 

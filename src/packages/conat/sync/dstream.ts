@@ -356,7 +356,7 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("not initialized");
     }
-    await this.stream.delete(opts);
+    return await this.stream.delete(opts);
   };
 
   get start_seq(): number | undefined {

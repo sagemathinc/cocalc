@@ -347,6 +347,7 @@ export class CoreStream<T = any> extends EventEmitter {
         await persistClient.renew(this.renewLoopParams);
       } catch (err) {
         console.log(`WARNING: core-stream renew failed -- ${err}`);
+        // [ ] TODO: critical at this point to do something!
       }
     }
   });
@@ -355,7 +356,7 @@ export class CoreStream<T = any> extends EventEmitter {
     messages: (SetOperation | DeleteOperation)[],
     noEmit?: boolean,
   ) => {
-    //console.log("processPersistentMessages", messages.length, " messages");
+    // console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
       // closed
       return;
@@ -1090,32 +1091,51 @@ export class CoreStream<T = any> extends EventEmitter {
   // one at position index, i.e., this.messages[index]
   // is deleted.
   // NOTE: For ephemeral streams, clients will NOT see the result of a delete,
-  // except when they load the stream later.
+  // except when they load the stream later.  For persistent streams all
+  // **connected** clients will see the delete.  THAT said, this is not a "proper"
+  // distributed computing primitive with tombstones, etc.  This is primarily
+  // meant for reducing space usage, and shouldn't be relied on for
+  // any other purpose.
   delete = async ({
     all,
-    index,
+    last_index,
     seq,
     last_seq,
+    key,
   }: {
-    all?: boolean;
-    index?: number;
-    seq?: number;
-    last_seq?: number;
+    // give exactly ONE parameter -- by default nothing happens with no params
+    all?: boolean; // delete everything
+    last_index?: number; // everything up to and including index'd message
+    seq?: number; // delete message with this sequence number
+    last_seq?: number; // delete everything up to and including this sequence number
+    key?: string; // delete the message with this key
   } = {}): Promise<{ seqs: number[] }> => {
     if (this.persist) {
       let opts;
       if (all) {
         opts = { all: true };
-      } else if (index != null) {
-        const last_seq = this.raw[index]?.seq;
-        if (last_seq === undefined) {
-          throw Error(`invalid index ${index}`);
+      } else if (last_index != null) {
+        if (last_index >= this.raw.length) {
+          opts = { all: true };
+        } else if (last_index < 0) {
+          return { seqs: [] };
+        } else {
+          const last_seq = this.raw[last_index].seq;
+          if (last_seq === undefined) {
+            throw Error(`BUG: invalid index ${last_index}`);
+          }
+          opts = { last_seq };
         }
-        opts = { last_seq };
       } else if (seq != null) {
         opts = { seq };
       } else if (last_seq != null) {
         opts = { last_seq };
+      } else if (key != null) {
+        const seq = this.kv[key]?.raw?.seq;
+        if (seq === undefined) {
+          return { seqs: [] };
+        }
+        opts = { seq };
       }
       return await persistClient.deleteMessages({
         user: this.user,
@@ -1124,17 +1144,19 @@ export class CoreStream<T = any> extends EventEmitter {
       });
     }
     if (seq != null || last_seq != null) {
-      throw Error("only deleting by index is supported for ephemeral streams");
+      throw Error(
+        "only deleting by last_index is supported for ephemeral streams",
+      );
     }
-    if (index == null) {
-      index = -1;
+    if (last_index == null) {
+      last_index = -1;
     }
-    if (index >= this.raw.length - 1 || index == -1) {
-      index = this.raw.length - 1;
+    if (last_index >= this.raw.length - 1 || last_index == -1) {
+      last_index = this.raw.length - 1;
     }
-    const seqs = this.raw.slice(0, index + 1).map((x) => x.seq);
-    this.messages.splice(0, index + 1);
-    this.raw.splice(0, index + 1);
+    const seqs = this.raw.slice(0, last_index + 1).map((x) => x.seq);
+    this.messages.splice(0, last_index + 1);
+    this.raw.splice(0, last_index + 1);
     return { seqs };
   };
 
@@ -1152,7 +1174,7 @@ export class CoreStream<T = any> extends EventEmitter {
     });
     if (index > -1) {
       try {
-        await this.delete({ index });
+        await this.delete({ last_index: index });
       } catch (err) {
         if (err.code != "TIMEOUT") {
           console.log(`WARNING: purging old messages - ${err}`);

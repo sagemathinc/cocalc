@@ -467,7 +467,6 @@ async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
     const sendAllUnsentMessages = reuseInFlight(async () => {
       while (!done && unsentMessages.length > 0) {
         if (done) return;
-        // [ ] TODO: limit the size
         const messages: StoredMessage[] = [];
         let size = 0;
         while (unsentMessages.length > 0 && !done) {
@@ -482,7 +481,9 @@ async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
           }
         }
         if (done) return;
-        await respond(undefined, messages);
+        if (messages.length > 0) {
+          await respond(undefined, messages);
+        }
       }
     });
 
