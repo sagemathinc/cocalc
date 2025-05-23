@@ -68,7 +68,7 @@ In the browser console:
 */
 
 import { EventEmitter } from "events";
-import { CoreStream } from "./core-stream";
+import { CoreStream, type Limits } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
@@ -76,7 +76,6 @@ import { map as awaitMap } from "awaiting";
 import type { Client, Headers } from "@cocalc/conat/core/client";
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
-import { type KVLimits } from "./limits";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -100,7 +99,7 @@ export interface DKVOptions {
   client?: Client;
   // 3-way merge conflict resolution
   merge?: (opts: { key: string; prev?: any; local?: any; remote?: any }) => any;
-  limits?: Partial<KVLimits>;
+  limits?: Partial<Limits>;
 
   // if noAutosave is set, local changes are never saved until you explicitly
   // call "await this.save()", which will try once to save.  Changes made during
@@ -519,6 +518,14 @@ export class DKV<T = any> extends EventEmitter {
   });
 
   stats = () => this.kv?.stats();
+
+  // get or set limits
+  limits = async (limits: Partial<Limits>): Promise<Limits> => {
+    if (this.kv == null) {
+      throw Error("not initialized");
+    }
+    return await this.kv.limits(limits);
+  };
 }
 
 export const cache = refCache<DKVOptions, DKV>({

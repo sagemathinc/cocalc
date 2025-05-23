@@ -66,6 +66,7 @@ import type {
   DeleteOperation,
   Limits,
 } from "@cocalc/conat/persist/storage";
+export type { Limits };
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.

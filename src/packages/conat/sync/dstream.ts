@@ -26,41 +26,15 @@ import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { type ValueType } from "@cocalc/conat/types";
-import { COCALC_MESSAGE_ID_HEADER } from "./core-stream";
+import { COCALC_MESSAGE_ID_HEADER, Limits } from "./core-stream";
 
 const MAX_PARALLEL = 50;
-
-export interface FilteredStreamLimitOptions {
-  // How many messages may be in a Stream, oldest messages will be removed
-  // if the Stream exceeds this size. -1 for unlimited.
-  max_msgs: number;
-  // Maximum age of any message in the stream matching the filter,
-  // expressed in milliseconds. 0 for unlimited.
-  // **Note that max_age is in milliseoncds, NOT nanoseconds like in Nats!!!**
-  max_age: number;
-  // How big the Stream may be, when the combined stream size matching the filter
-  // exceeds this old messages are removed. -1 for unlimited.
-  // This is enforced only on write, so if you change it, it only applies
-  // to future messages.
-  max_bytes: number;
-  // The largest message that will be accepted by the Stream. -1 for unlimited.
-  max_msg_size: number;
-
-  // Attempting to publish a message that causes this to be exceeded
-  // throws an exception instead.  -1 (or 0) for unlimited
-  // For dstream, the messages are explicitly rejected and the client
-  // gets a "reject" event emitted.  E.g., the terminal running in the project
-  // writes [...] when it gets these rejects, indicating that data was
-  // dropped.
-  max_bytes_per_second: number;
-  max_msgs_per_second: number;
-}
 
 export interface DStreamOptions {
   // what it's called by us
   name: string;
   subject: string;
-  limits?: Partial<FilteredStreamLimitOptions>;
+  limits?: Partial<Limits>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
@@ -110,7 +84,7 @@ export class DStream<T = any> extends EventEmitter {
     }
     this.stream.on("change", (mesg: T | undefined, raw: RawMsg) => {
       delete this.saved[raw.seq];
-      if(mesg === undefined) {
+      if (mesg === undefined) {
         return;
       }
       const headers = raw.headers;
@@ -363,6 +337,14 @@ export class DStream<T = any> extends EventEmitter {
     return this.stream?.start_seq;
   }
 
+  // get or set limits
+  limits = async (limits: Partial<Limits>): Promise<Limits> => {
+    if (this.stream == null) {
+      throw Error("not initialized");
+    }
+    return await this.stream.limits(limits);
+  };
+
   /*
     // returns largest sequence number known to this client.
   // not optimized to be super fast.
@@ -453,7 +435,7 @@ interface CreateOptions {
   name: string;
   account_id?: string;
   project_id?: string;
-  limits?: Partial<FilteredStreamLimitOptions>;
+  limits?: Partial<Limits>;
   start_seq?: number;
   noCache?: boolean;
   desc?: JSONValue;
