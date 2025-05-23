@@ -40,6 +40,7 @@ import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
 import { DataEncoding, type Headers } from "@cocalc/conat/core/client";
+import TTL from "@isaacs/ttlcache";
 
 enum CompressionAlgorithm {
   None = 0,
@@ -91,6 +92,7 @@ export interface Options {
 export class PersistentStream extends EventEmitter {
   private readonly options: Options;
   private readonly db: Database;
+  private readonly msgIDs = new TTL({ ttl: 2 * 60 * 1000 });
 
   constructor(options: Options) {
     super();
@@ -130,6 +132,9 @@ export class PersistentStream extends EventEmitter {
     delete this.options;
     // @ts-ignore
     delete this.db;
+    this.msgIDs?.clear();
+    // @ts-ignore
+    delete this.msgIDs;
   };
 
   private compress = (
@@ -162,8 +167,14 @@ export class PersistentStream extends EventEmitter {
     headers?: JSONValue;
     key?: string;
     previousSeq?: number;
+    // if given, any attempt to publish something again with the same msgID
+    // is deduplicated. Use this to prevent accidentally writing twice, e.g.,
+    // due to not getting a response back from the server.
     msgID?: string;
   }): { seq: number; time: number } => {
+    if (msgID !== undefined && this.msgIDs?.has(msgID)) {
+      return this.msgIDs.get(msgID)!;
+    }
     if (key !== undefined && previousSeq !== undefined) {
       // throw error if current seq number for the row
       // with this key is not previousSeq.
@@ -202,6 +213,9 @@ export class PersistentStream extends EventEmitter {
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
     this.emit("change", { seq, time, key, encoding, raw, headers });
+    if (msgID !== undefined) {
+      this.msgIDs.set(msgID, { time, seq });
+    }
     return { time, seq };
   };
 

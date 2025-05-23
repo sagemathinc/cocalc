@@ -36,6 +36,7 @@
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.4.1",
     "@msgpack/msgpack": "^3.1.1",
     "@socket.io/redis-streams-adapter": "^0.2.2",
     "awaiting": "^3.0.0",
