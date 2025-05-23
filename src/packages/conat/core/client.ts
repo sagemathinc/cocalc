@@ -254,6 +254,7 @@ interface SubscriptionOptions {
   queue?: string;
   ephemeral?: boolean;
   respond?: Function;
+  timeout?: number;
 }
 
 // WARNING!  This is the default and you can't just change it!
@@ -417,6 +418,7 @@ export class Client {
       queue,
       confirm,
       ephemeral,
+      timeout,
     }: {
       // if true, when the off method of the event emitter is called, then
       // the entire subscription is closed. This is very useful when we wrap the
@@ -442,6 +444,10 @@ export class Client {
       // it might be listening for updates to a stream.  After a few minutes
       // it still stops queuing up messages though.
       ephemeral?: boolean;
+
+      // how long to wait to confirm creation of the subscription;
+      // only used when confirm=true.
+      timeout?: number;
     } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
     if (!isValidSubject(subject)) {
@@ -462,17 +468,30 @@ export class Client {
     let promise;
     if (confirm) {
       const f = (cb) => {
-        this.conn.emit(
-          "subscribe",
-          { subject, queue, ephemeral },
-          (response) => {
-            if (response?.error) {
-              cb(new ConatError(response.error, { code: response.code }));
-            } else {
-              cb(response?.error, response);
-            }
-          },
-        );
+        const handle = (response) => {
+          if (response?.error) {
+            cb(new ConatError(response.error, { code: response.code }));
+          } else {
+            cb(response?.error, response);
+          }
+        };
+        if (timeout) {
+          this.conn
+            .timeout(timeout)
+            .emit(
+              "subscribe",
+              { subject, queue, ephemeral },
+              (err, response) => {
+                if (err) {
+                  handle({ error: `${err}`, code: 408 });
+                } else {
+                  handle(response);
+                }
+              },
+            );
+        } else {
+          this.conn.emit("subscribe", { subject, queue, ephemeral }, handle);
+        }
       };
       promise = callback(f);
     } else {
@@ -524,6 +543,7 @@ export class Client {
       closeWhenOffCalled: true,
       queue: opts?.queue,
       ephemeral: opts?.ephemeral,
+      timeout: opts?.timeout,
     });
     await promise;
     return this.subscriptionIterator(sub, opts);
@@ -680,7 +700,7 @@ export class Client {
           if (timeout) {
             this.conn.timeout(timeout).emit("publish", v, (err, response) => {
               if (err) {
-                handle({ error: "timeout", code: 408 });
+                handle({ error: `${err}`, code: 408 });
               } else {
                 handle(response);
               }
