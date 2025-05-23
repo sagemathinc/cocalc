@@ -53,9 +53,9 @@ type StoreType = "kv" | "stream";
 interface Item {
   // when it was created
   created: number;
-  // last time this kv-store was updated
+  // last time this kv-store or stream was updated
   last: number;
-  // how much space is used by this kv-store
+  // how much space is used by this kv-store or stream
   bytes: number;
   // number of keys or messages
   count: number;

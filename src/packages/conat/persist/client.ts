@@ -1,12 +1,13 @@
 import { getEnv } from "@cocalc/conat/client";
 import { persistSubject, renewSubject, type User } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
-import {
-  type Options as Storage,
-  type SetOperation,
-  type DeleteOperation,
+import type {
+  Options as Storage,
+  SetOperation,
+  DeleteOperation,
+  Limits,
 } from "./storage";
-export type { Storage, SetOperation, DeleteOperation };
+export type { Storage, SetOperation, DeleteOperation, Limits };
 import {
   Message as ConatMessage,
   MessageData,
@@ -124,6 +125,35 @@ export async function deleteMessages({
       seq,
       last_seq,
       all,
+    } as any,
+    timeout,
+  });
+  const { error, resp } = reply.data;
+  if (error) {
+    throw Error(error);
+  }
+  return resp;
+}
+
+export async function limits({
+  user,
+  storage,
+  limits,
+  timeout,
+}: {
+  user: User;
+  storage: Storage;
+  limits?: Partial<Limits>;
+  timeout?: number;
+}): Promise<Limits> {
+  const subject = persistSubject(user);
+  const { cn } = await getEnv();
+
+  const reply = await cn.request(subject, null, {
+    headers: {
+      storage: storage as any,
+      cmd: "limits",
+      limits,
     } as any,
     timeout,
   });

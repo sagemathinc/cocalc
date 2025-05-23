@@ -42,6 +42,38 @@ import { EventEmitter } from "events";
 import { DataEncoding, type Headers } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
 
+export interface Limits {
+  // How many messages may be in a Stream, oldest messages will be removed
+  // if the Stream exceeds this size. -1 for unlimited.
+  max_msgs: number;
+
+  // Maximum age of any message in the stream,
+  // expressed in milliseconds. 0 for unlimited.
+  // **Note that max_age is in milliseconds.**
+  max_age: number;
+
+  // How big the Stream may be. When the stream size
+  // exceeds this, old messages are removed. -1 for unlimited.
+  // This is enforced only on write, so if you change it, it only applies
+  // to future messages.  The size of a message is by definition
+  // the sum of the raw blob and the headers json.
+  max_bytes: number;
+
+  // The largest message that will be accepted. -1 for unlimited.
+  max_msg_size: number;
+
+  // Attempting to publish a message that causes either of the following
+  // two rate limits to be exceeded throws an exception.
+  // For dstream, the messages are explicitly rejected and the client
+  // gets a "reject" event emitted.  E.g., the terminal running in the project
+  // writes [...] when it gets these rejects, indicating that data was dropped.
+  // -1 for unlimited
+  max_bytes_per_second: number;
+
+  // -1 for unlimited
+  max_msgs_per_second: number;
+}
+
 enum CompressionAlgorithm {
   None = 0,
   Zstd = 1,
@@ -127,6 +159,16 @@ export class PersistentStream extends EventEmitter {
       .prepare(
         `CREATE TABLE IF NOT EXISTS messages ( 
           seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL
+          )
+        `,
+      )
+      .run();
+    this.db
+      .prepare(
+        `
+         CREATE TABLE IF NOT EXISTS limits (
+          n INTEGER PRIMARY KEY, 
+          max_msgs NUMBER NOT NULL, max_age NUMBER NOT NULL, max_bytes NUMBER NOT NULL, max_msg_size NUMBER NOT NULL, max_bytes_per_second NUMBER NOT NULL, max_msgs_per_second NUMBER NOT NULL
         )`,
       )
       .run();
@@ -350,6 +392,51 @@ export class PersistentStream extends EventEmitter {
         throw err;
       }
     }
+  };
+
+  limits = (limits?: Partial<Limits>): Limits => {
+    const cur: any = this.db.prepare(`SELECT * FROM limits WHERE n=1`).get();
+    const max_msgs = limits?.max_msgs ?? cur?.max_msgs ?? -1;
+    const max_age = limits?.max_age ?? cur?.max_age ?? 0;
+    const max_bytes = limits?.max_bytes ?? cur?.max_bytes ?? -1;
+    const max_msg_size = limits?.max_msg_size ?? cur?.max_msg_size ?? -1;
+    const max_bytes_per_second =
+      limits?.max_bytes_per_second ?? cur?.max_bytes_per_second ?? -1;
+    const max_msgs_per_second =
+      limits?.max_msgs_per_second ?? cur?.max_msgs_per_second ?? -1;
+    if (limits != null) {
+      // Use UPSERT (insert or update for n=1)
+      this.db
+        .prepare(
+          `
+      INSERT INTO limits (n, max_msgs, max_age, max_bytes, max_msg_size, max_bytes_per_second, max_msgs_per_second)
+      VALUES (1, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(n) DO UPDATE SET
+        max_msgs=excluded.max_msgs,
+        max_age=excluded.max_age,
+        max_bytes=excluded.max_bytes,
+        max_msg_size=excluded.max_msg_size,
+        max_bytes_per_second=excluded.max_bytes_per_second,
+        max_msgs_per_second=excluded.max_msgs_per_second
+    `,
+        )
+        .run(
+          max_msgs,
+          max_age,
+          max_bytes,
+          max_msg_size,
+          max_bytes_per_second,
+          max_msgs_per_second,
+        );
+    }
+    return {
+      max_msgs,
+      max_age,
+      max_bytes,
+      max_msg_size,
+      max_bytes_per_second,
+      max_msgs_per_second,
+    };
   };
 }
 

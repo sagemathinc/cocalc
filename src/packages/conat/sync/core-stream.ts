@@ -35,7 +35,6 @@ With persistence:
 */
 
 import {
-  type FilteredStreamLimitOptions,
   enforceLimits,
   enforceRateLimits,
   ENFORCE_LIMITS_THROTTLE_MS,
@@ -65,6 +64,7 @@ import jsonStableStringify from "json-stable-stringify";
 import type {
   SetOperation,
   DeleteOperation,
+  Limits,
 } from "@cocalc/conat/persist/storage";
 
 // when this many bytes of key:value have been changed (so need to be freed),
@@ -97,7 +97,7 @@ export interface CoreStreamOptions {
   account_id?: string;
   project_id?: string;
   // note: rate limits are only supported right now for string messages.
-  limits?: Partial<FilteredStreamLimitOptions>;
+  limits?: Partial<Limits>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
@@ -134,7 +134,7 @@ export function storagePath({
 export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
-  private readonly limits: FilteredStreamLimitOptions;
+  private limitOptions?: Partial<Limits>;
   private _start_seq?: number;
 
   // don't do "this.raw=" or "this.messages=" anywhere in this class
@@ -196,15 +196,7 @@ export class CoreStream<T = any> extends EventEmitter {
       };
     }
     this._start_seq = start_seq;
-    this.limits = {
-      max_msgs: -1,
-      max_age: 0,
-      max_bytes: -1,
-      max_msg_size: -1,
-      max_bytes_per_second: -1,
-      max_msgs_per_second: -1,
-      ...limits,
-    };
+    this.limitOptions = limits;
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -223,6 +215,7 @@ export class CoreStream<T = any> extends EventEmitter {
         start_seq: this._start_seq,
         noEmit: true,
       });
+      this.limitOptions = await this.limits(this.limitOptions);
     } else if (!this.leader) {
       // try to get current data from a leader
       await this.getAllFromLeader({
@@ -241,6 +234,17 @@ export class CoreStream<T = any> extends EventEmitter {
     if (!this.leader && !this.persist) {
       this.heartbeatMonitor();
     }
+  };
+
+  limits = async (limits?: Partial<Limits>): Promise<Limits> => {
+    if (this.storage == null) {
+      throw Error("bug -- storage must be set");
+    }
+    return await persistClient.limits({
+      user: this.user,
+      storage: this.storage,
+      limits,
+    });
   };
 
   private resetState = () => {
@@ -737,7 +741,15 @@ export class CoreStream<T = any> extends EventEmitter {
     if (typeof mesg == "string") {
       // this may throw an exception preventing publishing.
       enforceRateLimits({
-        limits: this.limits,
+        limits: {
+          max_msgs: -1,
+          max_age: 0,
+          max_bytes: -1,
+          max_msg_size: -1,
+          max_bytes_per_second: -1,
+          max_msgs_per_second: -1,
+          ...this.limitOptions,
+        },
         bytesSent: this.bytesSent,
         subject: this.subject,
         bytes: mesg.length,
@@ -1162,7 +1174,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private enforceLimitsNow = reuseInFlight(async () => {
     if (this.persist) {
-      // [ ] TODO:
+      // this is done in persistent storage server side, not by our client.
       return;
     }
     // ephemeral limits are enforced by all clients.
@@ -1170,7 +1182,15 @@ export class CoreStream<T = any> extends EventEmitter {
       messages: this.messages,
       // @ts-ignore [ ] TODO
       raw: this.raw,
-      limits: this.limits,
+      limits: {
+        max_msgs: -1,
+        max_age: 0,
+        max_bytes: -1,
+        max_msg_size: -1,
+        max_bytes_per_second: -1,
+        max_msgs_per_second: -1,
+        ...this.limitOptions,
+      },
     });
     if (index > -1) {
       try {
