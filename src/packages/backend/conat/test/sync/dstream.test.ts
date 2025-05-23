@@ -249,7 +249,7 @@ describe("testing start_seq", () => {
 
     await s.load({ start_seq: 0 });
     for (let i = 0; i < 99; i++) {
-      expect(s.get(i)).toBe(i+1);
+      expect(s.get(i)).toBe(i + 1);
     }
   });
 });

@@ -2,7 +2,7 @@
 DEVELOPMENT:
 
 
-   pnpm test ./core-stream-ephemeral.test.ts
+   pnpm test ./core-stream.test.ts
 
 */
 
@@ -495,6 +495,48 @@ describe("test previousSeq when setting keys, which can be used to ensure consis
   });
 });
 
-// TODO ephemeral kv store
+describe("test msgID dedup", () => {
+  let client;
+  let stream;
+  let name = "msgid";
+  let client2;
+  let stream2;
+
+  it("creates two clients", async () => {
+    client = connect();
+    stream = await cstream({ client, name, persist: true });
+
+    client2 = connect();
+    stream2 = await cstream({
+      client: client2,
+      name,
+      persist: true,
+      noCache: true,
+    });
+
+    expect(stream === stream2).toBe(false);
+  });
+
+  it("publishes a message with msgID twice and sees it only appears once", async () => {
+    await stream.publish("x", { msgID: "myid" });
+    await stream.publish("y", { msgID: "myid2" });
+    await stream.publish("x", { msgID: "myid" });
+    expect(stream.getAll()).toEqual(["x", "y"]);
+    await wait({ until: () => stream2.length == 2 });
+    expect(stream2.getAll()).toEqual(["x", "y"]);
+    expect(stream.msgIDs.has("myid")).toBe(true);
+  });
+
+  it("publishes same message from other stream doesn't cause it to appear again either (so msgID check is server side)", async () => {
+    // not just using local info and not accidentally the same object:
+    expect(stream2.msgIDs.has("myid")).toBe(false);
+    await stream2.publish("x", { msgID: "myid" });
+    expect(stream2.getAll()).toEqual(["x", "y"]);
+    await stream2.publish("y", { msgID: "myid2" });
+    expect(stream2.getAll()).toEqual(["x", "y"]);
+  });
+});
+
+// TODO ephemeral kv store (not implemented yet!)
 
 afterAll(after);

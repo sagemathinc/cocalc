@@ -681,6 +681,10 @@ export class CoreStream<T = any> extends EventEmitter {
       if (this.storage == null) {
         throw Error("bug -- storage must be set");
       }
+      if (options?.msgID && this.msgIDs.has(options.msgID)) {
+        // it's a dup
+        return;
+      }
       const md = messageData(mesg, {
         headers: {
           ...options?.headers,
@@ -697,6 +701,9 @@ export class CoreStream<T = any> extends EventEmitter {
         previousSeq: options?.previousSeq,
         msgID: options?.msgID,
       });
+      if (options?.msgID) {
+        this.msgIDs?.add(options.msgID);
+      }
       return x;
     } else if (this.leader) {
       // sending from leader -- so assign seq, timestamp and send it out.

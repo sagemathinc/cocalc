@@ -295,8 +295,8 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
-  // [ ] TODO: this critically needs to be rewritten to save everything
-  //     as a single message -- ie a batch write.
+  // [ ] TODO: make faster by saving everything as a single message 
+  // -- ie a batch write.  That said, in cocalc this case doesn't come up.
   private attemptToSave = reuseInFlight(async () => {
     const f = async (id) => {
       if (this.stream == null) {
