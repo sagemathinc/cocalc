@@ -281,8 +281,8 @@ async function handleMessage({ mesg, messagesThresh }) {
       respond({ resp });
     } else if (request.cmd == "delete") {
       respond({ resp: stream.delete(request) });
-    } else if (request.cmd == "limits") {
-      respond({ resp: stream.limits(request.limits) });
+    } else if (request.cmd == "config") {
+      respond({ resp: stream.config(request.config) });
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
       //console.log("got resp = ", resp);

@@ -5,9 +5,9 @@ import type {
   Options as Storage,
   SetOperation,
   DeleteOperation,
-  Limits,
+  Configuration,
 } from "./storage";
-export type { Storage, SetOperation, DeleteOperation, Limits };
+export type { Storage, SetOperation, DeleteOperation, Configuration };
 import {
   Message as ConatMessage,
   MessageData,
@@ -135,25 +135,25 @@ export async function deleteMessages({
   return resp;
 }
 
-export async function limits({
+export async function config({
   user,
   storage,
-  limits,
+  config,
   timeout,
 }: {
   user: User;
   storage: Storage;
-  limits?: Partial<Limits>;
+  config?: Partial<Configuration>;
   timeout?: number;
-}): Promise<Limits> {
+}): Promise<Configuration> {
   const subject = persistSubject(user);
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
     headers: {
       storage: storage as any,
-      cmd: "limits",
-      limits,
+      cmd: "config",
+      config,
     } as any,
     timeout,
   });

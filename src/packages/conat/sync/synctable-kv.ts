@@ -15,8 +15,8 @@ import jsonStableStringify from "json-stable-stringify";
 import { toKey } from "@cocalc/conat/util";
 import { wait } from "@cocalc/util/async-wait";
 import { fromJS, Map } from "immutable";
-import { type KVLimits } from "./limits";
 import type { JSONValue } from "@cocalc/util/types";
+import type { Configuration } from "@cocalc/conat/sync/core-stream";
 
 export class SyncTableKV extends EventEmitter {
   public readonly table;
@@ -29,7 +29,7 @@ export class SyncTableKV extends EventEmitter {
   private dkv?: DKV | DKO;
   private env;
   private getHook: Function;
-  private limits?: Partial<KVLimits>;
+  private config?: Partial<Configuration>;
   private desc?: JSONValue;
 
   constructor({
@@ -39,7 +39,7 @@ export class SyncTableKV extends EventEmitter {
     project_id,
     atomic,
     immutable,
-    limits,
+    config,
     desc,
   }: {
     query;
@@ -48,7 +48,7 @@ export class SyncTableKV extends EventEmitter {
     project_id?: string;
     atomic?: boolean;
     immutable?: boolean;
-    limits?: Partial<KVLimits>;
+    config?: Partial<Configuration>;
     desc?: JSONValue;
   }) {
     super();
@@ -56,7 +56,7 @@ export class SyncTableKV extends EventEmitter {
     this.atomic = !!atomic;
     this.getHook = immutable ? fromJS : (x) => x;
     this.query = query;
-    this.limits = limits;
+    this.config = config;
     this.env = env;
     this.desc = desc;
     this.table = keys(query)[0];
@@ -117,7 +117,7 @@ export class SyncTableKV extends EventEmitter {
         name,
         account_id: this.account_id,
         project_id: this.project_id,
-        limits: this.limits,
+        config: this.config,
         desc: this.desc,
       });
     } else {
@@ -125,7 +125,7 @@ export class SyncTableKV extends EventEmitter {
         name,
         account_id: this.account_id,
         project_id: this.project_id,
-        limits: this.limits,
+        config: this.config,
         desc: this.desc,
       });
     }

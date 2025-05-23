@@ -44,7 +44,7 @@ export function initContext(opts: {
 export function createDatabase(...args): Database {
   if (betterSqlite3 == null) {
     throw Error(
-      "conat/persist must be initialized with the better-sqlite3 module -- import from backend/nats/persist instead",
+      "conat/persist must be initialized with the better-sqlite3 module -- import from backend/conat/persist instead",
     );
   }
   return new betterSqlite3(...args);

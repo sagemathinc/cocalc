@@ -33,6 +33,12 @@ Upstream report (by me): https://github.com/antoniomuso/lz4-napi/issues/678
 I also tried the rust sync snappy and it had a similar memory leak.  Finally,
 I tried zstd-napi and it has a very fast sync implementation that does *not*
 leak memory. So zstd-napi it is.  And I like zstandard anyways.
+
+DEVELOPMENT:
+
+
+   a = require('@cocalc/backend/conat/persist'); s = a.pstream({path:'/tmp/a.db'})
+
 */
 
 import { refCacheSync } from "@cocalc/util/refcache";
@@ -42,7 +48,7 @@ import { EventEmitter } from "events";
 import { DataEncoding, type Headers } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
 
-export interface Limits {
+export interface Configuration {
   // How many messages may be in a Stream, oldest messages will be removed
   // if the Stream exceeds this size. -1 for unlimited.
   max_msgs: number;
@@ -72,7 +78,21 @@ export interface Limits {
 
   // -1 for unlimited
   max_msgs_per_second: number;
+
+  // old = delete old messages to make room for nw
+  // new = refuse writes if they exceed the limits
+  discard_policy: "old" | "new";
 }
+
+const CONFIGURATION = {
+  max_msgs: { def: -1, coerce: parseInt },
+  max_age: { def: 0, coerce: parseInt },
+  max_bytes: { def: -1, coerce: parseInt },
+  max_msg_size: { def: -1, coerce: parseInt },
+  max_bytes_per_second: { def: -1, coerce: parseInt },
+  max_msgs_per_second: { def: -1, coerce: parseInt },
+  discard_policy: { def: "old", coerce: (x) => `${x}` },
+};
 
 enum CompressionAlgorithm {
   None = 0,
@@ -166,9 +186,8 @@ export class PersistentStream extends EventEmitter {
     this.db
       .prepare(
         `
-         CREATE TABLE IF NOT EXISTS limits (
-          n INTEGER PRIMARY KEY, 
-          max_msgs NUMBER NOT NULL, max_age NUMBER NOT NULL, max_bytes NUMBER NOT NULL, max_msg_size NUMBER NOT NULL, max_bytes_per_second NUMBER NOT NULL, max_msgs_per_second NUMBER NOT NULL
+         CREATE TABLE IF NOT EXISTS config (
+          field TEXT PRIMARY KEY, value TEXT NOT NULL
         )`,
       )
       .run();
@@ -394,49 +413,28 @@ export class PersistentStream extends EventEmitter {
     }
   };
 
-  limits = (limits?: Partial<Limits>): Limits => {
-    const cur: any = this.db.prepare(`SELECT * FROM limits WHERE n=1`).get();
-    const max_msgs = limits?.max_msgs ?? cur?.max_msgs ?? -1;
-    const max_age = limits?.max_age ?? cur?.max_age ?? 0;
-    const max_bytes = limits?.max_bytes ?? cur?.max_bytes ?? -1;
-    const max_msg_size = limits?.max_msg_size ?? cur?.max_msg_size ?? -1;
-    const max_bytes_per_second =
-      limits?.max_bytes_per_second ?? cur?.max_bytes_per_second ?? -1;
-    const max_msgs_per_second =
-      limits?.max_msgs_per_second ?? cur?.max_msgs_per_second ?? -1;
-    if (limits != null) {
-      // Use UPSERT (insert or update for n=1)
-      this.db
-        .prepare(
-          `
-      INSERT INTO limits (n, max_msgs, max_age, max_bytes, max_msg_size, max_bytes_per_second, max_msgs_per_second)
-      VALUES (1, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(n) DO UPDATE SET
-        max_msgs=excluded.max_msgs,
-        max_age=excluded.max_age,
-        max_bytes=excluded.max_bytes,
-        max_msg_size=excluded.max_msg_size,
-        max_bytes_per_second=excluded.max_bytes_per_second,
-        max_msgs_per_second=excluded.max_msgs_per_second
-    `,
-        )
-        .run(
-          max_msgs,
-          max_age,
-          max_bytes,
-          max_msg_size,
-          max_bytes_per_second,
-          max_msgs_per_second,
-        );
+  config = (config?: Partial<Configuration>): Configuration => {
+    const cur: any = {};
+    for (const { field, value } of this.db
+      .prepare("SELECT * FROM config")
+      .all() as any) {
+      cur[field] = value;
     }
-    return {
-      max_msgs,
-      max_age,
-      max_bytes,
-      max_msg_size,
-      max_bytes_per_second,
-      max_msgs_per_second,
-    };
+    const full: Partial<Configuration> = {};
+    for (const key in CONFIGURATION) {
+      const { def, coerce } = CONFIGURATION[key];
+      full[key] = coerce(config?.[key] ?? cur[key] ?? def);
+      if (config?.[key] != null && full[key] != (cur[key] ?? def)) {
+        // making a change
+        console.log("change", key, full[key]);
+        this.db
+          .prepare(
+            `INSERT INTO config (field, value) VALUES(?, ?) ON CONFLICT(field) DO UPDATE SET value=excluded.value`,
+          )
+          .run(key, full[key]);
+      }
+    }
+    return full as Configuration;
   };
 }
 

@@ -66,7 +66,7 @@ export async function createListingsService({
   });
 }
 
-const limits = {
+const config = {
   max_msgs: MAX_DIRECTORIES,
 };
 
@@ -84,7 +84,7 @@ export async function getListingsKV(
 ): Promise<DKV<Listing>> {
   return await dkv<Listing>({
     name: "listings",
-    limits,
+    config,
     ...opts,
   });
 }
@@ -101,7 +101,7 @@ export async function getListingsTimesKV(
 ): Promise<DKV<Times>> {
   return await dkv<Times>({
     name: "listings-times",
-    limits,
+    config,
     ...opts,
   });
 }

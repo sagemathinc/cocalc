@@ -165,7 +165,7 @@ export class OpenFiles extends EventEmitter {
     const d = await dkv<KVEntry>({
       name: "open-files",
       project_id: this.project_id,
-      limits: {
+      config: {
         max_age: MAX_AGE_MS,
       },
       noAutosave: this.noAutosave,

@@ -26,7 +26,7 @@ import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { type ValueType } from "@cocalc/conat/types";
-import { COCALC_MESSAGE_ID_HEADER, Limits } from "./core-stream";
+import { COCALC_MESSAGE_ID_HEADER, Configuration } from "./core-stream";
 
 const MAX_PARALLEL = 50;
 
@@ -34,7 +34,7 @@ export interface DStreamOptions {
   // what it's called by us
   name: string;
   subject: string;
-  limits?: Partial<Limits>;
+  config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
@@ -337,12 +337,12 @@ export class DStream<T = any> extends EventEmitter {
     return this.stream?.start_seq;
   }
 
-  // get or set limits
-  limits = async (limits: Partial<Limits>): Promise<Limits> => {
+  // get or set config
+  config = async (config: Partial<Configuration>): Promise<Configuration> => {
     if (this.stream == null) {
       throw Error("not initialized");
     }
-    return await this.stream.limits(limits);
+    return await this.stream.config(config);
   };
 
   /*
@@ -435,7 +435,7 @@ interface CreateOptions {
   name: string;
   account_id?: string;
   project_id?: string;
-  limits?: Partial<Limits>;
+  config?: Partial<Configuration>;
   start_seq?: number;
   noCache?: boolean;
   desc?: JSONValue;

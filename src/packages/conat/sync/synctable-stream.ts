@@ -15,7 +15,7 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import { EventEmitter } from "events";
 import { dstream, DStream } from "./dstream";
 import { fromJS, Map } from "immutable";
-import { type FilteredStreamLimitOptions } from "./limits";
+import type { Configuration } from "@cocalc/conat/sync/core-stream";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -39,7 +39,7 @@ export class SyncTableStream extends EventEmitter {
   private state: State = "disconnected";
   private dstream?: DStream;
   private getHook: Function;
-  private limits?: Partial<FilteredStreamLimitOptions>;
+  private config?: Partial<Configuration>;
   private start_seq?: number;
   private noInventory?: boolean;
   private ephemeral?: boolean;
@@ -49,7 +49,7 @@ export class SyncTableStream extends EventEmitter {
     account_id: _account_id,
     project_id,
     immutable,
-    limits,
+    config,
     start_seq,
     noInventory,
     ephemeral,
@@ -58,7 +58,7 @@ export class SyncTableStream extends EventEmitter {
     account_id?: string;
     project_id?: string;
     immutable?: boolean;
-    limits?: Partial<FilteredStreamLimitOptions>;
+    config?: Partial<Configuration>;
     start_seq?: number;
     noInventory?: boolean;
     ephemeral?: boolean;
@@ -68,7 +68,7 @@ export class SyncTableStream extends EventEmitter {
     this.ephemeral = ephemeral;
     this.setMaxListeners(100);
     this.getHook = immutable ? fromJS : (x) => x;
-    this.limits = limits;
+    this.config = config;
     this.start_seq = start_seq;
     const table = keys(query)[0];
     this.table = table;
@@ -95,7 +95,7 @@ export class SyncTableStream extends EventEmitter {
     this.dstream = await dstream({
       name,
       project_id: this.project_id,
-      limits: this.limits,
+      config: this.config,
       desc: { path: this.path },
       start_seq: this.start_seq,
       noInventory: this.noInventory,

@@ -64,9 +64,9 @@ import jsonStableStringify from "json-stable-stringify";
 import type {
   SetOperation,
   DeleteOperation,
-  Limits,
+  Configuration,
 } from "@cocalc/conat/persist/storage";
-export type { Limits };
+export type { Configuration };
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -97,8 +97,7 @@ export interface CoreStreamOptions {
   // where it is located
   account_id?: string;
   project_id?: string;
-  // note: rate limits are only supported right now for string messages.
-  limits?: Partial<Limits>;
+  config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
@@ -135,7 +134,7 @@ export function storagePath({
 export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
   private readonly subject: string;
-  private limitOptions?: Partial<Limits>;
+  private configOptions?: Partial<Configuration>;
   private _start_seq?: number;
 
   // don't do "this.raw=" or "this.messages=" anywhere in this class
@@ -174,7 +173,7 @@ export class CoreStream<T = any> extends EventEmitter {
     name,
     project_id,
     account_id,
-    limits,
+    config,
     start_seq,
     leader = false,
     persist = false,
@@ -197,7 +196,7 @@ export class CoreStream<T = any> extends EventEmitter {
       };
     }
     this._start_seq = start_seq;
-    this.limitOptions = limits;
+    this.configOptions = config;
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -216,7 +215,7 @@ export class CoreStream<T = any> extends EventEmitter {
         start_seq: this._start_seq,
         noEmit: true,
       });
-      this.limitOptions = await this.limits(this.limitOptions);
+      this.configOptions = await this.config(this.configOptions);
     } else if (!this.leader) {
       // try to get current data from a leader
       await this.getAllFromLeader({
@@ -237,14 +236,14 @@ export class CoreStream<T = any> extends EventEmitter {
     }
   };
 
-  limits = async (limits?: Partial<Limits>): Promise<Limits> => {
+  config = async (config?: Partial<Configuration>): Promise<Configuration> => {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    return await persistClient.limits({
+    return await persistClient.config({
       user: this.user,
       storage: this.storage,
-      limits,
+      config,
     });
   };
 
@@ -749,7 +748,7 @@ export class CoreStream<T = any> extends EventEmitter {
           max_msg_size: -1,
           max_bytes_per_second: -1,
           max_msgs_per_second: -1,
-          ...this.limitOptions,
+          ...this.configOptions,
         },
         bytesSent: this.bytesSent,
         subject: this.subject,
@@ -1190,7 +1189,7 @@ export class CoreStream<T = any> extends EventEmitter {
         max_msg_size: -1,
         max_bytes_per_second: -1,
         max_msgs_per_second: -1,
-        ...this.limitOptions,
+        ...this.configOptions,
       },
     });
     if (index > -1) {

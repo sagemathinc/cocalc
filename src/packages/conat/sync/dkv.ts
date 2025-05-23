@@ -68,7 +68,7 @@ In the browser console:
 */
 
 import { EventEmitter } from "events";
-import { CoreStream, type Limits } from "./core-stream";
+import { CoreStream, type Configuration } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
@@ -99,7 +99,7 @@ export interface DKVOptions {
   client?: Client;
   // 3-way merge conflict resolution
   merge?: (opts: { key: string; prev?: any; local?: any; remote?: any }) => any;
-  limits?: Partial<Limits>;
+  config?: Partial<Configuration>;
 
   // if noAutosave is set, local changes are never saved until you explicitly
   // call "await this.save()", which will try once to save.  Changes made during
@@ -131,7 +131,7 @@ export class DKV<T = any> extends EventEmitter {
     desc,
     client,
     merge,
-    limits,
+    config,
     noAutosave,
   }: DKVOptions) {
     super();
@@ -144,7 +144,7 @@ export class DKV<T = any> extends EventEmitter {
       project_id,
       account_id,
       client,
-      limits,
+      config,
       // we do not have any notion of ephemeral kv yet
       persist: true,
     });
@@ -519,12 +519,12 @@ export class DKV<T = any> extends EventEmitter {
 
   stats = () => this.kv?.stats();
 
-  // get or set limits
-  limits = async (limits: Partial<Limits>): Promise<Limits> => {
+  // get or set config
+  config = async (config: Partial<Configuration>): Promise<Configuration> => {
     if (this.kv == null) {
       throw Error("not initialized");
     }
-    return await this.kv.limits(limits);
+    return await this.kv.config(config);
   };
 }
 
