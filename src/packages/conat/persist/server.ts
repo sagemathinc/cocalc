@@ -257,7 +257,7 @@ async function handleMessage({ mesg, messagesThresh }) {
   const user_id = getUserId(mesg.subject);
 
   // [ ] TODO: more permissions and other sanity checks!
-  
+
   const path = join(syncFiles.local, request.storage.path);
   await ensureContainingDirectoryExists(path);
   let stream: undefined | PersistentStream = undefined;
@@ -279,6 +279,8 @@ async function handleMessage({ mesg, messagesThresh }) {
         msgID: request.msgID,
       });
       respond({ resp });
+    } else if (request.cmd == "delete") {
+      respond({ resp: stream.delete(request) });
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
       //console.log("got resp = ", resp);
@@ -470,7 +472,7 @@ async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
         let size = 0;
         while (unsentMessages.length > 0 && !done) {
           const message = unsentMessages.shift();
-          size += message!.raw.length;
+          size += message?.raw?.length ?? 0; // e.g. op:'delete' messages have length 0 and now raw field
           messages.push(message!);
           if (size >= messagesThresh) {
             await respond(undefined, messages);

@@ -47,7 +47,7 @@ describe("test headers with a dstream", () => {
   });
 
   it("clean up", async () => {
-    await s.purge();
+    await s.delete({all:true});
   });
 });
 

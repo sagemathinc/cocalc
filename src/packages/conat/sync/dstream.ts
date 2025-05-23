@@ -108,8 +108,11 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (mesg: T, raw: RawMsg) => {
+    this.stream.on("change", (mesg: T | undefined, raw: RawMsg) => {
       delete this.saved[raw.seq];
+      if(mesg === undefined) {
+        return;
+      }
       const headers = raw.headers;
       const msgID = headers?.[COCALC_MESSAGE_ID_HEADER];
       if (msgID) {
@@ -295,7 +298,7 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
-  // [ ] TODO: make faster by saving everything as a single message 
+  // [ ] TODO: make faster by saving everything as a single message
   // -- ie a batch write.  That said, in cocalc this case doesn't come up.
   private attemptToSave = reuseInFlight(async () => {
     const f = async (id) => {
@@ -346,14 +349,14 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   // this is not synchronous -- it makes sure everything is saved out,
-  // then purges the stream stored in nats.
-  // NOTE: other clients will NOT see the result of a purge (unless they reconnect).
-  purge = async (opts?) => {
+  // then delete the persistent stream
+  // NOTE: for ephemeral streams, other clients will NOT see the result of a purge (unless they reconnect).
+  delete = async (opts?) => {
     await this.save();
     if (this.stream == null) {
       throw Error("not initialized");
     }
-    await this.stream.purge(opts);
+    await this.stream.delete(opts);
   };
 
   get start_seq(): number | undefined {

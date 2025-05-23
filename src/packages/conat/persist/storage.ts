@@ -74,6 +74,16 @@ export interface Message {
   headers?: Headers;
 }
 
+export interface SetOperation extends Message {
+  op: undefined;
+}
+
+export interface DeleteOperation {
+  op: "delete";
+  // sequence numbers of deleted messages
+  seqs: number[];
+}
+
 export interface Options {
   // absolute path to sqlite database file.  This needs to be a valid filename
   // path, and must also be kept under 1K so it can be stored in cloud storage.
@@ -212,7 +222,7 @@ export class PersistentStream extends EventEmitter {
     );
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
-    this.emit("change", { seq, time, key, encoding, raw, headers });
+    this.emit("change", { op: "set", seq, time, key, encoding, raw, headers });
     if (msgID !== undefined) {
       this.msgIDs.set(msgID, { time, seq });
     }
@@ -277,16 +287,31 @@ export class PersistentStream extends EventEmitter {
     seq?: number;
     last_seq?: number;
     all?: boolean;
-  }) => {
+  }): { seqs: number[] } => {
+    let seqs: number[] = [];
     if (all) {
+      seqs = this.db
+        .prepare("SELECT seq FROM messages")
+        .all()
+        .map((row: any) => row.seq);
       this.db.prepare("DELETE FROM messages").run();
       this.vacuum();
     } else if (last_seq) {
+      seqs = this.db
+        .prepare("SELECT seq FROM messages WHERE seq<=?")
+        .all(last_seq)
+        .map((row: any) => row.seq);
       this.db.prepare("DELETE FROM messages WHERE seq<=?").run(last_seq);
       this.vacuum();
     } else if (seq) {
+      seqs = this.db
+        .prepare("SELECT seq FROM messages WHERE seq=?")
+        .all(seq)
+        .map((row: any) => row.seq);
       this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
     }
+    this.emit("change", { op: "delete", seqs });
+    return { seqs };
   };
 
   vacuum = () => {

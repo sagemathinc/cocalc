@@ -175,7 +175,7 @@ describe.skip("create a dstream with limit on the total number of messages, and 
   });
 
   it("closes the stream", async () => {
-    await s.purge();
+    await s.delete({all:true});
     await s.close();
   });
 });
@@ -201,7 +201,7 @@ describe.skip("create a dstream with limit on max_age, and confirm auto-delete w
   });
 
   it("closes the stream", async () => {
-    await s.purge();
+    await s.delete({all:true});
     await s.close();
   });
 });
@@ -226,7 +226,7 @@ describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete
   });
 
   it("closes the stream", async () => {
-    await s.purge();
+    await s.delete({all:true});
     await s.close();
   });
 });
@@ -257,7 +257,7 @@ describe.skip("create a dstream with limit on max_msg_size, and confirm auto-del
   });
 
   it("closes the stream", async () => {
-    await s.purge();
+    await s.delete({all:true});
     await s.close();
   });
 });

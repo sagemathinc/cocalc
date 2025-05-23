@@ -120,8 +120,8 @@ describe("create a client, create an ephemeral leader core-stream, and do basic 
     await stream.enforceLimitsNow();
   });
 
-  it("purge the stream", async () => {
-    await stream.purge();
+  it("delete everything in the stream", async () => {
+    await stream.delete({all:true});
     expect(stream.length).toBe(0);
     const stats = stream.stats();
     expect(stats.count).toBe(0);

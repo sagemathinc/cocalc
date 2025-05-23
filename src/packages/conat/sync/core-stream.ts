@@ -62,7 +62,10 @@ import { randomId } from "@cocalc/conat/names";
 import * as persistClient from "@cocalc/conat/persist/client";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
-import { type Message as StoredMessage } from "@cocalc/conat/persist/storage";
+import type {
+  SetOperation,
+  DeleteOperation,
+} from "@cocalc/conat/persist/storage";
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -319,7 +322,7 @@ export class CoreStream<T = any> extends EventEmitter {
         // switched to watch mode
         return;
       }
-      const messages = value.data as StoredMessage[];
+      const messages = value.data as (SetOperation | DeleteOperation)[];
       //       console.log(
       //         "got persistent data",
       //         value.raw.length,
@@ -349,10 +352,14 @@ export class CoreStream<T = any> extends EventEmitter {
   });
 
   private processPersistentMessages = (
-    messages: StoredMessage[],
+    messages: (SetOperation | DeleteOperation)[],
     noEmit?: boolean,
   ) => {
     //console.log("processPersistentMessages", messages.length, " messages");
+    if (this.raw === undefined) {
+      // closed
+      return;
+    }
     for (const mesg of messages) {
       try {
         this.processPersistentMessage(mesg, noEmit);
@@ -363,13 +370,71 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private processPersistentMessage = (
-    { seq, time, key, encoding, raw: data, headers }: StoredMessage,
+    mesg: SetOperation | DeleteOperation,
     noEmit?: boolean,
   ) => {
-    if (this.raw === undefined) {
-      // closed
-      return;
+    if (mesg.op == "delete") {
+      this.processPersistentDelete(mesg, noEmit);
+    } else {
+      // set is the default
+      this.processPersistentSet(mesg as SetOperation, noEmit);
     }
+  };
+
+  private processPersistentDelete = (
+    { seqs }: DeleteOperation,
+    noEmit?: boolean,
+  ) => {
+    //console.log("processPersistentDelete", seqs);
+    const X = new Set<number>(seqs);
+    // seqs is a list of integers.  We remove
+    // every entry from this.raw, this.messages, and this.kv
+    // where this.raw.seq is in X by mutating raw/messages/kv,
+    // not by making new objects (since external references).
+    // This is a rare operation so we're not worried too much
+    // about performance.
+    const keys: { [seq: number]: string } = {};
+    for (const key in this.kv) {
+      const seq = this.kv[key]?.raw?.seq;
+      if (X.has(seq)) {
+        delete this.kv[key];
+        keys[key] = seq;
+      }
+    }
+    const indexes: number[] = [];
+    for (let i = 0; i < this.raw.length; i++) {
+      const seq = this.raw[i].seq;
+      if (X.has(seq)) {
+        indexes.push(i);
+        if (!noEmit) {
+          this.emit("change", undefined, { seq }, keys[seq], this.messages[i]);
+        }
+      }
+    }
+
+    //console.log({ indexes, seqs, noEmit });
+    // remove this.raw[i] and this.messages[i] for all i in indexes,
+    // with special case to be fast in the very common case of contiguous indexes.
+    if (indexes.length > 1 && indexes.every((v, i) => v === indexes[0] + i)) {
+      // Contiguous: bulk remove for performance
+      const start = indexes[0];
+      const deleteCount = indexes.length;
+      this.raw.splice(start, deleteCount);
+      this.messages.splice(start, deleteCount);
+    } else {
+      // Non-contiguous: fallback to individual reverse splices
+      for (let i = indexes.length - 1; i >= 0; i--) {
+        const idx = indexes[i];
+        this.raw.splice(idx, 1);
+        this.messages.splice(idx, 1);
+      }
+    }
+  };
+
+  private processPersistentSet = (
+    { seq, time, key, encoding, raw: data, headers }: SetOperation,
+    noEmit?: boolean,
+  ) => {
     const mesg = decode({ encoding, data });
     const raw = {
       timestamp: time,
@@ -1024,18 +1089,53 @@ export class CoreStream<T = any> extends EventEmitter {
   // delete all messages up to and including the
   // one at position index, i.e., this.messages[index]
   // is deleted.
-  // NOTE: other clients will NOT see the result of a purge,
+  // NOTE: For ephemeral streams, clients will NOT see the result of a delete,
   // except when they load the stream later.
-  purge = async ({ index = -1 }: { index?: number } = {}) => {
+  delete = async ({
+    all,
+    index,
+    seq,
+    last_seq,
+  }: {
+    all?: boolean;
+    index?: number;
+    seq?: number;
+    last_seq?: number;
+  } = {}): Promise<{ seqs: number[] }> => {
     if (this.persist) {
-      // [ ] TODO:
-      return;
+      let opts;
+      if (all) {
+        opts = { all: true };
+      } else if (index != null) {
+        const last_seq = this.raw[index]?.seq;
+        if (last_seq === undefined) {
+          throw Error(`invalid index ${index}`);
+        }
+        opts = { last_seq };
+      } else if (seq != null) {
+        opts = { seq };
+      } else if (last_seq != null) {
+        opts = { last_seq };
+      }
+      return await persistClient.deleteMessages({
+        user: this.user,
+        storage: this.storage,
+        ...opts,
+      });
+    }
+    if (seq != null || last_seq != null) {
+      throw Error("only deleting by index is supported for ephemeral streams");
+    }
+    if (index == null) {
+      index = -1;
     }
     if (index >= this.raw.length - 1 || index == -1) {
       index = this.raw.length - 1;
     }
+    const seqs = this.raw.slice(0, index + 1).map((x) => x.seq);
     this.messages.splice(0, index + 1);
     this.raw.splice(0, index + 1);
+    return { seqs };
   };
 
   private enforceLimitsNow = reuseInFlight(async () => {
@@ -1052,7 +1152,7 @@ export class CoreStream<T = any> extends EventEmitter {
     });
     if (index > -1) {
       try {
-        await this.purge({ index });
+        await this.delete({ index });
       } catch (err) {
         if (err.code != "TIMEOUT") {
           console.log(`WARNING: purging old messages - ${err}`);
