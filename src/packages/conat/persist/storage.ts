@@ -155,6 +155,7 @@ export class PersistentStream extends EventEmitter {
   private readonly options: Options;
   private readonly db: Database;
   private readonly msgIDs = new TTL({ ttl: 2 * 60 * 1000 });
+  private conf: Configuration;
 
   constructor(options: Options) {
     super();
@@ -194,6 +195,8 @@ export class PersistentStream extends EventEmitter {
     this.db
       .prepare("CREATE INDEX IF NOT EXISTS idx_messages_key ON messages(key)")
       .run();
+
+    this.conf = this.config();
   };
 
   close = () => {
@@ -263,6 +266,9 @@ export class PersistentStream extends EventEmitter {
       (serializedHeaders?.length ?? 0) +
       (raw?.length ?? 0) +
       (key?.length ?? 0);
+
+    this.enforceLimits(size);
+
     const tx = this.db.transaction(
       (time, compress, encoding, raw, headers, key, size) => {
         if (key !== undefined) {
@@ -431,7 +437,6 @@ export class PersistentStream extends EventEmitter {
       full[key] = coerce(config?.[key] ?? cur[key] ?? def);
       if (config?.[key] != null && full[key] != (cur[key] ?? def)) {
         // making a change
-        console.log("change", key, full[key]);
         this.db
           .prepare(
             `INSERT INTO config (field, value) VALUES(?, ?) ON CONFLICT(field) DO UPDATE SET value=excluded.value`,
@@ -439,7 +444,29 @@ export class PersistentStream extends EventEmitter {
           .run(key, full[key]);
       }
     }
+    this.conf = full as Configuration;
+    // ensure any new limits are enforced
+    this.enforceLimits(0);
     return full as Configuration;
+  };
+
+  // do whatever limit enforcement and throttling is needed when inserting one new message
+  // with the given size; if size=0 assume not actually inserting a new message, and just
+  // enforcingt current limits
+  enforceLimits = (size: number) => {
+    if (this.conf.max_msgs != -1) {
+      const length = this.length + (size > 0 ? 1 : 0);
+      if (length > this.conf.max_msgs) {
+        // delete earliest messages to make room
+        const rows = this.db
+          .prepare(
+            `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages ORDER BY seq ASC LIMIT ?) RETURNING seq`,
+          )
+          .all(length - this.conf.max_msgs);
+        const seqs = rows.map((row: { seq: number }) => row.seq);
+        this.emit("change", { op: "delete", seqs });
+      }
+    }
   };
 }
 
