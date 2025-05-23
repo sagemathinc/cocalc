@@ -579,10 +579,7 @@ export class Client {
   };
 
   // Call a service as defined above.
-  call<T = any>(
-    subject: string,
-    opts?: PublishOptions & { timeout?: number },
-  ): T {
+  call<T = any>(subject: string, opts?: PublishOptions): T {
     const call = async (name: string, args: any[]) => {
       const resp = await this.request(subject, [name, args], opts);
       if (resp.headers?.error) {
@@ -642,6 +639,7 @@ export class Client {
       raw,
       encoding = DEFAULT_ENCODING,
       confirm,
+      timeout,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
     if (!isValidSubjectWithoutWildcards(subject)) {
@@ -672,13 +670,24 @@ export class Client {
       }
       if (confirm) {
         const f = (cb) => {
-          this.conn.emit("publish", v, (response) => {
+          const handle = (response) => {
             if (response?.error) {
               cb(new ConatError(response.error, { code: response.code }));
             } else {
               cb(response?.error, response);
             }
-          });
+          };
+          if (timeout) {
+            this.conn.timeout(timeout).emit("publish", v, (err, response) => {
+              if (err) {
+                handle({ error: "timeout", code: 408 });
+              } else {
+                handle(response);
+              }
+            });
+          } else {
+            this.conn.emit("publish", v, handle);
+          }
         };
         const promise = (async () => {
           const response = await callback(f);
@@ -725,6 +734,7 @@ export class Client {
 
     const { count } = await this.publish(subject, mesg, {
       ...options,
+      timeout,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
@@ -816,9 +826,17 @@ interface PublishOptions {
   // encoded message (using encoding) and any mesg parameter
   // is *IGNORED*.
   raw?;
+  // timeout used when publishing a message and awaiting a response.
+  timeout?: number;
 }
 
-export function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }) {
+export function encode({
+  encoding,
+  mesg,
+}: {
+  encoding: DataEncoding;
+  mesg: any;
+}) {
   if (encoding == DataEncoding.MsgPack) {
     return msgpack.encode(mesg);
   } else if (encoding == DataEncoding.JsonCodec) {
@@ -828,7 +846,13 @@ export function encode({ encoding, mesg }: { encoding: DataEncoding; mesg: any }
   }
 }
 
-export function decode({ encoding, data }: { encoding: DataEncoding; data }): any {
+export function decode({
+  encoding,
+  data,
+}: {
+  encoding: DataEncoding;
+  data;
+}): any {
   if (encoding == DataEncoding.MsgPack) {
     return msgpack.decode(data);
   } else if (encoding == DataEncoding.JsonCodec) {

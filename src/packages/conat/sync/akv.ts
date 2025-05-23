@@ -111,7 +111,9 @@ export class AKV<T = any> {
       headers?: Headers;
       previousSeq?: number;
       timeout?: number;
-      msgID?: string;
+      // note: msgID is NOT supported because its lifetime is that of the stream object
+      // on the server, which is likely immediately removed when using akv.  Of course
+      // msgID is mainly for streams and not very relevant for kv.
     },
   ) => {
     return await persistClient.set({
@@ -120,7 +122,6 @@ export class AKV<T = any> {
       key,
       messageData: messageData(value, { headers: options?.headers }),
       previousSeq: options?.previousSeq,
-      msgID: options?.msgID,
       timeout: options?.timeout,
     });
   };

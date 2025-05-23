@@ -134,9 +134,7 @@ describe("create a service with specified client, stop and start the server, and
 
   let service;
   it("create a non-ephemeral service using specific client and call it using both clients", async () => {
-    /*
-    You usually do NOT want a non-ephemeral service...
-    */
+    //You usually do NOT want a non-ephemeral service...
     service = createConatService({
       client,
       service: "double",
@@ -198,14 +196,29 @@ describe("create a service with specified client, stop and start the server, and
   //     ).toBe("hellohello");
   //   });
 
-  it("kills the server, then makes another one serving on the same port", async () => {
+  it("kills the server, then makes another server serving on the same port", async () => {
     await server.close();
     server = await initConatServer({ port });
+    //await delay(250);
     // Killing the server is not at all a normal thing to expect, and causes loss of
     // its state.  The clients have to sync realize subscriptions are missing.  This
-    // takes a fraction of a second and the call below won't immediately work without
-    // a short delay, unfortunately.  TODO: should we handle this better?
-    await delay(100);
+    // takes a fraction of a second and the call below won't immediately work.
+    await wait({
+      until: async () => {
+        try {
+          await callConatService({
+            client: client2,
+            service: "double",
+            mesg: "hello",
+            noRetry: true,
+            timeout: 250,
+          });
+          return true;
+        } catch (err) {
+          return false;
+        }
+      },
+    });
     expect(
       await callConatService({
         client: client2,

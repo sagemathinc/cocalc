@@ -59,7 +59,6 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
   const data = opts.mesg ?? null;
 
   const doRequest = async () => {
-    // console.log("doRequest...");
     resp = await cn.request(subject, data, {
       timeout,
     });
