@@ -178,7 +178,7 @@ export class PersistentStream extends EventEmitter {
     this.db
       .prepare(
         `CREATE TABLE IF NOT EXISTS messages ( 
-          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL
+          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL, size NUMBER NOT NULL
           )
         `,
       )
@@ -259,8 +259,12 @@ export class PersistentStream extends EventEmitter {
     const time = Date.now();
     const compressedRaw = this.compress(raw);
     const serializedHeaders = JSON.stringify(headers);
+    const size =
+      (serializedHeaders?.length ?? 0) +
+      (raw?.length ?? 0) +
+      (key?.length ?? 0);
     const tx = this.db.transaction(
-      (time, compress, encoding, raw, headers, key) => {
+      (time, compress, encoding, raw, headers, key, size) => {
         if (key !== undefined) {
           // insert with key -- delete all previous messages, as they will
           // never be needed again and waste space.
@@ -268,9 +272,9 @@ export class PersistentStream extends EventEmitter {
         }
         return this.db
           .prepare(
-            "INSERT INTO messages(time, compress, encoding, raw, headers, key) VALUES (?, ?, ?, ?, ?, ?)  RETURNING seq",
+            "INSERT INTO messages(time, compress, encoding, raw, headers, key, size) VALUES (?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
           )
-          .get(time / 1000, compress, encoding, raw, headers, key);
+          .get(time / 1000, compress, encoding, raw, headers, key, size);
       },
     );
     const row = tx(
@@ -280,6 +284,7 @@ export class PersistentStream extends EventEmitter {
       compressedRaw.raw,
       serializedHeaders,
       key,
+      size,
     );
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit

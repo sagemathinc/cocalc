@@ -763,14 +763,7 @@ export class CoreStream<T = any> extends EventEmitter {
         // it's a dup
         return;
       }
-      const md = messageData(mesg, {
-        headers: {
-          ...options?.headers,
-          ...(options?.msgID
-            ? { [COCALC_MESSAGE_ID_HEADER]: options?.msgID }
-            : undefined),
-        },
-      });
+      const md = messageData(mesg, { headers: options?.headers });
       const x = await persistClient.set({
         user: this.user,
         storage: this.storage,
