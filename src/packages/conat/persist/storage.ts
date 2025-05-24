@@ -227,6 +227,9 @@ export class PersistentStream extends EventEmitter {
     this.db
       .prepare("CREATE INDEX IF NOT EXISTS idx_messages_key ON messages(key)")
       .run();
+    this.db
+      .prepare("CREATE INDEX IF NOT EXISTS idx_messages_time ON messages(time)")
+      .run();
 
     this.conf = this.config();
   };
@@ -510,16 +513,49 @@ export class PersistentStream extends EventEmitter {
   // with the given size; if size=0 assume not actually inserting a new message, and just
   // enforcingt current limits
   private enforceLimits = (size: number = 0) => {
+    if (
+      size > 0 &&
+      (this.conf.max_msgs_per_second > 0 || this.conf.max_bytes_per_second > 0)
+    ) {
+      const { msgs, bytes } = this.db
+        .prepare(
+          "SELECT COUNT(*) AS msgs, SUM(size) AS bytes FROM messages WHERE time >= ?",
+        )
+        .get(Date.now() / 1000 - 1) as { msgs: number; bytes: number };
+      if (
+        this.conf.max_msgs_per_second > 0 &&
+        msgs > this.conf.max_msgs_per_second
+      ) {
+        throw new ConatError("max_msgs_per_second exceeded", {
+          code: "reject",
+        });
+      }
+      if (
+        this.conf.max_bytes_per_second > 0 &&
+        bytes > this.conf.max_bytes_per_second
+      ) {
+        throw new ConatError("max_bytes_per_second exceeded", {
+          code: "reject",
+        });
+      }
+    }
+
     if (this.conf.max_msgs > -1) {
       const length = this.length + (size > 0 ? 1 : 0);
       if (length > this.conf.max_msgs) {
-        // delete earliest messages to make room
-        const rows = this.db
-          .prepare(
-            `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages ORDER BY seq ASC LIMIT ?) RETURNING seq`,
-          )
-          .all(length - this.conf.max_msgs);
-        this.emitDelete(rows);
+        if (this.conf.discard_policy == "new") {
+          if (size > 0) {
+            throw new ConatError("max_msgs limit reached", { code: "reject" });
+          }
+        } else {
+          // delete earliest messages to make room
+          const rows = this.db
+            .prepare(
+              `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages ORDER BY seq ASC LIMIT ?) RETURNING seq`,
+            )
+            .all(length - this.conf.max_msgs);
+          this.emitDelete(rows);
+        }
       }
     }
 
@@ -534,9 +570,15 @@ export class PersistentStream extends EventEmitter {
 
     if (this.conf.max_bytes > -1) {
       if (size > this.conf.max_bytes) {
-        // new message exceeds total, so this is the same as adding in the new message,
-        // then deleting everything.
-        this.delete({ all: true });
+        if (this.conf.discard_policy == "new") {
+          if (size > 0) {
+            throw new ConatError("max_bytes limit reached", { code: "reject" });
+          }
+        } else {
+          // new message exceeds total, so this is the same as adding in the new message,
+          // then deleting everything.
+          this.delete({ all: true });
+        }
       } else {
         // delete all the earliest (in terms of seq number) messages so that the sum of the remaining
         // sizes along with the new size is <= max_bytes.
@@ -562,10 +604,18 @@ export class PersistentStream extends EventEmitter {
           }
 
           if (lastSeqToDelete !== null) {
-            const rows = this.db
-              .prepare(`DELETE FROM messages WHERE seq <= ? RETURNING seq`)
-              .all(lastSeqToDelete);
-            this.emitDelete(rows);
+            if (this.conf.discard_policy == "new") {
+              if (size > 0) {
+                throw new ConatError("max_bytes limit reached", {
+                  code: "reject",
+                });
+              }
+            } else {
+              const rows = this.db
+                .prepare(`DELETE FROM messages WHERE seq <= ? RETURNING seq`)
+                .all(lastSeqToDelete);
+              this.emitDelete(rows);
+            }
           }
         }
       }

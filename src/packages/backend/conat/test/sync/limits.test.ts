@@ -326,7 +326,77 @@ describe("create a dstream with limit on max_msg_size, and confirm auto-delete w
   });
 
   it("closes the stream", async () => {
-    await s.delete({ all: true });
+    await s.close();
+  });
+});
+
+describe("test discard_policy 'new' where writes are rejected rather than old data being deleted, for max_bytes and max_msgs", () => {
+  let s;
+  const name = `test-${Math.random()}`;
+
+  it("creates the dstream", async () => {
+    s = await createDstream({
+      name,
+      // we can write at most 300 bytes and 3 messages.  beyond that we
+      // get reject events.
+      config: { max_bytes: 300, max_msgs: 3, discard_policy: "new" },
+    });
+    const rejects: any[] = [];
+    s.on("reject", ({ mesg }) => {
+      rejects.push(mesg);
+    });
+    s.publish("x");
+    s.publish("y");
+    s.publish("w");
+    s.publish("foo");
+
+    await wait({
+      until: async () => {
+        await s.config();
+        return rejects.length == 1;
+      },
+    });
+    expect(s.getAll()).toEqual(["x", "y", "w"]);
+    expect(rejects).toEqual(["foo"]);
+
+    s.publish("x".repeat(299));
+    await wait({
+      until: async () => {
+        await s.config();
+        return rejects.length == 2;
+      },
+    });
+    expect(s.getAll()).toEqual(["x", "y", "w"]);
+    expect(rejects).toEqual(["foo", "x".repeat(299)]);
+  });
+
+  it("closes the stream", async () => {
+    await s.close();
+  });
+});
+
+describe("test rate limiting", () => {
+  let s;
+  const name = `test-${Math.random()}`;
+
+  it("creates the dstream", async () => {
+    s = await createDstream({
+      name,
+      // we can write at most 300 bytes and 3 messages.  beyond that we
+      // get reject events.
+      config: {
+        max_bytes_per_second: 300,
+        max_msgs_per_second: 3,
+        discard_policy: "new",
+      },
+    });
+    const rejects: any[] = [];
+    s.on("reject", ({ mesg }) => {
+      rejects.push(mesg);
+    });
+  });
+
+  it("closes the stream", async () => {
     await s.close();
   });
 });
