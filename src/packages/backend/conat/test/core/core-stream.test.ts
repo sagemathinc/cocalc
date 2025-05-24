@@ -112,10 +112,6 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     expect(stats.bytes).toBeGreaterThan(100);
   });
 
-  it("enforce limits doesn't crash (not much of a test as we didn't set any limits)", async () => {
-    await stream.enforceLimitsNow();
-  });
-
   it("delete everything in the stream", async () => {
     await stream.delete({ all: true });
     expect(stream.length).toBe(0);

@@ -3,10 +3,9 @@ core-stream.ts  = the Core Stream data structure for conats.
 
 This is the core data structure that easy-to-use ephemeral and persistent
 streams and kv stores are built on.  It is NOT meant to be super easy and
-simple to use as synchronous with save in the background. Instead, operations
-are async, and the API is complicated. We build dkv, dstream, etc. on
+simple to use, with save in the background. Instead, operations
+are async, and the API is complicated. We build dkv, dstream, akv, etc. on
 top of this with a much friendly API.
-
 
 NOTE: unlike in NATS, in kv mode, the keys can be any utf-8 string.
 We use the subject to track communication involving this stream, but
@@ -19,29 +18,12 @@ DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
 
-
-    require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', leader:true})
-
-
-Testing two at once (a leader and non-leader):
-
-    require('@cocalc/backend/conat'); s = await require('@cocalc/backend/conat/sync').dstream({ephemeral:true,name:'test', leader:1, noAutosave:true}); t = await require('@cocalc/backend/conat/sync').dstream({ephemeral:true,name:'test', leader:0,noAutosave:true})
-
-
-With persistence:
-
-   require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.stream({name:'test', project_id:'00000000-0000-4000-8000-000000000000', persist:true})
+   require('@cocalc/backend/conat'); a = require('@cocalc/conat/sync/core-stream'); s = await a.cstream({name:'test'})
 
 */
 
-import {
-  enforceLimits,
-  enforceRateLimits,
-  ENFORCE_LIMITS_THROTTLE_MS,
-} from "./limits";
 import { EventEmitter } from "events";
 import {
-  type Subscription,
   Message,
   type Headers,
   messageData,
@@ -49,15 +31,10 @@ import {
 } from "@cocalc/conat/core/client";
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
-import { encodeBase64 } from "@cocalc/conat/util";
 import refCache from "@cocalc/util/refcache";
-import { streamSubject } from "@cocalc/conat/names";
 import { getEnv } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { throttle } from "lodash";
-import { once } from "@cocalc/util/async-utils";
-import { callback, delay } from "awaiting";
-import { randomId } from "@cocalc/conat/names";
+import { delay } from "awaiting";
 import * as persistClient from "@cocalc/conat/persist/client";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
@@ -101,15 +78,9 @@ export interface ChangeEvent<T> {
 
 const HEADER_PREFIX = "CoCalc-";
 
-export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
 export const COCALC_TOMBSTONE_HEADER = `${HEADER_PREFIX}Tombstone`;
 export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;
 export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
-export const COCALC_HEARTBEAT_HEADER = `${HEADER_PREFIX}Heartbeat`;
-
-const PUBLISH_TIMEOUT = 7500;
-
-const DEFAULT_HEARTBEAT_INTERVAL = 30 * 1000;
 
 export interface CoreStreamOptions {
   // what it's called
@@ -126,9 +97,9 @@ export interface CoreStreamOptions {
 
   client?: Client;
 
-  noCache?: boolean;
-  heartbeatInterval?: number;
   connectionOptions?: persistClient.ConnectionOptions;
+
+  noCache?: boolean;
 }
 
 export interface User {
@@ -154,7 +125,6 @@ export function storagePath({
 
 export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private readonly subject: string;
   private configOptions?: Partial<Configuration>;
   private _start_seq?: number;
 
@@ -167,19 +137,9 @@ export class CoreStream<T = any> extends EventEmitter {
 
   // this msgID's is ONLY used in ephemeral mode by the leader.
   private readonly msgIDs = new Set<any>();
-  private sub?: Subscription;
-  private leader: boolean;
-  private persist: boolean;
-  private server?: Subscription;
-  // ephemeralSeq = sequence number used by the *leader* only to assign sequence numbers
-  private ephemeralSeq: number = 1;
-  private lastHeartbeat: number = 0;
-  private heartbeatInterval: number;
   // lastSeq used by clients to keep track of what they have received; if one
   // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
-  private sendQueue: { data; options?; seq: number; cb: Function }[] = [];
-  private bytesSent: { [time: number]: number } = {};
   private user: User;
   private persistStream?;
   private storage?: persistClient.Storage;
@@ -189,8 +149,6 @@ export class CoreStream<T = any> extends EventEmitter {
   private renewLoopParams: { id: string; lifetime: number; user: User } | null =
     null;
 
-  private sessionId?: string;
-
   constructor({
     name,
     project_id,
@@ -199,19 +157,13 @@ export class CoreStream<T = any> extends EventEmitter {
     start_seq,
     ephemeral = false,
     client,
-    heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
     connectionOptions,
   }: CoreStreamOptions) {
     super();
     this.connectionOptions = connectionOptions;
     this.client = client;
     this.user = { account_id, project_id };
-    this.heartbeatInterval = heartbeatInterval;
     this.name = name;
-    this.leader = false;
-    this.persist = true;
-    const subject = streamSubject({ account_id, project_id });
-    this.subject = subject.replace(">", encodeBase64(name));
     this.storage = {
       path: storagePath({ account_id, project_id, name }),
       ephemeral,
@@ -231,30 +183,15 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.client == null) {
       this.client = (await getEnv()).cn;
     }
-    if (this.persist) {
-      await this.getAllFromPersist({
-        start_seq: this._start_seq,
-        noEmit: true,
-      });
-      this.configOptions = await this.config(this.configOptions);
-    } else if (!this.leader) {
-      // try to get current data from a leader
-      await this.getAllFromLeader({
-        start_seq: this._start_seq ?? 0,
-        noEmit: true,
-      });
-    } else {
-      // non-persist mode and we are the leader, so
-      // start listening on the subject for new data
-      await this.serve();
-    }
+    await this.getAllFromPersist({
+      start_seq: this._start_seq,
+      noEmit: true,
+    });
+    this.configOptions = await this.config(this.configOptions);
     // NOTE: if we miss a message between getAllFromLeader and when we start listening,
     // then the sequence number will have a gap, and we'll immediately reconnect, starting
     // at the right point. So no data can possibly be lost.
-    await this.listen();
-    if (!this.leader && !this.persist) {
-      this.heartbeatMonitor();
-    }
+    this.listen();
   };
 
   config = async (config?: Partial<Configuration>): Promise<Configuration> => {
@@ -268,34 +205,10 @@ export class CoreStream<T = any> extends EventEmitter {
     });
   };
 
-  private resetState = () => {
-    delete this.sessionId;
-    this.bytesSent = {};
-    this.msgIDs.clear();
-    this.raw.length = 0;
-    this.messages.length = 0;
-    this.ephemeralSeq = 0;
-    this.sendQueue.length = 0;
-    this.lastSeq = 0;
-    delete this._start_seq;
-    this.emit("reset");
-  };
-
-  private reset = async () => {
-    this.resetState();
-    await this.reconnect();
-  };
-
   close = () => {
     delete this.client;
     this.renewLoopParams = null;
     this.removeAllListeners();
-    // @ts-ignore
-    this.sub?.close();
-    delete this.sub;
-    // @ts-ignore
-    this.server?.close();
-    delete this.server;
     // @ts-ignore
     delete this.kv;
     // @ts-ignore
@@ -305,10 +218,6 @@ export class CoreStream<T = any> extends EventEmitter {
     // @ts-ignore
     delete this.msgIDs;
     // @ts-ignore
-    delete this.sendQueue;
-    // @ts-ignore
-    delete this.bytesSent;
-    // @ts-ignore
     delete this.storage;
   };
 
@@ -316,13 +225,6 @@ export class CoreStream<T = any> extends EventEmitter {
     start_seq = 0,
     noEmit,
   }: { start_seq?: number; noEmit?: boolean } = {}) => {
-    if (this.leader) {
-      throw Error("leader is incompatible with persist");
-    }
-    if (!this.persist) {
-      throw Error("must have persist set");
-    }
-
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
@@ -341,7 +243,7 @@ export class CoreStream<T = any> extends EventEmitter {
     this.persistStream = stream;
     while (true) {
       const { value, done } = await stream.next();
-      if (done || value == null) {
+      if (done) {
         return;
       }
       if (value.headers?.content?.state == "watch") {
@@ -349,14 +251,6 @@ export class CoreStream<T = any> extends EventEmitter {
         return;
       }
       const messages = value.data as (SetOperation | DeleteOperation)[];
-      //       console.log(
-      //         "got persistent data",
-      //         value.raw.length,
-      //         "bytes",
-      //         " and ",
-      //         messages.length,
-      //         "messages",
-      //       );
       this.processPersistentMessages(messages, noEmit);
     }
   };
@@ -519,220 +413,25 @@ export class CoreStream<T = any> extends EventEmitter {
     this.emit("change", e);
   };
 
-  private getAllFromLeader = async ({
-    start_seq = 0,
-    noEmit,
-  }: { maxWait?: number; start_seq?: number; noEmit?: boolean } = {}) => {
-    if (this.leader) {
-      throw Error("this is the leader");
-    }
-    // be agressive about initial retrying since the leader
-    // might just not be ready yet... but quickly back off.
-    // TODO: maybe we should add a primitive to the server
-    // that is client.waitUntilSubscriber('subject', {queue:?}) that
-    // waits until there is at least one subscribe to the given subject
-    // and only then sends a message.  It would be doable, with a check
-    // each time the interest is updated.
-    let d = 250;
-    while (this.client != null) {
-      try {
-        const resp = await this.client.request(this.subject + ".all", {
-          start_seq,
-        });
-        this.lastHeartbeat = Date.now();
-        for (const x of resp.data) {
-          const raw = getRawMsg(new Message(x));
-          if (
-            !this.leader &&
-            this.sessionId &&
-            this.sessionId != raw.sessionId
-          ) {
-            await this.reset();
-            return;
-          } else if (this.lastSeq && raw.seq > this.lastSeq + 1) {
-            await this.reconnect();
-            return;
-          } else if (raw.seq <= this.lastSeq) {
-            // already saw this
-            continue;
-          }
-          if (!this.sessionId) {
-            this.sessionId = raw.sessionId;
-          }
-          this.lastSeq = raw.seq;
-          const mesg = raw.data;
-          this.messages.push(mesg);
-          this.raw.push(raw);
-          if (!noEmit) {
-            this.emitChange({ mesg, raw });
-          }
-        }
-        return;
-      } catch (err) {
-        if (err.code == 503) {
-          // leader just isn't ready yet?
-          await delay(d);
-          d = Math.min(15000, d * 1.5);
-          continue;
-        } else {
-          throw err;
-        }
-      }
-    }
-  };
-
-  private serve = async () => {
-    if (this.client == null) {
-      throw Error("closed");
-    }
-    this.sessionId = randomId();
-    this.sendHeartbeats();
-    this.server = await this.client.subscribe(this.subject + ".>");
-    this.serveUntilDone(this.server);
-  };
-
-  private serveUntilDone = async (sub) => {
-    for await (const raw of sub) {
-      if (raw.subject.endsWith(".all")) {
-        // batch get
-
-        const { start_seq = 0 } = raw.data ?? {};
-
-        // put exactly the entire data the client needs to get updated
-        // into a single payload
-        const payload = this.raw
-          .filter(({ seq }) => seq >= start_seq)
-          .map(({ headers, encoding, raw }) => {
-            return { headers, encoding, raw };
-          });
-
-        // send it out as a single response.
-        raw.respond(payload);
-      } else if (raw.subject.endsWith(".send")) {
-        // single send:  ([ ] TODO need to support a batch send?)
-
-        const options = raw.headers?.[COCALC_OPTIONS_HEADER];
-        let resp;
-        try {
-          resp = await this.sendAsLeader(raw.data, options);
-        } catch (err) {
-          raw.respond({ error: `${err}` });
-          return;
-        }
-        raw.respond(resp);
-      }
-    }
-  };
-
-  private sendHeartbeats = async () => {
-    while (this.client != null) {
-      const now = Date.now();
-      const wait = this.heartbeatInterval - (now - this.lastHeartbeat);
-      if (wait > 100) {
-        await delay(wait);
-      } else {
-        const now = Date.now();
-        this.client.publish(this.subject, null, {
-          headers: { [COCALC_HEARTBEAT_HEADER]: true },
-        });
-        this.lastHeartbeat = now;
-        await delay(this.heartbeatInterval);
-      }
-    }
-  };
-
-  private heartbeatMonitor = async () => {
-    while (this.client != null) {
-      if (Date.now() - this.lastHeartbeat >= 2.1 * this.heartbeatInterval) {
-        try {
-          await this.reconnect();
-        } catch {}
-      }
-      await delay(this.heartbeatInterval);
-    }
-  };
-
   private listen = async () => {
-    if (this.client == null) {
-      return;
-    }
-    if (this.persist) {
-      this.listenLoopPersist();
-      return;
-    } else {
-      this.sub = await this.client.subscribe(this.subject);
-      this.listenLoop();
-    }
-    this.enforceLimits();
-  };
-
-  private listenLoopPersist = async () => {
-    if (this.persistStream == null) {
-      throw Error("persistentStream must be defined");
-    }
-    for await (const { data } of this.persistStream) {
-      this.processPersistentMessages(data, false);
-    }
-  };
-
-  private listenLoop = async () => {
-    if (this.sub == null) {
-      throw Error("subscription must be setup");
-    }
-    for await (const raw0 of this.sub) {
-      if (!this.leader) {
-        this.lastHeartbeat = Date.now();
+    while (this.client != null) {
+      if (this.persistStream == null) {
+        throw Error("persistentStream must be defined");
       }
-      if (raw0.data == null && raw0.headers?.[COCALC_HEARTBEAT_HEADER]) {
-        // it's a heartbeat probe
-        continue;
+      for await (const { data } of this.persistStream) {
+        if (this.client == null) return;
+        this.processPersistentMessages(data, false);
       }
-      const raw = getRawMsg(raw0);
-      if (!this.leader && this.sessionId && this.sessionId != raw.sessionId) {
-        await this.reset();
-        return;
-      } else if (!this.leader && this.lastSeq && raw.seq > this.lastSeq + 1) {
-        await this.reconnect();
-        return;
-      } else if (raw.seq <= this.lastSeq) {
-        // already saw this
-        continue;
-      }
-      if (!this.sessionId) {
-        this.sessionId = raw.sessionId;
-      }
-      // move sequence number forward one and record the data
-      this.lastSeq = raw.seq;
-      const mesg = raw.data;
-      this.messages.push(mesg);
-      this.raw.push(raw);
-      this.lastSeq = raw.seq;
-      this.emitChange({ mesg, raw });
-    }
-  };
-
-  private reconnect = reuseInFlight(async () => {
-    if (this.leader) {
-      // leader doesn't have a notion of reconnect -- it is the one that
-      // gets connected to
-      return;
-    }
-    // @ts-ignore
-    this.sub?.close();
-    delete this.sub;
-    if (this.persist) {
+      // above loop exists when the persistent server
+      // stops sending messages for some reason. In that
+      // case we reconnect, picking up where we left off:
+      if (this.client == null) return;
       await this.getAllFromPersist({
         start_seq: this.lastSeq + 1,
         noEmit: false,
       });
-    } else {
-      await this.getAllFromLeader({
-        start_seq: this.lastSeq + 1,
-        noEmit: false,
-      });
     }
-    this.listen();
-  });
+  };
 
   publish = async (
     mesg: T,
@@ -771,171 +470,28 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
 
-    const data = mesg;
-
-    if (typeof mesg == "string" && !this.persist) {
-      // this may throw an exception preventing publishing.
-      enforceRateLimits({
-        limits: {
-          max_msgs: -1,
-          max_age: 0,
-          max_bytes: -1,
-          max_msg_size: -1,
-          max_bytes_per_second: -1,
-          max_msgs_per_second: -1,
-          ...this.configOptions,
-        },
-        bytesSent: this.bytesSent,
-        subject: this.subject,
-        bytes: mesg.length,
-      });
+    if (this.storage == null) {
+      throw Error("bug -- storage must be set");
     }
-    if (this.persist) {
-      if (this.storage == null) {
-        throw Error("bug -- storage must be set");
-      }
-      if (options?.msgID && this.msgIDs.has(options.msgID)) {
-        // it's a dup
-        return;
-      }
-      const md = messageData(mesg, { headers: options?.headers });
-      const x = await persistClient.set({
-        user: this.user,
-        storage: this.storage,
-        key: options?.key,
-        messageData: md,
-        previousSeq: options?.previousSeq,
-        msgID: options?.msgID,
-        ttl: options?.ttl,
-      });
-      if (options?.msgID) {
-        this.msgIDs?.add(options.msgID);
-      }
-      return x;
-    } else if (this.leader) {
-      // sending from leader -- so assign seq, timestamp and send it out.
-      return await this.sendAsLeader(data, options);
-    } else {
-      const timeout = 15000; // todo
-      // sending as non-leader -- ask leader to send it.
-      let headers;
-      if (options != null && Object.keys(options).length > 0) {
-        headers = { [COCALC_OPTIONS_HEADER]: options };
-      } else {
-        headers = undefined;
-      }
-      if (this.client == null) {
-        throw Error("closed");
-      }
-      const resp = await this.client.request(this.subject + ".send", data, {
-        headers,
-        timeout,
-      });
-      const r = resp.data;
-      if (r?.error) {
-        throw Error(r.error);
-      }
-      return resp;
-    }
-  };
-
-  private sendAsLeader = async (data, options?): Promise<{ seq: number }> => {
-    if (!this.leader) {
-      throw Error("must be the leader");
-    }
-    const seq = this.ephemeralSeq;
-    this.ephemeralSeq += 1;
-    const f = (cb) => {
-      if (this.sendQueue == null) {
-        cb();
-        return;
-      }
-      this.sendQueue.push({ data, options, seq, cb });
-      this.processQueue();
-    };
-    await callback(f);
-    return { seq };
-  };
-
-  private processQueue = reuseInFlight(async () => {
-    if (!this.leader) {
-      throw Error("must be the leader");
-    }
-    if (this.sendQueue == null) {
+    if (options?.msgID && this.msgIDs.has(options.msgID)) {
+      // it's a dup
       return;
     }
-    const { sessionId } = this;
-    while (
-      (this.sendQueue?.length ?? 0) > 0 &&
-      this.client != null &&
-      this.sessionId == sessionId
-    ) {
-      const x = this.sendQueue.shift();
-      if (x == null) {
-        continue;
-      }
-      const { data, options, seq, cb } = x;
-      if (options?.msgID && this.msgIDs.has(options?.msgID)) {
-        // it's a dup of one already successfully sent before -- dedup by ignoring.
-        cb();
-        continue;
-      }
-      if (this.client == null) {
-        cb("closed");
-        return;
-      }
-      const timestamp = Date.now();
-      const headers = {
-        [COCALC_STREAM_HEADER]: {
-          seq,
-          timestamp,
-          sessionId: this.sessionId,
-        },
-        [COCALC_MESSAGE_ID_HEADER]: options?.msgID,
-      } as any;
-      if (options?.headers) {
-        for (const k in options.headers) {
-          headers[k] = options.headers[k];
-        }
-      }
-      // we publish it until we get it as a change event, and only
-      // then do we respond, being sure it was sent.
-      const now = Date.now();
-      while (this.client != null && this.sessionId == sessionId) {
-        // critical to use publishSync here so that we are waiting
-        // for the "change" below *before* it happens.
-        this.client.publishSync(this.subject, data, { headers });
-        const start = Date.now();
-        let done = false;
-        try {
-          while (
-            Date.now() - start <= PUBLISH_TIMEOUT &&
-            this.sessionId == sessionId
-          ) {
-            const [{ raw }] = (await once(this, "change", PUBLISH_TIMEOUT)) as [
-              ChangeEvent<T>,
-            ];
-            if (raw?.seq == seq) {
-              done = true;
-              break;
-            }
-          }
-          if (done && options?.msgID) {
-            this.msgIDs.add(options.msgID);
-          }
-          cb(done ? undefined : "timeout");
-          break;
-        } catch (err) {
-          console.warn(`Error processing sendQueue -- ${err}`);
-          cb(`${err}`);
-          break;
-        }
-      }
-      if (now > this.lastHeartbeat) {
-        this.lastHeartbeat = now;
-      }
+    const md = messageData(mesg, { headers: options?.headers });
+    const x = await persistClient.set({
+      user: this.user,
+      storage: this.storage,
+      key: options?.key,
+      messageData: md,
+      previousSeq: options?.previousSeq,
+      msgID: options?.msgID,
+      ttl: options?.ttl,
+    });
+    if (options?.msgID) {
+      this.msgIDs?.add(options.msgID);
     }
-  });
+    return x;
+  };
 
   get = (n?): T | T[] => {
     if (n == null) {
@@ -1050,47 +606,26 @@ export class CoreStream<T = any> extends EventEmitter {
     start_seq: number;
     noEmit?: boolean;
   }) => {
-    if (this.persist) {
-      // This is used for loading more TimeTravel history
-      if (this.storage == null) {
-        throw Error("bug");
-      }
-      // this is one before the oldest we have
-      const end_seq = (this.raw[0]?.seq ?? this._start_seq ?? 1) - 1;
-      if (start_seq > end_seq) {
-        // nothing to load
-        return;
-      }
-      // we're moving start_seq back to this point
-      this._start_seq = start_seq;
-      const { stream } = await persistClient.getAll({
-        user: this.user,
-        storage: this.storage,
-        start_seq,
-        end_seq,
-      });
-      for await (const { data } of stream) {
-        this.processPersistentMessages(data, noEmit);
-      }
+    // This is used for loading more TimeTravel history
+    if (this.storage == null) {
+      throw Error("bug");
+    }
+    // this is one before the oldest we have
+    const end_seq = (this.raw[0]?.seq ?? this._start_seq ?? 1) - 1;
+    if (start_seq > end_seq) {
+      // nothing to load
       return;
     }
-
-    // Ephemeral case below - lower priority since probably never used:
-    // [ ] TODO: this is NOT efficient - it just discards everything and starts over.
-    if (this._start_seq == null || this._start_seq <= 1 || this.leader) {
-      // we already loaded everything on initialization; there can't be anything older;
-      // or we are leader, so we are the full source of truth.
-      return;
-    }
-    const n = this.messages.length;
-    this.resetState();
+    // we're moving start_seq back to this point
     this._start_seq = start_seq;
-    this.lastSeq = start_seq - 1;
-    await this.reconnect();
-    if (!noEmit) {
-      for (let i = 0; i < this.raw.length - n; i++) {
-        this.emitChange({ mesg: this.messages[i], raw: this.raw[i] });
-      }
+    const { stream } = await persistClient.getAll({
+      user: this.user,
+      storage: this.storage,
+      start_seq,
+      end_seq,
+    });
+    for await (const { data } of stream) {
+      this.processPersistentMessages(data, noEmit);
     }
   };
 
@@ -1157,92 +692,38 @@ export class CoreStream<T = any> extends EventEmitter {
     last_seq?: number; // delete everything up to and including this sequence number
     key?: string; // delete the message with this key
   } = {}): Promise<{ seqs: number[] }> => {
-    if (this.persist) {
-      let opts;
-      if (all) {
+    let opts;
+    if (all) {
+      opts = { all: true };
+    } else if (last_index != null) {
+      if (last_index >= this.raw.length) {
         opts = { all: true };
-      } else if (last_index != null) {
-        if (last_index >= this.raw.length) {
-          opts = { all: true };
-        } else if (last_index < 0) {
-          return { seqs: [] };
-        } else {
-          const last_seq = this.raw[last_index].seq;
-          if (last_seq === undefined) {
-            throw Error(`BUG: invalid index ${last_index}`);
-          }
-          opts = { last_seq };
+      } else if (last_index < 0) {
+        return { seqs: [] };
+      } else {
+        const last_seq = this.raw[last_index].seq;
+        if (last_seq === undefined) {
+          throw Error(`BUG: invalid index ${last_index}`);
         }
-      } else if (seq != null) {
-        opts = { seq };
-      } else if (last_seq != null) {
         opts = { last_seq };
-      } else if (key != null) {
-        const seq = this.kv[key]?.raw?.seq;
-        if (seq === undefined) {
-          return { seqs: [] };
-        }
-        opts = { seq };
       }
-      return await persistClient.deleteMessages({
-        user: this.user,
-        storage: this.storage,
-        ...opts,
-      });
+    } else if (seq != null) {
+      opts = { seq };
+    } else if (last_seq != null) {
+      opts = { last_seq };
+    } else if (key != null) {
+      const seq = this.kv[key]?.raw?.seq;
+      if (seq === undefined) {
+        return { seqs: [] };
+      }
+      opts = { seq };
     }
-    if (seq != null || last_seq != null) {
-      throw Error(
-        "only deleting by last_index is supported for ephemeral streams",
-      );
-    }
-    if (last_index == null) {
-      last_index = -1;
-    }
-    if (last_index >= this.raw.length - 1 || last_index == -1) {
-      last_index = this.raw.length - 1;
-    }
-    const seqs = this.raw.slice(0, last_index + 1).map((x) => x.seq);
-    this.messages.splice(0, last_index + 1);
-    this.raw.splice(0, last_index + 1);
-    return { seqs };
-  };
-
-  private enforceLimitsNow = reuseInFlight(async () => {
-    if (this.persist) {
-      // this is done in persistent storage server side, not by our client.
-      return;
-    }
-    // ephemeral limits are enforced by all clients.
-    const index = enforceLimits({
-      messages: this.messages,
-      // @ts-ignore [ ] TODO
-      raw: this.raw,
-      limits: {
-        max_msgs: -1,
-        max_age: 0,
-        max_bytes: -1,
-        max_msg_size: -1,
-        max_bytes_per_second: -1,
-        max_msgs_per_second: -1,
-        ...this.configOptions,
-      },
+    return await persistClient.deleteMessages({
+      user: this.user,
+      storage: this.storage,
+      ...opts,
     });
-    if (index > -1) {
-      try {
-        await this.delete({ last_index: index });
-      } catch (err) {
-        if (err.code != "TIMEOUT") {
-          console.log(`WARNING: purging old messages - ${err}`);
-        }
-      }
-    }
-  });
-
-  private enforceLimits = throttle(
-    this.enforceLimitsNow,
-    ENFORCE_LIMITS_THROTTLE_MS,
-    { leading: false, trailing: true },
-  );
+  };
 
   // delete messages that are no longer needed since newer values have been written
   gcKv = () => {
@@ -1278,26 +759,4 @@ export async function cstream<T>(
   options: CoreStreamOptions,
 ): Promise<CoreStream<T>> {
   return await cache(options);
-}
-
-function getRawMsg(raw: Message): RawMsg {
-  const {
-    seq = 0,
-    timestamp = 0,
-    sessionId = "",
-  } = (raw.headers?.[COCALC_STREAM_HEADER] ?? {}) as any;
-  if (!seq) {
-    throw Error("missing seq header");
-  }
-  if (!timestamp) {
-    throw Error("missing timestamp header");
-  }
-  // @ts-ignore
-  raw.seq = seq;
-  // @ts-ignore
-  raw.timestamp = timestamp;
-  // @ts-ignore
-  raw.sessionId = sessionId;
-  // @ts-ignore
-  return raw;
 }
