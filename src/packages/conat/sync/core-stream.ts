@@ -265,9 +265,10 @@ export class CoreStream<T = any> extends EventEmitter {
       //console.log("renewing with lifetime ", this.renewLoopParams.lifetime);
       try {
         await persistClient.renew(this.renewLoopParams);
-      } catch (err) {
-        console.log(`WARNING: core-stream renew failed -- ${err}`);
-        // [ ] TODO: critical at this point to do something!
+      } catch {
+        // This will happen periodically when network or server goes down.
+        // It may ultimately result in the stream iterator ending and a new one
+        // being created.
       }
     }
   });
