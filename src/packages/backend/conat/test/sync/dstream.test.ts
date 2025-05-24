@@ -390,7 +390,6 @@ describe("test delete of messages from stream", () => {
     const seq = s1.seq(1);
     const { seqs } = await s1.delete({ seq });
     expect(seqs).toEqual([seq]);
-    setTimeout(() => console.log(s2.get()), 1000);
     await wait({ until: () => s2.length == 2 && s1.length == 2 });
     expect(s1.get()).toEqual(["z", "y"]);
   });

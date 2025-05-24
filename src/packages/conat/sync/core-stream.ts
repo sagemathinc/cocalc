@@ -723,7 +723,8 @@ export class CoreStream<T = any> extends EventEmitter {
       // should resovle a merge conflict. This is ignored if
       // key is not specified.
       previousSeq?: number;
-      // if set AND the config option allow_msg_ttl is set on this stream, then
+      // if set to a number of ms AND the config option allow_msg_ttl
+      // is set on this persistent stream, then
       // this message will be deleted after the given amount of time (in ms).
       ttl?: number;
     },

@@ -211,7 +211,7 @@ export class DStream<T = any> extends EventEmitter {
     mesg: T,
     // NOTE: if you call this.headers(n) it is NOT visible until
     // the publish is confirmed. This could be changed with more work if it matters.
-    options?: { headers?: Headers },
+    options?: { headers?: Headers, ttl?:number },
   ): void => {
     const id = randomId();
     this.local[id] = mesg;

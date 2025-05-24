@@ -152,6 +152,7 @@ export interface Message {
 
 export interface SetOperation extends Message {
   op: undefined;
+  msgID?: string;
 }
 
 export interface DeleteOperation {
@@ -321,7 +322,16 @@ export class PersistentStream extends EventEmitter {
     );
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
-    this.emit("change", { op: "set", seq, time, key, encoding, raw, headers });
+    this.emit("change", {
+      op: "set",
+      seq,
+      time,
+      key,
+      encoding,
+      raw,
+      headers,
+      msgID,
+    });
     if (msgID !== undefined) {
       this.msgIDs.set(msgID, { time, seq });
     }
@@ -554,9 +564,15 @@ export class PersistentStream extends EventEmitter {
 
     if (this.conf.allow_msg_ttl) {
       const rows = this.db
-        .prepare(`DELETE FROM messages WHERE ttl IS NOT null AND time + ttl < ? RETURNING seq`)
+        .prepare(
+          `DELETE FROM messages WHERE ttl IS NOT null AND time + ttl/1000 < ? RETURNING seq`,
+        )
         .all(Date.now() / 1000);
       this.emitDelete(rows);
+    }
+
+    if (this.conf.max_msg_size > -1 && size > this.conf.max_msg_size) {
+      throw Error(`max_msg_size of ${this.conf.max_msg_size} bytes exceeded`);
     }
   };
 }

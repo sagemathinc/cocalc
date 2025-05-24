@@ -162,22 +162,29 @@ describe("create a dstream with limit on the total number of messages, and confi
   });
 
   it("push 2 messages, then a third, and see first is gone and that this is reflected on both clients", async () => {
-    s.push({ a: 10 });
-    s.push({ b: 20 });
-    expect(s.get()).toEqual([{ a: 10 }, { b: 20 }]);
-    await wait({ until: () => s2.length == 2 });
-    s.push({ c: 30 });
-    expect(s.get(2)).toEqual({ c: 30 });
-    await s.save();
-    await wait({ until: () => s.length == 2 });
-    expect(s.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
-    await wait({ until: () => s2.length == 2 });
-    expect(s2.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
+    expect((await s.config()).max_msgs).toBe(2);
+    expect((await s2.config()).max_msgs).toBe(2);
+    s.push("a");
+    s.push("b");
+    await wait({ until: () => s.length == 2 && s2.length == 2 });
+    expect(s2.get()).toEqual(["a", "b"]);
+    s.push("c");
+    await wait({
+      until: () =>
+        s.get(0) != "a" &&
+        s.get(1) == "c" &&
+        s2.get(0) != "a" &&
+        s2.get(1) == "c",
+    });
+    expect(s.getAll()).toEqual(["b", "c"]);
+    expect(s2.getAll()).toEqual(["b", "c"]);
 
-    // also check limits was enforced if we close, then open new one:
+    // also check limits ar  enforced if we close, then open new one:
     await s.close();
     s = await createDstream({ name, limits: { max_msgs: 2 } });
-    expect(s.getAll()).toEqual([{ b: 20 }, { c: 30 }]);
+    expect(s.getAll()).toEqual(["b", "c"]);
+
+    await s.config({ max_msgs: -1 });
   });
 
   it("verifies that max_age works", async () => {
@@ -186,6 +193,59 @@ describe("create a dstream with limit on the total number of messages, and confi
     s.config({ max_age: 25 }); // anything older than 25ms should be deleted
     await wait({ until: () => s.length == 1 });
     expect(s.getAll()).toEqual(["new"]);
+    await s.config({ max_age: -1 });
+  });
+
+  it("verifies that ttl works", async () => {
+    const conf = await s.config();
+    expect(conf.allow_msg_ttl).toBe(false);
+    const conf2 = await s.config({ max_age: -1, allow_msg_ttl: true });
+    expect(conf2.allow_msg_ttl).toBe(true);
+
+    s.publish("ttl-message", { ttl: 50 });
+    await s.save();
+    await wait({
+      until: async () => {
+        await s.config();
+        return s.length == 1;
+      },
+    });
+    expect(s.get()).toEqual(["new"]);
+  });
+
+  it("verifies that max_bytes works -- publishing something too large causes everything to end up gone", async () => {
+    const conf = await s.config({ max_bytes: 100 });
+    expect(conf.max_bytes).toBe(100);
+    s.publish("x".repeat(1000));
+    await s.config();
+    await wait({ until: () => s.length == 0 });
+    expect(s.length).toBe(0);
+  });
+
+  it("max_bytes -- publish something then another thing that causes the first to get deleted", async () => {
+    s.publish("x".repeat(75));
+    s.publish("y".repeat(90));
+    await wait({
+      until: async () => {
+        await s.config();
+        return s.length == 1;
+      },
+    });
+    expect(s.get()).toEqual(["y".repeat(90)]);
+    await s.config({ max_bytes: -1 });
+  });
+
+  it("verifies that max_msg_size rejects messages that are too big", async () => {
+    await s.config({ max_msg_size: 100 });
+    expect((await s.config()).max_msg_size).toBe(100);
+    s.publish("x".repeat(70));
+    await expect(async () => {
+      await s.stream.publish("x".repeat(150));
+    }).rejects.toThrowError("max_msg_size");
+    await s.config({ max_msg_size: 200 });
+    s.publish("x".repeat(150));
+    await s.config({ max_msg_size: -1 });
+    expect((await s.config()).max_msg_size).toBe(-1);
   });
 
   it("closes the stream", async () => {

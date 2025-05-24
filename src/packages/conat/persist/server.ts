@@ -274,6 +274,7 @@ async function handleMessage({ mesg, messagesThresh }) {
         key: request.key,
         previousSeq: request.previousSeq,
         raw: mesg.raw,
+        ttl: request.ttl,
         encoding: mesg.encoding,
         headers: request.headers,
         msgID: request.msgID,
