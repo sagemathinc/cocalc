@@ -260,3 +260,21 @@ export async function parallelHandler({
   // Wait for all remaining promises to finish
   await Promise.all(promiseQueue);
 }
+
+// use it like this:
+//   resp = await withTimeout(promise, 3000);
+// and if will throw a timeout if promise takes more than 3s to resolve,
+// though of course whatever code is running in promise doesn't actually
+// get interrupted.
+export async function withTimeout(p: Promise<any>, ms: number) {
+  p.catch((err) => {
+    console.warn("Warning: withTimeout promise rejected", err);
+  });
+  let to;
+  return Promise.race([
+    p,
+    new Promise(
+      (_, reject) => (to = setTimeout(() => reject(new Error("timeout")), ms)),
+    ),
+  ]).finally(() => clearTimeout(to));
+}
