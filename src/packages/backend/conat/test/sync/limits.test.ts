@@ -275,7 +275,7 @@ describe("create a dstream with limit on max_age, and confirm auto-delete works"
   });
 });
 
-describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete works", () => {
+describe("create a dstream with limit on max_bytes, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -290,7 +290,6 @@ describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete
     if (!s.isStable()) {
       await once(s, "stable");
     }
-    await s.stream.enforceLimitsNow();
     expect(s.getAll()).toEqual(["x".repeat(45), "x"]);
   });
 
@@ -300,7 +299,7 @@ describe.skip("create a dstream with limit on max_bytes, and confirm auto-delete
   });
 });
 
-describe.skip("create a dstream with limit on max_msg_size, and confirm auto-delete works", () => {
+describe("create a dstream with limit on max_msg_size, and confirm auto-delete works", () => {
   let s;
   const name = `test-${Math.random()}`;
 
@@ -316,12 +315,13 @@ describe.skip("create a dstream with limit on max_msg_size, and confirm auto-del
     s.push("x".repeat(40));
     s.push("y".repeat(60)); // silently vanishes (well a reject event is emitted)
     s.push("x");
-    if (!s.isStable()) {
-      await once(s, "stable");
-    }
-    await s.stream.enforceLimitsNow();
+    await wait({
+      until: async () => {
+        await s.config();
+        return s.length == 2;
+      },
+    });
     expect(s.getAll()).toEqual(["x".repeat(40), "x"]);
-
     expect(rejects).toEqual(["y".repeat(60)]);
   });
 

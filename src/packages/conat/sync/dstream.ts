@@ -294,7 +294,7 @@ export class DStream<T = any> extends EventEmitter {
         delete this.local[id];
         delete this.publishOptions[id];
       } catch (err) {
-        if (err.code == "REJECT") {
+        if (err.code == "reject") {
           delete this.local[id];
           // err has mesg and subject set.
           this.emit("reject", { err, mesg });
