@@ -723,6 +723,9 @@ export class CoreStream<T = any> extends EventEmitter {
       // should resovle a merge conflict. This is ignored if
       // key is not specified.
       previousSeq?: number;
+      // if set AND the config option allow_msg_ttl is set on this stream, then
+      // this message will be deleted after the given amount of time (in ms).
+      ttl?: number;
     },
   ) => {
     if (mesg === undefined) {
@@ -738,7 +741,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
     const data = mesg;
 
-    if (typeof mesg == "string") {
+    if (typeof mesg == "string" && !this.persist) {
       // this may throw an exception preventing publishing.
       enforceRateLimits({
         limits: {
@@ -771,6 +774,7 @@ export class CoreStream<T = any> extends EventEmitter {
         messageData: md,
         previousSeq: options?.previousSeq,
         msgID: options?.msgID,
+        ttl: options?.ttl,
       });
       if (options?.msgID) {
         this.msgIDs?.add(options.msgID);

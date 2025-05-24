@@ -34,6 +34,11 @@ I also tried the rust sync snappy and it had a similar memory leak.  Finally,
 I tried zstd-napi and it has a very fast sync implementation that does *not*
 leak memory. So zstd-napi it is.  And I like zstandard anyways.
 
+NOTE:
+
+We use seconds instead of ms in sqlite since that is the standard 
+convention for times in sqlite.
+
 DEVELOPMENT:
 
 
@@ -60,9 +65,8 @@ export interface Configuration {
 
   // How big the Stream may be. When the stream size
   // exceeds this, old messages are removed. -1 for unlimited.
-  // This is enforced only on write, so if you change it, it only applies
-  // to future messages.  The size of a message is by definition
-  // the sum of the raw blob and the headers json.
+  // The size of a message is the sum of the raw uncompressed blob
+  // size, the headers json and the key length.
   max_bytes: number;
 
   // The largest message that will be accepted. -1 for unlimited.
@@ -82,16 +86,36 @@ export interface Configuration {
   // old = delete old messages to make room for nw
   // new = refuse writes if they exceed the limits
   discard_policy: "old" | "new";
+
+  // if true (default: false), messages will be automatically deleted after their ttl
+  allow_msg_ttl: boolean;
 }
 
 const CONFIGURATION = {
-  max_msgs: { def: -1, coerce: parseInt },
-  max_age: { def: 0, coerce: parseInt },
-  max_bytes: { def: -1, coerce: parseInt },
-  max_msg_size: { def: -1, coerce: parseInt },
-  max_bytes_per_second: { def: -1, coerce: parseInt },
-  max_msgs_per_second: { def: -1, coerce: parseInt },
-  discard_policy: { def: "old", coerce: (x) => `${x}` },
+  max_msgs: { def: -1, fromDb: parseInt, toDb: (x) => `${parseInt(x)}` },
+  max_age: { def: 0, fromDb: parseInt, toDb: (x) => `${parseInt(x)}` },
+  max_bytes: { def: -1, fromDb: parseInt, toDb: (x) => `${parseInt(x)}` },
+  max_msg_size: { def: -1, fromDb: parseInt, toDb: (x) => `${parseInt(x)}` },
+  max_bytes_per_second: {
+    def: -1,
+    fromDb: parseInt,
+    toDb: (x) => `${parseInt(x)}`,
+  },
+  max_msgs_per_second: {
+    def: -1,
+    fromDb: parseInt,
+    toDb: (x) => `${parseInt(x)}`,
+  },
+  discard_policy: {
+    def: "old",
+    fromDb: (x) => `${x}`,
+    toDb: (x) => (x == "new" ? "new" : "old"),
+  },
+  allow_msg_ttl: {
+    def: false,
+    fromDb: (x) => x == "true",
+    toDb: (x) => `${!!x}`,
+  },
 };
 
 enum CompressionAlgorithm {
@@ -179,7 +203,7 @@ export class PersistentStream extends EventEmitter {
     this.db
       .prepare(
         `CREATE TABLE IF NOT EXISTS messages ( 
-          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL, size NUMBER NOT NULL
+          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL, size NUMBER NOT NULL, ttl NUMBER
           )
         `,
       )
@@ -233,6 +257,7 @@ export class PersistentStream extends EventEmitter {
     raw,
     headers,
     key,
+    ttl,
     previousSeq,
     msgID,
   }: {
@@ -240,6 +265,7 @@ export class PersistentStream extends EventEmitter {
     raw: Buffer;
     headers?: JSONValue;
     key?: string;
+    ttl?: number;
     previousSeq?: number;
     // if given, any attempt to publish something again with the same msgID
     // is deduplicated. Use this to prevent accidentally writing twice, e.g.,
@@ -270,7 +296,7 @@ export class PersistentStream extends EventEmitter {
     this.enforceLimits(size);
 
     const tx = this.db.transaction(
-      (time, compress, encoding, raw, headers, key, size) => {
+      (time, compress, encoding, raw, headers, key, size, ttl) => {
         if (key !== undefined) {
           // insert with key -- delete all previous messages, as they will
           // never be needed again and waste space.
@@ -278,9 +304,9 @@ export class PersistentStream extends EventEmitter {
         }
         return this.db
           .prepare(
-            "INSERT INTO messages(time, compress, encoding, raw, headers, key, size) VALUES (?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
+            "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
           )
-          .get(time / 1000, compress, encoding, raw, headers, key, size);
+          .get(time / 1000, compress, encoding, raw, headers, key, size, ttl);
       },
     );
     const row = tx(
@@ -291,6 +317,7 @@ export class PersistentStream extends EventEmitter {
       serializedHeaders,
       key,
       size,
+      ttl,
     );
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
@@ -433,16 +460,19 @@ export class PersistentStream extends EventEmitter {
     }
     const full: Partial<Configuration> = {};
     for (const key in CONFIGURATION) {
-      const { def, coerce } = CONFIGURATION[key];
-      full[key] = coerce(config?.[key] ?? cur[key] ?? def);
+      const { def, fromDb, toDb } = CONFIGURATION[key];
+      full[key] =
+        config?.[key] ?? (cur[key] !== undefined ? fromDb(cur[key]) : def);
+      const x = toDb(full[key]);
       if (config?.[key] != null && full[key] != (cur[key] ?? def)) {
         // making a change
         this.db
           .prepare(
             `INSERT INTO config (field, value) VALUES(?, ?) ON CONFLICT(field) DO UPDATE SET value=excluded.value`,
           )
-          .run(key, full[key]);
+          .run(key, x);
       }
+      full[key] = fromDb(x);
     }
     this.conf = full as Configuration;
     // ensure any new limits are enforced
@@ -450,11 +480,18 @@ export class PersistentStream extends EventEmitter {
     return full as Configuration;
   };
 
+  private emitDelete = (rows) => {
+    if (rows.length > 0) {
+      const seqs = rows.map((row: { seq: number }) => row.seq);
+      this.emit("change", { op: "delete", seqs });
+    }
+  };
+
   // do whatever limit enforcement and throttling is needed when inserting one new message
   // with the given size; if size=0 assume not actually inserting a new message, and just
   // enforcingt current limits
-  enforceLimits = (size: number) => {
-    if (this.conf.max_msgs != -1) {
+  private enforceLimits = (size: number = 0) => {
+    if (this.conf.max_msgs > -1) {
       const length = this.length + (size > 0 ? 1 : 0);
       if (length > this.conf.max_msgs) {
         // delete earliest messages to make room
@@ -463,10 +500,7 @@ export class PersistentStream extends EventEmitter {
             `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages ORDER BY seq ASC LIMIT ?) RETURNING seq`,
           )
           .all(length - this.conf.max_msgs);
-        if (rows.length > 0) {
-          const seqs = rows.map((row: { seq: number }) => row.seq);
-          this.emit("change", { op: "delete", seqs });
-        }
+        this.emitDelete(rows);
       }
     }
 
@@ -476,10 +510,53 @@ export class PersistentStream extends EventEmitter {
           `DELETE FROM messages WHERE seq IN (SELECT seq FROM messages WHERE time <= ?) RETURNING seq`,
         )
         .all((Date.now() - this.conf.max_age) / 1000);
-      if (rows.length > 0) {
-        const seqs = rows.map((row: { seq: number }) => row.seq);
-        this.emit("change", { op: "delete", seqs });
+      this.emitDelete(rows);
+    }
+
+    if (this.conf.max_bytes > -1) {
+      if (size > this.conf.max_bytes) {
+        // new message exceeds total, so this is the same as adding in the new message,
+        // then deleting everything.
+        this.delete({ all: true });
+      } else {
+        // delete all the earliest (in terms of seq number) messages so that the sum of the remaining
+        // sizes along with the new size is <= max_bytes.
+        // Only enforce if actually inserting, or if current sum is over
+        const totalSize =
+          (
+            this.db
+              .prepare(`SELECT SUM(size) AS sum FROM messages`)
+              .get() as any
+          ).sum ?? 0;
+        const newTotal = totalSize + size;
+        if (newTotal > this.conf.max_bytes) {
+          const bytesToFree = newTotal - this.conf.max_bytes;
+          let freed = 0;
+          let lastSeqToDelete: number | null = null;
+
+          for (const { seq, size: msgSize } of this.db
+            .prepare(`SELECT seq, size FROM messages ORDER BY seq ASC`)
+            .iterate() as any) {
+            if (freed >= bytesToFree) break;
+            freed += msgSize;
+            lastSeqToDelete = seq;
+          }
+
+          if (lastSeqToDelete !== null) {
+            const rows = this.db
+              .prepare(`DELETE FROM messages WHERE seq <= ? RETURNING seq`)
+              .all(lastSeqToDelete);
+            this.emitDelete(rows);
+          }
+        }
       }
+    }
+
+    if (this.conf.allow_msg_ttl) {
+      const rows = this.db
+        .prepare(`DELETE FROM messages WHERE ttl IS NOT null AND time + ttl < ? RETURNING seq`)
+        .all(Date.now() / 1000);
+      this.emitDelete(rows);
     }
   };
 }

@@ -96,12 +96,11 @@ describe("create two dstreams and observe sync between them", () => {
     // now kick off the two saves *in parallel*
     s1.save();
     s2.save();
-    while (s1.length < 4) {
-      await once(s1, "change");
-    }
-    while (s2.length < 4) {
-      await once(s2, "change");
-    }
+    await wait({
+      until: () => {
+        return s1.length == 4 && s2.length == 4;
+      },
+    });
     expect(s1.getAll()).toEqual(s2.getAll());
     expect(new Set(s1.getAll())).toEqual(
       new Set(["hello", "hi from s2", "s1", "s2"]),

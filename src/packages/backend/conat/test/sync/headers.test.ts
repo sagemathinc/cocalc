@@ -8,7 +8,7 @@ pnpm test ./headers.test.ts
 
 import { dstream, dkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
-import { before, after } from "@cocalc/backend/conat/test/setup";
+import { before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -30,9 +30,10 @@ describe("test headers with a dstream", () => {
 
   it("writes a value with a header", async () => {
     s.publish("y", { headers: { my: "header" } });
+    // header isn't visible until ack'd by server
     // NOTE: not optimal but this is what is implemented and documented!
     expect(s.headers(s.length - 1)).toEqual(undefined);
-    await once(s, "change");
+    await wait({ until: () => s.headers(s.length - 1) != null });
     expect(s.headers(s.length - 1)).toEqual(
       expect.objectContaining({ my: "header" }),
     );
@@ -47,7 +48,7 @@ describe("test headers with a dstream", () => {
   });
 
   it("clean up", async () => {
-    await s.delete({all:true});
+    await s.delete({ all: true });
   });
 });
 

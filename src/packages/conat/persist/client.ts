@@ -64,6 +64,7 @@ export async function set({
   user,
   storage,
   key,
+  ttl,
   previousSeq,
   msgID,
   messageData,
@@ -72,6 +73,7 @@ export async function set({
   user: User;
   storage: Storage;
   key?: string;
+  ttl?: number;
   previousSeq?: number;
   msgID?: string;
   messageData: MessageData;
@@ -87,6 +89,7 @@ export async function set({
       headers: messageData.headers,
       cmd: "set",
       key,
+      ttl,
       previousSeq,
       msgID,
       storage,
