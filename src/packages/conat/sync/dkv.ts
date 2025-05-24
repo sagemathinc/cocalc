@@ -475,7 +475,7 @@ export class DKV<T = any> extends EventEmitter {
         }
       }
     }
-    const f = async (key) => {
+    const f = async (key: string) => {
       if (this.kv == null) {
         // closed
         return;
@@ -493,10 +493,6 @@ export class DKV<T = any> extends EventEmitter {
         //         });
         status.unsaved -= 1;
         status.set += 1;
-        if (!this.changed.has(key)) {
-          // successfully saved this and user didn't make a change *during* the set
-          this.discardLocalState(key);
-        }
         // note that we CANNOT call  this.discardLocalState(key) here, because
         // this.get(key) needs to work immediately after save, but if this.local[key]
         // is deleted, then this.get(key) would be undefined, because
@@ -507,14 +503,14 @@ export class DKV<T = any> extends EventEmitter {
         //           key,
         //           value: obj[key],
         //         });
-        if (err.code == "REJECT" && err.key) {
-          const value = this.local[err.key];
+        if (err.code == "reject") {
+          const value = this.local[key];
           // can never save this.
-          this.discardLocalState(err.key);
+          this.discardLocalState(key);
           status.unsaved -= 1;
-          this.emit("reject", { key: err.key, value });
+          this.emit("reject", { key, value });
         }
-        if (err.message.startsWith("wrong last sequence")) {
+        if (err.code == "wrong-last-sequence") {
           // this happens when another client has published a NEWER version of this key,
           // so the right thing is to just ignore this.  In a moment there will be no
           // need to save anything, since we'll receive a message that overwrites this key.

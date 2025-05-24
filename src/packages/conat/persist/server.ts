@@ -313,7 +313,7 @@ async function handleMessage({ mesg, messagesThresh }) {
       respond({ error: `unknown command ${request.cmd}` });
     }
   } catch (err) {
-    respond({ error: `${err}` });
+    respond({ error: `${err}`, code: err.code });
   }
 }
 

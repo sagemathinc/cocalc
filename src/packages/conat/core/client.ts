@@ -1085,7 +1085,7 @@ export function messageData(
 export type Subscription = EventIterator<Message>;
 
 export class ConatError extends Error {
-  code: string;
+  code: string | number;
   constructor(mesg: string, { code }) {
     super(mesg);
     this.code = code;

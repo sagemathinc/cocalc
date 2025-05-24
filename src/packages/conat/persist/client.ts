@@ -11,6 +11,7 @@ export type { Storage, SetOperation, DeleteOperation, Configuration };
 import {
   Message as ConatMessage,
   MessageData,
+  ConatError,
 } from "@cocalc/conat/core/client";
 
 interface ConnectionOptions {
@@ -96,9 +97,9 @@ export async function set({
     } as any,
     timeout,
   });
-  const { error, resp } = reply.data;
+  const { error, code, resp } = reply.data;
   if (error) {
-    throw Error(error);
+    throw new ConatError(error, { code });
   }
   return resp;
 }

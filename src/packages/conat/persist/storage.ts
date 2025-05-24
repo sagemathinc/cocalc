@@ -50,7 +50,11 @@ import { refCacheSync } from "@cocalc/util/refcache";
 import { createDatabase, type Database, compress, decompress } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-import { DataEncoding, type Headers } from "@cocalc/conat/core/client";
+import {
+  DataEncoding,
+  type Headers,
+  ConatError,
+} from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
 
 export interface Configuration {
@@ -286,7 +290,9 @@ export class PersistentStream extends EventEmitter {
         .prepare("SELECT seq FROM messages WHERE key=?")
         .get(key) as any;
       if (seq != previousSeq) {
-        throw Error("wrong last sequence");
+        throw new ConatError("wrong last sequence", {
+          code: "wrong-last-sequence",
+        });
       }
     }
     const time = Date.now();
@@ -575,7 +581,10 @@ export class PersistentStream extends EventEmitter {
     }
 
     if (this.conf.max_msg_size > -1 && size > this.conf.max_msg_size) {
-      throw Error(`max_msg_size of ${this.conf.max_msg_size} bytes exceeded`);
+      throw new ConatError(
+        `max_msg_size of ${this.conf.max_msg_size} bytes exceeded`,
+        { code: "reject" },
+      );
     }
   };
 }
