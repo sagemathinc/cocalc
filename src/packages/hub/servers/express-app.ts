@@ -32,7 +32,7 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { initNatsServer } from "./nats";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -43,6 +43,7 @@ interface Options {
   isPersonal: boolean;
   nextServer: boolean;
   proxyServer: boolean;
+  conatServer: boolean;
   cert?: string;
   key?: string;
   listenersHack: boolean;
@@ -129,7 +130,6 @@ export default async function init(opts: Options): Promise<{
   initBlobUpload(router);
   initUpload(router);
   initSetCookies(router);
-  initNatsServer(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
@@ -155,6 +155,11 @@ export default async function init(opts: Options): Promise<{
       app,
       listenersHack: opts.listenersHack,
     });
+  }
+
+  if (opts.conatServer) {
+    winston.info(`initializing the Conat Server`);
+    initConatServer({ httpServer, path: join(basePath, "conat") });
   }
 
   // IMPORTANT:

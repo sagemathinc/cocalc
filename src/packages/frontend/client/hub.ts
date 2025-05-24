@@ -514,7 +514,7 @@ export class HubClient {
     this.delete_websocket_cookie();
     this.conn?.end();
     this.conn?.open();
-    this.client.nats_client.reconnect();
+    this.client.conat_client.reconnect();
   }
 
   public latency(): number | void {

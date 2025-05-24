@@ -113,7 +113,7 @@ export class IdleClient {
         console.log("Entering standby mode");
         this.standbyMode = true;
         // console.log("idle timeout: disconnect!");
-        this.client.nats_client.standby();
+        this.client.conat_client.standby();
         this.client.hub_client.disconnect();
         disconnect_from_all_projects();
       }, CHECK_INTERVAL / 2);
@@ -133,7 +133,7 @@ export class IdleClient {
     if (this.standbyMode) {
       this.standbyMode = false;
       console.log("Leaving standby mode");
-      this.client.nats_client.resume();
+      this.client.conat_client.resume();
       this.client.hub_client.reconnect();
     }
   };

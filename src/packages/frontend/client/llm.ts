@@ -183,13 +183,13 @@ export class LLMClient {
 
     if (chatStream == null) {
       // not streaming
-      return await this.client.nats_client.llm(options);
+      return await this.client.conat_client.llm(options);
     }
 
     chatStream.once("start", async () => {
       // streaming version
       try {
-        await this.client.nats_client.llm({
+        await this.client.conat_client.llm({
           ...options,
           stream: chatStream.process,
         });

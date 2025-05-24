@@ -28,7 +28,7 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import { initNatsClientService } from "./nats/syncfs-client";
+import { initConatClientService } from "./nats/syncfs-client";
 import { initNatsServerService } from "./nats/syncfs-server";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
@@ -166,7 +166,7 @@ export class SyncFS {
   }
 
   init = async () => {
-    await this.initNatsService();
+    await this.initConatService();
     await this.mountUnionFS();
     await this.bindMountExcludes();
     await this.makeScratchDir();
@@ -798,9 +798,9 @@ export class SyncFS {
     }
   };
 
-  initNatsService = async () => {
+  initConatService = async () => {
     if (this.role == "compute_server") {
-      this.natsService = await initNatsClientService({
+      this.natsService = await initConatClientService({
         syncfs: this,
         project_id: this.project_id,
         compute_server_id: this.compute_server_id,

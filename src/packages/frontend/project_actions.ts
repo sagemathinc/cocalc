@@ -107,7 +107,8 @@ import { get_editor } from "./editors/react-wrapper";
 import {
   computeServerManager,
   type ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
+} from "@cocalc/conat/compute/manager";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { defaults, required } = misc;
 
@@ -297,7 +298,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
-    this.initNatsPermissions();
     this.initComputeServers();
   }
 
@@ -317,7 +317,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     delete this.open_files;
     this.computeServerManager?.close();
     delete this.computeServerManager;
-    webapp_client.nats_client.closeOpenFiles(this.project_id);
+    webapp_client.conat_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -1938,75 +1938,80 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
-  async init_configuration(
-    aspect: ConfigurationAspect = "main",
-    no_cache = false,
-  ): Promise<Configuration | void> {
-    this.setState({ configuration_loading: true });
+  init_configuration = reuseInFlight(
+    async (
+      aspect: ConfigurationAspect = "main",
+      no_cache = false,
+    ): Promise<Configuration | void> => {
+      console.log("init_configuration", this.project_id);
+      this.setState({ configuration_loading: true });
 
-    const store = this.get_store();
-    if (store == null) {
-      // console.warn("project_actions::init_configuration: no store");
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      const store = this.get_store();
+      if (store == null) {
+        // console.warn("project_actions::init_configuration: no store");
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    const prev = store.get("configuration") as ProjectConfiguration;
-    if (!no_cache) {
-      // already done before?
-      if (prev != null) {
-        const conf = prev.get(aspect) as Configuration;
-        if (conf != null) {
-          this.setState({ configuration_loading: false });
-          return conf;
+      const prev = store.get("configuration") as ProjectConfiguration;
+      if (!no_cache) {
+        // already done before?
+        if (prev != null) {
+          const conf = prev.get(aspect) as Configuration;
+          if (conf != null) {
+            this.setState({ configuration_loading: false });
+            return conf;
+          }
         }
       }
-    }
 
-    // we do not know the configuration aspect. "next" will be the updated datastructure.
-    let next;
+      // we do not know the configuration aspect. "next" will be the updated datastructure.
+      let next;
 
-    await retry_until_success({
-      f: async () => {
-        try {
-          next = await get_configuration(
-            webapp_client,
-            this.project_id,
-            aspect,
-            prev,
-            no_cache,
-          );
-        } catch (e) {
-          // not implemented error happens, when the project is still the old one
-          // in that case, do as if everything is available
-          if (e.message.indexOf("not implemented") >= 0) {
-            return null;
+      await retry_until_success({
+        f: async () => {
+          try {
+            next = await get_configuration(
+              webapp_client,
+              this.project_id,
+              aspect,
+              prev,
+              no_cache,
+            );
+          } catch (e) {
+            // not implemented error happens, when the project is still the old one
+            // in that case, do as if everything is available
+            if (e.message.indexOf("not implemented") >= 0) {
+              return null;
+            }
+            //             console.log(
+            //               `WARNING -- project_actions::init_configuration err: ${e}`,
+            //             );
+            throw e;
           }
-          // console.log("project_actions::init_configuration err:", e);
-          throw e;
-        }
-      },
-      start_delay: 1000,
-      max_delay: 5000,
-      desc: "project_actions::init_configuration",
-    });
+        },
+        start_delay: 2000,
+        max_delay: 5000,
+        desc: "project_actions::init_configuration",
+      });
 
-    // there was a problem or configuration is not known
-    if (next == null) {
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      // there was a problem or configuration is not known
+      if (next == null) {
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    this.setState(
-      fromJS({
-        configuration: next,
-        available_features: feature_is_available(next),
-        configuration_loading: false,
-      } as any),
-    );
+      this.setState(
+        fromJS({
+          configuration: next,
+          available_features: feature_is_available(next),
+          configuration_loading: false,
+        } as any),
+      );
 
-    return next.get(aspect) as Configuration;
-  }
+      return next.get(aspect) as Configuration;
+    },
+  );
 
   // this is called once by the project initialization
   private async init_library() {
@@ -2113,9 +2118,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     misc.retry_until_success({
       f: fetch,
-      start_delay: 1000,
-      max_delay: 10000,
-      max_time: 1000 * 60 * 3, // try for at most 3 minutes
+      start_delay: 15000,
+      max_delay: 30000,
+      max_time: 1000 * 60, // try for at most 3 minutes
       cb: () => {
         _init_library_index_ongoing[this.project_id] = false;
       },
@@ -3504,7 +3509,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setRecentlyDeleted(path, 0);
     (async () => {
       try {
-        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        const o = await webapp_client.conat_client.openFiles(this.project_id);
         o.setNotDeleted(path);
       } catch (err) {
         console.log("WARNING: issue undeleting file", err);
@@ -3533,16 +3538,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       "change",
       this.handleComputeServerManagerChange,
     );
-  };
-
-  private initNatsPermissions = async () => {
-    try {
-      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
-    } catch (err) {
-      console.log(
-        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
-      );
-    }
   };
 
   private closeComputeServers = () => {
@@ -3644,7 +3639,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   projectApi = (opts?) => {
-    return webapp_client.nats_client.projectApi({
+    return webapp_client.conat_client.projectApi({
       ...opts,
       project_id: this.project_id,
     });

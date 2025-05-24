@@ -23,7 +23,7 @@ export class TrackingClient {
         ?.get("user_tracking");
     }
     if (this.userTrackingEnabled == "yes") {
-      await this.client.nats_client.hub.system.userTracking({ event, value });
+      await this.client.conat_client.hub.system.userTracking({ event, value });
     }
   };
 

@@ -31,14 +31,14 @@ import type {
 } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { type ProjectApi } from "@cocalc/nats/project-api";
+import { type ProjectApi } from "@cocalc/conat/project-api";
 import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { formatterClient } from "@cocalc/nats/service/formatter";
-import { syncFsClientClient } from "@cocalc/nats/service/syncfs-client";
-// import { syncFsServerClient } from "@cocalc/nats/service/syncfs-server";
+import { formatterClient } from "@cocalc/conat/service/formatter";
+import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
+// import { syncFsServerClient } from "@cocalc/conat/service/syncfs-server";
 
 export class API {
   private conn;
@@ -68,7 +68,7 @@ export class API {
     }
     const key = `${compute_server_id}-${timeout}`;
     if (this.apiCache[key] == null) {
-      this.apiCache[key] = webapp_client.nats_client.projectApi({
+      this.apiCache[key] = webapp_client.conat_client.projectApi({
         project_id: this.project_id,
         compute_server_id,
         timeout,
@@ -82,7 +82,7 @@ export class API {
   };
 
   private _call = async (mesg: Mesg, timeout: number): Promise<any> => {
-    return await webapp_client.nats_client.projectWebsocketApi({
+    return await webapp_client.conat_client.projectWebsocketApi({
       project_id: this.project_id,
       mesg,
       timeout,
@@ -90,25 +90,13 @@ export class API {
   };
 
   private getChannel = async (channel_name: string) => {
-    const natsConn = await webapp_client.nats_client.primus(this.project_id);
+    const natsConn = await webapp_client.conat_client.primus(this.project_id);
     // TODO -- typing
     return natsConn.channel(channel_name) as unknown as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {
-    try {
-      return await this._call(mesg, timeout);
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION") {
-        // request update of our credentials to include this project, then try again
-        await webapp_client.nats_client.addProjectPermissions([
-          this.project_id,
-        ]);
-        return await this._call(mesg, timeout);
-      } else {
-        throw err;
-      }
-    }
+    return await this._call(mesg, timeout);
   };
 
   getComputeServerId = (path: string) => {

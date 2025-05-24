@@ -162,7 +162,7 @@ export class JupyterActions extends JupyterActions0 {
     // Put an entry in the project log once the jupyter notebook gets opened.
     // NOTE: Obviously, the project does NOT need to put entries in the log.
     this.syncdb.once("change", () =>
-      this.redux.getProjectActions(this.project_id).log_opened_time(this.path),
+      this.redux?.getProjectActions(this.project_id).log_opened_time(this.path),
     );
 
     // project doesn't care about cursors, but browser clients do:

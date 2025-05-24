@@ -175,8 +175,8 @@ export class Client extends EventEmitter implements Client0 {
     throw Error("synctable_database: not implemented");
   }
 
-  async synctable_nats(_query: any): Promise<SyncTable> {
-    throw Error("synctable_nats: not implemented");
+  async synctable_conat(_query: any): Promise<SyncTable> {
+    throw Error("synctable_conat: not implemented");
   }
   async pubsub_nats(_query: any): Promise<SyncTable> {
     throw Error("pubsub_nats: not implemented");

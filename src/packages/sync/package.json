@@ -20,7 +20,7 @@
   "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "async": "^1.5.2",

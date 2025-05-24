@@ -48,17 +48,17 @@ import * as sage_session from "./sage_session";
 import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import synctable_nats from "@cocalc/project/nats/synctable";
-import pubsub from "@cocalc/project/nats/pubsub";
-import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
-import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
+import synctable_conat from "@cocalc/project/conat/synctable";
+import pubsub from "@cocalc/project/conat/pubsub";
+import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import { getEnv as getNatsEnv } from "@cocalc/project/conat/env";
 import {
-  callNatsService,
-  createNatsService,
-  type CallNatsServiceFunction,
-  type CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
-import type { NatsEnvFunction } from "@cocalc/nats/types";
+  callConatService,
+  createConatService,
+  type CallConatServiceFunction,
+  type CreateConatServiceFunction,
+} from "@cocalc/conat/service";
+import type { NatsEnvFunction } from "@cocalc/conat/types";
 
 const winston = getLogger("client");
 
@@ -520,20 +520,20 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
-  synctable_nats: NatsSyncTableFunction = async (query, options?) => {
-    return await synctable_nats(query, options);
+  synctable_conat: NatsSyncTableFunction = async (query, options?) => {
+    return await synctable_conat(query, options);
   };
 
   pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
     return await pubsub({ path, name });
   };
 
-  callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService(options);
+  callConatService: CallConatServiceFunction = async (options) => {
+    return await callConatService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = (options) => {
-    return createNatsService({
+  createConatService: CreateConatServiceFunction = (options) => {
+    return createConatService({
       ...options,
       project_id: this.project_id,
     });

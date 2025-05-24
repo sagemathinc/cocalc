@@ -50,11 +50,10 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
-import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
-import { readFile, type ReadFileOptions } from "@cocalc/nats/files/read";
+import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
+import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -69,7 +68,7 @@ export class ProjectClient {
   }
 
   private natsApi = (project_id: string) => {
-    return this.client.nats_client.projectApi({ project_id });
+    return this.client.conat_client.projectApi({ project_id });
   };
 
   // This can write small text files in one message.
@@ -240,7 +239,7 @@ export class ProjectClient {
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     */
-  public async exec(opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> {
+  exec = async (opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> => {
     if ("async_get" in opts) {
       opts = defaults(opts, {
         project_id: required,
@@ -288,19 +287,10 @@ export class ProjectClient {
       };
     }
 
-    const { post } = opts;
-    delete opts.post;
-
     try {
-      let msg;
-      if (post) {
-        // use post API
-        msg = await httpApi("exec", opts);
-      } else {
-        const ws = await this.websocket(opts.project_id);
-        const exec_opts = copy_without(opts, ["project_id"]);
-        msg = await ws.api.exec(exec_opts);
-      }
+      const ws = await this.websocket(opts.project_id);
+      const exec_opts = copy_without(opts, ["project_id", "cb"]);
+      const msg = await ws.api.exec(exec_opts);
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
       }
@@ -333,7 +323,7 @@ export class ProjectClient {
         };
       }
     }
-  }
+  };
 
   // Directly compute the directory listing.  No caching or other information
   // is used -- this just sends a message over the websocket requesting
@@ -487,7 +477,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.client.nats_client.hub.db.touch({ project_id });
+      await this.client.conat_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
@@ -538,7 +528,7 @@ export class ProjectClient {
     noPool?: boolean;
   }): Promise<string> {
     const project_id =
-      await this.client.nats_client.hub.projects.createProject(opts);
+      await this.client.conat_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
@@ -631,7 +621,7 @@ export class ProjectClient {
     id?: number;
     expire?: Date;
   }): Promise<ApiKey[] | undefined> {
-    return await this.client.nats_client.hub.system.manageApiKeys(opts);
+    return await this.client.conat_client.hub.system.manageApiKeys(opts);
   }
 
   computeServers = (project_id) => {

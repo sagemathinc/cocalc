@@ -44,9 +44,9 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     const hub_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
-    const nats = useTypedRedux("page", "nats");
-    const nats_status = nats?.get("state") ?? "disconnected";
-    const connection_status = worst(hub_status, nats_status);
+    const conat = useTypedRedux("page", "conat");
+    const conatState = conat?.get("state") ?? "disconnected";
+    const connection_status = worst(hub_status, conatState);
 
     const connecting_style: CSS = {
       flex: "1",

@@ -13,9 +13,8 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
+import { conatPath, conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { natsPorts, natsServer } from "@cocalc/backend/data";
 import { executeCode } from "@cocalc/backend/execute-code";
 
 const logger = getLogger("project-control:util");
@@ -249,19 +248,6 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   return env2 as { [key: string]: string };
 }
 
-async function natsWebsocketServer() {
-  const { nats_project_server } = await getServerSettings();
-  if (nats_project_server) {
-    if (nats_project_server.startsWith("ws")) {
-      if (base_path.length <= 1) {
-        return nats_project_server;
-      }
-      return `${nats_project_server}${base_path}/nats`;
-    }
-  }
-  return `${natsServer}:${natsPorts.server}`;
-}
-
 export async function getEnvironment(
   project_id: string,
 ): Promise<{ [key: string]: any }> {
@@ -291,8 +277,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-      // url of the NATS websocket server the project will connect to:
-      NATS_SERVER: await natsWebsocketServer(),
+      CONAT_SERVER: conatServer,
+      CONAT_PATH: conatPath,
     },
   };
 }

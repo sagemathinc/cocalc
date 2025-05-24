@@ -2,14 +2,14 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
-import { type DStream } from "@cocalc/nats/sync/dstream";
+import { type DStream } from "@cocalc/conat/sync/dstream";
 import {
   createTerminalClient,
   type TerminalServiceApi,
   createBrowserService,
   SIZE_TIMEOUT_MS,
   createBrowserClient,
-} from "@cocalc/nats/service/terminal";
+} from "@cocalc/conat/service/terminal";
 import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
 type State = "disconnected" | "init" | "running" | "closed";
@@ -56,7 +56,7 @@ export class NatsTerminalConnection extends EventEmitter {
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
-    webapp_client.nats_client.on("connected", this.clearWriteQueue);
+    webapp_client.conat_client.on("connected", this.clearWriteQueue);
   }
 
   clearWriteQueue = () => {
@@ -155,7 +155,7 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   close = async () => {
-    webapp_client.nats_client.removeListener("connected", this.clearWriteQueue);
+    webapp_client.conat_client.removeListener("connected", this.clearWriteQueue);
     this.stream?.close();
     delete this.stream;
     this.service?.close();
@@ -204,8 +204,8 @@ export class NatsTerminalConnection extends EventEmitter {
   });
 
   private getStream = async () => {
-    const { nats_client } = webapp_client;
-    return await nats_client.dstream<string>({
+    const { conat_client } = webapp_client;
+    return await conat_client.dstream<string>({
       name: `terminal-${this.path}`,
       project_id: this.project_id,
       ephemeral: this.ephemeral,

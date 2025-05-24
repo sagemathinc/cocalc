@@ -42,12 +42,10 @@ import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import {
-  loadNatsConfiguration,
-  initNatsDatabaseServer,
-  initNatsChangefeedServer,
-  initNatsTieredStorage,
-  initNatsServer,
-} from "@cocalc/server/nats";
+  loadConatConfiguration,
+  initConatChangefeedServer,
+  initConatMicroservices,
+} from "@cocalc/server/conat";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
@@ -185,24 +183,15 @@ async function startServer(): Promise<void> {
     initIdleTimeout(projectControl);
   }
 
-  // all configuration MUST load nats configuration.  This loads
-  // credentials to use nats from the database, and is needed
-  // by many things.
-  await loadNatsConfiguration();
+  // This loads from the database credentials to use Conat.
+  await loadConatConfiguration();
 
-  if (program.natsServer) {
-    await initNatsServer();
+  if (program.conatMicroservices) {
+    await initConatMicroservices();
   }
-  if (program.natsDatabaseServer) {
-    await initNatsDatabaseServer();
-  }
-  if (program.natsChangefeedServer) {
-    await initNatsChangefeedServer();
-  }
-  if (program.natsTieredStorage) {
-    // currently there must be exactly ONE of these, running on the same
-    // node as the nats-server.  E.g., for development it's just part of the server.
-    await initNatsTieredStorage();
+
+  if (program.conatChangefeedServer) {
+    await initConatChangefeedServer();
   }
 
   if (program.websocketServer) {
@@ -243,6 +232,7 @@ async function startServer(): Promise<void> {
   const { router, httpServer } = await initExpressApp({
     isPersonal: program.personal,
     projectControl,
+    conatServer: !!program.conatServer,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
     cert: program.httpsCert,
@@ -254,8 +244,6 @@ async function startServer(): Promise<void> {
       program.websocketServer &&
       process.env["NODE_ENV"] == "development",
   });
-
-  //initNatsServer();
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
   // or complains a lot. This is obviously not really necessary, but we leave it for now.
@@ -428,16 +416,16 @@ async function main(): Promise<void> {
     )
     .option("--websocket-server", "run a websocket server in this process")
     .option(
-      "--nats-server",
-      "run a hub that servers standard nats microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+      "--conat-server",
+      "run a hub that provides a single-core conat server (socketio) as part of its http server. This is needed for dev and small deployments of cocalc.",
     )
     .option(
-      "--nats-database-server",
-      "run NATS microservice to provide access (including changefeeds) to the database",
+      "--conat-microservices",
+      "run a hub that serves standard conat microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
     )
     .option(
-      "--nats-changefeed-server",
-      "run NATS microservice to provide postgres based changefeeds; there must be AT LEAST one of these.",
+      "--conat-changefeed-server",
+      "run Conat microservice to provide postgre/s based changefeeds; there must be AT LEAST one of these.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
@@ -537,9 +525,9 @@ async function main(): Promise<void> {
   }
   if (program.all) {
     program.websocketServer =
-      program.natsServer =
-      program.natsChangefeedServer =
-      program.natsTieredStorage =
+      program.conatMicroservices =
+      program.conatServer =
+      program.conatChangefeedServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =

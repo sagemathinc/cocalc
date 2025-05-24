@@ -47,8 +47,8 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
-import { type AKV, akv } from "@cocalc/nats/sync/akv";
+import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
+import { type AKV, akv } from "@cocalc/conat/sync/akv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { close, required, defaults } = misc;
@@ -812,7 +812,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // has processed it!
       const version = this.syncdb.newestVersion();
       try {
-        await this.api({ timeout: 30000 }).save_ipynb_file({ version });
+        await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
       } catch (err) {
         console.log(err);
         throw Error(

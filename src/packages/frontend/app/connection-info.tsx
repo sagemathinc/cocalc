@@ -5,7 +5,6 @@
 
 import { Modal } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-import { A } from "@cocalc/frontend/components/A";
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -25,7 +24,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
   const status = useTypedRedux("page", "connection_status");
   const hub = useTypedRedux("account", "hub");
   const page_actions = useActions("page");
-  const nats = useTypedRedux("page", "nats");
+  const conat = useTypedRedux("page", "conat");
 
   function close() {
     page_actions.show_connection(false);
@@ -58,7 +57,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
               <h4>
                 <FormattedMessage
                   id="connection-info.ping"
-                  defaultMessage="Ping time"
+                  defaultMessage="Ping Time"
                   description={"Ping how long a server takes to respond"}
                 />
               </h4>
@@ -79,14 +78,12 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         ) : undefined}
         <Row>
           <Col sm={3}>
-            <h4>
-              <A href="https://nats.io/">NATS</A> client
-            </h4>
+            <h4>Conat client</h4>
           </Col>
-          {nats != null && (
+          {conat != null && (
             <Col sm={8}>
               <pre>
-                {JSON.stringify(nats.toJS(), undefined, 2)
+                {JSON.stringify(conat.toJS(), undefined, 2)
                   .replace(/{|}|,|\"/g, "")
                   .trim()
                   .replace("  data:", "data:")}

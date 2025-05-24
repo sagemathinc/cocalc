@@ -21,7 +21,7 @@ import {
 } from "@cocalc/sync/table";
 import synctable_project from "./synctable-project";
 import type { Channel, AppClient } from "./types";
-import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
+import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 
 import { refCacheSync } from "@cocalc/util/refcache";
 
