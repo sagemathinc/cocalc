@@ -24,7 +24,7 @@ export const MAX_OUTPUT_MESSAGES = 500;
 // start vanishing from output.  Also, this impacts time travel.
 // WARNING: It is *not* at all difficult to hit fairly large sizes, e.g., 50MB+
 // when working with a notebook, by just drawing a bunch of large plots.
-const MAX_BLOB_STORE_SIZE = 100 * 1000000;
+const MAX_BLOB_STORE_SIZE = 100 * 1e6;
 
 declare const localStorage: any;
 
@@ -162,8 +162,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return {
       name: `jupyter:${this.path}`,
       project_id: this.project_id,
-      valueType: "binary",
-      limits: {
+      config: {
         max_bytes: MAX_BLOB_STORE_SIZE,
       },
     } as const;

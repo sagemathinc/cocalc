@@ -47,7 +47,7 @@ interface Options {
 
 export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
   name: "synctable",
-  createKey: (opts) => jsonStableStringify({ ...opts, env: undefined })!,
+  createKey: (opts: Options) => jsonStableStringify({ ...opts, env: undefined })!,
   createObject: (options: Options) => {
     if (options.stream) {
       return new SyncTableStream(options);

@@ -102,9 +102,7 @@ export class IpywidgetsState extends EventEmitter {
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
-    // [ ] TODO: once we have ephemeral kv
-    // this.table_options = [{ ephemeral: true }];
-    this.table_options = [];
+    this.table_options = [{ ephemeral: true }];
     this.gc =
       !DISABLE_GC && client.is_project() // no-op if not project or DISABLE_GC
         ? debounce(() => {

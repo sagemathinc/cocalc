@@ -21,7 +21,7 @@ import { type Client } from "@cocalc/conat/core/client";
 
 const DEFAULT_TIMEOUT = 10 * 1000;
 
-const logger = getLogger("nats:service");
+const logger = getLogger("conat:service");
 
 export interface ServiceDescription extends Location {
   service: string;

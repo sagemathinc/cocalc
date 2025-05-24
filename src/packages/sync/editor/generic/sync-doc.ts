@@ -1291,6 +1291,13 @@ export class SyncDoc extends EventEmitter {
       options.push({ ephemeral: true });
     }
     let synctable;
+    let ephemeral = false;
+    for (const x of options) {
+      if (x.ephemeral) {
+        ephemeral = true;
+        break;
+      }
+    }
     if (this.useConat && query.patches) {
       synctable = await this.client.synctable_conat(query, {
         obj: {
@@ -1301,6 +1308,7 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         desc: { path: this.path },
         start_seq: this.last_seq,
+        ephemeral,
       });
     } else if (this.useConat && query.syncstrings) {
       synctable = await this.client.synctable_conat(query, {
@@ -1312,6 +1320,7 @@ export class SyncDoc extends EventEmitter {
         atomic: false,
         immutable: true,
         desc: { path: this.path },
+        ephemeral,
       });
     } else if (this.useConat && query.ipywidgets) {
       synctable = await this.client.synctable_conat(query, {
@@ -1323,10 +1332,10 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         // for now just putting a 1-day limit on the ipywidgets table
-        // so we don't waste a ton of space.  TODO: We could to also clear this
-        // table on halt, startup, etc.
-        limits: { max_age: 1000 * 60 * 60 * 24 },
+        // so we don't waste a ton of space.
+        config: { max_age: 1000 * 60 * 60 * 24 },
         desc: { path: this.path },
+        ephemeral: true, // ipywidgets state always ephemeral
       });
     } else if (this.useConat && (query.eval_inputs || query.eval_outputs)) {
       synctable = await this.client.synctable_conat(query, {
@@ -1337,8 +1346,9 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: true,
         immutable: true,
-        limits: { max_age: 30000 },
+        config: { max_age: 5 * 60 * 1000 },
         desc: { path: this.path },
+        ephemeral: true, // eval state (for sagews) is always ephemeral
       });
     } else if (this.useConat) {
       synctable = await this.client.synctable_conat(query, {
@@ -1350,6 +1360,7 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         desc: { path: this.path },
+        ephemeral,
       });
     } else {
       switch (this.data_server) {

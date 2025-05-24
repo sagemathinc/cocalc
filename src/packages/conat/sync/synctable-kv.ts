@@ -31,6 +31,7 @@ export class SyncTableKV extends EventEmitter {
   private getHook: Function;
   private config?: Partial<Configuration>;
   private desc?: JSONValue;
+  private ephemeral?: boolean;
 
   constructor({
     query,
@@ -41,6 +42,7 @@ export class SyncTableKV extends EventEmitter {
     immutable,
     config,
     desc,
+    ephemeral,
   }: {
     query;
     env: NatsEnv;
@@ -50,6 +52,7 @@ export class SyncTableKV extends EventEmitter {
     immutable?: boolean;
     config?: Partial<Configuration>;
     desc?: JSONValue;
+    ephemeral?: boolean;
   }) {
     super();
     this.setMaxListeners(100);
@@ -59,6 +62,7 @@ export class SyncTableKV extends EventEmitter {
     this.config = config;
     this.env = env;
     this.desc = desc;
+    this.ephemeral = ephemeral;
     this.table = keys(query)[0];
     if (query[this.table][0].string_id && query[this.table][0].project_id) {
       this.project_id = query[this.table][0].project_id;
@@ -119,6 +123,7 @@ export class SyncTableKV extends EventEmitter {
         project_id: this.project_id,
         config: this.config,
         desc: this.desc,
+        ephemeral: this.ephemeral,
       });
     } else {
       this.dkv = await createDko({
@@ -127,6 +132,7 @@ export class SyncTableKV extends EventEmitter {
         project_id: this.project_id,
         config: this.config,
         desc: this.desc,
+        ephemeral: this.ephemeral,
       });
     }
     // For some reason this one line confuses typescript and break building the compute server package (nothing else similar happens).
