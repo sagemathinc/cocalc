@@ -239,7 +239,6 @@ export function connect(
 
 const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CoCalc-Reply";
-const DEFAULT_MAX_WAIT = 30000;
 const DEFAULT_REQUEST_TIMEOUT = 10000;
 const MAX_HEADER_SIZE = 100000;
 
@@ -776,7 +775,7 @@ export class Client {
     mesg: any,
     {
       maxMessages,
-      maxWait = DEFAULT_MAX_WAIT,
+      maxWait,
       ...options
     }: PublishOptions & {
       maxWait?: number;

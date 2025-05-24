@@ -14,13 +14,12 @@ import {
   ConatError,
 } from "@cocalc/conat/core/client";
 
-interface ConnectionOptions {
-  // maximum amount of time the persist can possibly stay alive, even with
-  // many calls to extend it.
-  maxActualLifetime?: number;
-  // server will send resp='' to ensure there is at least one message every this many ms.
+export interface ConnectionOptions {
+  // server will send resp='' to ensure there is at least one message
+  // every this many ms.
   heartbeat?: number;
-  // persist will live at most this long, then definitely die unless renewed.
+  // persist will live at most this long, then definitely die unless renewed
+  // by a renew message from the client.
   lifetime?: number;
 }
 
@@ -264,15 +263,10 @@ async function* callApiGetAll({
   const subject = persistSubject(user);
   const { cn } = await getEnv();
 
-  const {
-    heartbeat,
-    lifetime,
-    maxActualLifetime = 1000 * 60 * 60 * 2,
-  } = options ?? {};
+  const { heartbeat, lifetime } = options ?? {};
 
   let lastSeq = -1;
   for await (const resp of await cn.requestMany(subject, null, {
-    maxWait: maxActualLifetime,
     headers: {
       cmd: "getAll",
       start_seq,

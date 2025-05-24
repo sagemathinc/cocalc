@@ -100,10 +100,6 @@ export class SyncTableStream extends EventEmitter {
       start_seq: this.start_seq,
       noInventory: this.noInventory,
       ephemeral: this.ephemeral,
-      // ephemeral only supported for synctable when one synctable opened
-      // in project/compute-server and all others in browser; this is,
-      // of course our model for terminals, jupyter, etc.
-      leader: this.ephemeral && typeof navigator == "undefined",
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

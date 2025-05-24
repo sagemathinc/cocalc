@@ -121,13 +121,14 @@ export interface CoreStreamOptions {
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
-  leader?: boolean;
-  persist?: boolean;
+
+  ephemeral?: boolean;
 
   client?: Client;
 
   noCache?: boolean;
   heartbeatInterval?: number;
+  connectionOptions?: persistClient.ConnectionOptions;
 }
 
 export interface User {
@@ -183,6 +184,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private persistStream?;
   private storage?: persistClient.Storage;
   private client?: Client;
+  private connectionOptions?: persistClient.ConnectionOptions;
 
   private renewLoopParams: { id: string; lifetime: number; user: User } | null =
     null;
@@ -195,26 +197,25 @@ export class CoreStream<T = any> extends EventEmitter {
     account_id,
     config,
     start_seq,
-    leader = false,
-    persist = false,
+    ephemeral = false,
     client,
     heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
+    connectionOptions,
   }: CoreStreamOptions) {
     super();
-
+    this.connectionOptions = connectionOptions;
     this.client = client;
     this.user = { account_id, project_id };
     this.heartbeatInterval = heartbeatInterval;
     this.name = name;
-    this.leader = !!leader;
-    this.persist = !!persist;
-    const subject = streamSubject({ account_id, project_id, ephemeral: true });
+    this.leader = false;
+    this.persist = true;
+    const subject = streamSubject({ account_id, project_id });
     this.subject = subject.replace(">", encodeBase64(name));
-    if (persist) {
-      this.storage = {
-        path: storagePath({ account_id, project_id, name }),
-      };
-    }
+    this.storage = {
+      path: storagePath({ account_id, project_id, name }),
+      ephemeral,
+    };
     this._start_seq = start_seq;
     this.configOptions = config;
     return new Proxy(this, {
@@ -330,6 +331,7 @@ export class CoreStream<T = any> extends EventEmitter {
       user: this.user,
       storage: this.storage,
       start_seq,
+      options: this.connectionOptions,
     });
     if (id && lifetime) {
       this.renewLoopParams = { id, lifetime, user: this.user };

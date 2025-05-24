@@ -80,6 +80,7 @@ import { map as awaitMap } from "awaiting";
 import type { Client, Headers } from "@cocalc/conat/core/client";
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
+import { type ConnectionOptions } from "@cocalc/conat/persist/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -114,7 +115,11 @@ export interface DKVOptions {
   // did is not saved.  Take care.
   noAutosave?: boolean;
 
+  ephemeral?: boolean;
+
   noCache?: boolean;
+
+  connectionOptions?: ConnectionOptions;
 }
 
 export class DKV<T = any> extends EventEmitter {
@@ -137,6 +142,8 @@ export class DKV<T = any> extends EventEmitter {
     merge,
     config,
     noAutosave,
+    ephemeral = false,
+    connectionOptions,
   }: DKVOptions) {
     super();
     this.name = name;
@@ -149,8 +156,8 @@ export class DKV<T = any> extends EventEmitter {
       account_id,
       client,
       config,
-      // we do not have any notion of ephemeral kv yet
-      persist: true,
+      ephemeral,
+      connectionOptions,
     });
 
     return new Proxy(this, {
@@ -319,6 +326,10 @@ export class DKV<T = any> extends EventEmitter {
       }
     }
     return x as { [key: string]: T };
+  };
+
+  keys = (): string[] => {
+    return Object.keys(this.getAll());
   };
 
   has = (key: string): boolean => {

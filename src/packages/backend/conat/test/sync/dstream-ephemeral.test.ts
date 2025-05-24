@@ -2,18 +2,18 @@
 Testing basic ops with dsteam (distributed streams), but all are ephemeral.
 
 The first tests are initially similar to those for dstream.test.ts, but with
-{ephemeral: true, leader:true}.  There are also further tests of the client/server aspects.
+{ephemeral: true}.  There are also further tests of the client/server aspects.
 
 DEVELOPMENT:
 
-pnpm test ./dstream-estream.test.ts
+pnpm test ./dstream-ephemeral.test.ts 
 
 */
 
-import { connect, before, after } from "@cocalc/backend/conat/test/setup";
-import { createDstreamEphemeral as create } from "./util";
+import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
+import { createDstreamEphemeral as create, EPHEMERAL_LIFETIME } from "./util";
 import { dstream as createDstream0 } from "@cocalc/backend/conat/sync";
-import { once } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
 beforeAll(before);
 
@@ -22,7 +22,7 @@ async function createDstream<T>(opts) {
     noCache: true,
     noAutosave: true,
     ephemeral: true,
-    leader: true,
+    connectionOptions: { lifetime: EPHEMERAL_LIFETIME },
     ...opts,
   });
 }
@@ -58,10 +58,13 @@ describe("create a dstream and do some basic operations", () => {
   it("confirm ephemeralness: closes and re-opens stream and confirms message is NOT there", async () => {
     const name = s.name;
     await s.save();
+    expect(s.stream.renewLoopParams.lifetime).toBe(EPHEMERAL_LIFETIME);
     // close s:
     await s.close();
     // using s fails
     expect(s.getAll).toThrow("closed");
+    // wait for server to discard stream data
+    await delay(EPHEMERAL_LIFETIME + 500);
     // create new stream with same name
     const t = await createDstream({ name });
     // ensure it is NOT just from the cache
@@ -78,7 +81,7 @@ describe("create two dstreams and observe sync between them", () => {
   it("creates two distinct dstream objects s1 and s2 with the same name", async () => {
     client2 = connect();
     s1 = await createDstream({ name });
-    s2 = await createDstream({ client: client2, name, leader: false });
+    s2 = await createDstream({ client: client2, name });
     // definitely distinct
     expect(s1 === s2).toBe(false);
   });
@@ -88,9 +91,7 @@ describe("create two dstreams and observe sync between them", () => {
     expect(s1[0]).toEqual("hello");
     expect(s2.length).toEqual(0);
     await s1.save();
-    while (s2[0] != "hello") {
-      await once(s2, "change");
-    }
+    await wait({ until: () => s2[0] == "hello" });
     expect(s2[0]).toEqual("hello");
     expect(s2.getAll()).toEqual(["hello"]);
   });
@@ -98,9 +99,7 @@ describe("create two dstreams and observe sync between them", () => {
   it("now write to s2 and save and see that reflected in s1", async () => {
     s2.push("hi from s2");
     await s2.save();
-    while (s1[1] != "hi from s2") {
-      await once(s1, "change");
-    }
+    await wait({ until: () => s1[1] == "hi from s2" });
     expect(s1[1]).toEqual("hi from s2");
   });
 
@@ -128,7 +127,7 @@ describe("create two dstreams and test sync with parallel save", () => {
   it("creates two distinct dstream objects s1 and s2 with the same name", async () => {
     client2 = connect();
     s1 = await createDstream({ name });
-    s2 = await createDstream({ client: client2, name, leader: false });
+    s2 = await createDstream({ client: client2, name });
     // definitely distinct
     expect(s1 === s2).toBe(false);
   });
@@ -142,17 +141,7 @@ describe("create two dstreams and test sync with parallel save", () => {
     // now kick off the two saves *in parallel*
     s1.save();
     s2.save();
-    await once(s1, "change");
-    while (s2.length != 2 || s1.length != 2) {
-      if (s1.length > 2 || s2.length > 2) {
-        throw Error("bug");
-      }
-      if (s2.length < 2) {
-        await once(s2, "change");
-      } else if (s1.length < 2) {
-        await once(s1, "change");
-      }
-    }
+    await wait({ until: () => s1.length >= 2 && s2.length >= 2 });
     expect(s1.getAll()).toEqual(s2.getAll());
   });
 
@@ -181,7 +170,7 @@ describe("get sequence number and time of message", () => {
 
   it("save and get server assigned sequence number", async () => {
     s.save();
-    await once(s, "change");
+    await wait({ until: () => s.seq(0) > 0 });
     const n = s.seq(0);
     expect(n).toBeGreaterThan(0);
   });
@@ -201,9 +190,7 @@ describe("get sequence number and time of message", () => {
   });
 
   it("and time is bigger", async () => {
-    if (s.time(1) == null) {
-      await once(s, "change");
-    }
+    await wait({ until: () => s.time(1) != null });
     expect(s.time(0).getTime()).toBeLessThanOrEqual(s.time(1).getTime());
   });
 });
@@ -217,10 +204,7 @@ describe("testing start_seq", () => {
     expect(s.getAll()).toEqual([1, 2, 3]);
     // save, thus getting sequence numbers
     s.save();
-    while (s.seq(2) == null) {
-      s.save();
-      await once(s, "change");
-    }
+    await wait({ until: () => s.seq(2) != null });
     seq = [s.seq(0), s.seq(1), s.seq(2)];
     // tests partly that these are integers...
     const n = seq.reduce((a, b) => a + b, 0);
@@ -235,7 +219,6 @@ describe("testing start_seq", () => {
       client,
       name,
       noAutosave: true,
-      leader: false,
       start_seq: seq[2],
     });
     expect(t.length).toBe(1);

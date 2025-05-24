@@ -172,9 +172,9 @@ export interface Options {
   path: string;
   // if false (the default) do not require sync writes to disk on every set
   sync?: boolean;
-  // if set, then data is never saved to disk at all. This is very dangerous
-  // for production, since it could use a LOT of RAM -- but could be very useful
-  // for unit testing.
+  // if set, then data is never saved to disk at all. This would be very dangerous
+  // for production, since it could use a LOT of RAM, which is why one should put
+  // cap on the max_bytes config option when ephemeral is true.
   ephemeral?: boolean;
   // compression configuration
   compression?: Compression;
@@ -681,12 +681,14 @@ function handleDecompress({
   }
 }
 
-export const cache = refCacheSync<
-  Options & { noCache?: boolean },
-  PersistentStream
->({
+interface CreateOptions extends Options {
+  noCache?: boolean;
+}
+
+export const cache = refCacheSync<CreateOptions, PersistentStream>({
   name: "persistent-stream",
-  createObject: (options: Options & { noCache?: boolean }) => {
+  createKey: ({ path }: CreateOptions) => path,
+  createObject: (options: CreateOptions) => {
     const pstream = new PersistentStream(options);
     pstream.init();
     return pstream;

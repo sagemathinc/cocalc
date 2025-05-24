@@ -27,6 +27,7 @@ import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { type ValueType } from "@cocalc/conat/types";
 import { Configuration } from "./core-stream";
+import { type ConnectionOptions } from "@cocalc/conat/persist/client";
 
 const MAX_PARALLEL = 50;
 
@@ -43,10 +44,7 @@ export interface DStreamOptions {
   client?: Client;
   noAutosave?: boolean;
   ephemeral?: boolean;
-
-  // only relevant for ephemeral, in which case this will only work when there
-  // is exactly ONE leader.
-  leader?: boolean;
+  connectionOptions?: ConnectionOptions;
 }
 
 export class DStream<T = any> extends EventEmitter {
@@ -66,7 +64,7 @@ export class DStream<T = any> extends EventEmitter {
     super();
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream = new CoreStream({ ...opts, persist: !opts.ephemeral });
+    this.stream = new CoreStream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
     return new Proxy(this, {
@@ -429,7 +427,7 @@ export class DStream<T = any> extends EventEmitter {
   */
 }
 
-interface CreateOptions {
+export interface CreateOptions {
   name: string;
   account_id?: string;
   project_id?: string;
@@ -441,8 +439,8 @@ interface CreateOptions {
   client?: Client;
   noAutosave?: boolean;
   noInventory?: boolean;
-  leader?: boolean;
   ephemeral?: boolean;
+  connectionOptions?: ConnectionOptions;
 }
 
 export const cache = refCache<CreateOptions, DStream>({

@@ -69,9 +69,9 @@ const ENABLE_SQLITE_GENERAL_QUERIES = false;
 const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
 //const DEFAULT_MESSAGES_THRESH = 1e5;
 
-export const DEFAULT_LIFETIME = 5 * 1000 * 60;
+export const DEFAULT_LIFETIME = 3 * 1000 * 60;
 export const MAX_LIFETIME = 15 * 1000 * 60;
-export const MIN_LIFETIME = 30 * 1000;
+export const MIN_LIFETIME = 250;
 export const MIN_HEARTBEAT = 5000;
 export const MAX_HEARTBEAT = 120000;
 export const MAX_PERSISTS_PER_USER = parseInt(
@@ -398,7 +398,7 @@ async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
 
   async function lifetimeLoop() {
     while (!done) {
-      await delay(7500);
+      await delay(Math.max(500,lifetime/2));
       if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
         end();
         return;

@@ -8,7 +8,6 @@ pnpm test ./akv.test.ts
 */
 
 import { dkv as createDkv, akv as createAkv } from "@cocalc/backend/conat/sync";
-import { once } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 
@@ -66,9 +65,7 @@ describe("test interop with a dkv", () => {
 
   it("sets value in the akv and reads it using the dkv", async () => {
     await akv.set("z", 389);
-    if (!dkv.get("z")) {
-      await once(dkv, "change");
-    }
+    await wait({ until: () => dkv.has("z") });
     expect(await dkv.get("z")).toBe(389);
   });
 
@@ -83,9 +80,7 @@ describe("test interop with a dkv", () => {
     expect(await akv.headers("h2")).toEqual(
       expect.objectContaining({ foo: "baz" }),
     );
-    if (dkv.get("h2") === undefined) {
-      await once(dkv, "change");
-    }
+    await wait({ until: () => dkv.has("h2") });
     expect(await dkv.headers("h2")).toEqual(
       expect.objectContaining({ foo: "baz" }),
     );

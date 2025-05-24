@@ -5,9 +5,9 @@ DEVELOPMENT:
 
 0. From the browser with the project opened, terminate the open-files api service:
 
-   .
+    
+    await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'open-files'})
 
-    // {status: 'terminated', service: 'open-files'}
 
 
 Set env variables as in a project (see  api/index.ts ), then in nodejs:

@@ -7,9 +7,7 @@ which is '|' by default.
 DEVELOPMENT:
 
 ~/cocalc/src/packages/backend n
-Welcome to Node.js v18.17.1.
-Type ".help" for more information.
-> t = await require("@cocalc/backend/conat/sync").dko({name:'test'})
+   > t = await require("@cocalc/backend/conat/sync").dko({name:'test'})
 
 */
 
@@ -18,7 +16,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
 import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
-import { getEnv } from "@cocalc/conat/client";
 import jsonStableStringify from "json-stable-stringify";
 
 export function userKvKey(options: DKVOptions) {
@@ -29,17 +26,11 @@ export function userKvKey(options: DKVOptions) {
   return jsonStableStringify(x)!;
 }
 
-
-interface DKOOptions extends DKVOptions {
-  // TODO
-  env?: any;
-}
-
 export class DKO<T = any> extends EventEmitter {
   opts: DKVOptions;
   dkv?: DKV; // can't type this
 
-  constructor(opts: DKOOptions) {
+  constructor(opts: DKVOptions) {
     super();
     this.opts = opts;
     this.init();
@@ -237,13 +228,10 @@ export class DKO<T = any> extends EventEmitter {
   };
 }
 
-export const cache = refCache<DKOOptions, DKO>({
+export const cache = refCache<DKVOptions, DKO>({
   name: "dko",
   createKey: userKvKey,
   createObject: async (opts) => {
-    if (opts.env == null) {
-      opts.env = await getEnv();
-    }
     const k = new DKO(opts);
     await k.init();
     return k;
@@ -257,6 +245,6 @@ function dkoPrefix(name: string): string {
   return `${DKO_PREFIX}${name}`;
 }
 
-export async function dko<T>(options: DKOOptions): Promise<DKO<T>> {
+export async function dko<T>(options: DKVOptions): Promise<DKO<T>> {
   return await cache(options);
 }

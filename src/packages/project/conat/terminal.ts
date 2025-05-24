@@ -38,19 +38,22 @@ const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
-  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "20000",
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "200000",
 );
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
 
-//   Limit number of MB/s in data:
+//   Limit number of bytes per second in data:
 const MAX_BYTES_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "500000",
 );
 
-// Limit number of messages per second.
+// Hard limit at stream level the number of messages per second.
+// However, the code in this file must already limit
+// writing output less than this to avoid the stream ever
+// having to discard writes.
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "250",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
 
 const sessions: { [path: string]: Session } = {};
@@ -273,31 +276,20 @@ class Session {
     this.stream = await dstream<string>({
       name: this.streamName,
       ephemeral: this.options.ephemeral,
-      // server side is THE leader.
-      leader: true,
-      limits: {
+      config: {
         max_bytes: HISTORY_LIMIT_BYTES,
         max_bytes_per_second: MAX_BYTES_PER_SECOND,
         max_msgs_per_second: MAX_MSGS_PER_SECOND,
       },
     });
-    this.stream.on("reject", ({ err }) => {
-      if (err.limit == "max_bytes_per_second") {
-        // instead, send something small
-        this.throttledEllipses();
-      } else if (err.limit == "max_msgs_per_second") {
-        // only sometimes send [...], because channel is already full and it
-        // doesn't help to double the messages!
-        this.throttledEllipses();
-      }
+    this.stream.on("reject", () => {
+      this.throttledEllipses();
     });
   };
 
   private throttledEllipses = throttle(
     () => {
-      this.stream?.publish(
-        `\r\n[...excessive output discarded above...]\r\n\r\n`,
-      );
+      this.stream?.publish(`\r\n[excessive output discarded]\r\n\r\n`);
     },
     1000,
     { leading: true, trailing: true },
