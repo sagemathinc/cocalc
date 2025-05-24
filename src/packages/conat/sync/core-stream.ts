@@ -459,7 +459,7 @@ export class CoreStream<T = any> extends EventEmitter {
       // this message will be deleted after the given amount of time (in ms).
       ttl?: number;
     },
-  ) => {
+  ): Promise<{ seq: number; time: number } | undefined> => {
     if (mesg === undefined) {
       if (options?.key !== undefined) {
         // undefined can't be JSON encoded, so we can't possibly represent it, and this
@@ -687,11 +687,16 @@ export class CoreStream<T = any> extends EventEmitter {
     key,
   }: {
     // give exactly ONE parameter -- by default nothing happens with no params
-    all?: boolean; // delete everything
-    last_index?: number; // everything up to and including index'd message
-    seq?: number; // delete message with this sequence number
-    last_seq?: number; // delete everything up to and including this sequence number
-    key?: string; // delete the message with this key
+    // all: delete everything
+    all?: boolean;
+    // last_index: everything up to and including index'd message
+    last_index?: number;
+    // seq: delete message with this sequence number
+    seq?: number;
+    // last_seq: delete everything up to and including this sequence number
+    last_seq?: number;
+    // key: delete the message with this key
+    key?: string;
   } = {}): Promise<{ seqs: number[] }> => {
     let opts;
     if (all) {

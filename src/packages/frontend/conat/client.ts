@@ -20,6 +20,7 @@ import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { dkv } from "@cocalc/conat/sync/dkv";
 import { akv } from "@cocalc/conat/sync/akv";
+import { astream } from "@cocalc/conat/sync/astream";
 import { dko } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { delay } from "awaiting";
@@ -410,6 +411,7 @@ export class ConatClient extends EventEmitter {
   };
 
   dstream = dstream;
+  astream = astream;
   dkv = dkv;
   akv = akv;
   dko = dko;
