@@ -267,7 +267,7 @@ describe("test using ephemeral dstream", () => {
   let name = `test-${Math.random()}`;
 
   it("creates an ephemeral dstream", async () => {
-    client = connect();
+    client = connect(); 
     stream = await dstream({ client, name, ephemeral: true, leader: true });
     expect(stream.length).toBe(0);
   });

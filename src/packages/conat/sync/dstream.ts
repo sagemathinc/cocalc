@@ -14,7 +14,7 @@ See the guide for dkv, since it's very similar, especially for use in a browser.
 */
 
 import { EventEmitter } from "events";
-import { CoreStream, type RawMsg } from "./core-stream";
+import { CoreStream, type RawMsg, type ChangeEvent } from "./core-stream";
 import { streamSubject, randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -26,7 +26,7 @@ import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { type ValueType } from "@cocalc/conat/types";
-import { COCALC_MESSAGE_ID_HEADER, Configuration } from "./core-stream";
+import { Configuration } from "./core-stream";
 
 const MAX_PARALLEL = 50;
 
@@ -82,20 +82,18 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", (mesg: T | undefined, raw: RawMsg) => {
-      delete this.saved[raw.seq];
+    this.stream.on("change", ({ mesg, raw, msgID }: ChangeEvent<T>) => {
+      if (raw?.seq !== undefined) {
+        delete this.saved[raw.seq];
+      }
       if (mesg === undefined) {
         return;
       }
-      const headers = raw.headers;
-      const msgID = headers?.[COCALC_MESSAGE_ID_HEADER];
       if (msgID) {
         // this is critical with core-stream.ts, since otherwise there is a moment
         // when the same message is in both this.local *and* this.messages, and you'll
-        // see it doubled in this.getAll().  I didn't see this ever with
-        // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,
-        // but still it would be a bug to not do this properly, which is what we do here.
-        delete this.local[msgID as string];
+        // see it doubled in this.getAll().
+        delete this.local[msgID];
       }
       this.emit("change", mesg);
       if (this.isStable()) {
@@ -211,7 +209,7 @@ export class DStream<T = any> extends EventEmitter {
     mesg: T,
     // NOTE: if you call this.headers(n) it is NOT visible until
     // the publish is confirmed. This could be changed with more work if it matters.
-    options?: { headers?: Headers, ttl?:number },
+    options?: { headers?: Headers; ttl?: number },
   ): void => {
     const id = randomId();
     this.local[id] = mesg;

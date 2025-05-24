@@ -68,7 +68,11 @@ In the browser console:
 */
 
 import { EventEmitter } from "events";
-import { CoreStream, type Configuration } from "./core-stream";
+import {
+  CoreStream,
+  type Configuration,
+  type ChangeEvent,
+} from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
@@ -227,9 +231,13 @@ export class DKV<T = any> extends EventEmitter {
     return true;
   };
 
-  private handleRemoteChange = (remote, _raw, key, prev) => {
+  private handleRemoteChange = ({
+    mesg: remote,
+    key,
+    prev,
+  }: ChangeEvent<T>) => {
     if (key === undefined) {
-      // not part of kv store.
+      // not part of kv store data
       return;
     }
     const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];

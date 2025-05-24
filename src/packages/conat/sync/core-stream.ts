@@ -79,6 +79,14 @@ export interface RawMsg extends Message {
   key?: string;
 }
 
+export interface ChangeEvent<T> {
+  mesg?: T;
+  raw?: Partial<RawMsg>;
+  key?: string;
+  prev?: T;
+  msgID?: string;
+}
+
 const HEADER_PREFIX = "CoCalc-";
 
 export const COCALC_MESSAGE_ID_HEADER = `${HEADER_PREFIX}Msg-Id`;
@@ -412,7 +420,12 @@ export class CoreStream<T = any> extends EventEmitter {
       if (X.has(seq)) {
         indexes.push(i);
         if (!noEmit) {
-          this.emit("change", undefined, { seq }, keys[seq], this.messages[i]);
+          this.emitChange({
+            mesg: undefined,
+            raw: { seq },
+            key: keys[seq],
+            prev: this.messages[i],
+          });
         }
       }
     }
@@ -437,7 +450,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private processPersistentSet = (
-    { seq, time, key, encoding, raw: data, headers }: SetOperation,
+    { seq, time, key, encoding, raw: data, headers, msgID }: SetOperation,
     noEmit?: boolean,
   ) => {
     const mesg = decode({ encoding, data });
@@ -484,8 +497,12 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
-      this.emit("change", mesg, raw, key, prev);
+      this.emitChange({ mesg, raw, key, prev, msgID });
     }
+  };
+
+  private emitChange = (e: ChangeEvent<T>) => {
+    this.emit("change", e);
   };
 
   private getAllFromLeader = async ({
@@ -533,7 +550,7 @@ export class CoreStream<T = any> extends EventEmitter {
           this.messages.push(mesg);
           this.raw.push(raw);
           if (!noEmit) {
-            this.emit("change", mesg, raw);
+            this.emitChange({ mesg, raw });
           }
         }
         return;
@@ -676,7 +693,7 @@ export class CoreStream<T = any> extends EventEmitter {
       this.messages.push(mesg);
       this.raw.push(raw);
       this.lastSeq = raw.seq;
-      this.emit("change", mesg, raw);
+      this.emitChange({ mesg, raw });
     }
   };
 
@@ -881,7 +898,9 @@ export class CoreStream<T = any> extends EventEmitter {
             Date.now() - start <= PUBLISH_TIMEOUT &&
             this.sessionId == sessionId
           ) {
-            const [_, raw] = await once(this, "change", PUBLISH_TIMEOUT);
+            const [{ raw }] = (await once(this, "change", PUBLISH_TIMEOUT)) as [
+              ChangeEvent<T>,
+            ];
             if (raw?.seq == seq) {
               done = true;
               break;
@@ -1052,7 +1071,7 @@ export class CoreStream<T = any> extends EventEmitter {
     await this.reconnect();
     if (!noEmit) {
       for (let i = 0; i < this.raw.length - n; i++) {
-        this.emit("change", this.messages[i], this.raw[i]);
+        this.emitChange({ mesg: this.messages[i], raw: this.raw[i] });
       }
     }
   };
