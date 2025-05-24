@@ -72,6 +72,18 @@ export type { Configuration };
 // we do a garbage collection pass.
 export const KEY_GC_THRESH = 10 * 1e6;
 
+// NOTE: when you do delete this.deleteKv(key), we ensure the previous
+// messages with the given key is completely deleted from sqlite, and
+// also create a *new* lightweight tombstone. That tombstone has this
+// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one week), so the tombstone
+// itself will be removed after 1 week.  The tombstone is only needed for
+// clients that go offline during the delete, then come back, and reply the
+// partial log of what was missed.  Such clients should reset if the
+// offline time is longer than DEFAULT_TOMBSTONE_TTL.  
+// This only happens if allow_msg_ttl is configured to true, which is
+// done with dkv, but not on by default otherwise.
+export const DEFAULT_TOMBSTONE_TTL = 7 * 24 * 60 * 60 * 1000;   // 1 week
+
 export interface RawMsg extends Message {
   timestamp: number;
   seq: number;
@@ -967,7 +979,10 @@ export class CoreStream<T = any> extends EventEmitter {
 
   deleteKv = async (
     key: string,
-    options?: { msgID?: string; previousSeq?: number },
+    options?: {
+      msgID?: string;
+      previousSeq?: number;
+    },
   ) => {
     if (this.kv[key] === undefined) {
       // nothing to do
@@ -977,6 +992,7 @@ export class CoreStream<T = any> extends EventEmitter {
       ...options,
       headers: { [COCALC_TOMBSTONE_HEADER]: true },
       key,
+      ttl: DEFAULT_TOMBSTONE_TTL,
     });
   };
 

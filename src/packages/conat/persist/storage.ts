@@ -87,7 +87,8 @@ export interface Configuration {
   // new = refuse writes if they exceed the limits
   discard_policy: "old" | "new";
 
-  // if true (default: false), messages will be automatically deleted after their ttl
+  // If true (default: false), messages will be automatically deleted after their ttl
+  // Use the option {ttl:number of MILLISECONDS} when publishing to set a ttl.
   allow_msg_ttl: boolean;
 }
 
@@ -201,6 +202,8 @@ export class PersistentStream extends EventEmitter {
       // in a lot  of applications, e.g., if it is just edit history for a file.
       this.db.prepare("PRAGMA synchronous=OFF").run();
     }
+    // time is in *seconds* since the epoch, since that is standard for sqlite.
+    // ttl is in milliseconds.
     this.db
       .prepare(
         `CREATE TABLE IF NOT EXISTS messages ( 

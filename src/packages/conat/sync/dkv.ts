@@ -51,7 +51,7 @@ DEVELOPMENT:
 
 ~/cocalc/src/packages/backend$ node
 
-require("@cocalc/backend/conat"); a = require("@cocalc/conat/sync/general-dkv"); s = new a.GeneralDKV({name:'test',merge:({local,remote})=>{return {...remote,...local}}}); await s.init();
+s = await require("@cocalc/backend/conat/sync").dkv({name:'test', merge:({local,remote})=>{return {...remote,...local}}});
 
 
 In the browser console:
@@ -184,6 +184,8 @@ export class DKV<T = any> extends EventEmitter {
     }
     this.kv.on("change", this.handleRemoteChange);
     await this.kv.init();
+    // allow_msg_ttl is used for deleting tombstones.
+    await this.kv.config({ allow_msg_ttl: true });
     this.emit("connected");
   });
 
