@@ -323,13 +323,17 @@ async function* callApiGetAll({
 
     const { error, seq } = resp.headers;
     if (error) {
+      // this should never happen unless something is very wrong
       throw Error(`${error}`);
     }
     if (typeof seq != "number") {
+      // this should never happen.
       throw Error("seq must be a number");
     }
     if (lastSeq + 1 != seq) {
-      throw Error("missed response");
+      // missed response -- we just end the iterator and
+      // the client can make a new one if they need to.
+      return;
     }
     lastSeq = seq;
     yield resp;

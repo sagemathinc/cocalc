@@ -38,20 +38,21 @@ const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
-  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "200000",
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "2000000",
 );
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
 
 //   Limit number of bytes per second in data:
 const MAX_BYTES_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "500000",
+  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "1000000",
 );
 
 // Hard limit at stream level the number of messages per second.
 // However, the code in this file must already limit
 // writing output less than this to avoid the stream ever
-// having to discard writes.
+// having to discard writes.  This is basically the "frame rate"
+// we are supporting for users.
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
@@ -334,10 +335,15 @@ class Session {
       return;
     }
     logger.debug("connect stream to pty");
-    this.pty.onData((data: string) => {
+
+    // use a
+    const throttle = new Throttle(1000 / MAX_MSGS_PER_SECOND);
+    throttle.on("data", (data: string) => {
       this.handleBackendMessages(data);
       this.stream?.publish(data);
     });
+    this.pty.onData(throttle.write);
+
     this.pty.onExit(() => {
       this.stream?.publish(EXIT_MESSAGE);
       this.state = "off";
@@ -513,4 +519,33 @@ function getCWD(pathHead, cwd?): string {
     }
   }
   return pathHead;
+}
+
+import { EventEmitter } from "events";
+class Throttle extends EventEmitter {
+  private buf: string = "";
+  private last = Date.now();
+
+  constructor(private interval: number) {
+    super();
+  }
+
+  write = (data: string) => {
+    this.buf += data;
+    const now = Date.now();
+    const timeUntilEmit = this.interval - (now - this.last);
+    if (timeUntilEmit > 0) {
+      setTimeout(() => this.write(""), timeUntilEmit);
+    } else {
+      this.flush();
+    }
+  };
+
+  flush = () => {
+    if (this.buf.length > 0) {
+      this.emit("data", this.buf);
+    }
+    this.buf = "";
+    this.last = Date.now();
+  };
 }
