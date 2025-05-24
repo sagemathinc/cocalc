@@ -15,17 +15,15 @@ See the guide for dkv, since it's very similar, especially for use in a browser.
 
 import { EventEmitter } from "events";
 import { CoreStream, type RawMsg, type ChangeEvent } from "./core-stream";
-import { streamSubject, randomId } from "@cocalc/conat/names";
+import { randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
-import { encodeBase64 } from "@cocalc/conat/util";
 import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
-import { type ValueType } from "@cocalc/conat/types";
 import { Configuration } from "./core-stream";
 import { type ConnectionOptions } from "@cocalc/conat/persist/client";
 
@@ -34,12 +32,12 @@ const MAX_PARALLEL = 50;
 export interface DStreamOptions {
   // what it's called by us
   name: string;
-  subject: string;
+  account_id?: string;
+  project_id?: string;
   config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
   desc?: JSONValue;
-  valueType?: ValueType;
 
   client?: Client;
   noAutosave?: boolean;
@@ -427,20 +425,9 @@ export class DStream<T = any> extends EventEmitter {
   */
 }
 
-export interface CreateOptions {
-  name: string;
-  account_id?: string;
-  project_id?: string;
-  config?: Partial<Configuration>;
-  start_seq?: number;
+export interface CreateOptions extends DStreamOptions {
   noCache?: boolean;
-  desc?: JSONValue;
-  valueType?: ValueType;
-  client?: Client;
-  noAutosave?: boolean;
   noInventory?: boolean;
-  ephemeral?: boolean;
-  connectionOptions?: ConnectionOptions;
 }
 
 export const cache = refCache<CreateOptions, DStream>({
@@ -449,24 +436,11 @@ export const cache = refCache<CreateOptions, DStream>({
     if (!options.name) {
       throw Error("name must be specified");
     }
-    // @ts-ignore
-    const { env, client, ...x } = options;
-    return jsonStableStringify(x)!;
+    const { name, account_id, project_id } = options;
+    return jsonStableStringify({ name, account_id, project_id })!;
   },
   createObject: async (options: CreateOptions) => {
-    const { account_id, project_id, name, valueType = "json" } = options;
-    const subjects = streamSubject({ account_id, project_id });
-
-    // **CRITICAL:** do NOT change how the filter is computed as a function
-    // of options unless it is backwards compatible, or all user data
-    // involving streams will just go poof!
-    const uniqueFilter = JSON.stringify([name, valueType]);
-    const filter = subjects.replace(">", encodeBase64(uniqueFilter));
-    const dstream = new DStream({
-      ...options,
-      name,
-      subject: filter,
-    });
+    const dstream = new DStream(options);
     await dstream.init();
     return dstream;
   },

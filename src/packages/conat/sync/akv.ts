@@ -1,5 +1,5 @@
 /*
-Asynchronous Memory Efficient Access to Persistent Key:Value Store
+Asynchronous Memory Efficient Access to Key:Value Store
 
 This provides access to the same data as dkv, except it doesn't download any
 data to the client until you actually call get.   The calls to get and
