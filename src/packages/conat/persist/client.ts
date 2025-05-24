@@ -1,5 +1,11 @@
 import { getEnv } from "@cocalc/conat/client";
-import { persistSubject, renewSubject, type User } from "./server";
+import {
+  persistSubject,
+  renewSubject,
+  type User,
+  DEFAULT_HEARTBEAT,
+  HEARTBEAT_STRING,
+} from "./server";
 export { DEFAULT_LIFETIME } from "./server";
 import type {
   Options as Storage,
@@ -13,6 +19,7 @@ import {
   MessageData,
   ConatError,
 } from "@cocalc/conat/core/client";
+import { withTimeout } from "@cocalc/util/async-utils";
 
 export interface ConnectionOptions {
   // server will send resp='' to ensure there is at least one message
@@ -263,10 +270,25 @@ async function* callApiGetAll({
   const subject = persistSubject(user);
   const { cn } = await getEnv();
 
-  const { heartbeat, lifetime } = options ?? {};
+  const { heartbeat = DEFAULT_HEARTBEAT, lifetime } = options ?? {};
 
   let lastSeq = -1;
-  for await (const resp of await cn.requestMany(subject, null, {
+
+  // We create an iterator over messages in the stream.
+  // It watches for heartbeats (or data) from the stream
+  // and if at least one doesn't arrive every heartbeat
+  // ms, it will exit, thus ending the async iterator.
+  // Also, the server may send an explicit end message in
+  // case the client didn't send a renew message to extend
+  // the lifetime further.
+  // I.e., the one and only reason this async iterator should
+  // end is that one end stopped sending regular info.  When
+  // that happens if the client still has interest, they should
+  // make a new iterator starting where they left off.  If
+  // there are no clients left listening, the server will close
+  // the stream.
+
+  const iter = await cn.requestMany(subject, null, {
     headers: {
       cmd: "getAll",
       start_seq,
@@ -275,10 +297,28 @@ async function* callApiGetAll({
       lifetime,
       storage,
     } as any,
-  })) {
-    if (resp.headers == null) {
-      // terminate requestMany
+  });
+
+  while (true) {
+    let resp;
+    try {
+      const { value, done } = await withTimeout(iter.next(), heartbeat + 3000);
+      if (done) {
+        return;
+      } else {
+        resp = value;
+      }
+    } catch {
+      // timeout
       return;
+    }
+    if (resp.headers == null) {
+      // terminate requestMany explicitly by sending message with no headers
+      return;
+    }
+    if (resp.headers.content == HEARTBEAT_STRING) {
+      // it is just a heartbeat
+      continue;
     }
 
     const { error, seq } = resp.headers;
