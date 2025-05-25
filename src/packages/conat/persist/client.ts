@@ -5,6 +5,7 @@ import {
   type User,
   DEFAULT_HEARTBEAT,
   HEARTBEAT_STRING,
+  assertHasWritePermission as assertHasWritePermission0,
 } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
 import type {
@@ -28,6 +29,32 @@ export interface ConnectionOptions {
   // persist will live at most this long, then definitely die unless renewed
   // by a renew message from the client.
   lifetime?: number;
+}
+
+let permissionChecks = true;
+export function disablePermissionCheck() {
+  if (!process.env.COCALC_TEST_MODE) {
+    throw Error("disabling permission check only allowed in test mode");
+  }
+  permissionChecks = false;
+}
+const assertHasWritePermission = (opts) => {
+  if (!permissionChecks) {
+    // should only be used for unit testing, since otherwise would
+    // make clients slower and possibly increase server load.
+    return;
+  }
+  return assertHasWritePermission0(opts);
+};
+
+export function checkMessageHeaderForError(mesg) {
+  if (mesg.headers === undefined) {
+    return;
+  }
+  const { error, code } = mesg.headers;
+  if (error || code) {
+    throw new ConatError(error ?? "error", { code });
+  }
 }
 
 export async function getAll({
@@ -59,6 +86,7 @@ export async function getAll({
   if (done) {
     throw Error("got no response");
   }
+  checkMessageHeaderForError(value);
 
   const x = value?.headers?.content as any;
   if (typeof x?.id != "string" || typeof x?.lifetime != "number") {
@@ -87,6 +115,7 @@ export async function set({
   timeout?: number;
 }): Promise<{ seq: number; time: number }> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
@@ -103,11 +132,8 @@ export async function set({
     } as any,
     timeout,
   });
-  const { error, code, resp } = reply.data;
-  if (error) {
-    throw new ConatError(error, { code });
-  }
-  return resp;
+  checkMessageHeaderForError(reply);
+  return reply.data;
 }
 
 export async function deleteMessages({
@@ -126,6 +152,7 @@ export async function deleteMessages({
   all?: boolean;
 }): Promise<{ seqs: number[] }> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
@@ -138,11 +165,8 @@ export async function deleteMessages({
     } as any,
     timeout,
   });
-  const { error, resp } = reply.data;
-  if (error) {
-    throw Error(error);
-  }
-  return resp;
+  checkMessageHeaderForError(reply);
+  return reply.data;
 }
 
 export async function config({
@@ -157,6 +181,7 @@ export async function config({
   timeout?: number;
 }): Promise<Configuration> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
@@ -167,11 +192,8 @@ export async function config({
     } as any,
     timeout,
   });
-  const { error, resp } = reply.data;
-  if (error) {
-    throw Error(error);
-  }
-  return resp;
+  checkMessageHeaderForError(reply);
+  return reply.data;
 }
 
 export async function get({
@@ -189,12 +211,14 @@ export async function get({
   | { key: string; seq?: undefined }
 )): Promise<ConatMessage | undefined> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const resp = await cn.request(subject, null, {
     headers: { cmd: "get", storage, seq, key } as any,
     timeout,
   });
+  checkMessageHeaderForError(resp);
   if (resp.headers == null) {
     return undefined;
   }
@@ -211,17 +235,15 @@ export async function keys({
   timeout?: number;
 }): Promise<string[]> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
     headers: { cmd: "keys", storage } as any,
     timeout,
   });
-  const { error, resp } = reply.data;
-  if (error) {
-    throw Error(error);
-  }
-  return resp;
+  checkMessageHeaderForError(reply);
+  return reply.data;
 }
 
 export async function sqlite({
@@ -238,17 +260,15 @@ export async function sqlite({
   params?: any[];
 }): Promise<any[]> {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const reply = await cn.request(subject, null, {
     headers: { cmd: "sqlite", storage, statement, params } as any,
     timeout,
   });
-  const { error, resp } = reply.data;
-  if (error) {
-    throw Error(error);
-  }
-  return resp;
+  checkMessageHeaderForError(reply);
+  return reply.data;
 }
 
 // if the user doesn't have permission to access this storage, this
@@ -271,6 +291,7 @@ async function* callApiGetAll({
   options?: ConnectionOptions;
 }) {
   const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const { cn } = await getEnv();
 
   const { heartbeat = DEFAULT_HEARTBEAT, lifetime } = options ?? {};
@@ -323,12 +344,8 @@ async function* callApiGetAll({
       // it is just a heartbeat
       continue;
     }
-
-    const { error, seq } = resp.headers;
-    if (error) {
-      // this should never happen unless something is very wrong
-      throw Error(`${error}`);
-    }
+    checkMessageHeaderForError(resp);
+    const { seq } = resp.headers;
     if (typeof seq != "number") {
       // this should never happen.
       throw Error("seq must be a number");

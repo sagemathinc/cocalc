@@ -195,7 +195,7 @@ export class PersistentStream extends EventEmitter {
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
     this.db = createDatabase(
-      this.options.ephemeral ? ":memory:" : this.options.path,
+      this.options.ephemeral ? ":memory:" : this.options.path + ".db",
     );
     this.init();
   }

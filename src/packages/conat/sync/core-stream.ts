@@ -44,6 +44,7 @@ import type {
   Configuration,
 } from "@cocalc/conat/persist/storage";
 export type { Configuration };
+import { join } from "path";
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -112,15 +113,15 @@ export function storagePath({
   project_id,
   name,
 }: User & { name: string }) {
-  let top;
+  let userPath;
   if (account_id) {
-    top = `accounts/${account_id}`;
+    userPath = `accounts/${account_id}`;
   } else if (project_id) {
-    top = `projects/${project_id}`;
+    userPath = `projects/${project_id}`;
   } else {
-    top = "global";
+    userPath = "hub";
   }
-  return `${top}/${name}.db`;
+  return join(userPath, name);
 }
 
 export class CoreStream<T = any> extends EventEmitter {
@@ -145,7 +146,6 @@ export class CoreStream<T = any> extends EventEmitter {
   private storage?: persistClient.Storage;
   private client?: Client;
   private connectionOptions?: persistClient.ConnectionOptions;
-
   private renewLoopParams: { id: string; lifetime: number; user: User } | null =
     null;
 
@@ -259,9 +259,13 @@ export class CoreStream<T = any> extends EventEmitter {
           }));
           break;
         } catch (err) {
-          // console.log(`core-stream getAllFromPersist error -- ${err}`);
+          //           console.log(
+          //             `core-stream getAllFromPersist error -- ${err}`,
+          //             err.code,
+          //           );
           if (err.code == 403) {
             // permission error -- this is fatal
+            // console.log("FATAL error");
             throw err;
           }
           //           console.log(

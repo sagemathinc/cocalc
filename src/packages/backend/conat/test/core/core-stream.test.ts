@@ -7,7 +7,11 @@ DEVELOPMENT:
 */
 
 import { connect, before, after } from "@cocalc/backend/conat/test/setup";
-import { cstream, KEY_GC_THRESH } from "@cocalc/conat/sync/core-stream";
+import {
+  cstream,
+  KEY_GC_THRESH,
+  CoreStream,
+} from "@cocalc/conat/sync/core-stream";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
@@ -357,6 +361,69 @@ describe("test msgID dedup", () => {
   });
 });
 
-// TODO ephemeral kv store (not implemented yet!)
+import { disablePermissionCheck } from "@cocalc/conat/persist/client";
+describe("test permissions", () => {
+  it("create a CoreStream, but change the path to one that wouldn't be allowed given the subject", async () => {
+    const client = connect();
+    const stream = new CoreStream({
+      client,
+      name: "conat.ipynb",
+      project_id: "00000000-0000-4000-8000-000000000000",
+    });
+    expect(stream.storage.path).toBe(
+      "projects/00000000-0000-4000-8000-000000000000/conat.ipynb",
+    );
+    expect(stream.user).toEqual({
+      project_id: "00000000-0000-4000-8000-000000000000",
+    });
+
+    // now change it to something invalid by directly editing it
+    stream.storage.path = "hub/conat.ipynb";
+
+    // When we try to init, it must fail because the subject we use
+    // for our location (the 'user', defined by
+    // project_id: "00000000-0000-4000-8000-000000000000"
+    // above) doens't give permissions to hub/.
+    // NOTE: even if a browser client is accessing a project resource
+    // they give the project_id, not their id.
+    await expect(async () => {
+      await stream.init();
+    }).rejects.toThrowError("permission denied");
+
+    stream.close();
+  });
+
+  it("do the tests again, but with the client side permission check disabled, to make sure the server denies us", async () => {
+    disablePermissionCheck();
+    const client = connect();
+    const stream = new CoreStream({
+      client,
+      name: "conat2.ipynb",
+      project_id: "00000000-0000-4000-8000-000000000000",
+    });
+    const origPath = stream.storage.path;
+    stream.storage.path = "hub/conat2.ipynb";
+    await expect(async () => {
+      await stream.init();
+    }).rejects.toThrowError("permission denied");
+
+    // instead change the user and make sure denied
+    stream.storage.path = origPath;
+    // wrong project
+    stream.user = { project_id: "00000000-0000-4000-8000-000000000004" };
+    await expect(async () => {
+      await stream.init();
+    }).rejects.toThrowError("permission denied");
+
+    stream.storage.path = origPath;
+    // wrong user type
+    stream.user = { account_id: "00000000-0000-4000-8000-000000000000" };
+    await expect(async () => {
+      await stream.init();
+    }).rejects.toThrowError("permission denied");
+
+    stream.close();
+  });
+});
 
 afterAll(after);

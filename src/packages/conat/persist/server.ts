@@ -46,7 +46,11 @@ import {
   PersistentStream,
 } from "./storage";
 import { getEnv } from "@cocalc/conat/client";
-import { type Client, type Subscription } from "@cocalc/conat/core/client";
+import {
+  type Client,
+  type Subscription,
+  ConatError,
+} from "@cocalc/conat/core/client";
 import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/conat/client";
 import { delay } from "awaiting";
@@ -77,12 +81,13 @@ export const MIN_LIFETIME = 250;
 export const MIN_HEARTBEAT = 5000;
 export const DEFAULT_HEARTBEAT = 30000;
 export const MAX_HEARTBEAT = 120000;
+
 export const MAX_PERSISTS_PER_USER = parseInt(
-  process.env.MAX_PERSISTS_PER_USER ?? "100",
+  process.env.MAX_PERSISTS_PER_USER ?? "200",
 );
 
 export const MAX_PERSISTS_PER_SERVER = parseInt(
-  process.env.MAX_PERSISTS_PER_SERVER ?? "5000",
+  process.env.MAX_PERSISTS_PER_SERVER ?? "10000",
 );
 
 export const LAST_CHUNK = "last-chunk";
@@ -124,6 +129,62 @@ function getUserId(subject: string): string {
     );
   }
   return "";
+}
+
+export const MAX_PATH_LENGTH = 4000;
+
+export function assertHasWritePermission({
+  subject,
+  path,
+}: {
+  // Subject definitely has one of the following forms, or we would never
+  // see this message:
+  //   ${SUBJECT}.account-${account_id}.api or
+  //   ${SUBJECT}.project-${project_id}.api or
+  //   ${SUBJECT}.hub.api
+  //   ${SUBJECT}.SOMETHING-WRONG.api
+  // A user is only allowed to write to a subject if they have rights
+  // to the given project, account or are a hub.
+  // The path can a priori be any string.  However, here's what's allowed
+  //   accounts/[account_id]/any...thing
+  //   projects/[project_id]/any...thing
+  //   hub/any...thing  <- only hub can write to this.
+  subject: string;
+  path: string;
+}) {
+  if (path.length > MAX_PATH_LENGTH) {
+    throw new ConatError(
+      `permission denied: path (of length ${path.length}) is too long (limit is '${MAX_PATH_LENGTH}' characters)`,
+      { code: 403 },
+    );
+  }
+  if (path.includes("..") || path.startsWith("/") || path.endsWith("/")) {
+    throw new ConatError(
+      `permission denied: path '${path}' must not include .. or start or end with / `,
+      { code: 403 },
+    );
+  }
+  let s = subject.slice(SUBJECT.length + 1);
+  if (s.startsWith("hub.")) {
+    // hub user can write to any path
+    return;
+  }
+  for (const cls of ["account", "project"]) {
+    if (s.startsWith(cls + "-")) {
+      const user_id = getUserId(subject);
+      const base = cls + "s/" + user_id + "/";
+      if (path.startsWith(base)) {
+        // permissions granted
+        return;
+      } else {
+        throw new ConatError(
+          `permission denied: subject '${subject}' only grants write permission to path='${path} since it is not under '${base}'`,
+          { code: 403 },
+        );
+      }
+    }
+  }
+  throw new ConatError("invalid subject", { code: 403 });
 }
 
 let terminated = false;
@@ -259,21 +320,30 @@ function metrics() {
 async function handleMessage({ mesg, messagesThresh }) {
   const request = mesg.headers;
   //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
-  const user_id = getUserId(mesg.subject);
 
-  // [ ] TODO: more permissions and other sanity checks!
-
-  const path = join(syncFiles.local, request.storage.path);
-  await ensureContainingDirectoryExists(path);
   let stream: undefined | PersistentStream = undefined;
   const respond = (...args) => {
     stream?.close();
     mesg.respond(...args);
   };
 
-  stream = pstream({ ...request.storage, path });
   // get and set using normal request/respond
   try {
+    // this permsissions check should always work and use should
+    // never see an error here, since
+    // the same check runs on the client before the message is sent to the
+    // persist storage.  However a malicious user would hit this.
+    // IMPORTANT: must be here so error *code* also sent back.
+    assertHasWritePermission({
+      subject: mesg.subject,
+      path: request.storage.path,
+    });
+    const user_id = getUserId(mesg.subject);
+
+    const path = join(syncFiles.local, request.storage.path);
+    await ensureContainingDirectoryExists(path);
+    stream = pstream({ ...request.storage, path });
+
     if (request.cmd == "set") {
       const resp = stream.set({
         key: request.key,
@@ -284,11 +354,11 @@ async function handleMessage({ mesg, messagesThresh }) {
         headers: request.headers,
         msgID: request.msgID,
       });
-      respond({ resp });
+      respond(resp);
     } else if (request.cmd == "delete") {
-      respond({ resp: stream.delete(request) });
+      respond(stream.delete(request));
     } else if (request.cmd == "config") {
-      respond({ resp: stream.config(request.config) });
+      respond(stream.config(request.config));
     } else if (request.cmd == "get") {
       const resp = stream.get({ key: request.key, seq: request.seq });
       //console.log("got resp = ", resp);
@@ -304,21 +374,23 @@ async function handleMessage({ mesg, messagesThresh }) {
       }
     } else if (request.cmd == "keys") {
       const resp = stream.keys();
-      respond({ resp });
+      respond(resp);
     } else if (request.cmd == "sqlite") {
       if (!ENABLE_SQLITE_GENERAL_QUERIES) {
         throw Error("sqlite command not currently supported");
       }
       const resp = stream.sqlite(request.statement, request.params);
-      respond({ resp });
+      respond(resp);
     } else if (request.cmd == "getAll") {
       // getAll will free reference to stream when it is done:
       getAll({ mesg, request, user_id, stream, messagesThresh });
     } else {
-      respond({ error: `unknown command ${request.cmd}` });
+      respond(null, {
+        headers: { error: `unknown command ${request.cmd}`, code: 404 },
+      });
     }
   } catch (err) {
-    respond({ error: `${err}`, code: err.code });
+    respond(null, { headers: { error: `${err}`, code: err.code } });
   }
 }
 
@@ -443,7 +515,6 @@ async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
     // send the current data
     const messages: any[] = [];
     let size = 0;
-    // [ ] TODO: limit the size
     for (const message of stream.getAll({
       start_seq: request.start_seq,
       end_seq: request.end_seq,
