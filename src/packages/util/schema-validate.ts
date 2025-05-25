@@ -8,19 +8,15 @@
 // If validation fails, this returns an error message; if validation succeeds,
 // it returns undefined.  The input query may be mutated in place.
 
-let validate_client_query;
-const misc = require("./misc");
-const schema = require("./schema");
+import * as misc from "./misc";
+import * as schema from "./schema";
 
-exports.validate_client_query = function validate_client_query(
-  query,
-  account_id
-) {
+export function validate_client_query(query, account_id: string) {
   let f, is_set_query, k, S;
   if (misc.is_array(query)) {
     // it's an array of queries; validate each separately.
-    for (let q of query) {
-      const err = validate_client_query(q);
+    for (const q of query) {
+      const err = validate_client_query(q, account_id);
       if (err != null) {
         return err;
       }
@@ -37,8 +33,8 @@ exports.validate_client_query = function validate_client_query(
   if (v.length !== 1) {
     return warn(
       `must specify exactly one key in the query (the table name), but ${v.length} keys ${JSON.stringify(v)} were specified -- query=${JSON.stringify(
-        query
-      )}`
+        query,
+      )}`,
     );
   }
   const table = v[0];
@@ -61,14 +57,14 @@ exports.validate_client_query = function validate_client_query(
   }
 
   if (is_set_query) {
-    S = user_query.set;
+    S = user_query?.set;
     if (S == null) {
-      return warn(`no user set queries of '${table}' allowed`);
+      return warn(`no user set queries of table '${table}' allowed`);
     }
   } else {
-    S = user_query.get;
+    S = user_query?.get;
     if (S == null) {
-      return warn(`no user get queries of '${table}' allowed`);
+      return warn(`no user get queries of table '${table}' allowed`);
     }
   }
 
@@ -90,7 +86,12 @@ exports.validate_client_query = function validate_client_query(
   for (k in S.fields) {
     f = S.fields[k];
     if (typeof f === "function") {
-      pattern[k] = f(pattern, schema.client_db, account_id);
+      const val = f(pattern, schema.client_db, account_id);
+      if (val != null) {
+        // only if != null -- this shouldn't change get queries to set queries...
+        // also if val[k]===undefined don't set that (this broke after switch to MsgPack)
+        pattern[k] = val[k];
+      }
     }
   }
 
@@ -102,4 +103,4 @@ exports.validate_client_query = function validate_client_query(
       }
     }
   }
-};
+}
