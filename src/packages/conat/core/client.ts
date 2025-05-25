@@ -41,17 +41,21 @@ The methods you call on the client to build everything are:
  - subscribe, subscribeSync - subscribe to a subject which returns an
    async iterator over all messages that match the subject published by 
    anyone with permission to do so.   If you provide the same optional 
-   queue parameter for multiple subscribers, then one subscriber in each queue group
-   receives each message. The async form confirms the subscription was created 
-   before returning. A client may only create one subscription to a 
-   given subject at a time, to greatly reduce the chance of leaks and 
-   simplify code.  **There is no size limit on messages.**
+   queue parameter for multiple subscribers, then one subscriber in each queue 
+   group receives each message. The async form of this functino confirms 
+   the subscription was created before returning. If a client creates multiple
+   subscriptions at the same time, the queue group must be the same.  
    Subscriptions are guaranteed to stay valid until the client ends them;
    they do not stop working due to client or server reconnects or restarts.
+   (If you need more subscriptions with different queue groups, make another
+   client object.)
    
  - publish, publishSync - publish to a subject. The async version returns
    a count of the number of recipients, whereas the sync version is 
    fire-and-forget.
+   **There is no a priori size limit on messages since chunking 
+     is automatic.  However, we have to impose some limit, but
+     it can be much larger than the socketio message size limit.**
 
  - request - send a message to a subject, and if there is at least one
    subscriber listening, it may respond.  If there are no subscribers,
@@ -270,6 +274,7 @@ export class Client {
   public conn: ReturnType<typeof connectToSocketIO>;
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
+  public subs: { [subject: string]: SubscriptionEmitter } = {};
   public info: ServerInfo | undefined = undefined;
   private readonly options: ClientOptions & { address: string };
   private inboxSubject: string;
@@ -357,9 +362,18 @@ export class Client {
   });
 
   close = () => {
+    if(this.options == null) {
+      return;
+    }
     for (const subject in this.queueGroups) {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
+    }
+    for (const sub of Object.values(this.subs)) {
+      sub.refCount = 0;
+      sub.close();
+      // @ts-ignore
+      delete this.subs;
     }
     // @ts-ignore
     delete this.queueGroups;
@@ -452,18 +466,29 @@ export class Client {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
     }
-    if (!queue) {
-      queue = randomId();
+    let sub = this.subs[subject];
+    if (sub != null) {
+      if (queue && this.queueGroups[subject] != queue) {
+        throw Error(
+          "client can only have one queue group subscription for a given subject",
+        );
+      }
+      sub.refCount += 1;
+      return { sub, promise: undefined };
     }
     if (this.queueGroups[subject] != null) {
       throw Error(`already subscribed to '${subject}'`);
     }
+    if (!queue) {
+      queue = randomId();
+    }
     this.queueGroups[subject] = queue;
-    const sub = new SubscriptionEmitter({
+    sub = new SubscriptionEmitter({
       client: this,
       subject,
       closeWhenOffCalled,
     });
+    this.subs[subject] = sub;
     let promise;
     if (confirm) {
       const f = (cb) => {
@@ -911,6 +936,7 @@ class SubscriptionEmitter extends EventEmitter {
   private client: Client;
   private closeWhenOffCalled?: boolean;
   private subject: string;
+  public refCount: number = 1;
 
   constructor({ client, subject, closeWhenOffCalled }) {
     super();
@@ -921,6 +947,11 @@ class SubscriptionEmitter extends EventEmitter {
   }
 
   close = () => {
+    this.refCount -= 1;
+    if (this.refCount > 0) {
+      return;
+    }
+    delete this.client.subs?.[this.subject];
     this.emit("close");
     this.client.conn.removeListener(this.subject, this.handle);
     // @ts-ignore

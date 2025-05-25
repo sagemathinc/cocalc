@@ -1,5 +1,7 @@
 /*
 Very basic test of conats core client and server.
+
+pnpm test ./basic.test.ts
 */
 
 import { connect, before, after } from "@cocalc/backend/conat/test/setup";
@@ -93,13 +95,11 @@ describe("basic test of publish and subscribe", () => {
     expect(done).toBe(true);
   });
 
-  // I'm unsure whether or not this is a good constraint.  It does make code simpler,
-  // and massively protects against leaks.
-  it("verify that you can't subscribe twice to the same subject with a single client", async () => {
+  it("verify that you can't subscribe twice to the same subject with a single client but *different* queue groups", async () => {
     const sub1 = await cn.subscribe(subject);
     await expect(async () => {
-      await cn.subscribe(subject);
-    }).rejects.toThrowError("already subscribed");
+      await cn.subscribe(subject, { queue: "xxx" });
+    }).rejects.toThrowError("one queue group");
 
     sub1.stop();
     // now this works
@@ -254,6 +254,64 @@ describe("basic tests of request/respond", () => {
     await expect(async () => {
       await callIter(c1, null);
     }).rejects.toThrowError("is not iterable");
+  });
+});
+
+describe("creating multiple subscriptions to the same subject", () => {
+  let subject = "conat";
+  let s1, s2;
+  let c1, c2;
+  it("creates clients and two subscriptions to same subject using the same client", async () => {
+    c1 = connect();
+    c2 = connect();
+    s1 = await c1.subscribe(subject);
+    s2 = await c1.subscribe(subject);
+    expect(s1 === s2).toBe(false);
+  });
+
+  it("publishes to 'conat' and verifies that each subscription indendently receives each message", async () => {
+    const data = "cocalc";
+    await c2.publish(subject, data);
+    const { value, done } = await s1.next();
+    expect(value.data).toEqual(data);
+    expect(done).toBe(false);
+    const { value: value2, done: done2 } = await s2.next();
+    expect(value2.data).toEqual(data);
+    expect(done2).toBe(false);
+
+    c2.publish(subject, 1);
+    c2.publish(subject, 2);
+    c2.publish(subject, 3);
+    expect((await s1.next()).value.data).toBe(1);
+    expect((await s2.next()).value.data).toBe(1);
+    expect((await s1.next()).value.data).toBe(2);
+    expect((await s1.next()).value.data).toBe(3);
+    expect((await s2.next()).value.data).toBe(2);
+    expect((await s2.next()).value.data).toBe(3);
+  });
+
+  it("closing properly reference counts", async () => {
+    expect(c1.subs[subject].refCount).toBe(2);
+    s1.close();
+    expect(c1.subs[subject].refCount).toBe(1);
+    expect(c1.queueGroups[subject]==null).toBe(false);
+    c2.publish(subject, 4);
+    expect((await s2.next()).value.data).toBe(4);
+    s2.close();
+    expect(c1.subs[subject]).toBe(undefined);
+    expect(c1.queueGroups[subject]).toBe(undefined);
+  });
+
+  it("sync subscriptions also work", async () => {
+    s1 = c1.subscribeSync(subject);
+    s2 = c1.subscribeSync(subject);
+    expect(s1 === s2).toBe(false);
+    await c2.publish(subject, 5);
+    expect((await s1.next()).value.data).toBe(5);
+    expect((await s2.next()).value.data).toBe(5);
+    s1.close();
+    s2.close();
+    expect(c1.subs[subject]).toBe(undefined);
   });
 });
 
