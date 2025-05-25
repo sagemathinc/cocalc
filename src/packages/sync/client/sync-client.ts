@@ -22,8 +22,7 @@ import {
 import synctable_project from "./synctable-project";
 import type { Channel, AppClient } from "./types";
 import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
-
-import { refCacheSync } from "@cocalc/util/refcache";
+// import { refCacheSync } from "@cocalc/util/refcache";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {
   noCache?: boolean;
@@ -104,12 +103,59 @@ export class SyncClient {
     );
   }
 
+  // These are not working properly, e.g., if you close and open
+  // a LARGE jupyter notebook quickly (so save to disk takes a while),
+  // then it gets broken until browser refresh.  The problem is that
+  // the doc is still closing right when a new one starts being created.
+  // So for now we just revert to the non-cached-here approach.
+  // There is other caching elsewhere.
+
+  //   public sync_string(opts: SyncOpts): SyncString {
+  //     return syncstringCache({ ...opts, client: this.client });
+  //   }
+
+  //   public sync_db(opts: SyncDBOpts): SyncDB {
+  //     return syncdbCache({ ...opts, client: this.client });
+  //   }
+
   public sync_string(opts: SyncOpts): SyncString {
-    return syncstringCache({ ...opts, client: this.client });
+    const opts0: SyncOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      persistent: false,
+      data_server: undefined,
+      client: this.client,
+      ephemeral: false,
+    });
+    return new SyncString(opts0);
   }
 
-  public sync_db(opts: SyncDBOpts): SyncDB {
-    return syncdbCache({ ...opts, client: this.client });
+  public sync_db(opts: SyncDBOpts): SyncDoc {
+    const opts0: SyncDBOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      change_throttle: undefined,
+      persistent: false,
+      data_server: undefined,
+
+      primary_keys: required,
+      string_cols: [],
+
+      client: this.client,
+
+      ephemeral: false,
+    });
+    return new SyncDB(opts0);
   }
 
   public async open_existing_sync_document({
@@ -140,6 +186,7 @@ export class SyncClient {
   }
 }
 
+/*
 const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
   name: "syncdb",
 
@@ -195,3 +242,4 @@ const syncstringCache = refCacheSync<SyncOpts, SyncString>({
     return new SyncString(opts0);
   },
 });
+*/
