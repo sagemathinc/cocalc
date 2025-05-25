@@ -123,6 +123,8 @@ const CONFIGURATION = {
   },
 };
 
+export const EPHEMERAL_MAX_BYTES = 64 * 1e6;
+
 enum CompressionAlgorithm {
   None = 0,
   Zstd = 1,
@@ -172,9 +174,10 @@ export interface Options {
   path: string;
   // if false (the default) do not require sync writes to disk on every set
   sync?: boolean;
-  // if set, then data is never saved to disk at all. This would be very dangerous
-  // for production, since it could use a LOT of RAM, which is why one should put
-  // cap on the max_bytes config option when ephemeral is true.
+  // if set, then data is never saved to disk at all. To avoid using a lot of server
+  // RAM there is always a hard cap of at most EPHEMERAL_MAX_BYTES on any ephemeral
+  // table, which is enforced on all writes.  Clients should always set max_bytes,
+  // possibly as low as they can, and check by reading back what is set.
   ephemeral?: boolean;
   // compression configuration
   compression?: Compression;
@@ -485,7 +488,7 @@ export class PersistentStream extends EventEmitter {
       const { def, fromDb, toDb } = CONFIGURATION[key];
       full[key] =
         config?.[key] ?? (cur[key] !== undefined ? fromDb(cur[key]) : def);
-      const x = toDb(full[key]);
+      let x = toDb(full[key]);
       if (config?.[key] != null && full[key] != (cur[key] ?? def)) {
         // making a change
         this.db
@@ -495,6 +498,16 @@ export class PersistentStream extends EventEmitter {
           .run(key, x);
       }
       full[key] = fromDb(x);
+      if (
+        this.options.ephemeral &&
+        key == "max_bytes" &&
+        (full[key] == null || full[key] <= 0 || full[key] > EPHEMERAL_MAX_BYTES)
+      ) {
+        // for ephemeral we always make it so max_bytes is capped
+        // (note -- this isn't explicitly set in the sqlite database, since we might
+        // change it, and by not setting it in the database we can)
+        full[key] = EPHEMERAL_MAX_BYTES;
+      }
     }
     this.conf = full as Configuration;
     // ensure any new limits are enforced

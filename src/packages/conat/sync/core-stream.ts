@@ -194,7 +194,9 @@ export class CoreStream<T = any> extends EventEmitter {
     this.listen();
   };
 
-  config = async (config?: Partial<Configuration>): Promise<Configuration> => {
+  config = async (
+    config: Partial<Configuration> = {},
+  ): Promise<Configuration> => {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }

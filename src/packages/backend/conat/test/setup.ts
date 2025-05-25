@@ -50,9 +50,12 @@ export async function createServer(opts?) {
   return server;
 }
 
+// one pre-made client
+export let client;
 export async function before() {
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
   server = await createServer();
+  client = connect();
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
   setConatClient({

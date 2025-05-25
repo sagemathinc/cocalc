@@ -537,7 +537,9 @@ export class DKV<T = any> extends EventEmitter {
   stats = () => this.kv?.stats();
 
   // get or set config
-  config = async (config: Partial<Configuration>): Promise<Configuration> => {
+  config = async (
+    config: Partial<Configuration> = {},
+  ): Promise<Configuration> => {
     if (this.kv == null) {
       throw Error("not initialized");
     }

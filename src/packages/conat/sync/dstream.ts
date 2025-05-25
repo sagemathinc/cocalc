@@ -332,7 +332,9 @@ export class DStream<T = any> extends EventEmitter {
   }
 
   // get or set config
-  config = async (config: Partial<Configuration>): Promise<Configuration> => {
+  config = async (
+    config: Partial<Configuration> = {},
+  ): Promise<Configuration> => {
     if (this.stream == null) {
       throw Error("not initialized");
     }

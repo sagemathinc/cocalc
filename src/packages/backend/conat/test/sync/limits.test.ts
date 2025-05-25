@@ -11,7 +11,13 @@ import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { dstream as createDstream } from "@cocalc/backend/conat/sync";
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
-import { before, after, wait, connect } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  wait,
+  connect,
+  client,
+} from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -20,7 +26,7 @@ describe("create a dkv with limit on the total number of keys, and confirm auto-
   const name = `test-${Math.random()}`;
 
   it("creates the dkv", async () => {
-    kv = await createDkv({ name, config: { max_msgs: 2 } });
+    kv = await createDkv({ client, name, config: { max_msgs: 2 } });
     expect(kv.getAll()).toEqual({});
   });
 
@@ -55,7 +61,7 @@ describe("create a dkv with limit on age of keys, and confirm auto-delete works"
   const name = `test-${Math.random()}`;
 
   it("creates the dkv", async () => {
-    kv = await createDkv({ name, config: { max_age: 50 } });
+    kv = await createDkv({ client, name, config: { max_age: 50 } });
     expect(kv.getAll()).toEqual({});
   });
 
@@ -84,7 +90,7 @@ describe("create a dkv with limit on total bytes of keys, and confirm auto-delet
   const name = `test-${Math.random()}`;
 
   it("creates the dkv", async () => {
-    kv = await createDkv({ name, config: { max_bytes: 100 } });
+    kv = await createDkv({ client, name, config: { max_bytes: 100 } });
     expect(kv.getAll()).toEqual({});
   });
 
@@ -114,7 +120,7 @@ describe("create a dkv with limit on max_msg_size, and confirm writing small mes
   const name = `test-${Math.random()}`;
 
   it("creates the dkv", async () => {
-    kv = await createDkv({ name, config: { max_msg_size: 100 } });
+    kv = await createDkv({ client, name, config: { max_msg_size: 100 } });
     expect(kv.getAll()).toEqual({});
   });
 
@@ -142,7 +148,7 @@ describe("create a dstream with limit on the total number of messages, and confi
   const name = `test-${Math.random()}`;
 
   it("creates the dstream and another with a different client", async () => {
-    s = await createDstream({ name, config: { max_msgs: 2 } });
+    s = await createDstream({ client, name, config: { max_msgs: 2 } });
     s2 = await createDstream({
       client: connect(),
       name,
@@ -174,7 +180,7 @@ describe("create a dstream with limit on the total number of messages, and confi
 
     // also check limits ar  enforced if we close, then open new one:
     await s.close();
-    s = await createDstream({ name, config: { max_msgs: 2 } });
+    s = await createDstream({ client, name, config: { max_msgs: 2 } });
     expect(s.getAll()).toEqual(["b", "c"]);
 
     await s.config({ max_msgs: -1 });
@@ -254,7 +260,7 @@ describe("create a dstream with limit on max_age, and confirm auto-delete works"
   const name = `test-${Math.random()}`;
 
   it("creates the dstream", async () => {
-    s = await createDstream({ name, config: { max_age: 50 } });
+    s = await createDstream({ client, name, config: { max_age: 50 } });
   });
 
   it("push a message, then another and see first disappears", async () => {
@@ -282,7 +288,7 @@ describe("create a dstream with limit on max_bytes, and confirm auto-delete work
   const name = `test-${Math.random()}`;
 
   it("creates the dstream", async () => {
-    s = await createDstream({ name, config: { max_bytes: 50 } });
+    s = await createDstream({ client, name, config: { max_bytes: 50 } });
   });
 
   it("push a message, then another and see first disappears", async () => {
@@ -306,7 +312,7 @@ describe("create a dstream with limit on max_msg_size, and confirm auto-delete w
   const name = `test-${Math.random()}`;
 
   it("creates the dstream", async () => {
-    s = await createDstream({ name, config: { max_msg_size: 50 } });
+    s = await createDstream({ client, name, config: { max_msg_size: 50 } });
   });
 
   it("push a message, then another and see first disappears", async () => {
@@ -338,6 +344,7 @@ describe("test discard_policy 'new' where writes are rejected rather than old da
 
   it("creates the dstream", async () => {
     s = await createDstream({
+      client,
       name,
       // we can write at most 300 bytes and 3 messages.  beyond that we
       // get reject events.
@@ -383,6 +390,7 @@ describe("test rate limiting", () => {
 
   it("creates the dstream", async () => {
     s = await createDstream({
+      client,
       name,
       // we can write at most 300 bytes and 3 messages.  beyond that we
       // get reject events.
@@ -400,6 +408,43 @@ describe("test rate limiting", () => {
 
   it("closes the stream", async () => {
     await s.close();
+  });
+});
+
+import { EPHEMERAL_MAX_BYTES } from "@cocalc/conat/persist/storage";
+describe(`ephemeral streams always have a hard cap of ${EPHEMERAL_MAX_BYTES} on max_bytes `, () => {
+  let s;
+  it("creates a non-ephemeral dstream and checks no automatic max_bytes set", async () => {
+    const s1 = await createDstream({
+      client,
+      name: "test-NON-ephemeral",
+      ephemeral: false,
+    });
+    expect((await s1.config()).max_bytes).toBe(-1);
+    s1.close();
+  });
+
+  it("creates an ephemeral dstream and checks max bytes automatically set", async () => {
+    s = await createDstream({
+      client,
+      name: "test-ephemeral",
+      ephemeral: true,
+    });
+    expect((await s.config()).max_bytes).toBe(EPHEMERAL_MAX_BYTES);
+  });
+
+  it("trying to set larger doesn't work", async () => {
+    expect(
+      (await s.config({ max_bytes: 2 * EPHEMERAL_MAX_BYTES })).max_bytes,
+    ).toBe(EPHEMERAL_MAX_BYTES);
+    expect((await s.config()).max_bytes).toBe(EPHEMERAL_MAX_BYTES);
+  });
+
+  it("setting it smaller is allowed", async () => {
+    expect(
+      (await s.config({ max_bytes: EPHEMERAL_MAX_BYTES / 2 })).max_bytes,
+    ).toBe(EPHEMERAL_MAX_BYTES / 2);
+    expect((await s.config()).max_bytes).toBe(EPHEMERAL_MAX_BYTES / 2);
   });
 });
 
