@@ -337,6 +337,8 @@ export class ConatServer {
     }
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
       throw new ConatError(`permission denied publishing to '${subject}'`, {
+        // this is the http code for permission denied, and having this
+        // set is assumed elsewhere in our code, so don't mess with it!
         code: 403,
       });
     }

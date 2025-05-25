@@ -138,6 +138,8 @@ export async function init({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
 }: Options = {}) {
+  terminated = false;
+  sub = null;
   logger.debug("starting persist server");
   logger.debug({
     DEFAULT_LIFETIME,

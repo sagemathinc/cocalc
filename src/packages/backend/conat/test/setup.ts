@@ -18,6 +18,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 export { wait } from "@cocalc/backend/conat/test/util";
+export { delay } from "awaiting";
 
 const logger = getLogger("conat:test:setup");
 

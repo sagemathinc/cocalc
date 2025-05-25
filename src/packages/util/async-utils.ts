@@ -267,14 +267,21 @@ export async function parallelHandler({
 // though of course whatever code is running in promise doesn't actually
 // get interrupted.
 export async function withTimeout(p: Promise<any>, ms: number) {
+  let afterFired = false;
   p.catch((err) => {
-    console.warn("Warning: withTimeout promise rejected", err);
+    if (afterFired) {
+      console.warn("WARNING: withTimeout promise rejected", err);
+    }
   });
   let to;
   return Promise.race([
     p,
     new Promise(
-      (_, reject) => (to = setTimeout(() => reject(new Error("timeout")), ms)),
+      (_, reject) =>
+        (to = setTimeout(() => {
+          afterFired = true;
+          reject(new Error("timeout"));
+        }, ms)),
     ),
   ]).finally(() => clearTimeout(to));
 }

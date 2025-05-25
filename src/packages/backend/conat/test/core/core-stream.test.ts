@@ -71,9 +71,16 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   });
 
   it("close and create and see that it's ephemeral", async () => {
-    stream.close();
-    await delay(EPHEMERAL_LIFETIME+500);
-    stream = await cstream({ client, ...opts });
+    // with heavy parallel load when testing a lot at once, this
+    // can take more than one try:
+    await wait({
+      until: async () => {
+        stream.close();
+        await delay(EPHEMERAL_LIFETIME + 500);
+        stream = await cstream({ client, ...opts });
+        return stream.length == 0;
+      },
+    });
     expect(stream.length).toBe(0);
   });
 

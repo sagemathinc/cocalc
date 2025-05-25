@@ -251,6 +251,9 @@ export async function sqlite({
   return resp;
 }
 
+// if the user doesn't have permission to access this storage, this
+// should throw an error with code 403; that should be handled by
+// requestMany attempting to publish to a subject that user can't access.
 async function* callApiGetAll({
   start_seq,
   end_seq,

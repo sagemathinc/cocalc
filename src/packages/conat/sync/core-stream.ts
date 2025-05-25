@@ -221,6 +221,9 @@ export class CoreStream<T = any> extends EventEmitter {
     delete this.storage;
   };
 
+  // NOTE: It's assumed elsewhere that getAllFromPersist will not throw,
+  // and will keep retrying until (1) it works, or (2) self is closed,
+  // or (3) there is a fatal failure, e.g., lack of permissions.
   private getAllFromPersist = async ({
     start_seq = 0,
     noEmit,
@@ -228,33 +231,91 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-
-    const { id, lifetime, stream } = await persistClient.getAll({
-      user: this.user,
-      storage: this.storage,
-      start_seq,
-      options: this.connectionOptions,
-    });
-    if (id && lifetime) {
+    let d_outer = 3000;
+    while (true) {
+      if (this.client == null) {
+        return;
+      }
+      let id,
+        lifetime,
+        stream,
+        d = 2000;
+      while (true) {
+        try {
+          if (this.client == null) {
+            // got closed.
+            return;
+          }
+          // This call is expected to fail sometimes, e.g., if no persist server
+          // is running, it will immediately fail with a 503 error.  We only
+          // don't retry in that case.
+          ({ id, lifetime, stream } = await persistClient.getAll({
+            user: this.user,
+            storage: this.storage!,
+            start_seq,
+            options: this.connectionOptions,
+          }));
+          break;
+        } catch (err) {
+          // console.log(`core-stream getAllFromPersist error -- ${err}`);
+          if (err.code == 403) {
+            // permission error -- this is fatal
+            throw err;
+          }
+          //           console.log(
+          //             `core-stream getAllFromPersist - will retry in ${d}ms...`,
+          //           );
+        }
+        await delay(d);
+        d = Math.min(15000, d * 1.2);
+      }
+      if (!id || !lifetime) {
+        throw Error("bug -- id and lifetime must be defined");
+      }
       this.renewLoopParams = { id, lifetime, user: this.user };
       this.startRenewLoop();
-    }
-    //console.log("got persistent stream", { id });
-    this.persistStream = stream;
-    while (true) {
-      const { value, done } = await stream.next();
-      if (done) {
+      //console.log("got persistent stream", { id });
+      this.persistStream = stream;
+      try {
+        while (true) {
+          const { value, done } = await stream.next();
+          if (done) {
+            return;
+          }
+          if (value.headers?.content?.state == "watch") {
+            // switched to watch mode
+            return;
+          }
+          const messages = value.data as (SetOperation | DeleteOperation)[];
+          const seq = this.processPersistentMessages(messages, noEmit);
+          if (seq != null) {
+            // we update start_seq in case we need to try again
+            start_seq = seq! + 1;
+          }
+        }
         return;
+      } catch (err) {
+        //         console.log(
+        //           `core-stream getAllFromPersist: during processing the initial stream -- ${err}`,
+        //         );
+        // the above usually just gets all the data (in chunks), processes
+        // it and returns done.  But if something went wrong during processing the
+        // initial stream, maybe "await stream.next()" could throw.
+        if (err.code == 403) {
+          throw err;
+        }
+        //         console.log(
+        //           `core-stream getAllFromPersist: will retry in ${d_outer}ms`,
+        //         );
+        await delay(d_outer);
+        d_outer = Math.min(15000, d_outer * 1.2);
       }
-      if (value.headers?.content?.state == "watch") {
-        // switched to watch mode
-        return;
-      }
-      const messages = value.data as (SetOperation | DeleteOperation)[];
-      this.processPersistentMessages(messages, noEmit);
     }
   };
 
+  // because it never returns until close and reuseInFlight,
+  // you can call startRenewLoop multiple times safely and
+  // only the first call does anything (very slight memory leak).
   private startRenewLoop = reuseInFlight(async () => {
     while (this.renewLoopParams?.lifetime && this.renewLoopParams?.id) {
       // max to avoid weird situation bombarding server or infinite loop
@@ -282,13 +343,18 @@ export class CoreStream<T = any> extends EventEmitter {
       // closed
       return;
     }
+    let seq = undefined;
     for (const mesg of messages) {
       try {
         this.processPersistentMessage(mesg, noEmit);
+        if (mesg["seq"] != null) {
+          seq = mesg["seq"];
+        }
       } catch (err) {
         console.log("WARNING: issue processing message", mesg, err);
       }
     }
+    return seq;
   };
 
   private processPersistentMessage = (
@@ -419,9 +485,14 @@ export class CoreStream<T = any> extends EventEmitter {
       if (this.persistStream == null) {
         throw Error("persistentStream must be defined");
       }
-      for await (const { data } of this.persistStream) {
-        if (this.client == null) return;
-        this.processPersistentMessages(data, false);
+      try {
+        for await (const { data } of this.persistStream) {
+          if (this.client == null) return;
+          this.processPersistentMessages(data, false);
+        }
+      } catch (err) {
+        // I don't think this can ever happen:
+        console.log(`WARNING: core-stream -- ${err}`);
       }
       // above loop exists when the persistent server
       // stops sending messages for some reason. In that

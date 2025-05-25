@@ -181,9 +181,11 @@ describe("create a dstream with limit on the total number of messages, and confi
   });
 
   it("verifies that max_age works", async () => {
-    await delay(30);
+    await s.save();
+    expect(s.hasUnsavedChanges()).toBe(false);
+    await delay(100);
     s.push("new");
-    s.config({ max_age: 25 }); // anything older than 25ms should be deleted
+    await s.config({ max_age: 20 }); // anything older than 20ms should be deleted
     await wait({ until: () => s.length == 1 });
     expect(s.getAll()).toEqual(["new"]);
     await s.config({ max_age: -1 });
