@@ -1943,7 +1943,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       aspect: ConfigurationAspect = "main",
       no_cache = false,
     ): Promise<Configuration | void> => {
-      console.log("init_configuration", this.project_id);
       this.setState({ configuration_loading: true });
 
       const store = this.get_store();
