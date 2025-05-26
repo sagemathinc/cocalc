@@ -1960,7 +1960,7 @@ export class SyncDoc extends EventEmitter {
     }
     if (this.useConat) {
       dbg("cursors broadcast using pub/sub");
-      this.cursors_table = await this.client.pubsub_nats({
+      this.cursors_table = await this.client.pubsub_conat({
         project_id: this.project_id,
         path: this.path,
         name: "cursors",

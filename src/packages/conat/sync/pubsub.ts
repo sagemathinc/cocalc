@@ -1,18 +1,17 @@
 /*
-Use NATS simple pub/sub to share state for something *ephemeral* in a project.
+Use Conats simple pub/sub to share state for something very *ephemeral* in a project.
 
 This is used, e.g., for broadcasting a user's cursors when they are editing a file.
 */
 
 import { projectSubject } from "@cocalc/conat/names";
-import { type NatsEnv, State } from "@cocalc/conat/types";
+import { State } from "@cocalc/conat/types";
 import { EventEmitter } from "events";
-import { isConnectedSync } from "@cocalc/conat/util";
-import { type Subscription } from "@cocalc/conat/core/client";
+import { type Subscription, getClient, Client } from "@cocalc/conat/core/client";
 
 export class PubSub extends EventEmitter {
   private subject: string;
-  private env: NatsEnv;
+  private client: Client;
   private sub?: Subscription;
   private state: State = "disconnected";
 
@@ -20,15 +19,15 @@ export class PubSub extends EventEmitter {
     project_id,
     path,
     name,
-    env,
+    client,
   }: {
     project_id: string;
     name: string;
     path?: string;
-    env: NatsEnv;
+    client?: Client;
   }) {
     super();
-    this.env = env;
+    this.client = client ?? getClient();
     this.subject = projectSubject({
       project_id,
       path,
@@ -54,15 +53,11 @@ export class PubSub extends EventEmitter {
   };
 
   set = (obj) => {
-    if (!isConnectedSync()) {
-      // when disconnected, all state is dropped
-      return;
-    }
-    this.env.cn.publish(this.subject, obj);
+    this.client.publish(this.subject, obj);
   };
 
   private subscribe = async () => {
-    this.sub = await this.env.cn.subscribe(this.subject);
+    this.sub = await this.client.subscribe(this.subject);
     this.setState("connected");
     for await (const mesg of this.sub) {
       this.emit("change", mesg.data);

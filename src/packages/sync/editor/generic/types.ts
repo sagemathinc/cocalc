@@ -129,7 +129,7 @@ export interface ProjectClient extends EventEmitter {
   ) => Promise<SyncTable>;
 
   synctable_conat: (query: any, obj?) => Promise<any>;
-  pubsub_nats: (query: any, obj?) => Promise<any>;
+  pubsub_conat: (query: any, obj?) => Promise<any>;
   callConatService?: CallConatServiceFunction;
   createConatService?: CreateConatServiceFunction;
 

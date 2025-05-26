@@ -178,8 +178,8 @@ export class Client extends EventEmitter implements Client0 {
   async synctable_conat(_query: any): Promise<SyncTable> {
     throw Error("synctable_conat: not implemented");
   }
-  async pubsub_nats(_query: any): Promise<SyncTable> {
-    throw Error("pubsub_nats: not implemented");
+  async pubsub_conat(_query: any): Promise<SyncTable> {
+    throw Error("pubsub_conat: not implemented");
   }
 
   async natsRequest(_subject: string, _mesg: any, _options?) {

@@ -95,7 +95,7 @@ export interface WebappClient extends EventEmitter {
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;
-  pubsub_nats: Function;
+  pubsub_conat: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
@@ -179,7 +179,7 @@ class Client extends EventEmitter implements WebappClient {
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;
-  pubsub_nats: Function;
+  pubsub_conat: Function;
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
@@ -270,7 +270,7 @@ class Client extends EventEmitter implements WebappClient {
       this.sync_client,
     );
     this.synctable_conat = this.conat_client.synctable;
-    this.pubsub_nats = this.conat_client.pubsub;
+    this.pubsub_conat = this.conat_client.pubsub;
     this.callConatService = this.conat_client.callConatService;
     this.createConatService = this.conat_client.createConatService;
     this.getNatsEnv = this.conat_client.getEnv;

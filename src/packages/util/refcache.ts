@@ -95,6 +95,11 @@ export default function refCache<
   get.info = () => {
     return { name, count: { ...count } };
   };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
+  };
 
   caches[name] = get;
   return get;
@@ -165,6 +170,11 @@ export function refCacheSync<
   };
   get.info = () => {
     return { name, count: { ...count } };
+  };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
   };
   caches[name] = get;
   return get;

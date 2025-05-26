@@ -401,7 +401,7 @@ export class ConatClient extends EventEmitter {
     path?: string;
     name: string;
   }) => {
-    return new PubSub({ project_id, path, name, env: await this.getEnv() });
+    return new PubSub({ client: this.conat(), project_id, path, name });
   };
 
   // Evaluate an llm.  This streams the result if stream is given an option,

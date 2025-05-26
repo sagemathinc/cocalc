@@ -5,7 +5,6 @@ Load Conat configuration from the database, in case anything is set there.
 import getPool from "@cocalc/database/pool";
 import {
   setConatServer,
-  setConatPath,
   setConatPassword,
 } from "@cocalc/backend/data";
 

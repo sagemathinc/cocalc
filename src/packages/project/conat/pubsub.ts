@@ -9,5 +9,5 @@ export default async function pubsub({
   path?: string;
   name: string;
 }) {
-  return new PubSub({ env: await getEnv(), project_id, path, name });
+  return new PubSub({ client: (await getEnv()).cn, project_id, path, name });
 }

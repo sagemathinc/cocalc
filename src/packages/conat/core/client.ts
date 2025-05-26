@@ -278,12 +278,22 @@ function cocalcServerToSocketioAddress(url?: string): {
   return { address, path };
 }
 
-export const connect = refCacheSync<ClientOptions, Client>({
+const cache = refCacheSync<ClientOptions, Client>({
   name: "conat-client",
   createObject: (opts: ClientOptions) => {
     return new Client(opts);
   },
 });
+
+export function connect(opts: ClientOptions = {}) {
+  return cache(opts);
+}
+
+// Get any cached client, if there is one; otherwise make one
+// with default options.
+export function getClient() {
+  return cache.one() ?? connect();
+}
 
 export class Client {
   public conn: ReturnType<typeof connectToSocketIO>;

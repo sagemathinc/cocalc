@@ -524,7 +524,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await synctable_conat(query, options);
   };
 
-  pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
+  pubsub_conat = async ({ path, name }: { path?: string; name: string }) => {
     return await pubsub({ path, name });
   };
 
