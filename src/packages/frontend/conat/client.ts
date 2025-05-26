@@ -23,7 +23,6 @@ import { akv } from "@cocalc/conat/sync/akv";
 import { astream } from "@cocalc/conat/sync/astream";
 import { dko } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
-import { delay } from "awaiting";
 import { callConatService, createConatService } from "@cocalc/conat/service";
 import type {
   CallConatServiceFunction,
@@ -45,8 +44,6 @@ import {
   getEnv,
 } from "@cocalc/conat/client";
 import type { ConnectionInfo } from "./types";
-import Cookies from "js-cookie";
-import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
@@ -94,38 +91,37 @@ export class ConatClient extends EventEmitter {
 
   conat = () => {
     if (this._conatClient == null) {
-      this._conatClient = connectToConat({
+      const client = (this._conatClient = connectToConat({
         address: location.origin + appBasePath,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
-      });
-      this._conatClient.conn.on("connect", () => {
+      }));
+      client.conn.on("connect", () => {
         this.setConnectionStatus({
           state: "connected",
           reason: "",
           details: "",
         });
       });
-      this._conatClient.conn.on("disconnect", (reason, details) => {
+      client.conn.on("disconnect", (reason, details) => {
         this.setConnectionStatus({ state: "disconnected", reason, details });
       });
+      // set the account_id as soon as it is known
+      if (client.info != null) {
+        if (client.info.user?.account_id) {
+          this.client.account_id = client.info.user?.account_id;
+        } else {
+          client.conn.on("info", ({ user }) => {
+            if (user?.account_id) {
+              this.client.account_id = user.account_id;
+            }
+          });
+        }
+      }
     }
     return this._conatClient!;
   };
 
   private initConatClient = async () => {
-    let d = 100;
-    // wait until you're signed in -- usually the account_id cookie ensures this,
-    // but if somehow it got deleted, the normal websocket sign in message from the
-    // hub also provides the account_id right now.  That will eventually go away,
-    // at which point this should become fatal.
-    if (!this.client.account_id) {
-      while (!this.client.account_id) {
-        await delay(d);
-        d = Math.min(3000, d * 1.3);
-      }
-      // we know the account_id, so set it so next time sign is faster.
-      Cookies.set(ACCOUNT_ID_COOKIE, this.client.account_id);
-    }
     setConatClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
