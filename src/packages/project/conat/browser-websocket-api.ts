@@ -43,7 +43,7 @@ import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getPrimusConnection } from "@cocalc/conat/primus";
 import { getSubject } from "./names";
 
-const logger = getLogger("project:nats:browser-websocket-api");
+const logger = getLogger("project:conat:browser-websocket-api");
 
 export async function init() {
   const nc = await getConnection();

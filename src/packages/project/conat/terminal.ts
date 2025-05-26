@@ -21,7 +21,7 @@ import {
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
 
-const logger = getLogger("server:nats:terminal");
+const logger = getLogger("project:conat:terminal");
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 

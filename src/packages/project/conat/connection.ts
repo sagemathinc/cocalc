@@ -26,7 +26,7 @@ export { connect as connectToConat } from "@cocalc/backend/conat/conat";
 
 export default getConnection;
 
-const logger = getLogger("project:nats:connection");
+const logger = getLogger("project:conat:connection");
 
 function getServers() {
   if (process.env.NATS_SERVER) {

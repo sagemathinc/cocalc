@@ -49,7 +49,7 @@ import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed
 import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
 import { delay } from "awaiting";
 
-const logger = getLogger("server:nats:api");
+const logger = getLogger("server:conat:api");
 
 export function initAPI() {
   mainLoop();
@@ -64,7 +64,7 @@ async function mainLoop() {
       lastStart = Date.now();
       await serve();
     } catch (err) {
-      logger.debug(`hub nats api service error -- ${err}`);
+      logger.debug(`hub conat api service error -- ${err}`);
       if (Date.now() - lastStart >= 30000) {
         // it ran for a while, so no delay
         logger.debug(`will restart immediately`);

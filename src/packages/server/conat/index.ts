@@ -8,18 +8,18 @@ import { initServer as initPersistServer } from "@cocalc/backend/conat/persist";
 
 export { loadConatConfiguration };
 
-const logger = getLogger("server:nats");
+const logger = getLogger("server:conat");
 
 export async function initConatChangefeedServer() {
+  logger.debug("initConatChangefeedServer");
   await loadConatConfiguration();
-  // do NOT await initDatabase
   initChangefeedServer();
 }
 
 export async function initConatMicroservices() {
-  logger.debug("initializing nats cocalc hub server");
+  logger.debug("initializing conat cocalc hub server");
   await loadConatConfiguration();
-  
+
   // do not block on any of these!
   initAPI();
   initLLM();

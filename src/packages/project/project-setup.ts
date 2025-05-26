@@ -135,6 +135,8 @@ export function cleanup(): void {
     "PATH_COCALC",
     "COCALC_ROOT",
     "DEBUG_CONSOLE",
+    "CONAT_SERVER",
+    "PORT",
   ];
   envrm.forEach((name) => delete process.env[name]);
 

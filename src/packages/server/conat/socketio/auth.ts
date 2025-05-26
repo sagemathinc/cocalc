@@ -161,7 +161,6 @@ function extractProjectSubject(subject: string): string {
   return "";
 }
 
-
 // A CoCalc User is (so far): a project or account or a hub (not covered here).
 export type CoCalcUser =
   | {
@@ -189,7 +188,10 @@ export function getCoCalcUserType({
   throw Error("account_id or project_id must be specified");
 }
 
-export function getCoCalcUserId({ account_id, project_id }: CoCalcUser): string {
+export function getCoCalcUserId({
+  account_id,
+  project_id,
+}: CoCalcUser): string {
   if (account_id) {
     if (project_id) {
       throw Error("exactly one of account_id or project_id must be specified");
@@ -201,4 +203,3 @@ export function getCoCalcUserId({ account_id, project_id }: CoCalcUser): string 
   }
   throw Error("account_id or project_id must be specified");
 }
-

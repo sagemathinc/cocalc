@@ -5,16 +5,16 @@ cd packages/server
 
 
    s = await require('@cocalc/server/conat/socketio').initConatServer()
-   
+
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000})
-   
+
 
 For clustering:
 
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
-   
+
    s1 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
-   
+
 Corresponding clients:
 
    c0 = require('@cocalc/conat/core/client').connect('http://localhost:3000')
@@ -22,11 +22,11 @@ Corresponding clients:
    c1 = require('@cocalc/conat/core/client').connect('http://localhost:3001')
 
 ---
-    
+
 Or from cocalc/src
 
    pnpm conat-server
-   
+
 */
 
 import type { ServerInfo } from "./types";
@@ -137,8 +137,8 @@ export class ConatServer {
     this.log("Starting Conat server...", {
       id,
       path,
-      port,
-      httpServer: httpServer != null,
+      port: httpServer ? undefined : port,
+      httpServer: httpServer ? "httpServer(...)" : undefined,
       valkey,
     });
     const socketioOptions = {

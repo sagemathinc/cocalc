@@ -47,7 +47,7 @@ import { type ConatService } from "@cocalc/conat/service";
 import { MultipathWatcher } from "@cocalc/backend/path-watcher";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("project:nats:listings");
+const logger = getLogger("project:conat:listings");
 
 let service: ConatService | null;
 export async function init() {

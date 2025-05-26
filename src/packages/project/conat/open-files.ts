@@ -5,14 +5,14 @@ DEVELOPMENT:
 
 0. From the browser with the project opened, terminate the open-files api service:
 
-    
+
     await cc.client.conat_client.projectApi(cc.current()).system.terminate({service:'open-files'})
 
 
 
 Set env variables as in a project (see  api/index.ts ), then in nodejs:
 
-DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:nats:* node
+DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:conat:* node
 
     x = await require("@cocalc/project/conat/open-files").init(); Object.keys(x)
 
@@ -107,7 +107,7 @@ import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import "@cocalc/project/conat/env";
 import { chdir } from "node:process";
 
-const logger = getLogger("project:nats:open-files");
+const logger = getLogger("project:conat:open-files");
 
 // we check all files we are currently managing this frequently to
 // see if they exist on the filesystem:

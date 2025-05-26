@@ -15,7 +15,7 @@ import { init as initListings } from "./listings";
 import { init as initRead } from "./files/read";
 import { init as initWrite } from "./files/write";
 
-const logger = getLogger("project:nats:index");
+const logger = getLogger("project:conat:index");
 
 export default async function init() {
   logger.debug("starting NATS project services");
