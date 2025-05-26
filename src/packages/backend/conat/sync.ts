@@ -1,7 +1,7 @@
 import {
   dstream as createDstream,
   type DStream,
-  type CreateOptions as DstreamCreateOptions,
+  type DStreamOptions as DstreamCreateOptions,
 } from "@cocalc/conat/sync/dstream";
 import { dkv as createDKV, type DKV, type DKVOptions } from "@cocalc/conat/sync/dkv";
 import { dko as createDKO, type DKO } from "@cocalc/conat/sync/dko";

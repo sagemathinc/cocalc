@@ -296,9 +296,14 @@ export class DKV<T = any> extends EventEmitter {
     this.emit("change", { key, value, prev });
   };
 
-  get = (key: string): T | undefined => {
+  get(key: string): T | undefined;
+  get(): { [key: string]: T };
+  get(key?: string): T | { [key: string]: T } | undefined {
     if (this.kv == null) {
       throw Error("closed");
+    }
+    if (key === undefined) {
+      return this.getAll();
     }
     const local = this.local[key];
     if (local === TOMBSTONE) {
@@ -308,7 +313,7 @@ export class DKV<T = any> extends EventEmitter {
       return local;
     }
     return this.kv.getKv(key);
-  };
+  }
 
   get length(): number {
     // not efficient

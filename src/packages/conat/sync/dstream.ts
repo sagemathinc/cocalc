@@ -43,6 +43,9 @@ export interface DStreamOptions {
   noAutosave?: boolean;
   ephemeral?: boolean;
   connectionOptions?: ConnectionOptions;
+
+  noCache?: boolean;
+  noInventory?: boolean;
 }
 
 export class DStream<T = any> extends EventEmitter {
@@ -427,27 +430,22 @@ export class DStream<T = any> extends EventEmitter {
   */
 }
 
-export interface CreateOptions extends DStreamOptions {
-  noCache?: boolean;
-  noInventory?: boolean;
-}
-
-export const cache = refCache<CreateOptions, DStream>({
+export const cache = refCache<DStreamOptions, DStream>({
   name: "dstream",
-  createKey: (options: CreateOptions) => {
+  createKey: (options: DStreamOptions) => {
     if (!options.name) {
       throw Error("name must be specified");
     }
     const { name, account_id, project_id } = options;
     return jsonStableStringify({ name, account_id, project_id })!;
   },
-  createObject: async (options: CreateOptions) => {
+  createObject: async (options: DStreamOptions) => {
     const dstream = new DStream(options);
     await dstream.init();
     return dstream;
   },
 });
 
-export async function dstream<T>(options: CreateOptions): Promise<DStream<T>> {
+export async function dstream<T>(options: DStreamOptions): Promise<DStream<T>> {
   return await cache(options);
 }

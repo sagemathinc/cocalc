@@ -214,6 +214,15 @@ import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { join } from "path";
+import { dko, type DKO } from "@cocalc/conat/sync/dko";
+import { dkv, type DKVOptions, type DKV } from "@cocalc/conat/sync/dkv";
+import {
+  dstream,
+  type DStreamOptions,
+  type DStream,
+} from "@cocalc/conat/sync/dstream";
+import { akv, type AKV } from "@cocalc/conat/sync/akv";
+import { astream, type AStream } from "@cocalc/conat/sync/astream";
 
 const logger = getLogger("core/client");
 
@@ -331,7 +340,10 @@ export class Client {
       this.syncSubscriptions();
     });
     this.conn.io.on("error", (...args) => {
-      logger.debug(`Conat: Error connecting -- `, ...args);
+      logger.debug(
+        `Conat: Error connecting to ${this.options.address} -- `,
+        ...args,
+      );
     });
 
     this.initInbox();
@@ -891,6 +903,19 @@ export class Client {
     };
     f();
     return sub;
+  };
+
+  sync = {
+    dkv: async (opts: DKVOptions): Promise<DKV> =>
+      await dkv({ client: this, ...opts }),
+    akv: async (opts: DKVOptions): Promise<AKV> =>
+      await akv({ client: this, ...opts }),
+    dko: async (opts: DKVOptions): Promise<DKO> =>
+      await dko({ client: this, ...opts }),
+    dstream: async (opts: DStreamOptions): Promise<DStream> =>
+      await dstream({ client: this, ...opts }),
+    astream: async (opts: DStreamOptions): Promise<AStream> =>
+      await astream({ client: this, ...opts }),
   };
 }
 
