@@ -365,7 +365,7 @@ import { disablePermissionCheck } from "@cocalc/conat/persist/client";
 describe("test permissions", () => {
   it("create a CoreStream, but change the path to one that wouldn't be allowed given the subject", async () => {
     const client = connect();
-    const stream = new CoreStream({
+    const stream : any = new CoreStream({
       client,
       name: "conat.ipynb",
       project_id: "00000000-0000-4000-8000-000000000000",
@@ -396,7 +396,7 @@ describe("test permissions", () => {
   it("do the tests again, but with the client side permission check disabled, to make sure the server denies us", async () => {
     disablePermissionCheck();
     const client = connect();
-    const stream = new CoreStream({
+    const stream : any = new CoreStream({
       client,
       name: "conat2.ipynb",
       project_id: "00000000-0000-4000-8000-000000000000",
