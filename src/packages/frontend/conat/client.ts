@@ -50,7 +50,6 @@ import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
-import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export interface ConatConnectionStatus {
