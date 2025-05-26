@@ -1,59 +1,59 @@
 /*
-core/client.s -- core conats client 
+core/client.s -- core conats client
 
-This is a client that has a 
+This is a client that has a
 similar API to NATS / Socket.io, but is much, much better in so many ways:
 
 - It has global pub/sub just like with NATS. This uses the server to
-  rebroadcast messages, and for authentication. 
-    Better than NATS: Authentication is done for a subject *as 
+  rebroadcast messages, and for authentication.
+    Better than NATS: Authentication is done for a subject *as
     needed* instead of at connection time.
 
 - Message can be arbitrarily large and they are *automatically* divided
   into chunks and reassembled.   Better than both NATS and socket.io.
-  
+
 - There are multiple supported ways of encoding messages, and
   no coordination is required with the server or other clients!  E.g.,
   one message can be sent with one encoding and the next with a different
-  encoding and that's fine. 
+  encoding and that's fine.
      - MsgPack: https://msgpack.org/ -- a very compact encoding that handles
-       dates nicely and small numbers efficiently.  This also works 
+       dates nicely and small numbers efficiently.  This also works
        well with binary Buffer objects, which is nice.
      - JsonCodec: uses JSON.stringify and TextEncoder.  This does not work
        with Buffer or Date and is less compact, but can be very fast.
-       
-       
+
+
 THE CORE API
 
 This section contains the crucial information you have to know to build a distributed
 system using Conat.   It's our take on the NATS primitives (it's not exactly the
-same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond model 
-for messaging on which you can build distributed systems.  The tricky part, which 
-NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust 
+same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond model
+for messaging on which you can build distributed systems.  The tricky part, which
+NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust
 and scalable, in terms for authentication, real world browser connectivity and
 so on.  Our approach is to use proven mature technology like socket.io, sqlite
 and valkey, instead of writing everything from scratch.
 
-Clients: We view all clients as plugged into a common "dial tone", 
+Clients: We view all clients as plugged into a common "dial tone",
 except for optional permissions that are configured when starting the server.
 The methods you call on the client to build everything are:
 
  - subscribe, subscribeSync - subscribe to a subject which returns an
-   async iterator over all messages that match the subject published by 
-   anyone with permission to do so.   If you provide the same optional 
-   queue parameter for multiple subscribers, then one subscriber in each queue 
-   group receives each message. The async form of this functino confirms 
+   async iterator over all messages that match the subject published by
+   anyone with permission to do so.   If you provide the same optional
+   queue parameter for multiple subscribers, then one subscriber in each queue
+   group receives each message. The async form of this functino confirms
    the subscription was created before returning. If a client creates multiple
-   subscriptions at the same time, the queue group must be the same.  
+   subscriptions at the same time, the queue group must be the same.
    Subscriptions are guaranteed to stay valid until the client ends them;
    they do not stop working due to client or server reconnects or restarts.
    (If you need more subscriptions with different queue groups, make another
    client object.)
-   
+
  - publish, publishSync - publish to a subject. The async version returns
-   a count of the number of recipients, whereas the sync version is 
+   a count of the number of recipients, whereas the sync version is
    fire-and-forget.
-   **There is no a priori size limit on messages since chunking 
+   **There is no a priori size limit on messages since chunking
      is automatic.  However, we have to impose some limit, but
      it can be much larger than the socketio message size limit.**
 
@@ -62,28 +62,28 @@ The methods you call on the client to build everything are:
    it throws a 503 error.  To create a microservice, subscribe
    to a subject pattern and called mesg.respond(...) on each message you
    receive.
-   
+
  - requestMany - send a message to a subject, and receive many
    messages in reply.   Typically you end the response stream by sending
    a null message, but what you do is up to you.  This is very useful
    for streaming arbitrarily large data, long running changefeeds, LLM
    responses, etc.
-   
-   
+
+
 Messages:  A message mesg is:
-  
+
  - Data:
    - subject  - the subject the message was sent to
    - encoding - usually MessagePack
    - raw      - encoded binary data
    - headers  - a JSON-able Javascript object.
- 
+
  - Methods:
    - data: this is a property, so if you do mesg.data, then it decodes raw
      and returns the resulting Javascript object.
-   - respond, respondSync: if REPLY_HEADER is set, calling this publishes a 
+   - respond, respondSync: if REPLY_HEADER is set, calling this publishes a
      respond message to the original sender of the message.
-   
+
 
 Persistence:
 
@@ -92,9 +92,9 @@ be used to build the analogue of Jetstream's streams and kv stores.  The object
 store isn't necessary since there is no limit on message size.  Conat's persistent
 streams are compressed by default and backed by individual sqlite files, which
 makes them very memory efficient and it is easy to tier storage to cloud storage.
-   
+
 UNIT TESTS: See packages/server/nats/test/core
-   
+
 MISC NOTES:
 
 NOTE: There is a socketio msgpack parser, but it just doesn't
@@ -110,8 +110,8 @@ SUBSCRIPTION ROBUSTNESS: When you call client.subscribe(...) you get back an asy
 It ONLY ends when you explicitly do the standard ways of terminating
 such an iterator, including calling .close() on it.  It is a MAJOR BUG
 if it were to terminate for any other reason.  In particular, the subscription
-MUST NEVER throw an error or silently end when the connection is dropped 
-then resumed, or the server is restarted, or the client connects to 
+MUST NEVER throw an error or silently end when the connection is dropped
+then resumed, or the server is restarted, or the client connects to
 a different server!  These situations can, of course, result in missing
 some messages, but that's understood.  There are no guarantees at all with
 a subscription that every message is received.  That said, we have enabled
@@ -130,9 +130,9 @@ USAGE:
 
 The following should mostly work to interactively play around with this
 code and develop it.  It's NOT automatically tested and depends on your
-environment though, so may break.  See the unit tests in 
+environment though, so may break.  See the unit tests in
 
-        packages/server/nats/test/core/ 
+        packages/server/nats/test/core/
 
 for something that definitely works perfectly.
 
@@ -140,7 +140,7 @@ for something that definitely works perfectly.
 For developing at the command line, cd to packages/backend, then in node:
 
    c = require('@cocalc/backend/conat/conat').connect()
-   
+
 or
 
    c = require('@cocalc/conat/core/client').connect('http://localhost:3000')
@@ -148,7 +148,7 @@ or
    c.watch('a')
 
    s = await c.subscribe('a');  for await (const x of s) { console.log(x.length)}
-   
+
 // in another console
 
    c = require('@cocalc/backend/conat/conat').connect()
@@ -157,7 +157,7 @@ or
 // in browser (right now)
 
    cc.nats.conat()
-   
+
 // client server:
 
    s = await c.subscribe('eval'); for await(const x of s) { x.respond(eval(x.data)) }
@@ -166,27 +166,27 @@ then in another console
 
    f = async () => (await c.request('eval', '2+3')).data
    await f()
-   
+
    t = Date.now(); for(i=0;i<1000;i++) { await f()} ; Date.now()-t
-   
+
 // slower, but won't silently fail due to errors, etc.
 
    f2 = async () => (await c.request('eval', '2+3', {confirm:true})).data
-   
+
 Wildcard subject:
 
-   
+
    c = require('@cocalc/conat/core/client').connect(); c.watch('a.*');
-   
-   
+
+
    c = require('@cocalc/conat/core/client').connect(); c.publish('a.x', 'foo')
-   
-   
+
+
 Testing disconnect
 
    c.sub('>')
    c.conn.io.engine.close();0;
-   
+
 other:
 
   a=0; setInterval(()=>c.pub('a',a++), 250)
@@ -319,7 +319,7 @@ export class Client {
       // using long polling to RECEIVE messages.  Not insurmountable.
       transports: ["websocket"],
       // nodejs specific for project/compute server in some settings
-      rejectUnauthorized: true,
+      rejectUnauthorized: false,
       ...options,
       path,
     });
@@ -329,6 +329,9 @@ export class Client {
     this.conn.on("connect", () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       this.syncSubscriptions();
+    });
+    this.conn.io.on("error", (...args) => {
+      logger.debug(`Conat: Error connecting -- `, ...args);
     });
 
     this.initInbox();
@@ -614,12 +617,12 @@ export class Client {
      arith = await client2.call('arith')
      await arith.mul(2,3)
      await arith.add(2,3)
-     
+
   There's by default a single queue group '0', so if you create multiple services on various
   computers, then requests are load balanced across them automatically.
-   
+
   Close the service when done:
-  
+
      service.close();
   */
   service: <T = any>(
