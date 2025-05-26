@@ -89,8 +89,8 @@ export function validate_client_query(query, account_id: string) {
       const val = f(pattern, schema.client_db, account_id);
       if (val != null) {
         // only if != null -- this shouldn't change get queries to set queries...
-        // also if val[k]===undefined don't set that (this broke after switch to MsgPack)
-        pattern[k] = val[k];
+        // also if val === undefined don't set that (this broke after switch to MsgPack)
+        pattern[k] = val;
       }
     }
   }
