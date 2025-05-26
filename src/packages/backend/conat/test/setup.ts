@@ -67,8 +67,8 @@ export async function before() {
 }
 
 const clients: Client[] = [];
-export function connect(...args): Client {
-  const cn = server.client(...args);
+export function connect(opts?): Client {
+  const cn = server.client(opts);
   clients.push(cn);
   return cn;
 }

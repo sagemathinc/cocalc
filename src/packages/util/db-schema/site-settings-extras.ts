@@ -186,7 +186,6 @@ export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "conat_heading"
   | "conat_server"
-  | "conat_path"
   | "conat_password"
   | "stripe_heading"
   | "stripe_publishable_key"
@@ -279,18 +278,11 @@ export const EXTRAS: SettingsExtras = {
     type: "header",
     tags: ["Conat"],
   },
-  // Conat config is loaded in packages/server/nats/credentials.ts
+  // Conat config may be loaded from via code in packages/server/conat/configuration.ts
   conat_server: {
     name: "Conat Server URL",
-    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.",
+    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.  This URL should include any base path.",
     default: "",
-    password: false,
-    tags: ["Conat"],
-  },
-  conat_path: {
-    name: "Conat path",
-    desc: "Path of conat websocket endpoint that NATS is serving on.  Defaults to '/conat' or `$COCALC_PATH`.",
-    default: "/conat",
     password: false,
     tags: ["Conat"],
   },

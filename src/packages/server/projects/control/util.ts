@@ -13,7 +13,7 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
-import { conatPath, conatServer } from "@cocalc/backend/data";
+import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
 
@@ -278,7 +278,6 @@ export async function getEnvironment(
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
-      CONAT_PATH: conatPath,
     },
   };
 }

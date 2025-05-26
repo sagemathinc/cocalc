@@ -239,15 +239,13 @@ export function setNatsServer(server) {
 }
 
 // dev mode defaults
-export let conatServer = process.env.CONAT_SERVER ?? `http://localhost:${port}`;
-export let conatPath = process.env.CONAT_PATH ?? join(basePath, "conat");
+export let conatServer =
+  process.env.CONAT_SERVER ??
+  `http://localhost:${port}${basePath.length > 1 ? basePath : ""}`;
 export let conatPassword = "";
 
 export function setConatServer(server: string) {
   conatServer = server;
-}
-export function setConatPath(path: string) {
-  conatPath = path;
 }
 export function setConatPassword(password: string) {
   conatPassword = password;

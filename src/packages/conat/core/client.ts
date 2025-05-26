@@ -212,37 +212,33 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
+import { refCacheSync } from "@cocalc/util/refcache";
+import { join } from "path";
 
 const logger = getLogger("core/client");
 
 interface Options {
+  // address = the address of a cocalc server, including the base url, e.g.,
+  //
+  //   https://cocalc.com
+  //
+  // or for a dev server running locally with a base url:
+  //
+  //   http://localhost:4043/3fa218e5-7196-4020-8b30-e2127847cc4f/port/5002
+  //
+  // The socketio path is always /conat (after the base url) and is set automatically.
+  //
+  address?: string;
   inboxPrefix?: string;
-  path?: string;
 }
 
-export type ConnectOptions = Options & {
+export type ClientOptions = Options & {
   noCache?: boolean;
 } & Partial<SocketOptions> &
   Partial<ManagerOptions>;
 
-let theClient: Client | undefined = undefined;
-export function connect(
-  address = "http://localhost:3000",
-  options?: ConnectOptions,
-) {
-  const noCache = options?.noCache;
-  if (!noCache && theClient !== undefined) {
-    return theClient;
-  }
-  const client = new Client(address, options);
-  if (!noCache) {
-    theClient = client;
-  }
-  return client;
-}
-
 const INBOX_PREFIX = "_INBOX";
-const REPLY_HEADER = "CoCalc-Reply";
+const REPLY_HEADER = "CN-Reply";
 const DEFAULT_REQUEST_TIMEOUT = 10000;
 const MAX_HEADER_SIZE = 100000;
 
@@ -266,9 +262,28 @@ interface SubscriptionOptions {
 // JsonCodec to handle Date's properly, don't change this!!
 const DEFAULT_ENCODING = DataEncoding.MsgPack;
 
-interface ClientOptions {
-  inboxPrefix?: string;
+function cocalcServerToSocketioAddress(url?: string): {
+  address: string;
+  path: string;
+} {
+  url = url ?? process.env.CONAT_SERVER;
+  if (!url) {
+    throw Error(
+      "Must give Conat server address or set CONAT_SERVER environment variable",
+    );
+  }
+  const u = new URL(url, "http://dummy.org");
+  const address = u.origin;
+  const path = join(u.pathname, "conat");
+  return { address, path };
 }
+
+export const connect = refCacheSync<ClientOptions, Client>({
+  name: "conat-client",
+  createObject: (opts: ClientOptions) => {
+    return new Client(opts);
+  },
+});
 
 export class Client {
   public conn: ReturnType<typeof connectToSocketIO>;
@@ -276,22 +291,27 @@ export class Client {
   private queueGroups: { [subject: string]: string } = {};
   public subs: { [subject: string]: SubscriptionEmitter } = {};
   public info: ServerInfo | undefined = undefined;
-  private readonly options: ClientOptions & { address: string };
+  private readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
 
-  constructor(address: string, options: Options = {}) {
-    this.options = { address, ...options };
+  constructor(options: ClientOptions) {
+    this.options = options;
 
+    // for socket.io the address has no base url
+    const { address, path } = cocalcServerToSocketioAddress(
+      this.options.address,
+    );
+    logger.debug(`Conat: Connecting to ${this.options.address}...`);
     this.conn = connectToSocketIO(address, {
-      // cocalc itself only works with new clients.
-      // TODO: chunking + long polling is tricky; need to shrink chunk size a lot, since
-      // I guess no binary protocol.
-      // Also a major problem if we allow long polling is that we must always use at most
+      // A major problem if we allow long polling is that we must always use at most
       // half the chunk size... because there is no way to know if recipients will be
-      // using long polling to RECEIVE messages.
+      // using long polling to RECEIVE messages.  Not insurmountable.
       transports: ["websocket"],
+      // nodejs specific for project/compute server in some settings
+      rejectUnauthorized: true,
       ...options,
+      path,
     });
     this.conn.on("info", (info) => {
       this.info = info;
@@ -362,7 +382,7 @@ export class Client {
   });
 
   close = () => {
-    if(this.options == null) {
+    if (this.options == null) {
       return;
     }
     for (const subject in this.queueGroups) {
@@ -378,7 +398,6 @@ export class Client {
     // @ts-ignore
     delete this.queueGroups;
     this.conn.close();
-    theClient = undefined;
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;

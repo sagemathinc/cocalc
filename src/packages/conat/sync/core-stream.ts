@@ -77,7 +77,7 @@ export interface ChangeEvent<T> {
   msgID?: string;
 }
 
-const HEADER_PREFIX = "CoCalc-";
+const HEADER_PREFIX = "CN-";
 
 export const COCALC_TOMBSTONE_HEADER = `${HEADER_PREFIX}Tombstone`;
 export const COCALC_STREAM_HEADER = `${HEADER_PREFIX}Stream`;

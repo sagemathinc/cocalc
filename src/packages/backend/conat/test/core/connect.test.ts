@@ -10,7 +10,6 @@ import { connect } from "@cocalc/backend/conat/conat";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
 
-const path = "/conat";
 let port;
 beforeAll(async () => {
   port = await getPort();
@@ -19,8 +18,8 @@ beforeAll(async () => {
 describe("create server *after* client and ensure connects properly", () => {
   let cn;
   it("starts a client connecting to that port, despite there being no server yet", async () => {
-    cn = connect(`http://localhost:${port}`, {
-      path,
+    cn = connect({
+      address: `http://localhost:${port}`,
       reconnectionDelay: 25, // fast for tests
       randomizationFactor: 0,
     });
@@ -30,7 +29,7 @@ describe("create server *after* client and ensure connects properly", () => {
 
   let server;
   it("create a server", async () => {
-    server = await initConatServer({ port, path });
+    server = await initConatServer({ port });
   });
 
   it("now client should connect", async () => {
@@ -45,7 +44,7 @@ describe("create server *after* client and ensure connects properly", () => {
   });
 
   it("create server again and observe client connects again", async () => {
-    server = await initConatServer({ port, path });
+    server = await initConatServer({ port });
     await wait({ until: () => cn.conn.connected });
     expect(cn.conn.connected).toBe(true);
   });
@@ -61,7 +60,7 @@ describe("create server after sync creating a subscription and publishing a mess
   // unless you don't care very much...
   let cn;
   it("starts a client, despite there being no server yet", async () => {
-    cn = connect(`http://localhost:${port}`, { path });
+    cn = connect({ address: `http://localhost:${port}` });
     expect(cn.conn.connected).toBe(false);
   });
 
@@ -75,7 +74,7 @@ describe("create server after sync creating a subscription and publishing a mess
 
   let server;
   it("start the server", async () => {
-    server = await initConatServer({ port, path });
+    server = await initConatServer({ port });
     await wait({ until: () => cn.conn.connected });
     await delay(50);
   });
@@ -99,7 +98,7 @@ describe("create server after sync creating a subscription and publishing a mess
 describe("create server after async creating a subscription and async publishing a message, and observe that it DOES works", () => {
   let cn;
   it("starts a client, despite there being no server yet", async () => {
-    cn = connect(`http://localhost:${port}`, { path });
+    cn = connect({ address: `http://localhost:${port}` });
     expect(cn.conn.connected).toBe(false);
   });
 
@@ -120,7 +119,7 @@ describe("create server after async creating a subscription and async publishing
 
   let server;
   it("start the server", async () => {
-    server = await initConatServer({ port, path });
+    server = await initConatServer({ port });
     await wait({ until: () => cn.conn.connected });
   });
 
