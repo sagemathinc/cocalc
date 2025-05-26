@@ -96,7 +96,7 @@ export class ConatClient extends EventEmitter {
   conat = () => {
     if (this._conatClient == null) {
       this._conatClient = connectToConat({
-        address: join(location.origin, appBasePath),
+        address: location.origin + appBasePath,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
       });
       this._conatClient.conn.on("connect", () => {
