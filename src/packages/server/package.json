@@ -55,7 +55,7 @@
     "@google-cloud/storage": "^7.11.1",
     "@google-cloud/storage-transfer": "^3.3.0",
     "@google/generative-ai": "^0.14.0",
-    "@isaacs/ttlcache": "^1.2.1",
+    "@isaacs/ttlcache": "^1.4.1",
     "@langchain/anthropic": "^0.3.18",
     "@langchain/core": "^0.3.46",
     "@langchain/google-genai": "^0.2.4",
