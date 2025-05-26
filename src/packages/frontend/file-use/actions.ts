@@ -86,7 +86,6 @@ export class FileUseActions<T = FileUseState> extends Actions<
   }
 
   _set = async (obj) => {
-    const x = JSON.stringify(obj);
     try {
       if (!webapp_client.is_signed_in()) {
         await once(webapp_client, "signed_in");
