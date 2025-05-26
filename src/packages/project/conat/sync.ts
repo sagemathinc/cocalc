@@ -1,7 +1,7 @@
 import {
   dstream as createDstream,
   type DStream,
-  type CreateOptions as DstreamCreateOptions,
+  type DStreamOptions,
 } from "@cocalc/conat/sync/dstream";
 import {
   dkv as createDKV,
@@ -21,12 +21,15 @@ import {
 } from "@cocalc/conat/sync/inventory";
 
 import { akv as createAKV, type AKV } from "@cocalc/conat/sync/akv";
-import { astream as createAStream, type AStream } from "@cocalc/conat/sync/astream";
+import {
+  astream as createAStream,
+  type AStream,
+} from "@cocalc/conat/sync/astream";
 
 export type { DStream, DKV, OpenFiles, OpenFileEntry };
 
 export async function dstream<T = any>(
-  opts: DstreamCreateOptions,
+  opts: DStreamOptions,
 ): Promise<DStream<T>> {
   return await createDstream<T>({ project_id, ...opts });
 }
@@ -39,7 +42,7 @@ export function akv<T = any>(opts: DKVOptions): AKV<T> {
   return createAKV<T>({ project_id, ...opts });
 }
 
-export function astream<T = any>(opts: DstreamCreateOptions): AStream<T> {
+export function astream<T = any>(opts: DStreamOptions): AStream<T> {
   return createAStream<T>({ project_id, ...opts });
 }
 
