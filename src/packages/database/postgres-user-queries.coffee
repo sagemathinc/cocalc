@@ -1168,7 +1168,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                     subs[value] = user_query.project_id
                                     cb()
                                 else
-                                    cb("FATAL: you do not have read access to this project")
+                                    cb("FATAL: you do not have read access to this project -- account_id=#{account_id}, project_id_=#{project_id}")
                 when 'project_id-public'
                     if not user_query.project_id?
                         cb("FATAL: must specify project_id")
