@@ -297,7 +297,7 @@ export class ConatServer {
     }
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
       const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(user)}`;
-      this.logger(message);
+      this.log(message);
       throw new ConatError(message, {
         code: 403,
       });
@@ -334,7 +334,7 @@ export class ConatServer {
     }
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
       const message = `permission denied publishing to '${subject}' from ${JSON.stringify(from)}`;
-      this.logger(message);
+      this.log(message);
       throw new ConatError(message, {
         // this is the http code for permission denied, and having this
         // set is assumed elsewhere in our code, so don't mess with it!
@@ -378,7 +378,7 @@ export class ConatServer {
       user = { error: `${err}` };
     }
     const id = socket.id;
-    this.log("got connection", { id, user });
+    this.log("new connection", { id, user });
     if (this.subscriptions[id] == null) {
       this.subscriptions[id] = new Set<string>();
     }
@@ -434,6 +434,7 @@ export class ConatServer {
     });
 
     socket.on("disconnecting", async () => {
+      this.log("disconnecting", { id, user });
       for (const subject of this.ephemeral[socket.id] ?? []) {
         this.unsubscribe({ socket, subject });
         this.subscriptions[id].delete(subject);
@@ -443,14 +444,14 @@ export class ConatServer {
       // console.log(`will unsubscribe in ${d}ms unless client reconnects`);
       await delay(d);
       if (!this.io.of("/").adapter.sids.has(id)) {
-        //  console.log("client not back");
+        this.log("disconnecting - fully gone", { id, user });
         for (const room of rooms) {
           const subject = getSubjectFromRoom(room);
           this.unsubscribe({ socket, subject });
         }
         delete this.subscriptions[id];
       } else {
-        // console.log("client is back!");
+        this.log("disconnecting - came back", { id, user });
       }
     });
   };

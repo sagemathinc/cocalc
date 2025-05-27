@@ -163,11 +163,12 @@ export class ConatClient extends EventEmitter {
 
   // if there is a connection, put it in standby
   standby = () => {
-    this.nc?.standby();
+    // @ts-ignore
+    this._conatClient?.conn.io.disconnect();
   };
   // if there is a connection, resume it
   resume = async () => {
-    await this.nc?.resume();
+    this._conatClient?.conn.io.connect();
   };
 
   private setConnectionState = (state?) => {

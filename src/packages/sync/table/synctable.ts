@@ -722,6 +722,8 @@ export class SyncTable extends EventEmitter {
 
   private create_changefeed_connection = async (): Promise<any[]> => {
     let delay_ms: number = 3000;
+    let warned = false;
+    let first = true;
     while (true) {
       this.close_changefeed();
       if (
@@ -748,6 +750,9 @@ export class SyncTable extends EventEmitter {
         if (this.changefeed.get_state() == "closed" || !initval) {
           throw Error("closed during creation");
         }
+        if (warned) {
+          console.log(`SUCCESS creating ${this.table} changefeed`);
+        }
         return initval;
       } catch (err) {
         if (is_fatal(err.toString())) {
@@ -755,11 +760,17 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
-        // This can happen because we might suddenly NOT be ready
-        // to query db immediately after we are ready...
-        console.log(
-          `WARNING: ${this.table} -- failed to create changefeed connection; will retry in ${delay_ms}ms -- ${err}`,
-        );
+        if (first) {
+          // don't warn the first time
+          first = false;
+        } else {
+          // This can happen because we might suddenly NOT be ready
+          // to query db immediately after we are ready...
+          warned = true;
+          console.log(
+            `WARNING: ${this.table} -- failed to create changefeed connection; will retry in ${delay_ms}ms -- ${err}`,
+          );
+        }
         await delay(delay_ms);
         delay_ms = Math.min(20000, delay_ms * 1.25);
       }
