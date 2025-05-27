@@ -14,6 +14,8 @@ import {
   PROJECT_ID_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
 
+import "./env"; // temporary until nats cleanup done.
+
 export default getConnection;
 
 export async function connectToConat(options?) {

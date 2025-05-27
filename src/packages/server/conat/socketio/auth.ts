@@ -41,7 +41,7 @@ export async function getUser(socket): Promise<CoCalcUser> {
     }
     const secret = cookies[PROJECT_SECRET_COOKIE_NAME];
     if ((await getProjectSecretToken(project_id)) == secret) {
-      return { project_id };
+      return { project_id: project_id! };
     } else {
       throw Error(`invalid secret token for project`);
     }
