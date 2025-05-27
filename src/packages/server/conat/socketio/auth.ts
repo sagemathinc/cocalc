@@ -6,23 +6,30 @@ import { parse } from "cookie";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { getRememberMeHashFromCookieValue } from "@cocalc/server/auth/remember-me";
 import LRU from "lru-cache";
+import { conatPassword } from "@cocalc/backend/data";
 
-// [ ] TODO -- api keys, hubs,
-export async function getUser(socket): Promise<CoCalcUser | null> {
+export async function getUser(socket): Promise<CoCalcUser> {
   if (!socket.handshake.headers.cookie) {
-    // TEMPORARY -- no auth = hub
-    return { hub_id: "hub" };
+    throw Error("you must set authentication cookies");
   }
   const cookies = parse(socket.handshake.headers.cookie);
+  if (cookies["Hub-Password"] == conatPassword) {
+    return { hub_id: "hub" };
+  }
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
   if (!value) {
-    return null;
+    throw Error(
+      `must set one of the following cookies: '${REMEMBER_ME_COOKIE_NAME}' or 'Hub-Password'`,
+    );
   }
   const hash = getRememberMeHashFromCookieValue(value);
   if (!hash) {
-    return null;
+    throw Error("invalid remember me cookie");
   }
   const account_id = await getAccountIdFromRememberMe(hash);
+  if (!account_id) {
+    throw Error("remember me cookie expired");
+  }
   return { account_id };
 }
 

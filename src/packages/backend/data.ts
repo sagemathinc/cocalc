@@ -28,9 +28,9 @@ import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
-import { hostname } from "os";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
+import { uuid } from "@cocalc/util/misc";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -202,105 +202,33 @@ if (!existsSync(secrets)) {
 
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 
-// NATS
-export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
-if (!existsSync(nats)) {
-  try {
-    mkdirSync(nats, { recursive: true, mode: 0o700 });
-  } catch {
-    // nonfatal -- there are other ways to auth to nats
-  }
-}
-export const natsPorts = {
-  server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
-  ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
-  cluster: parseInt(process.env.COCALC_NATS_CLUSTER_PORT ?? "4248"),
-};
-
-export const natsServerName = process.env.COCALC_NATS_SERVER_NAME ?? hostname();
-export const natsClusterName =
-  process.env.COCALC_NATS_CLUSTER_NAME ?? "default";
-
-export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
-// note: natsWebsocketServer will be changed below if API_KEY and API_SERVER
-// are set, but COCALC_NATS_SERVER is not set.
-export let natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-
-export function setNatsPort(port) {
-  natsPorts.server = parseInt(port);
-}
-export function setNatsWebsocketPort(port) {
-  natsPorts.ws = parseInt(port);
-  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-}
-export function setNatsServer(server) {
-  natsServer = server;
-  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-}
-
-// dev mode defaults
+// CONAT server and password
 export let conatServer =
   process.env.CONAT_SERVER ??
   `http://localhost:${port}${basePath.length > 1 ? basePath : ""}`;
-export let conatPassword = "";
 
 export function setConatServer(server: string) {
   conatServer = server;
 }
+
+// Password used by hub (not users!) to connect to a Conat server:
+export let conatPassword = "";
+export const conatPasswordPath = join(secrets, "conat_password");
+try {
+  conatPassword = readFileSync(conatPasswordPath).toString().trim();
+} catch {
+  // generate something at random for this process session (used, e.g., by
+  // unit testing if no file exists)
+  conatPassword = uuid() + uuid();
+}
 export function setConatPassword(password: string) {
   conatPassword = password;
-}
-
-// Password used to connect to the nats server
-export let natsPassword = "";
-export const natsPasswordPath = join(secrets, "nats_password");
-try {
-  natsPassword = readFileSync(natsPasswordPath).toString().trim();
-} catch {}
-export function setNatsPassword(password: string) {
-  natsPassword = password;
-}
-
-export const natsBackup =
-  process.env.COCALC_NATS_BACKUP ?? join(nats, "backup");
-
-export const natsUser = "cocalc";
-
-export let natsAuthCalloutNSeed = "";
-export const natsAuthCalloutNSeedPath = join(secrets, "nats_auth_nseed");
-try {
-  natsAuthCalloutNSeed = readFileSync(natsAuthCalloutNSeedPath)
-    .toString()
-    .trim();
-} catch {}
-export function setNatsAuthCalloutNSeed(auth_callout: string) {
-  natsAuthCalloutNSeed = auth_callout;
-}
-export let natsAuthCalloutXSeed = "";
-export const natsAuthCalloutXSeedPath = join(secrets, "nats_auth_xseed");
-try {
-  natsAuthCalloutXSeed = readFileSync(natsAuthCalloutXSeedPath)
-    .toString()
-    .trim();
-} catch {}
-export function setNatsAuthCalloutXSeed(auth_callout: string) {
-  natsAuthCalloutXSeed = auth_callout;
 }
 
 // API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
-if (
-  process.env.API_KEY &&
-  process.env.API_SERVER &&
-  !process.env.COCALC_NATS_SERVER
-) {
-  // the nats server was not set via env variables, but the api server is set,
-  // along with the api key. This happens for compute servers, and in this case
-  // we also set the nats server by default to the same as the api server.
-  natsWebsocketServer = "ws" + apiServer.slice(4) + "/nats";
-}
 
 // Delete API_KEY from environment to reduce chances of it leaking, e.g., to
 // spawned terminal subprocess.
