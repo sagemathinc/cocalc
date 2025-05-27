@@ -5,11 +5,13 @@ import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
 import { parse } from "cookie";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { getRememberMeHashFromCookieValue } from "@cocalc/server/auth/remember-me";
+import LRU from "lru-cache";
 
 // [ ] TODO -- api keys, hubs,
 export async function getUser(socket): Promise<CoCalcUser | null> {
   if (!socket.handshake.headers.cookie) {
-    return null;
+    // TEMPORARY -- no auth = hub
+    return { hub_id: "hub" };
   }
   const cookies = parse(socket.handshake.headers.cookie);
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
@@ -24,21 +26,34 @@ export async function getUser(socket): Promise<CoCalcUser | null> {
   return { account_id };
 }
 
+const isAllowedCache = new LRU<string, boolean>({
+  max: 10000,
+  ttl: 1000 * 60, // 1 minute
+});
+
 export async function isAllowed({
   user,
   subject,
   type,
 }: {
-  user?: CoCalcUser;
+  user?: CoCalcUser | null;
   subject: string;
   type: "sub" | "pub";
-}) {
+}): Promise<boolean> {
   if (user == null) {
-    // TODO: temporarily allowing everything for non-authenticated user for dev only
+    // non-authenticated user -- allow NOTHING
+    return false;
+  }
+  const userType = getCoCalcUserType(user);
+  if (userType == "hub") {
+    // right now hubs have full permissions.
     return true;
   }
   const userId = getCoCalcUserId(user);
-  const userType = getCoCalcUserType(user);
+  const key = `${userType}-${userId}-${subject}-${type}`;
+  if (isAllowedCache.has(key)) {
+    return isAllowedCache.get(key)!;
+  }
 
   const common = checkCommonPermissions({
     userId,
@@ -47,15 +62,18 @@ export async function isAllowed({
     subject,
     type,
   });
+  let allowed;
   if (common != null) {
-    return common;
-  }
-  if (userType == "project") {
-    return await isProjectAllowed({ project_id: userId, subject, type });
+    allowed = common;
+  } else if (userType == "project") {
+    allowed = isProjectAllowed({ project_id: userId, subject, type });
   } else if (userType == "account") {
-    return await isAccountAllowed({ account_id: userId, subject, type });
+    allowed = await isAccountAllowed({ account_id: userId, subject, type });
+  } else {
+    allowed = false;
   }
-  return false;
+  isAllowedCache.set(key, allowed);
+  return allowed;
 }
 
 export function checkCommonPermissions({
@@ -161,29 +179,47 @@ function extractProjectSubject(subject: string): string {
   return "";
 }
 
-// A CoCalc User is (so far): a project or account or a hub (not covered here).
+// A CoCalc User is (so far): a project or account or a hub
 export type CoCalcUser =
   | {
       account_id: string;
       project_id?: string;
+      hub_id?: string;
+    }
+  | {
+      account_id?: string;
+      project_id?: string;
+      hub_id: string;
     }
   | {
       account_id?: string;
       project_id: string;
+      hub_id?: string;
     };
 
 export function getCoCalcUserType({
   account_id,
   project_id,
-}: CoCalcUser): "account" | "project" {
+  hub_id,
+}: CoCalcUser): "account" | "project" | "hub" {
   if (account_id) {
-    if (project_id) {
-      throw Error("exactly one of account_id or project_id must be specified");
+    if (project_id || hub_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id must be specified",
+      );
     }
     return "account";
   }
   if (project_id) {
+    if (hub_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id must be specified",
+      );
+    }
     return "project";
+  }
+  if (hub_id) {
+    return "hub";
   }
   throw Error("account_id or project_id must be specified");
 }
@@ -191,15 +227,26 @@ export function getCoCalcUserType({
 export function getCoCalcUserId({
   account_id,
   project_id,
+  hub_id,
 }: CoCalcUser): string {
   if (account_id) {
-    if (project_id) {
-      throw Error("exactly one of account_id or project_id must be specified");
+    if (project_id || hub_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id must be specified",
+      );
     }
     return account_id;
   }
   if (project_id) {
+    if (hub_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id must be specified",
+      );
+    }
     return project_id;
   }
-  throw Error("account_id or project_id must be specified");
+  if (hub_id) {
+    return hub_id;
+  }
+  throw Error("account_id or project_id or hub_id must be specified");
 }
