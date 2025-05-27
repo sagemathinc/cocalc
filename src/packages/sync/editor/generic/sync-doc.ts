@@ -1421,7 +1421,6 @@ export class SyncDoc extends EventEmitter {
         doctype: JSON.stringify(this.doctype),
       });
     } else {
-
       dbg("handling the first update...");
       this.handle_syncstring_update();
     }
@@ -1484,7 +1483,6 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-
     if (await this.isFileServer()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
@@ -1503,14 +1501,15 @@ export class SyncDoc extends EventEmitter {
         desc: "syncdoc -- load_from_disk",
       });
       log("done loading from disk");
-      this.assert_not_closed("initAll -- load from disk");
     } else {
-      // wait until there is at least one patch so file has been loaded from disk,
-      // since showing a blank document when first opening a file is bad.
-      if (this.patch_list && this.patch_list.count() == 0) {
-        await once(this.patch_list, "change");
+      if (this.patch_list?.count() == 0) {
+        await Promise.race([
+          this.waitUntilFullyReady(),
+          once(this.patch_list!, "change"),
+        ]);
       }
     }
+    this.assert_not_closed("initAll -- load from disk");
     this.emit("init");
 
     this.assert_not_closed("initAll -- after waiting until fully ready");
@@ -1521,6 +1520,77 @@ export class SyncDoc extends EventEmitter {
     }
     this.update_has_unsaved_changes();
     log("done");
+  };
+
+  private init_error = (): string | undefined => {
+    let x;
+    try {
+      x = this.syncstring_table.get_one();
+    } catch (_err) {
+      // if the table hasn't been initialized yet,
+      // it can't be in error state.
+      return undefined;
+    }
+    return x?.get("init")?.get("error");
+  };
+
+  // wait until the syncstring table is ready to be
+  // used (so extracted from archive, etc.),
+  private waitUntilFullyReady = async (): Promise<void> => {
+    this.assert_not_closed("wait_until_fully_ready");
+    const dbg = this.dbg("wait_until_fully_ready");
+    dbg();
+
+    if (this.client.is_browser() && this.init_error()) {
+      // init is set and is in error state.  Give the backend a few seconds
+      // to try to fix this error before giving up.  The browser client
+      // can close and open the file to retry this (as instructed).
+      try {
+        await this.syncstring_table.wait(() => !this.init_error(), 5);
+      } catch (err) {
+        // fine -- let the code below deal with this problem...
+      }
+    }
+
+    const is_init = (t: SyncTable) => {
+      this.assert_not_closed("is_init");
+      const tbl = t.get_one();
+      if (tbl == null) {
+        dbg("null");
+        return false;
+      }
+      return tbl.get("init") != null;
+    };
+    dbg("waiting for init...");
+    const init = await this.syncstring_table.wait(is_init, 0);
+    dbg("init done");
+    if (init.error) {
+      throw Error(init.error);
+    }
+    assertDefined(this.patch_list);
+    if (
+      !this.client.is_project() &&
+      this.patch_list.count() === 0 &&
+      init.size
+    ) {
+      dbg("waiting for patches for nontrivial file");
+      // normally this only happens in a later event loop,
+      // so force it now.
+      dbg("handling patch update queue since", this.patch_list.count());
+      await this.handle_patch_update_queue();
+      assertDefined(this.patch_list);
+      dbg("done handling, now ", this.patch_list.count());
+      if (this.patch_list.count() === 0) {
+        // wait for a change -- i.e., project loading the file from
+        // disk and making available...  Because init.size > 0, we know that
+        // there must be SOMETHING in the patches table once initialization is done.
+        // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+        await once(this.patches_table, "change");
+        dbg("got patches_table change");
+        await this.handle_patch_update_queue();
+        dbg("handled update queue");
+      }
+    }
   };
 
   private assert_table_is_ready = (table: string): void => {
