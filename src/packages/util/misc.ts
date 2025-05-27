@@ -1996,7 +1996,7 @@ export function removeUndefinedLeafs(obj: object) {
     const v = obj[k];
     if (v === undefined) {
       delete obj[k];
-    } else if (typeof v === "object") {
+    } else if (is_object(v)) {
       removeUndefinedLeafs(v);
     }
   }

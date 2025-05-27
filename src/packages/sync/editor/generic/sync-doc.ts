@@ -118,7 +118,6 @@ import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
-import { waitUntilConnected } from "@cocalc/conat/util";
 import { getLogger } from "@cocalc/conat/client";
 
 export type State = "init" | "ready" | "closed";
@@ -165,9 +164,7 @@ export interface UndoState {
 }
 
 // NOTE: Do not make multiple SyncDoc's for the same document, especially
-// not on the frontend.  Proper reference counted handling of this is done
-// at sync/client/sync-client.ts, or in some applications where you can easily
-// be sure there is only reference, just be sure.
+// not on the frontend.
 
 const logger = getLogger("sync-doc");
 logger.debug("init");
@@ -353,6 +350,7 @@ export class SyncDoc extends EventEmitter {
   this SyncDoc.
   */
   private init = async (): Promise<void> => {
+    // const start = Date.now();
     this.assert_not_closed("init");
     const log = this.dbg("init");
 
@@ -362,9 +360,6 @@ export class SyncDoc extends EventEmitter {
         //const t0 = new Date();
 
         log("initializing all tables...");
-        if (this.useConat) {
-          await waitUntilConnected();
-        }
         await this.initAll();
         log("initAll succeeded");
         // got it!
@@ -390,6 +385,7 @@ export class SyncDoc extends EventEmitter {
         d = Math.min(d * 1.3, 15000);
       }
     }
+    // console.log(`time to popen ${this.path}:`, (Date.now() - start) / 1000);
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
@@ -1425,29 +1421,11 @@ export class SyncDoc extends EventEmitter {
         doctype: JSON.stringify(this.doctype),
       });
     } else {
-      dbg("waiting for, then handling the first update...");
-      await this.handle_syncstring_update();
-    }
-    this.syncstring_table.on(
-      "change",
-      this.handle_syncstring_update.bind(this),
-    );
 
-    // Wait until syncstring is not archived -- if we open an
-    // older syncstring, the patches may be archived,
-    // and we have to wait until
-    // after they have been pulled from blob storage before
-    // we init the patch table, load from disk, etc.
-    const is_not_archived: () => boolean = () => {
-      const ss = this.syncstring_table_get_one();
-      if (ss != null) {
-        return !ss.get("archived");
-      } else {
-        return false;
-      }
-    };
-    dbg("waiting for syncstring to be not archived");
-    await this.syncstring_table.wait(is_not_archived, 120);
+      dbg("handling the first update...");
+      this.handle_syncstring_update();
+    }
+    this.syncstring_table.on("change", this.handle_syncstring_update);
   };
 
   // Used for internal debug logging
@@ -1506,6 +1484,7 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
+
     if (await this.isFileServer()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
@@ -1525,10 +1504,14 @@ export class SyncDoc extends EventEmitter {
       });
       log("done loading from disk");
       this.assert_not_closed("initAll -- load from disk");
+    } else {
+      // wait until there is at least one patch so file has been loaded from disk,
+      // since showing a blank document when first opening a file is bad.
+      if (this.patch_list && this.patch_list.count() == 0) {
+        await once(this.patch_list, "change");
+      }
     }
-
-    log("wait_until_fully_ready");
-    await this.wait_until_fully_ready();
+    this.emit("init");
 
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
@@ -1540,98 +1523,14 @@ export class SyncDoc extends EventEmitter {
     log("done");
   };
 
-  private init_error = (): string | undefined => {
-    let x;
-    try {
-      x = this.syncstring_table.get_one();
-    } catch (_err) {
-      // if the table hasn't been initialized yet,
-      // it can't be in error state.
-      return undefined;
-    }
-    return x?.get("init")?.get("error");
-  };
-
-  // wait until the syncstring table is ready to be
-  // used (so extracted from archive, etc.),
-  private wait_until_fully_ready = async (): Promise<void> => {
-    this.assert_not_closed("wait_until_fully_ready");
-    const dbg = this.dbg("wait_until_fully_ready");
-    dbg();
-
-    if (this.client.is_browser() && this.init_error()) {
-      // init is set and is in error state.  Give the backend 3 seconds
-      // to try to fix this error before giving up.  The browser client
-      // can close and open the file to retry this (as instructed).
-      try {
-        await this.syncstring_table.wait(() => !this.init_error(), 3);
-      } catch (err) {
-        // fine -- let the code below deal with this problem...
-      }
-    }
-
-    const is_init_and_not_archived = (t: SyncTable) => {
-      this.assert_not_closed("is_init_and_not_archived");
-      const tbl = t.get_one();
-      if (tbl == null) {
-        dbg("null");
-        return false;
-      }
-      // init must be set in table and archived must NOT be
-      // set, so patches are loaded from blob store.
-      const init = tbl.get("init");
-      if (init && !tbl.get("archived")) {
-        dbg("good to go");
-        return init.toJS();
-      } else {
-        dbg("not init yet");
-        return false;
-      }
-    };
-    dbg("waiting for init...");
-    const init = await this.syncstring_table.wait(
-      is_init_and_not_archived.bind(this),
-      0,
-    );
-    dbg("init done");
-    if (init.error) {
-      throw Error(init.error);
-    }
-    assertDefined(this.patch_list);
-    if (
-      !this.client.is_project() &&
-      this.patch_list.count() === 0 &&
-      init.size
-    ) {
-      dbg("waiting for patches for nontrivial file");
-      // normally this only happens in a later event loop,
-      // so force it now.
-      dbg("handling patch update queue since", this.patch_list.count());
-      await this.handle_patch_update_queue();
-      assertDefined(this.patch_list);
-      dbg("done handling, now ", this.patch_list.count());
-      if (this.patch_list.count() === 0) {
-        // wait for a change -- i.e., project loading the file from
-        // disk and making available...  Because init.size > 0, we know that
-        // there must be SOMETHING in the patches table once initialization is done.
-        // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-        await once(this.patches_table, "change");
-        dbg("got patches_table change");
-        await this.handle_patch_update_queue();
-        dbg("handled update queue");
-      }
-    }
-    this.emit("init");
-  };
-
-  private assert_table_is_ready(table: string): void {
+  private assert_table_is_ready = (table: string): void => {
     const t = this[table + "_table"]; // not using string template only because it breaks codemirror!
     if (t == null || t.get_state() != "connected") {
       throw Error(
         `Table ${table} must be connected.  string_id=${this.string_id}`,
       );
     }
-  }
+  };
 
   assert_is_ready = (desc: string): void => {
     if (this.state != "ready") {
@@ -2765,11 +2664,7 @@ export class SyncDoc extends EventEmitter {
 
     if (this.path == null) {
       // We just opened the file -- emit a load time estimate.
-      if (x.archived) {
-        this.emit("load-time-estimate", { type: "archived", time: 3 });
-      } else {
-        this.emit("load-time-estimate", { type: "ready", time: 1 });
-      }
+      this.emit("load-time-estimate", { type: "ready", time: 1 });
     }
     // TODO: handle doctype change here (?)
     this.setLastSnapshot(x.last_snapshot);

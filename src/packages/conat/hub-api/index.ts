@@ -5,6 +5,7 @@ import { type Projects, projects } from "./projects";
 import { type DB, db } from "./db";
 import { handleErrorMessage } from "@cocalc/conat/util";
 import { removeUndefinedLeafs } from "@cocalc/util/misc";
+import { cloneDeep } from "lodash";
 
 export interface HubApi {
   system: System;
@@ -59,7 +60,7 @@ function userQueryUndefined(hubApi) {
   // which breaks things.
   const orig = hubApi.db.userQuery;
   hubApi.db.userQuery = async (opts) => {
-    opts.query = { ...opts.query };
+    opts.query = cloneDeep(opts.query);
     removeUndefinedLeafs(opts.query);
     return await orig(opts);
   };
