@@ -68,6 +68,8 @@ Table({
           run_quota: null,
           site_license: null,
           status: null,
+          // security model is anybody with access to the project should be allowed to know this token.
+          secret_token: null,
           state: null,
           last_edited: null,
           last_active: null,
