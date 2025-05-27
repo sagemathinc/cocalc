@@ -39,17 +39,11 @@ import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { delay } from "awaiting";
 import { ConatError, connect, type Client, type ClientOptions } from "./client";
-
-// This is just the default with socket.io, but we might want a bigger
-// size, which could mean more RAM usage by the servers.
-// Our client protocol automatically chunks messages, so this payload
-// size ONLY impacts performance, never application level constraints.
-const MB = 1e6;
-const MAX_PAYLOAD = 1 * MB;
-
-const MAX_DISCONNECTION_DURATION = 2 * 60 * 1000;
-
-const MAX_SUBSCRIPTIONS_PER_CLIENT = 250;
+import {
+  MAX_PAYLOAD,
+  MAX_DISCONNECTION_DURATION,
+  MAX_SUBSCRIPTIONS_PER_CLIENT,
+} from "./constants";
 
 const DEBUG = false;
 
