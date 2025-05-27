@@ -23,7 +23,6 @@ import { akv } from "@cocalc/conat/sync/akv";
 import { astream } from "@cocalc/conat/sync/astream";
 import { dko } from "@cocalc/conat/sync/dko";
 import { dstream } from "@cocalc/conat/sync/dstream";
-import { delay } from "awaiting";
 import { callConatService, createConatService } from "@cocalc/conat/service";
 import type {
   CallConatServiceFunction,
@@ -51,6 +50,7 @@ import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { once } from "@cocalc/util/async-utils";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -113,19 +113,6 @@ export class ConatClient extends EventEmitter {
   };
 
   private initConatClient = async () => {
-    let d = 100;
-    // wait until you're signed in -- usually the account_id cookie ensures this,
-    // but if somehow it got deleted, the normal websocket sign in message from the
-    // hub also provides the account_id right now.  That will eventually go away,
-    // at which point this should become fatal.
-    if (!this.client.account_id) {
-      while (!this.client.account_id) {
-        await delay(d);
-        d = Math.min(3000, d * 1.3);
-      }
-      // we know the account_id, so set it so next time sign is faster.
-      Cookies.set(ACCOUNT_ID_COOKIE, this.client.account_id);
-    }
     setConatClient({
       account_id: this.client.account_id,
       getNatsEnv: this.getNatsEnv,
@@ -143,26 +130,30 @@ export class ConatClient extends EventEmitter {
     this.clientWithState = getClientWithState();
     this.clientWithState.on("state", (state) => {
       if (state != "closed") {
-        console.log("NATS: ", state);
         this.emit(state);
       }
     });
     initTime();
+    const client = this.conat();
+    if (!client.info) {
+      await once(client.conn as any, "info");
+    }
+    if (
+      client.info?.user?.account_id &&
+      this.client.account_id &&
+      client.info.user.account_id != this.client.account_id
+    ) {
+      // make sure account_id cookie is set to the actual account we're
+      // signed in as, then refresh since it's going to be broken otherwise.
+      Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
+      location.reload();
+    }
   };
 
   getEnv = async () => await getEnv();
 
   private getConnection = reuseInFlight(async () => {
     return null as any;
-
-    //     if (this.nc != null) {
-    //       return this.nc;
-    //     }
-    //     this.nc = await connect();
-    //     this.setConnectionState("connected");
-    //     this.monitorConnectionState(this.nc);
-    //     this.reportConnectionStats(this.nc);
-    //     return this.nc;
   });
 
   reconnect = reuseInFlight(async () => {
