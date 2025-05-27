@@ -14,7 +14,7 @@ import {
   REMEMBER_ME_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
-import getPool from "@cocalc/database/pool";
+import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 
 export async function getUser(socket): Promise<CoCalcUser> {
   if (!socket.handshake.headers.cookie) {
@@ -43,14 +43,17 @@ export async function getUser(socket): Promise<CoCalcUser> {
     if ((await getProjectSecretToken(project_id)) == secret) {
       return { project_id: project_id! };
     } else {
-      throw Error(`invalid secret token for project`);
+      // TODO -- this is NOT secure!
+      throw Error(
+        `invalid secret token for project: ${JSON.stringify({ correct: await getProjectSecretToken(project_id), secret })}`,
+      );
     }
   }
 
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
   if (!value) {
     throw Error(
-      `must set one of the following cookies: '${REMEMBER_ME_COOKIE_NAME}' or 'Hub-Password'`,
+      `must set one of the following cookies: '${REMEMBER_ME_COOKIE_NAME}' or ${API_COOKIE_NAME} or '${PROJECT_SECRET_COOKIE_NAME}' and '${PROJECT_ID_COOKIE_NAME}'`,
     );
   }
   const hash = getRememberMeHashFromCookieValue(value);
@@ -62,15 +65,6 @@ export async function getUser(socket): Promise<CoCalcUser> {
     throw Error("remember me cookie expired");
   }
   return { account_id };
-}
-
-async function getProjectSecretToken(project_id): Promise<string | undefined> {
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "select status#>'{secret_token}' as secret_token from projects where project_id=$1",
-    [project_id],
-  );
-  return rows[0]?.secret_token;
 }
 
 const isAllowedCache = new LRU<string, boolean>({

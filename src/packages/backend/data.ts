@@ -30,7 +30,7 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
-import { uuid } from "@cocalc/util/misc";
+import { secureRandomStringSync } from "@cocalc/backend/misc";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -225,7 +225,7 @@ try {
 } catch {
   // generate something at random for this process session (used, e.g., by
   // unit testing if no file exists)
-  conatPassword = uuid() + uuid();
+  conatPassword = secureRandomStringSync(64);
 }
 export function setConatPassword(password: string) {
   conatPassword = password;

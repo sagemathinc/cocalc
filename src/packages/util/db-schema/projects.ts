@@ -330,6 +330,11 @@ Table({
       render: { type: "json", editable: false },
     },
     notes: NOTES,
+    secret_token: {
+      type: "string",
+      pg_type: "VARCHAR(256)",
+      desc: "Random ephemeral secret token used temporarily by project to authenticate with hub.",
+    },
   },
 });
 
@@ -566,7 +571,6 @@ export interface ProjectStatus {
   "sage_server.pid"?: number; // pid of sage server process
   start_ts?: number; // timestamp, when project server started
   session_id?: string; // unique identifyer
-  secret_token?: string; // long random secret token that is needed to communicate with local_hub
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk
   installed?: boolean; // whether code is installed

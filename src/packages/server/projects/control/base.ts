@@ -39,6 +39,7 @@ import getPool from "@cocalc/database/pool";
 import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
 import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 import { query } from "@cocalc/database/postgres/query";
+import { getProjectSecretToken } from "./secret-token";
 
 export type { CopyOptions };
 export type { ProjectState, ProjectStatus };
@@ -180,9 +181,6 @@ export abstract class BaseProject extends EventEmitter {
     if (!status["hub-server.port"]) {
       throw Error("unable to determine project port");
     }
-    if (!status["secret_token"]) {
-      throw Error("unable to determine secret_token");
-    }
     const state = await this.state();
     const host = state.ip;
     if (!host) {
@@ -191,7 +189,7 @@ export abstract class BaseProject extends EventEmitter {
     return {
       host,
       port: status["hub-server.port"],
-      secret_token: status.secret_token,
+      secret_token: await getProjectSecretToken(this.project_id),
     };
   }
 

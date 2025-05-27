@@ -16,6 +16,7 @@ import { getProject } from ".";
 import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { getProjectSecretToken } from "./secret-token";
 
 const logger = getLogger("project-control:util");
 
@@ -278,6 +279,7 @@ export async function getEnvironment(
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
+      COCALC_SECRET_TOKEN_VALUE: await getProjectSecretToken(project_id),
     },
   };
 }
@@ -312,7 +314,6 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
     "browser-server.port",
     "sage_server.port",
     "sage_server.pid",
-    "secret_token",
     "start-timestamp.txt",
     "session-id.txt",
   ]) {
