@@ -7,3 +7,9 @@ export interface ServerInfo {
     error?: string;
   };
 }
+
+export interface ConnectionStats {
+  send: { messages: number; bytes: number };
+  recv: { messages: number; bytes: number };
+  subs: number;
+}

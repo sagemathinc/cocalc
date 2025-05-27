@@ -49,13 +49,16 @@ import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
 import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
+import type { ConnectionStats } from "@cocalc/conat/core/types";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { once } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
   reason: string;
   details: any;
+  stats: ConnectionStats;
 }
 
 const DEFAULT_TIMEOUT = 15000;
@@ -66,7 +69,6 @@ export class ConatClient extends EventEmitter {
   client: WebappClient;
   private sc: any = null;
   private jc: any = null;
-  private nc?: any;
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
@@ -81,19 +83,22 @@ export class ConatClient extends EventEmitter {
     this.initConatClient();
     this.on("state", (state) => {
       this.emit(state);
-      this.setConnectionState(state);
     });
   }
 
-  private setConnectionStatus = (status: ConatConnectionStatus) => {
-    if (redux == null) {
+  private setConnectionStatus = (status: Partial<ConatConnectionStatus>) => {
+    const actions = redux?.getActions("page");
+    const store = redux?.getStore("page");
+    if (actions == null || store == null) {
       return;
     }
-    redux.getActions("page")?.setState({ conat: status } as any);
+    const cur = store.get("conat")?.toJS();
+    actions.setState({ conat: { ...cur, ...status } } as any);
   };
 
   conat = () => {
     if (this._conatClient == null) {
+      this.startStatsReporter();
       this._conatClient = connectToConat({
         address: location.origin + appBasePath,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
@@ -103,13 +108,28 @@ export class ConatClient extends EventEmitter {
           state: "connected",
           reason: "",
           details: "",
+          stats: this._conatClient?.stats,
         });
       });
       this._conatClient.conn.on("disconnect", (reason, details) => {
-        this.setConnectionStatus({ state: "disconnected", reason, details });
+        this.setConnectionStatus({
+          state: "disconnected",
+          reason,
+          details,
+          stats: this._conatClient?.stats,
+        });
       });
     }
     return this._conatClient!;
+  };
+
+  private startStatsReporter = async () => {
+    while (true) {
+      if (this._conatClient != null) {
+        this.setConnectionStatus({ stats: this._conatClient?.stats });
+      }
+      await delay(5000);
+    }
   };
 
   private initConatClient = async () => {
@@ -169,19 +189,6 @@ export class ConatClient extends EventEmitter {
   // if there is a connection, resume it
   resume = async () => {
     this._conatClient?.conn.io.connect();
-  };
-
-  private setConnectionState = (state?) => {
-    const page = redux?.getActions("page");
-    if (page == null) {
-      return;
-    }
-    page.setState({
-      nats: {
-        state: state ?? this.clientWithState.state,
-        data: this.nc?.stats(),
-      },
-    } as any);
   };
 
   callConatService: CallConatServiceFunction = async (options) => {

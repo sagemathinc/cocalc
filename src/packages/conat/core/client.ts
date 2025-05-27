@@ -199,7 +199,7 @@ import {
   type ManagerOptions,
 } from "socket.io-client";
 import { EventIterator } from "@cocalc/util/event-iterator";
-import type { ServerInfo } from "./types";
+import type { ConnectionStats, ServerInfo } from "./types";
 import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
@@ -317,6 +317,11 @@ export class Client {
   private failed = {
     pub: new TTL<string, string>({ ttl: 1000 * 60 }),
     sub: new TTL<string, string>({ ttl: 1000 * 60 }),
+  };
+  public readonly stats: ConnectionStats = {
+    send: { messages: 0, bytes: 0 },
+    recv: { messages: 0, bytes: 0 },
+    subs: 0,
   };
 
   constructor(options: ClientOptions) {
@@ -543,6 +548,7 @@ export class Client {
       queue = randomId();
     }
     this.queueGroups[subject] = queue;
+    this.stats.subs += 1;
     sub = new SubscriptionEmitter({
       client: this,
       subject,
@@ -588,6 +594,7 @@ export class Client {
       }
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
+      this.stats.subs -= 1;
     });
     return { sub, promise };
   };
@@ -755,6 +762,9 @@ export class Client {
       throw new ConatError(message, { code: 403 });
     }
     raw = raw ?? encode({ encoding, mesg });
+    this.stats.send.messages += 1;
+    this.stats.send.bytes += raw.length;
+
     // default to 1MB is safe since it's at least that big.
     const chunkSize = Math.max(
       1000,
@@ -1092,6 +1102,8 @@ class SubscriptionEmitter extends EventEmitter {
         subject,
       });
       this.emit("message", mesg);
+      this.client.stats.recv.messages += 1;
+      this.client.stats.recv.bytes += raw.byteLength;
     }
   };
 }
