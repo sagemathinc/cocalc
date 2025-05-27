@@ -409,10 +409,6 @@ export class SyncDoc extends EventEmitter {
   // on the result, you need to clear it when the state
   // changes. See the function handleComputeServerManagerChange.
   private isFileServer = reuseInFlight(async () => {
-    if (this.client == null) {
-      // closed
-      return;
-    }
     if (this.client.is_browser()) {
       // browser is never the file server (yet), and doesn't need to do
       // anything related to watching for changes in state.

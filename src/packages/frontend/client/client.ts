@@ -28,6 +28,10 @@ import { version } from "@cocalc/util/smc-version";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
+import Cookies from "js-cookie";
+import { basePathCookieName } from "@cocalc/util/misc";
+import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import type {
   CallConatServiceFunction,
@@ -47,6 +51,13 @@ const log = debug("cocalc");
 // and refresh your browser.  Example, this will turn on
 // all the sync activity logging and everything that calls
 // client.dbg.
+
+export const ACCOUNT_ID_COOKIE = decodeURIComponent(
+  basePathCookieName({
+    basePath: appBasePath,
+    name: ACCOUNT_ID_COOKIE_NAME,
+  }),
+);
 
 export type AsyncCall = (opts: object) => Promise<any>;
 
@@ -135,7 +146,7 @@ Connection events:
 */
 
 class Client extends EventEmitter implements WebappClient {
-  account_id?: string;
+  account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
   browser_id: string = randomId();
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;

@@ -1,4 +1,7 @@
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import {
+  ACCOUNT_ID_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import Cookies from "cookies";
@@ -18,7 +21,7 @@ export default async function setSignInCookies({
   maxAge?: number;
 }) {
   const opts = { req, res, account_id, maxAge };
-  await setRememberMeCookie(opts);
+  await Promise.all([setRememberMeCookie(opts), setAccountIdCookie(opts)]);
 }
 
 async function setRememberMeCookie({ req, res, account_id, maxAge }) {
@@ -28,5 +31,16 @@ async function setRememberMeCookie({ req, res, account_id, maxAge }) {
   cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
     maxAge,
     sameSite: samesite_remember_me,
+  });
+}
+
+async function setAccountIdCookie({ req, res, account_id, maxAge }) {
+  // account_id cookie is NOT secure since user is supposed to read it
+  // from browser.  It's not for telling the server the account_id, but
+  // for telling the user their own account_id.
+  const cookies = new Cookies(req, res, { secure: false, httpOnly: false });
+  cookies.set(ACCOUNT_ID_COOKIE_NAME, account_id, {
+    maxAge,
+    httpOnly: false,
   });
 }

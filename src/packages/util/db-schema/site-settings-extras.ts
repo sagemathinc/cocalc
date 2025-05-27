@@ -287,7 +287,7 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Conat"],
   },
   conat_password: {
-    name: "Conat HUB Password",
+    name: "Conat Password",
     desc: "Password for conat hub admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
     default: "",
     password: true,

@@ -35,3 +35,7 @@ export const API_COOKIE_NAME = basePathCookieName({
 
 log.debug("API_COOKIE_NAME", API_COOKIE_NAME);
 
+export const ACCOUNT_ID_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "account_id",
+});

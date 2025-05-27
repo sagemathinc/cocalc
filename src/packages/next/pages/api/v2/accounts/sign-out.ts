@@ -18,7 +18,10 @@ import {
   AccountSignOutInputSchema,
   AccountSignOutOutputSchema,
 } from "lib/api/schema/accounts/sign-out";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import {
+  ACCOUNT_ID_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
 
 async function handle(req, res) {
   try {
@@ -43,6 +46,7 @@ async function signOut(req, res): Promise<void> {
   }
   // also delete any security relevant cookies for safety and to avoid confusion.
   res.clearCookie(REMEMBER_ME_COOKIE_NAME);
+  res.clearCookie(ACCOUNT_ID_COOKIE_NAME);
 }
 
 export default apiRoute({
