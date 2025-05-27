@@ -3,19 +3,50 @@ import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
 import { parse } from "cookie";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { getRememberMeHashFromCookieValue } from "@cocalc/server/auth/remember-me";
 import LRU from "lru-cache";
 import { conatPassword } from "@cocalc/backend/data";
+import {
+  API_COOKIE_NAME,
+  HUB_PASSWORD_COOKIE_NAME,
+  PROJECT_SECRET_COOKIE_NAME,
+  PROJECT_ID_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
+import getPool from "@cocalc/database/pool";
 
 export async function getUser(socket): Promise<CoCalcUser> {
   if (!socket.handshake.headers.cookie) {
     throw Error("you must set authentication cookies");
   }
   const cookies = parse(socket.handshake.headers.cookie);
-  if (cookies["Hub-Password"] == conatPassword) {
+  if (cookies[HUB_PASSWORD_COOKIE_NAME] == conatPassword) {
     return { hub_id: "hub" };
   }
+  if (cookies[API_COOKIE_NAME]) {
+    // project or compute server or account
+    const user = await getAccountWithApiKey(cookies[API_COOKIE_NAME]!);
+    if (!user) {
+      throw Error("api key no longer valid");
+    }
+    return user;
+  }
+  if (cookies[PROJECT_SECRET_COOKIE_NAME]) {
+    const project_id = cookies[PROJECT_ID_COOKIE_NAME];
+    if (!project_id) {
+      throw Error(
+        `must specify project_id in the cookie ${PROJECT_ID_COOKIE_NAME}`,
+      );
+    }
+    const secret = cookies[PROJECT_SECRET_COOKIE_NAME];
+    if ((await getProjectSecretToken(project_id)) == secret) {
+      return { project_id };
+    } else {
+      throw Error(`invalid secret token for project`);
+    }
+  }
+
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
   if (!value) {
     throw Error(
@@ -33,6 +64,15 @@ export async function getUser(socket): Promise<CoCalcUser> {
   return { account_id };
 }
 
+async function getProjectSecretToken(project_id): Promise<string | undefined> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "select status#>'{secret_token}' as secret_token from projects where project_id=$1",
+    [project_id],
+  );
+  return rows[0]?.secret_token;
+}
+
 const isAllowedCache = new LRU<string, boolean>({
   max: 10000,
   ttl: 1000 * 60, // 1 minute
@@ -47,7 +87,7 @@ export async function isAllowed({
   subject: string;
   type: "sub" | "pub";
 }): Promise<boolean> {
-  if (user == null) {
+  if (user == null || user?.error) {
     // non-authenticated user -- allow NOTHING
     return false;
   }
@@ -192,16 +232,25 @@ export type CoCalcUser =
       account_id: string;
       project_id?: string;
       hub_id?: string;
+      error?: string;
     }
   | {
       account_id?: string;
       project_id?: string;
       hub_id: string;
+      error?: string;
     }
   | {
       account_id?: string;
       project_id: string;
       hub_id?: string;
+      error?: string;
+    }
+  | {
+      account_id?: string;
+      project_id?: string;
+      hub_id?: string;
+      error: string;
     };
 
 export function getCoCalcUserType({
@@ -228,7 +277,7 @@ export function getCoCalcUserType({
   if (hub_id) {
     return "hub";
   }
-  throw Error("account_id or project_id must be specified");
+  throw Error("account_id or project_id or hub_id must be specified in User");
 }
 
 export function getCoCalcUserId({

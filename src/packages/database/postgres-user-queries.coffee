@@ -379,7 +379,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         else if opts.account_id?
             dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
-            return {err:"FATAL: account_id or project_id must be specified"}
+            return {err:"FATAL: account_id or project_id must be specified to set query on table='#{opts.table}'"}
 
         if not SCHEMA[opts.table]?
             return {err:"FATAL: table '#{opts.table}' does not exist"}

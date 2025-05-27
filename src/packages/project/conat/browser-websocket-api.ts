@@ -47,7 +47,7 @@ const logger = getLogger("project:conat:browser-websocket-api");
 
 export async function init() {
   const nc = await getConnection();
-  const cn = connectToConat();
+  const cn = await connectToConat();
   const subject = getSubject({
     service: "browser-api",
   });

@@ -366,7 +366,13 @@ export class ConatServer {
     socket.on("close", () => delete this.sockets[socket.id]);
 
     let user: any = null;
-    user = await this.getUser(socket);
+    try {
+      user = await this.getUser(socket);
+    } catch (err) {
+      // getUser is supposed to throw an error if authentication fails
+      // for any reason
+      user = { error: `${err}` };
+    }
     const id = socket.id;
     this.log("got connection", { id, user });
     if (this.subscriptions[id] == null) {

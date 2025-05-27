@@ -12,6 +12,7 @@ import { randomBytes } from "crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 import { secretToken as secretTokenPath } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
+
 const winston = getLogger("secret-token");
 
 // We use an n-character cryptographic random token, where n

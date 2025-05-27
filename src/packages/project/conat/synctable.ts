@@ -15,7 +15,7 @@ const synctable: NatsSyncTableFunction = async (
   options?,
 ): Promise<NatsSyncTable> => {
   const nc = await getConnection();
-  const cn = connectToConat();
+  const cn = await connectToConat();
   query = parse_query(query);
   const table = keys(query)[0];
   const obj = options?.obj;

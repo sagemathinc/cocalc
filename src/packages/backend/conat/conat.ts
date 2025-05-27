@@ -4,6 +4,7 @@ import {
   Client,
   type ClientOptions,
 } from "@cocalc/conat/core/client";
+import { HUB_PASSWORD_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 
 export type { Client };
 
@@ -11,7 +12,7 @@ export function connect(options?: ClientOptions): Client {
   return connect0({
     address: conatServer,
     extraHeaders: {
-      Cookie: `Hub-Password=${conatPassword}`,
+      Cookie: `${HUB_PASSWORD_COOKIE_NAME}=${conatPassword}`,
     },
     ...options,
   });

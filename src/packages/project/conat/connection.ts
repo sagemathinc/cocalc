@@ -1,48 +1,31 @@
 /*
-Create a unique connection to the nats server.  The CONNECT_OPTIONS are such that
-the connection should never end up in the closed state.
-
-If the environment variable NATS_SERVER is set, this tries to connect to that server.
-The server should be of this form for a Websocket server
-
-    ws://hostname:port/path/to/nats
-
-or this for a TCP server: ip-address:port.
-That said, for projects and compute servers, **always use a WebSocket**,
-since the connection goes through node-http-proxy, so we have more control (e.g.,
-can kill it), and we also don't have to expose NATS directly to any untrusted
-servers.
+Create a connection to a conat server authenticated as a project or compute
+server, via an api key or the project secret token.
 */
 
-import getConnection, {
-  setConnectionOptions,
-} from "@cocalc/backend/conat/persistent-connection";
-import { getLogger } from "@cocalc/project/logger";
-import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
-import { inboxPrefix as getInboxPrefix } from "@cocalc/conat/names";
+import getConnection from "@cocalc/backend/conat/persistent-connection";
+import { apiKey, conatServer } from "@cocalc/backend/data";
 import { project_id } from "@cocalc/project/data";
 import secretToken from "@cocalc/project/servers/secret-token";
-export { connect as connectToConat } from "@cocalc/backend/conat/conat";
+import { connect } from "@cocalc/conat/core/client";
+import {
+  API_COOKIE_NAME,
+  PROJECT_SECRET_COOKIE_NAME,
+  PROJECT_ID_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
 
 export default getConnection;
 
-const logger = getLogger("project:conat:connection");
-
-function getServers() {
-  if (process.env.NATS_SERVER) {
-    return process.env.NATS_SERVER;
+export async function connectToConat(options?) {
+  let Cookie;
+  if (apiKey) {
+    Cookie = `${API_COOKIE_NAME}=${apiKey}`;
   } else {
-    return natsWebsocketServer;
+    Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${await secretToken()}; ${PROJECT_ID_COOKIE_NAME}=${project_id}`;
   }
+  return connect({
+    address: conatServer,
+    extraHeaders: { Cookie },
+    ...options,
+  });
 }
-
-setConnectionOptions(async () => {
-  logger.debug("setting connection options");
-  return {
-    inboxPrefix: getInboxPrefix({ project_id }),
-    servers: getServers(),
-    name: JSON.stringify({ project_id }),
-    user: `project-${project_id}`,
-    token: apiKey ? apiKey : await secretToken(),
-  };
-});

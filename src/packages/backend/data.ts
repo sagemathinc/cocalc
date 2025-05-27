@@ -206,6 +206,12 @@ export const logs: string = process.env.LOGS ?? join(data, "logs");
 export let conatServer =
   process.env.CONAT_SERVER ??
   `http://localhost:${port}${basePath.length > 1 ? basePath : ""}`;
+if (conatServer.split("//").length > 2) {
+  // i make this mistake too much
+  throw Error(
+    `env variable CONAT_SERVER invalid -- too many /s' --'${process.env.CONAT_SERVER}'`,
+  );
+}
 
 export function setConatServer(server: string) {
   conatServer = server;
