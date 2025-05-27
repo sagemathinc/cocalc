@@ -26,24 +26,26 @@ export function randomId() {
 export function jsName({
   project_id,
   account_id,
+  hub_id,
 }: {
   project_id?: string;
   account_id?: string;
+  hub_id?: string;
 }) {
   if (project_id) {
-    if (account_id) {
-      throw Error("both account_id and project_id can't be set");
-    }
     return `project-${project_id}`;
   }
-  if (!account_id) {
-    if (process.env.COCALC_TEST_MODE) {
-      return "test";
-    } else {
-      return "public";
-    }
+  if (account_id) {
+    return `account-${account_id}`;
   }
-  return `account-${account_id}`;
+  if (hub_id) {
+    return `hub-${hub_id}`;
+  }
+  if (process.env.COCALC_TEST_MODE) {
+    return "test";
+  } else {
+    return "public";
+  }
 }
 
 export function localLocationName({
@@ -86,16 +88,14 @@ https://natsbyexample.com/examples/auth/private-inbox/cli
 export function inboxPrefix({
   account_id,
   project_id,
+  hub_id,
 }: {
   account_id?: string;
   project_id?: string;
+  hub_id?: string;
 }) {
-  if (!account_id && !project_id) {
-    // the hubs
-    return "_INBOX.hub";
-  }
   // a project or account:
-  return `_INBOX.${jsName({ account_id, project_id })}`;
+  return `_INBOX.${jsName({ account_id, project_id, hub_id })}`;
 }
 
 export function streamSubject({

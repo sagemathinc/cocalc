@@ -296,7 +296,9 @@ export class ConatServer {
       return;
     }
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
-      throw new ConatError(`permission denied subscribing to '${subject}'`, {
+      const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(user)}`;
+      this.logger(message);
+      throw new ConatError(message, {
         code: 403,
       });
     }
@@ -331,7 +333,9 @@ export class ConatServer {
       throw Error("invalid subject");
     }
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
-      throw new ConatError(`permission denied publishing to '${subject}'`, {
+      const message = `permission denied publishing to '${subject}' from ${JSON.stringify(from)}`;
+      this.logger(message);
+      throw new ConatError(message, {
         // this is the http code for permission denied, and having this
         // set is assumed elsewhere in our code, so don't mess with it!
         code: 403,
@@ -386,6 +390,11 @@ export class ConatServer {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
       } catch (err) {
+        socket.emit("permission", {
+          message: err.message,
+          subject,
+          type: "pub",
+        });
         respond?.({ error: `${err}`, code: err.code });
       }
     });
@@ -399,6 +408,11 @@ export class ConatServer {
         this.subscriptions[id].add(subject);
         respond?.({ status: "added" });
       } catch (err) {
+        socket.emit("permission", {
+          message: err.message,
+          subject,
+          type: "sub",
+        });
         respond?.({ error: `${err}`, code: err.code });
       }
     });

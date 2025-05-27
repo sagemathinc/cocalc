@@ -109,7 +109,7 @@ describe("test isAllowed for common subjects for projects and accounts", () => {
     ).toBe(true);
   });
 
-  it("account and project are allowed to subscribe to their custom inbox", async () => {
+  it("account and project are allowed to subscribe to their custom inbox but not other inboxes", async () => {
     expect(
       await isAllowed({
         user: { account_id },

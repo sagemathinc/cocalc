@@ -223,6 +223,7 @@ import {
 } from "@cocalc/conat/sync/dstream";
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
+import TTL from "@isaacs/ttlcache";
 
 const logger = getLogger("core/client");
 
@@ -313,6 +314,10 @@ export class Client {
   private readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
+  private failed = {
+    pub: new TTL<string, string>({ ttl: 1000 * 60 }),
+    sub: new TTL<string, string>({ ttl: 1000 * 60 }),
+  };
 
   constructor(options: ClientOptions) {
     this.options = options;
@@ -334,6 +339,10 @@ export class Client {
     });
     this.conn.on("info", (info) => {
       this.info = info;
+    });
+    this.conn.on("permission", ({ message, type, subject }) => {
+      console.log(message);
+      this.failed[type]?.set(subject, message);
     });
     this.conn.on("connect", () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
@@ -430,6 +439,8 @@ export class Client {
     delete this.options;
     // @ts-ignore
     delete this.info;
+    // @ts-ignore
+    delete this.failed;
   };
 
   // syncSubscriptions ensures that we're subscribed on server
@@ -509,6 +520,11 @@ export class Client {
   ): { sub: SubscriptionEmitter; promise? } => {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
+    }
+    if (this.failed.sub.has(subject)) {
+      const message = this.failed.sub.get(subject)!;
+      console.log(message);
+      throw new ConatError(message, { code: 403 });
     }
     let sub = this.subs[subject];
     if (sub != null) {
@@ -732,6 +748,11 @@ export class Client {
   ) => {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
+    }
+    if (this.failed.pub.has(subject)) {
+      const message = this.failed.pub.get(subject)!;
+      console.log(message);
+      throw new ConatError(message, { code: 403 });
     }
     raw = raw ?? encode({ encoding, mesg });
     // default to 1MB is safe since it's at least that big.

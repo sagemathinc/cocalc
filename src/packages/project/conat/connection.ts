@@ -13,6 +13,7 @@ import {
   PROJECT_SECRET_COOKIE_NAME,
   PROJECT_ID_COOKIE_NAME,
 } from "@cocalc/backend/auth/cookie-names";
+import { inboxPrefix } from "@cocalc/conat/names";
 
 import "./env"; // temporary until nats cleanup done.
 
@@ -27,6 +28,7 @@ export async function connectToConat(options?) {
   }
   return connect({
     address: conatServer,
+    inboxPrefix: inboxPrefix({ project_id }),
     extraHeaders: { Cookie },
     ...options,
   });
