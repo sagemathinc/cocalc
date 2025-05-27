@@ -14,7 +14,7 @@ import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
 
 type State = "disconnected" | "init" | "running" | "closed";
 
-export class NatsTerminalConnection extends EventEmitter {
+export class ConatTerminal extends EventEmitter {
   private project_id: string;
   private path: string;
   public state: State = "init";
@@ -71,12 +71,13 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   write = async (data) => {
-    if (this.state == "init" || this.state == "closed") {
-      // ignore initial data while initializing.
-      // This is the trick to avoid "junk characters" on refresh/reconnect.
+    if (this.state == "closed") {
       return;
     }
     if (this.state == "disconnected") {
+      if (typeof data == "string") {
+        this.writeQueue += data;
+      }
       await this.init();
       return;
     }
@@ -155,7 +156,10 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   close = async () => {
-    webapp_client.conat_client.removeListener("connected", this.clearWriteQueue);
+    webapp_client.conat_client.removeListener(
+      "connected",
+      this.clearWriteQueue,
+    );
     this.stream?.close();
     delete this.stream;
     this.service?.close();
