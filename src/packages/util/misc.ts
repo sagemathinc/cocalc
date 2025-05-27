@@ -1990,6 +1990,18 @@ export function has_null_leaf(obj: object): boolean {
   return false;
 }
 
+// mutate obj and delete any undefined leafs.
+export function removeUndefinedLeafs(obj: object) {
+  for (const k in obj) {
+    const v = obj[k];
+    if (v === undefined) {
+      delete obj[k];
+    } else if (typeof v === "object") {
+      removeUndefinedLeafs(v);
+    }
+  }
+}
+
 // Peer Grading
 // This function takes a list of student_ids,
 // and a number N of the desired number of peers per student.
