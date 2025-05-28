@@ -196,19 +196,9 @@ export class DKV<T = any> extends EventEmitter {
     this.emit("connected");
   });
 
-  close = async () => {
+  close = () => {
     if (this.kv == null) {
       return;
-    }
-    if (!this.noAutosave) {
-      try {
-        await this.save();
-      } catch (err) {
-        // [ ] TODO: try localStorage or a file?!  throw?
-        console.log(
-          `WARNING: unable to save some data when closing a general-dkv -- ${err}`,
-        );
-      }
     }
     this.kv.close();
     this.emit("closed");

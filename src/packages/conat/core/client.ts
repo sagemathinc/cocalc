@@ -314,7 +314,7 @@ export class Client {
   private readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
-  private failed = {
+  private permissionError = {
     pub: new TTL<string, string>({ ttl: 1000 * 60 }),
     sub: new TTL<string, string>({ ttl: 1000 * 60 }),
   };
@@ -346,8 +346,8 @@ export class Client {
       this.info = info;
     });
     this.conn.on("permission", ({ message, type, subject }) => {
-      console.log(message);
-      this.failed[type]?.set(subject, message);
+      logger.debug(message);
+      this.permissionError[type]?.set(subject, message);
     });
     this.conn.on("connect", () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
@@ -445,7 +445,7 @@ export class Client {
     // @ts-ignore
     delete this.info;
     // @ts-ignore
-    delete this.failed;
+    delete this.permissionError;
   };
 
   // syncSubscriptions ensures that we're subscribed on server
@@ -526,9 +526,9 @@ export class Client {
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
     }
-    if (this.failed.sub.has(subject)) {
-      const message = this.failed.sub.get(subject)!;
-      console.log(message);
+    if (this.permissionError.sub.has(subject)) {
+      const message = this.permissionError.sub.get(subject)!;
+      logger.debug(message);
       throw new ConatError(message, { code: 403 });
     }
     let sub = this.subs[subject];
@@ -756,9 +756,9 @@ export class Client {
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
-    if (this.failed.pub.has(subject)) {
-      const message = this.failed.pub.get(subject)!;
-      console.log(message);
+    if (this.permissionError.pub.has(subject)) {
+      const message = this.permissionError.pub.get(subject)!;
+      logger.debug(message);
       throw new ConatError(message, { code: 403 });
     }
     raw = raw ?? encode({ encoding, mesg });

@@ -400,11 +400,13 @@ export class ConatServer {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
       } catch (err) {
-        socket.emit("permission", {
-          message: err.message,
-          subject,
-          type: "pub",
-        });
+        if (err.code == 403) {
+          socket.emit("permission", {
+            message: err.message,
+            subject,
+            type: "pub",
+          });
+        }
         respond?.({ error: `${err}`, code: err.code });
       }
     });
@@ -419,11 +421,13 @@ export class ConatServer {
         this.stats[socket.id].subs += 1;
         respond?.({ status: "added" });
       } catch (err) {
-        socket.emit("permission", {
-          message: err.message,
-          subject,
-          type: "sub",
-        });
+        if (err.code == 403) {
+          socket.emit("permission", {
+            message: err.message,
+            subject,
+            type: "sub",
+          });
+        }
         respond?.({ error: `${err}`, code: err.code });
       }
     });

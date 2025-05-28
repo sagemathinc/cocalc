@@ -81,13 +81,14 @@ describe("basic test of publish and subscribe", () => {
     expect(w).toEqual(v);
   });
 
-  it("confirm existing the async iterator above ended the subscription", async () => {
+  it("confirm exiting the async iterator above using break ended the subscription", async () => {
     // this is how async iterators work...
     const { done } = await sub.next();
     expect(done).toBe(true);
+    expect(sub.ended).toBe(true);
   });
 
-  it("make a new subscription, then stop subscription and confirm it ends", async () => {
+  it("we can now make a new subscription to the same subject.  We then stop the subscription and confirm it ends", async () => {
     const sub2 = await cn.subscribe(subject);
     sub2.stop();
     const { value, done } = await sub.next();
@@ -294,7 +295,7 @@ describe("creating multiple subscriptions to the same subject", () => {
     expect(c1.subs[subject].refCount).toBe(2);
     s1.close();
     expect(c1.subs[subject].refCount).toBe(1);
-    expect(c1.queueGroups[subject]==null).toBe(false);
+    expect(c1.queueGroups[subject] == null).toBe(false);
     c2.publish(subject, 4);
     expect((await s2.next()).value.data).toBe(4);
     s2.close();

@@ -81,24 +81,7 @@ export class DStream<T = any> extends EventEmitter {
     if (this.stream == null) {
       throw Error("closed");
     }
-    this.stream.on("change", ({ mesg, raw, msgID }: ChangeEvent<T>) => {
-      if (raw?.seq !== undefined) {
-        delete this.saved[raw.seq];
-      }
-      if (mesg === undefined) {
-        return;
-      }
-      if (msgID) {
-        // this is critical with core-stream.ts, since otherwise there is a moment
-        // when the same message is in both this.local *and* this.messages, and you'll
-        // see it doubled in this.getAll().
-        delete this.local[msgID];
-      }
-      this.emit("change", mesg);
-      if (this.isStable()) {
-        this.emit("stable");
-      }
-    });
+    this.stream.on("change", this.handleChange);
     this.stream.on("reset", () => {
       this.local = {};
       this.saved = {};
@@ -106,6 +89,25 @@ export class DStream<T = any> extends EventEmitter {
     await this.stream.init();
     this.emit("connected");
   });
+
+  private handleChange = ({ mesg, raw, msgID }: ChangeEvent<T>) => {
+    if (raw?.seq !== undefined) {
+      delete this.saved[raw.seq];
+    }
+    if (mesg === undefined) {
+      return;
+    }
+    if (msgID) {
+      // this is critical with core-stream.ts, since otherwise there is a moment
+      // when the same message is in both this.local *and* this.messages, and you'll
+      // see it doubled in this.getAll().
+      delete this.local[msgID];
+    }
+    this.emit("change", mesg);
+    if (this.isStable()) {
+      this.emit("stable");
+    }
+  };
 
   isStable = () => {
     for (const _ in this.saved) {
@@ -117,18 +119,12 @@ export class DStream<T = any> extends EventEmitter {
     return true;
   };
 
-  close = async () => {
+  close = () => {
     if (this.stream == null) {
       return;
     }
-    if (!this.noAutosave) {
-      try {
-        await this.save();
-      } catch {
-        // [ ] TODO: try localStorage or a file?!
-      }
-    }
     const stream = this.stream;
+    stream.removeListener("change", this.handleChange);
     delete this.stream;
     stream.close();
     this.emit("closed");

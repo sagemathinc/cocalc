@@ -173,16 +173,18 @@ export class OpenFiles extends EventEmitter {
       merge: ({ local, remote }) => resolveMergeConflict(local, remote),
     });
     this.dkv = d;
-    d.on("change", ({ key: path }) => {
-      const entry = this.get(path);
-      if (entry != null) {
-        // not deleted and timestamp is set:
-        this.emit("change", entry as Entry);
-      }
-    });
+    d.on("change", this.handleChange);
     // ensure clock is synchronized
     await getSkew();
     this.setState("connected");
+  };
+
+  private handleChange = ({ key: path }) => {
+    const entry = this.get(path);
+    if (entry != null) {
+      // not deleted and timestamp is set:
+      this.emit("change", entry as Entry);
+    }
   };
 
   close = () => {
@@ -191,6 +193,7 @@ export class OpenFiles extends EventEmitter {
     }
     this.setState("closed");
     this.removeAllListeners();
+    this.dkv.removeListener("change", this.handleChange);
     this.dkv.close();
     delete this.dkv;
     // @ts-ignore
