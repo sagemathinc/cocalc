@@ -41,7 +41,7 @@ export function createTerminalClient({ project_id, path }) {
     project_id,
     path,
     service: "terminal-server",
-    timeout: 3,
+    timeout: 3000,
   });
 }
 
