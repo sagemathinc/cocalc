@@ -110,6 +110,7 @@ export class ConatClient extends EventEmitter {
           details: "",
           stats: this._conatClient?.stats,
         });
+        this.client.emit("connected");
       });
       this._conatClient.conn.on("disconnect", (reason, details) => {
         this.setConnectionStatus({
@@ -118,6 +119,7 @@ export class ConatClient extends EventEmitter {
           details,
           stats: this._conatClient?.stats,
         });
+        this.client.emit("disconnected", "offline");
       });
     }
     return this._conatClient!;
@@ -158,8 +160,8 @@ export class ConatClient extends EventEmitter {
     if (!client.info) {
       await once(client.conn as any, "info");
     }
-    console.log("Conat client connected -- ", client.info);
     if (client.info?.user?.account_id) {
+      console.log("Signed in -- ", client.info);
       this.client.hub_client.signedIn({
         account_id: client.info.user.account_id,
         hub: client.info.id,
@@ -175,6 +177,7 @@ export class ConatClient extends EventEmitter {
         location.reload();
       }
     } else {
+      console.log("Sign in failed -- ", client.info);
       this.client.hub_client.signInFailed(
         client.info?.user?.error ?? "Failed to sign in.",
       );

@@ -86,6 +86,7 @@ export class HubClient {
 
   constructor(client: WebappClient) {
     this.client = client;
+    return;
 
     /* We heavily throttle this, since it's ONLY used for the connections
     dialog, which users never look at, and it could waste cpu trying to
