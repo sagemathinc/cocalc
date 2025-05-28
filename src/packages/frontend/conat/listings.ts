@@ -110,7 +110,7 @@ export class Listings extends EventEmitter {
           `WARNING: not yet able to watch '${path}' in ${this.project_id} -- ${err}`,
         );
         try {
-          await this.listingsClient.api.nats.waitFor({
+          await this.listingsClient.api.conat.waitFor({
             maxWait: 7.5 * 1000 * 60,
           });
         } catch (err) {

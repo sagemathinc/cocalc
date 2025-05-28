@@ -12,7 +12,7 @@ export interface Extra {
 }
 
 export interface ServiceApi {
-  nats: Extra;
+  conat: Extra;
 }
 
 export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
@@ -23,7 +23,7 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
         if (typeof prop !== "string") {
           return undefined;
         }
-        if (prop == "nats") {
+        if (prop == "conat") {
           return {
             ping: async (opts: { id?: string; maxWait?: number } = {}) =>
               await pingConatService({ options, ...opts }),

@@ -197,7 +197,7 @@ export class ConatTerminal extends EventEmitter {
       } catch (err) {
         console.log(`Warning -- ${err} (will retry)`);
         try {
-          await this.api.nats.waitFor({ maxWait });
+          await this.api.conat.waitFor({ maxWait });
         } catch (err) {
           maxWait = Math.min(15000, 1.3 * maxWait);
           console.log(`WARNING -- waiting for terminal server -- ${err}`);
