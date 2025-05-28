@@ -3,7 +3,7 @@ pnpm test ./services.test.ts
 */
 
 import { before, after, connect } from "@cocalc/backend/conat/test/setup";
-import { Client } from "@cocalc/conat/core/client";
+import { Client, type Message } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
 
@@ -74,26 +74,38 @@ describe("services with the ephemeral option", () => {
   });
 
   let service, arith;
-  it("create a service in client1 and make sure it can be used from client2", async () => {
+  it("create a *service* with typing, subject in client1 and use it from client2", async () => {
     interface Api {
       add: (a: number, b: number) => Promise<number>;
       mul: (a: number, b: number) => Promise<number>;
+      subject: (a: number, b: number) => Promise<string>;
     }
-    service = await client1.service<Api>("arith", {
+    service = await client1.service<Api>("arith.*", {
       add: async (a, b) => a + b,
       mul: async (a, b) => a * b,
+      // Here we do NOT use an arrow => function and this is
+      // bound to the calling mesg, which lets us get the subject.
+      // Because user identity and permissions are done via wildcard
+      // subjects, having access to the calling message is critical
+      async subject(a, b) {
+        const mesg: Message = this as any;
+        return `${mesg.subject}-${a}-${b}`;
+      },
     });
 
-    arith = client2.call<Api>("arith");
+    arith = client2.call<Api>("arith.one");
     expect(await arith.mul(2, 3)).toBe(6);
     expect(await arith.add(2, 3)).toBe(5);
+
+    const arith2 = client2.call<Api>("arith.two");
+    expect(await arith2.subject(2, 3)).toBe("arith.two-2-3");
   });
 
   it("tests disconnect", async () => {
     client1.conn.io.engine.close();
     await wait({
       until: async () => {
-        const { count } = await client2.publish("arith", "hello");
+        const { count } = await client2.publish("arith.one", "hello");
         return count == 0;
       },
     });

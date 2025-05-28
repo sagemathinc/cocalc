@@ -649,6 +649,7 @@ export class Client {
      service = await client1.service('arith',  {mul : async (a,b)=>{a*b}, add : async (a,b)=>a+b}, {ephemeral:true})
 
   Use the service:
+  
      arith = await client2.call('arith')
      await arith.mul(2,3)
      await arith.add(2,3)
@@ -659,6 +660,10 @@ export class Client {
   Close the service when done:
 
      service.close();
+     
+  See backend/conat/test/core/services.test.ts for a tested and working example
+  that involves typescript and shows how to use wildcard subjects and get the 
+  specific subject used for a call by using that this is bound to the calling mesg.
   */
   service: <T = any>(
     subject: string,
@@ -674,7 +679,24 @@ export class Client {
     const respond = async (mesg: Message) => {
       try {
         const [name, args] = mesg.data;
-        mesg.respondSync(await impl[name](...args));
+        // call impl[name], but with 'this' set to the object {subject:...},
+        // so inside the service, it is possible to know what subject was used
+        // in the request, in case subject is a wildcard subject.
+        //         const result = await impl[name].apply(
+        //           { subject: mesg.subject },
+        //           ...args,
+        //         );
+        //         const result = await impl[name].apply(
+        //           { subject: mesg.subject },
+        //           ...args,
+        //         );
+        //         mesg.respondSync(result);
+        let f = impl[name];
+        if (f == null) {
+          throw Error(`${name} not defined`);
+        }
+        const result = await f.apply(mesg, args);
+        mesg.respondSync(result);
       } catch (err) {
         mesg.respondSync(null, { headers: { error: `${err}` } });
       }
