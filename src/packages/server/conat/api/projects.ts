@@ -5,6 +5,7 @@ import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
 import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { delay } from "awaiting";
+export * from "@cocalc/server/projects/collaborators";
 
 export async function copyPathBetweenProjects(
   opts: UserCopyOptions,

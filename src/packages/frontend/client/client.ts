@@ -223,9 +223,7 @@ class Client extends EventEmitter implements WebappClient {
     this.latency = this.hub_client.latency.bind(this.hub_client);
 
     this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
-    this.project_collaborators = bind_methods(
-      new ProjectCollaborators(this.async_call.bind(this)),
-    );
+    this.project_collaborators = bind_methods(new ProjectCollaborators(this));
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
