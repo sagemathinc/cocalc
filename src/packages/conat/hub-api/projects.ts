@@ -15,13 +15,15 @@ export type AddCollaborator =
   | {
       project_id: string;
       account_id: string;
+      token_id: undefined;
     }
   | {
       token_id: string;
       account_id: string;
+      project_id: undefined;
     }
-  | { project_id: string[]; account_id: string[] } // for adding more than one at once
-  | { account_id: string[]; token_id: string[] };
+  | { project_id: string[]; account_id: string[]; token_id: undefined } // for adding more than one at once
+  | { account_id: string[]; token_id: string[]; project_id: undefined };
 
 export interface Projects {
   // request to have NATS permissions to project subjects.

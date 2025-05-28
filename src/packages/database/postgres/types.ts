@@ -380,6 +380,22 @@ export interface PostgreSQL extends EventEmitter {
     cutoff?: Date;
     cb?: CB;
   });
+
+  when_sent_project_invite(opts: { project_id: string; to: string; cb?: CB });
+
+  sent_project_invite(opts: {
+    project_id: string;
+    to: string;
+    error?: string;
+    cb?: CB;
+  });
+
+  account_creation_actions(opts: {
+    email_address: string;
+    action?: any;
+    ttl?: number;
+    cb: CB;
+  });
 }
 
 // This is an extension of BaseProject in projects/control/base.ts
