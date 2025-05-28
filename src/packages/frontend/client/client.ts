@@ -16,7 +16,6 @@ import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { LLMClient } from "./llm";
 import { PurchasesClient } from "./purchases";
-import { JupyterClient } from "./jupyter";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
@@ -74,7 +73,6 @@ export interface WebappClient extends EventEmitter {
   admin_client: AdminClient;
   openai_client: LLMClient;
   purchases_client: PurchasesClient;
-  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -158,7 +156,6 @@ class Client extends EventEmitter implements WebappClient {
   admin_client: AdminClient;
   openai_client: LLMClient;
   purchases_client: PurchasesClient;
-  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -236,9 +233,6 @@ class Client extends EventEmitter implements WebappClient {
     this.admin_client = bind_methods(new AdminClient(this));
     this.openai_client = bind_methods(new LLMClient(this));
     this.purchases_client = bind_methods(new PurchasesClient(this));
-    this.jupyter_client = bind_methods(
-      new JupyterClient(this.async_call.bind(this)),
-    );
     this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
     this.conat_client = bind_methods(new ConatClient(this));

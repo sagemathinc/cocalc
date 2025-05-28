@@ -28,8 +28,6 @@ db_schema            = require('@cocalc/util/db-schema')
 { REMEMBER_ME_COOKIE_NAME } = require("@cocalc/backend/auth/cookie-names");
 generateHash     = require("@cocalc/server/auth/hash").default;
 passwordHash     = require("@cocalc/backend/auth/password-hash").default;
-jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
-jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project   = require("@cocalc/server/projects/create").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
@@ -1146,26 +1144,4 @@ class exports.Client extends EventEmitter
     mesg_openai_embeddings_remove: (mesg) =>
         @error_to_client(id:mesg.id, error:"openai_embeddings_remove is DEPRECATED")
 
-    mesg_jupyter_execute: (mesg) =>
-        dbg = @dbg("mesg_jupyter_execute")
-        dbg(mesg.text)
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        try
-            resp = await jupyter_execute(mesg)
-            resp.id = mesg.id
-            @push_to_client(message.jupyter_execute_response(resp))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
-
-    mesg_jupyter_kernels: (mesg) =>
-        dbg = @dbg("mesg_jupyter_kernels")
-        dbg(mesg.text)
-        try
-            @push_to_client(message.jupyter_kernels(id:mesg.id, kernels:await jupyter_kernels({project_id:mesg.project_id, account_id:@account_id})))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
 

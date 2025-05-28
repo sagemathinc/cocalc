@@ -164,12 +164,14 @@ import * as purchases from "./purchases";
 import * as db from "./db";
 import * as system from "./system";
 import * as projects from "./projects";
+import * as jupyter from "./jupyter";
 
 export const hubApi: HubApi = {
   system,
   projects,
   db,
   purchases,
+  jupyter,
 };
 
 async function getResponse({ name, args, account_id, project_id }) {

@@ -3,6 +3,7 @@ import { type Purchases, purchases } from "./purchases";
 import { type System, system } from "./system";
 import { type Projects, projects } from "./projects";
 import { type DB, db } from "./db";
+import { type Jupyter, jupyter } from "./jupyter";
 import { handleErrorMessage } from "@cocalc/conat/util";
 import { removeUndefinedLeafs } from "@cocalc/util/misc";
 import { cloneDeep } from "lodash";
@@ -12,6 +13,7 @@ export interface HubApi {
   projects: Projects;
   db: DB;
   purchases: Purchases;
+  jupyter: Jupyter;
 }
 
 const HubApiStructure = {
@@ -19,6 +21,7 @@ const HubApiStructure = {
   projects,
   db,
   purchases,
+  jupyter,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {
