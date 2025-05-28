@@ -177,12 +177,25 @@ export class HubClient {
   }
 
   private ondata(data: string): void {
-    //console.log("got #{data.length} of data")
+    console.log(`got ${data.length} of data from hub`, { data });
     this.mesg_data.recv += 1;
     this.mesg_data.recv_length += data.length;
     this.emit_mesg_data();
     this.handle_json_data(data);
   }
+
+  signedIn = (mesg: { account_id: string; hub: string }) => {
+    this.client.account_id = mesg.account_id;
+    this.set_signed_in();
+    this.signed_in_time = Date.now();
+    setRememberMe(appBasePath);
+    this.client.emit("signed_in", mesg);
+  };
+
+  signInFailed = (error) => {
+    deleteRememberMe(appBasePath);
+    this.client.emit("remember_me_failed", { error });
+  };
 
   private async handle_json_data(data: string): Promise<void> {
     this.emit_mesg_data();
@@ -195,20 +208,6 @@ export class HubClient {
         } catch (err) {
           console.warn("Error handling cookie ", mesg, err);
         }
-        break;
-
-      case "signed_in":
-        this.client.account_id = mesg.account_id;
-        this.set_signed_in();
-        this.signed_in_time = Date.now();
-        setRememberMe(appBasePath);
-        this.signed_in_mesg = mesg;
-        this.client.emit("signed_in", mesg);
-        break;
-
-      case "remember_me_failed":
-        deleteRememberMe(appBasePath);
-        this.client.emit(mesg.event, mesg);
         break;
 
       case "version":

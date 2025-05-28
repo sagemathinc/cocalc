@@ -257,7 +257,7 @@ class exports.Client extends EventEmitter
             if @account_id != signed_in_mesg.account_id
                 signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
                 @signed_in(signed_in_mesg)
-                @push_to_client(signed_in_mesg)
+                #@push_to_client(signed_in_mesg)
         catch err
             dbg("remember_me: personal mode error", err.toString())
             @remember_me_failed("error getting personal user -- #{err}")
@@ -303,7 +303,7 @@ class exports.Client extends EventEmitter
                     signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
                     @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
-                    @push_to_client(signed_in_mesg)
+                    #@push_to_client(signed_in_mesg)
 
     push_to_client: (mesg, cb) =>
         ###

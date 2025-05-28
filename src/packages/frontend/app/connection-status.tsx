@@ -5,6 +5,7 @@ import {
   SendOutlined,
   DownloadOutlined,
   UsergroupAddOutlined,
+  DatabaseOutlined,
 } from "@ant-design/icons";
 import type { ConatConnectionStatus } from "@cocalc/frontend/conat/client";
 import { capitalize } from "@cocalc/util/misc";
@@ -23,26 +24,30 @@ function bytesToStr(bytes: number): string {
 
 export function ConnectionStatsDisplay({
   status,
+  hub,
 }: {
   status: ConatConnectionStatus;
+  hub?: string;
 }) {
   const connected = status.state === "connected";
-  const statusText = connected ? "Connected" : "Disconnected";
+  const statusText = connected
+    ? `Connected${hub ? " to hub " + hub : ""}`
+    : "Disconnected";
   const statusColor = connected ? "green" : "red";
 
   const icon = connected ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
 
   if (MAX_SEND_MESSAGES <= status.stats.send.messages) {
-    MAX_SEND_MESSAGES += 1_000;
+    MAX_SEND_MESSAGES *= 1.2;
   }
   if (MAX_SEND_BYTES <= status.stats.send.bytes) {
-    MAX_SEND_BYTES += 1_000_000;
+    MAX_SEND_BYTES *= 1.2;
   }
   if (MAX_RECV_MESSAGES <= status.stats.recv.messages) {
-    MAX_RECV_MESSAGES += 1_000;
+    MAX_RECV_MESSAGES *= 1.2;
   }
   if (MAX_RECV_BYTES <= status.stats.recv.bytes) {
-    MAX_RECV_BYTES += 1_000_000;
+    MAX_RECV_BYTES *= 1.2;
   }
 
   if (status?.stats == null) {
@@ -83,7 +88,13 @@ export function ConnectionStatsDisplay({
             format={() => `${status.stats.send.messages}`}
           />
         </Descriptions.Item>
-        <Descriptions.Item label="Bytes sent">
+        <Descriptions.Item
+          label={
+            <>
+              <DatabaseOutlined /> Bytes sent
+            </>
+          }
+        >
           <Progress
             percent={Math.min(
               100,
@@ -113,7 +124,13 @@ export function ConnectionStatsDisplay({
             format={() => `${status.stats.recv.messages}`}
           />
         </Descriptions.Item>
-        <Descriptions.Item label="Bytes received">
+        <Descriptions.Item
+          label={
+            <>
+              <DatabaseOutlined /> Bytes received
+            </>
+          }
+        >
           <Progress
             percent={Math.min(
               100,

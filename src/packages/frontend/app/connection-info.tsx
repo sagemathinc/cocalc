@@ -24,6 +24,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
   const status = useTypedRedux("page", "connection_status");
   const page_actions = useActions("page");
   const conat = useTypedRedux("page", "conat");
+  const hub = useTypedRedux("account", "hub");
 
   function close() {
     page_actions.show_connection(false);
@@ -31,7 +32,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
 
   return (
     <Modal
-      width={900}
+      width={700}
       open
       onCancel={close}
       onOk={close}
@@ -50,26 +51,25 @@ export const ConnectionInfo: React.FC = React.memo(() => {
       }
     >
       <div>
-        <Row>
-          <Col sm={3}>
-            <h4>Pub/Sub Messaging</h4>
-          </Col>
-          {conat != null && (
-            <Col sm={7}>
-              {conat && <ConnectionStatsDisplay status={conat.toJS()} />}
+        {conat != null && (
+          <Row>
+            <Col sm={12}>
+              {conat && (
+                <ConnectionStatsDisplay status={conat.toJS()} hub={hub} />
+              )}
             </Col>
-          )}
-        </Row>
+          </Row>
+        )}
         {ping ? (
           <Row style={{ marginTop: "30px" }}>
             <Col sm={3}>
-              <h4>
+              <h5>
                 <FormattedMessage
                   id="connection-info.ping"
                   defaultMessage="Ping Time"
                   description={"Ping how long a server takes to respond"}
                 />
-              </h4>
+              </h5>
             </Col>
             <Col sm={7}>
               <pre>

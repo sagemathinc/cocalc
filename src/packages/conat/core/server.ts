@@ -44,6 +44,7 @@ import {
   MAX_DISCONNECTION_DURATION,
   MAX_SUBSCRIPTIONS_PER_CLIENT,
 } from "./constants";
+import { randomId } from "@cocalc/conat/names";
 
 const DEBUG = false;
 
@@ -69,7 +70,7 @@ export interface Options {
   Server;
   httpServer?;
   port?: number;
-  id?: number;
+  id?: string;
   logger?;
   path?: string;
   getUser?: UserFunction;
@@ -81,7 +82,7 @@ export interface Options {
 
 export class ConatServer {
   public readonly io;
-  public readonly id: number;
+  public readonly id: string;
   private readonly logger: (...args) => void;
   private interest: { [subject: string]: { [queue: string]: Set<string> } } =
     {};
@@ -104,7 +105,7 @@ export class ConatServer {
       Server,
       httpServer,
       port = 3000,
-      id = 0,
+      id = randomId(),
       logger,
       path = "/conat",
       getUser,
@@ -176,6 +177,7 @@ export class ConatServer {
   private info = (): ServerInfo => {
     return {
       max_payload: MAX_PAYLOAD,
+      id: this.id,
     };
   };
 

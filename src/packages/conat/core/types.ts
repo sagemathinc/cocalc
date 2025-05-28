@@ -7,6 +7,7 @@ interface User {
 
 export interface ServerInfo {
   max_payload: number;
+  id: string;
   user?: User;
 }
 
