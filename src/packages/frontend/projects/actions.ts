@@ -688,7 +688,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const email = markdown_to_html(body);
 
     try {
-      const resp = await webapp_client.project_collaborators.invite_noncloud({
+      await webapp_client.project_collaborators.invite_noncloud({
         project_id,
         title,
         link2proj,
