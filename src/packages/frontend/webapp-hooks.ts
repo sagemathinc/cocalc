@@ -31,17 +31,6 @@ export function init() {
     cb();
   };
 
-  webapp_client.on("mesg_info", function (info) {
-    const f = () => {
-      const account_store = redux.getActions("account");
-      if (account_store != undefined) {
-        account_store.setState({ mesg_info: info });
-      }
-    };
-    // must be scheduled separately, since this notification can be triggered during rendering
-    setTimeout(f, 1);
-  });
-
   function signed_in(mesg) {
     setRememberMe(appBasePath);
     // Record which hub we're connected to.
