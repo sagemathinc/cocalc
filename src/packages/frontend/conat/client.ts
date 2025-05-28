@@ -199,7 +199,9 @@ export class ConatClient extends EventEmitter {
     }
   };
 
+  public signedInMessage?: { account_id: string; hub: string };
   private signedIn = (mesg: { account_id: string; hub: string }) => {
+    this.signedInMessage = mesg;
     this.client.account_id = mesg.account_id;
     setRememberMe(appBasePath);
     this.client.emit("signed_in", mesg);

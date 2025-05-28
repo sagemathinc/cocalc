@@ -6,7 +6,6 @@
 import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { MessageInfo } from "@cocalc/frontend/client/hub";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
@@ -76,7 +75,6 @@ export interface AccountState {
   reset_key?: string;
   sign_out_error?: string;
   show_sign_out?: boolean;
-  mesg_info?: TypedMap<MessageInfo>;
   hub?: string;
   remember_me?: boolean;
   has_remember_me?: boolean;
