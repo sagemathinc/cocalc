@@ -15,22 +15,6 @@ export class FileClient {
     this.async_call = async_call;
   }
 
-  // Currently only used for testing and development in the console.
-  public async syncdoc_history(
-    string_id: string,
-    patches?: boolean,
-  ): Promise<any> {
-    return (
-      await this.async_call({
-        message: message.get_syncdoc_history({
-          string_id,
-          patches,
-        }),
-        allow_post: false,
-      })
-    ).history;
-  }
-
   // Returns true if the given file in the given project is currently
   // marked as deleted.
   public is_deleted(path: string, project_id: string): boolean {

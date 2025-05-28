@@ -655,16 +655,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // no-op; assumed async api
   touch_project(_project_id: string, _compute_server_id?: number) {}
 
-  async get_syncdoc_history(string_id: string, patches = false) {
-    const dbg = this.dbg("get_syncdoc_history");
-    dbg(string_id, patches);
-    const mesg = message.get_syncdoc_history({
-      string_id,
-      patches,
-    });
-    return await callback2(this.call, { message: mesg });
-  }
-
   // Return true if the file was explicitly deleted.
   // Returns unknown if don't know
   // Returns false if definitely not.

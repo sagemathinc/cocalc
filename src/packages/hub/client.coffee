@@ -1488,19 +1488,6 @@ class exports.Client extends EventEmitter
                 local_hub_connection.disconnect_from_project(mesg.project_id)
                 @push_to_client(message.success(id:mesg.id))
 
-    mesg_get_syncdoc_history: (mesg) =>
-        dbg = @dbg('mesg_syncdoc_history')
-        try
-            dbg("checking conditions")
-            # this raises an error if user does not have access
-            await callback(@_check_syncdoc_access, mesg.string_id)
-            # get the history
-            history = await @database.syncdoc_history_async(mesg.string_id, mesg.patches)
-            dbg("success!")
-            @push_to_client(message.syncdoc_history(id:mesg.id, history:history))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
 
     mesg_admin_reset_password: (mesg) =>
         dbg = @dbg("mesg_reset_password")

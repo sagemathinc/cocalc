@@ -333,8 +333,6 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
-  syncdoc_history_async(string_id: string, patches?: boolean): void;
-
   set_project_state(opts: {
     project_id: string;
     state: ProjectState;

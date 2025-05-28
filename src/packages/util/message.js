@@ -2425,23 +2425,6 @@ message({
 });
 
 // client --> hub
-API(
-  message({
-    event: "get_syncdoc_history",
-    id: undefined,
-    string_id: required,
-    patches: undefined,
-  }),
-);
-
-// hub --> client
-message({
-  event: "syncdoc_history",
-  id: undefined,
-  history: required,
-});
-
-// client --> hub
 // It's an error if user is not signed in, since
 // then we don't know who to track.
 message({
