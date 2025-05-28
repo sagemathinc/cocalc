@@ -396,6 +396,15 @@ export interface PostgreSQL extends EventEmitter {
     ttl?: number;
     cb: CB;
   });
+
+  log_client_error(opts: {
+    event: string;
+    error: string;
+    account_id?: string;
+    cb?: CB;
+  });
+
+  webapp_error(opts: object);
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

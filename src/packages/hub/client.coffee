@@ -633,34 +633,6 @@ class exports.Client extends EventEmitter
                     @groups = r['groups']
                     cb?(undefined, @groups)
 
-    # Messages: Log errors that client sees so we can also look at them
-    mesg_log_client_error: (mesg) =>
-        @dbg('mesg_log_client_error')(mesg.error)
-        if not mesg.type?
-            mesg.type = "error"
-        if not mesg.error?
-            mesg.error = "error"
-        @database.log_client_error
-            event      : mesg.type
-            error      : mesg.error
-            account_id : @account_id
-            cb         : (err) =>
-                if not mesg.id?
-                    return
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-
-    mesg_webapp_error: (mesg) =>
-        # Tell client we got it, thanks:
-        @success_to_client(id:mesg.id)
-        # Now do something with it.
-        @dbg('mesg_webapp_error')(mesg.msg)
-        mesg = misc.copy_without(mesg, 'event')
-        mesg.account_id = @account_id
-        @database.webapp_error(mesg)
-
     # Messages: Project Management
     get_project: (mesg, permission, cb) =>
         ###

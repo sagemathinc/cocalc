@@ -8,6 +8,7 @@ import { type UserSearchResult } from "@cocalc/util/db-schema/accounts";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import search from "@cocalc/server/accounts/search";
 export { getNames } from "@cocalc/server/accounts/get-name";
+import { callback2 } from "@cocalc/util/async-utils";
 
 export function ping() {
   return { now: Date.now() };
@@ -25,6 +26,26 @@ export async function userTracking({
   account_id?: string;
 }): Promise<void> {
   await record_user_tracking(db(), account_id!, event, value);
+}
+
+export async function logClientError({
+  account_id,
+  event,
+  error,
+}: {
+  account_id?: string;
+  event: string;
+  error: string;
+}): Promise<void> {
+  await callback2(db().log_client_error, {
+    event,
+    error,
+    account_id,
+  });
+}
+
+export async function webappError(opts: object): Promise<void> {
+  await callback2(db().webapp_error, opts);
 }
 
 export {

@@ -11,6 +11,8 @@ export const system = {
   ping: noAuth,
   terminate: authFirst,
   userTracking: authFirst,
+  logClientError: authFirst,
+  webappError: authFirst,
   manageApiKeys: authFirst,
   generateUserAuthToken: authFirst,
   revokeUserAuthToken: noAuth,
@@ -34,6 +36,14 @@ export interface System {
     value: object;
     account_id?: string;
   }) => Promise<void>;
+
+  logClientError: (opts: {
+    account_id?: string;
+    event: string;
+    error: string;
+  }) => Promise<void>;
+
+  webappError: (opts: object) => Promise<void>;
 
   manageApiKeys: (opts: {
     account_id?: string;
