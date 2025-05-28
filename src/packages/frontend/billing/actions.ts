@@ -209,30 +209,6 @@ export class BillingActions extends Actions<BillingStoreState> {
     });
   }
 
-  // Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action,
-  // and is used only when deleting an account.
-  public async cancel_everything(): Promise<void> {
-    // update info about this customer
-    await this.update_customer();
-    // delete stuff
-    // delete payment methods
-    const payment_methods = this.store.getIn(["customer", "sources", "data"]);
-    if (payment_methods != null) {
-      for (const x of payment_methods.toJS() as any) {
-        await this.delete_payment_method(x.id);
-      }
-    }
-    const subscriptions = this.store.getIn([
-      "customer",
-      "subscriptions",
-      "data",
-    ]);
-    if (subscriptions != null) {
-      for (const x of subscriptions.toJS() as any) {
-        await this.cancel_subscription(x.id);
-      }
-    }
-  }
 
   // Set this while we are paying for the course.
   public set_is_paying_for_course(
