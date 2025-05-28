@@ -497,7 +497,7 @@ function socketSubjectRoom({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
 }
 
-function randomChoice(v: Set<string>): any {
+export function randomChoice(v: Set<string>): any {
   if (v.size == 0) {
     return undefined;
   }

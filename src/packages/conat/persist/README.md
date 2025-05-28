@@ -31,13 +31,47 @@ Notes:
 
 ## Architecture:
 
-- many persistence servers
+- There can be a large number of persist services.   These servers a single threaded and
+  may require substantial RAM and cpu to do their work, so we have to be able easily scale
+  the number up and down.
 
-- The persistence servers have local persistent disk storage and access to a common cloud
-  storage bucket (or common NFS mount) for longterm cheap high-latency tiered storage.
+- Each stream storage server has:
+  
+  - mounts a common shared filesystem across all persistence servers.
+  - (optional) access to a common cloud storage bucket for longterm cheap 
+    high-latency tiered storage.
+    
+- One load balancer that decided which persistence server should server a given stream.
 
-- One coordinator, which knows state of persistence servers. It has persistent disk
-  storage to maintain state, even if it is restarted.
+  - coordinator persists its state to the common shared filesystem as well.
+  - This defines a map 
+          
+          (stream) |--> (persist server)
+          
+    that changes only when a persist server terminates.
+    The persist servers send periodic heartbeats to coordinator and the coordinator
+    allocates stream work ONLY to persist servers that have sent a recent heartbeat.
+  - When coordinator is restarted there's a short period when new clients can't
+    open a stream. Existing clients keep using the streams as before.
+  - The obvious problem with this approach is if persist server A is working fine
+    but somehow communication with the coordinator stops, then the coordinator
+    switches the stream to use persist server B and some clients use B, but some
+    clients are still using persist server A.  Basically, split brain.
+    If this happened though server A and server B are still using the same sqlite
+    file (over NFS) so there's still locking at the NFS level. The loss would be
+    that users would not see each other's changes.  If there's split brain though,
+    that means our pub/sub layer is fundamentally broken, so it's acceptable that
+    users aren't seeing each other's changes in such a scenario.
+
+  
+Requirements:
+
+ - must scale up a lot, e..g, imagine 10,000 simultaneous users, doing a lot with terminals, editing, jupyter, etc., all at once -- that's well over 10K+ messages/second to this system
+ - efficient in terms of cost
+ - a minute of downtime for a subset of streams once in a while is ok; global downtime for all streams would be very bad.
+ - very small amount of data loss (e.g., last few seconds of edit history) is ok
+ 
+  
 
 ## Protocol:
 

@@ -96,7 +96,11 @@ const logger = getLogger("persist:server");
 
 export const SUBJECT = "persist";
 
-export type User = { account_id?: string; project_id?: string };
+export type User = {
+  account_id?: string;
+  project_id?: string;
+  hub_id?: string;
+};
 export function persistSubject({ account_id, project_id }: User) {
   if (account_id) {
     return `${SUBJECT}.account-${account_id}.api`;
@@ -117,7 +121,7 @@ export function renewSubject({ account_id, project_id }: User) {
   }
 }
 
-function getUserId(subject: string): string {
+export function getUserId(subject: string): string {
   if (
     subject.startsWith(`${SUBJECT}.account-`) ||
     subject.startsWith(`${SUBJECT}.project-`)
