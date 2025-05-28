@@ -536,12 +536,6 @@ export class ProjectClient {
     return project_id;
   }
 
-  // Disconnect whatever hub we are connected to from the project
-  // Adding this right now only for debugging/dev purposes!
-  public async disconnect_hub_from_project(project_id: string): Promise<void> {
-    await this.call(message.disconnect_from_project({ project_id }));
-  }
-
   public async realpath(opts: {
     project_id: string;
     path: string;

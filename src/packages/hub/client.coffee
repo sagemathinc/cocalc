@@ -722,24 +722,6 @@ class exports.Client extends EventEmitter
                 cb(undefined, project)
         )
 
-
-    mesg_project_exec: (mesg) =>
-        if mesg.command == "ipython-notebook"
-            # we just drop these messages, which are from old non-updated clients (since we haven't
-            # written code yet to not allow them to connect -- TODO!).
-            return
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.call
-                mesg    : mesg
-                timeout : mesg.timeout
-                cb      : (err, resp) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(resp)
-
     mesg_copy_path_between_projects: (mesg) =>
         @copy_path.copy(mesg)
 
@@ -788,12 +770,6 @@ class exports.Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
-
-    # this is an async function
-    allow_urls_in_emails: (project_id) =>
-        is_paying = await is_paying_customer(@database, @account_id)
-        has_network = await project_has_network_access(@database, project_id)
-        return is_paying or has_network
 
     mesg_add_license_to_project: (mesg) =>
         dbg = @dbg('mesg_add_license_to_project')
@@ -1024,26 +1000,4 @@ class exports.Client extends EventEmitter
                 else
                     project_id = results.rows[0].project_id
                     @_check_project_access(project_id, cb)
-
-    mesg_disconnect_from_project: (mesg) =>
-        dbg = @dbg('mesg_disconnect_from_project')
-        @_check_project_access mesg.project_id, (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"unable to disconnect from project #{mesg.project_id} -- #{err}")
-            else
-                local_hub_connection.disconnect_from_project(mesg.project_id)
-                @push_to_client(message.success(id:mesg.id))
-
-
-    # These are deprecated. Not the best approach.
-    mesg_openai_embeddings_search: (mesg) =>
-        @error_to_client(id:mesg.id, error:"openai_embeddings_search is DEPRECATED")
-
-    mesg_openai_embeddings_save: (mesg) =>
-        @error_to_client(id:mesg.id, error:"openai_embeddings_save is DEPRECATED")
-
-    mesg_openai_embeddings_remove: (mesg) =>
-        @error_to_client(id:mesg.id, error:"openai_embeddings_remove is DEPRECATED")
-
 
