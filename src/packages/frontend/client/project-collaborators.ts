@@ -10,7 +10,7 @@ export class ProjectCollaborators {
   private conat: ConatClient;
 
   constructor(client) {
-    this.conat = client.conat;
+    this.conat = client.conat_client;
   }
 
   public async invite_noncloud(opts: {

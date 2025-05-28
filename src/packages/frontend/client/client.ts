@@ -223,7 +223,6 @@ class Client extends EventEmitter implements WebappClient {
     this.latency = this.hub_client.latency.bind(this.hub_client);
 
     this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
-    this.project_collaborators = bind_methods(new ProjectCollaborators(this));
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
@@ -247,6 +246,7 @@ class Client extends EventEmitter implements WebappClient {
     this.is_connected = this.conat_client.is_connected.bind(this.conat_client);
     this.file_client = bind_methods(new FileClient());
     this.idle_client = bind_methods(new IdleClient(this));
+    this.project_collaborators = bind_methods(new ProjectCollaborators(this)); // must be after this.conat_client is defined.
 
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
