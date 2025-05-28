@@ -19,7 +19,6 @@ clients              = require('./clients').getClients()
 auth                 = require('./auth')
 local_hub_connection = require('./local_hub_connection')
 hub_projects         = require('./projects')
-{StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
 purchase_license     = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
@@ -986,75 +985,6 @@ class exports.Client extends EventEmitter
             else
                 @push_to_client(message.success(id:mesg.id))
         )
-
-
-    ###
-    Stripe-integration billing code
-    ###
-    handle_stripe_mesg: (mesg) =>
-        try
-            await @_stripe_client ?= new StripeClient(@)
-        catch err
-            @error_to_client(id:mesg.id, error:"${err}")
-            return
-        @_stripe_client.handle_mesg(mesg)
-
-    mesg_stripe_get_customer: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_create_source: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_delete_source: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_set_default_source: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_update_source: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_create_subscription: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_cancel_subscription: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_update_subscription: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_get_subscriptions: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_get_coupon: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_get_charges: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_get_invoices: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_stripe_admin_create_invoice_item: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
-    mesg_get_available_upgrades: (mesg) =>
-        mesg.event = 'stripe_get_available_upgrades'  # for backward compat
-        @handle_stripe_mesg(mesg)
-
-    mesg_remove_all_upgrades: (mesg) =>
-        mesg.event = 'stripe_remove_all_upgrades'     # for backward compat
-        @handle_stripe_mesg(mesg)
-
-    mesg_purchase_license: (mesg) =>
-        try
-            await @_stripe_client ?= new StripeClient(@)
-            resp = await purchase_license(@account_id, mesg.info)
-            @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
-        catch err
-            @error_to_client(id:mesg.id, error:err.toString())
-
-    #  END stripe-related functionality
 
     _check_project_access: (project_id, cb) =>
         if not @account_id?

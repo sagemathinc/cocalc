@@ -56,22 +56,6 @@ export class AccountClient {
     }
   }
 
-  public async delete_account(account_id: string): Promise<any> {
-    return await this.call(message.delete_account({ account_id }));
-  }
-
-  public async sign_in(opts: {
-    email_address: string;
-    password: string;
-    remember_me?: boolean;
-    get_api_key?: boolean; // if given, will create/get api token in response message
-  }): Promise<any> {
-    return await this.async_call({
-      message: message.sign_in(opts),
-      error_event: false,
-    });
-  }
-
   public async cookies(mesg): Promise<void> {
     const f = (cb) => {
       const j = $.ajax({
@@ -87,7 +71,6 @@ export class AccountClient {
   public async sign_out(everywhere: boolean = false): Promise<void> {
     await api("/accounts/sign-out", { all: everywhere });
     delete this.client.account_id;
-    await this.call(message.sign_out({ everywhere }));
     this.client.emit("signed_out");
   }
 

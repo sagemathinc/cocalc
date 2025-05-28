@@ -82,51 +82,6 @@ export class AccountActions extends Actions<AccountState> {
     });
   }
 
-  public async sign_in(email: string, password: string): Promise<void> {
-    const doc_conn =
-      "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
-    const err_help = `\
-Please try again.
-
-If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.help()}.\
-`;
-
-    this.setState({ signing_in: true });
-    let mesg;
-    try {
-      mesg = await this.account_client.sign_in({
-        email_address: email,
-        password,
-        remember_me: true,
-        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
-      });
-    } catch (err) {
-      this.setState({
-        sign_in_error: `There was an error signing you in -- (${err.message}). ${err_help}`,
-      });
-      return;
-    }
-    this.setState({ signing_in: false });
-    switch (mesg.event) {
-      case "sign_in_failed":
-        this.setState({ sign_in_error: mesg.reason });
-        return;
-      case "signed_in":
-        break;
-      case "error":
-        this.setState({ sign_in_error: mesg.reason });
-        return;
-      default:
-        // should never ever happen
-        this.setState({
-          sign_in_error: `The server responded with invalid message when signing in: ${JSON.stringify(
-            mesg,
-          )}`,
-        });
-        return;
-    }
-  }
-
   public async create_account(
     first_name: string,
     last_name: string,

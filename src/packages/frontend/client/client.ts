@@ -6,7 +6,6 @@ import { bind_methods } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { alert_message } from "../alerts";
-import { StripeClient } from "./stripe";
 import { ProjectCollaborators } from "./project-collaborators";
 import { Messages } from "./messages";
 import { QueryClient } from "./query";
@@ -63,7 +62,6 @@ export type AsyncCall = (opts: object) => Promise<any>;
 export interface WebappClient extends EventEmitter {
   account_id?: string;
   browser_id: string;
-  stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
   query_client: QueryClient;
@@ -146,7 +144,6 @@ Connection events:
 class Client extends EventEmitter implements WebappClient {
   account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
   browser_id: string = randomId();
-  stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   messages: Messages;
   query_client: QueryClient;
@@ -219,7 +216,6 @@ class Client extends EventEmitter implements WebappClient {
     this.async_call = this.hub_client.async_call.bind(this.hub_client);
     this.latency = this.hub_client.latency.bind(this.hub_client);
 
-    this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
