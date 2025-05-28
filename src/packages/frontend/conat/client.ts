@@ -53,6 +53,10 @@ import type { ConnectionStats } from "@cocalc/conat/core/types";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import {
+  deleteRememberMe,
+  setRememberMe,
+} from "@cocalc/frontend/misc/remember-me";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -74,6 +78,7 @@ export class ConatClient extends EventEmitter {
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
   private clientWithState: ClientWithState;
   private _conatClient: null | ReturnType<typeof connectToConat>;
+  public numConnectionAttempts = 0;
 
   constructor(client: WebappClient) {
     super();
@@ -121,8 +126,20 @@ export class ConatClient extends EventEmitter {
         });
         this.client.emit("disconnected", "offline");
       });
+      this._conatClient.conn.io.on("reconnect_attempt", (attempt) => {
+        this.numConnectionAttempts = attempt;
+        this.client.emit("connecting");
+      });
     }
     return this._conatClient!;
+  };
+
+  is_signed_in = (): boolean => {
+    return !!this._conatClient?.info?.user?.account_id;
+  };
+
+  is_connected = (): boolean => {
+    return !!this._conatClient?.conn?.connected;
   };
 
   private startStatsReporter = async () => {
@@ -162,7 +179,7 @@ export class ConatClient extends EventEmitter {
     }
     if (client.info?.user?.account_id) {
       console.log("Signed in -- ", client.info);
-      this.client.hub_client.signedIn({
+      this.signedIn({
         account_id: client.info.user.account_id,
         hub: client.info.id,
       });
@@ -178,10 +195,19 @@ export class ConatClient extends EventEmitter {
       }
     } else {
       console.log("Sign in failed -- ", client.info);
-      this.client.hub_client.signInFailed(
-        client.info?.user?.error ?? "Failed to sign in.",
-      );
+      this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
     }
+  };
+
+  private signedIn = (mesg: { account_id: string; hub: string }) => {
+    this.client.account_id = mesg.account_id;
+    setRememberMe(appBasePath);
+    this.client.emit("signed_in", mesg);
+  };
+
+  private signInFailed = (error) => {
+    deleteRememberMe(appBasePath);
+    this.client.emit("remember_me_failed", { error });
   };
 
   getEnv = async () => await getEnv();

@@ -115,7 +115,7 @@ export class HubClient {
 
   public send(mesg: object): void {
     // uncomment this to work on removing the hub websocket connection entirely.
-    // console.log("send to hub", mesg);
+    console.log("LEGACY WEBSOCKET: send to hub", mesg);
     const data = to_json_socket(mesg);
     this.mesg_data.sent_length += data.length;
     this.emit_mesg_data();
@@ -178,7 +178,7 @@ export class HubClient {
   }
 
   private ondata(data: string): void {
-    console.log(`got ${data.length} of data from hub`, { data });
+    console.log(`LEGACY WEBSOCKET: got ${data.length} of data from hub`, { data });
     this.mesg_data.recv += 1;
     this.mesg_data.recv_length += data.length;
     this.emit_mesg_data();
@@ -203,14 +203,6 @@ export class HubClient {
     const mesg = from_json_socket(data);
     // console.log(`handle_json_data: ${data}`);
     switch (mesg.event) {
-      case "cookies":
-        try {
-          await this.client.account_client.cookies(mesg);
-        } catch (err) {
-          console.warn("Error handling cookie ", mesg, err);
-        }
-        break;
-
       case "version":
         this.client.emit("new_version", {
           version: mesg.version,
@@ -507,7 +499,7 @@ export class HubClient {
   }
 
   private send_version(): void {
-    this.send(message.version({ version: this.client.version() }));
+   // this.send(message.version({ version: this.client.version() }));
   }
 
   public fix_connection(): void {

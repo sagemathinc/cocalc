@@ -218,8 +218,6 @@ class Client extends EventEmitter implements WebappClient {
       };
     }
     this.hub_client = bind_methods(new HubClient(this));
-    this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
-    this.is_connected = this.hub_client.is_connected.bind(this.hub_client);
     this.call = this.hub_client.call.bind(this.hub_client);
     this.async_call = this.hub_client.async_call.bind(this.hub_client);
     this.latency = this.hub_client.latency.bind(this.hub_client);
@@ -247,6 +245,8 @@ class Client extends EventEmitter implements WebappClient {
     this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
     this.conat_client = bind_methods(new ConatClient(this));
+    this.is_signed_in = this.conat_client.is_signed_in.bind(this.conat_client);
+    this.is_connected = this.conat_client.is_connected.bind(this.conat_client);
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
     this.idle_client = bind_methods(new IdleClient(this));
 

@@ -58,13 +58,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return the_table;
   };
 
-  private async projects_table_set(
+  private projects_table_set = async (
     obj: object,
     merge: "deep" | "shallow" | "none" | undefined = "deep",
-  ): Promise<void> {
+  ): Promise<void> => {
     const table = await this.getProjectTable();
     await table?.set(obj, merge);
-  }
+  };
 
   // Set something in the projects table of the database directly
   // using a query, instead of using sync'd table mechanism, which
