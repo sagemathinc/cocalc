@@ -29,7 +29,7 @@ Or from cocalc/src
 
 */
 
-import type { ServerInfo } from "./types";
+import type { ServerConnectionStats, ServerInfo } from "./types";
 import {
   matchesPattern,
   isValidSubject,
@@ -93,6 +93,7 @@ export class ConatServer {
   private sockets: { [id: string]: any } = {};
   // which subscriptions are ephemeral
   private ephemeral: { [id: string]: Set<string> } = {};
+  private stats: { [id: string]: ServerConnectionStats } = {};
 
   constructor(options: Options) {
     const {
@@ -361,8 +362,15 @@ export class ConatServer {
 
   private handleSocket = async (socket) => {
     this.sockets[socket.id] = socket;
-    socket.on("close", () => delete this.sockets[socket.id]);
+    socket.on("close", () => {
+      delete this.sockets[socket.id];
+      delete this.stats[socket.id];
+    });
 
+    this.stats[socket.id] = {
+      send: { messages: 0, bytes: 0 },
+      subs: 0,
+    };
     let user: any = null;
     try {
       user = await this.getUser(socket);
@@ -371,6 +379,7 @@ export class ConatServer {
       // for any reason
       user = { error: `${err}` };
     }
+    this.stats[socket.id].user = user;
     const id = socket.id;
     this.log("new connection", { id, user });
     if (this.subscriptions[id] == null) {
@@ -380,6 +389,13 @@ export class ConatServer {
     socket.emit("info", { ...this.info(), user });
 
     socket.on("publish", async ([subject, ...data], respond) => {
+      if (data?.[2]) {
+        // done
+        this.stats[socket.id].send.messages += 1;
+      }
+      this.stats[socket.id].send.bytes += data[4]?.length ?? 0;
+      // this.log(JSON.stringify(this.stats));
+
       try {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
@@ -400,6 +416,7 @@ export class ConatServer {
         }
         await this.subscribe({ socket, subject, queue, user, ephemeral });
         this.subscriptions[id].add(subject);
+        this.stats[socket.id].subs += 1;
         respond?.({ status: "added" });
       } catch (err) {
         socket.emit("permission", {
@@ -424,6 +441,7 @@ export class ConatServer {
       }
       this.unsubscribe({ socket, subject });
       this.subscriptions[id].delete(subject);
+      this.stats[socket.id].subs -= 1;
       respond?.();
     });
 
