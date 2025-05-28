@@ -1477,28 +1477,6 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
 
 
-    mesg_admin_reset_password: (mesg) =>
-        dbg = @dbg("mesg_reset_password")
-        dbg(mesg.email_address)
-        try
-            if not misc.is_valid_email_address(mesg.email_address)
-                throw Error("invalid email address")
-            await callback(@assert_user_is_in_group, 'admin')
-            if not await callback2(@database.account_exists, {email_address : mesg.email_address})
-                throw Error("no such account with email #{mesg.email_address}")
-            # We now know that there is an account with this email address.
-            # put entry in the password_reset uuid:value table with ttl of 24 hours.
-            # NOTE: when users request their own reset, the ttl is 1 hour, but when we
-            # as admins send one manually, they typically need more time, so 1 day instead.
-            # We used 8 hours for a while and it is often not enough time.
-            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
-            mesg.link = "/auth/password-reset/#{id}"
-            @push_to_client(mesg)
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
-
-
     # These are deprecated. Not the best approach.
     mesg_openai_embeddings_search: (mesg) =>
         @error_to_client(id:mesg.id, error:"openai_embeddings_search is DEPRECATED")

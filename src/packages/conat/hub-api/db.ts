@@ -1,4 +1,4 @@
-import { authFirst } from "./util";
+import { authFirst, requireAccount } from "./util";
 
 export const db = {
   userQuery: authFirst,
@@ -6,7 +6,7 @@ export const db = {
   getLegacyTimeTravelInfo: authFirst,
   getLegacyTimeTravelPatches: authFirst,
   fileUseTimes: authFirst,
-  removeBlobTtls: authFirst,
+  removeBlobTtls: requireAccount,
 };
 
 export interface DB {

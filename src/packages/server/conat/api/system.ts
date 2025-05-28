@@ -60,3 +60,23 @@ export async function userSearch({
   }
   return await search({ query, limit, admin, only_email });
 }
+
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import { createReset } from "@cocalc/server/auth/password-reset";
+export async function adminResetPasswordLink({
+  account_id,
+  user_account_id,
+}: {
+  account_id?: string;
+  user_account_id: string;
+}): Promise<string> {
+  if (!account_id || !(await isAdmin(account_id))) {
+    throw Error("must be an admin");
+  }
+  const email = await getEmailAddress(user_account_id);
+  if (!email) {
+    throw Error("passwords are only defined for accounts with email");
+  }
+  const id = await createReset(email, "", 60 * 60 * 24); // 24 hour ttl seems reasonable for this.
+  return `/auth/password-reset/${id}`;
+}

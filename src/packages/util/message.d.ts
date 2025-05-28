@@ -101,7 +101,6 @@ export const sagews_interrupt: any;
 export const sagews_quit: any;
 export const sagews_start: any;
 export const user_tracking: any;
-export const admin_reset_password: any;
 export const purchase_license: any;
 export const purchase_license_resp: any;
 export const chatgpt: any;

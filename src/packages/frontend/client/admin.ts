@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 import api from "./api";
 
@@ -12,17 +11,6 @@ export class AdminClient {
 
   constructor(client: WebappClient) {
     this.client = client;
-  }
-
-  public async admin_reset_password(email_address: string): Promise<string> {
-    return (
-      await this.client.async_call({
-        message: message.admin_reset_password({
-          email_address,
-        }),
-        allow_post: true,
-      })
-    ).link;
   }
 
   public async admin_ban_user(
