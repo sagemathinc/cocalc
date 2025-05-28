@@ -90,10 +90,14 @@ export class ConatServer {
   private isAllowed: AllowFunction;
   readonly options: Partial<Options>;
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
+
   private sockets: { [id: string]: any } = {};
-  // which subscriptions are ephemeral
+  // which subscriptions are ephemeral:
   private ephemeral: { [id: string]: Set<string> } = {};
   private stats: { [id: string]: ServerConnectionStats } = {};
+  private disconnectingTimeout: {
+    [id: string]: ReturnType<typeof setTimeout>;
+  } = {};
 
   constructor(options: Options) {
     const {
@@ -382,6 +386,11 @@ export class ConatServer {
     this.stats[socket.id].user = user;
     const id = socket.id;
     this.log("new connection", { id, user });
+    if (this.disconnectingTimeout[id]) {
+      this.log("clearing disconnectingTimeout - ", { id, user });
+      clearTimeout(this.disconnectingTimeout[id]);
+      delete this.disconnectingTimeout[id];
+    }
     if (this.subscriptions[id] == null) {
       this.subscriptions[id] = new Set<string>();
     }
@@ -456,19 +465,32 @@ export class ConatServer {
         this.subscriptions[id].delete(subject);
       }
       const rooms = Array.from(socket.rooms) as string[];
-      const d = this.options.maxDisconnectionDuration ?? 0;
-      // console.log(`will unsubscribe in ${d}ms unless client reconnects`);
-      await delay(d);
-      if (!this.io.of("/").adapter.sids.has(id)) {
-        this.log("disconnecting - fully gone", { id, user });
-        for (const room of rooms) {
-          const subject = getSubjectFromRoom(room);
-          this.unsubscribe({ socket, subject });
-        }
-        delete this.subscriptions[id];
-      } else {
-        this.log("disconnecting - came back", { id, user });
+      if (this.disconnectingTimeout[id]) {
+        clearTimeout(this.disconnectingTimeout[id]);
       }
+      this.log("setting a new disconnectingTimeout - ", { id, user });
+      this.disconnectingTimeout[id] = setTimeout(
+        () => {
+          this.log("firing disconnectingTimeout - ", { id, user });
+          if (!this.io.of("/").adapter.sids.has(id)) {
+            // User is gone right now and did NOT reconnect (thus clearning disconnectingTimeout)
+            // during the wait interval.  Clear their subscription state.
+            // It's very important to ONLY do this if they are really gone, since if they
+            // come back, socketio smooths things over, so they don't even know they might need
+            // to resubscribe... or they already did resubscribe, and we would just be breaking
+            // things for them.
+            this.log("disconnecting - fully gone", { id, user });
+            for (const room of rooms) {
+              const subject = getSubjectFromRoom(room);
+              this.unsubscribe({ socket, subject });
+            }
+            delete this.subscriptions[id];
+          } else {
+            this.log("disconnecting - came back", { id, user });
+          }
+        },
+        (this.options.maxDisconnectionDuration ?? 0) + 10000,
+      );
     });
   };
 
