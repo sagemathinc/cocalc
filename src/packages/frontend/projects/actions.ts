@@ -699,7 +699,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         subject,
       });
       if (!silent) {
-        alert_message({ message: resp.mesg });
+        alert_message({
+          message: `Invited ${to} to collaborate on project.`,
+        });
       }
     } catch (err) {
       if (!silent) {
