@@ -3,6 +3,7 @@ import userQuery from "@cocalc/database/user-query";
 import { callback2 } from "@cocalc/util/async-utils";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { isValidUUID } from "@cocalc/util/misc";
 
 export { userQuery };
 export { fileUseTimes } from "./file-use-times";
@@ -78,4 +79,12 @@ export async function getLegacyTimeTravelPatches({
   const blob = await callback2(D.get_blob, { uuid });
   // we do NOT de-json this - leave it to the browser client to do that hard work...
   return blob.toString();
+}
+
+export async function removeBlobTtls({ uuids }: { uuids: string[] }) {
+  const pool = getPool();
+  const v = uuids.filter(isValidUUID);
+  if (v.length > 0) {
+    await pool.query("UPDATE blobs SET expire=NULL WHERE id::UUID=ANY($1::UUID[])", [v]);
+  }
 }

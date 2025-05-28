@@ -1189,18 +1189,6 @@ class exports.Client extends EventEmitter
         catch err
             @error_to_client(id:mesg.id, error:"#{err}")
 
-    mesg_remove_blob_ttls: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
-        else
-            @database.remove_blob_ttls
-                uuids : mesg.uuids
-                cb    : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
     mesg_version: (mesg) =>
         # The version of the client...
         @smc_version = mesg.version

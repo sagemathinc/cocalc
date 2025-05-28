@@ -247,7 +247,7 @@ class Client extends EventEmitter implements WebappClient {
     this.conat_client = bind_methods(new ConatClient(this));
     this.is_signed_in = this.conat_client.is_signed_in.bind(this.conat_client);
     this.is_connected = this.conat_client.is_connected.bind(this.conat_client);
-    this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
+    this.file_client = bind_methods(new FileClient());
     this.idle_client = bind_methods(new IdleClient(this));
 
     // Expose a public API as promised by WebappClient

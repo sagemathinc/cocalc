@@ -6,6 +6,7 @@ export const db = {
   getLegacyTimeTravelInfo: authFirst,
   getLegacyTimeTravelPatches: authFirst,
   fileUseTimes: authFirst,
+  removeBlobTtls: authFirst,
 };
 
 export interface DB {
@@ -38,6 +39,8 @@ export interface DB {
   }) => Promise<string>;
 
   fileUseTimes: (opts: FileUseTimesOptions) => Promise<FileUseTimesResponse>;
+
+  removeBlobTtls: (opts: { uuids: string[] }) => Promise<void>;
 }
 
 export interface FileUseTimesOptions {

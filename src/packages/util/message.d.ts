@@ -44,7 +44,6 @@ export const invite_noncloud_collaborators: any;
 export const invite_noncloud_collaborators_resp: any;
 export const version: any;
 export const save_blob: any;
-export const remove_blob_ttls: any;
 export const storage: any;
 export const projects_running_on_server: any;
 export const local_hub: any;
