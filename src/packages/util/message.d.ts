@@ -43,7 +43,6 @@ export const copy_path_between_projects_response: any;
 export const copy_path_status: any;
 export const copy_path_status_response: any;
 export const copy_path_delete: any;
-export const project_set_quotas: any;
 export const print_to_pdf: any;
 export const printed_to_pdf: any;
 export const heartbeat: any;
