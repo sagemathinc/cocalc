@@ -45,9 +45,6 @@ underscore = require('underscore')
 {is_paying_customer} = require('@cocalc/database/postgres/account-queries')
 {get_personal_user} = require('@cocalc/database/postgres/personal')
 
-removeLicenseFromProject = require('@cocalc/server/licenses/remove-from-project').default
-addLicenseToProject = require('@cocalc/server/licenses/add-to-project').default
-
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -712,36 +709,6 @@ class exports.Client extends EventEmitter
                         if not mesg.multi_response
                             resp.id = mesg.id
                         @push_to_client(resp)
-
-    mesg_add_license_to_project: (mesg) =>
-        dbg = @dbg('mesg_add_license_to_project')
-        dbg()
-        @touch()
-        @_check_project_access mesg.project_id, (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
-                return
-            try
-                await addLicenseToProject({project_id:mesg.project_id, license_id:mesg.license_id})
-                @success_to_client(id:mesg.id)
-            catch err
-                @error_to_client(id:mesg.id, error:"#{err}")
-
-    mesg_remove_license_from_project: (mesg) =>
-        dbg = @dbg('mesg_remove_license_from_project')
-        dbg()
-        @touch()
-        @_check_project_access mesg.project_id, (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
-                return
-            try
-                await removeLicenseFromProject({project_id:mesg.project_id, license_id:mesg.license_id})
-                @success_to_client(id:mesg.id)
-            catch err
-                @error_to_client(id:mesg.id, error:"#{err}")
 
     push_version_update: =>
         {version} = await require('./servers/server-settings').default()

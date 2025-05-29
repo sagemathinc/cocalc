@@ -30,8 +30,6 @@ export const text_file_read_from_project: any;
 export const write_file_to_project: any;
 export const write_text_file_to_project: any;
 export const file_written_to_project: any;
-export const add_license_to_project: any;
-export const remove_license_from_project: any;
 export const project_users: any;
 export const version: any;
 export const save_blob: any;

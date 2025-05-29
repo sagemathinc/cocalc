@@ -560,25 +560,6 @@ export class ProjectClient {
     return !exit_code && stdout.trim() == "directory";
   };
 
-  // Add and remove a license from a project.  Note that these
-  // might not be used to implement anything in the client frontend, but
-  // are used via the API, and this is a convenient way to test them.
-  add_license_to_project = async (
-    project_id: string,
-    license_id: string,
-  ): Promise<void> => {
-    await this.call(message.add_license_to_project({ project_id, license_id }));
-  };
-
-  remove_license_from_project = async (
-    project_id: string,
-    license_id: string,
-  ): Promise<void> => {
-    await this.call(
-      message.remove_license_from_project({ project_id, license_id }),
-    );
-  };
-
   project_info = (project_id: string): ProjectInfo => {
     return project_info(this.client, project_id);
   };
