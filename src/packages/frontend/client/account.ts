@@ -112,34 +112,6 @@ export class AccountClient {
     }
   };
 
-  // forgot password -- send forgot password request to server
-  forgot_password = async (email_address: string): Promise<void> => {
-    const x = await this.call(
-      message.forgot_password({
-        email_address,
-      }),
-    );
-    if (x.error) {
-      throw Error(x.error);
-    }
-  };
-
-  // forgot password -- send forgot password request to server
-  reset_forgot_password = async (
-    reset_code: string,
-    new_password: string,
-  ): Promise<void> => {
-    const resp = await this.call(
-      message.reset_forgot_password({
-        reset_code,
-        new_password,
-      }),
-    );
-    if (resp.error) {
-      throw Error(resp.error);
-    }
-  };
-
   // forget about a given passport authentication strategy for this user
   unlink_passport = async (strategy: string, id: string): Promise<any> => {
     return await this.call(

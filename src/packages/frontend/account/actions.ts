@@ -131,17 +131,6 @@ export class AccountActions extends Actions<AccountState> {
 
   // deletes the account and then signs out everywhere
   public async delete_account(): Promise<void> {
-    // cancel any subscriptions
-    try {
-      await this.redux.getActions("billing").cancel_everything();
-    } catch (err) {
-      if (this.redux.getStore("billing").get("no_stripe")) {
-        // stripe not configured on backend, so this err is expected
-      } else {
-        throw err;
-      }
-    }
-
     try {
       // actually request to delete the account
       // this should return {status: "success"}
@@ -153,22 +142,6 @@ export class AccountActions extends Actions<AccountState> {
       return;
     }
     this.sign_out(true);
-  }
-
-  public async forgot_password(email_address: string): Promise<void> {
-    try {
-      await this.account_client.forgot_password(email_address);
-    } catch (err) {
-      this.setState({
-        forgot_password_error: `Error sending password reset message to ${email_address} -- ${err}. Write to ${this.help()} for help.`,
-        forgot_password_success: "",
-      });
-      return;
-    }
-    this.setState({
-      forgot_password_success: `Password reset message sent to ${email_address}; if you don't receive it, check your spam folder; if you have further trouble, write to ${this.help()}.`,
-      forgot_password_error: "",
-    });
   }
 
   public async reset_password(

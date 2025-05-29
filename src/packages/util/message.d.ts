@@ -108,6 +108,4 @@ export const jupyter_execute: any;
 export const jupyter_execute_response: any;
 export const jupyter_kernels: any;
 export const jupyter_start_pool: any;
-export const forgot_password: any;
-export const reset_forgot_password: any;
 export const signal_sent: any;
