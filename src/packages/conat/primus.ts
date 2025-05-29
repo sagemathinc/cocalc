@@ -3,6 +3,10 @@ Implement something that acts like a project-specific websocket from
 **Primus**, but using Conats (which is really socket-io through a central
 message broker).
 
+For unit tests, see
+
+    packages/backend/conat/test/primus.test.ts
+
 Development:
 
 1. Change to a directory such as packages/project
@@ -12,7 +16,7 @@ Development:
 ~/cocalc/src/packages/project$ node
 ...
 
-# non-channel full communication
+# communication
 
 Primus = require('@cocalc/conat/primus').Primus;
 env = await require('@cocalc/backend/conat').getEnv();
@@ -27,42 +31,27 @@ sparks[0].write("foo")
 sparks[0].on('data', (data)=>console.log("server got", data));0
 client.write('bar')
 
-# communication via a channel.
-
-s9 = server.channel('9')
-c9 = client.channel('9')
-c9.on("data", (data)=>console.log('c9 got', data));0
-s9.on("data", (data)=>console.log('s9 got', data));0
-
-c9.write("from client 9")
-s9.write("from the server 9")
-
-
-
-client_b = new Primus({subject:'test',env,role:'client',id:'cb'});
-c9b = client_b.channel('9')
-c9b.on("data", (data)=>console.log('c9b got', data));0
-
-s9.sparks['cb'].write('blah')
-
 */
 
 import { EventEmitter } from "events";
-import { type NatsEnv } from "@cocalc/conat/types";
+import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
-import { encodeBase64 } from "@cocalc/conat/util";
-import { type Subscription } from "@cocalc/conat/core/client";
 
 export type Role = "client" | "server";
 
-const PING_INTERVAL = 30000;
+// clients send a heartbeat to the server this frequently.
+const HEARBEAT_INTERVAL = 30000;
 
-interface PrimusOptions {
+// We queue up unsent writes, but only up to a point (to not have a huge memory issue).
+// Any write beyond the last this many are discarded:
+const DEAFULT_MAX_QUEUE_SIZE = 100;
+
+export interface PrimusOptions {
   subject: string;
-  channelName?: string;
-  env: NatsEnv;
+  client: Client;
   role: Role;
   id: string;
+  maxQueueSize?: number;
 }
 
 const connections: { [key: string]: Primus } = {};
@@ -74,14 +63,14 @@ export function getPrimusConnection(opts: PrimusOptions): Primus {
   return connections[key];
 }
 
-function getKey({ subject, channelName, role, id }: PrimusOptions) {
-  return JSON.stringify({ subject, channelName, role, id });
+function getKey({ subject, role, id }: PrimusOptions) {
+  return JSON.stringify([subject, role, id]);
 }
 
-function getSubjects({ subject, id, channel }) {
+function getSubjects({ subject, id }) {
   const subjects = {
-    // control = request/response control channel; clients tell
-    //           server they are connecting via this
+    // control = request/response control; clients tell
+    //           server they are connecting via this (pings, registering)
     control: `${subject}.control`,
     // server =  a server spark listens on server and client
     //           publishes to server with their id
@@ -89,27 +78,15 @@ function getSubjects({ subject, id, channel }) {
     // client =  client connection listens on this and
     //           server spark writes to it
     client: `${subject}.client.${id}`,
-    // channel = when set all clients listen on
-    //           this; server sends to this.
-    clientChannel: `${subject}.channel.client`,
-    serverChannel: `${subject}.channel.server`,
   };
-  if (channel) {
-    // use base64 encoding so channel can be any string.
-    const segment = encodeBase64(channel);
-    for (const k in subjects) {
-      subjects[k] += `.${segment}`;
-    }
-  }
   return subjects;
 }
 
-type State = "ready" | "closed";
+type State = "connecting" | "ready" | "closed";
 
 export class Primus extends EventEmitter {
   subject: string;
-  channelName: string;
-  env: NatsEnv;
+  client: Client;
   role: Role;
   id: string;
   subscribe: string;
@@ -118,8 +95,6 @@ export class Primus extends EventEmitter {
     control: string;
     server: string;
     client: string;
-    clientChannel: string;
-    serverChannel: string;
   };
   // this is just for compat with primus api:
   address = { ip: "" };
@@ -128,37 +103,46 @@ export class Primus extends EventEmitter {
   OPEN = 1;
   CLOSE = 0;
   readyState: 0;
-  state: State = "ready";
+  state: State = "connecting";
+  queuedWrites: any[] = [];
+  maxQueueSize: number;
 
-  constructor({ subject, channelName = "", env, role, id }: PrimusOptions) {
+  constructor({
+    subject,
+    client,
+    role,
+    id,
+    maxQueueSize = DEAFULT_MAX_QUEUE_SIZE,
+  }: PrimusOptions) {
     super();
 
     //     console.log("PRIMUS Creating", {
     //       subject,
     //       id,
-    //       channel: channelName,
     //     });
 
+    this.maxQueueSize = maxQueueSize;
     this.subject = subject;
-    this.channelName = channelName;
-    this.env = env;
+    this.client = client;
     this.role = role;
     this.id = id;
     this.conn = { id };
     this.subjects = getSubjects({
       subject,
       id,
-      channel: channelName,
     });
-    if (role == "server") {
-      this.serve();
-    } else {
-      this.client();
-    }
-    if (this.channelName) {
-      this.subscribeChannel();
-    }
+    this.run();
   }
+
+  channel = (channel: string) => {
+    return getPrimusConnection({
+      subject: this.subject + "." + channel,
+      client: this.client,
+      role: this.role,
+      id: this.id,
+      maxQueueSize: this.maxQueueSize,
+    });
+  };
 
   forEach = (f: (spark, id) => void) => {
     for (const id in this.sparks) {
@@ -166,11 +150,25 @@ export class Primus extends EventEmitter {
     }
   };
 
+  private setState = (state: State) => {
+    this.state = state;
+    if (state == "ready") {
+      for (const data of this.queuedWrites) {
+        this.write(data);
+        this.queuedWrites = [];
+      }
+    }
+    this.emit(state);
+  };
+
   destroy = () => {
     if (this.state == "closed") {
       return;
     }
-    this.state = "closed";
+    this.queuedWrites = [];
+    this.setState("closed");
+    this.removeAllListeners();
+
     delete connections[getKey(this)];
     for (const sub of this.subs) {
       sub.close();
@@ -188,25 +186,26 @@ export class Primus extends EventEmitter {
 
   connect = () => {};
 
-  private serve = async () => {
+  private runAsServer = async () => {
     if (this.role != "server") {
       throw Error("only server can serve");
     }
     this.deleteSparks();
-    const sub = await this.env.cn.subscribe(this.subjects.control);
+    const sub = await this.client.subscribe(this.subjects.control);
     this.subs.push(sub);
+    this.setState("ready");
     for await (const mesg of sub) {
-      console.log("got ", { data: mesg.data });
+      //console.log("got ", { data: mesg.data });
       const data = mesg.data;
-      if (data == null) {
-        continue;
-      }
-      if (data.cmd == "ping") {
+      if (data?.cmd == "ping") {
         const spark = this.sparks[data.id];
         if (spark != null) {
           spark.lastPing = Date.now();
+          mesg.respond("pong");
+        } else {
+          mesg.respond("dead");
         }
-      } else if (data.cmd == "connect") {
+      } else if (data?.cmd == "connect") {
         const spark = new Spark({
           primus: this,
           id: data.id,
@@ -214,6 +213,8 @@ export class Primus extends EventEmitter {
         this.sparks[data.id] = spark;
         this.emit("connection", spark);
         mesg.respond({ status: "ok" });
+      } else {
+        mesg.respond({ error: `unknown command - ${data?.cmd}` });
       }
     }
   };
@@ -222,86 +223,134 @@ export class Primus extends EventEmitter {
     while (this.state != "closed") {
       for (const id in this.sparks) {
         const spark = this.sparks[id];
-        if (Date.now() - spark.lastPing > PING_INTERVAL * 1.5) {
+        if (Date.now() - spark.lastPing > HEARBEAT_INTERVAL * 2.5) {
           spark.destroy();
         }
       }
-      await delay(PING_INTERVAL * 1.5);
+      await delay(HEARBEAT_INTERVAL);
     }
   };
 
-  private client = async () => {
+  private reconnect = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.setState("connecting");
+    for (const sub of this.subs) {
+      sub.close();
+    }
+    this.subs = [];
+    for (const id in this.sparks) {
+      this.sparks[id].destroy();
+    }
+    this.sparks = {};
+    this.run();
+  };
+
+  private run = async () => {
+    if (this.role == "server") {
+      await this.runAsServer();
+    } else {
+      await this.runAsClient();
+    }
+  };
+
+  private runAsClient = async () => {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
+
+    //     const log = (status) => {
+    //       console.log(`conat:primus: ${status}`, {
+    //         subject: this.subject,
+    //       });
+    //     };
+    const sub = await this.client.subscribe(this.subjects.client);
+    // log("send connect request");
     const mesg = { cmd: "connect", id: this.id };
-    console.log("Nats Primus: connecting...");
-    await this.env.cn.request(this.subjects.control, mesg);
+    let d = 3000;
+    while (this.state != "closed") {
+      try {
+        const resp = await this.client.request(this.subjects.control, mesg, {
+          timeout: 5000,
+        });
+        const { status } = resp.data;
+        if (status != "ok") {
+          throw Error(`bad status -- ${status}`);
+        }
+        break;
+      } catch (err) {
+        //log(`connection request failed - ${err}`);
+        await delay(d);
+        d = Math.min(15000, d * 1.3);
+      }
+    }
+    if (this.state == "closed") {
+      return;
+    }
     this.clientPing();
-    console.log("Nats Primus: connected:");
-    const sub = await this.env.cn.subscribe(this.subjects.client);
+    //log("subscribed");
     this.subs.push(sub);
+    this.setState("ready");
     for await (const mesg of sub) {
+      // log("got data");
       this.emit("data", mesg.data);
     }
   };
 
+  // we send pings to the server and it responds with a pong.
+  // if response fails, reconnect.
   private clientPing = async () => {
     while (this.state != "closed") {
       try {
-        await this.env.cn.publish(this.subjects.control, {
+        const resp = await this.client.request(this.subjects.control, {
           cmd: "ping",
           id: this.id,
         });
+        const x = resp.data;
+        if (x == "pong") {
+          continue;
+        } else {
+          this.reconnect();
+          return;
+        }
       } catch {
-        // if ping fails, connection is not working, so die.
-        this.destroy();
+        // if sending ping fails, reconnect
+        this.reconnect();
         return;
       }
-      await delay(PING_INTERVAL);
-    }
-  };
-
-  private subscribeChannel = async () => {
-    const subject =
-      this.role == "client"
-        ? this.subjects.clientChannel
-        : this.subjects.serverChannel;
-    const sub = await this.env.cn.subscribe(subject);
-    this.subs.push(sub);
-    for await (const mesg of sub) {
-      this.emit("data", mesg.data);
+      await delay(HEARBEAT_INTERVAL);
     }
   };
 
   // client: writes to server
-  // server: write to ALL connected clients in channel model.
+  // server: broadcast to ALL connected clients
   write = (data) => {
+    // console.log(this.role, " write ", { data });
+    if (this.state == "connecting") {
+      this.queuedWrites.push(data);
+      while (this.queuedWrites.length > this.maxQueueSize) {
+        this.queuedWrites.shift();
+      }
+      return;
+    }
+    if (this.state == "closed") {
+      return;
+    }
+    // console.log("conat:primus -- write", data);
     let subject;
     if (this.role == "server") {
-      if (!this.channel) {
-        throw Error("broadcast write not implemented when not in channel mode");
+      // write to all the sparks that are connected.
+      for (const id in this.sparks) {
+        this.sparks[id].write(data);
       }
-      // we are the server, so write to all clients in channel
-      subject = this.subjects.clientChannel;
+      return;
     } else {
-      // we are the client, so write to server (possibly a channel)
-      subject = this.channelName
-        ? this.subjects.serverChannel
-        : this.subjects.server;
+      // we are the client, so write to server
+      subject = this.subjects.server;
     }
-    this.env.cn.publish(subject, data);
+    this.client.publishSync(subject, data);
     return true;
-  };
-
-  channel = (channelName: string) => {
-    return getPrimusConnection({
-      subject: this.subject,
-      channelName,
-      env: this.env,
-      role: this.role,
-      id: this.id,
-    });
   };
 }
 
@@ -314,28 +363,41 @@ export class Spark extends EventEmitter {
   // this is just for compat with primus api:
   address = { ip: "" };
   conn: { id: string };
-  subs: any[] = [];
-  state: State = "ready";
+  subs: Subscription[] = [];
+  state: State = "connecting";
+  queuedWrites: any[] = [];
 
   constructor({ primus, id }) {
     super();
     this.primus = primus;
-    const { subject, channelName } = primus;
+    const { subject } = primus;
     this.id = id;
     this.conn = { id };
     this.subjects = getSubjects({
       subject,
       id,
-      channel: channelName,
     });
     this.init();
   }
+
+  private setState = (state: State) => {
+    this.state = state;
+    if (state == "ready") {
+      for (const data of this.queuedWrites) {
+        this.write(data);
+        this.queuedWrites = [];
+      }
+    }
+    this.emit(state);
+  };
 
   destroy = () => {
     if (this.state == "closed") {
       return;
     }
-    this.state = "closed";
+    this.queuedWrites = [];
+    this.setState("closed");
+    this.removeAllListeners();
     for (const sub of this.subs) {
       sub.close();
     }
@@ -346,7 +408,8 @@ export class Spark extends EventEmitter {
   end = () => this.destroy();
 
   private init = async () => {
-    const sub = await this.primus.env.cn.subscribe(this.subjects.server);
+    const sub = await this.primus.client.subscribe(this.subjects.server);
+    this.setState("ready");
     this.subs.push(sub);
     for await (const mesg of sub) {
       this.emit("data", mesg.data);
@@ -354,7 +417,17 @@ export class Spark extends EventEmitter {
   };
 
   write = (data) => {
-    this.primus.env.cn.publish(this.subjects.client, data);
+    if (this.state == "connecting") {
+      this.queuedWrites.push(data);
+      while (this.queuedWrites.length > this.primus.maxQueueSize) {
+        this.queuedWrites.shift();
+      }
+      return;
+    }
+    if (this.state == "closed") {
+      return;
+    }
+    this.primus.client.publishSync(this.subjects.client, data);
     return true;
   };
 }

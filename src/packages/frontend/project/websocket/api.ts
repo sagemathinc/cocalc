@@ -94,10 +94,16 @@ export class API {
     });
   };
 
-  private getChannel = async (channel_name: string) => {
-    const natsConn = await webapp_client.conat_client.primus(this.project_id);
+  private getChannel = async (
+    channel_name: string,
+    compute_server_id?: number,
+  ) => {
+    const conatPrimus = webapp_client.conat_client.primus({
+      project_id: this.project_id,
+      compute_server_id,
+    });
     // TODO -- typing
-    return natsConn.channel(channel_name) as unknown as Channel;
+    return conatPrimus.channel(channel_name) as unknown as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {
@@ -359,19 +365,6 @@ export class API {
       timeout: 60 + 2 * max_total_time_ms,
     });
     return await api.editor.jupyterRunNotebook(opts);
-  };
-
-  // TODO!
-  terminal = async (path: string, options: object = {}): Promise<Channel> => {
-    const channel_name = await this.call(
-      {
-        cmd: "terminal",
-        path,
-        options,
-      },
-      20000,
-    );
-    return await this.getChannel(channel_name);
   };
 
   project_info = async (): Promise<Channel> => {

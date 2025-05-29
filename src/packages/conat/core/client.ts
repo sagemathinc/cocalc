@@ -224,6 +224,7 @@ import {
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
 import TTL from "@isaacs/ttlcache";
+import { type Primus, getPrimusConnection } from "@cocalc/conat/primus";
 
 const logger = getLogger("core/client");
 
@@ -323,6 +324,7 @@ export class Client {
     recv: { messages: 0, bytes: 0 },
     subs: 0,
   };
+  public readonly id: string = randomId();
 
   constructor(options: ClientOptions) {
     this.options = options;
@@ -523,6 +525,9 @@ export class Client {
       timeout?: number;
     } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
+    if (this.options == null) {
+      throw Error("closed");
+    }
     if (!isValidSubject(subject)) {
       throw Error(`invalid subscribe subject '${subject}'`);
     }
@@ -970,6 +975,12 @@ export class Client {
     astream: async (opts: DStreamOptions): Promise<AStream> =>
       await astream({ client: this, ...opts }),
   };
+
+  primus = (opts: {
+    subject: string;
+    role: "client" | "server";
+    maxQueueSize?: number;
+  }): Primus => getPrimusConnection({ ...opts, client: this, id: this.id });
 }
 
 interface PublishOptions {

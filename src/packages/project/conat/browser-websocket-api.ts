@@ -38,28 +38,29 @@ then after that code runs you can access x from the node console!
 */
 
 import { getLogger } from "@cocalc/project/logger";
-import getConnection, { connectToConat } from "./connection";
+import { connectToConat } from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
-import { getPrimusConnection } from "@cocalc/conat/primus";
 import { getSubject } from "./names";
 
 const logger = getLogger("project:conat:browser-websocket-api");
 
 export async function init() {
-  const nc = await getConnection();
-  const cn = await connectToConat();
+  const client = await connectToConat();
   const subject = getSubject({
     service: "browser-api",
   });
-  logger.debug(`initAPI -- NATS project subject '${subject}'`);
-  const sub = await cn.subscribe(subject);
-  const primus = getPrimusConnection({
-    subject: getSubject({
-      service: "primus",
-    }),
-    env: { nc, jc: null as any, cn },
+  logger.debug(`initAPI -- project subject '${subject}'`);
+  const sub = await client.subscribe(subject);
+  logger.debug(`browser primus subject: ${getSubject({ service: "primus" })}`);
+  const primus = client.primus({
+    subject: getSubject({ service: "primus" }),
     role: "server",
-    id: "project",
+  });
+  primus.on("connection", (spark) => {
+    logger.debug("got a spark");
+    spark.on("data", (data) => {
+      spark.write(`${data}`.repeat(3));
+    });
   });
   for await (const mesg of sub) {
     const data = mesg.data ?? ({} as any);

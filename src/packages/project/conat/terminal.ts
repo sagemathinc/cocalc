@@ -20,6 +20,7 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
+import { ThrottleString as Throttle } from "@cocalc/util/throttle";
 
 const logger = getLogger("project:conat:terminal");
 
@@ -519,33 +520,4 @@ function getCWD(pathHead, cwd?): string {
     }
   }
   return pathHead;
-}
-
-import { EventEmitter } from "events";
-class Throttle extends EventEmitter {
-  private buf: string = "";
-  private last = Date.now();
-
-  constructor(private interval: number) {
-    super();
-  }
-
-  write = (data: string) => {
-    this.buf += data;
-    const now = Date.now();
-    const timeUntilEmit = this.interval - (now - this.last);
-    if (timeUntilEmit > 0) {
-      setTimeout(() => this.write(""), timeUntilEmit);
-    } else {
-      this.flush();
-    }
-  };
-
-  flush = () => {
-    if (this.buf.length > 0) {
-      this.emit("data", this.buf);
-    }
-    this.buf = "";
-    this.last = Date.now();
-  };
 }

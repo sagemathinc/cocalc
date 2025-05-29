@@ -13,7 +13,6 @@ import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/conat/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/conat/project-api";
-import { getPrimusConnection } from "@cocalc/conat/primus";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
@@ -382,17 +381,22 @@ export class ConatClient extends EventEmitter {
     return s;
   };
 
-  // DEPRECATED
-  primus = async (project_id: string) => {
-    return getPrimusConnection({
-      subject: projectSubject({
-        project_id,
-        compute_server_id: 0,
-        service: "primus",
-      }),
-      env: await this.getEnv(),
+  primus = ({
+    project_id,
+    compute_server_id = 0,
+  }: {
+    project_id: string;
+    compute_server_id?: number;
+  }) => {
+    const subject = projectSubject({
+      project_id,
+      compute_server_id,
+      service: "primus",
+    });
+    console.log("primus", { subject });
+    return this.conat().primus({
+      subject,
       role: "client",
-      id: this.sessionId,
     });
   };
 
