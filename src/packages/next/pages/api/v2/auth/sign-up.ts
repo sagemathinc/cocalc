@@ -56,6 +56,7 @@ import {
 } from "lib/api/schema/accounts/sign-up";
 import { SignUpIssues } from "lib/types/sign-up";
 import { getAccount, signUserIn } from "./sign-in";
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 export async function signUp(req, res) {
   let {
@@ -245,6 +246,8 @@ export function checkObviousConditions({
   }
   if (!password || password.length < 6) {
     issues.password = "Your password must not be very easy to guess.";
+  } else if (password.length > MAX_PASSWORD_LENGTH) {
+    issues.password = `Your password must be shorter than ${MAX_PASSWORD_LENGTH} characters.`;
   } else {
     const { score, help } = passwordStrength(password);
     if (score <= 2) {
