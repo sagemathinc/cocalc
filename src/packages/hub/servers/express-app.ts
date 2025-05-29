@@ -26,7 +26,6 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
-import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
@@ -126,7 +125,6 @@ export default async function init(opts: Options): Promise<{
   initBlobs(router);
   initBlobUpload(router);
   initUpload(router);
-  initSetCookies(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
