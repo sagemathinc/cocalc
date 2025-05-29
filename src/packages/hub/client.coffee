@@ -661,9 +661,6 @@ class exports.Client extends EventEmitter
                 cb(undefined, project)
         )
 
-    mesg_copy_path_between_projects: (mesg) =>
-        @copy_path.copy(mesg)
-
     mesg_copy_path_status: (mesg) =>
         @copy_path.status(mesg)
 
@@ -812,65 +809,7 @@ class exports.Client extends EventEmitter
                     # no
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
-    mesg_copy_public_path_between_projects: (mesg) =>
-        @touch()
-        if not mesg.src_project_id?
-            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
-            return
-        if not mesg.target_project_id?
-            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
-            return
-        if not mesg.src_path?
-            @error_to_client(id:mesg.id, error:"src_path must be defined")
-            return
-        project = undefined
-        async.series([
-            (cb) =>
-                # ensure user can write to the target project
-                access.user_has_write_access_to_project
-                    database       : @database
-                    project_id     : mesg.target_project_id
-                    account_id     : @account_id
-                    account_groups : @groups
-                    cb             : (err, result) =>
-                        if err
-                            cb(err)
-                        else if not result
-                            cb("user must have write access to target project #{mesg.target_project_id}")
-                        else
-                            cb()
-            (cb) =>
-                # Obviously, no need to check write access about the source project,
-                # since we are only granting access to public files.  This function
-                # should ensure that the path is public:
-                @get_public_project
-                    project_id : mesg.src_project_id
-                    path       : mesg.src_path
-                    cb         : (err, x) =>
-                        project = x
-                        cb(err)
-            (cb) =>
-                try
-                    await project.copyPath
-                        path            : mesg.src_path
-                        target_project_id : mesg.target_project_id
-                        target_path     : mesg.target_path
-                        overwrite_newer : mesg.overwrite_newer
-                        delete_missing  : mesg.delete_missing
-                        timeout         : mesg.timeout
-                        backup          : mesg.backup
-                        public          : true
-                        wait_until_done : true
-                    cb()
-                catch err
-                    cb(err)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
-
+  
     _check_project_access: (project_id, cb) =>
         if not @account_id?
             cb('you must be signed in to access project')

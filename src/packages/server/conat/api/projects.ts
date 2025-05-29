@@ -14,6 +14,9 @@ export async function copyPathBetweenProjects(
   if (!account_id) {
     throw Error("user must be signed in");
   }
+  if (opts.target_path == null) {
+    opts.target_path = opts.src_path;
+  }
   if (!(await isCollaborator({ account_id, project_id: src_project_id }))) {
     throw Error("user must be collaborator on source project");
   }
@@ -70,3 +73,5 @@ export async function setQuotas(opts: {
   // @ts-ignore
   await project?.setAllQuotas();
 }
+
+

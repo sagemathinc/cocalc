@@ -46,7 +46,6 @@ export const printed_to_pdf: any;
 export const heartbeat: any;
 export const ping: any;
 export const pong: any;
-export const copy_public_path_between_projects: any;
 export const log_client_error: any;
 export const webapp_error: any;
 export const stripe_get_customer: any;

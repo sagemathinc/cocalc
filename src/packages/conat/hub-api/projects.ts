@@ -29,6 +29,7 @@ export type AddCollaborator =
 export interface Projects {
   // request to have NATS permissions to project subjects.
   createProject: (opts: CreateProjectOptions) => Promise<string>;
+
   copyPathBetweenProjects: (opts: UserCopyOptions) => Promise<void>;
 
   removeCollaborator: ({

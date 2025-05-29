@@ -136,7 +136,6 @@ export class ProjectClient {
   };
 
   copy_path_between_projects = async (opts: {
-    public?: boolean; // used e.g., by share server landing page action.
     src_project_id: string; // id of source project
     src_path: string; // relative path of director or file in the source project
     target_project_id: string; // if of target project
@@ -147,26 +146,7 @@ export class ProjectClient {
     timeout?: number; // **timeout in seconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
     exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
   }): Promise<void> => {
-    const is_public = opts.public;
-    delete opts.public;
-
-    if (opts.target_path == null) {
-      opts.target_path = opts.src_path;
-    }
-
-    const mesg = is_public
-      ? message.copy_public_path_between_projects(opts)
-      : message.copy_path_between_projects(opts);
-    mesg.wait_until_done = true; // TODO: our UI only supports this for now.
-
-    // THIS CAN BE USEFUL FOR DEBUGGING!
-    // mesg.debug_delay_s = 10;
-
-    await this.client.async_call({
-      timeout: opts.timeout,
-      message: mesg,
-      allow_post: false, // since it may take too long
-    });
+    await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
   };
 
   // Set a quota parameter for a given project.
