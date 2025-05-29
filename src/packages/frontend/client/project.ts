@@ -459,35 +459,24 @@ export class ProjectClient {
     }
   };
 
-  // Print file to pdf
+  // Print sagews to pdf
   // The printed version of the file will be created in the same directory
   // as path, but with extension replaced by ".pdf".
-  // Only used for sagews, and would be better done with websocket api anyways...
-  print_to_pdf = async (opts: {
+  // Only used for sagews.
+  print_to_pdf = async ({
+    project_id,
+    path,
+    options,
+    timeout,
+  }: {
     project_id: string;
     path: string;
-    options?: any; // optional options that get passed to the specific backend for this file type
     timeout?: number; // client timeout -- some things can take a long time to print!
+    options?: any; // optional options that get passed to the specific backend for this file type
   }): Promise<string> => {
-    throw Error("disabled");
-    // returns path to pdf file
-    if (opts.options == null) opts.options = {};
-    opts.options.timeout = opts.timeout; // timeout on backend
-    /*
-    return (
-      await this.client.async_call({
-        message: message.local_hub({
-          project_id: opts.project_id,
-          message: message.print_to_pdf({
-            path: opts.path,
-            options: opts.options,
-          }),
-        }),
-        timeout: opts.timeout,
-        allow_post: false,
-      })
-    ).path;
-    */
+    return await this.client.conat_client
+      .projectApi({ project_id })
+      .editor.printSageWS({ path, timeout, options });
   };
 
   create = async (opts: {

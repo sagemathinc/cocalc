@@ -11,6 +11,7 @@ export const editor = {
   jupyterKernelLogo: true,
   jupyterKernels: true,
   formatterString: true,
+  printSageWS: true,
 };
 
 export interface Editor {
@@ -39,4 +40,6 @@ export interface Editor {
     options: FormatterOptions;
     path?: string; // only used for CLANG
   }) => Promise<string>;
+
+  printSageWS: (opts) => Promise<string>;
 }
