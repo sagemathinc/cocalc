@@ -5,27 +5,16 @@
 
 import { callback } from "awaiting";
 declare const $: any; // jQuery
-import * as message from "@cocalc/util/message";
-import { AsyncCall, WebappClient } from "./client";
+import { WebappClient } from "./client";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import api from "./api";
 
 export class AccountClient {
-  private async_call: AsyncCall;
   private client: WebappClient;
 
   constructor(client: WebappClient) {
     this.client = client;
-    this.async_call = client.async_call;
   }
-
-  private call = async (message): Promise<any> => {
-    return await this.async_call({
-      message,
-      allow_post: false, // never works or safe for account related functionality
-      timeout: 30, // 30s for all account stuff.
-    });
-  };
 
   cookies = async (mesg): Promise<void> => {
     const f = (cb) => {

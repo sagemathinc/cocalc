@@ -20,7 +20,6 @@ import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
 import { ConatClient } from "@cocalc/frontend/conat/client";
-import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
 import { setup_global_cocalc } from "./console";
@@ -76,7 +75,6 @@ export interface WebappClient extends EventEmitter {
   file_client: FileClient;
   tracking_client: TrackingClient;
   conat_client: ConatClient;
-  hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
 
@@ -102,7 +100,6 @@ export interface WebappClient extends EventEmitter {
     buffer_path: string,
   ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
-  async_call: AsyncCall;
   user_tracking: Function;
   send: Function;
   call: Function;
@@ -158,7 +155,6 @@ class Client extends EventEmitter implements WebappClient {
   file_client: FileClient;
   tracking_client: TrackingClient;
   conat_client: ConatClient;
-  hub_client: HubClient;
   idle_client: IdleClient;
   client: Client;
 
@@ -185,7 +181,6 @@ class Client extends EventEmitter implements WebappClient {
   ) => Promise<ArrayBuffer>;
 
   log_error: (any) => void;
-  async_call: AsyncCall;
   user_tracking: Function;
   send: Function;
   call: Function;
@@ -211,11 +206,6 @@ class Client extends EventEmitter implements WebappClient {
         return (..._) => {};
       };
     }
-    this.hub_client = bind_methods(new HubClient(this));
-    this.call = this.hub_client.call.bind(this.hub_client);
-    this.async_call = this.hub_client.async_call.bind(this.hub_client);
-    this.latency = this.hub_client.latency.bind(this.hub_client);
-
     this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));

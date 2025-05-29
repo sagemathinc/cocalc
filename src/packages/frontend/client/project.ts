@@ -39,7 +39,6 @@ import {
   type ExecOpts,
   type ExecOutput,
 } from "@cocalc/util/db-schema/projects";
-import * as message from "@cocalc/util/message";
 import {
   coerce_codomain_to_numbers,
   copy_without,
@@ -62,10 +61,6 @@ export class ProjectClient {
   constructor(client: WebappClient) {
     this.client = client;
   }
-
-  private call = async (message: object): Promise<any> => {
-    return await this.client.async_call({ message });
-  };
 
   private natsApi = (project_id: string) => {
     return this.client.conat_client.projectApi({ project_id });
@@ -411,11 +406,6 @@ export class ProjectClient {
     },
   );
 
-  // Remove all upgrades from all projects that this user collaborates on.
-  remove_all_upgrades = async (projects?: string[]): Promise<void> => {
-    await this.call(message.remove_all_upgrades({ projects }));
-  };
-
   touch_project = async (
     // project_id where activity occured
     project_id: string,
@@ -479,10 +469,11 @@ export class ProjectClient {
     options?: any; // optional options that get passed to the specific backend for this file type
     timeout?: number; // client timeout -- some things can take a long time to print!
   }): Promise<string> => {
+    throw Error("disabled");
     // returns path to pdf file
     if (opts.options == null) opts.options = {};
     opts.options.timeout = opts.timeout; // timeout on backend
-
+    /*
     return (
       await this.client.async_call({
         message: message.local_hub({
@@ -496,6 +487,7 @@ export class ProjectClient {
         allow_post: false,
       })
     ).path;
+    */
   };
 
   create = async (opts: {
