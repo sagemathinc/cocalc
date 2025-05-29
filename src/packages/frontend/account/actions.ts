@@ -78,53 +78,6 @@ export class AccountActions extends Actions<AccountState> {
     });
   }
 
-  public async create_account(
-    first_name: string,
-    last_name: string,
-    email_address: string,
-    password: string,
-    token?: string,
-    usage_intent?: string,
-  ): Promise<void> {
-    this.setState({ signing_up: true });
-    let mesg;
-    try {
-      mesg = await this.account_client.create_account({
-        first_name,
-        last_name,
-        email_address,
-        password,
-        usage_intent,
-        agreed_to_terms: true, // since never gets called if not set in UI
-        token,
-        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
-      });
-    } catch (err) {
-      // generic error.
-      this.setState(
-        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any,
-      );
-      return;
-    } finally {
-      this.setState({ signing_up: false });
-    }
-    switch (mesg.event) {
-      case "account_creation_failed":
-        this.setState({ sign_up_error: mesg.reason });
-        return;
-      case "signed_in":
-        this.redux.getActions("page").set_active_tab("projects");
-        track_conversion("create_account");
-        return;
-      default:
-        // should never ever happen
-        alert_message({
-          type: "error",
-          message: `The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}`,
-        });
-    }
-  }
-
   // deletes the account and then signs out everywhere
   public async delete_account(): Promise<void> {
     try {

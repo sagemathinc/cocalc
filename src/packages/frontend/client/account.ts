@@ -13,7 +13,6 @@ import api from "./api";
 export class AccountClient {
   private async_call: AsyncCall;
   private client: WebappClient;
-  private create_account_lock: boolean = false;
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -26,34 +25,6 @@ export class AccountClient {
       allow_post: false, // never works or safe for account related functionality
       timeout: 30, // 30s for all account stuff.
     });
-  };
-
-  create_account = async (opts: {
-    first_name?: string;
-    last_name?: string;
-    email_address?: string;
-    password?: string;
-    agreed_to_terms?: boolean;
-    usage_intent?: string;
-    get_api_key?: boolean; // if given, will create/get api token in response message
-    token?: string; // only required if an admin set the account creation token.
-  }): Promise<any> => {
-    if (this.create_account_lock) {
-      // don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
-      return message.account_creation_failed({
-        reason: {
-          account_creation_failed:
-            "You are submitting too many requests to create an account; please wait a second.",
-        },
-      });
-    }
-
-    try {
-      this.create_account_lock = true;
-      return await this.call(message.create_account(opts));
-    } finally {
-      setTimeout(() => (this.create_account_lock = false), 1500);
-    }
   };
 
   cookies = async (mesg): Promise<void> => {
