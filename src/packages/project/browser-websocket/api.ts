@@ -34,7 +34,6 @@ import { rename_file } from "@cocalc/backend/files/rename-file";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import query from "./query";
-import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
 import handleSyncFsApiCall, {
   handleSyncFsRequestCall,
@@ -186,8 +185,6 @@ export async function handleApiCall({
       );
     case "syncdoc_call":
       return await syncdoc_call(data.path, data.mesg);
-    case "symmetric_channel":
-      return await browser_symmetric_channel(client, primus, log, data.name);
 
     case "project_info":
       return await project_info_ws(primus, log);

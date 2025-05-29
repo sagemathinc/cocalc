@@ -40,6 +40,10 @@ import { formatterClient } from "@cocalc/conat/service/formatter";
 import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
 // import { syncFsServerClient } from "@cocalc/conat/service/syncfs-server";
 
+const log = (...args) => {
+  console.log("project.websocket: ", ...args);
+};
+
 export class API {
   private conn;
   private project_id: string;
@@ -78,6 +82,7 @@ export class API {
   };
 
   private primusCall = async (mesg: Mesg, timeout: number) => {
+    log("primusCall", { mesg });
     return await call(this.conn, mesg, timeout);
   };
 
@@ -383,6 +388,7 @@ export class API {
       },
       60000,
     );
+    log("lean_channel");
     return this.conn.channel(channel_name);
   };
 
@@ -396,6 +402,7 @@ export class API {
       },
       60000,
     );
+    log("x11_channel");
     return this.conn.channel(channel_name);
   };
 
@@ -412,7 +419,7 @@ export class API {
       },
       10000,
     );
-    // console.log("synctable_channel", query, options, channel_name);
+    log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
   };
 
@@ -433,20 +440,6 @@ export class API {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "lean", opts }, timeout_ms);
-  };
-
-  // I think this isn't used.  It was going to support
-  // sync_channel, but obviously a more nuanced protocol
-  // was required.
-  symmetric_channel = async (name: string): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "symmetric_channel",
-        name,
-      },
-      30000,
-    );
-    return this.conn.channel(channel_name);
   };
 
   // Copying files to/from compute servers:

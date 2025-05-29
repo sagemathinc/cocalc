@@ -124,17 +124,6 @@ export default class API implements API_Interface {
     return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
   }
 
-  async symmetric_channel(name: string) {
-    const channel_name = await this.call(
-      {
-        cmd: "symmetric_channel",
-        name,
-      },
-      30000,
-    );
-    return this.conn.channel(channel_name);
-  }
-
   async query(opts: any): Promise<any> {
     if (opts.timeout == null) {
       opts.timeout = 30000;

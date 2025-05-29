@@ -8,7 +8,7 @@ Functionality related to Sync.
 */
 
 import { once } from "@cocalc/util/async-utils";
-import { defaults, is_valid_uuid_string, required } from "@cocalc/util/misc";
+import { defaults, required } from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
 import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -20,7 +20,7 @@ import {
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
 import synctable_project from "./synctable-project";
-import type { Channel, AppClient } from "./types";
+import type { AppClient } from "./types";
 import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 // import { refCacheSync } from "@cocalc/util/refcache";
 
@@ -88,19 +88,6 @@ export class SyncClient {
       throttle_changes,
       id,
     });
-  }
-
-  // NOT currently used.
-  public async symmetric_channel(
-    name: string,
-    project_id: string,
-  ): Promise<Channel> {
-    if (!is_valid_uuid_string(project_id) || typeof name !== "string") {
-      throw Error("project_id must be a valid uuid and name must be a string");
-    }
-    return (await this.client.project_client.api(project_id)).symmetric_channel(
-      name,
-    );
   }
 
   // These are not working properly, e.g., if you close and open

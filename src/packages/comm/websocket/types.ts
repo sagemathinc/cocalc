@@ -154,11 +154,6 @@ interface MesgSyncdocCall {
   mesg: any;
 }
 
-interface MesgSymmetricChannel {
-  cmd: "symmetric_channel";
-  name: string;
-}
-
 interface MesgRealpath {
   cmd: "realpath";
   path: string;
@@ -256,7 +251,6 @@ export type Mesg =
   | MesgX11Channel
   | MesgSynctableChannel
   | MesgSyncdocCall
-  | MesgSymmetricChannel
   | MesgRealpath
   | MesgNBGrader
   | MesgJupyterNbconvert

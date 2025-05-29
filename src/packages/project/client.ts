@@ -38,7 +38,6 @@ import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import * as blobs from "./blobs";
-import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
 import initJupyter from "./jupyter/init";
@@ -548,10 +547,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // if currently no such sync-doc.
   public syncdoc({ path }: { path: string }): SyncDoc | undefined {
     return get_syncdoc(path);
-  }
-
-  public symmetric_channel(name) {
-    return symmetric_channel(name);
   }
 
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
