@@ -101,3 +101,21 @@ export async function adminResetPasswordLink({
   const id = await createReset(email, "", 60 * 60 * 24); // 24 hour ttl seems reasonable for this.
   return `/auth/password-reset/${id}`;
 }
+
+import sendEmailVerification0 from "@cocalc/server/accounts/send-email-verification";
+
+export async function sendEmailVerification({
+  account_id,
+  only_verify,
+}: {
+  account_id?: string;
+  only_verify?: boolean;
+}): Promise<void> {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
+  const resp = await sendEmailVerification0(account_id, only_verify);
+  if (resp) {
+    throw Error(resp);
+  }
+}

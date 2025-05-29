@@ -425,13 +425,6 @@ message({
 });
 
 message({
-  event: "send_verification_email",
-  id: undefined,
-  account_id: required,
-  only_verify: undefined,
-}); // usually true, if false the full "welcome" email is sent
-
-message({
   event: "error",
   id: undefined,
   error: undefined,

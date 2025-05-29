@@ -14,7 +14,6 @@ export const sign_in_failed: any;
 export const signed_in: any;
 export const sign_out: any;
 export const signed_out: any;
-export const send_verification_email: any;
 export const unlink_passport: any;
 export const error: any;
 export const success: any;

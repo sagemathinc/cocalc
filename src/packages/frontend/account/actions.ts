@@ -33,10 +33,6 @@ export class AccountActions extends Actions<AccountState> {
     this.processSignUpTags();
   }
 
-  private help(): string {
-    return this.redux.getStore("customize").get("help_email");
-  }
-
   derive_show_global_info(store: AccountStore): void {
     // TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
     // for now, we use the existence of a timestamp value to indicate that the banner is not shown
@@ -142,24 +138,6 @@ export class AccountActions extends Actions<AccountState> {
       return;
     }
     this.sign_out(true);
-  }
-
-  public async reset_password(
-    reset_code: string,
-    new_password: string,
-  ): Promise<void> {
-    try {
-      await this.account_client.reset_forgot_password(reset_code, new_password);
-    } catch (err) {
-      this.setState({
-        reset_password_error: err.message,
-      });
-      return;
-    }
-    // success
-    // TODO: can we automatically log them in?  Should we?  Seems dangerous.
-    history.pushState({}, "", location.href);
-    this.setState({ reset_key: "", reset_password_error: "" });
   }
 
   public async sign_out(

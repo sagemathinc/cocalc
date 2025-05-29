@@ -19,6 +19,7 @@ export const system = {
   userSearch: authFirst,
   getNames: requireAccount,
   adminResetPasswordLink: authFirst,
+  sendEmailVerification: authFirst,
 };
 
 export interface System {
@@ -92,4 +93,9 @@ export interface System {
     account_id?: string;
     user_account_id: string;
   }) => Promise<string>;
+
+  sendEmailVerification: (opts: {
+    account_id?: string;
+    only_verify?: boolean;
+  }) => Promise<void>;
 }

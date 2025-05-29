@@ -97,19 +97,9 @@ export class AccountClient {
   send_verification_email = async (
     only_verify: boolean = true,
   ): Promise<void> => {
-    const account_id = this.client.account_id;
-    if (!account_id) {
-      throw Error("must be signed in to an account");
-    }
-    const x = await this.call(
-      message.send_verification_email({
-        account_id,
-        only_verify,
-      }),
-    );
-    if (x.error) {
-      throw Error(x.error);
-    }
+    await this.client.conat_client.hub.system.sendEmailVerification({
+      only_verify,
+    });
   };
 
   // forget about a given passport authentication strategy for this user
