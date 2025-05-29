@@ -20,6 +20,7 @@ export const system = {
   getNames: requireAccount,
   adminResetPasswordLink: authFirst,
   sendEmailVerification: authFirst,
+  deletePassport: authFirst,
 };
 
 export interface System {
@@ -97,5 +98,11 @@ export interface System {
   sendEmailVerification: (opts: {
     account_id?: string;
     only_verify?: boolean;
+  }) => Promise<void>;
+
+  deletePassport: (opts: {
+    account_id?: string;
+    strategy: string;
+    id: string;
   }) => Promise<void>;
 }

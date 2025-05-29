@@ -76,7 +76,6 @@ export interface DeletePassportOpts {
   account_id: string;
   strategy: string; // our name of the strategy
   id: string;
-  cb?: CB;
 }
 
 export interface PassportExistsOpts {
@@ -240,7 +239,7 @@ export interface PostgreSQL extends EventEmitter {
 
   create_passport(opts: CreatePassportOpts): Promise<string>;
 
-  delete_passport(opts: DeletePassportOpts): void;
+  delete_passport(opts: DeletePassportOpts): Promise<void>;
 
   set_passport_settings(
     db: PostgreSQL,

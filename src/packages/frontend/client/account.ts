@@ -103,13 +103,11 @@ export class AccountClient {
   };
 
   // forget about a given passport authentication strategy for this user
-  unlink_passport = async (strategy: string, id: string): Promise<any> => {
-    return await this.call(
-      message.unlink_passport({
-        strategy,
-        id,
-      }),
-    );
+  unlink_passport = async (strategy: string, id: string): Promise<void> => {
+    await this.client.conat_client.hub.system.deletePassport({
+      strategy,
+      id,
+    });
   };
 
   // new interface: getting, setting, editing, deleting, etc., the  api keys for a project

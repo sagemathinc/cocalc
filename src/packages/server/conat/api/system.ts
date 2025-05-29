@@ -119,3 +119,12 @@ export async function sendEmailVerification({
     throw Error(resp);
   }
 }
+
+import { delete_passport } from "@cocalc/server/auth/sso/delete-passport";
+export async function deletePassport(opts: {
+  account_id: string;
+  strategy: string;
+  id: string;
+}): Promise<void> {
+  await delete_passport(db(), opts);
+}

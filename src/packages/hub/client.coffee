@@ -29,7 +29,6 @@ generateHash     = require("@cocalc/server/auth/hash").default;
 passwordHash     = require("@cocalc/backend/auth/password-hash").default;
 create_project   = require("@cocalc/server/projects/create").default;
 collab           = require('@cocalc/server/projects/collab');
-delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 
 {one_result} = require("@cocalc/database")
 
@@ -558,23 +557,6 @@ class exports.Client extends EventEmitter
                 dbg("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
 
-
-    # Messages: Password/email address management
-
-    mesg_unlink_passport: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"must be logged in")
-        else
-            opts =
-                account_id : @account_id
-                strategy   : mesg.strategy
-                id         : mesg.id
-                cb         : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @success_to_client(id:mesg.id)
-            delete_passport(@database, opts)
 
     # Messages: Account settings
     get_groups: (cb) =>

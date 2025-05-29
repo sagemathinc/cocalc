@@ -4,14 +4,13 @@ import type {
   PostgreSQL,
 } from "@cocalc/database/postgres/types";
 import { _passport_key } from "@cocalc/database/postgres/passport";
+import { callback2 } from "@cocalc/util/async-utils";
 
 export async function delete_passport(
   db: PostgreSQL,
   opts: DeletePassportOpts,
 ) {
-  db._dbg("delete_passport")(
-    JSON.stringify({ strategy: opts.strategy, id: opts.id }),
-  );
+  db._dbg("delete_passport")(JSON.stringify({ strategy: opts.strategy }));
 
   if (
     await isBlockedUnlinkStrategy({
@@ -19,16 +18,10 @@ export async function delete_passport(
       account_id: opts.account_id,
     })
   ) {
-    const err_msg = `You are not allowed to unlink '${opts.strategy}'`;
-    if (typeof opts.cb === "function") {
-      opts.cb(err_msg);
-      return;
-    } else {
-      throw new Error(err_msg);
-    }
+    throw Error(`You are not allowed to unlink '${opts.strategy}'`);
   }
 
-  return db._query({
+  await callback2(db._query, {
     query: "UPDATE accounts",
     jsonb_set: {
       // delete it
@@ -37,6 +30,5 @@ export async function delete_passport(
     where: {
       "account_id = $::UUID": opts.account_id,
     },
-    cb: opts.cb,
   });
 }
