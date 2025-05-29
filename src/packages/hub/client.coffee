@@ -30,7 +30,6 @@ passwordHash     = require("@cocalc/backend/auth/password-hash").default;
 create_project   = require("@cocalc/server/projects/create").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
-setEmailAddress  = require("@cocalc/server/accounts/set-email-address").default;
 
 {one_result} = require("@cocalc/database")
 
@@ -559,35 +558,8 @@ class exports.Client extends EventEmitter
                 dbg("ignoring all further messages from old client=#{@id}")
                 @_ignore_client = true
 
-    mesg_sign_out: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"not signed in"))
-            return
-
-        if mesg.everywhere
-            # invalidate all remember_me cookies
-            @database.invalidate_all_remember_me
-                account_id : @account_id
-        @signed_out()  # deletes @account_id... so must be below database call above
-        # invalidate the remember_me on this browser
-        @invalidate_remember_me
-            cb:(error) =>
-                @dbg('mesg_sign_out')("signing out: #{mesg.id}, #{error}")
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.signed_out(id:mesg.id))
 
     # Messages: Password/email address management
-    mesg_change_email_address: (mesg) =>
-        try
-            await setEmailAddress
-                account_id: @account_id
-                email_address: mesg.new_email_address
-                password: mesg.password
-            @push_to_client(message.changed_email_address(id:mesg.id))
-        catch err
-            @error_to_client(id:mesg.id, error:err)
 
     mesg_send_verification_email: (mesg) =>
         auth = require('./auth')

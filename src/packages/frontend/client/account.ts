@@ -20,15 +20,15 @@ export class AccountClient {
     this.async_call = client.async_call;
   }
 
-  private async call(message): Promise<any> {
+  private call = async (message): Promise<any> => {
     return await this.async_call({
       message,
       allow_post: false, // never works or safe for account related functionality
       timeout: 30, // 30s for all account stuff.
     });
-  }
+  };
 
-  public async create_account(opts: {
+  create_account = async (opts: {
     first_name?: string;
     last_name?: string;
     email_address?: string;
@@ -37,7 +37,7 @@ export class AccountClient {
     usage_intent?: string;
     get_api_key?: boolean; // if given, will create/get api token in response message
     token?: string; // only required if an admin set the account creation token.
-  }): Promise<any> {
+  }): Promise<any> => {
     if (this.create_account_lock) {
       // don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
       return message.account_creation_failed({
@@ -54,9 +54,9 @@ export class AccountClient {
     } finally {
       setTimeout(() => (this.create_account_lock = false), 1500);
     }
-  }
+  };
 
-  public async cookies(mesg): Promise<void> {
+  cookies = async (mesg): Promise<void> => {
     const f = (cb) => {
       const j = $.ajax({
         url: mesg.url,
@@ -66,43 +66,37 @@ export class AccountClient {
       j.fail(() => cb("failed"));
     };
     await callback(f);
-  }
+  };
 
-  public async sign_out(everywhere: boolean = false): Promise<void> {
+  sign_out = async (everywhere: boolean = false): Promise<void> => {
     await api("/accounts/sign-out", { all: everywhere });
     delete this.client.account_id;
     this.client.emit("signed_out");
-  }
+  };
 
-  public async change_password(
+  change_password = async (
     currentPassword: string,
     newPassword: string = "",
-  ): Promise<void> {
+  ): Promise<void> => {
     await api("/accounts/set-password", { currentPassword, newPassword });
-  }
+  };
 
-  public async change_email(
+  change_email = async (
     new_email_address: string,
     password: string = "",
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
     }
-    const x = await this.call(
-      message.change_email_address({
-        account_id: this.client.account_id,
-        new_email_address,
-        password,
-      }),
-    );
-    if (x.error) {
-      throw Error(x.error);
-    }
-  }
+    await api("accounts/set-email-address", {
+      email_address: new_email_address,
+      password,
+    });
+  };
 
-  public async send_verification_email(
+  send_verification_email = async (
     only_verify: boolean = true,
-  ): Promise<void> {
+  ): Promise<void> => {
     const account_id = this.client.account_id;
     if (!account_id) {
       throw Error("must be signed in to an account");
@@ -116,10 +110,10 @@ export class AccountClient {
     if (x.error) {
       throw Error(x.error);
     }
-  }
+  };
 
   // forgot password -- send forgot password request to server
-  public async forgot_password(email_address: string): Promise<void> {
+  forgot_password = async (email_address: string): Promise<void> => {
     const x = await this.call(
       message.forgot_password({
         email_address,
@@ -128,13 +122,13 @@ export class AccountClient {
     if (x.error) {
       throw Error(x.error);
     }
-  }
+  };
 
   // forgot password -- send forgot password request to server
-  public async reset_forgot_password(
+  reset_forgot_password = async (
     reset_code: string,
     new_password: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     const resp = await this.call(
       message.reset_forgot_password({
         reset_code,
@@ -144,26 +138,26 @@ export class AccountClient {
     if (resp.error) {
       throw Error(resp.error);
     }
-  }
+  };
 
   // forget about a given passport authentication strategy for this user
-  public async unlink_passport(strategy: string, id: string): Promise<any> {
+  unlink_passport = async (strategy: string, id: string): Promise<any> => {
     return await this.call(
       message.unlink_passport({
         strategy,
         id,
       }),
     );
-  }
+  };
 
   // new interface: getting, setting, editing, deleting, etc., the  api keys for a project
-  public async api_keys(opts: {
+  api_keys = async (opts: {
     action: "get" | "delete" | "create" | "edit";
     password?: string;
     name?: string;
     id?: number;
     expire?: Date;
-  }): Promise<ApiKey[] | undefined> {
+  }): Promise<ApiKey[] | undefined> => {
     return await this.client.conat_client.hub.system.manageApiKeys(opts);
-  }
+  };
 }
