@@ -23,7 +23,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { IconName, Icon } from "@cocalc/frontend/components/icon";
-import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
@@ -111,10 +110,6 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const doing_anonymous_setup = useTypedRedux(
-    "account",
-    "doing_anonymous_setup",
-  );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
   const show_verify_email: boolean = useShowVerifyEmail();
@@ -355,72 +350,52 @@ export const Page: React.FC = () => {
     }
   }
 
-  let body;
-  if (doing_anonymous_setup) {
-    // Don't show the login screen or top navbar for a second
-    // while creating their anonymous account, since that
-    // would just be ugly/confusing/and annoying.
-    // Have to use above style to *hide* the crash warning.
-    const loading_anon = (
-      <div style={{ margin: "auto", textAlign: "center" }}>
-        <h1 style={{ color: COLORS.GRAY }}>
-          <Spin delay={1000} />
-        </h1>
-        <div style={{ color: COLORS.GRAY, width: "50vw" }}>
-          Please give <SiteName /> a couple of seconds to start your project and
-          prepare a file...
+  // Children must define their own padding from navbar and screen borders
+  // Note that the parent is a flex container
+  const body = (
+    <div
+      style={PAGE_STYLE}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={drop}
+    >
+      {insecure_test_mode && <InsecureTestModeBanner />}
+      {show_file_use && (
+        <div style={fileUseStyle} className="smc-vfill">
+          <FileUsePage />
         </div>
-      </div>
-    );
-    body = <div style={PAGE_STYLE}>{loading_anon}</div>;
-  } else {
-    // Children must define their own padding from navbar and screen borders
-    // Note that the parent is a flex container
-    body = (
-      <div
-        style={PAGE_STYLE}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={drop}
-      >
-        {insecure_test_mode && <InsecureTestModeBanner />}
-        {show_file_use && (
-          <div style={fileUseStyle} className="smc-vfill">
-            <FileUsePage />
-          </div>
-        )}
-        {show_connection && <ConnectionInfo />}
-        {new_version && <VersionWarning new_version={new_version} />}
-        {cookie_warning && <CookieWarning />}
-        {local_storage_warning && <LocalStorageWarning />}
-        {show_i18n && <I18NBanner />}
-        {show_verify_email && <VerifyEmail />}
-        {!fullscreen && (
-          <nav className="smc-top-bar" style={topBarStyle}>
-            <AppLogo size={pageStyle.height} />
-            {is_logged_in && render_project_nav_button()}
-            {!isNarrow ? (
-              <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-            ) : (
-              // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
-              <div style={{ flex: "1 1 auto" }} />
-            )}
-            {render_right_nav()}
-          </nav>
-        )}
-        {fullscreen && render_fullscreen()}
-        {isNarrow && (
-          <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-        )}
-        <ActiveContent />
-        <PayAsYouGoModal />
-        <PopconfirmModal />
-        <SettingsModal />
-      </div>
-    );
-    return (
-      <ClientContext.Provider value={{ client: webapp_client }}>
-        {body}
-      </ClientContext.Provider>
-    );
-  }
+      )}
+      {show_connection && <ConnectionInfo />}
+      {new_version && <VersionWarning new_version={new_version} />}
+      {cookie_warning && <CookieWarning />}
+      {local_storage_warning && <LocalStorageWarning />}
+      {show_i18n && <I18NBanner />}
+      {show_verify_email && <VerifyEmail />}
+      {!fullscreen && (
+        <nav className="smc-top-bar" style={topBarStyle}>
+          <AppLogo size={pageStyle.height} />
+          {is_logged_in && render_project_nav_button()}
+          {!isNarrow ? (
+            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+          ) : (
+            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+            <div style={{ flex: "1 1 auto" }} />
+          )}
+          {render_right_nav()}
+        </nav>
+      )}
+      {fullscreen && render_fullscreen()}
+      {isNarrow && (
+        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+      )}
+      <ActiveContent />
+      <PayAsYouGoModal />
+      <PopconfirmModal />
+      <SettingsModal />
+    </div>
+  );
+  return (
+    <ClientContext.Provider value={{ client: webapp_client }}>
+      {body}
+    </ClientContext.Provider>
+  );
 };

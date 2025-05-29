@@ -17,10 +17,6 @@ import {
 } from "@cocalc/util/misc";
 import * as message from "@cocalc/util/message";
 import {
-  do_anonymous_setup,
-  should_do_anonymous_setup,
-} from "./anonymous-setup";
-import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
@@ -178,7 +174,9 @@ export class HubClient {
   }
 
   private ondata(data: string): void {
-    console.log(`LEGACY WEBSOCKET: got ${data.length} of data from hub`, { data });
+    console.log(`LEGACY WEBSOCKET: got ${data.length} of data from hub`, {
+      data,
+    });
     this.mesg_data.recv += 1;
     this.mesg_data.recv_length += data.length;
     this.emit_mesg_data();
@@ -441,9 +439,6 @@ export class HubClient {
       conn.removeAllListeners("data");
       conn.on("data", this.ondata.bind(this));
 
-      if (should_do_anonymous_setup()) {
-        do_anonymous_setup(this.client);
-      }
     });
 
     conn.on("outgoing::open", () => {
@@ -499,7 +494,7 @@ export class HubClient {
   }
 
   private send_version(): void {
-   // this.send(message.version({ version: this.client.version() }));
+    // this.send(message.version({ version: this.client.version() }));
   }
 
   public fix_connection(): void {
