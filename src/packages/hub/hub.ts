@@ -47,7 +47,6 @@ import {
   initConatMicroservices,
 } from "@cocalc/server/conat";
 import initHttpRedirect from "./servers/http-redirect";
-import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
@@ -175,7 +174,7 @@ async function startServer(): Promise<void> {
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
 
-  if (program.mode != "kucalc" && program.websocketServer) {
+  if (program.mode != "kucalc" && program.conatServer) {
     // We handle idle timeout of projects.
     // This can be disabled via COCALC_NO_IDLE_TIMEOUT.
     // This only uses the admin-configurable settings field of projects
@@ -194,7 +193,7 @@ async function startServer(): Promise<void> {
     await initConatChangefeedServer();
   }
 
-  if (program.websocketServer) {
+  if (program.conatServer) {
     // Initialize the version server -- must happen after updating schema
     // (for first ever run).
     await initVersionServer();
@@ -241,7 +240,6 @@ async function startServer(): Promise<void> {
       program.mode == "single-user" &&
       program.proxyServer &&
       program.nextServer &&
-      program.websocketServer &&
       process.env["NODE_ENV"] == "development",
   });
 
@@ -261,20 +259,8 @@ async function startServer(): Promise<void> {
     await initHttpRedirect(program.hostname);
   }
 
-  if (program.websocketServer) {
-    logger.info("initializing primus websocket server");
-    initPrimus({
-      httpServer,
-      router,
-      projectControl,
-      clients,
-      host: program.hostname,
-      port,
-      isPersonal: program.personal,
-    });
-  }
 
-  if (program.websocketServer || program.proxyServer || program.nextServer) {
+  if (program.conatServer || program.proxyServer || program.nextServer) {
     logger.info(
       "Starting registering periodically with the database and updating a health check...",
     );
@@ -303,7 +289,7 @@ async function startServer(): Promise<void> {
     console.log(msg);
 
     if (
-      program.websocketServer &&
+      program.conatServer &&
       program.nextServer &&
       process.env["NODE_ENV"] != "production"
     ) {
@@ -414,7 +400,6 @@ async function main(): Promise<void> {
       "--all",
       "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
-    .option("--websocket-server", "run a websocket server in this process")
     .option(
       "--conat-server",
       "run a hub that provides a single-core conat server (socketio) as part of its http server. This is needed for dev and small deployments of cocalc.",
@@ -524,7 +509,6 @@ async function main(): Promise<void> {
     }
   }
   if (program.all) {
-    program.websocketServer =
       program.conatMicroservices =
       program.conatServer =
       program.conatChangefeedServer =

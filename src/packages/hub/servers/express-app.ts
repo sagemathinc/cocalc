@@ -19,7 +19,6 @@ import { initAnalytics } from "../analytics";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { getLogger } from "../logger";
 import initProxy from "../proxy";
-import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobUpload from "./app/blob-upload";
 import initUpload from "./app/upload";
@@ -100,8 +99,6 @@ export default async function init(opts: Options): Promise<{
 
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
-
-  initAPI(router, opts.projectControl);
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.

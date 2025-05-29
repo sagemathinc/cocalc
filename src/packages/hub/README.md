@@ -1,12 +1,10 @@
-# The hub CoCalc web server.
+# The hub CoCalc web server
 
 This code is part of https://github.com/sagemathinc/cocalc and isn't currently designed to be used standalone. Our plan is to refactor this code into smaller useful modules that are published under the @cocalc npm organization.
 
 This is a node.js process that serves _all_ of the following (possibly simultaneously):
 
 - static content - our mirror of the cdn and the results of webpack (packages/static)
-- an http api as documented at https://doc.cocalc.com/api
-- a websocket connection that client browsers use for sign in, account config, creating projects, etc.
 - a proxy server that connects client browsers to projects
 - project control server that creates, starts and stops projects running locally
 
