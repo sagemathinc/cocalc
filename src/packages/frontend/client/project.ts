@@ -62,7 +62,7 @@ export class ProjectClient {
     this.client = client;
   }
 
-  private natsApi = (project_id: string) => {
+  private conatApi = (project_id: string) => {
     return this.client.conat_client.projectApi({ project_id });
   };
 
@@ -102,7 +102,7 @@ export class ProjectClient {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): Promise<string> => {
-    return await this.natsApi(project_id).system.readTextFileFromProject({
+    return await this.conatApi(project_id).system.readTextFileFromProject({
       path,
     });
   };

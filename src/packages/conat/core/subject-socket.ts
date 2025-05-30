@@ -1,35 +1,11 @@
 /*
 Implement something that acts like a project-specific websocket from 
-**SubjectSocket**, but using Conats (which is really socket-io through a central
+**SubjectSocket**, but using Conat (which is really socket-io through a central
 message broker).
 
 For unit tests, see
 
     packages/backend/conat/test/subjectSocket.test.ts
-
-Development:
-
-1. Change to a directory such as packages/project
-
-2. Example session:
-
-~/cocalc/src/packages/project$ node
-...
-
-# communication
-
-SubjectSocket = require('@cocalc/conat/subjectSocket').SubjectSocket;
-env = await require('@cocalc/backend/conat').getEnv();
-server = new SubjectSocket({subject:'test',env,role:'server',id:'s'});
-sparks = []; server.on("connection", (spark) => sparks.push(spark));
-
-client = new SubjectSocket({subject:'test',env,role:'client',id:'c0'});
-
-client.on('data',(data)=>console.log('client got', data));0
-sparks[0].write("foo")
-
-sparks[0].on('data', (data)=>console.log("server got", data));0
-client.write('bar')
 
 */
 

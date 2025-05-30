@@ -45,7 +45,7 @@ import {
   type Message as StoredMessage,
   PersistentStream,
 } from "./storage";
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import {
   type Client,
   type Subscription,
@@ -216,7 +216,7 @@ export async function init({
     MAX_PERSISTS_PER_SERVER,
     SUBJECT,
   });
-  client = client ?? (await getEnv()).cn;
+  client = client ?? await conat();
   // this returns one the service is listening
   await persistService({ client, messagesThresh });
   await renewService({ client });

@@ -11,7 +11,7 @@ changefeed(...) -- returns async iterator that outputs:
 renew({id, lifetime}) -- keeps the changefeed alive for at least lifetime more ms.
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import { changefeedSubject, renewSubject } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
@@ -41,7 +41,7 @@ export async function* changefeed({
   const subject = changefeedSubject({ account_id });
 
   let lastSeq = -1;
-  const { cn } = await getEnv();
+  const cn = await conat();
   for await (const mesg of await cn.requestMany(
     subject,
     { query, options, heartbeat, lifetime },
@@ -69,7 +69,7 @@ export async function renew({
   lifetime?: number;
 }) {
   const subject = renewSubject({ account_id });
-  const { cn } = await getEnv();
+  const cn = await conat();
   const resp = await cn.request(subject, { id, lifetime });
   return resp.data;
 }

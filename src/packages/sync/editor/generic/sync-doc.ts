@@ -114,7 +114,7 @@ import type {
   Patch,
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
-import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
@@ -299,9 +299,9 @@ export class SyncDoc extends EventEmitter {
       client: this.client,
     });
 
-    // NOTE: Do not use nats in test mode, since there we use a minimal
+    // NOTE: Do not use conat in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't
-    // use nats.  We also use this for the messages composer.
+    // use conat.  We also use this for the messages composer.
     this.useConat = USE_CONAT && !isTestClient(opts.client);
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
@@ -1773,7 +1773,7 @@ export class SyncDoc extends EventEmitter {
   private patch_table_query = (cutoff?: number) => {
     const query = {
       string_id: this.string_id,
-      is_snapshot: false, // only used with nats
+      is_snapshot: false, // only used with conat
       time: cutoff ? { ">=": cutoff } : null,
       wall: null,
       // compressed format patch as a JSON *string*
@@ -2245,13 +2245,13 @@ export class SyncDoc extends EventEmitter {
     // active, so we check if we should make a snapshot. There is the
     // potential of a race condition where more than one clients make
     // a snapshot at the same time -- this would waste a little space
-    // in the nats jetstream, but is otherwise harmless, since the snapshots
+    // in the stream, but is otherwise harmless, since the snapshots
     // are identical.
     this.snapshot_if_necessary();
   };
 
   private dstream = () => {
-    // @ts-ignore -- in general patches_table might not be a nats one still,
+    // @ts-ignore -- in general patches_table might not be a conat one still,
     // or at least dstream is an internal implementation detail.
     const { dstream } = this.patches_table ?? {};
     if (dstream == null) {
@@ -2260,11 +2260,11 @@ export class SyncDoc extends EventEmitter {
     return dstream;
   };
 
-  // return the NATS sequence number of the oldest entry in the
+  // return the conat-assigned sequence number of the oldest entry in the
   // patch list with the given time, and also:
   //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
   //    - index -- the global index of the entry with the given time.
-  private natsSnapshotSeqInfo = (
+  private conatSnapshotSeqInfo = (
     time: number,
   ): { seq: number; prev_seq?: number } => {
     const dstream = this.dstream();
@@ -2319,7 +2319,7 @@ export class SyncDoc extends EventEmitter {
 
     const snapshot: string = this.patch_list.value({ time }).to_str();
     // save the snapshot itself in the patches table.
-    const seq_info = this.natsSnapshotSeqInfo(time);
+    const seq_info = this.conatSnapshotSeqInfo(time);
     const obj = {
       size: snapshot.length,
       string_id: this.string_id,
@@ -3551,7 +3551,7 @@ export class SyncDoc extends EventEmitter {
         path: this.path,
         project_id: this.project_id,
       });
-      await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 }

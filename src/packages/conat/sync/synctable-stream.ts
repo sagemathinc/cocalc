@@ -1,5 +1,5 @@
 /*
-Nats implementation of the idea of a "SyncTable", but
+Conat implementation of the idea of a "SyncTable", but
 for streaming data.
 
 **This is ONLY for the scope of patches in a single
@@ -144,8 +144,6 @@ export class SyncTableStream extends EventEmitter {
     const key = this.primaryString(obj);
     const { string_id, ...obj2 } = obj;
     if (this.data[key] != null) {
-      // "You can not change a message once committed to a stream"
-      // https://github.com/nats-io/nats-server/discussions/4883
       throw Error(
         `object with key ${key} was already written to the stream -- written data cannot be modified`,
       );

@@ -1,4 +1,4 @@
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import {
   persistSubject,
   renewSubject,
@@ -116,7 +116,7 @@ export async function set({
 }): Promise<{ seq: number; time: number }> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const reply = await cn.request(subject, null, {
     raw: messageData.raw,
@@ -153,7 +153,7 @@ export async function deleteMessages({
 }): Promise<{ seqs: number[] }> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const reply = await cn.request(subject, null, {
     headers: {
@@ -182,7 +182,7 @@ export async function config({
 }): Promise<Configuration> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const reply = await cn.request(subject, null, {
     headers: {
@@ -212,7 +212,7 @@ export async function get({
 )): Promise<ConatMessage | undefined> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const resp = await cn.request(subject, null, {
     headers: { cmd: "get", storage, seq, key } as any,
@@ -236,7 +236,7 @@ export async function keys({
 }): Promise<string[]> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const reply = await cn.request(subject, null, {
     headers: { cmd: "keys", storage } as any,
@@ -261,7 +261,7 @@ export async function sqlite({
 }): Promise<any[]> {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const reply = await cn.request(subject, null, {
     headers: { cmd: "sqlite", storage, statement, params } as any,
@@ -292,7 +292,7 @@ async function* callApiGetAll({
 }) {
   const subject = persistSubject(user);
   assertHasWritePermission({ subject, path: storage.path });
-  const { cn } = await getEnv();
+  const cn = await conat();
 
   const { heartbeat = DEFAULT_HEARTBEAT, lifetime } = options ?? {};
 
@@ -370,7 +370,7 @@ export async function renew({
   lifetime?: number;
 } & User) {
   const subject = renewSubject(user);
-  const { cn } = await getEnv();
+  const cn = await conat();
   const resp = await cn.request(subject, { id, lifetime });
   return resp.data;
 }

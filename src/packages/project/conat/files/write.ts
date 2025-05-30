@@ -14,7 +14,7 @@ You can also skip step 1 if you instead set COMPUTE_SERVER_ID to something nonze
 2. Setup the project environment variables. Then start the server in node:
 
 
-    ~/cocalc/src/packages/project/nats$ . project-env.sh
+    ~/cocalc/src/packages/project/conat$ . project-env.sh
     $ node
     Welcome to Node.js v18.17.1.
     Type ".help" for more information.
@@ -24,7 +24,7 @@ You can also skip step 1 if you instead set COMPUTE_SERVER_ID to something nonze
 
 */
 
-import "@cocalc/project/conat/env"; // ensure nats env available
+import "@cocalc/project/conat/env"; // ensure conat env available
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { createWriteStream as fs_createWriteStream } from "fs";
 import { rename } from "fs/promises";

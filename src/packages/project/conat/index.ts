@@ -6,6 +6,7 @@ Start the NATS servers:
 - websocket api (temporary/legacy shim)
 */
 
+import "./connection";
 import { getLogger } from "@cocalc/project/logger";
 import { init as initAPI } from "./api";
 import { init as initOpenFiles } from "./open-files";

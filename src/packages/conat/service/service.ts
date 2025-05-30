@@ -12,7 +12,7 @@ an error too.
 
 import { type Location } from "@cocalc/conat/types";
 import { trunc_middle } from "@cocalc/util/misc";
-import { getEnv, getLogger } from "@cocalc/conat/client";
+import { conat, getLogger } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -51,7 +51,7 @@ export interface ServiceCall extends ServiceDescription {
 
 export async function callConatService(opts: ServiceCall): Promise<any> {
   // console.log("callConatService", opts);
-  const cn = opts.client ?? (await getEnv()).cn;
+  const cn = opts.client ?? (await conat());
   const subject = serviceSubject(opts);
   let resp;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
@@ -215,7 +215,7 @@ export class ConatService extends EventEmitter {
       description: this.options.description,
       version: this.options.version,
     });
-    const cn = this.options.client ?? (await getEnv()).cn;
+    const cn = this.options.client ?? (await conat());
     const queue = this.options.all ? randomId() : "0";
     // service=true so upon disconnect the socketio backend server
     // immediately stops routing traffic to this.
@@ -231,7 +231,7 @@ export class ConatService extends EventEmitter {
     for await (const mesg of this.sub) {
       const request = mesg.data ?? {};
 
-      // console.logger.debug("handle nats service call", request);
+      // console.logger.debug("handle conat service call", request);
       let resp;
       if (request == "ping") {
         resp = "pong";
@@ -245,11 +245,6 @@ export class ConatService extends EventEmitter {
       try {
         await mesg.respond(resp);
       } catch (err) {
-        // If, e.g., resp is too big, then the error would be
-        //    "NatsError: MAX_PAYLOAD_EXCEEDED"
-        // and it is of course very important to make the caller aware that
-        // there was an error, as opposed to just silently leaving
-        // them hanging forever.
         const data = { error: `${err}` };
         await mesg.respond(data);
       }
@@ -305,7 +300,7 @@ export async function waitForConatService({
     try {
       return await pingConatService({ options, maxWait: m });
     } catch {
-      // ping can fail, e.g, if not connected to nats at all or the ping
+      // ping can fail, e.g, if not connected to conat at all or the ping
       // service isn't up yet.
       return [] as string[];
     }

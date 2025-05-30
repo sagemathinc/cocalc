@@ -2,7 +2,6 @@ import jsonStableStringify from "json-stable-stringify";
 import { encode as encodeBase64, decode as decodeBase64 } from "js-base64";
 export { encodeBase64, decodeBase64 };
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { getConnection, getConnectionSync } from "./client";
 
 export function handleErrorMessage(mesg) {
   if (mesg?.error) {
@@ -79,20 +78,6 @@ export function toKey(x): string | undefined {
   } else {
     return `${x}`;
   }
-}
-
-// returns false if not connected or there is no connection yet.
-export function isConnectedSync(): boolean {
-  const nc = getConnectionSync();
-  // @ts-ignore
-  return !!nc?.protocol?.connected;
-}
-
-export async function isConnected(nc?): Promise<boolean> {
-  nc = nc ?? (await getConnection());
-  // At least if this changes, things will be so broken, we'll quickly notice, hopefully.
-  // @ts-ignore
-  return !!nc.protocol?.connected;
 }
 
 // Returns the max payload size for messages for the NATS server

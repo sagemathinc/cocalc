@@ -10,7 +10,6 @@ import type {
 
 export const system = {
   terminate: true,
-  resetConnection: true,
 
   version: true,
 
@@ -21,7 +20,7 @@ export const system = {
   realpath: true,
   canonicalPaths: true,
 
-  // these should be completel deprecated -- the new streaming writeFile and readFile in nats/files are much better.
+  // these should be deprecated -- the new streaming writeFile and readFile in conat/files are  better.
   writeTextFileToProject: true,
   readTextFileFromProject: true,
 
@@ -36,12 +35,6 @@ export const system = {
 export interface System {
   // stop the api service
   terminate: () => Promise<void>;
-
-  // close the nats connection -- this is meant for development purposes
-  // and closes the connection; the connection monitor should then reoopen it within
-  // a few seconds.  This is, of course, likely to NOT return, since the
-  // connection is broken for a bit.
-  resetConnection: () => Promise<{ closed: boolean }>;
 
   version: () => Promise<number>;
 

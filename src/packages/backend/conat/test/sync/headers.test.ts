@@ -22,8 +22,8 @@ describe("test headers with a dstream", () => {
     await once(s, "change");
     const h = s.headers(s.length - 1);
     for (const k in h ?? {}) {
-      if (!k.startsWith("Nats-") && !k.startsWith("CoCalc-")) {
-        throw Error("headers must start with Nats- or CoCalc-");
+      if (!k.startsWith("CN-")) {
+        throw Error("system headers must start with CN-");
       }
     }
   });
@@ -61,8 +61,8 @@ describe("test headers with a dkv", () => {
     await once(s, "change");
     const h = s.headers("x");
     for (const k in h ?? {}) {
-      if (!k.startsWith("Nats-") && !k.startsWith("CoCalc-")) {
-        throw Error("headers must start with Nats- or CoCalc-");
+      if (!k.startsWith("CN-")) {
+        throw Error("system headers must start with CN-");
       }
     }
   });

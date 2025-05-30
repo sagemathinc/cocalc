@@ -158,7 +158,7 @@ export class EventIterator<V extends unknown>
   drain(): void {
     // just immediately end
     this.end();
-    // [ ] TODO: for compat with nats.  I'm not sure what this should be
+    // [ ] TODO: for compat.  I'm not sure what this should be
     // or if it matters...
     // console.log("WARNING: TODO -- event-iterator drain not implemented");
   }

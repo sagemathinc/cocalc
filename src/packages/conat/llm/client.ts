@@ -1,8 +1,8 @@
 /*
-Client for the nats server in server.ts.
+Client for the conat server in server.ts.
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 import { llmSubject } from "./server";
@@ -19,7 +19,7 @@ export async function llm(options: ChatOptions): Promise<string> {
 
   let all = "";
   let lastSeq = -1;
-  const { cn } = await getEnv();
+  const cn = await conat();
   let { stream, ...opts } = options;
   for await (const resp of await cn.requestMany(subject, opts, {
     maxWait: opts.timeout ?? 1000 * 60 * 10,

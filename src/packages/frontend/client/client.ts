@@ -34,7 +34,6 @@ import type {
   CallConatServiceFunction,
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
-import type { NatsEnvFunction } from "@cocalc/conat/types";
 import { randomId } from "@cocalc/conat/names";
 
 // This DEBUG variable comes from webpack:
@@ -88,7 +87,6 @@ export interface WebappClient extends EventEmitter {
   synctable_conat: ConatSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
-  getNatsEnv: NatsEnvFunction;
   pubsub_conat: Function;
   prettier: Function;
   exec: Function;
@@ -168,7 +166,6 @@ class Client extends EventEmitter implements WebappClient {
   synctable_conat: ConatSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
-  getNatsEnv: NatsEnvFunction;
   pubsub_conat: Function;
   prettier: Function;
   exec: Function;
@@ -251,7 +248,6 @@ class Client extends EventEmitter implements WebappClient {
     this.pubsub_conat = this.conat_client.pubsub;
     this.callConatService = this.conat_client.callConatService;
     this.createConatService = this.conat_client.createConatService;
-    this.getNatsEnv = this.conat_client.getEnv;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);

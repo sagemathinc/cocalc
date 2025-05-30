@@ -3,7 +3,7 @@ This is meant to be similar to the nexts pages http api/v2, but using NATS inste
 
 To do development:
 
-1. Turn off nats-server handling for the hub by sending this message from a browser as an admin:
+1. Turn off conat-server handling for the hub by sending this message from a browser as an admin:
 
    await cc.client.conat_client.hub.system.terminate({service:'api'})
 
@@ -38,12 +38,11 @@ To view requests in realtime
 cd packages/backend
 pnpm conat-watch 'hub.*.*.api' --match-replies
 
-And remember to use the nats command, do "pnpm nats-cli" from cocalc/src.
 */
 
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub-api";
-import { getEnv } from "@cocalc/backend/conat";
+import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
 import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
@@ -84,7 +83,7 @@ async function serve() {
   logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
   });
-  const { cn } = await getEnv();
+  const cn = await conat();
   const api = await cn.subscribe(subject);
   for await (const mesg of api) {
     (async () => {

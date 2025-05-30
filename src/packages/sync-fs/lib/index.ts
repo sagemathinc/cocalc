@@ -28,8 +28,8 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import { initConatClientService } from "./nats/syncfs-client";
-import { initNatsServerService } from "./nats/syncfs-server";
+import { initConatClientService } from "./conat/syncfs-client";
+import { initConatServerService } from "./conat/syncfs-server";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
@@ -96,7 +96,7 @@ export class SyncFS {
   private tar: { send; get };
   // number of failures in a row to sync.
   private numFails: number = 0;
-  private natsService;
+  private conatService;
 
   private client: SyncClient;
 
@@ -183,9 +183,9 @@ export class SyncFS {
       return;
     }
     this.state = "closed";
-    if (this.natsService != null) {
-      this.natsService.close();
-      delete this.natsService;
+    if (this.conatService != null) {
+      this.conatService.close();
+      delete this.conatService;
     }
     if (this.timeout != null) {
       clearTimeout(this.timeout);
@@ -800,13 +800,13 @@ export class SyncFS {
 
   initConatService = async () => {
     if (this.role == "compute_server") {
-      this.natsService = await initConatClientService({
+      this.conatService = await initConatClientService({
         syncfs: this,
         project_id: this.project_id,
         compute_server_id: this.compute_server_id,
       });
     } else if (this.role == "project") {
-      this.natsService = await initNatsServerService({
+      this.conatService = await initConatServerService({
         syncfs: this,
         project_id: this.project_id,
       });

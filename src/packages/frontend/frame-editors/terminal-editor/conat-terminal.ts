@@ -10,7 +10,7 @@ import {
   SIZE_TIMEOUT_MS,
   createBrowserClient,
 } from "@cocalc/conat/service/terminal";
-import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 
 type State = "disconnected" | "init" | "running" | "closed";
 
@@ -144,7 +144,7 @@ export class ConatTerminal extends EventEmitter {
       if (this.state == ("closed" as State)) {
         break;
       }
-      await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 

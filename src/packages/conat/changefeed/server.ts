@@ -6,7 +6,7 @@ Multiresponse request/response NATS changefeed server.
 - Heartbeats
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { type Subscription } from "@cocalc/conat/core/client";
 import { isValidUUID, uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/conat/client";
@@ -68,7 +68,7 @@ export async function init(db) {
 }
 
 async function changefeedService(db) {
-  const { cn } = await getEnv();
+  const cn = await conat();
   sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
   try {
     await listen(db);
@@ -79,7 +79,7 @@ async function changefeedService(db) {
 
 let renew: Subscription | null = null;
 async function renewService() {
-  const { cn } = await getEnv();
+  const cn  = await conat();
   renew = await cn.subscribe(`${SUBJECT}.*.renew`);
   try {
     await listenRenew();

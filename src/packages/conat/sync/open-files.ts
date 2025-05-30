@@ -3,7 +3,7 @@ NATS Kv associated to a project to keep track of open files.
 
 DEVELOPMENT:
 
-Change to packages/backend, since packages/nats doesn't have a way to connect:
+Change to packages/backend, since packages/conat doesn't have a way to connect:
 
 ~/cocalc/src/packages/backend$ node
 

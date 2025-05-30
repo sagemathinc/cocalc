@@ -38,7 +38,7 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { projectSubject } from "@cocalc/conat/names";
 import { type Subscription } from "@cocalc/conat/core/client";
 
@@ -72,7 +72,7 @@ export async function createServer({
     compute_server_id,
     name,
   });
-  const { cn } = await getEnv();
+  const cn = await conat();
   const sub = await cn.subscribe(subject);
   subs[subject] = sub;
   listen({ sub, createReadStream });
@@ -112,8 +112,7 @@ async function sendData(mesg, createReadStream) {
   })) {
     // console.log("sending ", { seq, bytes: chunk.length });
     // We must break the chunk into smaller messages or it will
-    // get bounced by nats... TODO: can we get the max
-    // message size from nats?
+    // get bounced by conat... 
     while (chunk.length > 0) {
       seq += 1;
       mesg.respond(chunk.slice(0, MAX_NATS_CHUNK_SIZE), getSeqHeader(seq));
@@ -137,7 +136,7 @@ export async function* readFile({
   name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
 }: ReadFileOptions) {
-  const { cn } = await getEnv();
+  const cn = await conat();
   const subject = getSubject({
     project_id,
     compute_server_id,

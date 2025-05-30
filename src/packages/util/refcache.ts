@@ -1,7 +1,7 @@
 /*
 A reference counting cache.
 
-See example usage in nats/sync.
+See example usage in conat/sync.
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";

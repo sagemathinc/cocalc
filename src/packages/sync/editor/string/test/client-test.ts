@@ -182,8 +182,8 @@ export class Client extends EventEmitter implements Client0 {
     throw Error("pubsub_conat: not implemented");
   }
 
-  async natsRequest(_subject: string, _mesg: any, _options?) {
-    throw Error("natsRequest: not implemented");
+  async conatRequest(_subject: string, _mesg: any, _options?) {
+    throw Error("conatRequest: not implemented");
   }
 
   // account_id or project_id

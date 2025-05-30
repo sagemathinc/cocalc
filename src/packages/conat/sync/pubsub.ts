@@ -1,5 +1,5 @@
 /*
-Use Conats simple pub/sub to share state for something very *ephemeral* in a project.
+Use Conat simple pub/sub to share state for something very *ephemeral* in a project.
 
 This is used, e.g., for broadcasting a user's cursors when they are editing a file.
 */

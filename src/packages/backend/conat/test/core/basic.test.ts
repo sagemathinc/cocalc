@@ -1,5 +1,5 @@
 /*
-Very basic test of conats core client and server.
+Very basic test of conat core client and server.
 
 pnpm test ./basic.test.ts
 */

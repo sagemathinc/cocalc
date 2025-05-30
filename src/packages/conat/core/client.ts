@@ -1,5 +1,5 @@
 /*
-core/client.s -- core conats client
+core/client.s -- core conat client
 
 This is a client that has a
 similar API to NATS / Socket.io, but is much, much better in so many ways:
@@ -93,7 +93,7 @@ store isn't necessary since there is no limit on message size.  Conat's persiste
 streams are compressed by default and backed by individual sqlite files, which
 makes them very memory efficient and it is easy to tier storage to cloud storage.
 
-UNIT TESTS: See packages/server/nats/test/core
+UNIT TESTS: See packages/server/conat/test/core
 
 MISC NOTES:
 
@@ -132,7 +132,7 @@ The following should mostly work to interactively play around with this
 code and develop it.  It's NOT automatically tested and depends on your
 environment though, so may break.  See the unit tests in
 
-        packages/server/nats/test/core/
+        packages/server/conat/test/core/
 
 for something that definitely works perfectly.
 
@@ -156,7 +156,7 @@ or
 
 // in browser (right now)
 
-   cc.nats.conat()
+   cc.conat.conat()
 
 // client server:
 

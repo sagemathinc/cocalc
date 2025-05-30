@@ -29,7 +29,7 @@ export class TimeClient {
     this.closed = true;
   }
 
-  // everything related to sync should directly use nats' getTime, which
+  // everything related to sync should directly use conat getTime, which
   // throws an error if it doesn't know the correct server time.
   server_time = (): Date => {
     try {

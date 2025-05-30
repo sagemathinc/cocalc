@@ -22,7 +22,7 @@ DEVELOPMENT:
 
 3. Start your own server
 
-.../src/packages/project/nats$ node
+.../src/packages/project/conat$ node
 
 
     await require('@cocalc/project/conat/listings').init()

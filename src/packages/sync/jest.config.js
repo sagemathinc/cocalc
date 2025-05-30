@@ -14,12 +14,4 @@ module.exports = {
   testPathIgnorePatterns: ["/node_modules/"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   setupFiles: ["./test/setup.js"],
-  transform: {
-    ".*\\.tsx?$": [
-      "ts-jest",
-      {
-        isolatedModules: true,
-      },
-    ],
-  },
 };

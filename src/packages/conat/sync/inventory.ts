@@ -18,7 +18,6 @@ import {
   human_readable_size as humanReadableSize,
   trunc_middle,
 } from "@cocalc/util/misc";
-import type { ValueType } from "@cocalc/conat/types";
 import { type KVLimits } from "./limits";
 import { type FilteredStreamLimitOptions } from "./limits";
 import { DKO_PREFIX } from "./dko";
@@ -34,14 +33,12 @@ type Sort =
   | "bytes"
   | "name"
   | "type"
-  | "valueType"
   | "-last"
   | "-created"
   | "-count"
   | "-bytes"
   | "-name"
-  | "-type"
-  | "-valueType";
+  | "-type";
 
 interface Location {
   account_id?: string;
@@ -61,8 +58,6 @@ interface Item {
   count: number;
   // optional description, which can be anything
   desc?: JSONValue;
-  // type of values stored
-  valueType?: ValueType;
   // limits for purging old data
   limits?: KVLimits | FilteredStreamLimitOptions;
   // for streams, the seq number up to which this data is valid, i.e.,
@@ -99,7 +94,6 @@ export class Inventory {
     bytes,
     count,
     desc,
-    valueType,
     limits,
     seq,
   }: {
@@ -108,7 +102,6 @@ export class Inventory {
     bytes: number;
     count: number;
     desc?: JSONValue;
-    valueType: ValueType;
     limits?: KVLimits | FilteredStreamLimitOptions;
     seq?: number;
   }) => {
@@ -116,7 +109,7 @@ export class Inventory {
       throw Error("not initialized");
     }
     const last = getTime();
-    const key = this.encodeKey({ name, type, valueType });
+    const key = this.encodeKey({ name, type });
     const cur = this.dkv.get(key);
     const created = cur?.created ?? last;
     desc = desc ?? cur?.desc;
@@ -131,28 +124,19 @@ export class Inventory {
     });
   };
 
-  private encodeKey = ({ name, type, valueType = "json" }) =>
-    JSON.stringify({ name, type, valueType });
+  private encodeKey = ({ name, type }) => JSON.stringify({ name, type });
 
   private decodeKey = (key) => JSON.parse(key);
 
-  delete = ({
-    name,
-    type,
-    valueType,
-  }: {
-    name: string;
-    type: StoreType;
-    valueType: ValueType;
-  }) => {
+  delete = ({ name, type }: { name: string; type: StoreType }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    this.dkv.delete(this.encodeKey({ name, type, valueType }));
+    this.dkv.delete(this.encodeKey({ name, type }));
   };
 
   get = (
-    x: { name: string; type: StoreType; valueType?: ValueType } | string,
+    x: { name: string; type: StoreType } | string,
   ): (Item & { type: StoreType; name: string }) | undefined => {
     if (this.dkv == null) {
       throw Error("not initialized");
@@ -160,18 +144,13 @@ export class Inventory {
     let cur;
     let name, type;
     if (typeof x == "string") {
-      // just the name -- we infer/guess the type and valueType
+      // just the name -- we infer/guess the type
       name = x;
       type = "kv";
-      for (const valueType of ["json", "binary"]) {
-        cur = this.dkv.get(this.encodeKey({ name, type, valueType }));
-        if (cur == null) {
-          type = "stream";
-          cur = this.dkv.get(this.encodeKey({ name, type, valueType }));
-        }
-        if (cur != null) {
-          break;
-        }
+      cur = this.dkv.get(this.encodeKey({ name, type }));
+      if (cur == null) {
+        type = "stream";
+        cur = this.dkv.get(this.encodeKey({ name, type }));
       }
     } else {
       name = x.name;
@@ -200,11 +179,7 @@ export class Inventory {
     return v;
   };
 
-  needsUpdate = (x: {
-    name: string;
-    type: StoreType;
-    valueType: ValueType;
-  }): boolean => {
+  needsUpdate = (x: { name: string; type: StoreType }): boolean => {
     if (this.dkv == null) {
       return false;
     }
@@ -228,7 +203,7 @@ export class Inventory {
     }
     const v: FullItem[] = [];
     for (const key of Object.keys(all)) {
-      const { name, type, valueType } = this.decodeKey(key);
+      const { name, type } = this.decodeKey(key);
       if (filter) {
         const { desc } = all[key];
         const s = `${desc ? JSON.stringify(desc) : ""} ${name}`.toLowerCase();
@@ -236,7 +211,7 @@ export class Inventory {
           continue;
         }
       }
-      v.push({ ...all[key], name, type, valueType });
+      v.push({ ...all[key], name, type });
     }
     return v;
   };
@@ -298,7 +273,7 @@ export class Inventory {
     log(`
 Inventory for ${JSON.stringify(this.location)}`);
     log(
-      "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'valueType'|'-last'|...})",
+      "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'-last'|...})",
     );
     log(
       "╭──────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
@@ -314,7 +289,7 @@ Inventory for ${JSON.stringify(this.location)}`);
       if (path0 && desc?.["path"] != path0) {
         continue;
       }
-      let { name, type, valueType } = this.decodeKey(key);
+      let { name, type } = this.decodeKey(key);
       if (name.startsWith(DKO_PREFIX)) {
         type = "kvobject";
         name = name.slice(DKO_PREFIX.length);
@@ -331,7 +306,7 @@ Inventory for ${JSON.stringify(this.location)}`);
         continue;
       }
       log(
-        `│ ${padRight(type ?? "-", 7)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(valueType, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
+        `│ ${padRight(type ?? "-", 7)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
       );
       if (desc) {
         log(`│          |   ${padRight(JSON.stringify(desc), 153)} |`);

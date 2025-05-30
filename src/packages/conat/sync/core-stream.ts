@@ -1,5 +1,5 @@
 /*
-core-stream.ts  = the Core Stream data structure for conats.
+core-stream.ts  = the Core Stream data structure for conat.
 
 This is the core data structure that easy-to-use ephemeral and persistent
 streams and kv stores are built on.  It is NOT meant to be super easy and
@@ -32,7 +32,7 @@ import {
 import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
 import refCache from "@cocalc/util/refcache";
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import * as persistClient from "@cocalc/conat/persist/client";
@@ -181,7 +181,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   init = async () => {
     if (this.client == null) {
-      this.client = (await getEnv()).cn;
+      this.client = await conat();
     }
     await this.getAllFromPersist({
       start_seq: this._start_seq,

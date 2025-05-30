@@ -63,7 +63,7 @@ Ssh in to the project itself.  You can use a terminal because that very terminal
 doing this!  Then:
 
 /cocalc/github/src/packages/project$ . /cocalc/nvm/nvm.sh
-/cocalc/github/src/packages/project$ COCALC_PROJECT_ID=... COCALC_SECRET_TOKEN="/secrets/secret-token/token"  NATS_SERVER=nats-server node
+/cocalc/github/src/packages/project$ COCALC_PROJECT_ID=... COCALC_SECRET_TOKEN="/secrets/secret-token/token"  CONAT_SERVER=hub-conat node  # not sure about CONAT_SERVER
 Welcome to Node.js v20.19.0.
 Type ".help" for more information.
 > x = await require("@cocalc/project/conat/open-files").init(); Object.keys(x)
@@ -79,7 +79,7 @@ import {
   type OpenFileEntry,
 } from "@cocalc/project/conat/sync";
 import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
-import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { getClient } from "@cocalc/project/client";
@@ -103,7 +103,7 @@ import {
 } from "@cocalc/conat/compute/manager";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 
-// ensure nats connection stuff is initialized
+// ensure conat connection stuff is initialized
 import "@cocalc/project/conat/env";
 import { chdir } from "node:process";
 
@@ -194,7 +194,7 @@ export function terminate() {
 }
 
 function getCutoff(): number {
-  return Date.now() - 2.5 * NATS_OPEN_FILE_TOUCH_INTERVAL;
+  return Date.now() - 2.5 * CONAT_OPEN_FILE_TOUCH_INTERVAL;
 }
 
 function computeServerId(path: string): number {
@@ -264,7 +264,7 @@ function supportAutoclose(path: string): boolean {
 
 async function closeIgnoredFilesLoop() {
   while (openFiles?.state == "connected") {
-    await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+    await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     if (openFiles?.state != "connected") {
       return;
     }
@@ -299,7 +299,7 @@ async function touchOpenFilesLoop() {
     for (const path in openDocs) {
       openFiles.setBackend(path, compute_server_id);
     }
-    await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+    await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
   }
 }
 

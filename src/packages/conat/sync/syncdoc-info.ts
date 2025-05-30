@@ -5,7 +5,7 @@ export async function getSyncDocType({
   project_id,
   path,
 }): Promise<{ type: "db" | "string"; opts?: any }> {
-  // instead of just "querying the db" (i.e., nats in this case),
+  // instead of just "querying the db" (i.e., conat in this case),
   // we create the synctable.  This avoids race conditions, since we
   // can wait until data is written, and also abstracts away the
   // internal structure.

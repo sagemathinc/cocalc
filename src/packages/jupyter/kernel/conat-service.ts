@@ -3,13 +3,13 @@
 
 DEVELOPMENT:
 
-Go to packages/project/nats/open-files.ts and for a dev project, stop the built in open files service
+Go to packages/project/c/open-files.ts and for a dev project, stop the built in open files service
 and start your own in a terminal.  If you then open a jupyter notebook in that project, you can use
 your terminal running the open files service to interact with anything here from the server size.
 In particular, set global.x = ..., etc.
 */
 
-import { createNatsJupyterService } from "@cocalc/conat/service/jupyter";
+import { createConatJupyterService } from "@cocalc/conat/service/jupyter";
 import { get_existing_kernel as getKernel } from "@cocalc/jupyter/kernel";
 import { bufferToBase64 } from "@cocalc/util/base64";
 
@@ -108,7 +108,7 @@ export async function initConatService({
       return { buffer64: bufferToBase64(buffer) };
     },
   };
-   return await createNatsJupyterService({
+   return await createConatJupyterService({
     project_id,
     path,
     impl,

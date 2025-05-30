@@ -17,8 +17,9 @@ ways of orchestrating a SyncTable.
 // info about every get/set
 let DEBUG: boolean = false;
 
-// enable experimental nats database backed changefeed.
+// enable default conat database backed changefeed.
 // for this to work you must explicitly run the server in @cocalc/database/conat/changefeeds
+// We only turn this off for a mock testing mode.
 const USE_CONAT = true && !process.env.COCALC_TEST_MODE;
 
 export function set_debug(x: boolean): void {

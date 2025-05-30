@@ -4,13 +4,6 @@ export async function ping() {
 
 export async function terminate() {}
 
-import getConnection from "@cocalc/project/conat/connection";
-export async function resetConnection() {
-  const nc = await getConnection();
-  await nc.close();
-  return { closed: nc.isClosed() };
-}
-
 import { handleExecShellCode } from "@cocalc/project/exec_shell_code";
 export { handleExecShellCode as exec };
 

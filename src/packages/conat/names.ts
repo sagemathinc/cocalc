@@ -1,5 +1,5 @@
 /*
-Names we use with nats.
+Names we use with conat.
 
 For Jetstream:
 
@@ -15,7 +15,7 @@ import generateVouchers from "@cocalc/util/vouchers";
 import type { Location } from "./types";
 import { encodeBase64 } from "@cocalc/conat/util";
 
-// nice alphanumeric string that can be used as nats subject, and very
+// nice alphanumeric string that can be used as conat subject, and very
 // unlikely to randomly collide with another browser tab from this account.
 export function randomId() {
   return generateVouchers({ count: 1, length: 10 })[0];
@@ -74,16 +74,7 @@ Custom inbox prefix per "user"!
 
 So can receive response to requests, and that you can ONLY receive responses
 to your own messages and nobody else's!  This must be used in conjunction with
-the inboxPrefix client option when connecting.  Note that the NATS docs
-  https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization
-do not explain this, instead just emphasizing you're screwed but not giving
-the solution, which is very disconcerting!  There are a couple of places in
-our code where we create connections, and these all must be aware of the
-inbox prefix we use.
-
-This is explained in this natsbyexample page:
-
-https://natsbyexample.com/examples/auth/private-inbox/cli
+the inboxPrefix client option when connecting.  
 */
 export function inboxPrefix({
   account_id,

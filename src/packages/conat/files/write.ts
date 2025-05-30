@@ -63,7 +63,7 @@ await a.writeFile({stream, project_id, compute_server_id, path:'/tmp/a.ts'})
 
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
 import {
   close as closeReadService,
@@ -110,7 +110,7 @@ export async function createServer({
   if (sub != null) {
     return;
   }
-  const { cn } = await getEnv();
+  const cn = await conat();
   sub = await cn.subscribe(subject);
   subs[subject] = sub;
   listen({ sub, createWriteStream, project_id, compute_server_id });
@@ -207,7 +207,7 @@ export async function writeFile({
       name,
     });
     // tell compute server to start reading our file.
-    const { cn } = await getEnv();
+    const cn = await conat();
     const resp = await cn.request(
       getWriteSubject({ project_id, compute_server_id }),
       { name, path, maxWait },

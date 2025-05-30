@@ -10,7 +10,7 @@ import { before, after } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
-describe("get time from nats", () => {
+describe("get time from conat", () => {
   it("tries to get the time before the skew, so it is not initialized yet", () => {
     expect(time).toThrow("clock skew not known");
   });

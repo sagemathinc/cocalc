@@ -63,7 +63,7 @@ export function jupyterApiClient({
   });
 }
 
-export async function createNatsJupyterService({
+export async function createConatJupyterService({
   path,
   project_id,
   impl,

@@ -27,7 +27,6 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 > a = require('@cocalc/conat/time'); require('@cocalc/backend/conat')
 {
-  getEnv: [Getter],
   getConnection: [Function: debounced],
   init: [Function: init],
   getCreds: [AsyncFunction: getCreds]

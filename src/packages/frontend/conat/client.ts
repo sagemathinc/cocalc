@@ -8,7 +8,6 @@ import {
 import { randomId, inboxPrefix } from "@cocalc/conat/names";
 import { projectSubject } from "@cocalc/conat/names";
 import { parse_query } from "@cocalc/sync/table/util";
-import { sha1 } from "@cocalc/util/misc";
 import { keys } from "lodash";
 import { type HubApi, initHubApi } from "@cocalc/conat/hub-api";
 import { type ProjectApi, initProjectApi } from "@cocalc/conat/project-api";
@@ -39,12 +38,9 @@ import {
   getClient as getClientWithState,
   setConatClient,
   type ClientWithState,
-  getEnv,
 } from "@cocalc/conat/client";
-import type { ConnectionInfo } from "./types";
 import Cookies from "js-cookie";
 import { ACCOUNT_ID_COOKIE } from "@cocalc/frontend/client/client";
-import { isConnected, waitUntilConnected } from "@cocalc/conat/util";
 import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import type { ConnectionStats } from "@cocalc/conat/core/types";
@@ -69,8 +65,6 @@ declare var DEBUG: boolean;
 
 export class ConatClient extends EventEmitter {
   client: WebappClient;
-  private sc: any = null;
-  private jc: any = null;
   public hub: HubApi;
   public sessionId = randomId();
   private openFilesCache: { [project_id: string]: OpenFiles } = {};
@@ -152,7 +146,7 @@ export class ConatClient extends EventEmitter {
   private initConatClient = async () => {
     setConatClient({
       account_id: this.client.account_id,
-      getNatsEnv: this.getNatsEnv,
+      conat: async () => this.conat(),
       reconnect: this.reconnect,
       getLogger: DEBUG
         ? (name) => {
@@ -210,12 +204,6 @@ export class ConatClient extends EventEmitter {
     this.client.emit("remember_me_failed", { error });
   };
 
-  getEnv = async () => await getEnv();
-
-  private getConnection = reuseInFlight(async () => {
-    return null as any;
-  });
-
   reconnect = reuseInFlight(async () => {
     this._conatClient?.conn.io.engine.close();
     this._conatClient?.conn.connect();
@@ -246,7 +234,7 @@ export class ConatClient extends EventEmitter {
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
-    const { cn } = await this.getEnv();
+    const cn = this.conat();
     const subject = projectSubject({
       project_id,
       compute_server_id,
@@ -269,7 +257,7 @@ export class ConatClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const { cn } = await this.getEnv();
+    const cn = this.conat();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {
       const data = { name, args };
@@ -338,26 +326,10 @@ export class ConatClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
-    const { cn } = await this.getEnv();
+    const cn = this.conat();
     const subject = projectSubject({ project_id, compute_server_id, service });
     const resp = await cn.request(subject, { name, args }, { timeout });
     return resp.data;
-  };
-
-  request = async (subject: string, data: string) => {
-    const { nc } = await this.getEnv();
-    await waitUntilConnected();
-    const resp = await nc.request(subject, this.sc.encode(data));
-    return this.sc.decode(resp.data);
-  };
-
-  private getNatsEnv = async () => {
-    return {
-      sha1,
-      jc: this.jc,
-      nc: await this.getConnection(),
-      cn: this.conat(),
-    };
   };
 
   synctable: ConatSyncTableFunction = async (
@@ -498,15 +470,6 @@ export class ConatClient extends EventEmitter {
     return inv;
   };
 
-  info = async (nc): Promise<ConnectionInfo> => {
-    // info about a nats connection
-    return this.jc.decode(
-      (await nc.request("$SYS.REQ.USER.INFO")).data,
-    ) as ConnectionInfo;
-  };
-
-  isConnected = async () => await isConnected();
-  waitUntilConnected = async () => await waitUntilConnected();
 
   refCacheInfo = () => refCacheInfo();
 }

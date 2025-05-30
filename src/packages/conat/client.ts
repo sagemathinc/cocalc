@@ -5,19 +5,15 @@ DEVELOPMENT:
 > require('@cocalc/backend/conat'); c = require('@cocalc/conat/client').getClient()
 > c.state
 'connected'
-> Object.keys(await c.getNatsEnv())
-[ 'nc', 'jc' ]
 */
 
-import type { NatsEnv, NatsEnvFunction } from "@cocalc/conat/types";
 import { init } from "./time";
 import { EventEmitter } from "events";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-
-type NatsConnection = any;
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
 interface Client {
-  getNatsEnv: NatsEnvFunction;
+  conat: (opts?) => Promise<ConatClient>;
   account_id?: string;
   project_id?: string;
   compute_server_id?: number;
@@ -41,29 +37,29 @@ const FALLBACK_LOGGER = {
 } as Logger;
 
 export class ClientWithState extends EventEmitter {
-  getNatsEnv: NatsEnvFunction;
+  conatClient?: ConatClient;
   account_id?: string;
   project_id?: string;
   compute_server_id?: number;
   state: State = "disconnected";
-  env?: NatsEnv;
   _getLogger?: (name) => Logger;
   _reconnect?: () => Promise<void>;
+  conat: () => Promise<ConatClient>;
 
   constructor(client: Client) {
     super();
-    // many things listen for these events -- way more than 10 things.
-    this.setMaxListeners(500);
-    // this getNatsEnv only ever returns *ONE* connection
-    this.getNatsEnv = reuseInFlight(async () => {
+    // many things potentially listen for these events -- way more than 10 things.
+    this.setMaxListeners(100);
+    // this.conat only ever returns *ONE* connection
+    this.conat = reuseInFlight(async () => {
       if (this.state == "closed") {
         throw Error("client already closed");
       }
-      if (this.env) {
-        return this.env;
+      if (this.conatClient) {
+        return this.conatClient;
       }
-      this.env = await client.getNatsEnv();
-      return this.env;
+      this.conatClient = await client.conat();
+      return this.conatClient;
     });
     this.account_id = client.account_id;
     this.project_id = client.project_id;
@@ -71,6 +67,10 @@ export class ClientWithState extends EventEmitter {
     this._getLogger = client.getLogger;
     this._reconnect = client.reconnect;
   }
+
+  numSubscriptions = () => {
+    this.conatClient?.numSubscriptions() ?? 0;
+  };
 
   reconnect = async () => {
     await this._reconnect?.();
@@ -85,10 +85,10 @@ export class ClientWithState extends EventEmitter {
   };
 
   close = () => {
-    this.env?.nc?.close();
+    this.conatClient?.close();
     this.setConnectionState("closed");
     this.removeAllListeners();
-    delete this.env;
+    delete this.conatClient;
   };
 
   private setConnectionState = (state: State) => {
@@ -101,8 +101,8 @@ export class ClientWithState extends EventEmitter {
   };
 }
 
-// do NOT do this until some explicit use of nats is initiated, since we shouldn't
-// connect to nats until something tries to do so.
+// do NOT do this until some explicit use of conat is initiated, since we shouldn't
+// connect to conat until something tries to do so.
 let timeInitialized = false;
 function initTime() {
   if (timeInitialized) {
@@ -121,12 +121,12 @@ export async function reconnect() {
   await globalClient?.reconnect();
 }
 
-export const getEnv = reuseInFlight(async () => {
+export const conat: () => Promise<ConatClient> = reuseInFlight(async () => {
   if (globalClient == null) {
     throw Error("must set the global NATS client");
   }
   initTime();
-  return await globalClient.getNatsEnv();
+  return await globalClient.conat();
 });
 
 export function getClient(): ClientWithState {
@@ -166,29 +166,6 @@ export function getLogger(name) {
   return logger;
 }
 
-// this is a singleton
-let theConnection: NatsConnection | null = null;
-export const getConnection = reuseInFlight(
-  async (): Promise<NatsConnection> => {
-    return null as any;
-//     if (theConnection == null) {
-//       const { nc } = await getEnv();
-//       if (nc == null) {
-//         throw Error("bug");
-//       }
-//       theConnection = nc;
-//     }
-//     return theConnection;
-  },
-);
-
-export function getConnectionSync(): NatsConnection | null {
-  return theConnection;
-}
-
 export function numSubscriptions(): number {
-  if (theConnection == null) {
-    return 0;
-  }
-  return (theConnection as any).protocol.subscriptions.subs.size;
+  return globalClient?.numSubscriptions() ?? 0;
 }

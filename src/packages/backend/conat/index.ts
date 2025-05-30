@@ -1,12 +1,10 @@
 import getLogger from "@cocalc/backend/logger";
-import { getEnv } from "./env";
-export { getEnv };
 import { setConatClient } from "@cocalc/conat/client";
-import getConnection from "@cocalc/backend/conat/persistent-connection";
+import { conat } from "./conat";
 
-export { getConnection };
+export { conat };
 
 export function init() {
-  setConatClient({ getNatsEnv: getEnv, getLogger });
+  setConatClient({ conat: async (opts?) => conat(opts), getLogger });
 }
 init();

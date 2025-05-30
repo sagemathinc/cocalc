@@ -11,7 +11,7 @@ it so projects can directly use llm's... but first we need to figure out
 how paying for that would work.
 */
 
-import { getEnv } from "@cocalc/conat/client";
+import { conat } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type { Subscription } from "@cocalc/conat/core/client";
 
@@ -52,7 +52,7 @@ function getUserId(subject: string): string {
 
 let sub: Subscription | null = null;
 export async function init(evaluate) {
-  const { cn } = await getEnv();
+  const cn = await conat();
   sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
   listen(evaluate);
 }
