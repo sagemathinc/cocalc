@@ -42,7 +42,7 @@ def run_command_with_params(params):
 
     # Get the environment variables from the params
     env = params["env"]
-    env['DEBUG'] = '*'
+    env['DEBUG'] = 'cocalc:*'
     env['DEBUG_CONSOLE'] = 'yes'
 
     # Convert the environment dictionary to a list of key=value strings

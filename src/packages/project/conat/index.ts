@@ -16,6 +16,7 @@ import { init as initListings } from "./listings";
 import { init as initRead } from "./files/read";
 import { init as initWrite } from "./files/write";
 import { init as initProjectStatus } from "@cocalc/project/project-status/server";
+import { init as initUsageInfo } from "@cocalc/project/usage-info";
 
 const logger = getLogger("project:conat:index");
 
@@ -28,4 +29,5 @@ export default async function init() {
   await initRead();
   await initWrite();
   initProjectStatus();
+  initUsageInfo();
 }

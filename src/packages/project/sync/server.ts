@@ -58,7 +58,6 @@ import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { close, deep_copy, len } from "@cocalc/util/misc";
 import { registerListingsTable } from "./listings";
-import { register_usage_info_table } from "./usage-info";
 import Client from "@cocalc/sync-client";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
@@ -538,11 +537,6 @@ async function synctable_channel0(
     await synctable_channels[name].init();
     if (query?.listings != null) {
       registerListingsTable(synctable_channels[name].get_synctable(), query);
-    } else if (query?.usage_info != null) {
-      register_usage_info_table(
-        synctable_channels[name].get_synctable(),
-        client.client_id(),
-      );
     }
   }
   return name;

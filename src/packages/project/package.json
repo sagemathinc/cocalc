@@ -5,7 +5,8 @@
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
     "./conat": "./dist/conat/index.js",
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./project-info": "./dist/project-info/index.js"
   },
   "keywords": [
     "python",
@@ -83,9 +84,7 @@
     "clean": "rm -rf dist"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

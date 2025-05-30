@@ -72,7 +72,7 @@ class ProjectInfoService {
     });
   };
 
-  public close(): void {
+   close = (): void => {
     if (this.infoServer == null) {
       return;
     }

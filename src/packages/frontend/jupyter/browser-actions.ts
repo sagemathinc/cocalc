@@ -56,6 +56,8 @@ import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { parse } from "path";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
+import { delay } from "awaiting";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -76,6 +78,8 @@ export class JupyterActions extends JupyterActions0 {
       toolbar: !this.get_local_storage("hide_toolbar"),
       cell_toolbar: this.get_local_storage("cell_toolbar"),
     });
+
+    this.initUsageInfo();
 
     this.usage_info_handler = this.usage_info_handler.bind(this);
 
@@ -181,6 +185,25 @@ export class JupyterActions extends JupyterActions0 {
         account_store.get("editor_settings");
     }
   }
+
+  initUsageInfo = async () => {
+    while (this._state != "closed") {
+      try {
+        const kernel_usage = await getUsageInfo({
+          project_id: this.project_id,
+          compute_server_id: this.getComputeServerIdSync(),
+          path: this.path,
+        });
+        if (this._state == "closed" as any) return;
+        this.setState({ kernel_usage });
+      } catch (err) {
+        console.log(`WARNING: getUsageInfo -- ${err}`);
+      }
+      // Backend actually updates state every 2 seconds, but the
+      // main cost is network traffic.
+      await delay(3000);
+    }
+  };
 
   public run_cell(
     id: string,
