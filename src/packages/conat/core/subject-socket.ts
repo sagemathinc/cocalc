@@ -40,7 +40,7 @@ import { delay } from "awaiting";
 export type Role = "client" | "server";
 
 // clients send a heartbeat to the server this frequently.
-const HEARBEAT_INTERVAL = 30000;
+const HEARBEAT_INTERVAL = 60000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
@@ -323,9 +323,7 @@ export class SubjectSocket extends EventEmitter {
           id: this.id,
         });
         const x = resp.data;
-        if (x == "pong") {
-          continue;
-        } else {
+        if (x != "pong") {
           this.reconnect();
           return;
         }

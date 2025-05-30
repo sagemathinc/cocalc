@@ -243,11 +243,16 @@ export class ConatClient extends EventEmitter {
   // TODO: plan to deprecated...?
   projectWebsocketApi = async ({
     project_id,
+    compute_server_id,
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
     const { cn } = await this.getEnv();
-    const subject = projectSubject({ project_id, service: "browser-api" });
+    const subject = projectSubject({
+      project_id,
+      compute_server_id,
+      service: "browser-api",
+    });
     const resp = await cn.request(subject, mesg, {
       timeout,
     });

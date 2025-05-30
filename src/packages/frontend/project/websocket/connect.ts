@@ -55,11 +55,28 @@ async function wait_for_project_to_start(project_id: string) {
   });
 }
 
+const USE_FAKE = false;
+
+import { EventEmitter } from "events";
+class FakeConn extends EventEmitter {
+  public api: API;
+  constructor(project_id) {
+    super();
+    this.api = new API(this, project_id);
+    set_project_websocket_state(project_id, "online");
+  }
+  destroy = () => {};
+}
+
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
     throw Error(`project_id (="${project_id}") must be a valid uuid`);
   }
   if (connections[project_id] !== undefined) {
+    return connections[project_id];
+  }
+  if (USE_FAKE) {
+    connections[project_id] = new FakeConn(project_id);
     return connections[project_id];
   }
 

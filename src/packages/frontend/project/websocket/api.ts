@@ -38,10 +38,9 @@ import type {
 } from "@cocalc/util/types/execute-code";
 import { formatterClient } from "@cocalc/conat/service/formatter";
 import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
-// import { syncFsServerClient } from "@cocalc/conat/service/syncfs-server";
 
 const log = (...args) => {
-  console.log("project.websocket: ", ...args);
+  console.log("project:websocket: ", ...args);
 };
 
 export class API {
@@ -51,9 +50,9 @@ export class API {
   private apiCache: { [key: string]: ProjectApi } = {};
 
   constructor(conn, project_id: string) {
-    this.conn = conn;
     this.project_id = project_id;
     this.listing = reuseInFlight(this.listing.bind(this));
+    this.conn = conn;
     this.conn.on("end", () => {
       delete this.cachedVersion;
     });
@@ -86,15 +85,26 @@ export class API {
     return await call(this.conn, mesg, timeout);
   };
 
-  private _call = async (mesg: Mesg, timeout: number): Promise<any> => {
-    return await webapp_client.conat_client.projectWebsocketApi({
+  private _call = async (
+    mesg: Mesg,
+    timeout: number,
+    compute_server_id = 0,
+  ): Promise<any> => {
+    log("_call (NEW conat call)", mesg);
+    const resp = await webapp_client.conat_client.projectWebsocketApi({
       project_id: this.project_id,
+      compute_server_id,
       mesg,
       timeout,
     });
+    log("_call worked and returned", resp);
+    return resp;
   };
 
-  getChannel = async (channel_name: string, compute_server_id?: number) => {
+  private getChannel = (
+    channel_name: string,
+    compute_server_id?: number,
+  ): Channel => {
     const conatPrimus = webapp_client.conat_client.primus({
       project_id: this.project_id,
       compute_server_id,
@@ -379,7 +389,7 @@ export class API {
 
   // Get the x11 *channel* for the given '.x11' path.
   x11_channel = async (path: string, display: number): Promise<Channel> => {
-    const channel_name = await this.primusCall(
+    const channel_name = await this._call(
       {
         cmd: "x11_channel",
         path,
@@ -388,7 +398,9 @@ export class API {
       60000,
     );
     log("x11_channel");
-    return this.conn.channel(channel_name);
+    console.log("got back ", { channel_name });
+    // return this.conn.channel(channel_name);
+    return this.getChannel(channel_name);
   };
 
   // Get the sync *channel* for the given SyncTable project query.

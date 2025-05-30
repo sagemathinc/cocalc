@@ -749,6 +749,10 @@ export class Client {
     mesg,
     opts?: PublishOptions,
   ): { bytes: number } => {
+    if (this.options == null) {
+      // already closed
+      return { bytes: 0 };
+    }
     return this._publish(subject, mesg, opts);
   };
 
@@ -765,6 +769,10 @@ export class Client {
     // **right now** or received these messages.
     count: number;
   }> => {
+    if (this.options == null) {
+      // already closed
+      return { bytes: 0, count: 0 };
+    }
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
@@ -784,6 +792,9 @@ export class Client {
       timeout,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
+    if (this.options == null) {
+      return { bytes: 0 };
+    }
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error(`invalid publish subject ${subject}`);
     }
@@ -954,7 +965,7 @@ export class Client {
   // watch: this is mainly for debugging and interactive use.
   watch = (
     subject: string,
-    cb = (x) => console.log(`${x.subject}:`, x.data, x.headers),
+    cb = (x) => console.log(`${new Date()}: ${x.subject}:`, x.data, x.headers),
     opts?,
   ) => {
     const sub = this.subscribeSync(subject, opts);
