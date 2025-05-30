@@ -21,8 +21,12 @@ export async function getUser(socket): Promise<CoCalcUser> {
     throw Error("you must set authentication cookies");
   }
   const cookies = parse(socket.handshake.headers.cookie);
-  if (cookies[HUB_PASSWORD_COOKIE_NAME] == conatPassword) {
-    return { hub_id: "hub" };
+  if (cookies[HUB_PASSWORD_COOKIE_NAME]) {
+    if (cookies[HUB_PASSWORD_COOKIE_NAME] == conatPassword) {
+      return { hub_id: "hub" };
+    } else {
+      throw Error(`invalid hub password`);
+    }
   }
   if (cookies[API_COOKIE_NAME]) {
     // project or compute server or account
@@ -53,7 +57,7 @@ export async function getUser(socket): Promise<CoCalcUser> {
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
   if (!value) {
     throw Error(
-      `must set one of the following cookies: '${REMEMBER_ME_COOKIE_NAME}' or ${API_COOKIE_NAME} or '${PROJECT_SECRET_COOKIE_NAME}' and '${PROJECT_ID_COOKIE_NAME}'`,
+      `must set one of the following cookies: '${HUB_PASSWORD_COOKIE_NAME}', '${REMEMBER_ME_COOKIE_NAME}' or ${API_COOKIE_NAME} or '${PROJECT_SECRET_COOKIE_NAME}' and '${PROJECT_ID_COOKIE_NAME}'`,
     );
   }
   const hash = getRememberMeHashFromCookieValue(value);
