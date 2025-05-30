@@ -6,8 +6,6 @@
 declare let DEBUG;
 
 import { Alert } from "antd";
-import { delay } from "awaiting";
-
 import {
   React,
   Rendered,
@@ -20,7 +18,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Process,
@@ -32,13 +29,7 @@ import { CoCalcFile, render_cocalc_btn } from "./components";
 import { Flyout } from "./flyout";
 import { Full } from "./full";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
-import {
-  connect_ws,
-  grid_warning,
-  linearList,
-  process_tree,
-  sum_children,
-} from "./utils";
+import { grid_warning, linearList, process_tree, sum_children } from "./utils";
 
 // DEV: DEBUG is true, add some generic static values about CGroups, such that these elements show up in the UI
 const DEV = DEBUG
@@ -102,9 +93,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [info, set_info] = useState<ProjectInfoType | undefined>(undefined);
     const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
     const [pt_stats, set_pt_stats] = useState<PTStats>(pt_stats_init);
-    // chan: websocket channel to send commands to the project (for now)
-    const [chan, set_chan] = useState<Channel | null>(null);
-    const chanRef = useRef<Channel | null>(null);
     // sync-object sending us the real-time data about the project
     const [sync, set_sync] = useState<WSProjectInfo | null>(null);
     const syncRef = useRef<WSProjectInfo | null>(null);
@@ -140,16 +128,12 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     }, [project]);
 
     React.useEffect(() => {
-      chanRef.current = chan;
-    }, [chan]);
-
-    React.useEffect(() => {
       syncRef.current = sync;
     }, [sync]);
 
     React.useEffect(() => {
-      set_disconnected(chan == null || sync == null);
-    }, [sync, chan]);
+      set_disconnected(sync == null);
+    }, [sync]);
 
     // used in render_not_loading_info()
     React.useEffect(() => {
@@ -164,7 +148,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
         const info_sync = webapp_client.project_client.project_info(project_id);
 
         // this might fail if the project is not updated
-        const chan = await connect_ws(project_id);
         if (!isMountedRef.current) return;
 
         const update = () => {
@@ -184,24 +167,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
         info_sync.on("change", update);
         info_sync.once("ready", update);
 
-        chan.on("close", async function () {
-          if (!isMountedRef.current) return;
-          set_status("websocket closed: reconnecting in 3 seconds…");
-          set_chan(null);
-          await delay(3000);
-          if (!isMountedRef.current) return;
-          set_status("websocket closed: reconnecting now…");
-          const new_chan = await connect_ws(project_id);
-          if (!isMountedRef.current) {
-            // well, we got one but now we don't need it
-            new_chan.end();
-            return;
-          }
-          set_status("websocket closed: got new connection…");
-          set_chan(new_chan);
-        });
-
-        set_chan(chan);
         set_sync(info_sync);
       } catch (err) {
         set_error(
@@ -228,11 +193,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
         return () => {
           if (isMountedRef.current) {
             set_status("closing connection");
-          }
-          if (chanRef.current != null) {
-            if (chanRef.current.readyState === chanRef.current.OPEN) {
-              chanRef.current.end();
-            }
           }
           if (syncRef.current != null) {
             syncRef.current.close();
@@ -433,7 +393,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             wrap={wrap}
             error={error}
             cg_info={cg_info}
-            chan={chan}
             disconnected={disconnected}
             disk_usage={disk_usage}
             info={info}
@@ -463,7 +422,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           <Full
             any_alerts={any_alerts}
             cg_info={cg_info}
-            chan={chan}
             disconnected={disconnected}
             disk_usage={disk_usage}
             error={error}

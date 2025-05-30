@@ -7,7 +7,6 @@ declare let DEBUG;
 
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
-
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
@@ -20,7 +19,6 @@ import {
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { RestartProject } from "../settings/restart-project";
-import { Channel } from "@cocalc/comm/websocket/types";
 import {
   AboutContent,
   CGroup,
@@ -36,7 +34,6 @@ import { ROOT_STYLE } from "../servers/consts";
 interface Props {
   any_alerts: () => boolean;
   cg_info: CGroupInfo;
-  chan: Channel | null;
   render_disconnected: () => JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
@@ -68,7 +65,6 @@ export function Full(props: Readonly<Props>): JSX.Element {
   const {
     any_alerts,
     cg_info,
-    chan,
     render_disconnected,
     disconnected,
     disk_usage,
@@ -471,8 +467,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         ) : (
           "no timestamp"
         )}{" "}
-        | Connections sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
+        | Connections sync=<code>{`${sync != null}`}</code> | Status: <code>{status}</code>
       </Col>
     );
   }

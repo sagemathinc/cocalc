@@ -6,9 +6,9 @@ import { type KVLimits } from "./limits";
 import { type FilteredStreamLimitOptions } from "./limits";
 import jsonStableStringify from "json-stable-stringify";
 
-export type NatsSyncTable = SyncTableStream | SyncTableKV;
+export type ConatSyncTable = SyncTableStream | SyncTableKV;
 
-export type NatsSyncTableFunction = (
+export type ConatSyncTableFunction = (
   query: { [table: string]: { [field: string]: any }[] },
   options?: {
     obj?: object;
@@ -20,7 +20,7 @@ export type NatsSyncTableFunction = (
     // for tables specific to a project, e.g., syncstrings in a project
     project_id?: string;
   },
-) => Promise<NatsSyncTable>;
+) => Promise<ConatSyncTable>;
 
 // When the database is watching tables for changefeeds, if it doesn't
 // get a clear expression of interest from a client every this much time,
@@ -45,7 +45,7 @@ interface Options {
   ephemeral?: boolean;
 }
 
-export const createSyncTable = refCacheSync<Options, NatsSyncTable>({
+export const createSyncTable = refCacheSync<Options, ConatSyncTable>({
   name: "synctable",
   createKey: (opts: Options) => jsonStableStringify({ ...opts, env: undefined })!,
   createObject: (options: Options) => {

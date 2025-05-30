@@ -29,7 +29,7 @@ import Cookies from "js-cookie";
 import { basePathCookieName } from "@cocalc/util/misc";
 import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import type {
   CallConatServiceFunction,
   CreateConatServiceFunction,
@@ -85,7 +85,7 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_conat: NatsSyncTableFunction;
+  synctable_conat: ConatSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;
@@ -165,7 +165,7 @@ class Client extends EventEmitter implements WebappClient {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  synctable_conat: NatsSyncTableFunction;
+  synctable_conat: ConatSyncTableFunction;
   callConatService: CallConatServiceFunction;
   createConatService: CreateConatServiceFunction;
   getNatsEnv: NatsEnvFunction;

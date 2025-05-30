@@ -52,10 +52,7 @@ export async function init() {
   logger.debug(`initAPI -- project subject '${subject}'`);
   const sub = await client.subscribe(subject);
   logger.debug(`browser primus subject: ${getSubject({ service: "primus" })}`);
-  const primus = client.primus({
-    subject: getSubject({ service: "primus" }),
-    role: "server",
-  });
+  const primus = client.socket.listen(getSubject({ service: "primus" }));
   primus.on("connection", (spark) => {
     logger.debug("got a spark");
     spark.on("data", (data) => {

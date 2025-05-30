@@ -94,10 +94,7 @@ export class API {
     });
   };
 
-  private getChannel = async (
-    channel_name: string,
-    compute_server_id?: number,
-  ) => {
+  getChannel = async (channel_name: string, compute_server_id?: number) => {
     const conatPrimus = webapp_client.conat_client.primus({
       project_id: this.project_id,
       compute_server_id,
@@ -365,11 +362,6 @@ export class API {
       timeout: 60 + 2 * max_total_time_ms,
     });
     return await api.editor.jupyterRunNotebook(opts);
-  };
-
-  project_info = async (): Promise<Channel> => {
-    const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
-    return await this.getChannel(channel_name);
   };
 
   // Get the lean *channel* for the given '.lean' path.

@@ -49,7 +49,7 @@ import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import synctable_conat from "@cocalc/project/conat/synctable";
 import pubsub from "@cocalc/project/conat/pubsub";
-import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import { getEnv as getNatsEnv } from "@cocalc/project/conat/env";
 import {
   callConatService,
@@ -519,7 +519,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return the_synctable;
   }
 
-  synctable_conat: NatsSyncTableFunction = async (query, options?) => {
+  synctable_conat: ConatSyncTableFunction = async (query, options?) => {
     return await synctable_conat(query, options);
   };
 

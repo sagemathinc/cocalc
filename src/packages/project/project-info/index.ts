@@ -3,5 +3,5 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-export { project_info_ws,  get_ProjectInfoServer } from "./project-info";
+export { get_ProjectInfoServer } from "./project-info";
 export { ProjectInfoServer } from "./server"

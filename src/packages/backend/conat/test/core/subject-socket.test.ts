@@ -11,17 +11,17 @@ describe("create a server and client, then send a message and get a response", (
   let client, server, cn1, cn2;
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.primus({ subject: "primus", role: "server" });
-    server.on("connection", (spark) => {
-      spark.on("data", (data) => {
-        spark.write(`${data}`.repeat(2));
+    server = cn1.socket.listen("primus");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}`.repeat(2));
       });
     });
   });
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.primus({ subject: "primus", role: "client" });
+    client = cn2.socket.connect("primus");
     client.write("cocalc");
     const [data] = await once(client, "data");
     expect(data).toBe("cocalccocalc");
@@ -61,16 +61,16 @@ describe("create a client first, then the server, and see that it still works (t
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.primus({ subject: "primus", role: "client" });
+    client = cn2.socket.connect("primus");
     client.write("cocalc");
   });
 
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.primus({ subject: "primus", role: "server" });
-    server.on("connection", (spark) => {
-      spark.on("data", (data) => {
-        spark.write(`${data}`.repeat(2));
+    server = cn1.socket.listen("primus");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}`.repeat(2));
       });
     });
   });
@@ -95,7 +95,7 @@ describe("create a client first and writing more messages than the queue size re
     maxQueueSize = 3;
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.primus({ subject: "primus", role: "client", maxQueueSize });
+    client = cn2.socket.connect("primus", { maxQueueSize });
     for (let i = 0; i < count; i++) {
       client.write(`${i}`);
     }
@@ -104,10 +104,10 @@ describe("create a client first and writing more messages than the queue size re
 
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.primus({ subject: "primus", role: "server", maxQueueSize });
-    server.on("connection", (spark) => {
-      spark.on("data", (data) => {
-        spark.write(`${data}`.repeat(2));
+    server = cn1.socket.listen("primus", { maxQueueSize });
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}`.repeat(2));
       });
     });
   });
@@ -131,17 +131,17 @@ describe("test having two clients and see that communication is independent and 
 
   it("creates a server and two clients", async () => {
     cn3 = connect();
-    server = cn3.primus({ subject: "primus2", role: "server" });
-    server.on("connection", (spark) => {
-      spark.on("data", (data) => {
-        spark.write(`${data}`.repeat(2));
+    server = cn3.socket.listen("primus2");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}`.repeat(2));
       });
     });
 
     cn1 = connect();
-    client1 = cn1.primus({ subject: "primus2", role: "client" });
+    client1 = cn1.socket.connect("primus2");
     cn2 = connect();
-    client2 = cn2.primus({ subject: "primus2", role: "client" });
+    client2 = cn2.socket.connect("primus2");
   });
 
   it("each client uses the server separately", async () => {
@@ -165,9 +165,9 @@ describe("test having two clients and see that communication is independent and 
     const s1 = server.channel("one");
     const c1 = client1.channel("one");
     const c2 = client2.channel("one");
-    s1.on("connection", (spark) => {
-      spark.on("data", (data) => {
-        spark.write(`1${data}`);
+    s1.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`1${data}`);
       });
     });
     const x1 = once(c1, "data");

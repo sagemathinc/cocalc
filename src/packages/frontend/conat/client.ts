@@ -3,8 +3,8 @@ import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   createSyncTable,
-  type NatsSyncTable,
-  NatsSyncTableFunction,
+  type ConatSyncTable,
+  ConatSyncTableFunction,
 } from "@cocalc/conat/sync/synctable";
 import { randomId, inboxPrefix } from "@cocalc/conat/names";
 import { projectSubject } from "@cocalc/conat/names";
@@ -356,10 +356,10 @@ export class ConatClient extends EventEmitter {
     };
   };
 
-  synctable: NatsSyncTableFunction = async (
+  synctable: ConatSyncTableFunction = async (
     query,
     options?,
-  ): Promise<NatsSyncTable> => {
+  ): Promise<ConatSyncTable> => {
     query = parse_query(query);
     const table = keys(query)[0];
     const obj = options?.obj;
@@ -384,20 +384,22 @@ export class ConatClient extends EventEmitter {
   primus = ({
     project_id,
     compute_server_id = 0,
+    channel,
   }: {
     project_id: string;
     compute_server_id?: number;
+    channel?: string;
   }) => {
-    const subject = projectSubject({
+    let subject = projectSubject({
       project_id,
       compute_server_id,
       service: "primus",
     });
+    if (channel) {
+      subject += "." + channel;
+    }
     console.log("primus", { subject });
-    return this.conat().primus({
-      subject,
-      role: "client",
-    });
+    return this.conat().socket.connect(subject);
   };
 
   openFiles = reuseInFlight(async (project_id: string) => {

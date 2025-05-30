@@ -1,11 +1,11 @@
 /*
 Implement something that acts like a project-specific websocket from 
-**Primus**, but using Conats (which is really socket-io through a central
+**SubjectSocket**, but using Conats (which is really socket-io through a central
 message broker).
 
 For unit tests, see
 
-    packages/backend/conat/test/primus.test.ts
+    packages/backend/conat/test/subjectSocket.test.ts
 
 Development:
 
@@ -18,12 +18,12 @@ Development:
 
 # communication
 
-Primus = require('@cocalc/conat/primus').Primus;
+SubjectSocket = require('@cocalc/conat/subjectSocket').SubjectSocket;
 env = await require('@cocalc/backend/conat').getEnv();
-server = new Primus({subject:'test',env,role:'server',id:'s'});
+server = new SubjectSocket({subject:'test',env,role:'server',id:'s'});
 sparks = []; server.on("connection", (spark) => sparks.push(spark));
 
-client = new Primus({subject:'test',env,role:'client',id:'c0'});
+client = new SubjectSocket({subject:'test',env,role:'client',id:'c0'});
 
 client.on('data',(data)=>console.log('client got', data));0
 sparks[0].write("foo")
@@ -46,7 +46,7 @@ const HEARBEAT_INTERVAL = 30000;
 // Any write beyond the last this many are discarded:
 const DEAFULT_MAX_QUEUE_SIZE = 100;
 
-export interface PrimusOptions {
+export interface SubjectSocketOptions {
   subject: string;
   client: Client;
   role: Role;
@@ -54,16 +54,18 @@ export interface PrimusOptions {
   maxQueueSize?: number;
 }
 
-const connections: { [key: string]: Primus } = {};
-export function getPrimusConnection(opts: PrimusOptions): Primus {
+const connections: { [key: string]: SubjectSocket } = {};
+export function getSubjectSocketConnection(
+  opts: SubjectSocketOptions,
+): SubjectSocket {
   const key = getKey(opts);
   if (connections[key] == null) {
-    connections[key] = new Primus(opts);
+    connections[key] = new SubjectSocket(opts);
   }
   return connections[key];
 }
 
-function getKey({ subject, role, id }: PrimusOptions) {
+function getKey({ subject, role, id }: SubjectSocketOptions) {
   return JSON.stringify([subject, role, id]);
 }
 
@@ -84,19 +86,19 @@ function getSubjects({ subject, id }) {
 
 type State = "connecting" | "ready" | "closed";
 
-export class Primus extends EventEmitter {
+export class SubjectSocket extends EventEmitter {
   subject: string;
   client: Client;
   role: Role;
   id: string;
   subscribe: string;
-  sparks: { [id: string]: Spark } = {};
+  sparks: { [id: string]: Socket } = {};
   subjects: {
     control: string;
     server: string;
     client: string;
   };
-  // this is just for compat with primus api:
+  // this is just for compat with subjectSocket api:
   address = { ip: "" };
   conn: { id: string };
   subs: Subscription[] = [];
@@ -113,7 +115,7 @@ export class Primus extends EventEmitter {
     role,
     id,
     maxQueueSize = DEAFULT_MAX_QUEUE_SIZE,
-  }: PrimusOptions) {
+  }: SubjectSocketOptions) {
     super();
 
     //     console.log("PRIMUS Creating", {
@@ -135,7 +137,7 @@ export class Primus extends EventEmitter {
   }
 
   channel = (channel: string) => {
-    return getPrimusConnection({
+    return getSubjectSocketConnection({
       subject: this.subject + "." + channel,
       client: this.client,
       role: this.role,
@@ -161,9 +163,17 @@ export class Primus extends EventEmitter {
     this.emit(state);
   };
 
-  destroy = () => {
+  close = () => {
     if (this.state == "closed") {
       return;
+    }
+    if (this.role == "client") {
+      // tell server we're gone -- faster than it waiting
+      // for heartbeat timeout
+      this.client.publishSync(this.subjects.control, {
+        cmd: "close",
+        id: this.id,
+      });
     }
     this.queuedWrites = [];
     this.setState("closed");
@@ -178,11 +188,12 @@ export class Primus extends EventEmitter {
       this.sparks[id].destroy();
     }
     this.sparks = {};
+    // @ts-ignore
+    delete this.client;
   };
 
-  end = () => this.destroy();
-
-  close = () => this.destroy();
+  end = () => this.close();
+  destroy = () => this.close();
 
   connect = () => {};
 
@@ -190,7 +201,7 @@ export class Primus extends EventEmitter {
     if (this.role != "server") {
       throw Error("only server can serve");
     }
-    this.deleteSparks();
+    this.deleteSockets();
     const sub = await this.client.subscribe(this.subjects.control);
     this.subs.push(sub);
     this.setState("ready");
@@ -206,20 +217,24 @@ export class Primus extends EventEmitter {
           mesg.respond("dead");
         }
       } else if (data?.cmd == "connect") {
-        const spark = new Spark({
-          primus: this,
+        const spark = new Socket({
+          subjectSocket: this,
           id: data.id,
         });
         this.sparks[data.id] = spark;
         this.emit("connection", spark);
         mesg.respond({ status: "ok" });
+      } else if (data?.cmd == "close") {
+        this.sparks[data.id].close();
+        delete this.sparks[data.id];
+        // don't bother to respond
       } else {
         mesg.respond({ error: `unknown command - ${data?.cmd}` });
       }
     }
   };
 
-  private deleteSparks = async () => {
+  private deleteSockets = async () => {
     while (this.state != "closed") {
       for (const id in this.sparks) {
         const spark = this.sparks[id];
@@ -261,7 +276,7 @@ export class Primus extends EventEmitter {
     }
 
     //     const log = (status) => {
-    //       console.log(`conat:primus: ${status}`, {
+    //       console.log(`conat:subjectSocket: ${status}`, {
     //         subject: this.subject,
     //       });
     //     };
@@ -337,7 +352,7 @@ export class Primus extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    // console.log("conat:primus -- write", data);
+    // console.log("conat:subjectSocket -- write", data);
     let subject;
     if (this.role == "server") {
       // write to all the sparks that are connected.
@@ -355,22 +370,22 @@ export class Primus extends EventEmitter {
 }
 
 // only used on the server
-export class Spark extends EventEmitter {
-  primus: Primus;
+export class Socket extends EventEmitter {
+  subjectSocket: SubjectSocket;
   id: string;
   subjects;
   lastPing = Date.now();
-  // this is just for compat with primus api:
+  // this is just for compat with subjectSocket api:
   address = { ip: "" };
   conn: { id: string };
   subs: Subscription[] = [];
   state: State = "connecting";
   queuedWrites: any[] = [];
 
-  constructor({ primus, id }) {
+  constructor({ subjectSocket, id }) {
     super();
-    this.primus = primus;
-    const { subject } = primus;
+    this.subjectSocket = subjectSocket;
+    const { subject } = subjectSocket;
     this.id = id;
     this.conn = { id };
     this.subjects = getSubjects({
@@ -391,7 +406,7 @@ export class Spark extends EventEmitter {
     this.emit(state);
   };
 
-  destroy = () => {
+  close = () => {
     if (this.state == "closed") {
       return;
     }
@@ -402,13 +417,13 @@ export class Spark extends EventEmitter {
       sub.close();
     }
     this.subs = [];
-    delete this.primus.sparks[this.id];
+    delete this.subjectSocket.sparks[this.id];
   };
-
-  end = () => this.destroy();
+  destroy = () => this.close();
+  end = () => this.close();
 
   private init = async () => {
-    const sub = await this.primus.client.subscribe(this.subjects.server);
+    const sub = await this.subjectSocket.client.subscribe(this.subjects.server);
     this.setState("ready");
     this.subs.push(sub);
     for await (const mesg of sub) {
@@ -419,7 +434,7 @@ export class Spark extends EventEmitter {
   write = (data) => {
     if (this.state == "connecting") {
       this.queuedWrites.push(data);
-      while (this.queuedWrites.length > this.primus.maxQueueSize) {
+      while (this.queuedWrites.length > this.subjectSocket.maxQueueSize) {
         this.queuedWrites.shift();
       }
       return;
@@ -427,7 +442,7 @@ export class Spark extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.primus.client.publishSync(this.subjects.client, data);
+    this.subjectSocket.client.publishSync(this.subjects.client, data);
     return true;
   };
 }

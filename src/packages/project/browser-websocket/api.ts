@@ -32,7 +32,6 @@ import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import { realpath } from "./realpath";
-import { project_info_ws } from "../project-info";
 import query from "./query";
 import type { Mesg } from "@cocalc/comm/websocket/types";
 import handleSyncFsApiCall, {
@@ -185,9 +184,6 @@ export async function handleApiCall({
       );
     case "syncdoc_call":
       return await syncdoc_call(data.path, data.mesg);
-
-    case "project_info":
-      return await project_info_ws(primus, log);
 
     // compute server
 

@@ -224,7 +224,11 @@ import {
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
 import TTL from "@isaacs/ttlcache";
-import { type Primus, getPrimusConnection } from "@cocalc/conat/primus";
+import {
+  type SubjectSocket,
+  getSubjectSocketConnection,
+} from "./subject-socket";
+export { type SubjectSocket };
 
 const logger = getLogger("core/client");
 
@@ -976,11 +980,31 @@ export class Client {
       await astream({ client: this, ...opts }),
   };
 
-  primus = (opts: {
-    subject: string;
-    role: "client" | "server";
-    maxQueueSize?: number;
-  }): Primus => getPrimusConnection({ ...opts, client: this, id: this.id });
+  socket = {
+    listen: (
+      subject: string,
+      opts?: { maxQueueSize?: number },
+    ): SubjectSocket =>
+      getSubjectSocketConnection({
+        subject,
+        role: "server",
+        client: this,
+        id: this.id,
+        ...opts,
+      }),
+
+    connect: (
+      subject: string,
+      opts?: { maxQueueSize?: number },
+    ): SubjectSocket =>
+      getSubjectSocketConnection({
+        subject,
+        role: "client",
+        client: this,
+        id: this.id,
+        ...opts,
+      }),
+  };
 }
 
 interface PublishOptions {

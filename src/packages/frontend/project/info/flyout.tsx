@@ -10,7 +10,6 @@ import { Alert, Table } from "antd";
 import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -28,7 +27,6 @@ import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 interface Props {
   wrap?: Function;
   cg_info: CGroupInfo;
-  chan: Channel | null;
   render_disconnected: () => JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
@@ -72,7 +70,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     start_ts,
     onCellProps,
     sync,
-    chan,
   } = _;
 
   const projectIsRunning = project_state === "running";
@@ -201,8 +198,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           "no timestamp"
         )}{" "}
         <br />
-        Connections sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code>
+        Connections sync=<code>{`${sync != null}`}</code>
         <br />
         Status: <code>{status}</code>
       </Paragraph>

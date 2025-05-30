@@ -2,18 +2,18 @@ import getConnection, { connectToConat } from "./connection";
 import { project_id } from "@cocalc/project/data";
 import {
   createSyncTable,
-  type NatsSyncTable,
+  type ConatSyncTable,
 } from "@cocalc/conat/sync/synctable";
 import { parse_query } from "@cocalc/sync/table/util";
 import { keys } from "lodash";
-import type { NatsSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
 
 const jc = null as any;
 
-const synctable: NatsSyncTableFunction = async (
+const synctable: ConatSyncTableFunction = async (
   query,
   options?,
-): Promise<NatsSyncTable> => {
+): Promise<ConatSyncTable> => {
   const nc = await getConnection();
   const cn = await connectToConat();
   query = parse_query(query);
