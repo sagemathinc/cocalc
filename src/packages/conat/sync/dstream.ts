@@ -254,7 +254,7 @@ export class DStream<T = any> extends EventEmitter {
         await delay(d);
         if (!process.env.COCALC_TEST_MODE) {
           console.warn(
-            `WARNING stream attemptToSave failed -- ${err}`,
+            `WARNING: stream attemptToSave failed -- ${err}`,
             this.name,
           );
         }

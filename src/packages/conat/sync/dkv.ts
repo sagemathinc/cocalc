@@ -435,14 +435,6 @@ export class DKV<T = any> extends EventEmitter {
   save = reuseInFlight(async () => {
     if (this.noAutosave) {
       return await this.attemptToSave();
-      // one example error when there's a conflict brewing:
-      /*
-        {
-          code: 10071,
-          name: 'JetStreamApiError',
-          message: 'wrong last sequence: 84492'
-        }
-        */
     }
     let d = 100;
     while (true) {
@@ -451,7 +443,14 @@ export class DKV<T = any> extends EventEmitter {
         status = await this.attemptToSave();
         //console.log("successfully saved");
       } catch (_err) {
-        //console.log("temporary issue saving", this.kv?.name, _err);
+        if (!process.env.COCALC_TEST_MODE) {
+          console.log(
+            "WARNING: dkv attemptToSave failed -- ",
+            this.name,
+            this.kv?.name,
+            _err,
+          );
+        }
       }
       if (!this.hasUnsavedChanges()) {
         return status;
