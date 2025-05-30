@@ -11,6 +11,7 @@ import {
 } from "react-google-recaptcha-v3";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
   CONTACT_TAG,
   CONTACT_THESE_TAGS,
@@ -361,6 +362,7 @@ function SignUp0({
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               onPressEnter={signUp}
+              maxLength={MAX_PASSWORD_LENGTH}
             />
           </div>
         )}

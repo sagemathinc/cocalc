@@ -17,7 +17,7 @@ import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import AuthPageContainer from "./fragments/auth-page-container";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
-
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 interface SignInProps {
   minimal?: boolean;
@@ -45,11 +45,11 @@ function SignIn0(props: SignInProps) {
   const { minimal = false, onSuccess, showSignUp, signUpAction } = props;
   const { anonymousSignup, reCaptchaKey, siteName, strategies } =
     useCustomize();
-  const [ email, setEmail ] = useState<string>("");
-  const [ password, setPassword ] = useState<string>("");
-  const [ signingIn, setSigningIn ] = useState<boolean>(false);
-  const [ error, setError ] = useState<string>("");
-  const [ haveSSO, setHaveSSO ] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [signingIn, setSigningIn] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [haveSSO, setHaveSSO] = useState<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   useEffect(() => {
@@ -87,30 +87,42 @@ function SignIn0(props: SignInProps) {
   }
 
   function renderFooter() {
-    return (!minimal || showSignUp) && (
-      <>
-        New to CoCalc? {signUpAction
-          ? <a onClick={signUpAction}>Sign Up</a>
-          : <A href="/auth/sign-up">Sign Up</A>
-        } {anonymousSignup ? (
+    return (
+      (!minimal || showSignUp) && (
         <>
-          or <A href="/auth/try"> try {siteName} without creating an account. </A>
+          New to CoCalc?{" "}
+          {signUpAction ? (
+            <a onClick={signUpAction}>Sign Up</a>
+          ) : (
+            <A href="/auth/sign-up">Sign Up</A>
+          )}{" "}
+          {anonymousSignup ? (
+            <>
+              or{" "}
+              <A href="/auth/try">
+                {" "}
+                try {siteName} without creating an account.{" "}
+              </A>
+            </>
+          ) : (
+            "today."
+          )}
         </>
-      ) : 'today.'}
-      </>
+      )
     );
   }
 
   function renderError() {
-    return (error && (
+    return (
+      error && (
         <>
           <p>
             <b>{error}</b>
           </p>
           <p>
             If you can't remember your password,{" "}
-            <A href="/auth/password-reset">reset it</A>. If that doesn't
-            work <Contact/>.
+            <A href="/auth/password-reset">reset it</A>. If that doesn't work{" "}
+            <Contact />.
           </p>
         </>
       )
@@ -129,8 +141,8 @@ function SignIn0(props: SignInProps) {
           ? "Sign in"
           : haveSSO
           ? requiredSSO != null
-          ? "Sign in using your single sign-on provider"
-          : "Sign in using your email address or a single sign-on provider."
+            ? "Sign in using your single sign-on provider"
+            : "Sign in using your email address or a single sign-on provider."
           : "Sign in using your email address."}
       </div>
       <form>
@@ -145,9 +157,7 @@ function SignIn0(props: SignInProps) {
             <SSO
               size={email ? 24 : undefined}
               style={
-                email
-                  ? { textAlign: "right", marginBottom: "20px" }
-                  : undefined
+                email ? { textAlign: "right", marginBottom: "20px" } : undefined
               }
             />
           </div>
@@ -160,7 +170,7 @@ function SignIn0(props: SignInProps) {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <RequiredSSO strategy={requiredSSO}/>
+        <RequiredSSO strategy={requiredSSO} />
         {/* Don't remove password input, since that messes up autofill. Hide for forced SSO. */}
         <div
           style={{
@@ -173,6 +183,7 @@ function SignIn0(props: SignInProps) {
             style={{ fontSize: "12pt" }}
             autoComplete="current-password"
             placeholder="Password"
+            maxLength={MAX_PASSWORD_LENGTH}
             onChange={(e) => setPassword(e.target.value)}
             onPressEnter={(e) => {
               e.preventDefault();
@@ -192,7 +203,7 @@ function SignIn0(props: SignInProps) {
             >
               {signingIn ? (
                 <>
-                  <Icon name="spinner" spin/> Signing In...
+                  <Icon name="spinner" spin /> Signing In...
                 </>
               ) : (
                 "Sign In"
