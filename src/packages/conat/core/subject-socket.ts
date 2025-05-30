@@ -68,7 +68,7 @@ export class SubjectSocket extends EventEmitter {
   role: Role;
   id: string;
   subscribe: string;
-  sparks: { [id: string]: Socket } = {};
+  sockets: { [id: string]: Socket } = {};
   subjects: {
     control: string;
     server: string;
@@ -123,8 +123,8 @@ export class SubjectSocket extends EventEmitter {
   };
 
   forEach = (f: (spark, id) => void) => {
-    for (const id in this.sparks) {
-      f(this.sparks[id], id);
+    for (const id in this.sockets) {
+      f(this.sockets[id], id);
     }
   };
 
@@ -160,10 +160,10 @@ export class SubjectSocket extends EventEmitter {
       sub.close();
     }
     this.subs = [];
-    for (const id in this.sparks) {
-      this.sparks[id].destroy();
+    for (const id in this.sockets) {
+      this.sockets[id].destroy();
     }
-    this.sparks = {};
+    this.sockets = {};
     // @ts-ignore
     delete this.client;
   };
@@ -185,7 +185,7 @@ export class SubjectSocket extends EventEmitter {
       //console.log("got ", { data: mesg.data });
       const data = mesg.data;
       if (data?.cmd == "ping") {
-        const spark = this.sparks[data.id];
+        const spark = this.sockets[data.id];
         if (spark != null) {
           spark.lastPing = Date.now();
           mesg.respond("pong");
@@ -197,12 +197,12 @@ export class SubjectSocket extends EventEmitter {
           subjectSocket: this,
           id: data.id,
         });
-        this.sparks[data.id] = spark;
+        this.sockets[data.id] = spark;
         this.emit("connection", spark);
         mesg.respond({ status: "ok" });
       } else if (data?.cmd == "close") {
-        this.sparks[data.id].close();
-        delete this.sparks[data.id];
+        this.sockets[data.id].close();
+        delete this.sockets[data.id];
         // don't bother to respond
       } else {
         mesg.respond({ error: `unknown command - ${data?.cmd}` });
@@ -212,8 +212,8 @@ export class SubjectSocket extends EventEmitter {
 
   private deleteSockets = async () => {
     while (this.state != "closed") {
-      for (const id in this.sparks) {
-        const spark = this.sparks[id];
+      for (const id in this.sockets) {
+        const spark = this.sockets[id];
         if (Date.now() - spark.lastPing > HEARBEAT_INTERVAL * 2.5) {
           spark.destroy();
         }
@@ -231,10 +231,10 @@ export class SubjectSocket extends EventEmitter {
       sub.close();
     }
     this.subs = [];
-    for (const id in this.sparks) {
-      this.sparks[id].destroy();
+    for (const id in this.sockets) {
+      this.sockets[id].destroy();
     }
-    this.sparks = {};
+    this.sockets = {};
     this.run();
   };
 
@@ -329,9 +329,9 @@ export class SubjectSocket extends EventEmitter {
     // console.log("conat:subjectSocket -- write", data);
     let subject;
     if (this.role == "server") {
-      // write to all the sparks that are connected.
-      for (const id in this.sparks) {
-        this.sparks[id].write(data);
+      // write to all the sockets that are connected.
+      for (const id in this.sockets) {
+        this.sockets[id].write(data);
       }
       return;
     } else {
@@ -391,7 +391,7 @@ export class Socket extends EventEmitter {
       sub.close();
     }
     this.subs = [];
-    delete this.subjectSocket.sparks[this.id];
+    delete this.subjectSocket.sockets[this.id];
   };
   destroy = () => this.close();
   end = () => this.close();

@@ -8,12 +8,25 @@ Project information
 */
 
 import { ProjectInfoServer } from "./server";
+import { createService } from "@cocalc/conat/project/project-info";
+import { project_id, compute_server_id } from "@cocalc/project/data";
 
 // singleton, we instantiate it when we need it
-let _info: ProjectInfoServer | undefined = undefined;
+let info: ProjectInfoServer | null = null;
+let service: any = null;
 
 export function get_ProjectInfoServer(): ProjectInfoServer {
-  if (_info != null) return _info;
-  _info = new ProjectInfoServer();
-  return _info;
+  if (info != null) {
+    return info;
+  }
+  info = new ProjectInfoServer();
+  service = createService({ infoServer: info, project_id, compute_server_id });
+
+  return info;
+}
+
+export function close() {
+  service?.close();
+  info?.close();
+  info = service = null;
 }

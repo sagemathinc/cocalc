@@ -31,7 +31,7 @@ import type {
 } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { type ProjectApi } from "@cocalc/conat/project-api";
+import { type ProjectApi } from "@cocalc/conat/project/api";
 import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,

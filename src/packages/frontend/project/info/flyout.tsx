@@ -6,10 +6,8 @@
 declare let DEBUG;
 
 import { Alert, Table } from "antd";
-
 import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -32,7 +30,7 @@ interface Props {
   disk_usage: DUState;
   error: JSX.Element | null;
   status: string;
-  info: ProjectInfoType | undefined;
+  info: ProjectInfoType | null;
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
@@ -47,7 +45,6 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  sync: WSProjectInfo | null;
   render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
   onCellProps;
 }
@@ -69,7 +66,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     ptree,
     start_ts,
     onCellProps,
-    sync,
   } = _;
 
   const projectIsRunning = project_state === "running";
@@ -198,8 +194,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           "no timestamp"
         )}{" "}
         <br />
-        Connections sync=<code>{`${sync != null}`}</code>
-        <br />
         Status: <code>{status}</code>
       </Paragraph>
     );
@@ -222,11 +216,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
         {render_general_status()}
       </div>
     );
-  }
-
-  function renderError() {
-    if (error == null) return;
-    return <Alert message={error} type="error" />;
   }
 
   function notRunning() {
@@ -255,7 +244,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
       }}
     >
       {notRunning()}
-      {renderError()}
+      {error}
       {body()}
     </div>
   );

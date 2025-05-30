@@ -9,7 +9,7 @@
     "./hub-api/*": "./dist/hub-api/*.js",
     "./compute/*": "./dist/compute/*.js",
     "./service": "./dist/service/index.js",
-    "./project-api": "./dist/project-api/index.js",
+    "./project/api": "./dist/project/api/index.js",
     "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
   },

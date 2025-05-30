@@ -11,7 +11,6 @@ import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -39,7 +38,7 @@ interface Props {
   disk_usage: DUState;
   error: JSX.Element | null;
   status: string;
-  info: ProjectInfoType | undefined;
+  info: ProjectInfoType | null;
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
@@ -56,7 +55,6 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  sync: WSProjectInfo | null;
   render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
   onCellProps;
 }
@@ -87,7 +85,6 @@ export function Full(props: Readonly<Props>): JSX.Element {
     show_explanation,
     show_long_loading,
     start_ts,
-    sync,
     render_cocalc,
     onCellProps,
   } = props;
@@ -467,7 +464,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         ) : (
           "no timestamp"
         )}{" "}
-        | Connections sync=<code>{`${sync != null}`}</code> | Status: <code>{status}</code>
+        | Status: <code>{status}</code>
       </Col>
     );
   }
@@ -491,15 +488,6 @@ export function Full(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function render_error() {
-    if (error == null) return;
-    return (
-      <Row>
-        <Alert message={error} type="error" />
-      </Row>
-    );
-  }
-
   function render_not_running() {
     if (project_state === "running") return;
     return (
@@ -516,7 +504,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
   return (
     <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       {render_not_running()}
-      {render_error()}
+      {error}
       {render_body()}
     </div>
   );
