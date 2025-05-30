@@ -55,7 +55,7 @@ async function wait_for_project_to_start(project_id: string) {
   });
 }
 
-const USE_FAKE = false;
+const USE_FAKE = true;
 
 import { EventEmitter } from "events";
 class FakeConn extends EventEmitter {

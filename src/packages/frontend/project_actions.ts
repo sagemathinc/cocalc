@@ -109,6 +109,7 @@ import {
   type ComputeServerManager,
 } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 
 const { defaults, required } = misc;
 
@@ -291,6 +292,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
   private computeServerManager?: ComputeServerManager;
+  private projectStatusSub?;
 
   constructor(name, b) {
     super(name, b);
@@ -299,6 +301,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
     this.initComputeServers();
+    this.initProjectStatus();
   }
 
   public async api(): Promise<API> {
@@ -308,6 +311,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   destroy = (): void => {
     if (this.open_files == null) return;
     this.closeComputeServers();
+    this.projectStatusSub?.close();
+    delete this.projectStatusSub;
     must_define(this.redux);
     this.close_all_files();
     for (const table in QUERIES) {
@@ -3073,7 +3078,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       git_grep: store.get("git_grep"),
     });
 
-
     // generate the grep command for the given query with the given flags
     if (store.get("case_sensitive")) {
       ins = "";
@@ -3501,6 +3505,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       "change",
       this.handleComputeServerManagerChange,
     );
+  };
+
+  private initProjectStatus = async () => {
+    this.projectStatusSub = await getProjectStatus({
+      project_id: this.project_id,
+      compute_server_id: 0,
+    });
+    for await (const mesg of this.projectStatusSub) {
+      const status = mesg.data;
+      this.setState({ status });
+    }
   };
 
   private closeComputeServers = () => {

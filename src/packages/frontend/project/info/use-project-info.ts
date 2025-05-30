@@ -5,7 +5,7 @@ React hook that gives realtime information about a project.
 
 import { useInterval } from "react-interval-hook";
 import { get, type ProjectInfo } from "@cocalc/conat/project/project-info";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function useProjectInfo({
   project_id,
@@ -21,19 +21,22 @@ export default function useProjectInfo({
   setError: (string) => void;
   disconnected: boolean;
 } {
+  const start = useMemo(() => Date.now(), []);
   const [info, setInfo] = useState<ProjectInfo | null>(null);
   const [error, setError] = useState<string>("");
   const [disconnected, setDisconnected] = useState<boolean>(true);
   const update = async () => {
-    console.log("update", { project_id });
+    // console.log("update", { project_id });
     try {
       const info = await get({ project_id, compute_server_id });
       setInfo(info);
       setDisconnected(false);
       setError("");
     } catch (err) {
-      console.log(`WARNING: project info -- ${err}`);
-      setError("Project info not available -- start the project");
+      if (Date.now() - start >= interval * 2.1) {
+        console.log(`WARNING: project info -- ${err}`);
+        setError("Project info not available -- start the project");
+      }
       setDisconnected(true);
     }
   };

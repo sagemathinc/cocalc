@@ -15,6 +15,7 @@ import { init as initWebsocketApi } from "./browser-websocket-api";
 import { init as initListings } from "./listings";
 import { init as initRead } from "./files/read";
 import { init as initWrite } from "./files/write";
+import { init as initProjectStatus } from "@cocalc/project/project-status/server";
 
 const logger = getLogger("project:conat:index");
 
@@ -26,4 +27,5 @@ export default async function init() {
   await initListings();
   await initRead();
   await initWrite();
+  initProjectStatus();
 }
