@@ -398,8 +398,6 @@ export class API {
       60000,
     );
     log("x11_channel");
-    console.log("got back ", { channel_name });
-    // return this.conn.channel(channel_name);
     return this.getChannel(channel_name);
   };
 
