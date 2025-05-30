@@ -15,8 +15,9 @@
     ],
     "jest.autoRun": "off",
     "files.exclude": {
+      "**/dist": true,
+      "**/node_modules": true,
       "dist": true,
-      "node_modules": true,
       "compute": true,
       "data": true,
       "dev": true,
