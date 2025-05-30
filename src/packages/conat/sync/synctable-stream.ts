@@ -16,6 +16,7 @@ import { EventEmitter } from "events";
 import { dstream, DStream } from "./dstream";
 import { fromJS, Map } from "immutable";
 import type { Configuration } from "@cocalc/conat/sync/core-stream";
+import type { Client } from "@cocalc/conat/core/client";
 
 export type State = "disconnected" | "connected" | "closed";
 
@@ -38,6 +39,7 @@ export class SyncTableStream extends EventEmitter {
   private data: any = {};
   private state: State = "disconnected";
   private dstream?: DStream;
+  private client: Client;
   private getHook: Function;
   private config?: Partial<Configuration>;
   private start_seq?: number;
@@ -46,6 +48,7 @@ export class SyncTableStream extends EventEmitter {
 
   constructor({
     query,
+    client,
     account_id: _account_id,
     project_id,
     immutable,
@@ -55,6 +58,7 @@ export class SyncTableStream extends EventEmitter {
     ephemeral,
   }: {
     query;
+    client: Client;
     account_id?: string;
     project_id?: string;
     immutable?: boolean;
@@ -64,6 +68,7 @@ export class SyncTableStream extends EventEmitter {
     ephemeral?: boolean;
   }) {
     super();
+    this.client = client;
     this.noInventory = noInventory;
     this.ephemeral = ephemeral;
     this.setMaxListeners(100);
@@ -94,6 +99,7 @@ export class SyncTableStream extends EventEmitter {
     const name = patchesStreamName({ string_id: this.string_id });
     this.dstream = await dstream({
       name,
+      client: this.client,
       project_id: this.project_id,
       config: this.config,
       desc: { path: this.path },
@@ -201,6 +207,8 @@ export class SyncTableStream extends EventEmitter {
     this.removeAllListeners();
     this.dstream?.close();
     delete this.dstream;
+    // @ts-ignore
+    delete this.client;
   };
 
   delete = async (_obj) => {

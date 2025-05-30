@@ -229,6 +229,11 @@ import {
   getSubjectSocketConnection,
 } from "./subject-socket";
 export { type SubjectSocket };
+import {
+  type SyncTableOptions,
+  type ConatSyncTable,
+  createSyncTable,
+} from "@cocalc/conat/sync/synctable";
 
 const logger = getLogger("core/client");
 
@@ -980,15 +985,17 @@ export class Client {
 
   sync = {
     dkv: async (opts: DKVOptions): Promise<DKV> =>
-      await dkv({ client: this, ...opts }),
+      await dkv({ ...opts, client: this }),
     akv: async (opts: DKVOptions): Promise<AKV> =>
-      await akv({ client: this, ...opts }),
+      await akv({ ...opts, client: this }),
     dko: async (opts: DKVOptions): Promise<DKO> =>
-      await dko({ client: this, ...opts }),
+      await dko({ ...opts, client: this }),
     dstream: async (opts: DStreamOptions): Promise<DStream> =>
-      await dstream({ client: this, ...opts }),
+      await dstream({ ...opts, client: this }),
     astream: async (opts: DStreamOptions): Promise<AStream> =>
-      await astream({ client: this, ...opts }),
+      await astream({ ...opts, client: this }),
+    synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
+      await createSyncTable({ ...opts, client: this }),
   };
 
   socket = {

@@ -7,7 +7,8 @@
 
 import { keys } from "lodash";
 import { client_db } from "@cocalc/util/db-schema/client-db";
-import type { NatsEnv, State } from "@cocalc/conat/types";
+import type { State } from "@cocalc/conat/types";
+import type { Client } from "@cocalc/conat/core/client";
 import { EventEmitter } from "events";
 import { dkv as createDkv, type DKV } from "./dkv";
 import { dko as createDko, type DKO } from "./dko";
@@ -27,7 +28,7 @@ export class SyncTableKV extends EventEmitter {
   private account_id?: string;
   private state: State = "disconnected";
   private dkv?: DKV | DKO;
-  private env;
+  private client: Client;
   private getHook: Function;
   private config?: Partial<Configuration>;
   private desc?: JSONValue;
@@ -35,7 +36,7 @@ export class SyncTableKV extends EventEmitter {
 
   constructor({
     query,
-    env,
+    client,
     account_id,
     project_id,
     atomic,
@@ -45,7 +46,7 @@ export class SyncTableKV extends EventEmitter {
     ephemeral,
   }: {
     query;
-    env: NatsEnv;
+    client: Client;
     account_id?: string;
     project_id?: string;
     atomic?: boolean;
@@ -60,7 +61,7 @@ export class SyncTableKV extends EventEmitter {
     this.getHook = immutable ? fromJS : (x) => x;
     this.query = query;
     this.config = config;
-    this.env = env;
+    this.client = client;
     this.desc = desc;
     this.ephemeral = ephemeral;
     this.table = keys(query)[0];
@@ -118,6 +119,7 @@ export class SyncTableKV extends EventEmitter {
     const name = this.getName();
     if (this.atomic) {
       this.dkv = await createDkv({
+        client: this.client,
         name,
         account_id: this.account_id,
         project_id: this.project_id,
@@ -127,6 +129,7 @@ export class SyncTableKV extends EventEmitter {
       });
     } else {
       this.dkv = await createDko({
+        client: this.client,
         name,
         account_id: this.account_id,
         project_id: this.project_id,
@@ -212,7 +215,7 @@ export class SyncTableKV extends EventEmitter {
     await this.dkv?.close();
     delete this.dkv;
     // @ts-ignore
-    delete this.env;
+    delete this.client;
   };
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {

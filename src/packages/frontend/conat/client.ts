@@ -2,7 +2,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import type { WebappClient } from "@cocalc/frontend/client/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
-  createSyncTable,
   type ConatSyncTable,
   ConatSyncTableFunction,
 } from "@cocalc/conat/sync/synctable";
@@ -376,14 +375,11 @@ export class ConatClient extends EventEmitter {
     if (options?.project_id != null && query[table][0]["project_id"] === null) {
       query[table][0]["project_id"] = options.project_id;
     }
-    const s = createSyncTable({
+    return await this.conat().sync.synctable({
       ...options,
       query,
-      env: await this.getEnv(),
       account_id: this.client.account_id,
     });
-    await s.init();
-    return s;
   };
 
   primus = ({

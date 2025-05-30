@@ -18,7 +18,7 @@ import { init as initWrite } from "./files/write";
 const logger = getLogger("project:conat:index");
 
 export default async function init() {
-  logger.debug("starting NATS project services");
+  logger.debug("starting Conat project services");
   await initAPI();
   await initOpenFiles();
   initWebsocketApi();

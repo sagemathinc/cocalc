@@ -1,10 +1,10 @@
-import { type NatsEnv } from "@cocalc/conat/types";
 import { SyncTableKV } from "./synctable-kv";
 import { SyncTableStream } from "./synctable-stream";
-import { refCacheSync } from "@cocalc/util/refcache";
+import refCache from "@cocalc/util/refcache";
 import { type KVLimits } from "./limits";
 import { type FilteredStreamLimitOptions } from "./limits";
 import jsonStableStringify from "json-stable-stringify";
+import { type Client } from "@cocalc/conat/core/client";
 
 export type ConatSyncTable = SyncTableStream | SyncTableKV;
 
@@ -29,9 +29,9 @@ export type ConatSyncTableFunction = (
 export const CHANGEFEED_INTEREST_PERIOD_MS = 120000;
 // export const CHANGEFEED_INTEREST_PERIOD_MS = 3000;
 
-interface Options {
+export interface SyncTableOptions {
   query;
-  env: NatsEnv;
+  client?: Client;
   account_id?: string;
   project_id?: string;
   atomic?: boolean;
@@ -45,14 +45,18 @@ interface Options {
   ephemeral?: boolean;
 }
 
-export const createSyncTable = refCacheSync<Options, ConatSyncTable>({
+export const createSyncTable = refCache<SyncTableOptions, ConatSyncTable>({
   name: "synctable",
-  createKey: (opts: Options) => jsonStableStringify({ ...opts, env: undefined })!,
-  createObject: (options: Options) => {
+  createKey: (opts: SyncTableOptions) =>
+    jsonStableStringify({ ...opts, client: undefined })!,
+  createObject: async (options: SyncTableOptions & { client: Client }) => {
+    let t;
     if (options.stream) {
-      return new SyncTableStream(options);
+      t = new SyncTableStream(options);
     } else {
-      return new SyncTableKV(options);
+      t = new SyncTableKV(options);
     }
+    await t.init();
+    return t;
   },
 });
