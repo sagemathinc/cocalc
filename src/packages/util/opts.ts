@@ -17,7 +17,7 @@ Handling of input opts to functions and type checking.
 
 let DEBUG, TEST_MODE, val;
 
-import * as PropTypes from "prop-types";
+import PropTypes from "prop-types";
 
 import * as immutable_types from "./immutable-types";
 
@@ -98,6 +98,10 @@ for (let key in PropTypes) {
 }
 
 types.immutable = immutable_types.immutable;
+
+types.number = PropTypes.number;
+
+types.string = PropTypes.string;
 
 // Returns a new object with properties determined by those of obj1 and
 // obj2.  The properties in obj1 *must* all also appear in obj2.  If an
