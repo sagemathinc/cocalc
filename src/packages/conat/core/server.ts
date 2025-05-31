@@ -51,6 +51,7 @@ import {
 } from "./constants";
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
+import ConsistentHash from "consistent-hash";
 
 const DEBUG = false;
 
@@ -455,13 +456,24 @@ export class ConatServer {
     if (queue == STICKY_QUEUE_GROUP) {
       const currentTarget = this.getStickyTarget({ pattern, subject });
       if (currentTarget === undefined || !targets.has(currentTarget)) {
-        const target = randomChoice(targets);
+        // we use consistent hashing instead of random to make the choice, because if
+        // choice is being made by two different socketio servers at the same time,
+        // and they make different choices, it would be (temporarily) bad since a
+        // couple messages could get routed inconsistently (valkey sync would quickly
+        // resolve this).  It's actually very highly likely to have such parallel choices
+        // happening in cocalc, since when a file is opened a persistent stream is opened
+        // in the browser and the project at the exact same time, and those are likely
+        // to be connected to different socketio servers.  By using consistent hashing,
+        // all conflicts are avoided except for a few moments when the actual targets
+        // (e.g., the persist servers) are themselves changing, which should be something
+        // that only happens for a moment every few days.
+        const target = consistentChoice(targets, subject);
         this.updateSticky({ pattern, subject, target });
         return target;
       }
       return currentTarget;
     } else {
-      return randomChoice(targets)!;
+      return randomChoice(targets);
     }
   };
 
@@ -620,9 +632,9 @@ function socketSubjectRoom({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
 }
 
-export function randomChoice(v: Set<string>): any {
+export function randomChoice(v: Set<string>): string {
   if (v.size == 0) {
-    return undefined;
+    throw Error("v must have size at least 1");
   }
   if (v.size == 1) {
     for (const x of v) {
@@ -632,4 +644,22 @@ export function randomChoice(v: Set<string>): any {
   const w = Array.from(v);
   const i = Math.floor(Math.random() * w.length);
   return w[i];
+}
+
+export function consistentChoice(v: Set<string>, resource: string): string {
+  if (v.size == 0) {
+    throw Error("v must have size at least 1");
+  }
+  if (v.size == 1) {
+    for (const x of v) {
+      return x;
+    }
+  }
+  const hr = new ConsistentHash();
+  const w = Array.from(v);
+  w.sort();
+  for (const x of w) {
+    hr.add(x);
+  }
+  return hr.get(resource);
 }
