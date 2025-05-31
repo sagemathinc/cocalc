@@ -1,45 +1,69 @@
-/*
-
-
-*/
+import { isEqual } from "lodash";
+import { getLogger } from "@cocalc/conat/client";
 
 type Index = { [pattern: string]: Index | string };
+
+const logger = getLogger("pattern");
 
 export class Patterns<T> {
   private patterns: { [pattern: string]: T } = {};
   private index: Index = {};
   constructor() {}
 
-  *matches(subject: string) {
+  matches = (subject: string): string[] => {
+    return matchUsingIndex(this.index, subject.split("."));
+  };
+
+  matchesTest = (subject: string): string[] => {
+    const a = this.matches(subject);
+    const b = this.matchNaive(subject);
+    a.sort();
+    b.sort();
+    if (!isEqual(a, b)) {
+      logger.debug("BUG in PATTERN MATCHING!!!", {
+        subject,
+        a,
+        b,
+        index: this.index,
+        patterns: Object.keys(this.patterns),
+      });
+    }
+    return b;
+  };
+
+  matchNaive = (subject: string): string[] => {
+    const v: string[] = [];
     for (const pattern in this.patterns) {
       if (matchesPattern(pattern, subject)) {
-        yield pattern;
+        v.push(pattern);
       }
     }
-  }
+    return v;
+  };
 
   get = (pattern: string): T | undefined => {
     return this.patterns[pattern];
   };
 
-  matchUsingIndex = (subject: string): string[] => {
-    return matchUsingIndex(this.index, subject.split("."));
-  };
-
   set = (pattern: string, t: T) => {
     this.patterns[pattern] = t;
-    const segments = pattern.split(".");
-    setIndex(this.index, segments, pattern);
+    setIndex(this.index, pattern.split("."), pattern);
   };
 
   delete = (pattern: string) => {
     delete this.patterns[pattern];
+    deleteIndex(this.index, pattern.split("."));
   };
 }
 
 function setIndex(index: Index, segments: string[], pattern) {
   if (segments.length == 0) {
     index[""] = pattern;
+    return;
+  }
+  if (segments[0] == ">") {
+    // there can't be anything after it
+    index[">"] = pattern;
     return;
   }
   const v = index[segments[0]];
@@ -56,6 +80,24 @@ function setIndex(index: Index, segments: string[], pattern) {
   setIndex(v, segments.slice(1), pattern);
 }
 
+function deleteIndex(index: Index, segments: string[]) {
+  const ind = index[segments[0]];
+  if (ind === undefined) {
+    return;
+  }
+  if (typeof ind != "string") {
+    deleteIndex(ind, segments.slice(1));
+    // if there is anything still stored in ind
+    // besides ind[''], we do NOT delete it.
+    for (const key in ind) {
+      if (key != "") {
+        return;
+      }
+    }
+  }
+  delete index[segments[0]];
+}
+
 // todo deal with >
 function matchUsingIndex(index: Index, segments: string[]): string[] {
   if (segments.length == 0) {
@@ -70,12 +112,17 @@ function matchUsingIndex(index: Index, segments: string[]): string[] {
   }
   const matches: string[] = [];
   const subject = segments[0];
-  // [ ] todo -- handle special case of pattern = '>'
   for (const pattern of ["*", ">", subject]) {
     if (index[pattern] !== undefined) {
       const p = index[pattern];
       if (typeof p == "string") {
-        matches.push(p);
+        // end of this pattern -- matches if segments also
+        // stops *or* this pattern is >
+        if (segments.length == 1) {
+          matches.push(p);
+        } else if (pattern == ">") {
+          matches.push(p);
+        }
       } else {
         for (const s of matchUsingIndex(p, segments.slice(1))) {
           matches.push(s);
