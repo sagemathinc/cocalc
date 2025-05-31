@@ -374,19 +374,6 @@ export class API {
     return await api.editor.jupyterRunNotebook(opts);
   };
 
-  // Get the lean *channel* for the given '.lean' path.
-  lean_channel = async (path: string): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "lean_channel",
-        path: path,
-      },
-      60000,
-    );
-    log("lean_channel");
-    return this.conn.channel(channel_name);
-  };
-
   // Get the x11 *channel* for the given '.x11' path.
   x11_channel = async (path: string, display: number): Promise<Channel> => {
     const channel_name = await this._call(
@@ -426,15 +413,6 @@ export class API {
     timeout_ms: number = 30000, // ms timeout for call
   ): Promise<any> => {
     return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
-  };
-
-  // Do a request/response command to the lean server.
-  lean = async (opts: any): Promise<any> => {
-    let timeout_ms = 10000;
-    if (opts.timeout) {
-      timeout_ms = opts.timeout * 1000 + 2000;
-    }
-    return await this.call({ cmd: "lean", opts }, timeout_ms);
   };
 
   // Copying files to/from compute servers:
