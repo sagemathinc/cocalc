@@ -1,7 +1,6 @@
 import { conat } from "@cocalc/conat/client";
 import {
   persistSubject,
-  renewSubject,
   type User,
   DEFAULT_HEARTBEAT,
   HEARTBEAT_STRING,
@@ -203,8 +202,8 @@ export async function get({
   key,
   timeout,
 }: {
-  user;
-  storage;
+  user: User;
+  storage: Storage;
   timeout?: number;
 } & (
   | { seq: number; key?: undefined }
@@ -230,8 +229,8 @@ export async function keys({
   storage,
   timeout,
 }: {
-  user;
-  storage;
+  user: User;
+  storage: Storage;
   timeout?: number;
 }): Promise<string[]> {
   const subject = persistSubject(user);
@@ -253,8 +252,8 @@ export async function sqlite({
   statement,
   params,
 }: {
-  user;
-  storage;
+  user: User;
+  storage: Storage;
   timeout?: number;
   statement: string;
   params?: any[];
@@ -362,15 +361,25 @@ async function* callApiGetAll({
 
 export async function renew({
   user,
+  storage,
   id,
   lifetime,
+  timeout,
 }: {
   user: User;
+  storage: Storage;
   id: string;
   lifetime?: number;
+  timeout?: number;
 } & User) {
-  const subject = renewSubject(user);
+  const subject = persistSubject(user);
+  assertHasWritePermission({ subject, path: storage.path });
   const cn = await conat();
-  const resp = await cn.request(subject, { id, lifetime });
+
+  const resp = await cn.request(subject, null, {
+    headers: { cmd: "renew", id, lifetime } as any,
+    timeout,
+  });
+  checkMessageHeaderForError(resp);
   return resp.data;
 }

@@ -111,16 +111,6 @@ export function persistSubject({ account_id, project_id }: User) {
   }
 }
 
-export function renewSubject({ account_id, project_id }: User) {
-  if (account_id) {
-    return `${SUBJECT}.account-${account_id}.renew`;
-  } else if (project_id) {
-    return `${SUBJECT}.project-${project_id}.renew`;
-  } else {
-    return `${SUBJECT}.hub.renew`;
-  }
-}
-
 export function getUserId(subject: string): string {
   if (
     subject.startsWith(`${SUBJECT}.account-`) ||
@@ -216,10 +206,9 @@ export async function init({
     MAX_PERSISTS_PER_SERVER,
     SUBJECT,
   });
-  client = client ?? await conat();
+  client = client ?? (await conat());
   // this returns one the service is listening
   await persistService({ client, messagesThresh });
-  await renewService({ client });
 }
 
 async function noThrow(f) {
@@ -232,28 +221,10 @@ async function noThrow(f) {
 
 async function persistService({ client, messagesThresh }) {
   sub = await client.subscribe(`${SUBJECT}.*.api`, {
-    queue: "q",
+    sticky: true,
     ephemeral: true,
   });
   listenPersist({ messagesThresh });
-}
-
-let renew: Subscription | null = null;
-async function renewService({ client }) {
-  renew = await client.subscribe(`${SUBJECT}.*.renew`);
-  listenRenew();
-}
-
-async function listenRenew() {
-  if (renew == null) {
-    throw Error("must call init first");
-  }
-  for await (const mesg of renew) {
-    if (terminated) {
-      return;
-    }
-    noThrow(async () => await handleRenew(mesg));
-  }
 }
 
 const endOfLife: { [id: string]: number } = {};
@@ -275,29 +246,11 @@ function getLifetime({ lifetime }): number {
   return lifetime;
 }
 
-async function handleRenew(mesg) {
-  const request = mesg.data;
-  if (!request) {
-    return;
-  }
-  let { id } = request;
-  if (endOfLife[id]) {
-    // it's ours so we respond
-    const lifetime = getLifetime(request);
-    endOfLife[id] = Date.now() + lifetime;
-    mesg.respond({ status: "ok" });
-  }
-}
-
 export async function terminate() {
   terminated = true;
   if (sub != null) {
     sub.drain();
     sub = null;
-  }
-  if (renew != null) {
-    renew.drain();
-    renew = null;
   }
 }
 
@@ -361,6 +314,14 @@ async function handleMessage({ mesg, messagesThresh }) {
       respond(resp);
     } else if (request.cmd == "delete") {
       respond(stream.delete(request));
+    } else if (request.cmd == "renew") {
+      const { id } = request;
+      if (!endOfLife[id]) {
+        throw Error(`unknown stream id '${id}'`);
+      }
+      const lifetime = getLifetime(request);
+      endOfLife[id] = Date.now() + lifetime;
+      respond({ status: "ok" });
     } else if (request.cmd == "config") {
       respond(stream.config(request.config));
     } else if (request.cmd == "get") {

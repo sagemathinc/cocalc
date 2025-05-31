@@ -86,7 +86,8 @@ export const COCALC_OPTIONS_HEADER = `${HEADER_PREFIX}Options`;
 export interface CoreStreamOptions {
   // what it's called
   name: string;
-  // where it is located
+  // where it is located -- this is who **owns the resource**, which
+  // may or may not being who is accessing it.
   account_id?: string;
   project_id?: string;
   config?: Partial<Configuration>;
@@ -141,13 +142,21 @@ export class CoreStream<T = any> extends EventEmitter {
   // lastSeq used by clients to keep track of what they have received; if one
   // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
+  // IMPORTANT: user here means the *owner* of the resource, **NOT** the
+  // client who is accessing it!  For example, a stream of edits of a file
+  // in a project has user {project_id} even if it is being accessed by
+  // an account.
   private user: User;
   private persistStream?;
   private storage?: persistClient.Storage;
   private client?: Client;
   private connectionOptions?: persistClient.ConnectionOptions;
-  private renewLoopParams: { id: string; lifetime: number; user: User } | null =
-    null;
+  private renewLoopParams: {
+    id: string;
+    lifetime: number;
+    user: User;
+    storage: persistClient.Storage;
+  } | null = null;
 
   constructor({
     name,
@@ -278,7 +287,12 @@ export class CoreStream<T = any> extends EventEmitter {
       if (!id || !lifetime) {
         throw Error("bug -- id and lifetime must be defined");
       }
-      this.renewLoopParams = { id, lifetime, user: this.user };
+      this.renewLoopParams = {
+        id,
+        lifetime,
+        user: this.user,
+        storage: this.storage,
+      };
       this.startRenewLoop();
       //console.log("got persistent stream", { id });
       this.persistStream = stream;
