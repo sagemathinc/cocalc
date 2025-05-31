@@ -46,6 +46,7 @@ import { type DKV } from "./sync";
 import { type ConatService } from "@cocalc/conat/service";
 import { MultipathWatcher } from "@cocalc/backend/path-watcher";
 import getLogger from "@cocalc/backend/logger";
+import { path_split } from "@cocalc/util/misc";
 
 const logger = getLogger("project:conat:listings");
 
@@ -85,6 +86,10 @@ const impl = {
     return await getListing(path, hidden);
   },
 };
+
+export function isDeleted(filename: string) {
+  return listings?.isDeleted(filename);
+}
 
 class Listings {
   private listings: DKV<Listing>;
@@ -188,6 +193,21 @@ class Listings {
     path = canonicalPath(path);
     this.times.set(path, { ...this.times.get(path), interest: Date.now() });
     this.updateListing(path);
+  };
+
+  isDeleted = (filename: string): boolean | undefined => {
+    if (this.listings == null) {
+      return undefined;
+    }
+    const { head: path, tail } = path_split(filename);
+    const listing = this.listings.get(path);
+    if (listing == null) {
+      return undefined;
+    }
+    if (listing.deleted?.includes(tail)) {
+      return true;
+    }
+    return false;
   };
 }
 

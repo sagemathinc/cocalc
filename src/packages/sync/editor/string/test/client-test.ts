@@ -9,7 +9,6 @@ Minimal client class that we use for testing.
 
 import { EventEmitter } from "events";
 import { bind_methods, keys } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
@@ -155,17 +154,6 @@ export class Client extends EventEmitter implements Client0 {
   }
 
   public set_deleted(_filename: string, _project_id?: string): void {}
-
-  async synctable_project(
-    _project_id: string,
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ): Promise<SyncTable> {
-    const s = new SyncTable(query, options, this, throttle_changes);
-    await once(s, "connected");
-    return s;
-  }
 
   async synctable_database(
     _query: any,

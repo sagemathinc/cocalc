@@ -31,7 +31,7 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
-import { callback2, once } from "@cocalc/util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
@@ -44,9 +44,6 @@ import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as sage_session from "./sage_session";
-import { getListingsTable } from "@cocalc/project/sync/listings";
-import { get_synctable } from "./sync/open-synctables";
-import { get_syncdoc } from "./sync/sync-doc";
 import synctable_conat from "@cocalc/project/conat/synctable";
 import pubsub from "@cocalc/project/conat/pubsub";
 import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
@@ -57,6 +54,8 @@ import {
   type CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { connectToConat } from "./conat/connection";
+import { getSyncDoc } from "@cocalc/project/conat/open-files";
+import { isDeleted } from "@cocalc/project/conat/listings";
 
 const winston = getLogger("client");
 
@@ -500,24 +499,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
-  // We leave in the project_id for consistency with the browser UI.
-  // And maybe someday we'll have tables managed across projects (?).
-  public async synctable_project(_project_id: string, query, _options) {
-    // TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
-    // Also, options are ignored -- since we use whatever was selected by the frontend.
-    const the_synctable = await get_synctable(query, this);
-    // To provide same API, must also wait until done initializing.
-    if (the_synctable.get_state() !== "connected") {
-      await once(the_synctable, "connected");
-    }
-    if (the_synctable.get_state() !== "connected") {
-      throw Error(
-        "Bug -- state of synctable must be connected " + JSON.stringify(query),
-      );
-    }
-    return the_synctable;
-  }
-
   conat = async () => await connectToConat();
 
   synctable_conat: ConatSyncTableFunction = async (query, options?) => {
@@ -544,9 +525,9 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   // Get the synchronized doc with the given path.  Returns undefined
   // if currently no such sync-doc.
-  public syncdoc({ path }: { path: string }): SyncDoc | undefined {
-    return get_syncdoc(path);
-  }
+  syncdoc = ({ path }: { path: string }): SyncDoc | undefined => {
+    return getSyncDoc(path);
+  };
 
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -652,16 +633,18 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // Return true if the file was explicitly deleted.
   // Returns unknown if don't know
   // Returns false if definitely not.
-  public is_deleted(filename: string, _project_id: string) {
-    return !!getListingsTable()?.isDeleted(filename);
+  public is_deleted(
+    filename: string,
+    _project_id: string,
+  ): boolean | undefined {
+    return isDeleted(filename);
   }
 
   public async set_deleted(
-    filename: string,
+    _filename: string,
     _project_id?: string,
   ): Promise<void> {
-    // project_id is ignored
-    const listings = getListingsTable();
-    return await listings?.setDeleted(filename);
+    // DEPRECATED
+    this.dbg("set_deleted: DEPRECATED");
   }
 }

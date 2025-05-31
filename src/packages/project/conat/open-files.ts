@@ -130,6 +130,14 @@ const openDocs: { [path: string]: SyncDoc | ConatService } = {};
 let computeServers: ComputeServerManager | null = null;
 const openTimes: { [path: string]: number } = {};
 
+export function getSyncDoc(path: string): SyncDoc | undefined {
+  const doc = openDocs[path];
+  if (doc instanceof SyncString || doc instanceof SyncDB) {
+    return doc;
+  }
+  return undefined;
+}
+
 export async function init() {
   logger.debug("init");
 

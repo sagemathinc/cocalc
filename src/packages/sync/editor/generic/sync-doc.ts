@@ -94,7 +94,6 @@ import {
   hash_string,
   keys,
   minutes_ago,
-  uuid,
 } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
@@ -174,9 +173,6 @@ export class SyncDoc extends EventEmitter {
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
-
-  // This id is used for equality test and caching.
-  private id: string = uuid();
 
   private client: Client;
   private _from_str: (str: string) => Document; // creates a doc from a string.
@@ -1360,15 +1356,6 @@ export class SyncDoc extends EventEmitter {
       });
     } else {
       switch (this.data_server) {
-        case "project":
-          synctable = await this.client.synctable_project(
-            this.project_id,
-            query,
-            options,
-            throttle_changes,
-            this.id,
-          );
-          break;
         case "database":
           if (this.client.synctable_database == null) {
             throw Error("database server not supported by project");
