@@ -27,16 +27,10 @@ export const MAX_CHANGEFEEDS_PER_SERVER = parseInt(
 
 const logger = getLogger("changefeed:server");
 
-export const SUBJECT = process.env.COCALC_TEST_MODE
-  ? "changefeeds-test"
-  : "changefeeds";
+export const SUBJECT = "changefeeds";
 
 export function changefeedSubject({ account_id }: { account_id: string }) {
   return `${SUBJECT}.account-${account_id}.api`;
-}
-
-export function renewSubject({ account_id }: { account_id: string }) {
-  return `${SUBJECT}.account-${account_id}.renew`;
 }
 
 function getUserId(subject: string): string {
@@ -64,45 +58,15 @@ export async function init(db) {
     SUBJECT,
   });
   changefeedService(db);
-  renewService();
 }
 
 async function changefeedService(db) {
   const cn = await conat();
-  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "q" });
+  sub = await cn.subscribe(`${SUBJECT}.*.api`, { sticky: true });
   try {
     await listen(db);
   } catch (err) {
     logger.debug(`WARNING: exiting changefeed service -- ${err}`);
-  }
-}
-
-let renew: Subscription | null = null;
-async function renewService() {
-  const cn  = await conat();
-  renew = await cn.subscribe(`${SUBJECT}.*.renew`);
-  try {
-    await listenRenew();
-  } catch (err) {
-    logger.debug(`WARNING: exiting renewService error -- ${err}`);
-  }
-}
-
-async function listenRenew() {
-  if (renew == null) {
-    throw Error("must call init first");
-  }
-  for await (const mesg of renew) {
-    if (terminated) {
-      return;
-    }
-    (async () => {
-      try {
-        await handleRenew(mesg);
-      } catch (err) {
-        logger.debug(`WARNING -- issue handling a renew message -- ${err}`);
-      }
-    })();
   }
 }
 
@@ -125,29 +89,11 @@ function getLifetime({ lifetime }): number {
   return lifetime;
 }
 
-async function handleRenew(mesg) {
-  const request = mesg.data;
-  if (!request) {
-    return;
-  }
-  let { id } = request;
-  if (endOfLife[id]) {
-    // it's ours so we respond
-    const lifetime = getLifetime(request);
-    endOfLife[id] = Date.now() + lifetime;
-    mesg.respond({ status: "ok" });
-  }
-}
-
 export async function terminate() {
   terminated = true;
   if (sub != null) {
     sub.drain();
     sub = null;
-  }
-  if (renew != null) {
-    renew.drain();
-    renew = null;
   }
 }
 
@@ -179,7 +125,25 @@ function metrics() {
 
 async function handleMessage(mesg, db) {
   const request = mesg.data;
+  if (request?.cmd == "renew") {
+    let { id } = request;
+    if (endOfLife[id]) {
+      const lifetime = getLifetime(request);
+      endOfLife[id] = Date.now() + lifetime;
+      mesg.respond({ status: "ok" });
+    } else {
+      mesg.respond({ error: `renew: unknown id='${id}'` });
+    }
+    return;
+  } else if (request?.cmd != "changefeed") {
+    mesg.respond({ error: `unknown command '${request?.cmd}'` });
+    return;
+  }
+
+  // reset of this function is handling a full changefeed
+
   const account_id = getUserId(mesg.subject);
+
   const id = uuid();
 
   let seq = 0;
@@ -302,3 +266,4 @@ async function handleMessage(mesg, db) {
     }
   }
 }
+
