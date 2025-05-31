@@ -251,7 +251,8 @@ async function handleMessage(mesg, db) {
     // send the id first
     respond(undefined, { id, lifetime });
     db().user_query({
-      ...request,
+      query: request.query,
+      options: request.options,
       account_id,
       changes: id,
       cb: respond,
@@ -266,4 +267,3 @@ async function handleMessage(mesg, db) {
     }
   }
 }
-
