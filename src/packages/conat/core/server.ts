@@ -31,7 +31,6 @@ Or from cocalc/src
 
 import type { ServerConnectionStats, ServerInfo } from "./types";
 import {
-  matchesPattern,
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
@@ -45,6 +44,7 @@ import {
   MAX_SUBSCRIPTIONS_PER_CLIENT,
 } from "./constants";
 import { randomId } from "@cocalc/conat/names";
+import { Patterns } from "./patterns";
 
 const DEBUG = false;
 
@@ -84,8 +84,7 @@ export class ConatServer {
   public readonly io;
   public readonly id: string;
   private readonly logger: (...args) => void;
-  private interest: { [subject: string]: { [queue: string]: Set<string> } } =
-    {};
+  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
@@ -252,19 +251,19 @@ export class ConatServer {
     queue,
     room,
   }: InterestUpdate) => {
+    const groups = this.interest.get(subject);
     if (op == "add") {
       if (typeof queue != "string") {
         throw Error("queue must not be null for add");
       }
-      if (this.interest[subject] == null) {
-        this.interest[subject] = { [queue]: new Set([room]) };
-      } else if (this.interest[subject][queue] == null) {
-        this.interest[subject][queue] = new Set([room]);
+      if (groups === undefined) {
+        this.interest.set(subject, { [queue]: new Set([room]) });
+      } else if (groups[queue] == null) {
+        groups[queue] = new Set([room]);
       } else {
-        this.interest[subject][queue].add(room);
+        groups[queue].add(room);
       }
     } else if (op == "delete") {
-      const groups = this.interest[subject];
       if (groups != null) {
         let nonempty = false;
         for (const queue in groups) {
@@ -277,7 +276,7 @@ export class ConatServer {
         }
         if (!nonempty) {
           // no interest anymore
-          delete this.interest[subject];
+          this.interest.delete(subject);
         }
       }
     } else {
@@ -343,14 +342,8 @@ export class ConatServer {
       });
     }
     let count = 0;
-    for (const pattern in this.interest) {
-      if (!matchesPattern({ pattern, subject })) {
-        continue;
-      }
-      const g = this.interest[pattern];
-      if (g === undefined) {
-        continue;
-      }
+    for (const pattern of this.interest.matches(subject)) {
+      const g = this.interest.get(pattern)!;
       if (DEBUG) {
         this.log("publishing", { subject, data, g });
       }
