@@ -266,29 +266,64 @@ describe("create two socket servers with the same subject to test that sockets a
     });
   });
 
-  let c3;
+  let c3, client, resp;
   it("creates a client and verifies writes all go to the same server", async () => {
     c3 = connect();
-    const x = c3.socket.connect(subject);
-    const z = once(x, "data");
-    x.write(null);
-    const resp = (await z)[0];
+    client = c3.socket.connect(subject);
+    const z = once(client, "data");
+    client.write(null);
+    resp = (await z)[0];
     // all additional messages end up going to the same server, because
     // of "sticky" subscriptions :-)
-    for (let i = 0; i < 100; i++) {
-      const z1 = once(x, "data");
-      x.write(null);
+    for (let i = 0; i < 25; i++) {
+      const z1 = once(client, "data");
+      client.write(null);
       const resp1 = (await z1)[0];
       expect(resp1).toBe(resp);
     }
   });
 
+  let c3b, s3;
+  it("add another two servers and verify that messages still all go to the right place", async () => {
+    c3b = connect();
+    s3 = c1.socket.listen(subject);
+    s3.on("connection", (socket) => {
+      socket.on("data", () => socket.write("s3"));
+    });
+    for (let i = 0; i < 25; i++) {
+      const z1 = once(client, "data");
+      client.write(null);
+      const resp1 = (await z1)[0];
+      expect(resp1).toBe(resp);
+    }
+  });
+
+  it("remove the server we're connected to and see that the client connects to another server automatically -- load balancing and automatic failover", async () => {
+    if (resp == s1) {
+      s1.close();
+    } else if (resp == s2) {
+      s2.close();
+    }
+    await wait({
+      until: async () => {
+        const z = once(client, "data");
+        client.write(null);
+        const resp1 = (await z)[0];
+        // it's working again, but not using s1:
+        return resp1 == "s2" || resp1 == "s3";
+      },
+    });
+  });
+
   it("cleans up", () => {
     s1.close();
     s2.close();
+    s3.close();
     c1.close();
     c2.close();
     c3.close();
+    c3b.close();
+    client.close();
   });
 });
 

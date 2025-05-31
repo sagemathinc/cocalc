@@ -25,12 +25,17 @@ immediately notified.
 
 Of course you can also send arbitrary messages over the socket.
 
-A key thing is that we also use a *sticky* subscription on
-the server's side.  This means you can have several distinct
-socket servers for the same subject, and connection will
-get distributed between them, but once created will persist
-in the expected way (i.e., the socket connects with exactly
-one choice of server).
+LOAD BALANCING AND AUTOMATIC FAILOVER:
+
+We use a *sticky* subscription on the server's side.  This means 
+you can have several distinct socket servers for the same subject,
+and connection will get distributed between them, but once a connection
+is created, it will persist in the expected way (i.e., the socket 
+connects with exactly one choice of server).  You can dynamically 
+add and remove servers at any time.  You get stateful automatic
+load balancing and automatic across all of them.
+
+UNIT TESTS:
 
 For unit tests, see
 
@@ -83,18 +88,6 @@ export function getSubjectSocketConnection(
 
 function getKey({ subject, role, id }: SubjectSocketOptions) {
   return JSON.stringify([subject, role, id]);
-}
-
-function getSubjects({ subject, id }) {
-  const subjects = {
-    // server =  a server spark listens on server and client
-    //           publishes to server with their id
-    server: `${subject}.server.${id}`,
-    // client =  client connection listens on this and
-    //           server spark writes to it
-    client: `${subject}.client.${id}`,
-  };
-  return subjects;
 }
 
 type State = "connecting" | "ready" | "closed";
