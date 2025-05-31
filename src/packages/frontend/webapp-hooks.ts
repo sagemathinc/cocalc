@@ -35,7 +35,7 @@ export function init() {
     setRememberMe(appBasePath);
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
-    console.log(`Signed into ${mesg.hub} at ${new Date()}`);
+    console.log(`Signed into conat server ${mesg.hub} at ${new Date()}`);
     if (first_login) {
       first_login = false;
       if (!should_load_target_url()) {

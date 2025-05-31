@@ -148,15 +148,16 @@ export class ConatClient extends EventEmitter {
       account_id: this.client.account_id,
       conat: async () => this.conat(),
       reconnect: this.reconnect,
-      getLogger: DEBUG
-        ? (name) => {
-            return {
-              info: (...args) => console.info(name, ...args),
-              debug: (...args) => console.log(name, ...args),
-              warn: (...args) => console.warn(name, ...args),
-            };
-          }
-        : undefined,
+      getLogger:
+        false && DEBUG
+          ? (name) => {
+              return {
+                info: (...args) => console.info(name, ...args),
+                debug: (...args) => console.log(name, ...args),
+                warn: (...args) => console.warn(name, ...args),
+              };
+            }
+          : undefined,
     });
     this.clientWithState = getClientWithState();
     this.clientWithState.on("state", (state) => {
@@ -170,7 +171,7 @@ export class ConatClient extends EventEmitter {
       await once(client.conn as any, "info");
     }
     if (client.info?.user?.account_id) {
-      console.log("Signed in -- ", client.info);
+      console.log("Connected ", client.info);
       this.signedIn({
         account_id: client.info.user.account_id,
         hub: client.info.id,
@@ -468,7 +469,6 @@ export class ConatClient extends EventEmitter {
     }
     return inv;
   };
-
 
   refCacheInfo = () => refCacheInfo();
 }
