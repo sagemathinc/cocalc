@@ -371,7 +371,6 @@ export class ConatClient extends EventEmitter {
     if (channel) {
       subject += "." + channel;
     }
-    console.log("primus", { subject });
     return this.conat().socket.connect(subject);
   };
 
