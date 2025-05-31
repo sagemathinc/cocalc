@@ -43,7 +43,11 @@ export const ConnectionInfo: React.FC = React.memo(() => {
           <Icon name="wifi" style={{ marginRight: "1em" }} />{" "}
           {intl.formatMessage(labels.connection)}
           <div style={{ flex: 1 }} />
-          <Button onClick={webapp_client.conat_client.reconnect}>
+          <Button
+            onClick={() => {
+              webapp_client.conat_client.reconnect();
+            }}
+          >
             <Icon name="repeat" spin={status === "connecting"} />{" "}
             {intl.formatMessage(labels.reconnect)}
           </Button>
