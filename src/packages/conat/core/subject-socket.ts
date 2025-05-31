@@ -13,6 +13,8 @@ import { EventEmitter } from "events";
 import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 
+const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
+
 export type Role = "client" | "server";
 
 // clients send a heartbeat to the server this frequently.
@@ -185,20 +187,20 @@ export class SubjectSocket extends EventEmitter {
       //console.log("got ", { data: mesg.data });
       const data = mesg.data;
       if (data?.cmd == "ping") {
-        const spark = this.sockets[data.id];
-        if (spark != null) {
-          spark.lastPing = Date.now();
+        const socket = this.sockets[data.id];
+        if (socket != null) {
+          socket.lastPing = Date.now();
           mesg.respond("pong");
         } else {
           mesg.respond("dead");
         }
       } else if (data?.cmd == "connect") {
-        const spark = new Socket({
+        const socket = new Socket({
           subjectSocket: this,
           id: data.id,
         });
-        this.sockets[data.id] = spark;
-        this.emit("connection", spark);
+        this.sockets[data.id] = socket;
+        this.emit("connection", socket);
         mesg.respond({ status: "ok" });
       } else if (data?.cmd == "close") {
         this.sockets[data.id].close();
@@ -213,9 +215,9 @@ export class SubjectSocket extends EventEmitter {
   private deleteSockets = async () => {
     while (this.state != "closed") {
       for (const id in this.sockets) {
-        const spark = this.sockets[id];
-        if (Date.now() - spark.lastPing > HEARBEAT_INTERVAL * 2.5) {
-          spark.destroy();
+        const socket = this.sockets[id];
+        if (Date.now() - socket.lastPing > HEARBEAT_INTERVAL * 2.5) {
+          socket.destroy();
         }
       }
       await delay(HEARBEAT_INTERVAL);
@@ -284,6 +286,10 @@ export class SubjectSocket extends EventEmitter {
     this.subs.push(sub);
     this.setState("ready");
     for await (const mesg of sub) {
+      if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
+        this.reconnect();
+        return;
+      }
       // log("got data");
       this.emit("data", mesg.data);
     }
@@ -384,6 +390,9 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
+    this.subjectSocket.client.publishSync(this.subjects.client, null, {
+      headers: { [SOCKET_HEADER_CMD]: "close" },
+    });
     this.queuedWrites = [];
     this.setState("closed");
     this.removeAllListeners();

@@ -2,7 +2,7 @@
 pnpm test ./primus.test.ts
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
 
 beforeAll(before);
@@ -189,6 +189,64 @@ describe("test having two clients and see that communication is independent and 
     cn1.close();
     cn2.close();
     cn3.close();
+  });
+});
+
+describe("create a server and client. Disconnect the client and see from the server point of view that it disconnected.", () => {
+  let server, cn1;
+
+  it("creates the server", () => {
+    cn1 = connect();
+    server = cn1.socket.listen("subject");
+    server.on("connection", (socket) => {
+      socket.on("data", () => {
+        socket.write(`clients=${Object.keys(server.sockets).length}`);
+      });
+    });
+    expect(Object.keys(server.sockets).length).toBe(0);
+  });
+
+  let client;
+  it("connects with a client", async () => {
+    cn1 = connect();
+    client = cn1.socket.connect("subject");
+    const r = once(client, "data");
+    client.write("hello");
+    expect((await r)[0]).toBe("clients=1");
+  });
+
+  it("disconnects and sees the count of clients goes back to 0", async () => {
+    client.close();
+    await wait({
+      until: () => {
+        return Object.keys(server.sockets).length == 0;
+      },
+    });
+  });
+
+  it("creates a new client, connects to server, then closes the server and the client sees that it is no longer connected. Opening new server on same subject and it connects again.", async () => {
+    client = cn1.socket.connect("subject");
+    // confirm working:
+    client.write("hello");
+    const r = once(client, "data");
+    client.write("hello");
+    expect((await r)[0]).toBe("clients=1");
+
+    expect(client.state).toBe("ready");
+    // now close server and wait for state to quickly automatically
+    // switch to not ready anymore
+    const t0 = Date.now();
+    server.close();
+    await wait({
+      until: () => client.state != "ready",
+    });
+    expect(Date.now() - t0).toBeLessThan(500);
+
+    // Create new  server and it connects
+    server = cn1.socket.listen("subject");
+    await wait({
+      until: () => client.state == "ready",
+    });
   });
 });
 
