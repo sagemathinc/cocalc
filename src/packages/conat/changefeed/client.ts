@@ -16,6 +16,8 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { changefeedSubject } from "./server";
 export { DEFAULT_LIFETIME } from "./server";
 
+const changefeedCount: { [key: string]: number } = {};
+
 export async function* changefeed({
   account_id,
   query,
@@ -38,24 +40,37 @@ export async function* changefeed({
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a valid uuid");
   }
-  const subject = changefeedSubject({ account_id });
+  const key = JSON.stringify({ query, options });
+  changefeedCount[key] = (changefeedCount[key] ?? 0) + 1;
+  console.log("changefeed count", changefeedCount[key], query);
 
-  let lastSeq = -1;
-  const cn = await conat();
-  for await (const mesg of await cn.requestMany(
-    subject,
-    { cmd: "changefeed", query, options, heartbeat, lifetime },
-    { maxWait: maxActualLifetime },
-  )) {
-    const { error, resp, seq } = mesg.data;
-    if (error) {
-      throw Error(error);
+  try {
+    const subject = changefeedSubject({ account_id });
+
+    let lastSeq = -1;
+    const cn = await conat();
+    for await (const mesg of await cn.requestMany(
+      subject,
+      { cmd: "changefeed", query, options, heartbeat, lifetime },
+      {
+        // maxWait = for all messages over the lifetime of the changefeed
+        maxWait: maxActualLifetime,
+        // timeout = for getting the changefeed setup
+        timeout: 7500,
+      },
+    )) {
+      const { error, resp, seq } = mesg.data;
+      if (error) {
+        throw Error(error);
+      }
+      if (lastSeq + 1 != seq) {
+        throw Error("missed response");
+      }
+      lastSeq = seq;
+      yield resp;
     }
-    if (lastSeq + 1 != seq) {
-      throw Error("missed response");
-    }
-    lastSeq = seq;
-    yield resp;
+  } finally {
+    changefeedCount[key] -= 1;
   }
 }
 
@@ -70,7 +85,11 @@ export async function renew({
 }) {
   const subject = changefeedSubject({ account_id });
   const cn = await conat();
-  const resp = await cn.request(subject, { cmd: "renew", id, lifetime });
+  const resp = await cn.request(
+    subject,
+    { cmd: "renew", id, lifetime },
+    { timeout: 7500 },
+  );
   const x = resp.data;
   if (x?.error) {
     throw Error(x.error);

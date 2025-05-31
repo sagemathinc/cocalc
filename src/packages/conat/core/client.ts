@@ -261,6 +261,7 @@ export type ClientOptions = Options & {
 const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CN-Reply";
 const DEFAULT_REQUEST_TIMEOUT = 10000;
+const DEFAULT_PUBLISH_TIMEOUT = 7500;
 const MAX_HEADER_SIZE = 100000;
 
 export enum DataEncoding {
@@ -813,7 +814,7 @@ export class Client {
       raw,
       encoding = DEFAULT_ENCODING,
       confirm,
-      timeout,
+      timeout = DEFAULT_PUBLISH_TIMEOUT,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
     if (this.options == null) {
@@ -942,7 +943,7 @@ export class Client {
   // to your inbox.    Similarly if you set a maxWait, the
   // subscription just ends at that point, but the server
   // sending messages doesn't know.  This is a shortcoming the
-  // pub/sub model...
+  // pub/sub model.
   async requestMany(
     subject: string,
     mesg: any,
@@ -971,6 +972,7 @@ export class Client {
       map: (args) => args[0],
     });
     const { count } = await this.publish(subject, mesg, {
+      ...options,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     });
     if (!count) {
