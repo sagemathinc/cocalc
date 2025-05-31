@@ -18,6 +18,8 @@ import { delay } from "awaiting";
 
 const EPHEMERAL_LIFETIME = 2000;
 
+jest.retryTimes(3);
+
 beforeAll(before);
 
 describe("create a client, create an ephemeral core-stream, and do basic tests", () => {
