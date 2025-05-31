@@ -97,33 +97,6 @@ export default class API implements API_Interface {
     return this.conn.channel(channel_name);
   }
 
-  // Get the sync *channel* for the given SyncTable project query.
-  async synctable_channel(
-    query: { [field: string]: any },
-    options: { [field: string]: any }[],
-  ): Promise<Channel> {
-    const channel_name = await this.call(
-      {
-        cmd: "synctable_channel",
-        query,
-        options,
-      },
-      10000,
-    );
-    // console.log("synctable_channel", query, options, channel_name);
-    return this.conn.channel(channel_name);
-  }
-
-  // Command-response API for synctables.
-  //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
-  async syncdoc_call(
-    path: string,
-    mesg: { [field: string]: any },
-    timeout_ms: number = 30000, // ms timeout for call
-  ): Promise<any> {
-    return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
-  }
-
   async query(opts: any): Promise<any> {
     if (opts.timeout == null) {
       opts.timeout = 30000;

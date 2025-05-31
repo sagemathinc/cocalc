@@ -29,7 +29,6 @@ import type {
   Mesg,
   NbconvertParams,
 } from "@cocalc/comm/websocket/types";
-import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import type {
@@ -44,18 +43,12 @@ const log = (...args) => {
 };
 
 export class API {
-  private conn;
   private project_id: string;
-  private cachedVersion?: number;
   private apiCache: { [key: string]: ProjectApi } = {};
 
-  constructor(conn, project_id: string) {
+  constructor(project_id: string) {
     this.project_id = project_id;
     this.listing = reuseInFlight(this.listing.bind(this));
-    this.conn = conn;
-    this.conn.on("end", () => {
-      delete this.cachedVersion;
-    });
   }
 
   private getApi = ({
@@ -78,11 +71,6 @@ export class API {
       });
     }
     return this.apiCache[key]!;
-  };
-
-  private primusCall = async (mesg: Mesg, timeout: number) => {
-    log("primusCall", { mesg });
-    return await call(this.conn, mesg, timeout);
   };
 
   private _call = async (
@@ -386,33 +374,6 @@ export class API {
     );
     log("x11_channel");
     return this.getChannel(channel_name);
-  };
-
-  // Get the sync *channel* for the given SyncTable project query.
-  synctable_channel = async (
-    query: { [field: string]: any },
-    options: { [field: string]: any }[],
-  ): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "synctable_channel",
-        query,
-        options,
-      },
-      10000,
-    );
-    log("synctable_channel", query, options, channel_name);
-    return this.conn.channel(channel_name);
-  };
-
-  // Command-response API for synctables.
-  //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
-  syncdoc_call = async (
-    path: string,
-    mesg: { [field: string]: any },
-    timeout_ms: number = 30000, // ms timeout for call
-  ): Promise<any> => {
-    return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
   };
 
   // Copying files to/from compute servers:

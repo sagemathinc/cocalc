@@ -19,10 +19,8 @@ import {
   QueryOptions,
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
-import synctable_project from "./synctable-project";
 import type { AppClient } from "./types";
 import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
-// import { refCacheSync } from "@cocalc/util/refcache";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {
   noCache?: boolean;
@@ -71,23 +69,6 @@ export class SyncClient {
       this.client,
       throttle_changes,
     );
-  }
-
-  public async synctable_project(
-    project_id: string,
-    query: Query,
-    options?: QueryOptions,
-    throttle_changes?: number,
-    id: string = "",
-  ): Promise<SyncTable> {
-    return await synctable_project({
-      project_id,
-      query,
-      options: options ?? [],
-      client: this.client,
-      throttle_changes,
-      id,
-    });
   }
 
   // These are not working properly, e.g., if you close and open

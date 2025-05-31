@@ -17,18 +17,6 @@ import { ensure_project_running } from "@cocalc/frontend/project/project-start-w
 import { API } from "@cocalc/frontend/project/websocket/api";
 import { connection_to_project } from "@cocalc/frontend/project/websocket/connect";
 import {
-  ProjectInfo,
-  project_info,
-} from "@cocalc/frontend/project/websocket/project-info";
-import {
-  ProjectStatus,
-  project_status,
-} from "@cocalc/frontend/project/websocket/project-status";
-import {
-  UsageInfoWS,
-  get_usage_info,
-} from "@cocalc/frontend/project/websocket/usage-info";
-import {
   Configuration,
   ConfigurationAspect,
 } from "@cocalc/frontend/project_configuration";
@@ -519,18 +507,6 @@ export class ProjectClient {
       err_on_exit: false,
     });
     return !exit_code && stdout.trim() == "directory";
-  };
-
-  project_info = (project_id: string): ProjectInfo => {
-    return project_info(this.client, project_id);
-  };
-
-  project_status = (project_id: string): ProjectStatus => {
-    return project_status(this.client, project_id);
-  };
-
-  usage_info = (project_id: string): UsageInfoWS => {
-    return get_usage_info(project_id);
   };
 
   ipywidgetsGetBuffer = reuseInFlight(

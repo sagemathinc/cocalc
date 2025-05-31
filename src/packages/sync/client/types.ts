@@ -92,10 +92,6 @@ export interface ProjectWebsocket extends EventEmitter {
 }
 
 export interface API {
-  synctable_channel(
-    query: { [field: string]: any },
-    options: { [field: string]: any }[],
-  ): Promise<Channel>;
   version(): Promise<number>;
 }
 

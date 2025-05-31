@@ -36,8 +36,6 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
 import { cm_options } from "./cm_options";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { parseHeadings } from "./contents";
@@ -68,7 +66,6 @@ export class JupyterActions extends JupyterActions0 {
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
-  private usage_info?: UsageInfoWS;
   private syncdbPath: string;
 
   protected init2(): void {
@@ -80,8 +77,6 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this.initUsageInfo();
-
-    this.usage_info_handler = this.usage_info_handler.bind(this);
 
     const do_set = () => {
       if (this.syncdb == null || this._state === "closed") return;
@@ -156,11 +151,6 @@ export class JupyterActions extends JupyterActions0 {
         // cell notebook that has nothing to do with nbgrader).
         this.nbgrader_actions.update_metadata();
       }
-
-      const usage_info = (this.usage_info = get_usage_info(this.project_id));
-      usage_info.watch(this.path);
-      const key = usage_info.event_key(this.path);
-      usage_info.on(key, this.usage_info_handler);
     });
 
     // Put an entry in the project log once the jupyter notebook gets opened.
@@ -324,17 +314,8 @@ export class JupyterActions extends JupyterActions0 {
     await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
-  private usage_info_handler(usage: ImmutableUsageInfo): void {
-    // console.log("jupyter usage", this.path, "→", usage?.toJS());
-    this.setState({ kernel_usage: usage });
-  }
-
   public async close(): Promise<void> {
     if (this.is_closed()) return;
-    if (this.usage_info != null) {
-      const key = this.usage_info.event_key(this.path);
-      this.usage_info.off(key, this.usage_info_handler);
-    }
     await super.close();
   }
 

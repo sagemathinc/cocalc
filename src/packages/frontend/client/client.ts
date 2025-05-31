@@ -241,9 +241,6 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_database = this.sync_client.synctable_database.bind(
       this.sync_client,
     );
-    this.synctable_project = this.sync_client.synctable_project.bind(
-      this.sync_client,
-    );
     this.synctable_conat = this.conat_client.synctable;
     this.pubsub_conat = this.conat_client.pubsub;
     this.callConatService = this.conat_client.callConatService;

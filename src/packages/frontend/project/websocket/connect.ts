@@ -22,7 +22,7 @@ class FakeConn extends EventEmitter {
   public api: API;
   constructor(project_id) {
     super();
-    this.api = new API(this, project_id);
+    this.api = new API(project_id);
     set_project_websocket_state(project_id, "online");
   }
   destroy = () => {};

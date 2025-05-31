@@ -142,18 +142,6 @@ interface MesgX11Channel {
   display: number;
 }
 
-interface MesgSynctableChannel {
-  cmd: "synctable_channel";
-  query: any;
-  options: any[];
-}
-
-interface MesgSyncdocCall {
-  cmd: "syncdoc_call";
-  path: string;
-  mesg: any;
-}
-
 interface MesgRealpath {
   cmd: "realpath";
   path: string;
@@ -249,8 +237,6 @@ export type Mesg =
   | MesgLeanChannel
   | MesgQuery
   | MesgX11Channel
-  | MesgSynctableChannel
-  | MesgSyncdocCall
   | MesgRealpath
   | MesgNBGrader
   | MesgJupyterNbconvert

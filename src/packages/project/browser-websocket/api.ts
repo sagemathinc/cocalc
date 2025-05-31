@@ -20,8 +20,6 @@ import { run_formatter, run_formatter_string } from "../formatters";
 import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
-import { synctable_channel } from "../sync/server";
-import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
@@ -167,17 +165,6 @@ export async function handleApiCall({
 
     case "x11_channel":
       return await x11_channel(client, primus, log, data.path, data.display);
-
-    case "synctable_channel":
-      return await synctable_channel(
-        client,
-        primus,
-        log,
-        data.query,
-        data.options,
-      );
-    case "syncdoc_call":
-      return await syncdoc_call(data.path, data.mesg);
 
     // compute server
 
