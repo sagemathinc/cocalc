@@ -67,6 +67,10 @@
     "@types/debug": "^4.1.12",
     "@uiw/react-textarea-code-editor": "^2.1.1",
     "@use-gesture/react": "^10.2.24",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0",
     "@zippytech/react-notify-resize": "^4.0.4",
     "anser": "^2.1.1",
     "antd": "^5.24.7",
@@ -169,10 +173,6 @@
     "utility-types": "^3.10.0",
     "video-extensions": "^1.2.0",
     "xss": "^1.0.11",
-    "xterm": "5.0.0",
-    "xterm-addon-fit": "^0.6.0",
-    "xterm-addon-web-links": "^0.7.0",
-    "xterm-addon-webgl": "^0.13.0",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {

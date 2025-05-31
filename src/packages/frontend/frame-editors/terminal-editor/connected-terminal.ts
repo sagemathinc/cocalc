@@ -14,11 +14,11 @@ extra support for being connected to:
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
-import { Terminal as XTerminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { WebglAddon } from "xterm-addon-webgl";
-import "xterm/css/xterm.css";
+import { Terminal as XTerminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
+import "@xterm/xterm/css/xterm.css";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
@@ -49,7 +49,7 @@ const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 const MAX_DELAY = 10000;
 
 // See https://github.com/sagemathinc/cocalc/issues/8330
-const ENABLE_WEBGL = false;
+const ENABLE_WEBGL = true;
 
 interface Path {
   file?: string;
