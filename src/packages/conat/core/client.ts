@@ -234,6 +234,7 @@ import {
   type ConatSyncTable,
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
+export const STICKY_QUEUE_GROUP = "sticky";
 
 const logger = getLogger("core/client");
 
@@ -271,7 +272,13 @@ interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
   queue?: string;
+  // ephemeral: the instant there are no matching actively connected subscribers,
+  // senders get a 503 error; this is very good for services, but bad for clients.
   ephemeral?: boolean;
+  // sticky: when a choice from a queue group is made, the same choice is always made
+  // in the future for any messages with the same subject, until the target goes away.
+  // Setting this just sets the queue option to STICKY_QUEUE_GROUP.
+  sticky?: boolean;
   respond?: Function;
   timeout?: number;
 }
@@ -500,6 +507,7 @@ export class Client {
     {
       closeWhenOffCalled,
       queue,
+      sticky,
       confirm,
       ephemeral,
       timeout,
@@ -511,6 +519,9 @@ export class Client {
 
       // the queue group -- if not given, then one is randomly assigned.
       queue?: string;
+
+      // if true, sets queue to "sticky"
+      sticky?: boolean;
 
       // confirm -- get confirmation back from server that subscription was created
       confirm?: boolean;
@@ -544,6 +555,12 @@ export class Client {
       const message = this.permissionError.sub.get(subject)!;
       logger.debug(message);
       throw new ConatError(message, { code: 403 });
+    }
+    if (sticky) {
+      if (queue) {
+        throw Error("must not specify queue group if sticky is true");
+      }
+      queue = STICKY_QUEUE_GROUP;
     }
     let sub = this.subs[subject];
     if (sub != null) {
@@ -633,6 +650,7 @@ export class Client {
     const { sub } = this.subscriptionEmitter(subject, {
       confirm: false,
       closeWhenOffCalled: true,
+      sticky: opts?.sticky,
       queue: opts?.queue,
       ephemeral: opts?.ephemeral,
     });
@@ -647,6 +665,7 @@ export class Client {
       confirm: true,
       closeWhenOffCalled: true,
       queue: opts?.queue,
+      sticky: opts?.sticky,
       ephemeral: opts?.ephemeral,
       timeout: opts?.timeout,
     });
@@ -971,7 +990,7 @@ export class Client {
   watch = (
     subject: string,
     cb = (x) => console.log(`${new Date()}: ${x.subject}:`, x.data, x.headers),
-    opts?,
+    opts?: SubscriptionOptions,
   ) => {
     const sub = this.subscribeSync(subject, opts);
     const f = async () => {

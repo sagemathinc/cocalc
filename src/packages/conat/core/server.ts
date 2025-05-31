@@ -37,7 +37,13 @@ import {
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { delay } from "awaiting";
-import { ConatError, connect, type Client, type ClientOptions } from "./client";
+import {
+  ConatError,
+  connect,
+  type Client,
+  type ClientOptions,
+  STICKY_QUEUE_GROUP,
+} from "./client";
 import {
   MAX_PAYLOAD,
   MAX_DISCONNECTION_DURATION,
@@ -93,7 +99,9 @@ export class ConatServer {
 
   private sockets: { [id: string]: any } = {};
   // which subscriptions are ephemeral:
-  private ephemeral: { [id: string]: Set<string> } = {};
+  private ephemeral: {
+    [id: string]: Set<string>;
+  } = {};
   private stats: { [id: string]: ServerConnectionStats } = {};
   private disconnectingTimeout: {
     [id: string]: ReturnType<typeof setTimeout>;
@@ -163,6 +171,7 @@ export class ConatServer {
     this.io.on("connection", this.handleSocket);
     if (this.valkey != null) {
       this.initInterestSubscription();
+      this.initStickySubscription();
     }
   };
 
@@ -199,7 +208,7 @@ export class ConatServer {
       throw Error("valkey not defined");
     }
     // [ ] TODO: we need to limit the size of the stream and/or
-    // timeeout interest and/or reconcile it periodically with
+    // timeout interest and/or reconcile it periodically with
     // actual connected users to avoid the interest object
     // getting too big for now reason.  E.g, maybe all subscriptions
     // need to be renewed periodically
@@ -232,7 +241,40 @@ export class ConatServer {
     }
   };
 
+  private initStickySubscription = async () => {
+    if (this.valkey == null) {
+      throw Error("valkey not defined");
+    }
+    let lastId = "0";
+    let d = 50;
+    while (true) {
+      const results = await this.valkey.sub.xread(
+        "block" as any,
+        0,
+        "STREAMS",
+        "sticky",
+        lastId,
+      );
+      // console.log("got ", results);
+      if (results == null) {
+        d = Math.min(1000, d * 1.2);
+        await delay(d);
+        continue;
+      } else {
+        d = 50;
+      }
+      const [_, messages] = results[0];
+      for (const message of messages) {
+        const update = JSON.parse(message[1][1]);
+        this._updateSticky(update);
+      }
+      lastId = messages[messages.length - 1][0];
+      // console.log({ lastId });
+    }
+  };
+
   private updateInterest = async (update: InterestUpdate) => {
+    this._updateInterest(update);
     if (this.valkey != null) {
       // publish interest change to valkey.
       await this.valkey.pub.xadd(
@@ -242,15 +284,9 @@ export class ConatServer {
         JSON.stringify(update),
       );
     }
-    this._updateInterest(update);
   };
 
-  private _updateInterest = async ({
-    op,
-    subject,
-    queue,
-    room,
-  }: InterestUpdate) => {
+  private _updateInterest = ({ op, subject, queue, room }: InterestUpdate) => {
     const groups = this.interest.get(subject);
     if (op == "add") {
       if (typeof queue != "string") {
@@ -277,11 +313,48 @@ export class ConatServer {
         if (!nonempty) {
           // no interest anymore
           this.interest.delete(subject);
+          delete this.sticky[subject];
         }
       }
     } else {
       throw Error(`invalid op ${op}`);
     }
+  };
+
+  private updateSticky = async (update: {
+    pattern: string;
+    subject: string;
+    target: string;
+  }) => {
+    this._updateSticky(update);
+    if (this.valkey != null) {
+      // publish interest change to valkey.
+      await this.valkey.pub.xadd(
+        "sticky",
+        "*",
+        "update",
+        JSON.stringify(update),
+      );
+    }
+  };
+
+  private getStickyTarget = ({ pattern, subject }) => {
+    return this.sticky[pattern]?.[subject];
+  };
+
+  private _updateSticky = ({
+    pattern,
+    subject,
+    target,
+  }: {
+    pattern: string;
+    subject: string;
+    target: string;
+  }) => {
+    if (this.sticky[pattern] === undefined) {
+      this.sticky[pattern] = {};
+    }
+    this.sticky[pattern][subject] = target;
   };
 
   private subscribe = async ({ socket, subject, queue, ephemeral, user }) => {
@@ -349,14 +422,47 @@ export class ConatServer {
       }
       // send to exactly one in each queue group
       for (const queue in g) {
-        const choice = randomChoice(g[queue]);
-        if (choice !== undefined) {
-          this.io.to(choice).emit(pattern, { subject, data });
+        const target = this.loadBalance({
+          pattern,
+          subject,
+          queue,
+          targets: g[queue],
+        });
+        if (target !== undefined) {
+          this.io.to(target).emit(pattern, { subject, data });
           count += 1;
         }
       }
     }
     return count;
+  };
+
+  private sticky: { [subject: string]: any } = {};
+  private loadBalance = ({
+    pattern,
+    subject,
+    queue,
+    targets,
+  }: {
+    pattern: string;
+    subject: string;
+    queue: string;
+    targets: Set<string>;
+  }): string | undefined => {
+    if (targets.size == 0) {
+      return undefined;
+    }
+    if (queue == STICKY_QUEUE_GROUP) {
+      const currentTarget = this.getStickyTarget({ pattern, subject });
+      if (currentTarget === undefined || !targets.has(currentTarget)) {
+        const target = randomChoice(targets);
+        this.updateSticky({ pattern, subject, target });
+        return target;
+      }
+      return currentTarget;
+    } else {
+      return randomChoice(targets)!;
+    }
   };
 
   private handleSocket = async (socket) => {
