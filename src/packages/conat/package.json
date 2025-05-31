@@ -18,8 +18,7 @@
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist node_modules",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
-    "prepublishOnly": "pnpm test",
-    "test": "echo 'see packages/backend/conat/tests instead'"
+    "test": "pnpm exec jest"
   },
   "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
