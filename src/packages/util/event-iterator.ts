@@ -43,6 +43,9 @@ export interface EventIteratorOptions<V> {
    * The limit of events that pass the filter to iterate.
    */
   limit?: number;
+
+  // called when iterator ends -- use to do cleanup.
+  onEnd?: (iter?: EventIterator<V>) => void;
 }
 
 /**
@@ -72,6 +75,8 @@ export class EventIterator<V extends unknown>
    * Whether or not the EventIterator has ended.
    */
   #ended = false;
+
+  private onEnd?: (iter?: EventIterator<V>) => void;
 
   /**
    * The amount of idle time in ms before moving on.
@@ -119,6 +124,7 @@ export class EventIterator<V extends unknown>
     this.#limit = options.limit ?? Infinity;
     this.#idle = options.idle;
     this.filter = options.filter ?? ((): boolean => true);
+    this.onEnd = options.onEnd;
 
     // This timer is to idle out on lack of valid responses
     if (this.#idle) {
@@ -149,7 +155,10 @@ export class EventIterator<V extends unknown>
 
     this.emitter.off(this.event, this.#push);
     const maxListeners = this.emitter.getMaxListeners();
-    if (maxListeners !== 0) this.emitter.setMaxListeners(maxListeners - 1);
+    if (maxListeners !== 0) {
+      this.emitter.setMaxListeners(maxListeners - 1);
+    }
+    this.onEnd?.(this);
   }
   // aliases to match usage in NATS and CoCalc.
   close = this.end;

@@ -67,7 +67,7 @@ The methods you call on the client to build everything are:
    messages in reply.   Typically you end the response stream by sending
    a null message, but what you do is up to you.  This is very useful
    for streaming arbitrarily large data, long running changefeeds, LLM
-   responses, etc.
+   responses, etc. 
 
 
 Messages:  A message mesg is:
@@ -936,7 +936,14 @@ export class Client {
     throw new ConatError("timeout", { code: 408 });
   };
 
-  async *requestMany(
+  // NOTE: Using requestMany returns a Subscription sub, and
+  // you can call sub.close().  However, the sender doesn't
+  // know that this happened and the messages are still going
+  // to your inbox.    Similarly if you set a maxWait, the
+  // subscription just ends at that point, but the server
+  // sending messages doesn't know.  This is a shortcoming the
+  // pub/sub model...
+  async requestMany(
     subject: string,
     mesg: any,
     {
@@ -947,7 +954,7 @@ export class Client {
       maxWait?: number;
       maxMessages?: number;
     } = {},
-  ) {
+  ): Promise<Subscription> {
     if (maxMessages != null && maxMessages <= 0) {
       throw Error("maxMessages must be positive");
     }
@@ -973,17 +980,7 @@ export class Client {
         { code: 503 },
       );
     }
-    let numMessages = 0;
-    for await (const resp of sub) {
-      yield resp;
-      numMessages += 1;
-      if (maxMessages && numMessages >= maxMessages) {
-        sub.end();
-        return;
-      }
-    }
-    sub.end();
-    throw new ConatError("timeout", { code: 408 });
+    return sub;
   }
 
   // watch: this is mainly for debugging and interactive use.
