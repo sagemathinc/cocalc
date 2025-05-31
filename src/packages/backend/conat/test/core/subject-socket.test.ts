@@ -250,4 +250,46 @@ describe("create a server and client. Disconnect the client and see from the ser
   });
 });
 
+describe("create two socket servers with the same subject to test that sockets are sticky", () => {
+  const subject = "sticks";
+  let c1, c2, s1, s2;
+  it("creates two distinct socket servers with the same subject", () => {
+    c1 = connect();
+    c2 = connect();
+    s1 = c1.socket.listen(subject);
+    s1.on("connection", (socket) => {
+      socket.on("data", () => socket.write("s1"));
+    });
+    s2 = c2.socket.listen(subject);
+    s2.on("connection", (socket) => {
+      socket.on("data", () => socket.write("s2"));
+    });
+  });
+
+  let c3;
+  it("creates a client and verifies writes all go to the same server", async () => {
+    c3 = connect();
+    const x = c3.socket.connect(subject);
+    const z = once(x, "data");
+    x.write(null);
+    const resp = (await z)[0];
+    // all additional messages end up going to the same server, because
+    // of "sticky" subscriptions :-)
+    for (let i = 0; i < 100; i++) {
+      const z1 = once(x, "data");
+      x.write(null);
+      const resp1 = (await z1)[0];
+      expect(resp1).toBe(resp);
+    }
+  });
+
+  it("cleans up", () => {
+    s1.close();
+    s2.close();
+    c1.close();
+    c2.close();
+    c3.close();
+  });
+});
+
 afterAll(after);

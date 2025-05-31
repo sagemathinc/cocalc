@@ -857,6 +857,10 @@ export class Client {
       if (confirm) {
         const f = (cb) => {
           const handle = (response) => {
+            if (this.conn.io._readyState == "closed") {
+              // can't do anything at this point.
+              return;
+            }
             if (response?.error) {
               cb(new ConatError(response.error, { code: response.code }));
             } else {

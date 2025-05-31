@@ -169,37 +169,37 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  //   it("disconnect client2 and check service still works on reconnect", async () => {
-  //     // cause a disconnect -- client will connect again in 50ms soon
-  //     // and handle the request below:
-  //     client2.conn.io.engine.close();
-  //     expect(
-  //       await callConatService({
-  //         client: client2,
-  //         service: "double",
-  //         mesg: "hello",
-  //       }),
-  //     ).toBe("hellohello");
-  //   });
+  it("disconnect client2 and check service still works on reconnect", async () => {
+    // cause a disconnect -- client will connect again in 50ms soon
+    // and handle the request below:
+    client2.conn.io.engine.close();
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
 
-  //   it("disconnect both clients and check service still works on reconnect", async () => {
-  //     // cause a disconnect -- client will connect again in 50ms soon
-  //     // and handle the request below:
-  //     client.conn.io.engine.close();
-  //     client2.conn.io.engine.close();
-  //     expect(
-  //       await callConatService({
-  //         client: client2,
-  //         service: "double",
-  //         mesg: "hello",
-  //       }),
-  //     ).toBe("hellohello");
-  //   });
+  it("disconnect both clients and check service still works on reconnect", async () => {
+    // cause a disconnect -- client will connect again in 50ms soon
+    // and handle the request below:
+    client.conn.io.engine.close();
+    client2.conn.io.engine.close();
+    expect(
+      await callConatService({
+        client: client2,
+        service: "double",
+        mesg: "hello",
+      }),
+    ).toBe("hellohello");
+  });
 
   it("kills the server, then makes another server serving on the same port", async () => {
     await server.close();
+    await delay(250);
     server = await initConatServer({ port });
-    //await delay(250);
     // Killing the server is not at all a normal thing to expect, and causes loss of
     // its state.  The clients have to sync realize subscriptions are missing.  This
     // takes a fraction of a second and the call below won't immediately work.

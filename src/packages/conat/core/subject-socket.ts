@@ -1,17 +1,53 @@
 /*
-Implement something that acts like a project-specific websocket from 
-**SubjectSocket**, but using Conat (which is really socket-io through a central
-message broker).
+SUBJECT BASED SOCKETS
+
+In compute networking TCP and Web sockets are a great idea!  They are 
+incredibly useful as an abstraction.   A drawback is that to create
+a socket you need to define a port, ip address and have a client
+and server that are on a common network, so the cliet can connect to 
+the server.  On the other hand, conat's pub/sub model lets you
+instead have all clients/servers connect to a common "fabric"
+and publish and subscribe using subject patterns and subjects.
+This is extremley nice because there's no notion of ip addresses,
+and clients and servers do not have to be directly connected to
+each other.
+
+This module provides an emulation of sockets but on top of the
+conat pub/sub model.  The server and clients agree on a common
+*subject* pattern of the form `${subject}.>` that they both 
+have read/write permissions for.  Then the server listens for 
+new socket connections from clients.  Sockets get setup and
+the server can write to each one, they can write to the server,
+and the server can broadcast to all connected sockets.
+There are heartbeats to keep everything alive. When a client
+or server properly closes a connection, the other side gets
+immediately notified.  
+
+Of course you can also send arbitrary messages over the socket.
+
+A key thing is that we also use a *sticky* subscription on
+the server's side.  This means you can have several distinct
+socket servers for the same subject, and connection will
+get distributed between them, but once created will persist
+in the expected way (i.e., the socket connects with exactly
+one choice of server).
 
 For unit tests, see
 
-    packages/backend/conat/test/subjectSocket.test.ts
+    packages/backend/conat/test/subject-socket.test.ts
+    
+WARNING:
+
+If you create a socket server on with a given subject, then
+it will use `${subject}.server.*` and `${subject}.client.*`, so
+don't use `${subject}.>` for anything else!
 
 */
 
 import { EventEmitter } from "events";
 import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 
@@ -23,6 +59,8 @@ const HEARBEAT_INTERVAL = 60000;
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
 const DEAFULT_MAX_QUEUE_SIZE = 100;
+
+type Command = "connect" | "close" | "ping";
 
 export interface SubjectSocketOptions {
   subject: string;
@@ -49,9 +87,6 @@ function getKey({ subject, role, id }: SubjectSocketOptions) {
 
 function getSubjects({ subject, id }) {
   const subjects = {
-    // control = request/response control; clients tell
-    //           server they are connecting via this (pings, registering)
-    control: `${subject}.control`,
     // server =  a server spark listens on server and client
     //           publishes to server with their id
     server: `${subject}.server.${id}`,
@@ -72,14 +107,13 @@ export class SubjectSocket extends EventEmitter {
   subscribe: string;
   sockets: { [id: string]: Socket } = {};
   subjects: {
-    control: string;
     server: string;
     client: string;
   };
   // this is just for compat with subjectSocket api:
   address = { ip: "" };
   conn: { id: string };
-  subs: Subscription[] = [];
+  sub?: Subscription;
   OPEN = 1;
   CLOSE = 0;
   readyState: 0;
@@ -95,22 +129,12 @@ export class SubjectSocket extends EventEmitter {
     maxQueueSize = DEAFULT_MAX_QUEUE_SIZE,
   }: SubjectSocketOptions) {
     super();
-
-    //     console.log("PRIMUS Creating", {
-    //       subject,
-    //       id,
-    //     });
-
     this.maxQueueSize = maxQueueSize;
     this.subject = subject;
     this.client = client;
     this.role = role;
     this.id = id;
     this.conn = { id };
-    this.subjects = getSubjects({
-      subject,
-      id,
-    });
     this.run();
   }
 
@@ -141,27 +165,45 @@ export class SubjectSocket extends EventEmitter {
     this.emit(state);
   };
 
+  private sendCommandToServer = async (cmd: "close" | "ping" | "connect") => {
+    const headers = {
+      [SOCKET_HEADER_CMD]: cmd,
+      id: this.id,
+    };
+    const subject = `${this.subject}.server.${this.id}`;
+    if (cmd == "close") {
+      this.client.publishSync(subject, null, { headers });
+    } else {
+      const resp = await this.client.request(subject, null, { headers });
+      const value = resp.data;
+      if (value?.error) {
+        throw Error(value?.error);
+      } else {
+        return value;
+      }
+    }
+  };
+
+  private sendDatatoServer = (data) => {
+    const subject = `${this.subject}.server.${this.id}`;
+    this.client.publishSync(subject, data);
+  };
+
   close = () => {
     if (this.state == "closed") {
       return;
     }
     if (this.role == "client") {
-      // tell server we're gone -- faster than it waiting
-      // for heartbeat timeout
-      this.client.publishSync(this.subjects.control, {
-        cmd: "close",
-        id: this.id,
-      });
+      // tell server we're gone
+      this.sendCommandToServer("close");
     }
     this.queuedWrites = [];
     this.setState("closed");
     this.removeAllListeners();
 
     delete connections[getKey(this)];
-    for (const sub of this.subs) {
-      sub.close();
-    }
-    this.subs = [];
+    this.sub?.close();
+    delete this.sub;
     for (const id in this.sockets) {
       this.sockets[id].destroy();
     }
@@ -172,7 +214,6 @@ export class SubjectSocket extends EventEmitter {
 
   end = () => this.close();
   destroy = () => this.close();
-
   connect = () => {};
 
   private runAsServer = async () => {
@@ -180,35 +221,54 @@ export class SubjectSocket extends EventEmitter {
       throw Error("only server can serve");
     }
     this.deleteSockets();
-    const sub = await this.client.subscribe(this.subjects.control);
-    this.subs.push(sub);
+    this.sub = await this.client.subscribe(`${this.subject}.server.*`, {
+      sticky: true,
+      ephemeral: true,
+    });
     this.setState("ready");
-    for await (const mesg of sub) {
-      //console.log("got ", { data: mesg.data });
-      const data = mesg.data;
-      if (data?.cmd == "ping") {
-        const socket = this.sockets[data.id];
-        if (socket != null) {
-          socket.lastPing = Date.now();
-          mesg.respond("pong");
-        } else {
-          mesg.respond("dead");
-        }
-      } else if (data?.cmd == "connect") {
-        const socket = new Socket({
+    for await (const mesg of this.sub) {
+      const id = mesg.subject.split(".").slice(-1)[0];
+      let socket = this.sockets[id];
+      if (socket === undefined) {
+        // new connection
+        socket = new Socket({
           subjectSocket: this,
-          id: data.id,
+          id,
         });
-        this.sockets[data.id] = socket;
+        this.sockets[id] = socket;
         this.emit("connection", socket);
-        mesg.respond({ status: "ok" });
-      } else if (data?.cmd == "close") {
-        this.sockets[data.id].close();
-        delete this.sockets[data.id];
-        // don't bother to respond
-      } else {
-        mesg.respond({ error: `unknown command - ${data?.cmd}` });
       }
+      const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
+      if (cmd !== undefined) {
+        this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
+      } else {
+        // just some incoming data
+        socket.emit("data", mesg.data);
+      }
+    }
+  };
+
+  handleCommandFromClient = ({
+    socket,
+    cmd,
+    mesg,
+  }: {
+    socket: Socket;
+    cmd: Command;
+    mesg;
+  }) => {
+    socket.lastPing = Date.now();
+    if (cmd == "ping") {
+      mesg.respond("pong");
+    } else if (cmd == "close") {
+      const id = socket.id;
+      socket.close();
+      delete this.sockets[id];
+      // do not bother to respond to close
+    } else if (cmd == "connect") {
+      mesg.respond("connected");
+    } else {
+      mesg.respond({ error: `unknown command - '${cmd}'` });
     }
   };
 
@@ -229,10 +289,8 @@ export class SubjectSocket extends EventEmitter {
       return;
     }
     this.setState("connecting");
-    for (const sub of this.subs) {
-      sub.close();
-    }
-    this.subs = [];
+    this.sub?.close();
+    delete this.sub;
     for (const id in this.sockets) {
       this.sockets[id].destroy();
     }
@@ -252,75 +310,51 @@ export class SubjectSocket extends EventEmitter {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
-
-    //     const log = (status) => {
-    //       console.log(`conat:subjectSocket: ${status}`, {
-    //         subject: this.subject,
-    //       });
-    //     };
-    const sub = await this.client.subscribe(this.subjects.client);
-    // log("send connect request");
-    const mesg = { cmd: "connect", id: this.id };
-    let d = 3000;
-    while (this.state != "closed") {
-      try {
-        const resp = await this.client.request(this.subjects.control, mesg, {
-          timeout: 5000,
-        });
-        const { status } = resp.data;
-        if (status != "ok") {
-          throw Error(`bad status -- ${status}`);
-        }
-        break;
-      } catch (err) {
-        //log(`connection request failed - ${err}`);
-        await delay(d);
-        d = Math.min(15000, d * 1.3);
-      }
-    }
+    this.sub = await this.client.subscribe(`${this.subject}.client.${this.id}`);
     if (this.state == "closed") {
       return;
     }
-    this.clientPing();
-    //log("subscribed");
-    this.subs.push(sub);
-    this.setState("ready");
-    for await (const mesg of sub) {
-      if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
-        this.reconnect();
-        return;
+    try {
+      await this.sendCommandToServer("connect");
+      this.setState("ready");
+      this.clientPing();
+      for await (const mesg of this.sub) {
+        if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
+          this.reconnect();
+          return;
+        }
+        // log("got data");
+        this.emit("data", mesg.data);
       }
-      // log("got data");
-      this.emit("data", mesg.data);
+    } catch {
+      this.reconnect();
     }
   };
 
   // we send pings to the server and it responds with a pong.
   // if response fails, reconnect.
-  private clientPing = async () => {
+  private clientPing = reuseInFlight(async () => {
     while (this.state != "closed") {
-      try {
-        const resp = await this.client.request(this.subjects.control, {
-          cmd: "ping",
-          id: this.id,
-        });
-        const x = resp.data;
-        if (x != "pong") {
+      if (this.state == "ready") {
+        try {
+          const x = await this.sendCommandToServer("ping");
+          if (x != "pong") {
+            this.reconnect();
+            return;
+          }
+        } catch {
+          // if sending ping fails, reconnect
           this.reconnect();
           return;
         }
-      } catch {
-        // if sending ping fails, reconnect
-        this.reconnect();
-        return;
       }
       await delay(HEARBEAT_INTERVAL);
     }
-  };
+  });
 
   // client: writes to server
   // server: broadcast to ALL connected clients
-  write = (data) => {
+  write = (data): void => {
     // console.log(this.role, " write ", { data });
     if (this.state == "connecting") {
       this.queuedWrites.push(data);
@@ -332,20 +366,15 @@ export class SubjectSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    // console.log("conat:subjectSocket -- write", data);
-    let subject;
     if (this.role == "server") {
       // write to all the sockets that are connected.
       for (const id in this.sockets) {
         this.sockets[id].write(data);
       }
-      return;
     } else {
       // we are the client, so write to server
-      subject = this.subjects.server;
+      this.sendDatatoServer(data);
     }
-    this.client.publishSync(subject, data);
-    return true;
   };
 }
 
@@ -353,26 +382,21 @@ export class SubjectSocket extends EventEmitter {
 export class Socket extends EventEmitter {
   subjectSocket: SubjectSocket;
   id: string;
-  subjects;
   lastPing = Date.now();
   // this is just for compat with subjectSocket api:
   address = { ip: "" };
   conn: { id: string };
-  subs: Subscription[] = [];
-  state: State = "connecting";
+  state: State = "ready";
   queuedWrites: any[] = [];
+  clientSubject: string;
 
   constructor({ subjectSocket, id }) {
     super();
     this.subjectSocket = subjectSocket;
     const { subject } = subjectSocket;
+    this.clientSubject = `${subject}.client.${id}`;
     this.id = id;
     this.conn = { id };
-    this.subjects = getSubjects({
-      subject,
-      id,
-    });
-    this.init();
   }
 
   private setState = (state: State) => {
@@ -390,29 +414,18 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.subjectSocket.client.publishSync(this.subjects.client, null, {
-      headers: { [SOCKET_HEADER_CMD]: "close" },
-    });
+    try {
+      this.subjectSocket.client.publishSync(this.clientSubject, null, {
+        headers: { [SOCKET_HEADER_CMD]: "close" },
+      });
+    } catch {}
     this.queuedWrites = [];
     this.setState("closed");
     this.removeAllListeners();
-    for (const sub of this.subs) {
-      sub.close();
-    }
-    this.subs = [];
     delete this.subjectSocket.sockets[this.id];
   };
   destroy = () => this.close();
   end = () => this.close();
-
-  private init = async () => {
-    const sub = await this.subjectSocket.client.subscribe(this.subjects.server);
-    this.setState("ready");
-    this.subs.push(sub);
-    for await (const mesg of sub) {
-      this.emit("data", mesg.data);
-    }
-  };
 
   write = (data) => {
     if (this.state == "connecting") {
@@ -425,7 +438,7 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.subjectSocket.client.publishSync(this.subjects.client, data);
+    this.subjectSocket.client.publishSync(this.clientSubject, data);
     return true;
   };
 }
