@@ -88,6 +88,8 @@ export class EventIterator<V extends unknown>
    */
   #queue: V[] = [];
 
+  private err: any = undefined;
+
   /**
    * The amount of events that have passed the filter.
    */
@@ -176,11 +178,19 @@ export class EventIterator<V extends unknown>
    * The next value that's received from the EventEmitter.
    */
   public async next(): Promise<IteratorResult<V>> {
+    if (this.err) {
+      this.end();
+      throw this.err;
+    }
     // If there are elements in the queue, return an undone response:
     if (this.#queue.length) {
       const value = this.#queue.shift()!;
-      if (!this.filter(value)) return this.next();
-      if (++this.#passed >= this.#limit) this.end();
+      if (!this.filter(value)) {
+        return this.next();
+      }
+      if (++this.#passed >= this.#limit) {
+        this.end();
+      }
       if (this.#idleTimer) {
         if (this.#idleTimer.refresh != null) {
           this.#idleTimer.refresh();
@@ -229,10 +239,8 @@ export class EventIterator<V extends unknown>
     return Promise.resolve({ done: true, value: undefined as never });
   }
 
-  /**
-   * Handles what happens when you encounter an error in a loop.
-   */
-  public throw(): Promise<IteratorResult<V>> {
+  public throw(err): Promise<IteratorResult<V>> {
+    this.err = err;
     this.end();
     return Promise.resolve({ done: true, value: undefined as never });
   }
@@ -248,6 +256,11 @@ export class EventIterator<V extends unknown>
    * Pushes a value into the queue.
    */
   protected push(...args): void {
-    this.#queue.push(this.map(args));
+    try {
+      const value = this.map(args);
+      this.#queue.push(value);
+    } catch (err) {
+      this.err = err;
+    }
   }
 }

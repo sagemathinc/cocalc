@@ -25,10 +25,25 @@ In another session:
     await c.renew({account_id, id})
 */
 
-import { init as initChangefeedServer } from "@cocalc/conat/changefeed/server";
-import { db } from "@cocalc/database";
-import "@cocalc/backend/conat";
+import {
+  changefeedServer,
+  type SubjectSocket,
+} from "@cocalc/conat/hub/changefeeds";
 
+import { db } from "@cocalc/database";
+import { conat } from "@cocalc/backend/conat";
+
+let server: SubjectSocket | null = null;
 export function init() {
-  initChangefeedServer(db);
+  const D = db();
+  server = changefeedServer({
+    client: conat(),
+    userQuery: D.user_query.bind(D),
+    cancelQuery: (id: string) => D.user_query_cancel_changefeed({ id }),
+  });
+}
+
+export function close() {
+  server?.close();
+  server = null;
 }

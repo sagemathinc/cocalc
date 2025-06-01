@@ -68,11 +68,13 @@ const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 export type Role = "client" | "server";
 
 // clients send a heartbeat to the server this frequently.
-const HEARBEAT_INTERVAL = 60000;
+const HEARBEAT_INTERVAL = 45000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
 const DEFAULT_MAX_QUEUE_SIZE = 100;
+
+const DEFAULT_TIMEOUT = 7500;
 
 type Command = "connect" | "close" | "ping";
 
@@ -182,7 +184,10 @@ export class SubjectSocket extends EventEmitter {
     if (cmd == "close") {
       this.client.publishSync(subject, null, { headers });
     } else {
-      const resp = await this.client.request(subject, null, { headers });
+      const resp = await this.client.request(subject, null, {
+        headers,
+        timeout: DEFAULT_TIMEOUT,
+      });
       const value = resp.data;
       if (value?.error) {
         throw Error(value?.error);
@@ -350,10 +355,10 @@ export class SubjectSocket extends EventEmitter {
         try {
           const x = await this.sendCommandToServer("ping");
           if (x != "pong") {
-            this.disconnect();
-            return;
+            throw Error("ping failed");
           }
-        } catch {
+        } catch (err) {
+          //console.log("ping failed");
           // if sending ping fails, disconnect
           this.disconnect();
           return;

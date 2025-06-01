@@ -858,7 +858,6 @@ export class Client {
         const f = (cb) => {
           const handle = (response) => {
             if (this.conn.io._readyState == "closed") {
-              // can't do anything at this point.
               return;
             }
             if (response?.error) {
@@ -868,7 +867,17 @@ export class Client {
             }
           };
           if (timeout) {
+            let done = false;
+            const timer = setTimeout(() => {
+              done = true;
+              cb(new ConatError("timeout", { code: 408 }));
+            }, timeout);
+
             this.conn.timeout(timeout).emit("publish", v, (err, response) => {
+              if (done) {
+                return;
+              }
+              clearTimeout(timer);
               if (err) {
                 handle({ error: `${err}`, code: 408 });
               } else {
@@ -1023,7 +1032,7 @@ export class Client {
   socket = {
     listen: (
       subject: string,
-      opts?: { maxQueueSize?: number },
+      opts?: { maxQueueSize?: number; reconnection?: boolean },
     ): SubjectSocket =>
       getSubjectSocketConnection({
         subject,
@@ -1035,7 +1044,7 @@ export class Client {
 
     connect: (
       subject: string,
-      opts?: { maxQueueSize?: number },
+      opts?: { maxQueueSize?: number; reconnection?: boolean },
     ): SubjectSocket =>
       getSubjectSocketConnection({
         subject,
