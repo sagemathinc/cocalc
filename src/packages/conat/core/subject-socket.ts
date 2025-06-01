@@ -35,6 +35,14 @@ connects with exactly one choice of server).  You can dynamically
 add and remove servers at any time.  You get stateful automatic
 load balancing and automatic across all of them.
 
+HEADERS ARE FULLY SUPPORTED:
+
+If you just use s.write(data) and s.on('data', (data)=>) then 
+you get the raw data without headers.  However, headers -- arbitrary
+JSON separate from the raw (possibly binary) payload -- are supported.
+You just have to pass a second argument: 
+    s.write(data, headers) and s.on('data', (data,headers) => ...)
+
 UNIT TESTS:
 
 For unit tests, see
@@ -53,6 +61,7 @@ import { EventEmitter } from "events";
 import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { JSONValue } from "@cocalc/util/types";
 
 const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 
@@ -111,7 +120,7 @@ export class SubjectSocket extends EventEmitter {
   CLOSE = 0;
   readyState: 0;
   state: State = "connecting";
-  queuedWrites: any[] = [];
+  queuedWrites: { data: any; headers?: JSONValue }[] = [];
   maxQueueSize: number;
 
   constructor({
@@ -150,8 +159,8 @@ export class SubjectSocket extends EventEmitter {
   private setState = (state: State) => {
     this.state = state;
     if (state == "ready") {
-      for (const data of this.queuedWrites) {
-        this.write(data);
+      for (const { data, headers } of this.queuedWrites) {
+        this.write(data, headers);
         this.queuedWrites = [];
       }
     }
@@ -177,9 +186,9 @@ export class SubjectSocket extends EventEmitter {
     }
   };
 
-  private sendDatatoServer = (data) => {
+  private sendDatatoServer = (data, headers) => {
     const subject = `${this.subject}.server.${this.id}`;
-    this.client.publishSync(subject, data);
+    this.client.publishSync(subject, data, { headers });
   };
 
   close = () => {
@@ -236,8 +245,8 @@ export class SubjectSocket extends EventEmitter {
       if (cmd !== undefined) {
         this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
       } else {
-        // just some incoming data
-        socket.emit("data", mesg.data);
+        // incoming data:
+        socket.emit("data", mesg.data, mesg.headers);
       }
     }
   };
@@ -318,7 +327,7 @@ export class SubjectSocket extends EventEmitter {
           return;
         }
         // log("got data");
-        this.emit("data", mesg.data);
+        this.emit("data", mesg.data, mesg.headers);
       }
     } catch {
       this.reconnect();
@@ -348,10 +357,9 @@ export class SubjectSocket extends EventEmitter {
 
   // client: writes to server
   // server: broadcast to ALL connected clients
-  write = (data): void => {
-    // console.log(this.role, " write ", { data });
+  write = (data, headers?): void => {
     if (this.state == "connecting") {
-      this.queuedWrites.push(data);
+      this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.maxQueueSize) {
         this.queuedWrites.shift();
       }
@@ -363,11 +371,11 @@ export class SubjectSocket extends EventEmitter {
     if (this.role == "server") {
       // write to all the sockets that are connected.
       for (const id in this.sockets) {
-        this.sockets[id].write(data);
+        this.sockets[id].write(data, headers);
       }
     } else {
       // we are the client, so write to server
-      this.sendDatatoServer(data);
+      this.sendDatatoServer(data, headers);
     }
   };
 }
@@ -378,7 +386,7 @@ export class Socket extends EventEmitter {
   public readonly id: string;
   public lastPing = Date.now();
 
-  private queuedWrites: any[] = [];
+  private queuedWrites: { data: any; headers?: JSONValue }[] = [];
   private clientSubject: string;
 
   public state: State = "ready";
@@ -394,7 +402,7 @@ export class Socket extends EventEmitter {
     super();
     this.subject = subject;
     this.subjectSocket = subjectSocket;
-    const segments = subject.split('.');
+    const segments = subject.split(".");
     segments[segments.length - 2] = "client";
     this.clientSubject = segments.join(".");
     this.id = id;
@@ -404,8 +412,8 @@ export class Socket extends EventEmitter {
   private setState = (state: State) => {
     this.state = state;
     if (state == "ready") {
-      for (const data of this.queuedWrites) {
-        this.write(data);
+      for (const { data, headers } of this.queuedWrites) {
+        this.write(data, headers);
         this.queuedWrites = [];
       }
     }
@@ -429,9 +437,9 @@ export class Socket extends EventEmitter {
   destroy = () => this.close();
   end = () => this.close();
 
-  write = (data) => {
+  write = (data, headers?) => {
     if (this.state == "connecting") {
-      this.queuedWrites.push(data);
+      this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.subjectSocket.maxQueueSize) {
         this.queuedWrites.shift();
       }
@@ -440,7 +448,9 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.subjectSocket.client.publishSync(this.clientSubject, data);
+    this.subjectSocket.client.publishSync(this.clientSubject, data, {
+      headers,
+    });
     return true;
   };
 }

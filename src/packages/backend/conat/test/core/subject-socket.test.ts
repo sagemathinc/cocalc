@@ -56,28 +56,29 @@ describe("create a server and client, then send a message and get a response", (
   });
 });
 
-describe("create a client first, then the server, and see that it still works (testing the order)", () => {
+describe("create a client first, then the server, and see that it still works (testing the order); also include headers in both directions", () => {
   let client, server, cn1, cn2;
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
     client = cn2.socket.connect("primus");
-    client.write("cocalc");
+    client.write("cocalc", { my: "header" });
   });
 
   it("creates the client and server", () => {
     cn1 = connect();
     server = cn1.socket.listen("primus");
     server.on("connection", (socket) => {
-      socket.on("data", (data) => {
-        socket.write(`${data}`.repeat(2));
+      socket.on("data", (data, headers) => {
+        socket.write(`${data}`.repeat(2), headers);
       });
     });
   });
 
   it("it still works out", async () => {
-    const [data] = await once(client, "data");
+    const [data, headers] = await once(client, "data");
     expect(data).toBe("cocalccocalc");
+    expect(headers).toEqual({ my: "header" });
   });
 
   it("cleans up", () => {
@@ -334,7 +335,7 @@ describe("create a server where the subject has a wildcard, so clients can e.g.,
     server = cn1.socket.listen("changefeeds.*");
     server.on("connection", (socket) => {
       socket.on("data", () => {
-        socket.write(socket.subject.split('.')[1]);
+        socket.write(socket.subject.split(".")[1]);
       });
     });
   });
