@@ -100,7 +100,7 @@ export class ConatClient extends EventEmitter {
         address: location.origin + appBasePath,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
       });
-      this._conatClient.conn.on("connect", () => {
+      this._conatClient.on("connected", () => {
         this.setConnectionStatus({
           state: "connected",
           reason: "",
@@ -109,7 +109,7 @@ export class ConatClient extends EventEmitter {
         });
         this.client.emit("connected");
       });
-      this._conatClient.conn.on("disconnect", (reason, details) => {
+      this._conatClient.on("disconnected", (reason, details) => {
         this.setConnectionStatus({
           state: "disconnected",
           reason,

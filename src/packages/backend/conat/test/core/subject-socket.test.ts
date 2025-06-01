@@ -300,7 +300,7 @@ describe("create two socket servers with the same subject to test that sockets a
     }
   });
 
-  it("remove the server we're connected to and see that the client connects to another server automatically -- load balancing and automatic failover", async () => {
+  it("remove the server we're connected to and see that the client connects to another server automatically: this illustrates load balancing and automatic failover", async () => {
     if (resp == "s1") {
       s1.close();
     } else if (resp == "s2") {
@@ -308,8 +308,11 @@ describe("create two socket servers with the same subject to test that sockets a
     }
     await wait({
       until: async () => {
-        const z = once(client, "data");
+        // checking that client fails over...
+        // include timeout since packets may drop during failover
+        const z = once(client, "data", 100);
         client.write(null);
+        // did we get data?
         const resp1 = (await z)[0];
         // it's working again, but not using s1:
         return resp1 != resp;

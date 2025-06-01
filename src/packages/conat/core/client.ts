@@ -236,6 +236,8 @@ import {
 } from "@cocalc/conat/sync/synctable";
 export const STICKY_QUEUE_GROUP = "sticky";
 
+type State = "disconnected" | "connected" | "closed";
+
 const logger = getLogger("core/client");
 
 interface Options {
@@ -342,6 +344,7 @@ export class Client extends EventEmitter {
     subs: 0,
   };
   public readonly id: string = randomId();
+  public state: State = "disconnected";
 
   constructor(options: ClientOptions) {
     super();
@@ -371,6 +374,7 @@ export class Client extends EventEmitter {
       this.permissionError[type]?.set(subject, message);
     });
     this.conn.on("connect", () => {
+      this.setState("connected");
       logger.debug(`Conat: Connected to ${this.options.address}`);
       this.syncSubscriptions();
     });
@@ -380,9 +384,23 @@ export class Client extends EventEmitter {
         ...args,
       );
     });
+    this.conn.on("conect", () => {
+      this.setState("connected");
+    });
+    this.conn.on("disconnect", () => {
+      this.setState("disconnected");
+    });
 
     this.initInbox();
   }
+
+  private setState = (state: State) => {
+    if (this.state == "closed" || this.state == state) {
+      return;
+    }
+    this.state = state;
+    this.emit(state);
+  };
 
   private temporaryInboxSubject = () => {
     if (!this.inboxSubject) {
@@ -442,7 +460,7 @@ export class Client extends EventEmitter {
   });
 
   close = () => {
-    this.emit("close");
+    this.setState("closed");
     this.removeAllListeners();
     if (this.options == null) {
       return;

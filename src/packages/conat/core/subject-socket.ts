@@ -67,14 +67,21 @@ const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 
 export type Role = "client" | "server";
 
-// clients send a heartbeat to the server this frequently.
-const DEFAULT_HEARBEAT_INTERVAL = 15000;
+// client pings server this frequently and disconnects if
+// doesn't get a pong back.  Server disconnects client if
+// it doesn't get a ping as well.  This is NOT the primary
+// keep alive/disconnect mechanism -- it's just a backup.
+// Primarily we watch the connect/disconnect events from
+// socketio and use those to manage things.  This ping
+// is entirely a "just in case" backup if some event
+// were missed (e.g., a kill -9'd process...)
+const PING_PONG_INTERVAL = 60000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
 const DEFAULT_MAX_QUEUE_SIZE = 100;
 
-const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_TIMEOUT = 7500;
 
 type Command = "connect" | "close" | "ping";
 
@@ -142,7 +149,9 @@ export class SubjectSocket extends EventEmitter {
     this.reconnection = reconnection;
     this.subject = subject;
     this.client = client;
-    this.client.on("close", this.close);
+    this.client.on("closed", this.close);
+    this.client.on("disconnected", this.disconnect);
+    this.client.on("connected", this.connect);
     this.role = role;
     this.id = id;
     this.conn = { id };
@@ -207,7 +216,9 @@ export class SubjectSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.client.removeListener("close", this.close);
+    this.client.removeListener("closed", this.close);
+    this.client.removeListener("disconnected", this.disconnect);
+    this.client.removeListener("connected", this.connect);
     if (this.role == "client") {
       // tell server we're gone
       this.sendCommandToServer("close");
@@ -291,11 +302,11 @@ export class SubjectSocket extends EventEmitter {
     while (this.state != "closed") {
       for (const id in this.sockets) {
         const socket = this.sockets[id];
-        if (Date.now() - socket.lastPing > DEFAULT_HEARBEAT_INTERVAL * 2.5) {
+        if (Date.now() - socket.lastPing > PING_PONG_INTERVAL * 2.5) {
           socket.destroy();
         }
       }
-      await delay(DEFAULT_HEARBEAT_INTERVAL);
+      await delay(PING_PONG_INTERVAL);
     }
   };
 
@@ -316,6 +327,10 @@ export class SubjectSocket extends EventEmitter {
   };
 
   connect = async () => {
+    if (this.state != "disconnected") {
+      // already connected
+      return;
+    }
     this.setState("connecting");
     if (this.role == "server") {
       await this.runAsServer();
@@ -369,8 +384,8 @@ export class SubjectSocket extends EventEmitter {
           return;
         }
       }
-      // console.log("waiting ", DEFAULT_HEARBEAT_INTERVAL);
-      await delay(DEFAULT_HEARBEAT_INTERVAL);
+      // console.log("waiting ", PING_PONG_INTERVAL);
+      await delay(PING_PONG_INTERVAL);
     }
   });
 

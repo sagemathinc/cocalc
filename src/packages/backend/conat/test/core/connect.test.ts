@@ -9,6 +9,7 @@ import { initConatServer } from "@cocalc/backend/conat/test/setup";
 import { conat as connect } from "@cocalc/backend/conat/conat";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
+import { once } from "@cocalc/util/async-utils";
 
 let port;
 beforeAll(async () => {
@@ -25,6 +26,7 @@ describe("create server *after* client and ensure connects properly", () => {
     });
     await delay(20);
     expect(cn.conn.connected).toBe(false);
+    expect(cn.state).toBe("disconnected");
   });
 
   let server;
@@ -33,20 +35,26 @@ describe("create server *after* client and ensure connects properly", () => {
   });
 
   it("now client should connect", async () => {
+    const connected = once(cn, "connected");
     await cn.waitUntilConnected();
     expect(cn.conn.connected).toBe(true);
+    await connected; // verify connected event fired
   });
 
   it("close server and observe client disconnect", async () => {
+    const disconnected = once(cn, "disconnected");
     server.close();
     await wait({ until: () => !cn.conn.connected });
     expect(cn.conn.connected).toBe(false);
+    await disconnected; // verify disconnected event fired
   });
 
   it("create server again and observe client connects again", async () => {
+    const connected = once(cn, "connected");
     server = await initConatServer({ port });
     await wait({ until: () => cn.conn.connected });
     expect(cn.conn.connected).toBe(true);
+    await connected; // verify connected event fired
   });
 
   it("clean up", () => {

@@ -8,7 +8,7 @@ import { changefeed, type Changefeed } from "@cocalc/conat/hub/changefeeds";
 import { conat } from "@cocalc/conat/client";
 
 // low level debugging of changefeeds
-const LOW_LEVEL_DEBUG = true;
+const LOW_LEVEL_DEBUG = false;
 const log = LOW_LEVEL_DEBUG
   ? (...args) => {
       console.log("changefeed: ", ...args);
@@ -37,7 +37,13 @@ export class ConatChangefeed extends EventEmitter {
     this.options = options;
   }
 
+  log = (...args) => {
+    if (!LOW_LEVEL_DEBUG) return;
+    log(this.query, ...args);
+  };
+
   connect = async () => {
+    this.log("connecting...")
     this.cf = changefeed({
       client: await conat(),
       account_id: this.account_id,
@@ -46,17 +52,18 @@ export class ConatChangefeed extends EventEmitter {
     });
     const { value, done } = await this.cf.next();
     if (done) {
-      log("closed before receiving any values");
+      this.log("closed before receiving any values");
       this.close();
       return;
     }
+    this.log("connected");
     this.state = "connected";
     this.watch();
     return value[Object.keys(value)[0]];
   };
 
   close = (): void => {
-    log("close", this.query);
+    this.log("close");
     if (this.state == "closed") {
       return;
     }
@@ -76,7 +83,7 @@ export class ConatChangefeed extends EventEmitter {
     }
     try {
       for await (const x of this.cf) {
-        // log("got message ", this.query, x);
+        // this.log("got message ", x);
         // @ts-ignore
         if (this.state == "closed") {
           return;
@@ -84,9 +91,9 @@ export class ConatChangefeed extends EventEmitter {
         this.emit("update", x);
       }
     } catch (err) {
-      log("got error", this.query, err);
+      this.log("got error", err);
     }
-    log("watch ended", this.query);
+    this.log("watch ended", this.query);
     this.close();
   };
 }
