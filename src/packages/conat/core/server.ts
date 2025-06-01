@@ -6,7 +6,7 @@ cd packages/server
 
    s = await require('@cocalc/server/conat/socketio').initConatServer()
 
-   s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000})
+   s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
 
 
 For clustering:

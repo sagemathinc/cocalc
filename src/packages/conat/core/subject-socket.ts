@@ -207,7 +207,7 @@ export class SubjectSocket extends EventEmitter {
     }
   };
 
-  private sendDatatoServer = (data, headers) => {
+  private sendDataToServer = (data, headers) => {
     const subject = `${this.subject}.server.${this.id}`;
     this.client.publishSync(subject, data, { headers });
   };
@@ -409,7 +409,7 @@ export class SubjectSocket extends EventEmitter {
       }
     } else {
       // we are the client, so write to server
-      this.sendDatatoServer(data, headers);
+      this.sendDataToServer(data, headers);
     }
   };
 }

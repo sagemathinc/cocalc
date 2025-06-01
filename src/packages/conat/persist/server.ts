@@ -46,11 +46,7 @@ import {
   PersistentStream,
 } from "./storage";
 import { conat } from "@cocalc/conat/client";
-import {
-  type Client,
-  type Subscription,
-  ConatError,
-} from "@cocalc/conat/core/client";
+import { type Client, type Subscription } from "@cocalc/conat/core/client";
 import { uuid } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/conat/client";
 import { delay } from "awaiting";
@@ -58,21 +54,13 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
 import { is_array } from "@cocalc/util/misc";
+import { getUserId, assertHasWritePermission } from "./auth";
 
 // I added an experimental way to run any sqlite query... but it is disabled
 // since of course there are major DOS and security concerns.
 const ENABLE_SQLITE_GENERAL_QUERIES = false;
 
-// When sending a large number of message for
-// getAll or change updates, we combine together messages
-// until hitting this size, then send them all at once.
-// This bound is to avoid potentially using a huge amount of RAM
-// when streaming a large saved database to the client.
-// Note: if a single message is larger than this, it still
-// gets sent, just individually.
 const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
-//const DEFAULT_MESSAGES_THRESH = 1e5;
-
 export const HEARTBEAT_STRING = "hb";
 
 export const DEFAULT_LIFETIME = 3 * 1000 * 60;
@@ -94,7 +82,7 @@ export const LAST_CHUNK = "last-chunk";
 
 const logger = getLogger("persist:server");
 
-export const SUBJECT = "persist";
+export const SERVICE = "persist";
 
 export type User = {
   account_id?: string;
@@ -103,82 +91,12 @@ export type User = {
 };
 export function persistSubject({ account_id, project_id }: User) {
   if (account_id) {
-    return `${SUBJECT}.account-${account_id}.api`;
+    return `${SERVICE}.account-${account_id}`;
   } else if (project_id) {
-    return `${SUBJECT}.project-${project_id}.api`;
+    return `${SERVICE}.project-${project_id}`;
   } else {
-    return `${SUBJECT}.hub.api`;
+    return `${SERVICE}.hub`;
   }
-}
-
-export function getUserId(subject: string): string {
-  if (
-    subject.startsWith(`${SUBJECT}.account-`) ||
-    subject.startsWith(`${SUBJECT}.project-`)
-  ) {
-    // note that project and account have the same number of letters
-    return subject.slice(
-      `${SUBJECT}.account-`.length,
-      `${SUBJECT}.account-`.length + 36,
-    );
-  }
-  return "";
-}
-
-export const MAX_PATH_LENGTH = 4000;
-
-export function assertHasWritePermission({
-  subject,
-  path,
-}: {
-  // Subject definitely has one of the following forms, or we would never
-  // see this message:
-  //   ${SUBJECT}.account-${account_id}.api or
-  //   ${SUBJECT}.project-${project_id}.api or
-  //   ${SUBJECT}.hub.api
-  //   ${SUBJECT}.SOMETHING-WRONG.api
-  // A user is only allowed to write to a subject if they have rights
-  // to the given project, account or are a hub.
-  // The path can a priori be any string.  However, here's what's allowed
-  //   accounts/[account_id]/any...thing
-  //   projects/[project_id]/any...thing
-  //   hub/any...thing  <- only hub can write to this.
-  subject: string;
-  path: string;
-}) {
-  if (path.length > MAX_PATH_LENGTH) {
-    throw new ConatError(
-      `permission denied: path (of length ${path.length}) is too long (limit is '${MAX_PATH_LENGTH}' characters)`,
-      { code: 403 },
-    );
-  }
-  if (path.includes("..") || path.startsWith("/") || path.endsWith("/")) {
-    throw new ConatError(
-      `permission denied: path '${path}' must not include .. or start or end with / `,
-      { code: 403 },
-    );
-  }
-  let s = subject.slice(SUBJECT.length + 1);
-  if (s.startsWith("hub.")) {
-    // hub user can write to any path
-    return;
-  }
-  for (const cls of ["account", "project"]) {
-    if (s.startsWith(cls + "-")) {
-      const user_id = getUserId(subject);
-      const base = cls + "s/" + user_id + "/";
-      if (path.startsWith(base)) {
-        // permissions granted
-        return;
-      } else {
-        throw new ConatError(
-          `permission denied: subject '${subject}' only grants write permission to path='${path} since it is not under '${base}'`,
-          { code: 403 },
-        );
-      }
-    }
-  }
-  throw new ConatError("invalid subject", { code: 403 });
 }
 
 let terminated = false;
@@ -204,7 +122,7 @@ export async function init({
     MAX_HEARTBEAT,
     MAX_PERSISTS_PER_USER,
     MAX_PERSISTS_PER_SERVER,
-    SUBJECT,
+    SERVICE,
   });
   client = client ?? (await conat());
   // this returns one the service is listening
@@ -220,7 +138,7 @@ async function noThrow(f) {
 }
 
 async function persistService({ client, messagesThresh }) {
-  sub = await client.subscribe(`${SUBJECT}.*.api`, {
+  sub = await client.subscribe(`${SERVICE}.*`, {
     sticky: true,
     ephemeral: true,
   });
@@ -274,6 +192,21 @@ function metrics() {
   logger.debug("persist", { numPersists });
 }
 
+export async function getStream({ subject, storage }) {
+  // this permsissions check should always work and use should
+  // never see an error here, since
+  // the same check runs on the client before the message is sent to the
+  // persist storage.  However a malicious user would hit this.
+  // IMPORTANT: must be here so error *code* also sent back.
+  assertHasWritePermission({
+    subject,
+    path: storage.path,
+  });
+  const path = join(syncFiles.local, storage.path);
+  await ensureContainingDirectoryExists(path);
+  return pstream({ ...storage, path });
+}
+
 async function handleMessage({ mesg, messagesThresh }) {
   const request = mesg.headers;
   //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
@@ -286,20 +219,10 @@ async function handleMessage({ mesg, messagesThresh }) {
 
   // get and set using normal request/respond
   try {
-    // this permsissions check should always work and use should
-    // never see an error here, since
-    // the same check runs on the client before the message is sent to the
-    // persist storage.  However a malicious user would hit this.
-    // IMPORTANT: must be here so error *code* also sent back.
-    assertHasWritePermission({
+    stream = await getStream({
       subject: mesg.subject,
-      path: request.storage.path,
+      storage: request.storage,
     });
-    const user_id = getUserId(mesg.subject);
-
-    const path = join(syncFiles.local, request.storage.path);
-    await ensureContainingDirectoryExists(path);
-    stream = pstream({ ...request.storage, path });
 
     if (request.cmd == "set") {
       const resp = stream.set({
@@ -348,7 +271,7 @@ async function handleMessage({ mesg, messagesThresh }) {
       respond(resp);
     } else if (request.cmd == "getAll") {
       // getAll will free reference to stream when it is done:
-      getAll({ mesg, request, user_id, stream, messagesThresh });
+      getAll({ mesg, request, stream, messagesThresh });
     } else {
       respond(null, {
         headers: { error: `unknown command ${request.cmd}`, code: 404 },
@@ -359,11 +282,12 @@ async function handleMessage({ mesg, messagesThresh }) {
   }
 }
 
-async function getAll({ mesg, request, user_id, stream, messagesThresh }) {
+async function getAll({ mesg, request, stream, messagesThresh }) {
   //console.log("getAll", request);
   // getAll sends multiple responses
   let seq = 0;
   let lastSend = 0;
+  const user_id = getUserId(mesg.subject);
 
   const respond = async (
     error,

@@ -3,10 +3,8 @@
 pnpm test ./permissions.test.ts 
 
 */
-import {
-  assertHasWritePermission,
-  SUBJECT,
-} from "@cocalc/conat/persist/server";
+import { SERVICE } from "@cocalc/conat/persist/server";
+import { assertHasWritePermission } from "@cocalc/conat/persist/auth";
 
 const uuid = "00000000-0000-4000-8000-000000000000";
 const uuid2 = "00000000-0000-4000-8000-000000000002";
@@ -15,72 +13,72 @@ describe("test subject permissions directly by calling assertHasWritePermission"
   it("checks a bunch of things that should work don't throw", () => {
     // these don't throw
     assertHasWritePermission({
-      subject: `${SUBJECT}.hub.api`,
+      subject: `${SERVICE}.hub`,
       path: "hub/foo",
     });
 
     assertHasWritePermission({
-      subject: `${SUBJECT}.hub.api`,
+      subject: `${SERVICE}.hub`,
       path: "hub/foo/blah xxx~!/xxxx",
     });
 
     assertHasWritePermission({
-      subject: `${SUBJECT}.project-${uuid}.api`,
+      subject: `${SERVICE}.project-${uuid}`,
       path: `projects/${uuid}/a.txt`,
     });
 
     assertHasWritePermission({
-      subject: `${SUBJECT}.account-${uuid}.api`,
+      subject: `${SERVICE}.account-${uuid}`,
       path: `accounts/${uuid}/c/d.txt`,
     });
   });
 
   it("now check many things that are NOT allowed", () => {
     const BAD = [
-      { subject: `${SUBJECT}.fubar.api`, path: "hub/foo/bar" },
-      { subject: `fluber.hub.api`, path: "hub/foo" },
+      { subject: `${SERVICE}.fubar`, path: "hub/foo/bar" },
+      { subject: `fluber.hub`, path: "hub/foo" },
       {
-        subject: `${SUBJECT}.projects-${uuid}.api`,
+        subject: `${SERVICE}.projects-${uuid}`,
         path: `projects/${uuid}/foo`,
       },
       {
-        subject: `${SUBJECT}.accounts-${uuid}.api`,
+        subject: `${SERVICE}.accounts-${uuid}`,
         path: `accounts/${uuid}/foo`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `accounts/${uuid}/foo`,
       },
       {
-        subject: `${SUBJECT}.account-${uuid}.api`,
+        subject: `${SERVICE}.account-${uuid}`,
         path: `projects/${uuid}/foo`,
       },
       {
-        subject: `${SUBJECT}.account-${uuid}.api`,
+        subject: `${SERVICE}.account-${uuid}`,
         path: `accounts/${uuid2}/foo`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `projects/${uuid2}/foo`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `projects/${uuid}/`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `projects/${uuid}`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `projects/${uuid}/foo/`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}.api`,
+        subject: `${SERVICE}.project-${uuid}`,
         path: `projects/${uuid}/${"a".repeat(100000)}`,
       },
       {
-        subject: `${SUBJECT}.project-${uuid}x.api`,
+        subject: `${SERVICE}.project-${uuid}x`,
         path: `projects/${uuid}x/a.txt`,
       },
     ];

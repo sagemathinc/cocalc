@@ -12,11 +12,11 @@ export { type Database };
 let betterSqlite3: any = null;
 
 export let compress: (data: Buffer) => Buffer = () => {
-  throw Error("must initialize persist.sqlite");
+  throw Error("must initialize persist context");
 };
 
 export let decompress: (data: Buffer) => Buffer = () => {
-  throw Error("must initialize persist.sqlite");
+  throw Error("must initialize persist context");
 };
 
 export let syncFiles = { local: "", archive: "" };
@@ -24,7 +24,7 @@ export let syncFiles = { local: "", archive: "" };
 export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
   _path,
 ) => {
-  throw Error("must initialize persiste.sqlite");
+  throw Error("must initialize persiste context");
 };
 
 export function initContext(opts: {

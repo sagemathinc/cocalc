@@ -15,7 +15,8 @@ import {
   type Subscription,
 } from "@cocalc/conat/core/client";
 import { type Storage } from "./client";
-import { SUBJECT, User, getUserId } from "./server";
+import { SERVICE, User } from "./server";
+import { getUserId } from "./auth";
 import {
   createDatabase,
   type Database,
@@ -27,11 +28,11 @@ import { field_cmp } from "@cocalc/util/misc";
 
 export function loadBalancerSubject({ account_id, project_id }: User) {
   if (account_id) {
-    return `${SUBJECT}.account-${account_id}.lb`;
+    return `${SERVICE}.account-${account_id}.lb`;
   } else if (project_id) {
-    return `${SUBJECT}.project-${project_id}.lb`;
+    return `${SERVICE}.project-${project_id}.lb`;
   } else {
-    return `${SUBJECT}.hub.lb`;
+    return `${SERVICE}.hub.lb`;
   }
 }
 
@@ -90,7 +91,7 @@ export class LoadBalancer {
   init = async () => {
     const self = this;
     this.sub = await this.options.client.service<LoadBalancerApi>(
-      `${SUBJECT}.*.lb`,
+      `${SERVICE}.*.lb`,
       {
         async register(id: string, load: number) {
           // TODO -- check permissions

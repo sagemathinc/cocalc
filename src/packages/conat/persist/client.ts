@@ -4,8 +4,8 @@ import {
   type User,
   DEFAULT_HEARTBEAT,
   HEARTBEAT_STRING,
-  assertHasWritePermission as assertHasWritePermission0,
 } from "./server";
+import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 export { DEFAULT_LIFETIME } from "./server";
 import type {
   Options as Storage,
