@@ -4,6 +4,7 @@ pnpm test ./subject-socket.test.ts
 
 import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
 beforeAll(before);
 
@@ -361,6 +362,50 @@ describe("create a server where the subject has a wildcard, so clients can e.g.,
     server.close();
     cn1.close();
     cn2.close();
+  });
+});
+
+describe("Check that the automatic reconnection parameter works", () => {
+  let client, server, cn1, cn2;
+  it("creates the server", () => {
+    cn1 = connect();
+    server = cn1.socket.listen("recon");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(data);
+      });
+    });
+  });
+
+  it("create a client with reconnection (the default) and confirm it works (all states hit)", async () => {
+    const socket = cn1.socket.connect("recon");
+    expect(socket.reconnection).toBe(true); // the default
+    await once(socket, "ready");
+    // have to listen before we trigger it:
+    const y = once(socket, "disconnected");
+    const x = once(socket, "connecting");
+    socket.disconnect();
+    const z = once(socket, "data");
+    socket.write("hi"); // write when not connected
+    await once(socket, "ready");
+    await y;
+    await x;
+    expect((await z)[0]).toBe("hi");
+    socket.close();
+  });
+
+  it("creates a client without reconnection", async () => {
+    const socket = cn1.socket.connect("recon", { reconnection: false });
+    expect(socket.reconnection).toBe(false);
+    await once(socket, "ready");
+    socket.disconnect();
+    await delay(50);
+    // still disconnected
+    expect(socket.state).toBe("disconnected");
+    // but we can manually connect
+    socket.connect();
+    await once(socket, "ready");
+    socket.close();
   });
 });
 

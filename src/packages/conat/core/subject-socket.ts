@@ -72,7 +72,7 @@ const HEARBEAT_INTERVAL = 60000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
-const DEAFULT_MAX_QUEUE_SIZE = 100;
+const DEFAULT_MAX_QUEUE_SIZE = 100;
 
 type Command = "connect" | "close" | "ping";
 
@@ -82,6 +82,9 @@ export interface SubjectSocketOptions {
   role: Role;
   id: string;
   maxQueueSize?: number;
+  // (Default: true) Whether reconnection is enabled or not.
+  // If set to false, you need to manually reconnect:
+  reconnection?: boolean;
 }
 
 const connections: { [key: string]: SubjectSocket } = {};
@@ -99,7 +102,7 @@ function getKey({ subject, role, id }: SubjectSocketOptions) {
   return JSON.stringify([subject, role, id]);
 }
 
-type State = "connecting" | "ready" | "closed";
+type State = "disconnected" | "connecting" | "ready" | "closed";
 
 export class SubjectSocket extends EventEmitter {
   subject: string;
@@ -119,25 +122,28 @@ export class SubjectSocket extends EventEmitter {
   OPEN = 1;
   CLOSE = 0;
   readyState: 0;
-  state: State = "connecting";
+  state: State = "disconnected";
   queuedWrites: { data: any; headers?: JSONValue }[] = [];
   maxQueueSize: number;
+  reconnection: boolean;
 
   constructor({
     subject,
     client,
     role,
     id,
-    maxQueueSize = DEAFULT_MAX_QUEUE_SIZE,
+    maxQueueSize = DEFAULT_MAX_QUEUE_SIZE,
+    reconnection = true,
   }: SubjectSocketOptions) {
     super();
     this.maxQueueSize = maxQueueSize;
+    this.reconnection = reconnection;
     this.subject = subject;
     this.client = client;
     this.role = role;
     this.id = id;
     this.conn = { id };
-    this.run();
+    this.connect();
   }
 
   channel = (channel: string) => {
@@ -216,7 +222,6 @@ export class SubjectSocket extends EventEmitter {
 
   end = () => this.close();
   destroy = () => this.close();
-  connect = () => {};
 
   private runAsServer = async () => {
     if (this.role != "server") {
@@ -287,21 +292,24 @@ export class SubjectSocket extends EventEmitter {
     }
   };
 
-  private reconnect = () => {
+  disconnect = () => {
     if (this.state == "closed") {
       return;
     }
-    this.setState("connecting");
+    this.setState("disconnected");
     this.sub?.close();
     delete this.sub;
     for (const id in this.sockets) {
       this.sockets[id].destroy();
     }
     this.sockets = {};
-    this.run();
+    if (this.reconnection) {
+      this.connect();
+    }
   };
 
-  private run = async () => {
+  connect = async () => {
+    this.setState("connecting");
     if (this.role == "server") {
       await this.runAsServer();
     } else {
@@ -323,14 +331,14 @@ export class SubjectSocket extends EventEmitter {
       this.clientPing();
       for await (const mesg of this.sub) {
         if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
-          this.reconnect();
+          this.disconnect();
           return;
         }
         // log("got data");
         this.emit("data", mesg.data, mesg.headers);
       }
     } catch {
-      this.reconnect();
+      this.disconnect();
     }
   };
 
@@ -342,12 +350,12 @@ export class SubjectSocket extends EventEmitter {
         try {
           const x = await this.sendCommandToServer("ping");
           if (x != "pong") {
-            this.reconnect();
+            this.disconnect();
             return;
           }
         } catch {
-          // if sending ping fails, reconnect
-          this.reconnect();
+          // if sending ping fails, disconnect
+          this.disconnect();
           return;
         }
       }
