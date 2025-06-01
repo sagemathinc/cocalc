@@ -1076,6 +1076,8 @@ export class Client extends EventEmitter {
         ...opts,
       }),
   };
+
+  message = (mesg, options?) => messageData(mesg, options);
 }
 
 interface PublishOptions {

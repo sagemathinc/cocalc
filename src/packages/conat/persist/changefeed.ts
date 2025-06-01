@@ -3,17 +3,21 @@ CONAT_SERVER=http://localhost:3000 node
 
 // the server
 
-require('@cocalc/backend/conat/persist'); client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/conat/persist/changefeed').persistChangefeedServer({client}); 0;
+require('@cocalc/backend/conat/persist'); client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/conat/persist/changefeed').server({client}); 0;
 
 
 
 // a client
 
-client = await require('@cocalc/backend/conat').conat(); cf = require('@cocalc/conat/persist/changefeed').changefeed({client, user:{project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f'}, storage:{path:'projects/3fa218e5-7196-4020-8b30-e2127847cc4f/a.txt'}}); cf.on('data',(data,headers)=>console.log(JSON.stringify({data,headers}))); 0
+client = await require('@cocalc/backend/conat').conat(); stream = require('@cocalc/conat/persist/changefeed').stream({client, user:{project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f'}, storage:{path:'projects/3fa218e5-7196-4020-8b30-e2127847cc4f/a.txt'}});
+
+s = await stream.getAll()
+
+await stream.set({messageData:client.message(123)})
 
 */
 
-import { type Client } from "@cocalc/conat/core/client";
+import { type Client, type MessageData } from "@cocalc/conat/core/client";
 import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 //import { EventIterator } from "@cocalc/util/event-iterator";
@@ -38,7 +42,12 @@ const logger = getLogger("persist");
 const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
 //const DEFAULT_MESSAGES_THRESH = 1e5;
 
-export function persistChangefeedServer({
+// I added an experimental way to run any sqlite query... but it is disabled
+// since of course there are major DOS and security concerns.
+const ENABLE_SQLITE_GENERAL_QUERIES = false;
+
+
+export function server({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
 }: {
@@ -59,37 +68,72 @@ export function persistChangefeedServer({
       logger.debug("server: got data ", data);
       getAll({ socket, request: data, messagesThresh });
     });
-    socket.on("request", (mesg) => {
-      mesg.respond(`hello ${mesg.data}`);
+    socket.on("request", async (mesg) => {
+      const request = mesg.headers;
+      logger.debug("got request", request);
+
+      let stream: undefined | PersistentStream = undefined;
+      const respond = (...args) => {
+        stream?.close();
+        mesg.respond(...args);
+      };
+
+      try {
+        stream = await getStream({
+          subject: mesg.subject,
+          storage: request.storage,
+        });
+
+        if (request.cmd == "set") {
+          respond(
+            stream.set({
+              key: request.key,
+              previousSeq: request.previousSeq,
+              raw: mesg.raw,
+              ttl: request.ttl,
+              encoding: mesg.encoding,
+              headers: request.headers,
+              msgID: request.msgID,
+            }),
+          );
+        } else if (request.cmd == "delete") {
+          respond(stream.delete(request));
+        } else if (request.cmd == "config") {
+          respond(stream.config(request.config));
+        } else if (request.cmd == "get") {
+          const resp = stream.get({ key: request.key, seq: request.seq });
+          //console.log("got resp = ", resp);
+          if (resp == null) {
+            respond(null);
+          } else {
+            const { raw, encoding, headers, seq, time, key } = resp;
+            respond(null, {
+              raw,
+              encoding,
+              headers: { ...headers, seq, time, key },
+            });
+          }
+        } else if (request.cmd == "keys") {
+          const resp = stream.keys();
+          respond(resp);
+        } else if (request.cmd == "sqlite") {
+          if (!ENABLE_SQLITE_GENERAL_QUERIES) {
+            throw Error("sqlite command not currently supported");
+          }
+          const resp = stream.sqlite(request.statement, request.params);
+          respond(resp);
+        } else {
+          respond(null, {
+            headers: { error: `unknown command ${request.cmd}`, code: 404 },
+          });
+        }
+      } catch (err) {
+        respond(null, { headers: { error: `${err}`, code: err.code } });
+      }
     });
   });
 
   return server;
-}
-
-//export type Connection = EventIterator<[error?]>;
-
-export function changefeed({
-  client,
-  start_seq,
-  end_seq,
-  // who is accessing persistent storage
-  user,
-  // what storage they are accessing
-  storage,
-}: {
-  client: Client;
-  start_seq?: number;
-  end_seq?: number;
-  user: User;
-  storage: Storage;
-}) {
-  logger.debug("creating persist client", { user, storage });
-  const socket = client.socket.connect(persistSubject(user), {
-    reconnection: false,
-  });
-  socket.write({ start_seq, end_seq, storage });
-  return socket;
 }
 
 async function getAll({ socket, request, messagesThresh }) {
@@ -199,4 +243,77 @@ async function getAll({ socket, request, messagesThresh }) {
       respond(`${err}`);
     }
   }
+}
+
+import { EventIterator } from "@cocalc/util/event-iterator";
+
+class PersistStreamClient {
+  private socket: SubjectSocket;
+  constructor(
+    private client: Client,
+    private storage: Storage,
+    private user: User,
+  ) {
+    this.socket = this.client.socket.connect(persistSubject(this.user), {
+      reconnection: false,
+    });
+  }
+
+  getAll = ({
+    start_seq,
+    end_seq,
+  }: {
+    start_seq?: number;
+    end_seq?: number;
+  } = {}) => {
+    const changefeed = new EventIterator<any>(this.socket, "data");
+    this.socket.write({ start_seq, end_seq, storage: this.storage });
+    return changefeed;
+  };
+
+  set = async ({
+    key,
+    ttl,
+    previousSeq,
+    msgID,
+    messageData,
+    timeout,
+  }: {
+    messageData: MessageData;
+    key?: string;
+    ttl?: number;
+    previousSeq?: number;
+    msgID?: string;
+    timeout?: number;
+  }): Promise<{ seq: number; time: number }> => {
+    const reply = await this.socket.request(null, {
+      raw: messageData.raw,
+      encoding: messageData.encoding,
+      headers: {
+        headers: messageData.headers,
+        cmd: "set",
+        key,
+        ttl,
+        previousSeq,
+        msgID,
+        storage: this.storage,
+      },
+      timeout,
+    });
+    return reply.data;
+  };
+}
+
+export function stream({
+  client,
+  user,
+  storage,
+}: {
+  client: Client;
+  // who is accessing persistent storage
+  user: User;
+  // what storage they are accessing
+  storage: Storage;
+}) {
+  return new PersistStreamClient(client, storage, user);
 }
