@@ -1,5 +1,5 @@
 /*
-pnpm test ./primus.test.ts
+pnpm test ./subject-socket.test.ts
 */
 
 import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
@@ -299,9 +299,9 @@ describe("create two socket servers with the same subject to test that sockets a
   });
 
   it("remove the server we're connected to and see that the client connects to another server automatically -- load balancing and automatic failover", async () => {
-    if (resp == s1) {
+    if (resp == "s1") {
       s1.close();
-    } else if (resp == s2) {
+    } else if (resp == "s2") {
       s2.close();
     }
     await wait({
@@ -310,7 +310,7 @@ describe("create two socket servers with the same subject to test that sockets a
         client.write(null);
         const resp1 = (await z)[0];
         // it's working again, but not using s1:
-        return resp1 == "s2" || resp1 == "s3";
+        return resp1 != resp;
       },
     });
   });
@@ -324,6 +324,42 @@ describe("create two socket servers with the same subject to test that sockets a
     c3.close();
     c3b.close();
     client.close();
+  });
+});
+
+describe("create a server where the subject has a wildcard, so clients can e.g., authentication themselves by having permission to write to the subject", () => {
+  let client, server, cn1, cn2;
+  it("creates the client and server", () => {
+    cn1 = connect();
+    server = cn1.socket.listen("changefeeds.*");
+    server.on("connection", (socket) => {
+      socket.on("data", () => {
+        socket.write(socket.subject.split('.')[1]);
+      });
+    });
+  });
+
+  it("connects as client on different matching subjects", async () => {
+    cn2 = connect();
+    client = cn2.socket.connect("changefeeds.account-5077");
+    const x = once(client, "data");
+    client.write(null);
+    const [data] = await x;
+    expect(data).toBe("account-5077");
+    client.close();
+
+    client = cn2.socket.connect("changefeeds.account-389");
+    const x2 = once(client, "data");
+    client.write(null);
+    const [data2] = await x2;
+    expect(data2).toBe("account-389");
+  });
+
+  it("cleans up", () => {
+    client.close();
+    server.close();
+    cn1.close();
+    cn2.close();
   });
 });
 

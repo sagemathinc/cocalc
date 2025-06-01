@@ -227,6 +227,7 @@ export class SubjectSocket extends EventEmitter {
         socket = new Socket({
           subjectSocket: this,
           id,
+          subject: mesg.subject,
         });
         this.sockets[id] = socket;
         this.emit("connection", socket);
@@ -373,21 +374,29 @@ export class SubjectSocket extends EventEmitter {
 
 // only used on the server
 export class Socket extends EventEmitter {
-  subjectSocket: SubjectSocket;
-  id: string;
-  lastPing = Date.now();
-  // this is just for compat with subjectSocket api:
-  address = { ip: "" };
-  conn: { id: string };
-  state: State = "ready";
-  queuedWrites: any[] = [];
-  clientSubject: string;
+  private subjectSocket: SubjectSocket;
+  public readonly id: string;
+  public lastPing = Date.now();
 
-  constructor({ subjectSocket, id }) {
+  private queuedWrites: any[] = [];
+  private clientSubject: string;
+
+  public state: State = "ready";
+  // the non-pattern subject the client connected to
+  public readonly subject: string;
+
+  // this is just for compat with subjectSocket api:
+  public readonly address = { ip: "" };
+  // conn is just for compatibility with primus/socketio (?).
+  public readonly conn: { id: string };
+
+  constructor({ subjectSocket, id, subject }) {
     super();
+    this.subject = subject;
     this.subjectSocket = subjectSocket;
-    const { subject } = subjectSocket;
-    this.clientSubject = `${subject}.client.${id}`;
+    const segments = subject.split('.');
+    segments[segments.length - 2] = "client";
+    this.clientSubject = segments.join(".");
     this.id = id;
     this.conn = { id };
   }
