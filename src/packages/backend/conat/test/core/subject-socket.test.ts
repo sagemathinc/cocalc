@@ -366,7 +366,7 @@ describe("create a server where the subject has a wildcard, so clients can e.g.,
 });
 
 describe("Check that the automatic reconnection parameter works", () => {
-  let client, server, cn1, cn2;
+  let server, cn1;
   it("creates the server", () => {
     cn1 = connect();
     server = cn1.socket.listen("recon");
@@ -436,12 +436,12 @@ describe("creating multiple sockets from the one client to one server works (the
     expect(data2).toBe(`conat-${socket2.id}`);
     const x1 = once(socket1, "data");
     const y1 = once(socket2, "data");
-    
+
     // also test broadcast
     server.write("hello");
     expect((await x1)[0]).toBe("hello");
     expect((await y1)[0]).toBe("hello");
-    
+
     socket1.close();
     socket2.close();
   });
