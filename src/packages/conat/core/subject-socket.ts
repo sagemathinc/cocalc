@@ -266,9 +266,14 @@ export class SubjectSocket extends EventEmitter {
       }
       const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
       if (cmd !== undefined) {
+        // note: test this first since it is also a request
+        // a special internal control command
         this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
+      } else if (mesg.isRequest()) {
+        // a request to support the socket.on('request', (mesg) => ...) protocol:
+        socket.emit("request", mesg);
       } else {
-        // incoming data:
+        // it's the low level data
         socket.emit("data", mesg.data, mesg.headers);
       }
     }
@@ -356,8 +361,12 @@ export class SubjectSocket extends EventEmitter {
           this.disconnect();
           return;
         }
-        // log("got data");
-        this.emit("data", mesg.data, mesg.headers);
+        if (mesg.isRequest()) {
+          this.emit("request", mesg);
+        } else {
+          // log("got data");
+          this.emit("data", mesg.data, mesg.headers);
+        }
       }
     } catch {
       this.disconnect();
@@ -411,6 +420,32 @@ export class SubjectSocket extends EventEmitter {
       // we are the client, so write to server
       this.sendDataToServer(data, headers);
     }
+  };
+
+  request = async (data, options?) => {
+    if (this.role == "server") {
+      // we call all connected sockets in parallel,
+      // then return array of responses.
+      // Unless race is set, then we return first result
+      const v: any[] = [];
+      for (const id in this.sockets) {
+        const f = async () => {
+          try {
+            return await this.sockets[id].request(data, options);
+          } catch (err) {
+            return err;
+          }
+        };
+        v.push(f());
+      }
+      if (options?.race) {
+        return await Promise.race(v);
+      } else {
+        return await Promise.all(v);
+      }
+    }
+    const subject = `${this.subject}.server.${this.id}`;
+    return await this.client.request(subject, data, options);
   };
 }
 
@@ -486,5 +521,14 @@ export class Socket extends EventEmitter {
       headers,
     });
     return true;
+  };
+
+  // use request reply where the client responds
+  request = async (data, options?) => {
+    return await this.subjectSocket.client.request(
+      this.clientSubject,
+      data,
+      options,
+    );
   };
 }

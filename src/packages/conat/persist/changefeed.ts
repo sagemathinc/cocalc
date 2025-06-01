@@ -55,9 +55,12 @@ export function persistChangefeedServer({
       id: socket.id,
       subject: socket.subject,
     });
-    socket.on("data", (request) => {
-      logger.debug("server: got request ", request);
-      getAll({ socket, request, messagesThresh });
+    socket.on("data", (data) => {
+      logger.debug("server: got data ", data);
+      getAll({ socket, request: data, messagesThresh });
+    });
+    socket.on("request", (mesg) => {
+      mesg.respond(`hello ${mesg.data}`);
     });
   });
 

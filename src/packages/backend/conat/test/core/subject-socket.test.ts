@@ -261,10 +261,12 @@ describe("create two socket servers with the same subject to test that sockets a
     s1 = c1.socket.listen(subject);
     s1.on("connection", (socket) => {
       socket.on("data", () => socket.write("s1"));
+      socket.on("request", (mesg) => mesg.respond("s1"));
     });
     s2 = c2.socket.listen(subject);
     s2.on("connection", (socket) => {
       socket.on("data", () => socket.write("s2"));
+      socket.on("request", (mesg) => mesg.respond("s2"));
     });
   });
 
@@ -291,12 +293,20 @@ describe("create two socket servers with the same subject to test that sockets a
     s3 = c1.socket.listen(subject);
     s3.on("connection", (socket) => {
       socket.on("data", () => socket.write("s3"));
+      socket.on("request", (mesg) => mesg.respond("s3"));
     });
     for (let i = 0; i < 25; i++) {
       const z1 = once(client, "data");
       client.write(null);
       const resp1 = (await z1)[0];
       expect(resp1).toBe(resp);
+    }
+  });
+
+  it("also verify that request/reply messaging go to the right place", async () => {
+    for (let i = 0; i < 25; i++) {
+      const x = await client.request(null);
+      expect(x.data).toBe(resp);
     }
   });
 
@@ -310,12 +320,16 @@ describe("create two socket servers with the same subject to test that sockets a
       until: async () => {
         // checking that client fails over...
         // include timeout since packets may drop during failover
-        const z = once(client, "data", 100);
-        client.write(null);
-        // did we get data?
-        const resp1 = (await z)[0];
-        // it's working again, but not using s1:
-        return resp1 != resp;
+        try {
+          const z = once(client, "data", 100);
+          client.write(null);
+          // did we get data?
+          const resp1 = (await z)[0];
+          // it's working again, but not using s1:
+          return resp1 != resp;
+        } catch {
+          return false;
+        }
       },
     });
   });
@@ -450,6 +464,128 @@ describe("creating multiple sockets from the one client to one server works (the
   });
 
   it("cleans up", () => {
+    server.close();
+    cn1.close();
+    cn2.close();
+  });
+});
+
+describe("test request/respond from client to server and from server to client", () => {
+  let socket1, socket2, server, cn1, cn2, cn3;
+  const subject = "request-respond-demo";
+  const sockets: any[] = [];
+
+  it("creates a server and two sockets", async () => {
+    cn3 = connect();
+    server = cn3.socket.listen(subject);
+    server.on("connection", (socket) => {
+      sockets.push(socket);
+      socket.on("request", (mesg) => {
+        mesg.respond(`hi ${mesg.data}, from server`);
+      });
+    });
+
+    cn1 = connect();
+    socket1 = cn1.socket.connect(subject);
+    socket1.on("request", (mesg) => {
+      mesg.respond(`hi ${mesg.data}, from socket1`);
+    });
+
+    cn2 = connect();
+    socket2 = cn2.socket.connect(subject);
+    socket2.on("request", (mesg) => {
+      mesg.respond(`hi ${mesg.data}, from socket2`);
+    });
+  });
+
+  it("each socket calls the server", async () => {
+    expect((await socket1.request("socket1")).data).toBe(
+      "hi socket1, from server",
+    );
+    expect((await socket2.request("socket2")).data).toBe(
+      "hi socket2, from server",
+    );
+  });
+
+  it("the server individually calls each socket", async () => {
+    expect((await sockets[0].request("server")).data).toBe(
+      "hi server, from socket1",
+    );
+
+    expect((await sockets[1].request("server")).data).toBe(
+      "hi server, from socket2",
+    );
+  });
+
+  it("broadcast a request to all connected sockets", async () => {
+    const v = (await server.request("server")) as any;
+    const w = v.map((y: any) => y.data);
+    const S = new Set(["hi server, from socket1", "hi server, from socket2"]);
+    expect(new Set(w)).toEqual(S);
+
+    // also broadcast and use race, so we get just the first response.
+    const x = await server.request("server", { race: true });
+    console.log(x.data);
+    expect(S.has(x.data)).toBe(true);
+  });
+
+  it("cleans up", () => {
+    socket1.close();
+    socket2.close();
+    server.close();
+    cn1.close();
+    cn2.close();
+    cn3.close();
+  });
+});
+
+describe("test request/respond with heaaders", () => {
+  let socket1,
+    server,
+    cn1,
+    cn2,
+    sockets: any[] = [];
+  const subject = "request-respond-headers";
+
+  it("creates a server and a socket", async () => {
+    cn2 = connect();
+    server = cn2.socket.listen(subject);
+    server.on("connection", (socket) => {
+      sockets.push(socket);
+      socket.on("request", (mesg) => {
+        mesg.respond(`server: ${mesg.data}`, {
+          headers: { ...mesg.headers, server: true },
+        });
+      });
+    });
+
+    cn1 = connect();
+    socket1 = cn1.socket.connect(subject);
+    socket1.on("request", (mesg) => {
+      mesg.respond(`socket1: ${mesg.data}`, {
+        headers: { ...mesg.headers, socket1: true },
+      });
+    });
+  });
+
+  it("headers work when client calls server", async () => {
+    const x = await socket1.request("hi", { headers: { foo: 10 } });
+    expect(x.data).toBe("server: hi");
+    expect(x.headers).toEqual(
+      expect.objectContaining({ foo: 10, server: true }),
+    );
+  });
+
+  it("headers work when server calls client", async () => {
+    const x = await sockets[0].request("hi", { headers: { foo: 10 } });
+    expect(x.data).toBe("socket1: hi");
+    expect(x.headers).toEqual(
+      expect.objectContaining({ foo: 10, socket1: true }),
+    );
+  });
+
+  it("cleans up", () => {
+    socket1.close();
     server.close();
     cn1.close();
     cn2.close();

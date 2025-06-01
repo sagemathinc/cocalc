@@ -1290,6 +1290,8 @@ export class Message<T = any> extends MessageData<T> {
     this.subject = subject;
   }
 
+  isRequest = (): boolean => !!this.headers?.[REPLY_HEADER];
+
   private respondSubject = () => {
     const subject = this.headers?.[REPLY_HEADER];
     if (!subject) {
