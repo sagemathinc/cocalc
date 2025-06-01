@@ -243,6 +243,8 @@ export class EventIterator<V extends unknown>
 
   public throw(err): Promise<IteratorResult<V>> {
     this.err = err;
+    // fake event to trigger handling of err
+    this.emitter.emit(this.event);
     this.end();
     return Promise.resolve({ done: true, value: undefined as never });
   }
@@ -263,6 +265,8 @@ export class EventIterator<V extends unknown>
       this.#queue.push(value);
     } catch (err) {
       this.err = err;
+      // fake event to trigger handling of err
+      this.emitter.emit(this.event);
     }
   }
 }

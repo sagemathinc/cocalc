@@ -56,13 +56,13 @@ export class ConatChangefeed extends EventEmitter {
   };
 
   close = (): void => {
+    log("close", this.query);
     if (this.state == "closed") {
       return;
     }
     this.cf?.close();
     delete this.cf;
     this.state = "closed";
-    log("firing close event for ", this.query);
     this.emit("close"); // yes "close" not "closed" ;-(
   };
 
@@ -76,7 +76,7 @@ export class ConatChangefeed extends EventEmitter {
     }
     try {
       for await (const x of this.cf) {
-        log("got message ", this.query, x);
+        // log("got message ", this.query, x);
         // @ts-ignore
         if (this.state == "closed") {
           return;

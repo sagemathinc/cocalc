@@ -68,13 +68,13 @@ const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 export type Role = "client" | "server";
 
 // clients send a heartbeat to the server this frequently.
-const HEARBEAT_INTERVAL = 45000;
+const DEFAULT_HEARBEAT_INTERVAL = 15000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond the last this many are discarded:
 const DEFAULT_MAX_QUEUE_SIZE = 100;
 
-const DEFAULT_TIMEOUT = 7500;
+const DEFAULT_TIMEOUT = 5000;
 
 type Command = "connect" | "close" | "ping";
 
@@ -234,7 +234,7 @@ export class SubjectSocket extends EventEmitter {
     if (this.role != "server") {
       throw Error("only server can serve");
     }
-    this.deleteSockets();
+    this.deleteDeadSockets();
     this.sub = await this.client.subscribe(`${this.subject}.server.*`, {
       sticky: true,
       ephemeral: true,
@@ -287,15 +287,15 @@ export class SubjectSocket extends EventEmitter {
     }
   };
 
-  private deleteSockets = async () => {
+  private deleteDeadSockets = async () => {
     while (this.state != "closed") {
       for (const id in this.sockets) {
         const socket = this.sockets[id];
-        if (Date.now() - socket.lastPing > HEARBEAT_INTERVAL * 2.5) {
+        if (Date.now() - socket.lastPing > DEFAULT_HEARBEAT_INTERVAL * 2.5) {
           socket.destroy();
         }
       }
-      await delay(HEARBEAT_INTERVAL);
+      await delay(DEFAULT_HEARBEAT_INTERVAL);
     }
   };
 
@@ -355,18 +355,22 @@ export class SubjectSocket extends EventEmitter {
     while (this.state != "closed") {
       if (this.state == "ready") {
         try {
+          // console.log("client: sending a ping");
           const x = await this.sendCommandToServer("ping");
+          // console.log("client: sending a ping got back ", x);
           if (x != "pong") {
             throw Error("ping failed");
           }
         } catch (err) {
+          // console.log("client: sending a ping error ", err);
           //console.log("ping failed");
           // if sending ping fails, disconnect
           this.disconnect();
           return;
         }
       }
-      await delay(HEARBEAT_INTERVAL);
+      // console.log("waiting ", DEFAULT_HEARBEAT_INTERVAL);
+      await delay(DEFAULT_HEARBEAT_INTERVAL);
     }
   });
 
