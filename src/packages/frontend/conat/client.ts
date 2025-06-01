@@ -9,7 +9,7 @@ import { randomId, inboxPrefix } from "@cocalc/conat/names";
 import { projectSubject } from "@cocalc/conat/names";
 import { parse_query } from "@cocalc/sync/table/util";
 import { keys } from "lodash";
-import { type HubApi, initHubApi } from "@cocalc/conat/hub-api";
+import { type HubApi, initHubApi } from "@cocalc/conat/hub/api";
 import { type ProjectApi, initProjectApi } from "@cocalc/conat/project/api";
 import { isValidUUID } from "@cocalc/util/misc";
 import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";

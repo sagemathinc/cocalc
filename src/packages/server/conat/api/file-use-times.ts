@@ -7,7 +7,7 @@ import getPool from "@cocalc/database/pool";
 import type {
   FileUseTimesOptions,
   FileUseTimesResponse,
-} from "@cocalc/conat/hub-api/db";
+} from "@cocalc/conat/hub/api/db";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
 

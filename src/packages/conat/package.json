@@ -5,8 +5,8 @@
   "exports": {
     "./sync/*": "./dist/sync/*.js",
     "./llm/*": "./dist/llm/*.js",
-    "./hub-api": "./dist/hub-api/index.js",
-    "./hub-api/*": "./dist/hub-api/*.js",
+    "./hub/api": "./dist/hub/api/index.js",
+    "./hub/api/*": "./dist/hub/api/*.js",
     "./compute/*": "./dist/compute/*.js",
     "./service": "./dist/service/index.js",
     "./project/api": "./dist/project/api/index.js",
@@ -20,17 +20,9 @@
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "conat",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "conat", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",

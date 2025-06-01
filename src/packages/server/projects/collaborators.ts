@@ -5,7 +5,7 @@ Add, remove and invite collaborators on projects.
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import type { AddCollaborator } from "@cocalc/conat/hub-api/projects";
+import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
 import { add_collaborators_to_projects } from "./collab";
 import {
   days_ago,

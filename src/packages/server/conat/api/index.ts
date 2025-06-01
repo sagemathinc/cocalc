@@ -41,7 +41,7 @@ pnpm conat-watch 'hub.*.*.api' --match-replies
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub-api";
+import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";

@@ -3,7 +3,7 @@ Support legacy TimeTravel history from before the switch to NATS.
 */
 
 import { type Client } from "./types";
-import { type DB } from "@cocalc/conat/hub-api/db";
+import { type DB } from "@cocalc/conat/hub/api/db";
 
 export interface LegacyPatch {
   time: Date;

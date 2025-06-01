@@ -4,7 +4,7 @@
  */
 
 import type { ConatClient } from "@cocalc/frontend/conat/client";
-import type { AddCollaborator } from "@cocalc/conat/hub-api/projects";
+import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
 
 export class ProjectCollaborators {
   private conat: ConatClient;
