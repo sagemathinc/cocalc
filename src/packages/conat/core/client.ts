@@ -567,7 +567,7 @@ export class Client {
     if (sub != null) {
       if (queue && this.queueGroups[subject] != queue) {
         throw Error(
-          "client can only have one queue group subscription for a given subject",
+          `client can only have one queue group subscription for a given subject -- subject='${subject}', queue='${queue}'`,
         );
       }
       sub.refCount += 1;
