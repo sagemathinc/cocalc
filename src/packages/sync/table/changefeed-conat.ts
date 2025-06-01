@@ -46,8 +46,11 @@ export class ConatChangefeed extends EventEmitter {
     });
     const { value, done } = await this.cf.next();
     if (done) {
-      throw Error("closed");
+      log("closed before receiving any values");
+      this.close();
+      return;
     }
+    this.state = "connected";
     this.watch();
     return value[Object.keys(value)[0]];
   };
@@ -82,7 +85,8 @@ export class ConatChangefeed extends EventEmitter {
       }
     } catch (err) {
       log("got error", this.query, err);
-      this.close();
     }
+    log("watch ended", this.query);
+    this.close();
   };
 }

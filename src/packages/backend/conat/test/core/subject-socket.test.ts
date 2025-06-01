@@ -12,7 +12,7 @@ describe("create a server and client, then send a message and get a response", (
   let client, server, cn1, cn2;
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.socket.listen("primus");
+    server = cn1.socket.listen("cocalc");
     server.on("connection", (socket) => {
       socket.on("data", (data) => {
         socket.write(`${data}`.repeat(2));
@@ -22,7 +22,7 @@ describe("create a server and client, then send a message and get a response", (
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.socket.connect("primus");
+    client = cn2.socket.connect("cocalc");
     client.write("cocalc");
     const [data] = await once(client, "data");
     expect(data).toBe("cocalccocalc");
@@ -62,13 +62,13 @@ describe("create a client first, then the server, and see that it still works (t
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.socket.connect("primus");
+    client = cn2.socket.connect("cocalc");
     client.write("cocalc", { my: "header" });
   });
 
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.socket.listen("primus");
+    server = cn1.socket.listen("cocalc");
     server.on("connection", (socket) => {
       socket.on("data", (data, headers) => {
         socket.write(`${data}`.repeat(2), headers);
@@ -97,7 +97,7 @@ describe("create a client first and writing more messages than the queue size re
     maxQueueSize = 3;
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.socket.connect("primus", { maxQueueSize });
+    client = cn2.socket.connect("cocalc", { maxQueueSize });
     for (let i = 0; i < count; i++) {
       client.write(`${i}`);
     }
@@ -106,7 +106,7 @@ describe("create a client first and writing more messages than the queue size re
 
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.socket.listen("primus", { maxQueueSize });
+    server = cn1.socket.listen("cocalc", { maxQueueSize });
     server.on("connection", (socket) => {
       socket.on("data", (data) => {
         socket.write(`${data}`.repeat(2));
@@ -133,7 +133,7 @@ describe("test having two clients and see that communication is independent and 
 
   it("creates a server and two clients", async () => {
     cn3 = connect();
-    server = cn3.socket.listen("primus2");
+    server = cn3.socket.listen("cocalc2");
     server.on("connection", (socket) => {
       socket.on("data", (data) => {
         socket.write(`${data}`.repeat(2));
@@ -141,9 +141,9 @@ describe("test having two clients and see that communication is independent and 
     });
 
     cn1 = connect();
-    client1 = cn1.socket.connect("primus2");
+    client1 = cn1.socket.connect("cocalc2");
     cn2 = connect();
-    client2 = cn2.socket.connect("primus2");
+    client2 = cn2.socket.connect("cocalc2");
   });
 
   it("each client uses the server separately", async () => {
@@ -406,6 +406,50 @@ describe("Check that the automatic reconnection parameter works", () => {
     socket.connect();
     await once(socket, "ready");
     socket.close();
+  });
+});
+
+describe("creating multiple sockets from the one client to one server works (they should be distinct)", () => {
+  let server, cn1, cn2;
+  it("creates the client and server", () => {
+    cn1 = connect();
+    server = cn1.socket.listen("cocalc");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}-${socket.id}`);
+      });
+    });
+  });
+
+  it("creates two client sockets", async () => {
+    cn2 = connect();
+    const socket1 = cn2.socket.connect("cocalc");
+    const socket2 = cn2.socket.connect("cocalc");
+    expect(socket1.id).not.toEqual(socket2.id);
+    const x = once(socket1, "data");
+    const y = once(socket2, "data");
+    socket1.write("cocalc");
+    socket2.write("conat");
+    const [data] = await x;
+    expect(data).toBe(`cocalc-${socket1.id}`);
+    const [data2] = await y;
+    expect(data2).toBe(`conat-${socket2.id}`);
+    const x1 = once(socket1, "data");
+    const y1 = once(socket2, "data");
+    
+    // also test broadcast
+    server.write("hello");
+    expect((await x1)[0]).toBe("hello");
+    expect((await y1)[0]).toBe("hello");
+    
+    socket1.close();
+    socket2.close();
+  });
+
+  it("cleans up", () => {
+    server.close();
+    cn1.close();
+    cn2.close();
   });
 });
 

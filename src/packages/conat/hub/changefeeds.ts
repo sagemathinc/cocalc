@@ -3,6 +3,9 @@ import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 import { uuid } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("hub:changefeeds");
 
 const SERVICE = "changefeeds";
 const SUBJECT = "changefeeds.*";
@@ -24,6 +27,7 @@ export function changefeedServer({
 
   cancelQuery: (uuid: string) => void;
 }) {
+  logger.debug("creating changefeed server");
   const server = client.socket.listen(SUBJECT);
 
   server.on("connection", (socket) => {
@@ -33,12 +37,15 @@ export function changefeedServer({
       cancelQuery(changes);
     });
     socket.on("data", (data) => {
+      const { query, options } = data;
       try {
         userQuery({
-          ...data,
+          query,
+          options,
           changes,
           account_id,
           cb: (error, update) => {
+            // logger.debug("got: ", { error, update });
             socket.write({ error, update });
             if (error) {
               socket.close();
@@ -46,7 +53,9 @@ export function changefeedServer({
           },
         });
       } catch (err) {
+        logger.debug("error creating query", err);
         socket.write({ error: `${err}` });
+        socket.close();
       }
     });
   });
@@ -76,6 +85,7 @@ export function changefeed({
   const socket = client.socket.connect(changefeedSubject({ account_id }), {
     reconnection: false,
   });
+  logger.debug("creating changefeed", { query, options });
   socket.write({ query, options });
   const cf = new EventIterator<{ error?: string; update: Update }>(
     socket,
@@ -94,7 +104,7 @@ export function changefeed({
       },
     },
   );
-  //socket.on("closed", () => cf.throw(Error("closed")));
-  //socket.on("disconnected", () => cf.throw(Error("disconnected")));
+  socket.on("closed", () => cf.throw(Error("closed")));
+  socket.on("disconnected", () => cf.throw(Error("disconnected")));
   return cf;
 }

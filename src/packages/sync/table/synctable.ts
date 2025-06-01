@@ -656,7 +656,7 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private async connect(): Promise<void> {
+  private connect = async (): Promise<void> => {
     const dbg = this.dbg("connect");
     dbg();
     this.assert_not_closed("connect");
@@ -679,7 +679,7 @@ export class SyncTable extends EventEmitter {
     await this.create_changefeed();
 
     dbg("connect should have succeeded");
-  }
+  };
 
   private async create_changefeed(): Promise<void> {
     const dbg = this.dbg("create_changefeed");
@@ -748,6 +748,7 @@ export class SyncTable extends EventEmitter {
       }
       try {
         const initval = await this.changefeed.connect();
+
         if (this.changefeed.get_state() == "closed" || !initval) {
           throw Error("closed during creation");
         }

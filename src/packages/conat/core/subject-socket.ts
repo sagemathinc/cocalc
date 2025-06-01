@@ -142,6 +142,7 @@ export class SubjectSocket extends EventEmitter {
     this.reconnection = reconnection;
     this.subject = subject;
     this.client = client;
+    this.client.on("close", this.close);
     this.role = role;
     this.id = id;
     this.conn = { id };
@@ -206,6 +207,7 @@ export class SubjectSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
+    this.client.removeListener("close", this.close);
     if (this.role == "client") {
       // tell server we're gone
       this.sendCommandToServer("close");

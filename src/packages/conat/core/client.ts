@@ -323,7 +323,7 @@ export function getClient() {
   return cache.one() ?? connect();
 }
 
-export class Client {
+export class Client extends EventEmitter {
   public conn: ReturnType<typeof connectToSocketIO>;
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
@@ -344,6 +344,8 @@ export class Client {
   public readonly id: string = randomId();
 
   constructor(options: ClientOptions) {
+    super();
+    this.setMaxListeners(300);
     this.options = options;
 
     // for socket.io the address has no base url
@@ -440,6 +442,8 @@ export class Client {
   });
 
   close = () => {
+    this.emit("close");
+    this.removeAllListeners();
     if (this.options == null) {
       return;
     }
@@ -1050,7 +1054,7 @@ export class Client {
         subject,
         role: "client",
         client: this,
-        id: this.id,
+        id: randomId(),
         ...opts,
       }),
   };

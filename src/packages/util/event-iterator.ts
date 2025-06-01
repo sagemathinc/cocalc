@@ -179,8 +179,10 @@ export class EventIterator<V extends unknown>
    */
   public async next(): Promise<IteratorResult<V>> {
     if (this.err) {
+      const err = this.err;
+      delete this.err;
       this.end();
-      throw this.err;
+      throw err;
     }
     // If there are elements in the queue, return an undone response:
     if (this.#queue.length) {
