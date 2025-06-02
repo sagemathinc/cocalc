@@ -7,7 +7,6 @@ import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
 beforeAll(before);
-
 describe("create a server and client, then send a message and get a response", () => {
   let client, server, cn1, cn2;
   it("creates the client and server", () => {
@@ -416,7 +415,11 @@ describe("Check that the automatic reconnection parameter works", () => {
     const x = once(socket, "connecting");
     socket.disconnect();
     const z = once(socket, "data");
-    socket.write("hi"); // write when not connected
+
+    // write when not connected -- this should get sent
+    // when we connect:
+    socket.write("hi"); 
+    
     await once(socket, "ready");
     await y;
     await x;
@@ -538,7 +541,6 @@ describe("test request/respond from client to server and from server to client",
 
     // also broadcast and use race, so we get just the first response.
     const x = await server.request("server", { race: true });
-    console.log(x.data);
     expect(S.has(x.data)).toBe(true);
   });
 

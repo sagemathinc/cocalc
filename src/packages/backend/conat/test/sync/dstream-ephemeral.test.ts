@@ -22,7 +22,7 @@ async function createDstream<T>(opts) {
     noCache: true,
     noAutosave: true,
     ephemeral: true,
-    connectionOptions: { lifetime: EPHEMERAL_LIFETIME },
+    lifetime: EPHEMERAL_LIFETIME,
     ...opts,
   });
 }
@@ -58,13 +58,14 @@ describe("create a dstream and do some basic operations", () => {
   it("confirm ephemeralness: closes and re-opens stream and confirms message is NOT there", async () => {
     const name = s.name;
     await s.save();
-    expect(s.stream.renewLoopParams.lifetime).toBe(EPHEMERAL_LIFETIME);
+    expect(s.stream.storage.lifetime).toBe(EPHEMERAL_LIFETIME);
     // close s:
     await s.close();
     // using s fails
     expect(s.getAll).toThrow("closed");
     // wait for server to discard stream data
-    await delay(EPHEMERAL_LIFETIME + 500);
+    // (it's instant right now!)
+    //await delay(EPHEMERAL_LIFETIME + 500);
     // create new stream with same name
     const t = await createDstream({ name });
     // ensure it is NOT just from the cache

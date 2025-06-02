@@ -436,15 +436,16 @@ export class SubjectSocket extends EventEmitter {
   // client: writes to server
   // server: broadcast to ALL connected clients
   write = (data, { headers }: { headers?: Headers } = {}): void => {
-    if (this.state == "connecting") {
+    if (this.state != "ready") {
       this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.maxQueueSize) {
         this.queuedWrites.shift();
       }
       return;
     }
+    // @ts-ignore
     if (this.state == "closed") {
-      return;
+      throw Error("closed");
     }
     if (this.role == "server") {
       // write to all the sockets that are connected.
@@ -458,11 +459,16 @@ export class SubjectSocket extends EventEmitter {
   };
 
   request = async (data, options?) => {
-    if (this.state == "closed") return;
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
     if (this.state != "ready") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
-    if (this.state == "closed") return;
+    // @ts-ignore
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
 
     if (this.role == "server") {
       // we call all connected sockets in parallel,
@@ -490,11 +496,16 @@ export class SubjectSocket extends EventEmitter {
   };
 
   requestMany = async (data, options?): Promise<Subscription> => {
-    if (this.state == "closed") return;
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
     if (this.state != "ready") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
-    if (this.state == "closed") return;
+    // @ts-ignore
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
     if (this.role == "server") {
       throw Error("requestMany with server not implemented");
     }
@@ -561,13 +572,14 @@ export class Socket extends EventEmitter {
   end = () => this.close();
 
   write = (data, { headers }: { headers?: Headers } = {}) => {
-    if (this.state == "connecting") {
+    if (this.state != "ready") {
       this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.subjectSocket.maxQueueSize) {
         this.queuedWrites.shift();
       }
       return;
     }
+    // @ts-ignore
     if (this.state == "closed") {
       return;
     }
@@ -579,7 +591,7 @@ export class Socket extends EventEmitter {
 
   // use request reply where the client responds
   request = async (data, options?) => {
-    if (this.state == "connecting") {
+    if (this.state != "ready") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
     return await this.subjectSocket.client.request(
