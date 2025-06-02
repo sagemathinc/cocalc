@@ -122,16 +122,15 @@ export class AKV<T = any> {
       headers?: Headers;
       previousSeq?: number;
       timeout?: number;
-      // note: msgID is NOT supported because its lifetime is that of the stream object
-      // on the server, which is likely immediately removed when using akv.  Of course
-      // msgID is mainly for streams and not very relevant for kv.
+      ttl?: number;
+      msgID?: string;
     },
-  ) => {
+  ): Promise<{ seq: number; time: number }> => {
+    const { headers, ...options0 } = options ?? {};
     return await this.stream.set({
       key,
-      messageData: messageData(value, { headers: options?.headers }),
-      previousSeq: options?.previousSeq,
-      timeout: options?.timeout,
+      messageData: messageData(value, { headers }),
+      ...options0,
     });
   };
 

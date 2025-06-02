@@ -18,8 +18,6 @@ import { delay } from "awaiting";
 
 const EPHEMERAL_LIFETIME = 2000;
 
-jest.retryTimes(3);
-
 beforeAll(before);
 
 describe("create a client, create an ephemeral core-stream, and do basic tests", () => {
@@ -29,7 +27,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   const opts = {
     name,
     ephemeral: true,
-    connectionOptions: { lifetime: EPHEMERAL_LIFETIME },
+    lifetime: EPHEMERAL_LIFETIME,
     noCache: true,
   };
 
@@ -42,11 +40,13 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   it("publish some messages", async () => {
     // publish null
     await stream.publish(null);
+    await wait({ until: () => stream.length == 1 });
     expect(stream.get(0)).toBe(null);
     expect(stream.length).toBe(1);
 
     // publish a Buffer stays a Buffer
     await stream.publish(Buffer.from("xyz"));
+    await wait({ until: () => stream.length == 2 });
     expect(stream.get(1)).toEqual(Buffer.from("xyz"));
     expect(Buffer.isBuffer(stream.get(1))).toBe(true);
     expect(stream.length).toBe(2);
@@ -56,7 +56,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     await stream.publish(now);
     expect(stream.get(2)).toEqual(now);
     expect(isDate(stream.get(2))).toEqual(true);
-    expect(stream.renewLoopParams.lifetime).toBe(EPHEMERAL_LIFETIME);
+    expect(stream.storage.lifetime).toBe(EPHEMERAL_LIFETIME);
   });
 
   it("publishing undefined is not allowed", async () => {
@@ -96,15 +96,16 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     for (let i = 0; i < 100; i++) {
       await stream.publish(i);
       v.push(i);
-      expect(stream.get(i)).toBe(i);
-      expect(stream.length).toBe(i + 1);
     }
+    await wait({ until: () => stream.length == 100 });
     expect(stream.length).toBe(100);
     expect(stream.getAll()).toEqual(v);
   });
 
   it("publish a message with a header", async () => {
+    const n = stream.length;
     await stream.publish("body", { headers: { foo: { 10: 5 } } });
+    await wait({ until: () => stream.length > n });
     const headers = stream.headers(stream.length - 1);
     expect(headers).toEqual(expect.objectContaining({ foo: { 10: 5 } }));
   });
@@ -127,6 +128,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
 
   it("delete everything in the stream", async () => {
     await stream.delete({ all: true });
+    await wait({ until: () => stream.length == 0 });
     expect(stream.length).toBe(0);
     const stats = stream.stats();
     expect(stats.count).toBe(0);
@@ -164,7 +166,7 @@ describe("test basic key:value functionality for persistent core stream", () => 
   });
 
   it("closes and reopens stream, to confirm the key was persisted", async () => {
-    stream.close();
+    await stream.close();
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, ephemeral: false });
     expect(stream.hasKv("key")).toBe(true);
@@ -212,7 +214,7 @@ describe("test basic key:value functionality for persistent core stream", () => 
   });
 
   it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {
-    stream.close();
+    await stream.close();
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, ephemeral: false });
     expect(stream.length).toBe(1);
@@ -253,7 +255,9 @@ describe("test key:value delete", () => {
     await wait({ until: () => stream2.getKv("key") == "value" });
 
     // also use an empty '' key
+    const n = stream.length;
     await stream.setKv("", "a value");
+    await wait({ until: () => stream.length > n });
     expect(await stream.getKv("")).toEqual("a value");
     await wait({ until: () => stream2.getKv("") == "a value" });
   });
@@ -265,7 +269,9 @@ describe("test key:value delete", () => {
   });
 
   it("also delete the empty key one", async () => {
+    const n = stream.length;
     await stream2.deleteKv("");
+    await wait({ until: () => stream.length > n });
     expect(await stream2.getKv("")).toEqual(undefined);
     await wait({ until: () => stream.getKv("") === undefined });
   });
@@ -311,12 +317,15 @@ describe("test previousSeq when setting keys, which can be used to ensure consis
     const { seq: seq1 } = await stream.setKv("my", "newval", {
       previousSeq: seq,
     });
+    await wait({ until: () => stream.seqKv("my") == seq1 });
     expect(stream.getKv("my")).toBe("newval");
     expect(stream.seqKv("my")).toBe(seq1);
   });
 
   it("previousSeq is ignored with non-key sets", async () => {
+    const n = stream.length;
     await stream.publish("stuff", { previousSeq: 0 });
+    await wait({ until: () => stream.length > n });
     expect(stream.get(stream.length - 1)).toBe("stuff");
   });
 });
@@ -347,6 +356,7 @@ describe("test msgID dedup", () => {
     await stream.publish("x", { msgID: "myid" });
     await stream.publish("y", { msgID: "myid2" });
     await stream.publish("x", { msgID: "myid" });
+    await wait({ until: () => stream.length == 2 });
     expect(stream.getAll()).toEqual(["x", "y"]);
     await wait({ until: () => stream2.length == 2 });
     expect(stream2.getAll()).toEqual(["x", "y"]);
@@ -367,7 +377,7 @@ import { disablePermissionCheck } from "@cocalc/conat/persist/client";
 describe("test permissions", () => {
   it("create a CoreStream, but change the path to one that wouldn't be allowed given the subject", async () => {
     const client = connect();
-    const stream : any = new CoreStream({
+    const stream: any = new CoreStream({
       client,
       name: "conat.ipynb",
       project_id: "00000000-0000-4000-8000-000000000000",
@@ -398,7 +408,7 @@ describe("test permissions", () => {
   it("do the tests again, but with the client side permission check disabled, to make sure the server denies us", async () => {
     disablePermissionCheck();
     const client = connect();
-    const stream : any = new CoreStream({
+    const stream: any = new CoreStream({
       client,
       name: "conat2.ipynb",
       project_id: "00000000-0000-4000-8000-000000000000",

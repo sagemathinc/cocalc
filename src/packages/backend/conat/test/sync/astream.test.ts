@@ -7,8 +7,7 @@ pnpm test ./astream.test.ts
 
 */
 
-import { dstream, astream } from "@cocalc/backend/conat/sync";
-import { wait } from "@cocalc/backend/conat/test/util";
+import { astream } from "@cocalc/backend/conat/sync";
 import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import { delay } from "awaiting";
 
@@ -174,6 +173,7 @@ describe("test a changefeed", () => {
       v.push(i);
     }
     const z = await s.push(...v);
+    expect(z.length).toBe(v.length);
   });
 
   it(`stress test getting ${stress} values from a changefeed`, async () => {
@@ -221,6 +221,7 @@ describe("test setting with key, ttl and msgID", () => {
     // call config to force enforcing limits
     await s.config();
     expect(await s.get("i-have-ttl")).toBe(undefined);
+    expect(await s.get(seq)).toBe(undefined);
   });
 
   it("cleans up", () => {

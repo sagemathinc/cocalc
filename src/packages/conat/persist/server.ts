@@ -27,6 +27,8 @@ client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/b
 
 client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/backend/conat/sync').astream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'b.txt', client})
 
+client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/backend/conat/sync').dstream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'ds.txt', client})
+
 
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
 
@@ -88,6 +90,7 @@ export function server({
       id: socket.id,
       subject: socket.subject,
     });
+    let error = "";
     let changefeed = false;
     let storage: undefined | StorageOptions = undefined;
     let stream: undefined | PersistentStream = undefined;
@@ -95,10 +98,14 @@ export function server({
       logger.debug("server: got data ", data);
       if (stream === undefined) {
         storage = data.storage;
-        stream = await getStream({
-          subject: socket.subject,
-          storage,
-        });
+        try {
+          stream = await getStream({
+            subject: socket.subject,
+            storage,
+          });
+        } catch (err) {
+          error = `${err};`;
+        }
       }
     });
     socket.on("closed", () => {
@@ -112,6 +119,9 @@ export function server({
       logger.debug("got request", request);
 
       try {
+        if (error) {
+          throw Error(error);
+        }
         if (storage === undefined || stream === undefined) {
           throw Error("stream not initialized -- must send storage first");
         }

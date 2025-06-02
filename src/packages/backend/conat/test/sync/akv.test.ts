@@ -14,11 +14,12 @@ import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 beforeAll(before);
 
 describe("test basics with an akv", () => {
-  let kv;
+  let kv, client;
   const name = `test-${Math.random()}`;
 
   it("creates the akv, then set and read a value", async () => {
-    kv = createAkv({ name });
+    client = connect();
+    kv = createAkv({ name, client });
     await kv.set("x", 10);
     expect(await kv.get("x")).toBe(10);
   });
@@ -42,19 +43,20 @@ describe("test basics with an akv", () => {
   });
 
   it("cleans up", async () => {
-    const k = await createDkv({ name });
+    const k = await createDkv({ name, client });
     k.clear();
     await k.close();
   });
 });
 
 describe("test interop with a dkv", () => {
-  let akv, dkv;
+  let akv, dkv, client;
   const name = `test-${Math.random()}`;
 
   it("creates the akv and dkv", async () => {
-    akv = createAkv({ name });
-    dkv = await createDkv({ name });
+    client = connect();
+    akv = createAkv({ name, client });
+    dkv = await createDkv({ name, client });
   });
 
   it("sets value in the dkv and reads it using the akv", async () => {
@@ -105,9 +107,10 @@ describe("test interop with a dkv", () => {
 
 describe("testing writing and reading chunked data", () => {
   let maxPayload = 0;
+  let client;
 
   it("sanity check on the max payload", async () => {
-    const client = connect();
+    client = connect();
     await wait({ until: () => client.info != null });
     maxPayload = client.info?.max_payload ?? 0;
     expect(maxPayload).toBeGreaterThan(500000);
@@ -116,14 +119,14 @@ describe("testing writing and reading chunked data", () => {
   let kv;
   const name = `test-${Math.random()}`;
   it("creates akv, then set and read a large value", async () => {
-    kv = createAkv({ name });
+    kv = createAkv({ name, client });
     const val = "z".repeat(maxPayload * 1.5) + "cocalc";
     await kv.set("x", val);
     expect(await kv.get("x")).toBe(val);
   });
 
   it("cleans up", async () => {
-    const k = await createDkv({ name });
+    const k = await createDkv({ name, client });
     k.clear();
     await k.close();
   });

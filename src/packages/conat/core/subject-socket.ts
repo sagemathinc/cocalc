@@ -364,10 +364,15 @@ export class SubjectSocket extends EventEmitter {
       return;
     }
     this.setState("connecting");
-    if (this.role == "server") {
-      await this.runAsServer();
-    } else {
-      await this.runAsClient();
+    try {
+      if (this.role == "server") {
+        await this.runAsServer();
+      } else {
+        await this.runAsClient();
+      }
+    } catch (err) {
+      console.log(`WARNING: socket error -- ${err}`);
+      this.disconnect();
     }
   };
 
