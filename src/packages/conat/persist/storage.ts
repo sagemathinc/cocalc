@@ -142,7 +142,7 @@ const DEFAULT_COMPRESSION = {
   threshold: 1024,
 };
 
-export interface Message {
+export interface StoredMessage {
   // server assigned positive increasing integer number
   seq: number;
   // server assigned time in ms since epoch
@@ -157,7 +157,7 @@ export interface Message {
   headers?: Headers;
 }
 
-export interface SetOperation extends Message {
+export interface SetOperation extends StoredMessage {
   op: undefined;
   msgID?: string;
 }
@@ -168,7 +168,7 @@ export interface DeleteOperation {
   seqs: number[];
 }
 
-export interface Options {
+export interface StorageOptions {
   // absolute path to sqlite database file.  This needs to be a valid filename
   // path, and must also be kept under 1K so it can be stored in cloud storage.
   path: string;
@@ -179,18 +179,21 @@ export interface Options {
   // table, which is enforced on all writes.  Clients should always set max_bytes,
   // possibly as low as they can, and check by reading back what is set.
   ephemeral?: boolean;
+  // for ephemeral streams, lifetime determines how long until they are cleared from
+  // memory if not active.
+  lifetime?: number;
   // compression configuration
   compression?: Compression;
 }
 
 // persistence for stream of messages with subject
 export class PersistentStream extends EventEmitter {
-  private readonly options: Options;
+  private readonly options: StorageOptions;
   private readonly db: Database;
   private readonly msgIDs = new TTL({ ttl: 2 * 60 * 1000 });
   private conf: Configuration;
 
-  constructor(options: Options) {
+  constructor(options: StorageOptions) {
     super();
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
@@ -357,7 +360,7 @@ export class PersistentStream extends EventEmitter {
     seq,
     key,
   }: { seq: number; key: undefined } | { seq: undefined; key: string }):
-    | Message
+    | StoredMessage
     | undefined => {
     let x;
     if (seq) {
@@ -383,7 +386,7 @@ export class PersistentStream extends EventEmitter {
   *getAll({
     start_seq,
     end_seq,
-  }: { end_seq?: number; start_seq?: number } = {}): IterableIterator<Message> {
+  }: { end_seq?: number; start_seq?: number } = {}): IterableIterator<StoredMessage> {
     let query: string, stmt;
 
     const where: string[] = [];
@@ -664,7 +667,7 @@ function dbToMessage(
         headers?: string;
       }
     | undefined,
-): Message | undefined {
+): StoredMessage | undefined {
   if (x === undefined) {
     return x;
   }
@@ -694,12 +697,12 @@ function handleDecompress({
   }
 }
 
-interface CreateOptions extends Options {
+interface CreateOptions extends StorageOptions {
   noCache?: boolean;
 }
 
 export const cache = refCacheSync<CreateOptions, PersistentStream>({
-  name: "persistent-stream",
+  name: "persistent-storage-stream",
   createKey: ({ path }: CreateOptions) => path,
   createObject: (options: CreateOptions) => {
     const pstream = new PersistentStream(options);
@@ -709,7 +712,7 @@ export const cache = refCacheSync<CreateOptions, PersistentStream>({
 });
 
 export function pstream(
-  options: Options & { noCache?: boolean },
+  options: StorageOptions & { noCache?: boolean },
 ): PersistentStream {
   return cache(options);
 }

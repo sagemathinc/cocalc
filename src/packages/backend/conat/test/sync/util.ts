@@ -12,6 +12,6 @@ export async function createDstreamEphemeral() {
     name,
     noAutosave: true,
     ephemeral: true,
-    connectionOptions: { lifetime: EPHEMERAL_LIFETIME },
+    lifetime: 2000,
   });
 }

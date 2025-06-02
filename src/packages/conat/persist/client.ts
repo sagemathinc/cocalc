@@ -7,8 +7,14 @@ import {
 import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 import { EventIterator } from "@cocalc/util/event-iterator";
-import type { Options as Storage, Configuration } from "./storage";
-export { Storage };
+import type {
+  StorageOptions,
+  Configuration,
+  SetOperation,
+  DeleteOperation,
+  StoredMessage,
+} from "./storage";
+export { StoredMessage, StorageOptions };
 import { persistSubject, type User } from "./util";
 import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
@@ -16,35 +22,56 @@ import { refCacheSync } from "@cocalc/util/refcache";
 //import { getLogger } from "@cocalc/conat/client";
 //const logger = getLogger("persist:client");
 
-export interface ConnectionOptions {}
+export interface ChangefeedEvent {
+  updates: (SetOperation | DeleteOperation)[];
+  seq: number;
+}
+
+export type Changefeed = EventIterator<ChangefeedEvent>;
 
 export class PersistStreamClient {
-  private socket: SubjectSocket;
-  public readonly changefeed;
+  private readonly socket: SubjectSocket;
+  private changefeeds: any[] = [];
 
   constructor(
     private client: Client,
-    private storage: Storage,
+    private storage: StorageOptions,
     private user: User,
   ) {
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       reconnection: true,
     });
     this.socket.write({ storage: this.storage });
-    this.init();
   }
 
   close = () => {
+    for (const iter of this.changefeeds) {
+      iter.close();
+      this.changefeeds.length = 0;
+    }
     this.socket.close();
   };
 
-  init = () => {
-    this.changefeed = new EventIterator<any>(this.socket, "data", {
-      map: (args) => {
-        const mesg = { data: args[0], headers: args[1] };
-        return mesg;
+  changefeed = (): Changefeed => {
+    // activate changefeed mode (so server publishes updates -- this is idempotent)
+    this.socket.request(null, {
+      headers: {
+        cmd: "changefeed",
       },
     });
+    // an iterator over any updates that are published.
+    const iter = new EventIterator<ChangefeedEvent>(this.socket, "data", {
+      map: (args) => {
+        const updates = args[0];
+        const seq = args[1]?.seq;
+        if (seq == null) {
+          throw Error("invalid seq number");
+        }
+        return { updates, seq };
+      },
+    });
+    this.changefeeds.push(iter);
+    return iter;
   };
 
   set = async ({
@@ -142,8 +169,8 @@ export class PersistStreamClient {
     return resp;
   };
 
-  // returns async iterator over set and delete operations
-  getAll = ({
+  // returns async iterator over arrays of stored messages
+  async *getAll({
     start_seq,
     end_seq,
     timeout,
@@ -153,7 +180,7 @@ export class PersistStreamClient {
     end_seq?: number;
     timeout?: number;
     maxWait?: number;
-  } = {}) => {
+  } = {}): AsyncGenerator<StoredMessage[], void, unknown> {
     const sub = await this.socket.requestMany(null, {
       headers: {
         cmd: "getAll",
@@ -163,14 +190,14 @@ export class PersistStreamClient {
       timeout,
       maxWait,
     });
-    for (const { data } of sub) {
+    for await (const { data } of sub) {
       if (data == null || this.socket.state == "closed") {
         // done
         return;
       }
       yield data;
     }
-  };
+  }
 
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
     return this.checkForError(
@@ -220,7 +247,7 @@ interface Options {
   // who is accessing persistent storage
   user: User;
   // what storage they are accessing
-  storage: Storage;
+  storage: StorageOptions;
   noCache?: boolean;
 }
 

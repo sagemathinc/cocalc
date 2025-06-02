@@ -25,7 +25,6 @@ import type { Client, Headers } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
-import { type ConnectionOptions } from "@cocalc/conat/persist/client";
 import { conat } from "@cocalc/conat/client";
 
 const MAX_PARALLEL = 50;
@@ -43,7 +42,7 @@ export interface DStreamOptions {
   client?: Client;
   noAutosave?: boolean;
   ephemeral?: boolean;
-  connectionOptions?: ConnectionOptions;
+  lifetime?: number; // for ephemeral streams
 
   noCache?: boolean;
   noInventory?: boolean;

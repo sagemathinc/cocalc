@@ -27,7 +27,7 @@ await b.get('x')
 */
 
 import {
-  type Storage,
+  type StorageOptions,
   type PersistStreamClient,
   stream,
 } from "@cocalc/conat/persist/client";
@@ -41,7 +41,7 @@ import { storagePath, type User, COCALC_TOMBSTONE_HEADER } from "./core-stream";
 import { connect } from "@cocalc/conat/core/client";
 
 export class AKV<T = any> {
-  private storage: Storage;
+  private storage: StorageOptions;
   private user: User;
   private stream: PersistStreamClient;
 

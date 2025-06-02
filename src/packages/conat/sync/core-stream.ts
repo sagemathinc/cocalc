@@ -38,14 +38,14 @@ import jsonStableStringify from "json-stable-stringify";
 import type {
   SetOperation,
   DeleteOperation,
+  StoredMessage,
   Configuration,
 } from "@cocalc/conat/persist/storage";
 export type { Configuration };
 import { join } from "path";
 import {
-  type Storage,
+  type StorageOptions,
   type PersistStreamClient,
-  type ConnectionOptions,
   stream as persist,
 } from "@cocalc/conat/persist/client";
 
@@ -99,10 +99,9 @@ export interface CoreStreamOptions {
   desc?: JSONValue;
 
   ephemeral?: boolean;
+  lifetime?: number;
 
   client?: Client;
-
-  connectionOptions?: ConnectionOptions;
 
   noCache?: boolean;
 }
@@ -150,9 +149,8 @@ export class CoreStream<T = any> extends EventEmitter {
   // in a project has user {project_id} even if it is being accessed by
   // an account.
   private user: User;
-  private storage?: Storage;
+  private storage?: StorageOptions;
   private client?: Client;
-  private connectionOptions?: ConnectionOptions;
   private persistClient: PersistStreamClient;
 
   constructor({
@@ -162,11 +160,10 @@ export class CoreStream<T = any> extends EventEmitter {
     config,
     start_seq,
     ephemeral = false,
+    lifetime,
     client,
-    connectionOptions,
   }: CoreStreamOptions) {
     super();
-    this.connectionOptions = connectionOptions;
     if (client == null) {
       throw Error("client must be specified");
     }
@@ -176,6 +173,7 @@ export class CoreStream<T = any> extends EventEmitter {
     this.storage = {
       path: storagePath({ account_id, project_id, name }),
       ephemeral,
+      lifetime,
     };
     this._start_seq = start_seq;
     this.configOptions = config;
@@ -251,7 +249,6 @@ export class CoreStream<T = any> extends EventEmitter {
     // console.log("get persistent stream", { start_seq });
     const sub = await this.persistClient.getAll({
       start_seq,
-      options: this.connectionOptions,
     });
     while (true) {
       const { value, done } = await sub.next();
@@ -259,7 +256,7 @@ export class CoreStream<T = any> extends EventEmitter {
       if (done) {
         return;
       }
-      const messages = value as (SetOperation | DeleteOperation)[];
+      const messages = value as StoredMessage[];
       const seq = this.processPersistentMessages(messages, noEmit);
       if (seq != null) {
         // we update start_seq in case we need to try again
@@ -270,7 +267,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private processPersistentMessages = (
-    messages: (SetOperation | DeleteOperation)[],
+    messages: (SetOperation | DeleteOperation | StoredMessage)[],
     noEmit?: boolean,
   ) => {
     // console.log("processPersistentMessages", messages.length, " messages");
@@ -293,11 +290,11 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private processPersistentMessage = (
-    mesg: SetOperation | DeleteOperation,
+    mesg: SetOperation | DeleteOperation | StoredMessage,
     noEmit?: boolean,
   ) => {
-    if (mesg.op == "delete") {
-      this.processPersistentDelete(mesg, noEmit);
+    if ((mesg as DeleteOperation).op == "delete") {
+      this.processPersistentDelete(mesg as DeleteOperation, noEmit);
     } else {
       // set is the default
       this.processPersistentSet(mesg as SetOperation, noEmit);
@@ -418,11 +415,11 @@ export class CoreStream<T = any> extends EventEmitter {
   private listen = async () => {
     while (this.client != null) {
       try {
-        for await (const messages of this.persistClient.changefeed) {
+        for await (const { updates } of this.persistClient.changefeed()) {
           if (this.client == null) {
             return;
           }
-          this.processPersistentMessages(messages, false);
+          this.processPersistentMessages(updates, false);
         }
       } catch (err) {
         // I don't think this can ever happen:

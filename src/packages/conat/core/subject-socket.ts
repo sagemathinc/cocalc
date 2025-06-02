@@ -465,7 +465,7 @@ export class SubjectSocket extends EventEmitter {
     return await this.client.request(subject, data, options);
   };
 
-  requestMany = async (data, options?) => {
+  requestMany = async (data, options?): Promise<Subscription> => {
     if (this.state == "connecting") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }

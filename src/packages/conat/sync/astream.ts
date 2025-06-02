@@ -27,7 +27,7 @@ await b.get(seq) //  'x'
 */
 
 import {
-  type Storage,
+  type StorageOptions,
   type PersistStreamClient,
   stream,
 } from "@cocalc/conat/persist/client";
@@ -35,15 +35,18 @@ import { type DStreamOptions } from "./dstream";
 import {
   type Headers,
   messageData,
-  type Message,
+  type Client,
+  Message,
+  decode,
 } from "@cocalc/conat/core/client";
 import { storagePath, type User } from "./core-stream";
 import { connect } from "@cocalc/conat/core/client";
 
 export class AStream<T = any> {
-  private storage: Storage;
+  private storage: StorageOptions;
   private user: User;
   private stream: PersistStreamClient;
+  private client: Client;
 
   constructor(options: DStreamOptions) {
     this.user = {
@@ -51,9 +54,9 @@ export class AStream<T = any> {
       project_id: options.project_id,
     };
     this.storage = { path: storagePath(options) };
-    const client = options.client ?? connect();
+    this.client = options.client ?? connect();
     this.stream = stream({
-      client,
+      client: this.client,
       user: this.user,
       storage: this.storage,
     });
@@ -79,6 +82,61 @@ export class AStream<T = any> {
   ): Promise<T | undefined> => {
     return (await this.getMessage(seq, opts))?.data;
   };
+
+  headers = async (
+    seq: number,
+    opts?: { timeout?: number },
+  ): Promise<Headers | undefined> => {
+    return (await this.getMessage(seq, opts))?.headers;
+  };
+
+  // this is an async iterator so you can iterate over the
+  // data without having to have it all in RAM at once.
+  // Of course, you can put it all in a single list if you want.
+  async *getAll(opts): AsyncGenerator<
+    {
+      mesg: T;
+      headers?: Headers;
+      seq: number;
+      time: number;
+      key?: string;
+    },
+    void,
+    unknown
+  > {
+    for await (const messages of this.stream.getAll(opts)) {
+      for (const { seq, time, key, encoding, raw, headers } of messages) {
+        const mesg = decode({ encoding, data: raw });
+        yield { mesg, headers, seq, time, key };
+      }
+    }
+  }
+
+  async *changefeed(): AsyncGenerator<
+    | {
+        op: "set";
+        mesg: T;
+        headers?: Headers;
+        seq: number;
+        time: number;
+        key?: string;
+      }
+    | { op: "delete"; seqs: number[] },
+    void,
+    unknown
+  > {
+    for await (const { updates } of this.stream.changefeed()) {
+      for (const event of updates) {
+        if (event.op == "delete") {
+          yield event;
+        } else {
+          const { seq, time, key, encoding, raw, headers } = event;
+          const mesg = decode({ encoding, data: raw });
+          yield { op: "set", mesg, headers, seq, time, key };
+        }
+      }
+    }
+  }
 
   delete = async (opts: {
     timeout?: number;

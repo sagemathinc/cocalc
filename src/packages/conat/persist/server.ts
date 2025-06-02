@@ -25,6 +25,9 @@ await c.delete({seq:6})
 
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
 
+client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/backend/conat/sync').astream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
+
+
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
 
 
@@ -40,12 +43,11 @@ import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 import { getLogger } from "@cocalc/conat/client";
 import type {
-  Message as StoredMessage,
+  StoredMessage,
   PersistentStream,
-  Options as Storage,
+  StorageOptions,
 } from "./storage";
 import { getStream, SERVICE } from "./util";
-import { is_array } from "@cocalc/util/misc";
 import { throttle } from "lodash";
 
 const logger = getLogger("persist:server");
@@ -86,7 +88,8 @@ export function server({
       id: socket.id,
       subject: socket.subject,
     });
-    let storage: undefined | Storage = undefined;
+    let changefeed = false;
+    let storage: undefined | StorageOptions = undefined;
     let stream: undefined | PersistentStream = undefined;
     socket.on("data", async (data) => {
       logger.debug("server: got data ", data);
@@ -96,7 +99,6 @@ export function server({
           subject: socket.subject,
           storage,
         });
-        changefeed({ socket, stream, messagesThresh });
       }
     });
     socket.on("closed", () => {
@@ -152,8 +154,17 @@ export function server({
           const resp = stream.sqlite(request.statement, request.params);
           mesg.respond(resp);
         } else if (request.cmd == "getAll") {
-          // requestMany which responds with all matching messages
-          getAll({ stream, mesg, request, messageThresh });
+          logger.debug("getAll", { subject: socket.subject, request });
+          // getAll uses requestMany which responds with all matching messages,
+          // so no call to mesg.respond here.
+          getAll({ stream, mesg, request, messagesThresh });
+        } else if (request.cmd == "changefeed") {
+          logger.debug("changefeed", changefeed);
+          if (!changefeed) {
+            changefeed = true;
+            startChangefeed({ socket, stream, messagesThresh });
+          }
+          mesg.respond(null);
         } else {
           mesg.respond(null, {
             headers: { error: `unknown command ${request.cmd}`, code: 404 },
@@ -169,13 +180,8 @@ export function server({
 }
 
 async function getAll({ stream, mesg, request, messagesThresh }) {
-  logger.debug("getAll", { subject: socket.subject, request });
   let seq = 0;
-
   const respond = (error?, messages?: StoredMessage[]) => {
-    if (socket.state == "closed") {
-      return;
-    }
     mesg.respond(messages, { headers: { error, seq } });
     seq += 1;
   };
@@ -206,13 +212,14 @@ async function getAll({ stream, mesg, request, messagesThresh }) {
   }
 }
 
-async function changefeed({ socket, stream, messagesThresh }) {
-  logger.debug("changefeed", { subject: socket.subject, request });
+function startChangefeed({ socket, stream, messagesThresh }) {
+  logger.debug("startChangefeed", { subject: socket.subject });
   let seq = 0;
   const respond = (error?, messages?: StoredMessage[]) => {
     if (socket.state == "closed") {
       return;
     }
+    logger.debug("changefeed: writing messages to socket", { seq, messages });
     socket.write(messages, { headers: { error, seq } });
     seq += 1;
   };
@@ -244,10 +251,11 @@ async function changefeed({ socket, stream, messagesThresh }) {
   );
 
   stream.on("change", (message) => {
-    if (socket.state != "closed") {
+    if (socket.state == "closed") {
       return;
     }
     //console.log("stream change event", message);
+    logger.debug("changefeed got message", message, socket.state);
     unsentMessages.push(message);
     sendAllUnsentMessages();
   });
