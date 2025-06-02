@@ -23,9 +23,9 @@ export function assertHasWritePermission({
 }: {
   // Subject definitely has one of the following forms, or we would never
   // see this message:
-  //   ${SERVICE}.account-${account_id} or
-  //   ${SERVICE}.project-${project_id} or
-  //   ${SERVICE}.hub
+  //   ${SERVICE}.account-${account_id}.> or
+  //   ${SERVICE}.project-${project_id}.> or
+  //   ${SERVICE}.hub.>
   //   ${SERVICE}.SOMETHING-WRONG
   // A user is only allowed to write to a subject if they have rights
   // to the given project, account or are a hub.
@@ -48,7 +48,13 @@ export function assertHasWritePermission({
       { code: 403 },
     );
   }
-  let s = subject.slice(SERVICE.length + 1);
+  const v = subject.split(".");
+  if (v[0] != SERVICE) {
+    throw Error(
+      `bug -- first segment of subject must be ${SERVICE} -- subject=${subject}`,
+    );
+  }
+  const s = v[1];
   if (s == "hub") {
     // hub user can write to any path
     return;
@@ -68,5 +74,5 @@ export function assertHasWritePermission({
       }
     }
   }
-  throw new ConatError(`invalid subject -- '${subject}'`, { code: 403 });
+  throw new ConatError(`invalid subject: '${subject}'`, { code: 403 });
 }

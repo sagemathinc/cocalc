@@ -63,7 +63,7 @@ describe("create a client first, then the server, and see that it still works (t
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
     client = cn2.socket.connect("cocalc");
-    client.write("cocalc", { my: "header" });
+    client.write("cocalc", { headers: { my: "header" } });
   });
 
   it("creates the client and server", () => {
@@ -71,7 +71,7 @@ describe("create a client first, then the server, and see that it still works (t
     server = cn1.socket.listen("cocalc");
     server.on("connection", (socket) => {
       socket.on("data", (data, headers) => {
-        socket.write(`${data}`.repeat(2), headers);
+        socket.write(`${data}`.repeat(2), { headers });
       });
     });
   });

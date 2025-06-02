@@ -42,7 +42,12 @@ export class PersistStreamClient {
     end_seq?: number;
     options?: ConnectionOptions;
   } = {}) => {
-    const changefeed = new EventIterator<any>(this.socket, "data");
+    const changefeed = new EventIterator<any>(this.socket, "data", {
+      map: (args) => {
+        const mesg = { data: args[0], headers: args[1] };
+        return mesg;
+      },
+    });
     this.socket.write({ start_seq, end_seq, storage: this.storage });
     return changefeed;
   };

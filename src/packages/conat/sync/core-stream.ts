@@ -475,7 +475,9 @@ export class CoreStream<T = any> extends EventEmitter {
       }
       try {
         for await (const { data } of this.persistStream) {
-          if (this.client == null) return;
+          if (this.client == null) {
+            return;
+          }
           this.processPersistentMessages(data, false);
         }
       } catch (err) {

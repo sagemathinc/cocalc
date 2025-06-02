@@ -58,10 +58,13 @@ don't use `${subject}.>` for anything else!
 */
 
 import { EventEmitter } from "events";
-import { type Client, type Subscription } from "@cocalc/conat/core/client";
+import {
+  type Client,
+  type Headers,
+  type Subscription,
+} from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { JSONValue } from "@cocalc/util/types";
 
 const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 
@@ -132,7 +135,7 @@ export class SubjectSocket extends EventEmitter {
   CLOSE = 0;
   readyState: 0;
   state: State = "disconnected";
-  queuedWrites: { data: any; headers?: JSONValue }[] = [];
+  queuedWrites: { data: any; headers?: Headers }[] = [];
   maxQueueSize: number;
   reconnection: boolean;
 
@@ -178,7 +181,7 @@ export class SubjectSocket extends EventEmitter {
     this.state = state;
     if (state == "ready") {
       for (const { data, headers } of this.queuedWrites) {
-        this.write(data, headers);
+        this.write(data, { headers });
         this.queuedWrites = [];
       }
     }
@@ -400,7 +403,7 @@ export class SubjectSocket extends EventEmitter {
 
   // client: writes to server
   // server: broadcast to ALL connected clients
-  write = (data, headers?): void => {
+  write = (data, { headers }: { headers?: Headers } = {}): void => {
     if (this.state == "connecting") {
       this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.maxQueueSize) {
@@ -455,7 +458,7 @@ export class Socket extends EventEmitter {
   public readonly id: string;
   public lastPing = Date.now();
 
-  private queuedWrites: { data: any; headers?: JSONValue }[] = [];
+  private queuedWrites: { data: any; headers?: Headers }[] = [];
   private clientSubject: string;
 
   public state: State = "ready";
@@ -482,7 +485,7 @@ export class Socket extends EventEmitter {
     this.state = state;
     if (state == "ready") {
       for (const { data, headers } of this.queuedWrites) {
-        this.write(data, headers);
+        this.write(data, { headers });
         this.queuedWrites = [];
       }
     }
@@ -506,7 +509,7 @@ export class Socket extends EventEmitter {
   destroy = () => this.close();
   end = () => this.close();
 
-  write = (data, headers?) => {
+  write = (data, { headers }: { headers?: Headers } = {}) => {
     if (this.state == "connecting") {
       this.queuedWrites.push({ data, headers });
       while (this.queuedWrites.length > this.subjectSocket.maxQueueSize) {
