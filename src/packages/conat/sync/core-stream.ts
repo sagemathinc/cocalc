@@ -33,9 +33,7 @@ import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
 import refCache from "@cocalc/util/refcache";
 import { conat } from "@cocalc/conat/client";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
-import * as persistClient from "@cocalc/conat/persist/client";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type {
@@ -45,6 +43,13 @@ import type {
 } from "@cocalc/conat/persist/storage";
 export type { Configuration };
 import { join } from "path";
+import { connect } from "@cocalc/conat/core/client";
+import {
+  type Storage,
+  type PersistStreamClient,
+  type ConnectionOptions,
+  stream as persist,
+} from "@cocalc/conat/persist/client";
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -99,7 +104,7 @@ export interface CoreStreamOptions {
 
   client?: Client;
 
-  connectionOptions?: persistClient.ConnectionOptions;
+  connectionOptions?: ConnectionOptions;
 
   noCache?: boolean;
 }
@@ -148,15 +153,10 @@ export class CoreStream<T = any> extends EventEmitter {
   // an account.
   private user: User;
   private persistStream?;
-  private storage?: persistClient.Storage;
+  private storage?: Storage;
   private client?: Client;
-  private connectionOptions?: persistClient.ConnectionOptions;
-  private renewLoopParams: {
-    id: string;
-    lifetime: number;
-    user: User;
-    storage: persistClient.Storage;
-  } | null = null;
+  private connectionOptions?: ConnectionOptions;
+  private persistClient: PersistStreamClient;
 
   constructor({
     name,
@@ -170,7 +170,7 @@ export class CoreStream<T = any> extends EventEmitter {
   }: CoreStreamOptions) {
     super();
     this.connectionOptions = connectionOptions;
-    this.client = client;
+    this.client = client ?? connect();
     this.user = { account_id, project_id };
     this.name = name;
     this.storage = {
@@ -179,6 +179,11 @@ export class CoreStream<T = any> extends EventEmitter {
     };
     this._start_seq = start_seq;
     this.configOptions = config;
+    this.persistClient = persist({
+      client: this.client,
+      user: this.user,
+      storage: this.storage,
+    });
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -209,17 +214,15 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    return await persistClient.config({
-      user: this.user,
-      storage: this.storage,
-      config,
-    });
+    return await this.persistClient.config({ config });
   };
 
   close = () => {
     delete this.client;
-    this.renewLoopParams = null;
     this.removeAllListeners();
+    this.persistClient?.close();
+    // @ts-ignore
+    delete this.persistClient;
     // @ts-ignore
     delete this.kv;
     // @ts-ignore
@@ -247,9 +250,7 @@ export class CoreStream<T = any> extends EventEmitter {
       if (this.client == null) {
         return;
       }
-      let id,
-        lifetime,
-        stream,
+      let stream,
         d = 2000;
       while (true) {
         try {
@@ -260,12 +261,10 @@ export class CoreStream<T = any> extends EventEmitter {
           // This call is expected to fail sometimes, e.g., if no persist server
           // is running, it will immediately fail with a 503 error.  We only
           // don't retry in that case.
-          ({ id, lifetime, stream } = await persistClient.getAll({
-            user: this.user,
-            storage: this.storage!,
+          stream = await this.persistClient.getAll({
             start_seq,
             options: this.connectionOptions,
-          }));
+          });
           break;
         } catch (err) {
           //           console.log(
@@ -284,16 +283,6 @@ export class CoreStream<T = any> extends EventEmitter {
         await delay(d);
         d = Math.min(15000, d * 1.2);
       }
-      if (!id || !lifetime) {
-        throw Error("bug -- id and lifetime must be defined");
-      }
-      this.renewLoopParams = {
-        id,
-        lifetime,
-        user: this.user,
-        storage: this.storage,
-      };
-      this.startRenewLoop();
       //console.log("got persistent stream", { id });
       this.persistStream = stream;
       try {
@@ -332,27 +321,6 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
   };
-
-  // because it never returns until close and reuseInFlight,
-  // you can call startRenewLoop multiple times safely and
-  // only the first call does anything (very slight memory leak).
-  private startRenewLoop = reuseInFlight(async () => {
-    while (this.renewLoopParams?.lifetime && this.renewLoopParams?.id) {
-      // max to avoid weird situation bombarding server or infinite loop
-      await delay(Math.max(7500, this.renewLoopParams.lifetime / 3));
-      if (this.renewLoopParams == null) {
-        return;
-      }
-      //console.log("renewing with lifetime ", this.renewLoopParams.lifetime);
-      try {
-        await persistClient.renew(this.renewLoopParams);
-      } catch {
-        // This will happen periodically when network or server goes down.
-        // It may ultimately result in the stream iterator ending and a new one
-        // being created.
-      }
-    }
-  });
 
   private processPersistentMessages = (
     messages: (SetOperation | DeleteOperation)[],
@@ -570,9 +538,7 @@ export class CoreStream<T = any> extends EventEmitter {
       return;
     }
     const md = messageData(mesg, { headers: options?.headers });
-    const x = await persistClient.set({
-      user: this.user,
-      storage: this.storage,
+    const x = await this.persistClient.set({
       key: options?.key,
       messageData: md,
       previousSeq: options?.previousSeq,
@@ -710,9 +676,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     // we're moving start_seq back to this point
     this._start_seq = start_seq;
-    const { stream } = await persistClient.getAll({
-      user: this.user,
-      storage: this.storage,
+    const stream = await this.persistClient.getAll({
       start_seq,
       end_seq,
     });
@@ -815,11 +779,7 @@ export class CoreStream<T = any> extends EventEmitter {
       }
       opts = { seq };
     }
-    return await persistClient.deleteMessages({
-      user: this.user,
-      storage: this.storage,
-      ...opts,
-    });
+    return await this.persistClient.delete(opts);
   };
 
   // delete messages that are no longer needed since newer values have been written

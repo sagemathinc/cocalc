@@ -1,5 +1,5 @@
 /*
-Asynchronous Memory Efficient Access to Key:Value Store
+Asynchronous Memory-Efficient Access to Key:Value Store
 
 This provides access to the same data as dkv, except it doesn't download any
 data to the client until you actually call get.   The calls to get and
@@ -26,7 +26,11 @@ await b.get('x')
 
 */
 
-import * as persistClient from "@cocalc/conat/persist/client";
+import {
+  type Storage,
+  type PersistStreamClient,
+  stream,
+} from "@cocalc/conat/persist/client";
 import { type DKVOptions } from "./dkv";
 import {
   type Headers,
@@ -34,10 +38,12 @@ import {
   type Message,
 } from "@cocalc/conat/core/client";
 import { storagePath, type User, COCALC_TOMBSTONE_HEADER } from "./core-stream";
+import { connect } from "@cocalc/conat/core/client";
 
 export class AKV<T = any> {
-  private storage: persistClient.Storage;
+  private storage: Storage;
   private user: User;
+  private stream: PersistStreamClient;
 
   constructor(options: DKVOptions) {
     this.user = {
@@ -45,18 +51,23 @@ export class AKV<T = any> {
       project_id: options.project_id,
     };
     this.storage = { path: storagePath(options) };
+    const client = options.client ?? connect();
+    this.stream = stream({
+      client,
+      user: this.user,
+      storage: this.storage,
+    });
   }
+
+  close = () => {
+    this.stream.close();
+  };
 
   getMessage = async (
     key: string,
     { timeout }: { timeout?: number } = {},
   ): Promise<Message<T> | undefined> => {
-    const mesg = await persistClient.get({
-      user: this.user,
-      storage: this.storage,
-      key,
-      timeout,
-    });
+    const mesg = await this.stream.get({ key, timeout });
     if (mesg?.headers?.[COCALC_TOMBSTONE_HEADER]) {
       return undefined;
     }
@@ -116,9 +127,7 @@ export class AKV<T = any> {
       // msgID is mainly for streams and not very relevant for kv.
     },
   ) => {
-    return await persistClient.set({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.set({
       key,
       messageData: messageData(value, { headers: options?.headers }),
       previousSeq: options?.previousSeq,
@@ -127,9 +136,7 @@ export class AKV<T = any> {
   };
 
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
-    return await persistClient.keys({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.keys({
       timeout,
     });
   };
@@ -139,9 +146,7 @@ export class AKV<T = any> {
     params?: any[],
     { timeout }: { timeout?: number } = {},
   ): Promise<any[]> => {
-    return await persistClient.sqlite({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.sqlite({
       timeout,
       statement,
       params,

@@ -26,7 +26,11 @@ await b.get(seq) //  'x'
 
 */
 
-import * as persistClient from "@cocalc/conat/persist/client";
+import {
+  type Storage,
+  type PersistStreamClient,
+  stream,
+} from "@cocalc/conat/persist/client";
 import { type DStreamOptions } from "./dstream";
 import {
   type Headers,
@@ -34,10 +38,12 @@ import {
   type Message,
 } from "@cocalc/conat/core/client";
 import { storagePath, type User } from "./core-stream";
+import { connect } from "@cocalc/conat/core/client";
 
 export class AStream<T = any> {
-  private storage: persistClient.Storage;
+  private storage: Storage;
   private user: User;
+  private stream: PersistStreamClient;
 
   constructor(options: DStreamOptions) {
     this.user = {
@@ -45,15 +51,23 @@ export class AStream<T = any> {
       project_id: options.project_id,
     };
     this.storage = { path: storagePath(options) };
+    const client = options.client ?? connect();
+    this.stream = stream({
+      client,
+      user: this.user,
+      storage: this.storage,
+    });
   }
+
+  close = () => {
+    this.stream.close();
+  };
 
   getMessage = async (
     seq: number,
     { timeout }: { timeout?: number } = {},
   ): Promise<Message<T> | undefined> => {
-    return await persistClient.get({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.get({
       seq,
       timeout,
     });
@@ -72,11 +86,7 @@ export class AStream<T = any> {
     last_seq?: number;
     all?: boolean;
   }): Promise<{ seqs: number[] }> => {
-    return await persistClient.deleteMessages({
-      user: this.user,
-      storage: this.storage,
-      ...opts,
-    });
+    return await this.stream.delete(opts);
   };
 
   publish = async (
@@ -90,9 +100,7 @@ export class AStream<T = any> {
       // msgID is mainly for streams and not very relevant for kv.
     },
   ): Promise<{ seq: number; time: number }> => {
-    return await persistClient.set({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.set({
       messageData: messageData(value, { headers: options?.headers }),
       previousSeq: options?.previousSeq,
       timeout: options?.timeout,
@@ -115,9 +123,7 @@ export class AStream<T = any> {
     params?: any[],
     { timeout }: { timeout?: number } = {},
   ): Promise<any[]> => {
-    return await persistClient.sqlite({
-      user: this.user,
-      storage: this.storage,
+    return await this.stream.sqlite({
       timeout,
       statement,
       params,

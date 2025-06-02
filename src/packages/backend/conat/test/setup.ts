@@ -8,10 +8,7 @@ import {
 import { Server } from "socket.io";
 import getLogger from "@cocalc/backend/logger";
 import { setConatClient } from "@cocalc/conat/client";
-import {
-  initServer as initPersistServer,
-  terminateServer as terminatePersistServer,
-} from "@cocalc/backend/conat/persist";
+import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -39,13 +36,14 @@ export async function initConatServer(
   });
 }
 
-export let server;
 export let tempDir;
+export let server: any = null;
+export let persistServer: any = null;
 
 export async function createServer(opts?) {
   const port = await getPort();
   server = await initConatServer({ port, path, ...opts });
-  await initPersistServer({ client: connect() });
+  persistServer = createPersistServer({ client: connect() });
   return server;
 }
 
@@ -71,9 +69,9 @@ export function connect(opts?): Client {
 }
 
 export async function after() {
-  terminatePersistServer();
+  persistServer?.close();
   await rm(tempDir, { force: true, recursive: true });
-  await server.close();
+  await server?.close();
   for (const cn of clients) {
     cn.close();
   }

@@ -22,6 +22,9 @@ await c.set({key:'foo', messageData:client.message('bar')})
 
 await c.delete({seq:6})
 
+
+client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
+
 */
 
 import { type Client } from "@cocalc/conat/core/client";

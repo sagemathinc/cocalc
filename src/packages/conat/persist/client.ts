@@ -8,15 +8,17 @@ import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { Options as Storage, Configuration } from "./storage";
+export { Storage };
 import { persistSubject, type User } from "./util";
 import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
+import { refCacheSync } from "@cocalc/util/refcache";
 
 //import { getLogger } from "@cocalc/conat/client";
 //const logger = getLogger("persist:client");
 
 export interface ConnectionOptions {}
 
-class PersistStreamClient {
+export class PersistStreamClient {
   private socket: SubjectSocket;
   constructor(
     private client: Client,
@@ -28,12 +30,17 @@ class PersistStreamClient {
     });
   }
 
+  close = () => {
+    this.socket.close();
+  };
+
   getAll = ({
     start_seq,
     end_seq,
   }: {
     start_seq?: number;
     end_seq?: number;
+    options?: ConnectionOptions;
   } = {}) => {
     const changefeed = new EventIterator<any>(this.socket, "data");
     this.socket.write({ start_seq, end_seq, storage: this.storage });
@@ -104,7 +111,7 @@ class PersistStreamClient {
   }: {
     config?: Partial<Configuration>;
     timeout?: number;
-  }): Promise<Configuration> => {
+  } = {}): Promise<Configuration> => {
     return this.checkForError(
       await this.socket.request(null, {
         headers: {
@@ -138,13 +145,7 @@ class PersistStreamClient {
     return resp;
   };
 
-  keys = async ({
-    timeout,
-  }: {
-    user: User;
-    storage: Storage;
-    timeout?: number;
-  }): Promise<string[]> => {
+  keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
     return this.checkForError(
       await this.socket.request(null, {
         headers: { cmd: "keys", storage: this.storage } as any,
@@ -188,21 +189,24 @@ class PersistStreamClient {
   };
 }
 
-export function stream({
-  client,
-  user,
-  storage,
-}: {
+interface Options {
   client: Client;
   // who is accessing persistent storage
   user: User;
   // what storage they are accessing
   storage: Storage;
-}) {
-  // avoid wasting server resources, etc., by always checking permissions client side first
-  assertHasWritePermission({ user, storage });
-  return new PersistStreamClient(client, storage, user);
+  noCache?: boolean;
 }
+
+export const stream = refCacheSync<Options, PersistStreamClient>({
+  name: "persistent-stream-client",
+  createKey: ({ user, storage }: Options) => JSON.stringify([user, storage]),
+  createObject: ({ client, user, storage }: Options) => {
+    // avoid wasting server resources, etc., by always checking permissions client side first
+    assertHasWritePermission({ user, storage });
+    return new PersistStreamClient(client, storage, user);
+  },
+});
 
 let permissionChecks = true;
 export function disablePermissionCheck() {

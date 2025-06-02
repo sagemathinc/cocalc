@@ -14,8 +14,4 @@ initContext({
 });
 
 export { pstream } from "@cocalc/conat/persist/storage";
-export {
-  init as initServer,
-  terminate as terminateServer,
-} from "@cocalc/conat/persist/server";
-export { getAll, set, get } from "@cocalc/conat/persist/client";
+export { server } from "@cocalc/conat/persist/server";

@@ -3,7 +3,7 @@
 pnpm test ./permissions.test.ts 
 
 */
-import { SERVICE } from "@cocalc/conat/persist/server";
+import { SERVICE } from "@cocalc/conat/persist/util";
 import { assertHasWritePermission } from "@cocalc/conat/persist/auth";
 
 const uuid = "00000000-0000-4000-8000-000000000000";
