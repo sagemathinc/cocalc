@@ -1,33 +1,207 @@
-import { conat } from "@cocalc/conat/client";
 import {
-  persistSubject,
-  type User,
-  DEFAULT_HEARTBEAT,
-  HEARTBEAT_STRING,
-} from "./server";
-import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
-export { DEFAULT_LIFETIME } from "./server";
-import type {
-  Options as Storage,
-  SetOperation,
-  DeleteOperation,
-  Configuration,
-} from "./storage";
-export type { Storage, SetOperation, DeleteOperation, Configuration };
-import {
-  Message as ConatMessage,
-  MessageData,
+  type Message as ConatMessage,
+  type Client,
+  type MessageData,
   ConatError,
 } from "@cocalc/conat/core/client";
-import { withTimeout } from "@cocalc/util/async-utils";
+import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
+export { type SubjectSocket };
+import { EventIterator } from "@cocalc/util/event-iterator";
+import type { Options as Storage, Configuration } from "./storage";
+import { persistSubject, type User } from "./util";
+import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 
-export interface ConnectionOptions {
-  // server will send resp='' to ensure there is at least one message
-  // every this many ms.
-  heartbeat?: number;
-  // persist will live at most this long, then definitely die unless renewed
-  // by a renew message from the client.
-  lifetime?: number;
+//import { getLogger } from "@cocalc/conat/client";
+//const logger = getLogger("persist:client");
+
+export interface ConnectionOptions {}
+
+class PersistStreamClient {
+  private socket: SubjectSocket;
+  constructor(
+    private client: Client,
+    private storage: Storage,
+    private user: User,
+  ) {
+    this.socket = this.client.socket.connect(persistSubject(this.user), {
+      reconnection: false,
+    });
+  }
+
+  getAll = ({
+    start_seq,
+    end_seq,
+  }: {
+    start_seq?: number;
+    end_seq?: number;
+  } = {}) => {
+    const changefeed = new EventIterator<any>(this.socket, "data");
+    this.socket.write({ start_seq, end_seq, storage: this.storage });
+    return changefeed;
+  };
+
+  set = async ({
+    key,
+    ttl,
+    previousSeq,
+    msgID,
+    messageData,
+    timeout,
+  }: {
+    messageData: MessageData;
+    key?: string;
+    ttl?: number;
+    previousSeq?: number;
+    msgID?: string;
+    timeout?: number;
+  }): Promise<{ seq: number; time: number }> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        raw: messageData.raw,
+        encoding: messageData.encoding,
+        headers: {
+          headers: messageData.headers,
+          cmd: "set",
+          key,
+          ttl,
+          previousSeq,
+          msgID,
+          storage: this.storage,
+        },
+        timeout,
+      }),
+    );
+  };
+
+  delete = async ({
+    timeout,
+    seq,
+    last_seq,
+    all,
+  }: {
+    timeout?: number;
+    seq?: number;
+    last_seq?: number;
+    all?: boolean;
+  }): Promise<{ seqs: number[] }> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: {
+          storage: this.storage,
+          cmd: "delete",
+          seq,
+          last_seq,
+          all,
+        },
+        timeout,
+      }),
+    );
+  };
+
+  config = async ({
+    config,
+    timeout,
+  }: {
+    config?: Partial<Configuration>;
+    timeout?: number;
+  }): Promise<Configuration> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: {
+          storage: this.storage,
+          cmd: "config",
+          config,
+        } as any,
+        timeout,
+      }),
+    );
+  };
+
+  get = async ({
+    seq,
+    key,
+    timeout,
+  }: {
+    timeout?: number;
+  } & (
+    | { seq: number; key?: undefined }
+    | { key: string; seq?: undefined }
+  )): Promise<ConatMessage | undefined> => {
+    const resp = await this.socket.request(null, {
+      headers: { cmd: "get", storage: this.storage, seq, key } as any,
+      timeout,
+    });
+    this.checkForError(resp, true);
+    if (resp.headers == null) {
+      return undefined;
+    }
+    return resp;
+  };
+
+  keys = async ({
+    timeout,
+  }: {
+    user: User;
+    storage: Storage;
+    timeout?: number;
+  }): Promise<string[]> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: { cmd: "keys", storage: this.storage } as any,
+        timeout,
+      }),
+    );
+  };
+
+  sqlite = async ({
+    timeout,
+    statement,
+    params,
+  }: {
+    timeout?: number;
+    statement: string;
+    params?: any[];
+  }): Promise<any[]> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: {
+          cmd: "sqlite",
+          storage: this.storage,
+          statement,
+          params,
+        } as any,
+        timeout,
+      }),
+    );
+  };
+
+  private checkForError = (mesg, noReturn = false) => {
+    if (mesg.headers != null) {
+      const { error, code } = mesg.headers;
+      if (error || code) {
+        throw new ConatError(error ?? "error", { code });
+      }
+    }
+    if (!noReturn) {
+      return mesg.data;
+    }
+  };
+}
+
+export function stream({
+  client,
+  user,
+  storage,
+}: {
+  client: Client;
+  // who is accessing persistent storage
+  user: User;
+  // what storage they are accessing
+  storage: Storage;
+}) {
+  // avoid wasting server resources, etc., by always checking permissions client side first
+  assertHasWritePermission({ user, storage });
+  return new PersistStreamClient(client, storage, user);
 }
 
 let permissionChecks = true;
@@ -37,349 +211,13 @@ export function disablePermissionCheck() {
   }
   permissionChecks = false;
 }
-const assertHasWritePermission = (opts) => {
+
+const assertHasWritePermission = ({ user, storage }) => {
   if (!permissionChecks) {
     // should only be used for unit testing, since otherwise would
     // make clients slower and possibly increase server load.
     return;
   }
-  return assertHasWritePermission0(opts);
+  const subject = persistSubject(user);
+  assertHasWritePermission0({ subject, path: storage.path });
 };
-
-export function checkMessageHeaderForError(mesg) {
-  if (mesg.headers === undefined) {
-    return;
-  }
-  const { error, code } = mesg.headers;
-  if (error || code) {
-    throw new ConatError(error ?? "error", { code });
-  }
-}
-
-export async function getAll({
-  user,
-  storage,
-  start_seq,
-  end_seq,
-  options,
-}: {
-  user: User;
-  storage: Storage;
-  start_seq?: number;
-  end_seq?: number;
-  options?: ConnectionOptions;
-}): Promise<{ id?: string; lifetime?: number; stream }> {
-  const stream = await callApiGetAll({
-    user,
-    storage,
-    options,
-    start_seq,
-    end_seq,
-  });
-  if (end_seq) {
-    return { stream };
-  }
-  // the first element of the stream has the id, and the rest is the
-  // stream user will consume
-  const { value, done } = await stream.next();
-  if (done) {
-    throw Error("got no response");
-  }
-  checkMessageHeaderForError(value);
-
-  const x = value?.headers?.content as any;
-  if (typeof x?.id != "string" || typeof x?.lifetime != "number") {
-    throw Error("invalid data from server");
-  }
-  return { ...x, stream };
-}
-
-export async function set({
-  user,
-  storage,
-  key,
-  ttl,
-  previousSeq,
-  msgID,
-  messageData,
-  timeout,
-}: {
-  user: User;
-  storage: Storage;
-  key?: string;
-  ttl?: number;
-  previousSeq?: number;
-  msgID?: string;
-  messageData: MessageData;
-  timeout?: number;
-}): Promise<{ seq: number; time: number }> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const reply = await cn.request(subject, null, {
-    raw: messageData.raw,
-    encoding: messageData.encoding,
-    headers: {
-      headers: messageData.headers,
-      cmd: "set",
-      key,
-      ttl,
-      previousSeq,
-      msgID,
-      storage,
-    } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(reply);
-  return reply.data;
-}
-
-export async function deleteMessages({
-  user,
-  storage,
-  timeout,
-  seq,
-  last_seq,
-  all,
-}: {
-  user: User;
-  storage: Storage;
-  timeout?: number;
-  seq?: number;
-  last_seq?: number;
-  all?: boolean;
-}): Promise<{ seqs: number[] }> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const reply = await cn.request(subject, null, {
-    headers: {
-      storage: storage as any,
-      cmd: "delete",
-      seq,
-      last_seq,
-      all,
-    } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(reply);
-  return reply.data;
-}
-
-export async function config({
-  user,
-  storage,
-  config,
-  timeout,
-}: {
-  user: User;
-  storage: Storage;
-  config?: Partial<Configuration>;
-  timeout?: number;
-}): Promise<Configuration> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const reply = await cn.request(subject, null, {
-    headers: {
-      storage: storage as any,
-      cmd: "config",
-      config,
-    } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(reply);
-  return reply.data;
-}
-
-export async function get({
-  user,
-  storage,
-  seq,
-  key,
-  timeout,
-}: {
-  user: User;
-  storage: Storage;
-  timeout?: number;
-} & (
-  | { seq: number; key?: undefined }
-  | { key: string; seq?: undefined }
-)): Promise<ConatMessage | undefined> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const resp = await cn.request(subject, null, {
-    headers: { cmd: "get", storage, seq, key } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(resp);
-  if (resp.headers == null) {
-    return undefined;
-  }
-  return resp;
-}
-
-export async function keys({
-  user,
-  storage,
-  timeout,
-}: {
-  user: User;
-  storage: Storage;
-  timeout?: number;
-}): Promise<string[]> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const reply = await cn.request(subject, null, {
-    headers: { cmd: "keys", storage } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(reply);
-  return reply.data;
-}
-
-export async function sqlite({
-  user,
-  storage,
-  timeout,
-  statement,
-  params,
-}: {
-  user: User;
-  storage: Storage;
-  timeout?: number;
-  statement: string;
-  params?: any[];
-}): Promise<any[]> {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const reply = await cn.request(subject, null, {
-    headers: { cmd: "sqlite", storage, statement, params } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(reply);
-  return reply.data;
-}
-
-// if the user doesn't have permission to access this storage, this
-// should throw an error with code 403; that should be handled by
-// requestMany attempting to publish to a subject that user can't access.
-async function* callApiGetAll({
-  start_seq,
-  end_seq,
-  // who is accessing persistent storage
-  user,
-  // what storage they are accessing
-  storage,
-  // options for persistent connection
-  options,
-}: {
-  start_seq?: number;
-  end_seq?: number;
-  user: User;
-  storage: Storage;
-  options?: ConnectionOptions;
-}) {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const { heartbeat = DEFAULT_HEARTBEAT, lifetime } = options ?? {};
-
-  let lastSeq = -1;
-
-  // We create an iterator over messages in the stream.
-  // It watches for heartbeats (or data) from the stream
-  // and if at least one doesn't arrive every heartbeat
-  // ms, it will exit, thus ending the async iterator.
-  // Also, the server may send an explicit end message in
-  // case the client didn't send a renew message to extend
-  // the lifetime further.
-  // I.e., the one and only reason this async iterator should
-  // end is that one end stopped sending regular info.  When
-  // that happens if the client still has interest, they should
-  // make a new iterator starting where they left off.  If
-  // there are no clients left listening, the server will close
-  // the stream.
-
-  const iter = await cn.requestMany(subject, null, {
-    headers: {
-      cmd: "getAll",
-      start_seq,
-      end_seq,
-      heartbeat,
-      lifetime,
-      storage,
-    } as any,
-  });
-
-  while (true) {
-    let resp;
-    try {
-      const { value, done } = await withTimeout(iter.next(), heartbeat + 3000);
-      if (done) {
-        return;
-      } else {
-        resp = value;
-      }
-    } catch {
-      // timeout
-      return;
-    }
-    if (resp.headers == null) {
-      // terminate requestMany explicitly by sending message with no headers
-      return;
-    }
-    if (resp.headers.content == HEARTBEAT_STRING) {
-      // it is just a heartbeat
-      continue;
-    }
-    checkMessageHeaderForError(resp);
-    const { seq } = resp.headers;
-    if (typeof seq != "number") {
-      // this should never happen.
-      throw Error("seq must be a number");
-    }
-    if (lastSeq + 1 != seq) {
-      // missed response -- we just end the iterator and
-      // the client can make a new one if they need to.
-      return;
-    }
-    lastSeq = seq;
-    yield resp;
-  }
-}
-
-export async function renew({
-  user,
-  storage,
-  id,
-  lifetime,
-  timeout,
-}: {
-  user: User;
-  storage: Storage;
-  id: string;
-  lifetime?: number;
-  timeout?: number;
-} & User) {
-  const subject = persistSubject(user);
-  assertHasWritePermission({ subject, path: storage.path });
-  const cn = await conat();
-
-  const resp = await cn.request(subject, null, {
-    headers: { cmd: "renew", id, lifetime } as any,
-    timeout,
-  });
-  checkMessageHeaderForError(resp);
-  return resp.data;
-}

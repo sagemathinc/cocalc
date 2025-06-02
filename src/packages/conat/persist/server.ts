@@ -1,313 +1,157 @@
 /*
+CONAT_SERVER=http://localhost:3000 node
 
-Maybe storage available as a service.
+// the server
 
-This code is similar to the changefeed server, because 
-it provides a changefeed on a given persist storage, 
-and a way to see values.
-
-DEVELOPMENT:
-
-Change to the packages/backend directory and run node.
-
-TERMINAL 1: This sets up the environment and starts the server running:
-
-   require('@cocalc/backend/conat/persist').initServer()
+require('@cocalc/backend/conat/persist'); client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/conat/persist/server').server({client}); 0;
 
 
-TERMINAL 2: In another node session, create a client:
 
-    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
+// a client
 
-// client also does this periodically to keep subscription alive:
+client = await require('@cocalc/backend/conat').conat(); c = require('@cocalc/conat/persist/client').stream({client, user:{project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f'}, storage:{path:'projects/3fa218e5-7196-4020-8b30-e2127847cc4f/a.txt'}});
 
-    await renew({user, id }) 
+s = await c.getAll()
 
-TERMINAL 3:
+await c.set({messageData:client.message(123)})
 
-user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/conat/persist');  const { messageData } =require("@cocalc/conat/core/client"); 0;
+(await c.get({seq:5})).data
 
-   await set({user, storage, messageData:messageData('hi')})
-   
-   await get({user, storage,  seq:1})
-   
-   await set({user, storage, key:'bella', messageData:messageData('hi', {headers:{x:10}})})
-   
-   await get({user, storage,  key:'bella'})
-   
-Also getAll using start_seq:
+await c.set({key:'foo', messageData:client.message('bar')})
+(await c.get({key:'foo'})).data
 
-   cf = const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
+await c.delete({seq:6})
+
 */
 
-import {
-  pstream,
-  type Message as StoredMessage,
-  PersistentStream,
-} from "./storage";
-import { conat } from "@cocalc/conat/client";
-import { type Client, type Subscription } from "@cocalc/conat/core/client";
-import { uuid } from "@cocalc/util/misc";
+import { type Client } from "@cocalc/conat/core/client";
+import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
+export { type SubjectSocket };
 import { getLogger } from "@cocalc/conat/client";
-import { delay } from "awaiting";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { join } from "path";
-import { syncFiles, ensureContainingDirectoryExists } from "./context";
+import type { Message as StoredMessage, PersistentStream } from "./storage";
+import { getStream, SERVICE } from "./util";
 import { is_array } from "@cocalc/util/misc";
-import { getUserId, assertHasWritePermission } from "./auth";
+
+const logger = getLogger("persist:server");
+
+// When sending a large number of message for
+// getAll or change updates, we combine together messages
+// until hitting this size, then send them all at once.
+// This bound is to avoid potentially using a huge amount of RAM
+// when streaming a large saved database to the client.
+// Note: if a single message is larger than this, it still
+// gets sent, just individually.
+const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
+//const DEFAULT_MESSAGES_THRESH = 1e5;
 
 // I added an experimental way to run any sqlite query... but it is disabled
 // since of course there are major DOS and security concerns.
 const ENABLE_SQLITE_GENERAL_QUERIES = false;
 
-const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
-export const HEARTBEAT_STRING = "hb";
-
-export const DEFAULT_LIFETIME = 3 * 1000 * 60;
-export const MAX_LIFETIME = 15 * 1000 * 60;
-export const MIN_LIFETIME = 250;
-export const MIN_HEARTBEAT = 5000;
-export const DEFAULT_HEARTBEAT = 30000;
-export const MAX_HEARTBEAT = 120000;
-
-export const MAX_PERSISTS_PER_USER = parseInt(
-  process.env.MAX_PERSISTS_PER_USER ?? "200",
-);
-
-export const MAX_PERSISTS_PER_SERVER = parseInt(
-  process.env.MAX_PERSISTS_PER_SERVER ?? "10000",
-);
-
-export const LAST_CHUNK = "last-chunk";
-
-const logger = getLogger("persist:server");
-
-export const SERVICE = "persist";
-
-export type User = {
-  account_id?: string;
-  project_id?: string;
-  hub_id?: string;
-};
-export function persistSubject({ account_id, project_id }: User) {
-  if (account_id) {
-    return `${SERVICE}.account-${account_id}`;
-  } else if (project_id) {
-    return `${SERVICE}.project-${project_id}`;
-  } else {
-    return `${SERVICE}.hub`;
-  }
-}
-
-let terminated = false;
-let sub: Subscription | null = null;
-
-interface Options {
-  messagesThresh?: number;
-  client?: Client;
-}
-
-export async function init({
+export function server({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
-}: Options = {}) {
-  terminated = false;
-  sub = null;
-  logger.debug("starting persist server");
-  logger.debug({
-    DEFAULT_LIFETIME,
-    MAX_LIFETIME,
-    MIN_LIFETIME,
-    MIN_HEARTBEAT,
-    MAX_HEARTBEAT,
-    MAX_PERSISTS_PER_USER,
-    MAX_PERSISTS_PER_SERVER,
-    SERVICE,
-  });
-  client = client ?? (await conat());
-  // this returns one the service is listening
-  await persistService({ client, messagesThresh });
-}
+}: {
+  client: Client;
+  messagesThresh?: number;
+}) {
+  logger.debug("server: creating...");
+  const subject = `${SERVICE}.*`;
+  const server = client.socket.listen(subject);
+  logger.debug("server: listening in on ", { subject });
 
-async function noThrow(f) {
-  try {
-    await f();
-  } catch (err) {
-    logger.debug(`WARNING -- ${err}`);
-  }
-}
-
-async function persistService({ client, messagesThresh }) {
-  sub = await client.subscribe(`${SERVICE}.*`, {
-    sticky: true,
-    ephemeral: true,
-  });
-  listenPersist({ messagesThresh });
-}
-
-const endOfLife: { [id: string]: number } = {};
-function getLifetime({ lifetime }): number {
-  if (lifetime === -1) {
-    // special case of -1 used for cancel
-    return lifetime;
-  }
-  if (!lifetime) {
-    return DEFAULT_LIFETIME;
-  }
-  lifetime = parseFloat(lifetime);
-  if (lifetime > MAX_LIFETIME) {
-    return MAX_LIFETIME;
-  }
-  if (lifetime < MIN_LIFETIME) {
-    return MIN_LIFETIME;
-  }
-  return lifetime;
-}
-
-export async function terminate() {
-  terminated = true;
-  if (sub != null) {
-    sub.drain();
-    sub = null;
-  }
-}
-
-async function listenPersist({ messagesThresh }) {
-  if (sub == null) {
-    throw Error("must call init first");
-  }
-  for await (const mesg of sub) {
-    //console.log("got mesg = ", { data: mesg.data, headers: mesg.headers });
-    if (terminated) {
-      return;
-    }
-    noThrow(async () => await handleMessage({ mesg, messagesThresh }));
-  }
-}
-
-let numPersists = 0;
-const numPersistsPerUser: { [user_id: string]: number } = {};
-
-function metrics() {
-  logger.debug("persist", { numPersists });
-}
-
-export async function getStream({ subject, storage }) {
-  // this permsissions check should always work and use should
-  // never see an error here, since
-  // the same check runs on the client before the message is sent to the
-  // persist storage.  However a malicious user would hit this.
-  // IMPORTANT: must be here so error *code* also sent back.
-  assertHasWritePermission({
-    subject,
-    path: storage.path,
-  });
-  const path = join(syncFiles.local, storage.path);
-  await ensureContainingDirectoryExists(path);
-  return pstream({ ...storage, path });
-}
-
-async function handleMessage({ mesg, messagesThresh }) {
-  const request = mesg.headers;
-  //console.log("handleMessage", { data: mesg.data, headers: mesg.headers });
-
-  let stream: undefined | PersistentStream = undefined;
-  const respond = (...args) => {
-    stream?.close();
-    mesg.respond(...args);
-  };
-
-  // get and set using normal request/respond
-  try {
-    stream = await getStream({
-      subject: mesg.subject,
-      storage: request.storage,
+  server.on("connection", (socket) => {
+    logger.debug("server: got new connection", {
+      id: socket.id,
+      subject: socket.subject,
     });
+    socket.on("data", (data) => {
+      logger.debug("server: got data ", data);
+      getAll({ socket, request: data, messagesThresh });
+    });
+    socket.on("request", async (mesg) => {
+      const request = mesg.headers;
+      logger.debug("got request", request);
 
-    if (request.cmd == "set") {
-      const resp = stream.set({
-        key: request.key,
-        previousSeq: request.previousSeq,
-        raw: mesg.raw,
-        ttl: request.ttl,
-        encoding: mesg.encoding,
-        headers: request.headers,
-        msgID: request.msgID,
-      });
-      respond(resp);
-    } else if (request.cmd == "delete") {
-      respond(stream.delete(request));
-    } else if (request.cmd == "renew") {
-      const { id } = request;
-      if (!endOfLife[id]) {
-        throw Error(`unknown stream id '${id}'`);
-      }
-      const lifetime = getLifetime(request);
-      endOfLife[id] = Date.now() + lifetime;
-      respond({ status: "ok" });
-    } else if (request.cmd == "config") {
-      respond(stream.config(request.config));
-    } else if (request.cmd == "get") {
-      const resp = stream.get({ key: request.key, seq: request.seq });
-      //console.log("got resp = ", resp);
-      if (resp == null) {
-        respond(null);
-      } else {
-        const { raw, encoding, headers, seq, time, key } = resp;
-        respond(null, {
-          raw,
-          encoding,
-          headers: { ...headers, seq, time, key },
+      let stream: undefined | PersistentStream = undefined;
+      const respond = (...args) => {
+        stream?.close();
+        mesg.respond(...args);
+      };
+
+      try {
+        stream = await getStream({
+          subject: mesg.subject,
+          storage: request.storage,
         });
+
+        if (request.cmd == "set") {
+          respond(
+            stream.set({
+              key: request.key,
+              previousSeq: request.previousSeq,
+              raw: mesg.raw,
+              ttl: request.ttl,
+              encoding: mesg.encoding,
+              headers: request.headers,
+              msgID: request.msgID,
+            }),
+          );
+        } else if (request.cmd == "delete") {
+          respond(stream.delete(request));
+        } else if (request.cmd == "config") {
+          respond(stream.config(request.config));
+        } else if (request.cmd == "get") {
+          const resp = stream.get({ key: request.key, seq: request.seq });
+          //console.log("got resp = ", resp);
+          if (resp == null) {
+            respond(null);
+          } else {
+            const { raw, encoding, headers, seq, time, key } = resp;
+            respond(null, {
+              raw,
+              encoding,
+              headers: { ...headers, seq, time, key },
+            });
+          }
+        } else if (request.cmd == "keys") {
+          const resp = stream.keys();
+          respond(resp);
+        } else if (request.cmd == "sqlite") {
+          if (!ENABLE_SQLITE_GENERAL_QUERIES) {
+            throw Error("sqlite command not currently supported");
+          }
+          const resp = stream.sqlite(request.statement, request.params);
+          respond(resp);
+        } else {
+          respond(null, {
+            headers: { error: `unknown command ${request.cmd}`, code: 404 },
+          });
+        }
+      } catch (err) {
+        respond(null, { headers: { error: `${err}`, code: err.code } });
       }
-    } else if (request.cmd == "keys") {
-      const resp = stream.keys();
-      respond(resp);
-    } else if (request.cmd == "sqlite") {
-      if (!ENABLE_SQLITE_GENERAL_QUERIES) {
-        throw Error("sqlite command not currently supported");
-      }
-      const resp = stream.sqlite(request.statement, request.params);
-      respond(resp);
-    } else if (request.cmd == "getAll") {
-      // getAll will free reference to stream when it is done:
-      getAll({ mesg, request, stream, messagesThresh });
-    } else {
-      respond(null, {
-        headers: { error: `unknown command ${request.cmd}`, code: 404 },
-      });
-    }
-  } catch (err) {
-    respond(null, { headers: { error: `${err}`, code: err.code } });
-  }
+    });
+  });
+
+  return server;
 }
 
-async function getAll({ mesg, request, stream, messagesThresh }) {
-  //console.log("getAll", request);
-  // getAll sends multiple responses
+async function getAll({ socket, request, messagesThresh }) {
+  logger.debug("getAll", { subject: socket.subject, request });
   let seq = 0;
-  let lastSend = 0;
-  const user_id = getUserId(mesg.subject);
 
-  const respond = async (
-    error,
-    content?:
-      | typeof HEARTBEAT_STRING
-      | { id: string; lifetime: number }
-      | { state: "watch" }
-      | StoredMessage[],
-  ) => {
-    if (terminated) {
+  const respond = (error, content?: { state: "watch" } | StoredMessage[]) => {
+    if (socket.state == "closed") {
       end();
     }
-    lastSend = Date.now();
     if (!error && is_array(content)) {
       // console.log("content = ", content);
       // StoredMessage
       const messages = content as StoredMessage[];
-      await mesg.respond(messages, { headers: { seq } });
+      socket.write(messages, { headers: { seq } });
     } else {
-      await mesg.respond(null, { headers: { error, seq, content } });
+      socket.write(null, { headers: { error, seq, content } });
     }
     if (error) {
       end();
@@ -317,92 +161,25 @@ async function getAll({ mesg, request, stream, messagesThresh }) {
     seq += 1;
   };
 
-  const id = uuid();
-  numPersists += 1;
-  metrics();
   let done = false;
+  let stream: PersistentStream | undefined = undefined;
   const end = () => {
     if (done) {
       return;
     }
     done = true;
-    delete endOfLife[id];
-    numPersists -= 1;
-    metrics();
-    stream.close();
-    // end response stream with empty payload and no headers.
-    mesg.respond(null);
+    stream?.close();
+    socket.close();
   };
 
-  if (numPersistsPerUser[user_id] > MAX_PERSISTS_PER_USER) {
-    logger.debug(`numPersistsPerUser[${user_id}] >= MAX_PERSISTS_PER_USER`, {
-      numPersistsPerUserThis: numPersistsPerUser[user_id],
-      MAX_PERSISTS_PER_USER,
-    });
-    respond(
-      `This server has a limit of ${MAX_PERSISTS_PER_USER} persists per account`,
-    );
-    return;
-  }
-  if (numPersists >= MAX_PERSISTS_PER_SERVER) {
-    logger.debug("numPersists >= MAX_PERSISTS_PER_SERVER", {
-      numPersists,
-      MAX_PERSISTS_PER_SERVER,
-    });
-    // this will just cause the client to make another attempt, hopefully
-    // to another server
-    respond(`This server has a limit of ${MAX_PERSISTS_PER_SERVER} persists`);
-    return;
-  }
-
-  let { heartbeat = DEFAULT_HEARTBEAT } = request;
-  const lifetime = getLifetime(request);
-  delete request.lifetime;
-  delete request.heartbeat;
-
-  endOfLife[id] = Date.now() + lifetime;
-
-  async function lifetimeLoop() {
-    while (!done) {
-      await delay(Math.max(500, lifetime / 2));
-      if (!endOfLife[id] || endOfLife[id] <= Date.now()) {
-        end();
-        return;
-      }
-    }
-  }
-  lifetimeLoop();
-
-  async function heartbeatLoop() {
-    let hb = parseFloat(heartbeat);
-    if (hb < MIN_HEARTBEAT) {
-      hb = MIN_HEARTBEAT;
-    } else if (hb > MAX_HEARTBEAT) {
-      hb = MAX_HEARTBEAT;
-    }
-    await delay(hb);
-    while (!done) {
-      const timeSinceLast = Date.now() - lastSend;
-      if (timeSinceLast < hb) {
-        // no neeed to send heartbeat yet
-        await delay(hb - timeSinceLast);
-        continue;
-      }
-      respond(undefined, HEARTBEAT_STRING);
-      await delay(hb);
-    }
-  }
-
   try {
-    if (!request.end_seq) {
-      await respond(undefined, { id, lifetime });
-    }
-    if (done) {
-      return;
-    }
+    stream = await getStream({
+      subject: socket.subject,
+      storage: request.storage,
+    });
 
     // send the current data
-    const messages: any[] = [];
+    const messages: StoredMessage[] = [];
     let size = 0;
     for (const message of stream.getAll({
       start_seq: request.start_seq,
@@ -411,17 +188,15 @@ async function getAll({ mesg, request, stream, messagesThresh }) {
       messages.push(message);
       size += message.raw.length;
       if (size >= messagesThresh) {
-        await respond(undefined, messages);
+        respond(undefined, messages);
         messages.length = 0;
         size = 0;
       }
-      if (done) return;
     }
 
     if (messages.length > 0) {
-      await respond(undefined, messages);
+      respond(undefined, messages);
     }
-    if (done) return;
 
     if (request.end_seq) {
       end();
@@ -429,20 +204,21 @@ async function getAll({ mesg, request, stream, messagesThresh }) {
     }
 
     // send state change message
-    await respond(undefined, { state: "watch" });
+    respond(undefined, { state: "watch" });
 
     const unsentMessages: StoredMessage[] = [];
-    const sendAllUnsentMessages = reuseInFlight(async () => {
+    const sendAllUnsentMessages = () => {
       while (!done && unsentMessages.length > 0) {
         if (done) return;
         const messages: StoredMessage[] = [];
         let size = 0;
         while (unsentMessages.length > 0 && !done) {
           const message = unsentMessages.shift();
-          size += message?.raw?.length ?? 0; // e.g. op:'delete' messages have length 0 and now raw field
+          // e.g. op:'delete' messages have length 0 and no raw field
+          size += message?.raw?.length ?? 0;
           messages.push(message!);
           if (size >= messagesThresh) {
-            await respond(undefined, messages);
+            respond(undefined, messages);
             if (done) return;
             size = 0;
             messages.length = 0;
@@ -450,12 +226,12 @@ async function getAll({ mesg, request, stream, messagesThresh }) {
         }
         if (done) return;
         if (messages.length > 0) {
-          await respond(undefined, messages);
+          respond(undefined, messages);
         }
       }
-    });
+    };
 
-    stream.on("change", async (message) => {
+    stream.on("change", (message) => {
       if (done) {
         return;
       }
@@ -463,10 +239,6 @@ async function getAll({ mesg, request, stream, messagesThresh }) {
       unsentMessages.push(message);
       sendAllUnsentMessages();
     });
-
-    if (heartbeat) {
-      heartbeatLoop();
-    }
   } catch (err) {
     if (!done) {
       respond(`${err}`);

@@ -1,4 +1,4 @@
-import { SERVICE } from "./server";
+import { SERVICE } from "./util";
 import { ConatError } from "@cocalc/conat/core/client";
 
 export const MAX_PATH_LENGTH = 4000;
