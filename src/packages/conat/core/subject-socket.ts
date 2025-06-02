@@ -62,9 +62,11 @@ import {
   type Client,
   type Headers,
   type Subscription,
+  DEFAULT_REQUEST_TIMEOUT,
 } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { once } from "@cocalc/util/async-utils";
 
 const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
 
@@ -249,12 +251,20 @@ export class SubjectSocket extends EventEmitter {
       throw Error("only server can serve");
     }
     this.deleteDeadSockets();
-    this.sub = await this.client.subscribe(`${this.subject}.server.*`, {
+    const sub = await this.client.subscribe(`${this.subject}.server.*`, {
       sticky: true,
       ephemeral: true,
     });
+    if (this.state == "closed") {
+      sub.close();
+      return;
+    }
+    this.sub = sub;
     this.setState("ready");
     for await (const mesg of this.sub) {
+      if (this.state == ("closed" as any)) {
+        return;
+      }
       const id = mesg.subject.split(".").slice(-1)[0];
       let socket = this.sockets[id];
       if (socket === undefined) {
@@ -426,6 +436,10 @@ export class SubjectSocket extends EventEmitter {
   };
 
   request = async (data, options?) => {
+    if (this.state == "connecting") {
+      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
+    }
+    
     if (this.role == "server") {
       // we call all connected sockets in parallel,
       // then return array of responses.
@@ -528,6 +542,9 @@ export class Socket extends EventEmitter {
 
   // use request reply where the client responds
   request = async (data, options?) => {
+    if (this.state == "connecting") {
+      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
+    }
     return await this.subjectSocket.client.request(
       this.clientSubject,
       data,

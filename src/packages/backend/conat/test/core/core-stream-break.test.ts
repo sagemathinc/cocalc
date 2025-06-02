@@ -4,6 +4,7 @@ Testing that core-stream works even with attempts to break it:
 - by stopping/starting the persist server at key moments.
 
 pnpm test ./core-stream-break.test.ts
+
 */
 
 import { server as initPersistServer } from "@cocalc/backend/conat/persist";
@@ -15,6 +16,7 @@ import {
   after,
   wait,
   delay,
+  persistServer as setupPersistServer,
 } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
@@ -24,6 +26,10 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   let stream;
   let pclient;
   let persistServer;
+
+  it("close the persist server that was setup as part of before above", async () => {
+    setupPersistServer.close();
+  });
 
   it("start persist server, then create ephemeral core stream (verifying that persist server can be stopped then started and it works)", async () => {
     pclient = connect();

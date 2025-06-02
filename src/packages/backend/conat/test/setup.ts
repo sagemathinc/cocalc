@@ -43,7 +43,6 @@ export let persistServer: any = null;
 export async function createServer(opts?) {
   const port = await getPort();
   server = await initConatServer({ port, path, ...opts });
-  persistServer = createPersistServer({ client: connect() });
   return server;
 }
 
@@ -53,6 +52,7 @@ export async function before() {
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
   server = await createServer();
   client = connect();
+  persistServer = createPersistServer({ client });
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
   setConatClient({

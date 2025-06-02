@@ -57,21 +57,28 @@ describe("create a server and client, then send a message and get a response", (
   });
 });
 
-describe("create a client first, then the server, and see that it still works (testing the order); also include headers in both directions", () => {
-  let client, server, cn1, cn2;
+describe("create a client first, then the server, and see that write still works (testing the order); also include headers in both directions.", () => {
+  let client, server, cn1, cn2, requestPromise;
 
-  it("connects as client and tests out the server", async () => {
+  it("connects as client and writes to the server that doesn't exist yet", async () => {
     cn2 = connect();
     client = cn2.socket.connect("cocalc");
     client.write("cocalc", { headers: { my: "header" } });
   });
 
-  it("creates the client and server", () => {
+  it("we fire off a request as well, but of course don't wait for it", () => {
+    requestPromise = client.request("foo");
+  });
+
+  it("creates the server", () => {
     cn1 = connect();
     server = cn1.socket.listen("cocalc");
     server.on("connection", (socket) => {
       socket.on("data", (data, headers) => {
         socket.write(`${data}`.repeat(2), { headers });
+      });
+      socket.on("request", (mesg) => {
+        mesg.respond("bar", { headers: "x" });
       });
     });
   });
@@ -80,6 +87,12 @@ describe("create a client first, then the server, and see that it still works (t
     const [data, headers] = await once(client, "data");
     expect(data).toBe("cocalccocalc");
     expect(headers).toEqual({ my: "header" });
+  });
+
+  it("even the request works", async () => {
+    const response = await requestPromise;
+    expect(response.data).toBe("bar");
+    expect(response.headers).toBe("x");
   });
 
   it("cleans up", () => {
