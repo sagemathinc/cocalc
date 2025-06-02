@@ -16,3 +16,5 @@ export function ssoDispayedName({
 }) {
   return display ?? (name === "github" ? "GitHub" : capitalize(name));
 }
+
+export const MAX_PASSWORD_LENGTH = 64;

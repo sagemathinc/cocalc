@@ -15,17 +15,20 @@ Sign in works as follows:
    client is that user and tell user they are now authenticated.
    If not, send an error back.
 */
+import { Request, Response } from "express";
 
 import getPool from "@cocalc/database/pool";
 import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
 import getParams from "lib/api/get-params";
 import { verify } from "password-hash";
-import { Request, Response } from "express";
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 export default async function signIn(req: Request, res: Response) {
   let { email, password } = getParams(req);
+
   email = email.toLowerCase().trim();
+
   const check: string | undefined = await signInCheck(email, req.ip);
   if (check) {
     res.json({ error: check });
@@ -52,6 +55,12 @@ export async function getAccount(
   email_address: string,
   password: string,
 ): Promise<string> {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error(
+      `The password must be shorter than ${MAX_PASSWORD_LENGTH} characters.`,
+    );
+  }
+
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT account_id, password_hash, banned FROM accounts WHERE email_address=$1",
