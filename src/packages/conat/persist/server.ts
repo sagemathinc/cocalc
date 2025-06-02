@@ -39,9 +39,14 @@ import { type Client } from "@cocalc/conat/core/client";
 import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
 export { type SubjectSocket };
 import { getLogger } from "@cocalc/conat/client";
-import type { Message as StoredMessage, PersistentStream } from "./storage";
+import type {
+  Message as StoredMessage,
+  PersistentStream,
+  Options as Storage,
+} from "./storage";
 import { getStream, SERVICE } from "./util";
 import { is_array } from "@cocalc/util/misc";
+import { throttle } from "lodash";
 
 const logger = getLogger("persist:server");
 
@@ -58,6 +63,8 @@ const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
 // I added an experimental way to run any sqlite query... but it is disabled
 // since of course there are major DOS and security concerns.
 const ENABLE_SQLITE_GENERAL_QUERIES = false;
+
+const SEND_THROTTLE = 15;
 
 export function server({
   client,
@@ -79,28 +86,35 @@ export function server({
       id: socket.id,
       subject: socket.subject,
     });
-    socket.on("data", (data) => {
+    let storage: undefined | Storage = undefined;
+    let stream: undefined | PersistentStream = undefined;
+    socket.on("data", async (data) => {
       logger.debug("server: got data ", data);
-      getAll({ socket, request: data, messagesThresh });
+      if (stream === undefined) {
+        storage = data.storage;
+        stream = await getStream({
+          subject: socket.subject,
+          storage,
+        });
+        changefeed({ socket, stream, messagesThresh });
+      }
     });
+    socket.on("closed", () => {
+      storage = undefined;
+      stream?.close();
+      stream = undefined;
+    });
+
     socket.on("request", async (mesg) => {
       const request = mesg.headers;
       logger.debug("got request", request);
 
-      let stream: undefined | PersistentStream = undefined;
-      const respond = (...args) => {
-        stream?.close();
-        mesg.respond(...args);
-      };
-
       try {
-        stream = await getStream({
-          subject: mesg.subject,
-          storage: request.storage,
-        });
-
+        if (storage === undefined || stream === undefined) {
+          throw Error("stream not initialized -- must send storage first");
+        }
         if (request.cmd == "set") {
-          respond(
+          mesg.respond(
             stream.set({
               key: request.key,
               previousSeq: request.previousSeq,
@@ -112,17 +126,17 @@ export function server({
             }),
           );
         } else if (request.cmd == "delete") {
-          respond(stream.delete(request));
+          mesg.respond(stream.delete(request));
         } else if (request.cmd == "config") {
-          respond(stream.config(request.config));
+          mesg.respond(stream.config(request.config));
         } else if (request.cmd == "get") {
           const resp = stream.get({ key: request.key, seq: request.seq });
           //console.log("got resp = ", resp);
           if (resp == null) {
-            respond(null);
+            mesg.respond(null);
           } else {
             const { raw, encoding, headers, seq, time, key } = resp;
-            respond(null, {
+            mesg.respond(null, {
               raw,
               encoding,
               headers: { ...headers, seq, time, key },
@@ -130,20 +144,23 @@ export function server({
           }
         } else if (request.cmd == "keys") {
           const resp = stream.keys();
-          respond(resp);
+          mesg.respond(resp);
         } else if (request.cmd == "sqlite") {
           if (!ENABLE_SQLITE_GENERAL_QUERIES) {
             throw Error("sqlite command not currently supported");
           }
           const resp = stream.sqlite(request.statement, request.params);
-          respond(resp);
+          mesg.respond(resp);
+        } else if (request.cmd == "getAll") {
+          // requestMany which responds with all matching messages
+          getAll({ stream, mesg, request, messageThresh });
         } else {
-          respond(null, {
+          mesg.respond(null, {
             headers: { error: `unknown command ${request.cmd}`, code: 404 },
           });
         }
       } catch (err) {
-        respond(null, { headers: { error: `${err}`, code: err.code } });
+        mesg.respond(null, { headers: { error: `${err}`, code: err.code } });
       }
     });
   });
@@ -151,48 +168,19 @@ export function server({
   return server;
 }
 
-async function getAll({ socket, request, messagesThresh }) {
+async function getAll({ stream, mesg, request, messagesThresh }) {
   logger.debug("getAll", { subject: socket.subject, request });
   let seq = 0;
 
-  const respond = (error, content?: { state: "watch" } | StoredMessage[]) => {
+  const respond = (error?, messages?: StoredMessage[]) => {
     if (socket.state == "closed") {
-      end();
-    }
-    if (!error && is_array(content)) {
-      // console.log("content = ", content);
-      // StoredMessage
-      const messages = content as StoredMessage[];
-      socket.write(messages, { headers: { seq } });
-    } else {
-      socket.write(null, { headers: { error, seq, content } });
-    }
-    if (error) {
-      end();
       return;
     }
-
+    mesg.respond(messages, { headers: { error, seq } });
     seq += 1;
   };
 
-  let done = false;
-  let stream: PersistentStream | undefined = undefined;
-  const end = () => {
-    if (done) {
-      return;
-    }
-    done = true;
-    stream?.close();
-    socket.close();
-  };
-
   try {
-    stream = await getStream({
-      subject: socket.subject,
-      storage: request.storage,
-    });
-
-    // send the current data
     const messages: StoredMessage[] = [];
     let size = 0;
     for (const message of stream.getAll({
@@ -211,51 +199,56 @@ async function getAll({ socket, request, messagesThresh }) {
     if (messages.length > 0) {
       respond(undefined, messages);
     }
+    // successful finish
+    respond();
+  } catch (err) {
+    respond(`${err}`);
+  }
+}
 
-    if (request.end_seq) {
-      end();
+async function changefeed({ socket, stream, messagesThresh }) {
+  logger.debug("changefeed", { subject: socket.subject, request });
+  let seq = 0;
+  const respond = (error?, messages?: StoredMessage[]) => {
+    if (socket.state == "closed") {
       return;
     }
+    socket.write(messages, { headers: { error, seq } });
+    seq += 1;
+  };
 
-    // send state change message
-    respond(undefined, { state: "watch" });
-
-    const unsentMessages: StoredMessage[] = [];
-    const sendAllUnsentMessages = () => {
-      while (!done && unsentMessages.length > 0) {
-        if (done) return;
+  const unsentMessages: StoredMessage[] = [];
+  const sendAllUnsentMessages = throttle(
+    () => {
+      while (socket.state != "closed" && unsentMessages.length > 0) {
         const messages: StoredMessage[] = [];
         let size = 0;
-        while (unsentMessages.length > 0 && !done) {
+        while (unsentMessages.length > 0 && socket.state != "closed") {
           const message = unsentMessages.shift();
           // e.g. op:'delete' messages have length 0 and no raw field
           size += message?.raw?.length ?? 0;
           messages.push(message!);
           if (size >= messagesThresh) {
             respond(undefined, messages);
-            if (done) return;
             size = 0;
             messages.length = 0;
           }
         }
-        if (done) return;
         if (messages.length > 0) {
           respond(undefined, messages);
         }
       }
-    };
+    },
+    SEND_THROTTLE,
+    { leading: true, trailing: true },
+  );
 
-    stream.on("change", (message) => {
-      if (done) {
-        return;
-      }
-      //console.log("stream change event", message);
-      unsentMessages.push(message);
-      sendAllUnsentMessages();
-    });
-  } catch (err) {
-    if (!done) {
-      respond(`${err}`);
+  stream.on("change", (message) => {
+    if (socket.state != "closed") {
+      return;
     }
-  }
+    //console.log("stream change event", message);
+    unsentMessages.push(message);
+    sendAllUnsentMessages();
+  });
 }

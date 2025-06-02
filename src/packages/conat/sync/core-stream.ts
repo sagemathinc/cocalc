@@ -150,7 +150,6 @@ export class CoreStream<T = any> extends EventEmitter {
   // in a project has user {project_id} even if it is being accessed by
   // an account.
   private user: User;
-  private persistStream?;
   private storage?: Storage;
   private client?: Client;
   private connectionOptions?: ConnectionOptions;
@@ -250,21 +249,17 @@ export class CoreStream<T = any> extends EventEmitter {
       return;
     }
     // console.log("get persistent stream", { start_seq });
-    this.persistStream = await this.persistClient.getAll({
+    const sub = await this.persistClient.getAll({
       start_seq,
       options: this.connectionOptions,
     });
     while (true) {
-      const { value, done } = await this.persistStream.next();
+      const { value, done } = await sub.next();
       // console.log("got ", { value, done });
       if (done) {
         return;
       }
-      if (value.headers?.content?.state == "watch") {
-        // switched to watch mode
-        return;
-      }
-      const messages = value.data as (SetOperation | DeleteOperation)[];
+      const messages = value as (SetOperation | DeleteOperation)[];
       const seq = this.processPersistentMessages(messages, noEmit);
       if (seq != null) {
         // we update start_seq in case we need to try again
@@ -422,15 +417,12 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private listen = async () => {
     while (this.client != null) {
-      if (this.persistStream == null) {
-        throw Error("persistentStream must be defined");
-      }
       try {
-        for await (const { data } of this.persistStream) {
+        for await (const messages of this.persistClient.changefeed) {
           if (this.client == null) {
             return;
           }
-          this.processPersistentMessages(data, false);
+          this.processPersistentMessages(messages, false);
         }
       } catch (err) {
         // I don't think this can ever happen:
@@ -632,12 +624,12 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     // we're moving start_seq back to this point
     this._start_seq = start_seq;
-    const stream = await this.persistClient.getAll({
+    const sub = await this.persistClient.getAll({
       start_seq,
       end_seq,
     });
-    for await (const { data } of stream) {
-      this.processPersistentMessages(data, noEmit);
+    for await (const messages of sub) {
+      this.processPersistentMessages(messages, noEmit);
     }
   };
 

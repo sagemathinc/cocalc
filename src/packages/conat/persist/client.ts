@@ -20,7 +20,7 @@ export interface ConnectionOptions {}
 
 export class PersistStreamClient {
   private socket: SubjectSocket;
-  private activeGetAll = false;
+  public readonly changefeed;
 
   constructor(
     private client: Client,
@@ -30,39 +30,21 @@ export class PersistStreamClient {
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       reconnection: true,
     });
+    this.socket.write({ storage: this.storage });
+    this.init();
   }
 
   close = () => {
     this.socket.close();
   };
 
-  getAll = ({
-    start_seq,
-    end_seq,
-  }: {
-    start_seq?: number;
-    end_seq?: number;
-    options?: ConnectionOptions;
-  } = {}) => {
-    if (this.activeGetAll) {
-      throw Error("there is already an active getAll changefeed");
-    }
-    this.activeGetAll = true;
-    const changefeed = new EventIterator<any>(this.socket, "data", {
+  init = () => {
+    this.changefeed = new EventIterator<any>(this.socket, "data", {
       map: (args) => {
         const mesg = { data: args[0], headers: args[1] };
-        if (mesg.headers == null) {
-          changefeed.end();
-          this.socket.disconnect();
-        }
         return mesg;
       },
     });
-    this.socket.write({ start_seq, end_seq, storage: this.storage });
-    this.socket.on("disconnected", () => {
-      this.activeGetAll = false;
-    });
-    return changefeed;
   };
 
   set = async ({
@@ -91,7 +73,6 @@ export class PersistStreamClient {
           ttl,
           previousSeq,
           msgID,
-          storage: this.storage,
         },
         timeout,
       }),
@@ -112,7 +93,6 @@ export class PersistStreamClient {
     return this.checkForError(
       await this.socket.request(null, {
         headers: {
-          storage: this.storage,
           cmd: "delete",
           seq,
           last_seq,
@@ -133,7 +113,6 @@ export class PersistStreamClient {
     return this.checkForError(
       await this.socket.request(null, {
         headers: {
-          storage: this.storage,
           cmd: "config",
           config,
         } as any,
@@ -153,7 +132,7 @@ export class PersistStreamClient {
     | { key: string; seq?: undefined }
   )): Promise<ConatMessage | undefined> => {
     const resp = await this.socket.request(null, {
-      headers: { cmd: "get", storage: this.storage, seq, key } as any,
+      headers: { cmd: "get", seq, key } as any,
       timeout,
     });
     this.checkForError(resp, true);
@@ -163,10 +142,40 @@ export class PersistStreamClient {
     return resp;
   };
 
+  // returns async iterator over set and delete operations
+  getAll = ({
+    start_seq,
+    end_seq,
+    timeout,
+    maxWait,
+  }: {
+    start_seq?: number;
+    end_seq?: number;
+    timeout?: number;
+    maxWait?: number;
+  } = {}) => {
+    const sub = await this.socket.requestMany(null, {
+      headers: {
+        cmd: "getAll",
+        start_seq,
+        end_seq,
+      } as any,
+      timeout,
+      maxWait,
+    });
+    for (const { data } of sub) {
+      if (data == null || this.socket.state == "closed") {
+        // done
+        return;
+      }
+      yield data;
+    }
+  };
+
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
     return this.checkForError(
       await this.socket.request(null, {
-        headers: { cmd: "keys", storage: this.storage } as any,
+        headers: { cmd: "keys" } as any,
         timeout,
       }),
     );
@@ -185,7 +194,6 @@ export class PersistStreamClient {
       await this.socket.request(null, {
         headers: {
           cmd: "sqlite",
-          storage: this.storage,
           statement,
           params,
         } as any,
