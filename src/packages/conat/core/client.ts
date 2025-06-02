@@ -978,7 +978,8 @@ export class Client extends EventEmitter {
   // to your inbox.    Similarly if you set a maxWait, the
   // subscription just ends at that point, but the server
   // sending messages doesn't know.  This is a shortcoming the
-  // pub/sub model.
+  // pub/sub model.  You must decide entirely based on your
+  // own application protocol how to terminate.
   async requestMany(
     subject: string,
     mesg: any,

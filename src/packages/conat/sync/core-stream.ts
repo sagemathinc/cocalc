@@ -249,14 +249,14 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.client == null) {
       return;
     }
-    console.log("get persistent stream", { start_seq });
+    // console.log("get persistent stream", { start_seq });
     this.persistStream = await this.persistClient.getAll({
       start_seq,
       options: this.connectionOptions,
     });
     while (true) {
       const { value, done } = await this.persistStream.next();
-      console.log("got ", { value, done });
+      // console.log("got ", { value, done });
       if (done) {
         return;
       }
@@ -271,14 +271,14 @@ export class CoreStream<T = any> extends EventEmitter {
         start_seq = seq! + 1;
       }
     }
-    console.log("finished getAll");
+    // console.log("finished getAll");
   };
 
   private processPersistentMessages = (
     messages: (SetOperation | DeleteOperation)[],
     noEmit?: boolean,
   ) => {
-    console.log("processPersistentMessages", messages.length, " messages");
+    // console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
       // closed
       return;

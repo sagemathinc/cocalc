@@ -552,7 +552,7 @@ describe("test request/respond from client to server and from server to client",
   });
 });
 
-describe("test request/respond with heaaders", () => {
+describe("test request/respond with headers", () => {
   let socket1,
     server,
     cn1,
@@ -595,6 +595,46 @@ describe("test request/respond with heaaders", () => {
     expect(x.headers).toEqual(
       expect.objectContaining({ foo: 10, socket1: true }),
     );
+  });
+
+  it("cleans up", () => {
+    socket1.close();
+    server.close();
+    cn1.close();
+    cn2.close();
+  });
+});
+
+describe("test requestMany/respond", () => {
+  let socket1,
+    server,
+    cn1,
+    cn2,
+    sockets: any[] = [];
+  const subject = "requestMany";
+
+  it("creates a server that handles a requestMany, and a client", async () => {
+    cn2 = connect();
+    server = cn2.socket.listen(subject);
+    server.on("connection", (socket) => {
+      sockets.push(socket);
+      socket.on("request", (mesg) => {
+        for (let i = 0; i < mesg.data; i++) {
+          mesg.respond(i);
+        }
+      });
+    });
+
+    cn1 = connect();
+    socket1 = cn1.socket.connect(subject);
+  });
+
+  it("sends a requestMany request and get 3 responses", async () => {
+    const sub = await socket1.requestMany(10);
+    for (let i = 0; i < 10; i++) {
+      expect((await sub.next()).value.data).toBe(i);
+    }
+    sub.close();
   });
 
   it("cleans up", () => {

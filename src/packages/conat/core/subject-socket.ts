@@ -439,7 +439,7 @@ export class SubjectSocket extends EventEmitter {
     if (this.state == "connecting") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
-    
+
     if (this.role == "server") {
       // we call all connected sockets in parallel,
       // then return array of responses.
@@ -463,6 +463,17 @@ export class SubjectSocket extends EventEmitter {
     }
     const subject = `${this.subject}.server.${this.id}`;
     return await this.client.request(subject, data, options);
+  };
+
+  requestMany = async (data, options?) => {
+    if (this.state == "connecting") {
+      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
+    }
+    if (this.role == "server") {
+      throw Error("requestMany with server not implemented");
+    }
+    const subject = `${this.subject}.server.${this.id}`;
+    return await this.client.requestMany(subject, data, options);
   };
 }
 
