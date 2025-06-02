@@ -56,6 +56,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
 
   it("stops persist server again, and sees that publishing throws timeout error (otherwise it queues things up waiting for persist server to return)", async () => {
     persistServer.close();
+
     await expect(async () => {
       await stream.publish("y", { timeout: 100 });
     }).rejects.toThrowError("no subscribers");

@@ -386,7 +386,10 @@ export class PersistentStream extends EventEmitter {
   *getAll({
     start_seq,
     end_seq,
-  }: { end_seq?: number; start_seq?: number } = {}): IterableIterator<StoredMessage> {
+  }: {
+    end_seq?: number;
+    start_seq?: number;
+  } = {}): IterableIterator<StoredMessage> {
     let query: string, stmt;
 
     const where: string[] = [];
@@ -442,7 +445,9 @@ export class PersistentStream extends EventEmitter {
   };
 
   vacuum = () => {
-    this.db.prepare("VACUUM").run();
+    try {
+      this.db.prepare("VACUUM").run();
+    } catch {}
   };
 
   get length(): number {

@@ -458,9 +458,11 @@ export class SubjectSocket extends EventEmitter {
   };
 
   request = async (data, options?) => {
-    if (this.state == "connecting") {
+    if (this.state == "closed") return;
+    if (this.state != "ready") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
+    if (this.state == "closed") return;
 
     if (this.role == "server") {
       // we call all connected sockets in parallel,
@@ -488,9 +490,11 @@ export class SubjectSocket extends EventEmitter {
   };
 
   requestMany = async (data, options?): Promise<Subscription> => {
-    if (this.state == "connecting") {
+    if (this.state == "closed") return;
+    if (this.state != "ready") {
       await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
     }
+    if (this.state == "closed") return;
     if (this.role == "server") {
       throw Error("requestMany with server not implemented");
     }
