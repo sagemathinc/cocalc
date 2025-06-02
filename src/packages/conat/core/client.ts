@@ -1067,7 +1067,7 @@ export class Client extends EventEmitter {
 
     connect: (
       subject: string,
-      opts?: { maxQueueSize?: number; reconnection?: boolean },
+      opts?: { maxQueueSize?: number; reconnection?: boolean; init?: any },
     ): SubjectSocket =>
       getSubjectSocketConnection({
         subject,

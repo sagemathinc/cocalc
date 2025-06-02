@@ -99,6 +99,9 @@ export interface SubjectSocketOptions {
   // (Default: true) Whether reconnection is enabled or not.
   // If set to false, you need to manually reconnect:
   reconnection?: boolean;
+  // sent as body of message by client when initially connecting,
+  // and delivered as a write (avoids a round trip to initialize)
+  init?: any;
 }
 
 const connections: { [key: string]: SubjectSocket } = {};
@@ -140,6 +143,7 @@ export class SubjectSocket extends EventEmitter {
   queuedWrites: { data: any; headers?: Headers }[] = [];
   maxQueueSize: number;
   reconnection: boolean;
+  init: any;
 
   constructor({
     subject,
@@ -148,6 +152,7 @@ export class SubjectSocket extends EventEmitter {
     id,
     maxQueueSize = DEFAULT_MAX_QUEUE_SIZE,
     reconnection = true,
+    init,
   }: SubjectSocketOptions) {
     super();
     this.maxQueueSize = maxQueueSize;
@@ -160,6 +165,7 @@ export class SubjectSocket extends EventEmitter {
     this.role = role;
     this.id = id;
     this.conn = { id };
+    this.init = init;
     this.connect();
   }
 
@@ -190,7 +196,10 @@ export class SubjectSocket extends EventEmitter {
     this.emit(state);
   };
 
-  private sendCommandToServer = async (cmd: "close" | "ping" | "connect") => {
+  private sendCommandToServer = async (
+    cmd: "close" | "ping" | "connect",
+    mesg?,
+  ) => {
     const headers = {
       [SOCKET_HEADER_CMD]: cmd,
       id: this.id,
@@ -199,7 +208,7 @@ export class SubjectSocket extends EventEmitter {
     if (cmd == "close") {
       this.client.publishSync(subject, null, { headers });
     } else {
-      const resp = await this.client.request(subject, null, {
+      const resp = await this.client.request(subject, mesg ?? null, {
         headers,
         timeout: DEFAULT_TIMEOUT,
       });
@@ -310,6 +319,11 @@ export class SubjectSocket extends EventEmitter {
       delete this.sockets[id];
       // do not bother to respond to close
     } else if (cmd == "connect") {
+      const data = mesg.data;
+      if (data != null) {
+        // data of connect message can be used to initialize the socket.
+        socket.emit("data", data);
+      }
       mesg.respond("connected");
     } else {
       mesg.respond({ error: `unknown command - '${cmd}'` });
@@ -340,7 +354,7 @@ export class SubjectSocket extends EventEmitter {
     }
     this.sockets = {};
     if (this.reconnection) {
-      this.connect();
+      setTimeout(this.connect, 1000);
     }
   };
 
@@ -366,7 +380,10 @@ export class SubjectSocket extends EventEmitter {
       return;
     }
     try {
-      await this.sendCommandToServer("connect");
+      const resp = await this.sendCommandToServer("connect", this.init);
+      if (resp != "connected") {
+        throw Error("failed to connect");
+      }
       this.setState("ready");
       this.clientPing();
       for await (const mesg of this.sub) {

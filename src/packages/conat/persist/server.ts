@@ -189,7 +189,7 @@ export function server({
             changefeed = true;
             startChangefeed({ socket, stream, messagesThresh });
           }
-          mesg.respond(null);
+          mesg.respond("created");
         } else {
           mesg.respond(null, {
             headers: { error: `unknown command ${request.cmd}`, code: 404 },

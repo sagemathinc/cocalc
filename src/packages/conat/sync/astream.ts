@@ -41,6 +41,7 @@ import {
 } from "@cocalc/conat/core/client";
 import { storagePath, type User } from "./core-stream";
 import { connect } from "@cocalc/conat/core/client";
+import { type Configuration } from "@cocalc/conat/persist/storage";
 
 export class AStream<T = any> {
   private storage: StorageOptions;
@@ -67,27 +68,27 @@ export class AStream<T = any> {
   };
 
   getMessage = async (
-    seq: number,
+    seq_or_key: number | string,
     { timeout }: { timeout?: number } = {},
   ): Promise<Message<T> | undefined> => {
     return await this.stream.get({
-      seq,
+      ...opt(seq_or_key),
       timeout,
     });
   };
 
   get = async (
-    seq: number,
+    seq_or_key: number | string,
     opts?: { timeout?: number },
   ): Promise<T | undefined> => {
-    return (await this.getMessage(seq, opts))?.data;
+    return (await this.getMessage(seq_or_key, opts))?.data;
   };
 
   headers = async (
-    seq: number,
+    seq_or_key: number | string,
     opts?: { timeout?: number },
   ): Promise<Headers | undefined> => {
-    return (await this.getMessage(seq, opts))?.headers;
+    return (await this.getMessage(seq_or_key, opts))?.headers;
   };
 
   // this is an async iterator so you can iterate over the
@@ -125,7 +126,8 @@ export class AStream<T = any> {
     void,
     unknown
   > {
-    for await (const { updates } of this.stream.changefeed()) {
+    const cf = await this.stream.changefeed();
+    for await (const { updates } of cf) {
       for (const event of updates) {
         if (event.op == "delete") {
           yield event;
@@ -153,15 +155,15 @@ export class AStream<T = any> {
       headers?: Headers;
       previousSeq?: number;
       timeout?: number;
-      // note: msgID is NOT supported because its lifetime is that of the stream object
-      // on the server, which is likely immediately removed when using akv.  Of course
-      // msgID is mainly for streams and not very relevant for kv.
+      key?: string;
+      ttl?: number;
+      msgID?: string;
     },
   ): Promise<{ seq: number; time: number }> => {
+    const { headers, ...options0 } = options ?? {};
     return await this.stream.set({
-      messageData: messageData(value, { headers: options?.headers }),
-      previousSeq: options?.previousSeq,
-      timeout: options?.timeout,
+      messageData: messageData(value, { headers }),
+      ...options0,
     });
   };
 
@@ -171,6 +173,15 @@ export class AStream<T = any> {
       return { messageData: messageData(mesg) };
     });
     return await this.stream.setMany(ops);
+  };
+
+  config = async (
+    config: Partial<Configuration> = {},
+  ): Promise<Configuration> => {
+    if (this.storage == null) {
+      throw Error("bug -- storage must be set");
+    }
+    return await this.stream.config({ config });
   };
 
   sqlite = async (
@@ -188,4 +199,14 @@ export class AStream<T = any> {
 
 export function astream<T>(opts: DStreamOptions) {
   return new AStream<T>(opts);
+}
+
+function opt(seq_or_key: number | string): { seq: number } | { key: string } {
+  const t = typeof seq_or_key;
+  if (t == "number") {
+    return { seq: seq_or_key as number };
+  } else if (t == "string") {
+    return { key: seq_or_key as string };
+  }
+  throw Error(`arg must be number or string`);
 }

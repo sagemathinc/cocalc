@@ -30,7 +30,7 @@ export interface ChangefeedEvent {
 export type Changefeed = EventIterator<ChangefeedEvent>;
 
 export class PersistStreamClient {
-  private readonly socket: SubjectSocket;
+  public readonly socket: SubjectSocket;
   private changefeeds: any[] = [];
 
   constructor(
@@ -40,8 +40,8 @@ export class PersistStreamClient {
   ) {
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       reconnection: true,
+      init: { storage: this.storage },
     });
-    this.socket.write({ storage: this.storage });
   }
 
   close = () => {
@@ -52,13 +52,16 @@ export class PersistStreamClient {
     this.socket.close();
   };
 
-  changefeed = (): Changefeed => {
+  changefeed = async (): Promise<Changefeed> => {
     // activate changefeed mode (so server publishes updates -- this is idempotent)
-    this.socket.request(null, {
+    const resp = await this.socket.request(null, {
       headers: {
         cmd: "changefeed",
       },
     });
+    if (resp.headers?.error) {
+      throw Error(resp.headers?.error);
+    }
     // an iterator over any updates that are published.
     const iter = new EventIterator<ChangefeedEvent>(this.socket, "data", {
       map: (args) => {

@@ -415,7 +415,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private listen = async () => {
     while (this.client != null) {
       try {
-        for await (const { updates } of this.persistClient.changefeed()) {
+        for await (const { updates } of await this.persistClient.changefeed()) {
           if (this.client == null) {
             return;
           }
