@@ -192,9 +192,9 @@ export function defaults(obj1, obj2, allow_extra = false, strict = false) {
 }
 
 // WARNING -- don't accidentally use this as a default:
-const required = "__!!!!!!this is a required property!!!!!!__";
+export const required = "__!!!!!!this is a required property!!!!!!__";
 
-export { required };
+defaults.required = required;
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null

@@ -63,7 +63,7 @@ export function cmp_array(a, b): number {
   return 0;
 }
 
-export function timestamp_cmp(a, b, field): number {
+export function timestamp_cmp(a, b, field?: string): number {
   if (field == null) {
     field = "timestamp";
   }
