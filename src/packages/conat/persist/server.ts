@@ -25,7 +25,7 @@ await c.delete({seq:6})
 
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
 
-client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/backend/conat/sync').astream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
+client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/backend/conat/sync').astream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'b.txt', client})
 
 
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
@@ -127,6 +127,31 @@ export function server({
               msgID: request.msgID,
             }),
           );
+        } else if (request.cmd == "setMany") {
+          // just like set except the main data of the mesg
+          // has an array of set operations
+          const resp: { seq: number; time: number }[] = [];
+          for (const {
+            key,
+            previousSeq,
+            ttl,
+            headers,
+            msgID,
+            messageData,
+          } of mesg.data) {
+            resp.push(
+              stream.set({
+                key,
+                previousSeq,
+                ttl,
+                headers,
+                msgID,
+                raw: messageData.raw,
+                encoding: messageData.encoding,
+              }),
+            );
+          }
+          mesg.respond(resp);
         } else if (request.cmd == "delete") {
           mesg.respond(stream.delete(request));
         } else if (request.cmd == "config") {
@@ -219,7 +244,7 @@ function startChangefeed({ socket, stream, messagesThresh }) {
     if (socket.state == "closed") {
       return;
     }
-    logger.debug("changefeed: writing messages to socket", { seq, messages });
+    //logger.debug("changefeed: writing messages to socket", { seq, messages });
     socket.write(messages, { headers: { error, seq } });
     seq += 1;
   };

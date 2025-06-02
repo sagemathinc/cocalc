@@ -81,14 +81,10 @@ export class PersistStreamClient {
     msgID,
     messageData,
     timeout,
-  }: {
-    messageData: MessageData;
-    key?: string;
-    ttl?: number;
-    previousSeq?: number;
-    msgID?: string;
-    timeout?: number;
-  }): Promise<{ seq: number; time: number }> => {
+  }: SetOptions & { timeout?: number }): Promise<{
+    seq: number;
+    time: number;
+  }> => {
     return this.checkForError(
       await this.socket.request(null, {
         raw: messageData.raw,
@@ -100,6 +96,25 @@ export class PersistStreamClient {
           ttl,
           previousSeq,
           msgID,
+        },
+        timeout,
+      }),
+    );
+  };
+
+  setMany = async (
+    ops: SetOptions[],
+    { timeout }: { timeout?: number } = {},
+  ): Promise<
+    {
+      seq: number;
+      time: number;
+    }[]
+  > => {
+    return this.checkForError(
+      await this.socket.request(ops, {
+        headers: {
+          cmd: "setMany",
         },
         timeout,
       }),
@@ -240,6 +255,15 @@ export class PersistStreamClient {
       return mesg.data;
     }
   };
+}
+
+interface SetOptions {
+  messageData: MessageData;
+  key?: string;
+  ttl?: number;
+  previousSeq?: number;
+  msgID?: string;
+  timeout?: number;
 }
 
 interface Options {

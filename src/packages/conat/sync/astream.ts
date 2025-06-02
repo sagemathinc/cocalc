@@ -165,15 +165,12 @@ export class AStream<T = any> {
     });
   };
 
-  push = async (...args: T[]): Promise<{ seqs: number[]; times: number[] }> => {
-    const seqs: number[] = [];
-    const times: number[] = [];
-    for (const mesg of args) {
-      const { seq, time } = await this.publish(mesg);
-      seqs.push(seq);
-      times.push(time);
-    }
-    return { seqs, times };
+  push = async (...args: T[]): Promise<{ seq: number; time: number }[]> => {
+    // [ ] TODO: should break this up into chunks with a limit on size.
+    const ops = args.map((mesg) => {
+      return { messageData: messageData(mesg) };
+    });
+    return await this.stream.setMany(ops);
   };
 
   sqlite = async (
