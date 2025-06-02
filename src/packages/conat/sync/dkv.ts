@@ -81,6 +81,7 @@ import type { Client, Headers } from "@cocalc/conat/core/client";
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
 import { type ConnectionOptions } from "@cocalc/conat/persist/client";
+import { conat } from "@cocalc/conat/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -146,6 +147,9 @@ export class DKV<T = any> extends EventEmitter {
     connectionOptions,
   }: DKVOptions) {
     super();
+    if (client == null) {
+      throw Error("client must be specified");
+    }
     this.name = name;
     this.desc = desc;
     this.merge = merge;
@@ -546,6 +550,9 @@ export const cache = refCache<DKVOptions, DKV>({
   createKey: ({ name, account_id, project_id }) =>
     JSON.stringify({ name, account_id, project_id }),
   createObject: async (opts) => {
+    if (opts.client == null) {
+      opts = { ...opts, client: await conat() };
+    }
     const k = new DKV(opts);
     await k.init();
     return k;

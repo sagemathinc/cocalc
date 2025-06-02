@@ -44,8 +44,8 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import { terminate as terminateChangefeedServer } from "@cocalc/conat/changefeed/server";
-import { terminate as terminatePersistServer } from "@cocalc/conat/persist/server";
+import { close as terminateChangefeedServer } from "@cocalc/database/conat/changefeed-api";
+import { close as terminatePersistServer } from "@cocalc/backend/conat/persist";
 import { delay } from "awaiting";
 
 const logger = getLogger("server:conat:api");

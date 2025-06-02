@@ -20,13 +20,15 @@ export interface ConnectionOptions {}
 
 export class PersistStreamClient {
   private socket: SubjectSocket;
+  private activeGetAll = false;
+
   constructor(
     private client: Client,
     private storage: Storage,
     private user: User,
   ) {
     this.socket = this.client.socket.connect(persistSubject(this.user), {
-      reconnection: false,
+      reconnection: true,
     });
   }
 
@@ -42,13 +44,24 @@ export class PersistStreamClient {
     end_seq?: number;
     options?: ConnectionOptions;
   } = {}) => {
+    if (this.activeGetAll) {
+      throw Error("there is already an active getAll changefeed");
+    }
+    this.activeGetAll = true;
     const changefeed = new EventIterator<any>(this.socket, "data", {
       map: (args) => {
         const mesg = { data: args[0], headers: args[1] };
+        if (mesg.headers == null) {
+          changefeed.end();
+          this.socket.disconnect();
+        }
         return mesg;
       },
     });
     this.socket.write({ start_seq, end_seq, storage: this.storage });
+    this.socket.on("disconnected", () => {
+      this.activeGetAll = false;
+    });
     return changefeed;
   };
 

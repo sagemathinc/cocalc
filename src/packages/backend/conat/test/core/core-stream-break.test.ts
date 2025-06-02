@@ -54,15 +54,16 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
     expect(stream.get(0)).toBe("x");
   });
 
-  it("stops persist server again, and sees that publishing throws 503 error", async () => {
+  it("stops persist server again, and sees that publishing throws timeout error (otherwise it queues things up waiting for persist server to return)", async () => {
     persistServer.close();
     await expect(async () => {
-      await stream.publish("y");
+      await stream.publish("y", { timeout: 100 });
     }).rejects.toThrowError("no subscribers");
+
     try {
-      await stream.publish("y");
+      await stream.publish("y", { timeout: 100 });
     } catch (err) {
-      expect(err.code).toBe(503);
+      expect(`${err}`).toContain("timeout");
     }
   });
 

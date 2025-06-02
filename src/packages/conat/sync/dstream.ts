@@ -26,6 +26,7 @@ import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
 import { type ConnectionOptions } from "@cocalc/conat/persist/client";
+import { conat } from "@cocalc/conat/client";
 
 const MAX_PARALLEL = 50;
 
@@ -63,6 +64,9 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
+    if (opts.client == null) {
+      throw Error("client must be specified");
+    }
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
     this.stream = new CoreStream(opts);
@@ -436,6 +440,9 @@ export const cache = refCache<DStreamOptions, DStream>({
     return jsonStableStringify({ name, account_id, project_id })!;
   },
   createObject: async (options: DStreamOptions) => {
+    if (options.client == null) {
+      options = { ...options, client: await conat() };
+    }
     const dstream = new DStream(options);
     await dstream.init();
     return dstream;

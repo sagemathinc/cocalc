@@ -14,4 +14,16 @@ initContext({
 });
 
 export { pstream } from "@cocalc/conat/persist/storage";
-export { server } from "@cocalc/conat/persist/server";
+import { server } from "@cocalc/conat/persist/server";
+export { server };
+import { conat } from "./conat";
+
+let persistServer: any = undefined;
+
+export function initPersistServer() {
+  persistServer = server({ client: conat() });
+}
+export function close() {
+  persistServer?.close();
+  persistServer = undefined;
+}

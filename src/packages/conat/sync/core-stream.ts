@@ -33,7 +33,6 @@ import { isNumericString } from "@cocalc/util/misc";
 import type { JSONValue } from "@cocalc/util/types";
 import refCache from "@cocalc/util/refcache";
 import { conat } from "@cocalc/conat/client";
-import { delay } from "awaiting";
 import type { Client } from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type {
@@ -43,7 +42,6 @@ import type {
 } from "@cocalc/conat/persist/storage";
 export type { Configuration };
 import { join } from "path";
-import { connect } from "@cocalc/conat/core/client";
 import {
   type Storage,
   type PersistStreamClient,
@@ -170,7 +168,10 @@ export class CoreStream<T = any> extends EventEmitter {
   }: CoreStreamOptions) {
     super();
     this.connectionOptions = connectionOptions;
-    this.client = client ?? connect();
+    if (client == null) {
+      throw Error("client must be specified");
+    }
+    this.client = client;
     this.user = { account_id, project_id };
     this.name = name;
     this.storage = {
@@ -245,88 +246,39 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    let d_outer = 3000;
+    if (this.client == null) {
+      return;
+    }
+    console.log("get persistent stream", { start_seq });
+    this.persistStream = await this.persistClient.getAll({
+      start_seq,
+      options: this.connectionOptions,
+    });
     while (true) {
-      if (this.client == null) {
+      const { value, done } = await this.persistStream.next();
+      console.log("got ", { value, done });
+      if (done) {
         return;
       }
-      let stream,
-        d = 2000;
-      while (true) {
-        try {
-          if (this.client == null) {
-            // got closed.
-            return;
-          }
-          // This call is expected to fail sometimes, e.g., if no persist server
-          // is running, it will immediately fail with a 503 error.  We only
-          // don't retry in that case.
-          stream = await this.persistClient.getAll({
-            start_seq,
-            options: this.connectionOptions,
-          });
-          break;
-        } catch (err) {
-          //           console.log(
-          //             `core-stream getAllFromPersist error -- ${err}`,
-          //             err.code,
-          //           );
-          if (err.code == 403) {
-            // permission error -- this is fatal
-            // console.log("FATAL error");
-            throw err;
-          }
-          //           console.log(
-          //             `core-stream getAllFromPersist - will retry in ${d}ms...`,
-          //           );
-        }
-        await delay(d);
-        d = Math.min(15000, d * 1.2);
-      }
-      //console.log("got persistent stream", { id });
-      this.persistStream = stream;
-      try {
-        while (true) {
-          const { value, done } = await stream.next();
-          if (done) {
-            return;
-          }
-          if (value.headers?.content?.state == "watch") {
-            // switched to watch mode
-            return;
-          }
-          const messages = value.data as (SetOperation | DeleteOperation)[];
-          const seq = this.processPersistentMessages(messages, noEmit);
-          if (seq != null) {
-            // we update start_seq in case we need to try again
-            start_seq = seq! + 1;
-          }
-        }
+      if (value.headers?.content?.state == "watch") {
+        // switched to watch mode
         return;
-      } catch (err) {
-        //         console.log(
-        //           `core-stream getAllFromPersist: during processing the initial stream -- ${err}`,
-        //         );
-        // the above usually just gets all the data (in chunks), processes
-        // it and returns done.  But if something went wrong during processing the
-        // initial stream, maybe "await stream.next()" could throw.
-        if (err.code == 403) {
-          throw err;
-        }
-        //         console.log(
-        //           `core-stream getAllFromPersist: will retry in ${d_outer}ms`,
-        //         );
-        await delay(d_outer);
-        d_outer = Math.min(15000, d_outer * 1.2);
+      }
+      const messages = value.data as (SetOperation | DeleteOperation)[];
+      const seq = this.processPersistentMessages(messages, noEmit);
+      if (seq != null) {
+        // we update start_seq in case we need to try again
+        start_seq = seq! + 1;
       }
     }
+    console.log("finished getAll");
   };
 
   private processPersistentMessages = (
     messages: (SetOperation | DeleteOperation)[],
     noEmit?: boolean,
   ) => {
-    // console.log("processPersistentMessages", messages.length, " messages");
+    console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
       // closed
       return;
@@ -519,6 +471,7 @@ export class CoreStream<T = any> extends EventEmitter {
       // is set on this persistent stream, then
       // this message will be deleted after the given amount of time (in ms).
       ttl?: number;
+      timeout?: number;
     },
   ): Promise<{ seq: number; time: number } | undefined> => {
     if (mesg === undefined) {
@@ -546,6 +499,7 @@ export class CoreStream<T = any> extends EventEmitter {
       previousSeq: options?.previousSeq,
       msgID: options?.msgID,
       ttl: options?.ttl,
+      timeout: options?.timeout,
     });
     if (options?.msgID) {
       this.msgIDs?.add(options.msgID);
@@ -806,9 +760,12 @@ export class CoreStream<T = any> extends EventEmitter {
 export const cache = refCache<CoreStreamOptions, CoreStream>({
   name: "core-stream",
   createObject: async (options: CoreStreamOptions) => {
-    const estream = new CoreStream(options);
-    await estream.init();
-    return estream;
+    if (options.client == null) {
+      options = { ...options, client: await conat() };
+    }
+    const cstream = new CoreStream(options);
+    await cstream.init();
+    return cstream;
   },
   createKey: ({ client, ...options }) => {
     return jsonStableStringify(options)!;

@@ -4,7 +4,7 @@ import { init as initChangefeedServer } from "@cocalc/database/conat/changefeed-
 import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
-import { server as initPersistServer } from "@cocalc/backend/conat/persist";
+import { initPersistServer } from "@cocalc/backend/conat/persist";
 
 
 export { loadConatConfiguration };

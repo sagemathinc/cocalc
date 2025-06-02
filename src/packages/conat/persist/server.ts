@@ -28,7 +28,10 @@ client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/b
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
 
 
-client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/conat/sync/core-stream').cstream({name:'a.txt',client})
+client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').dkv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
+
+
+client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/conat/sync/core-stream').cstream({name:'d.txt',client})
 
 */
 
