@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "Показать только этот кадр",
   "frame_editors.frame_tree.title_bar.minimize": "Показать все кадры",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Нажмите на значок, чтобы удалить с панели инструментов} other {Нажмите на значок, чтобы добавить на панель инструментов}}",
+  "frontend.projects.create-project.helpTxt": "Название вашего нового проекта. Вы можете легко изменить его позже!",
   "i18n.localization.lang.arabic": "Арабский",
   "i18n.localization.lang.chinese": "Китайский",
   "i18n.localization.lang.dutch": "Нидерландский",

@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "केवल इस फ्रेम को दिखाएं",
   "frame_editors.frame_tree.title_bar.minimize": "सभी फ़्रेम दिखाएं",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {टूलबार से हटाने के लिए आइकन पर क्लिक करें} other {टूलबार में जोड़ने के लिए आइकन पर क्लिक करें}}",
+  "frontend.projects.create-project.helpTxt": "आपकी नई परियोजना का शीर्षक। आप इसे बाद में आसानी से बदल सकते हैं!",
   "i18n.localization.lang.arabic": "अरबी",
   "i18n.localization.lang.chinese": "चीनी",
   "i18n.localization.lang.dutch": "डच",

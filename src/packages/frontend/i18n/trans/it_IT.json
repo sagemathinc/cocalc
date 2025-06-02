@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "Mostra solo questo frame",
   "frame_editors.frame_tree.title_bar.minimize": "Mostra tutti i frame",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Clicca l'icona per rimuovere dalla barra degli strumenti} other {Clicca l'icona per aggiungere alla barra degli strumenti}}",
+  "frontend.projects.create-project.helpTxt": "Il titolo del tuo nuovo progetto. Puoi cambiarlo facilmente in seguito!",
   "i18n.localization.lang.arabic": "Arabo",
   "i18n.localization.lang.chinese": "Cinese",
   "i18n.localization.lang.dutch": "Olandese",

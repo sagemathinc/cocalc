@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "仅显示此框架",
   "frame_editors.frame_tree.title_bar.minimize": "显示所有帧",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {点击图标从工具栏移除} other {点击图标添加到工具栏}}",
+  "frontend.projects.create-project.helpTxt": "您新项目的标题。您可以稍后轻松更改！",
   "i18n.localization.lang.arabic": "阿拉伯语",
   "i18n.localization.lang.chinese": "中文",
   "i18n.localization.lang.dutch": "荷兰语",

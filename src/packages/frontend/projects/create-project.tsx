@@ -372,15 +372,22 @@ export const NewProjectCreator: React.FC<Props> = ({
   }
 
   function render_input_section(): JSX.Element | undefined {
-    const helpTxt =
-      "The title of your new project.  You can easily change this later!";
+    const helpTxt = intl.formatMessage({
+      id: "frontend.projects.create-project.helpTxt",
+      defaultMessage:
+        "The title of your new project.  You can easily change this later!",
+    });
+
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
         <Row>
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
-                label="Project Title"
+                label={intl.formatMessage({
+                  id: "frontend.projects.create-project.title",
+                  defaultMessage: "Project Title",
+                })}
                 name="title"
                 initialValue={title_text}
                 rules={[
@@ -433,8 +440,16 @@ export const NewProjectCreator: React.FC<Props> = ({
                 onClick={() => create_project()}
                 type="primary"
               >
-                Create Project
-                {requireLicense && !license_id && <> (select license above)</>}
+                {intl.formatMessage(
+                  {
+                    id: "frontend.projects.create-project.create",
+                    defaultMessage:
+                      "Create Project {requireLicense, select, true {(select license above)} other {}}",
+                  },
+                  {
+                    requireLicense: requireLicense && !license_id,
+                  },
+                )}
               </Button>
             </Space>
           </Col>
@@ -450,7 +465,7 @@ export const NewProjectCreator: React.FC<Props> = ({
   }
 
   function render_project_creation(): JSX.Element | undefined {
-    if (state == "view") return;
+    if (state === "view") return;
     return (
       <Row style={{ width: "100%", paddingBottom: "20px" }}>
         <Col sm={24}>

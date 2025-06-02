@@ -421,7 +421,7 @@ export function ComputeImageSelector({
           </Col>
           <Col xs={24}>
             <Paragraph>{render_info(nextImg)}</Paragraph>
-            <pre>{JSON.stringify(images?.toJS(), null, 2)}</pre>
+            {/* <pre>{JSON.stringify(images?.toJS(), null, 2)}</pre> */}
           </Col>
         </Row>
       );

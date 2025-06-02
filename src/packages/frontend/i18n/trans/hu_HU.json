@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "Csak ezt a keretet mutassa",
   "frame_editors.frame_tree.title_bar.minimize": "Mutasd az összes képkockát",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Kattintson az ikonra az eszköztárról való eltávolításhoz} other {Kattintson az ikonra az eszköztárhoz adáshoz}}",
+  "frontend.projects.create-project.helpTxt": "Új projektjének címe. Később könnyen megváltoztathatja!",
   "i18n.localization.lang.arabic": "Arab",
   "i18n.localization.lang.chinese": "Kínai",
   "i18n.localization.lang.dutch": "Holland",

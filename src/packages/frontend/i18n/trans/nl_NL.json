@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "Toon alleen dit frame",
   "frame_editors.frame_tree.title_bar.minimize": "Toon alle frames",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Klik op het pictogram om van de werkbalk te verwijderen} other {Klik op het pictogram om aan de werkbalk toe te voegen}}",
+  "frontend.projects.create-project.helpTxt": "De titel van je nieuwe project. Je kunt het later eenvoudig wijzigen!",
   "i18n.localization.lang.arabic": "Arabisch",
   "i18n.localization.lang.chinese": "Chinees",
   "i18n.localization.lang.dutch": "Nederlands",

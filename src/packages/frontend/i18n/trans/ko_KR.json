@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "이 프레임만 보기",
   "frame_editors.frame_tree.title_bar.minimize": "모든 프레임 표시",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {아이콘을 클릭하여 툴바에서 제거} other {아이콘을 클릭하여 툴바에 추가}}",
+  "frontend.projects.create-project.helpTxt": "새 프로젝트의 제목입니다. 나중에 쉽게 변경할 수 있습니다!",
   "i18n.localization.lang.arabic": "아랍어",
   "i18n.localization.lang.chinese": "중국어",
   "i18n.localization.lang.dutch": "네덜란드어",

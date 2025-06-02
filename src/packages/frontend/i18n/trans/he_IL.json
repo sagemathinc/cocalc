@@ -600,6 +600,7 @@
   "frame_editors.frame_tree.title_bar.maximize": "הצג רק את המסגרת הזו",
   "frame_editors.frame_tree.title_bar.minimize": "הצג את כל המסגרות",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {לחץ על הסמל להסרה מסרגל הכלים} other {לחץ על הסמל להוספה לסרגל הכלים}}",
+  "frontend.projects.create-project.helpTxt": "הכותרת של הפרויקט החדש שלך. תוכל לשנות אותה בקלות מאוחר יותר!",
   "i18n.localization.lang.arabic": "ערבית",
   "i18n.localization.lang.chinese": "סינית",
   "i18n.localization.lang.dutch": "הולנדית",
