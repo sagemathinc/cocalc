@@ -2,7 +2,7 @@
 DEVELOPMENT:
 
 
-   pnpm test ./core-stream.test.ts
+pnpm test ./core-stream.test.ts
 
 */
 
