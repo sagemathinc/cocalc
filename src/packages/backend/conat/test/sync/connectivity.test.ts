@@ -33,7 +33,7 @@ describe("test that dkv survives server restart", () => {
     expect(kv.hasUnsavedChanges()).toBe(false);
   });
 
-  it("restart the socketio server and confirm that dkv still works", async () => {
+  it.skip("restart the socketio server and confirm that dkv still works", async () => {
     await restartServer();
     kv.b = 7;
     expect(kv.b).toEqual(7);

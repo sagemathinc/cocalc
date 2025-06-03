@@ -84,6 +84,7 @@ import { conat } from "@cocalc/conat/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
+const DEBUG = false;
 
 export type MergeFunction = (opts: {
   key: string;
@@ -497,10 +498,12 @@ export class DKV<T = any> extends EventEmitter {
           ...this.options[key],
           previousSeq,
         });
-        //         console.log("kv store -- attemptToSave succeed", this.desc, {
-        //           key,
-        //           value: obj[key],
-        //         });
+        if (DEBUG) {
+          console.log("kv store -- attemptToSave succeed", this.desc, {
+            key,
+            value: obj[key],
+          });
+        }
         status.unsaved -= 1;
         status.set += 1;
         // note that we CANNOT call  this.discardLocalState(key) here, because
@@ -509,10 +512,13 @@ export class DKV<T = any> extends EventEmitter {
         // this.kv.getKv(key) only has value in it once the value is
         // echoed back from the server.
       } catch (err) {
-        //         console.log("kv store -- attemptToSave failed", this.desc, err, {
-        //           key,
-        //           value: obj[key],
-        //         });
+        if (DEBUG) {
+          console.log("kv store -- attemptToSave failed", this.desc, err, {
+            key,
+            value: obj[key],
+            code: err.code,
+          });
+        }
         if (err.code == "reject") {
           const value = this.local[key];
           // can never save this.

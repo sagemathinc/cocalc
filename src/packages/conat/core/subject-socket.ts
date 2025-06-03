@@ -12,6 +12,10 @@ This is extremley nice because there's no notion of ip addresses,
 and clients and servers do not have to be directly connected to
 each other.
 
+**The TCP protocol for sockets guarantees **in-order, reliable, and 
+lossless transmission of messages between sender and receiver.**
+That same guarantee is thus what we support with our socket abstraction.
+
 This module provides an emulation of sockets but on top of the
 conat pub/sub model.  The server and clients agree on a common
 *subject* pattern of the form `${subject}.>` that they both 
@@ -68,7 +72,8 @@ import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 
-const SOCKET_HEADER_CMD = "CN-Socket-Cmd";
+const SOCKET_HEADER_CMD = "CN-SckCmd";
+const SOCKET_HEADER_SEQ = "CN-SckSeq";
 
 export type Role = "client" | "server";
 
@@ -145,6 +150,7 @@ export class SubjectSocket extends EventEmitter {
   reconnection: boolean;
   ended: boolean = false;
   init: any;
+  sendSeq: number = 1;
 
   constructor({
     subject,
@@ -161,7 +167,6 @@ export class SubjectSocket extends EventEmitter {
     this.subject = subject;
     this.client = client;
     this.client.on("closed", this.close);
-    this.client.on("disconnected", this.disconnect);
     this.client.on("connected", this.connect);
     this.role = role;
     this.id = id;
@@ -221,7 +226,10 @@ export class SubjectSocket extends EventEmitter {
 
   private sendDataToServer = (data, headers) => {
     const subject = `${this.subject}.server.${this.id}`;
-    this.client.publishSync(subject, data, { headers });
+    this.client.publishSync(subject, data, {
+      headers: { ...headers, [SOCKET_HEADER_SEQ]: this.sendSeq },
+    });
+    this.sendSeq += 1;
   };
 
   end = async ({ timeout = 3000 }: { timeout?: number } = {}) => {
@@ -323,8 +331,7 @@ export class SubjectSocket extends EventEmitter {
         // a request to support the socket.on('request', (mesg) => ...) protocol:
         socket.emit("request", mesg);
       } else {
-        // it's the low level data
-        socket.emit("data", mesg.data, mesg.headers);
+        socket.receiveDataFromClient(mesg);
       }
     }
   };
@@ -392,6 +399,7 @@ export class SubjectSocket extends EventEmitter {
       return;
     }
     this.setState("connecting");
+    this.sendSeq = 1;
     try {
       if (this.role == "server") {
         await this.runAsServer();
@@ -419,6 +427,7 @@ export class SubjectSocket extends EventEmitter {
       }
       this.setState("ready");
       this.clientPing();
+      let recvSeq = 1;
       for await (const mesg of this.sub) {
         if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
           this.disconnect();
@@ -428,6 +437,17 @@ export class SubjectSocket extends EventEmitter {
           this.emit("request", mesg);
         } else {
           // log("got data");
+          const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
+          if (seq == recvSeq) {
+            recvSeq++;
+          } else {
+            console.log("WARNING: there was data loss! ", { seq, recvSeq });
+            if (recvSeq == 1) {
+              // very first is wrong, so must have been automatic failover load balancing.
+              this.disconnect();
+            }
+          }
+          delete mesg.headers![SOCKET_HEADER_SEQ];
           this.emit("data", mesg.data, mesg.headers);
         }
       }
@@ -558,6 +578,8 @@ export class Socket extends EventEmitter {
   public readonly address = { ip: "" };
   // conn is just for compatibility with primus/socketio (?).
   public readonly conn: { id: string };
+  private sendSeq: number = 1;
+  private recvSeq: number = 1;
 
   constructor({ subjectSocket, id, subject }) {
     super();
@@ -597,6 +619,7 @@ export class Socket extends EventEmitter {
   };
 
   destroy = () => this.close();
+
   close = () => {
     if (this.state == "closed") {
       return;
@@ -612,6 +635,38 @@ export class Socket extends EventEmitter {
     delete this.subjectSocket.sockets[this.id];
   };
 
+  receiveDataFromClient = (mesg) => {
+    // it's the low level data
+    const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
+    if (seq == this.recvSeq) {
+      this.recvSeq++;
+    } else {
+      if (this.recvSeq == 1) {
+        // very first sequence number is wrong.
+        // This happens with automatic failover load balancing, and we
+        // must send a hard reset to the client, since it has to start
+        // over, since *state* is lost.
+        this.close();
+        return;
+      }
+      console.log("WARNING: there was data loss on server side! ", {
+        seq,
+        recvSeq: this.recvSeq,
+        data: mesg.data,
+        headers: mesg.headers,
+      });
+    }
+    delete mesg.headers![SOCKET_HEADER_SEQ];
+    this.emit("data", mesg.data, mesg.headers);
+  };
+
+  private sendDataToClient = (data, headers) => {
+    this.subjectSocket.client.publishSync(this.clientSubject, data, {
+      headers: { ...headers, [SOCKET_HEADER_SEQ]: this.sendSeq },
+    });
+    this.sendSeq += 1;
+  };
+
   write = (data, { headers }: { headers?: Headers } = {}) => {
     if (this.state != "ready") {
       this.queuedWrites.push({ data, headers });
@@ -624,9 +679,7 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.subjectSocket.client.publishSync(this.clientSubject, data, {
-      headers,
-    });
+    this.sendDataToClient(data, headers);
     return true;
   };
 

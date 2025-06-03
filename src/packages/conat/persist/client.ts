@@ -42,6 +42,12 @@ export class PersistStreamClient {
       reconnection: true,
       init: { storage: this.storage },
     });
+    this.socket.on("request", (mesg) => {
+      mesg.reply({
+        storage: this.storage,
+        changefeed: this.changefeeds.length > 0,
+      });
+    });
   }
 
   close = () => {

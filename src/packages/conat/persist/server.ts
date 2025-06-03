@@ -124,7 +124,18 @@ export function server({
           throw Error(error);
         }
         if (storage === undefined || stream === undefined) {
-          throw Error("stream not initialized -- must send storage first");
+          // automatic reconnect must have happened -- grab the config info from the client
+          const resp = await socket.request(null);
+          const x = resp.data;
+          storage = x.storage;
+          stream = await getStream({
+            subject: socket.subject,
+            storage,
+          });
+          if (x.changefeed) {
+            changefeed = true;
+            startChangefeed({ socket, stream, messagesThresh });
+          }
         }
         if (request.cmd == "set") {
           mesg.respond(
