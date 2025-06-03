@@ -318,7 +318,9 @@ export class DStream<T = any> extends EventEmitter {
           this.emit("reject", { err, mesg: v[i].mesg });
         }
         if (!process.env.COCALC_TEST_MODE) {
-          console.warn(`WARNING -- error publishing -- ${w[i].error}`);
+          console.warn(
+            `WARNING -- error saving dstream '${this.name}' -- ${w[i].error}`,
+          );
         }
         errors = true;
         continue;
@@ -332,7 +334,7 @@ export class DStream<T = any> extends EventEmitter {
       delete this.publishOptions[id];
     }
     if (errors) {
-      throw Error("there were errors saving");
+      throw Error(`there were errors saving dstream '${this.name}'`);
     }
   });
 
@@ -364,7 +366,11 @@ export class DStream<T = any> extends EventEmitter {
           // err has mesg and subject set.
           this.emit("reject", { err, mesg });
         } else {
-          console.log(`WARNING: problem saving -- ${err}`);
+          if (!process.env.COCALC_TEST_MODE) {
+            console.warn(
+              `WARNING: problem saving dstream ${this.name} -- ${err}`,
+            );
+          }
         }
       }
       if (this.isStable()) {

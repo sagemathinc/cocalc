@@ -49,6 +49,7 @@ import {
   stream as persist,
   type SetOptions,
 } from "@cocalc/conat/persist/client";
+import { delay } from "awaiting";
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -414,6 +415,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
+    let d = 250;
     while (this.client != null) {
       try {
         for await (const { updates } of await this.persistClient.changefeed()) {
@@ -423,7 +425,9 @@ export class CoreStream<T = any> extends EventEmitter {
           this.processPersistentMessages(updates, false);
         }
       } catch (err) {
-        // I don't think this can ever happen:
+        // This normally doesn't happen but could if a persist server is being restarted
+        // frequently or things are seriously broken.  We cause this in
+        //    backend/conat/test/core/core-stream-break.test.ts
         console.log(`WARNING: core-stream -- ${err}`);
       }
       // above loop exists when the persistent server
@@ -434,6 +438,8 @@ export class CoreStream<T = any> extends EventEmitter {
         start_seq: this.lastSeq + 1,
         noEmit: false,
       });
+      await delay(d);
+      d = Math.min(10000, d * 1.3);
     }
   };
 

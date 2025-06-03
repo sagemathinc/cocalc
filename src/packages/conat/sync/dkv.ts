@@ -132,6 +132,7 @@ export class DKV<T = any> extends EventEmitter {
   private noAutosave: boolean;
   public readonly name: string;
   public readonly desc?: JSONValue;
+  private saveErrors: boolean = false;
 
   constructor({
     name,
@@ -526,15 +527,23 @@ export class DKV<T = any> extends EventEmitter {
           return;
         }
         if (!process.env.COCALC_TEST_MODE) {
-          console.warn(`WARNING: unexpected error saving dkv -- ${err}`);
+          console.warn(
+            `WARNING: unexpected error saving dkv '${this.name}' -- ${err}`,
+          );
         }
         errors = true;
       }
     };
     await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
     if (errors) {
+      this.saveErrors = true;
+      throw Error(`there were errors saving dkv '${this.name}'`);
       // so it retries
-      throw Error("there were errors");
+    } else {
+      if (!process.env.COCALC_TEST_MODE && this.saveErrors) {
+        this.saveErrors = false;
+        console.log(`SUCCESS: dkv ${this.name} fully saved`);
+      }
     }
     return status;
   });

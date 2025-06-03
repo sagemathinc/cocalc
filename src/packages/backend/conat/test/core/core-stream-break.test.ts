@@ -28,7 +28,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   let persistServer;
 
   it("close the persist server that was setup as part of before above", async () => {
-    setupPersistServer.close();
+    await setupPersistServer.end();
   });
 
   it("start persist server, then create ephemeral core stream (verifying that persist server can be stopped then started and it works)", async () => {
@@ -42,7 +42,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   });
 
   it("stops persist server again, but this time starts creating csteam before starting persist server", async () => {
-    persistServer.close();
+    await persistServer.end({ timeout: 500 });
     stream = null;
     (async () => {
       stream = await cstream({ client, name: "test1" });
@@ -55,7 +55,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   });
 
   it("stops persist server again, and sees that publishing throws timeout error (otherwise it queues things up waiting for persist server to return)", async () => {
-    persistServer.close();
+    await persistServer.end();
 
     await expect(async () => {
       await stream.publish("y", { timeout: 100 });
@@ -75,17 +75,17 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
 
   it("creates a dstream, publishes, sees it hasn't saved, starts persist server and sees save works again", async () => {
     const d = await dstream({ name: "test2" });
-    persistServer.close();
+    await persistServer.end({ timeout: 500 });
     d.publish("x");
     expect(d.hasUnsavedChanges()).toBe(true);
     persistServer = initPersistServer({ client: pclient });
     await d.save();
-//     expect(d.hasUnsavedChanges()).toBe(false);
-//     d.close();
+    expect(d.hasUnsavedChanges()).toBe(false);
+    d.close();
   });
 
   it("terminates persist server and verifies can still creates a dstream, after starting the persist server", async () => {
-    persistServer.close();
+    await persistServer.end();
     let d;
     stream = null;
     (async () => {

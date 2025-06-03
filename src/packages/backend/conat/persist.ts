@@ -24,6 +24,6 @@ export function initPersistServer() {
   persistServer = server({ client: conat() });
 }
 export function close() {
-  persistServer?.close();
+  persistServer?.end(); // end is a bit more graceful
   persistServer = undefined;
 }

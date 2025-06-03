@@ -143,6 +143,7 @@ export class SubjectSocket extends EventEmitter {
   queuedWrites: { data: any; headers?: Headers }[] = [];
   maxQueueSize: number;
   reconnection: boolean;
+  ended: boolean = false;
   init: any;
 
   constructor({
@@ -199,25 +200,22 @@ export class SubjectSocket extends EventEmitter {
   private sendCommandToServer = async (
     cmd: "close" | "ping" | "connect",
     mesg?,
+    timeout?,
   ) => {
     const headers = {
       [SOCKET_HEADER_CMD]: cmd,
       id: this.id,
     };
     const subject = `${this.subject}.server.${this.id}`;
-    if (cmd == "close") {
-      this.client.publishSync(subject, null, { headers });
+    const resp = await this.client.request(subject, mesg ?? null, {
+      headers,
+      timeout: timeout ?? DEFAULT_TIMEOUT,
+    });
+    const value = resp.data;
+    if (value?.error) {
+      throw Error(value?.error);
     } else {
-      const resp = await this.client.request(subject, mesg ?? null, {
-        headers,
-        timeout: DEFAULT_TIMEOUT,
-      });
-      const value = resp.data;
-      if (value?.error) {
-        throw Error(value?.error);
-      } else {
-        return value;
-      }
+      return value;
     }
   };
 
@@ -225,6 +223,33 @@ export class SubjectSocket extends EventEmitter {
     const subject = `${this.subject}.server.${this.id}`;
     this.client.publishSync(subject, data, { headers });
   };
+
+  end = async ({ timeout = 3000 }: { timeout?: number } = {}) => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.reconnection = false;
+    this.ended = true;
+    if (this.role == "client") {
+      // tell server we're gone
+      await this.sendCommandToServer("close", undefined, timeout);
+    } else {
+      // tell all clients to end
+      const end = async (id) => {
+        const socket = this.sockets[id];
+        delete this.sockets[id];
+        try {
+          await socket.end({ timeout });
+        } catch (err) {
+          console.log("WARNING: error ending socket -- ${err}");
+        }
+      };
+      await Promise.all(Object.keys(this.sockets).map(end));
+    }
+    this.close();
+  };
+
+  destroy = () => this.close();
 
   close = () => {
     if (this.state == "closed") {
@@ -251,9 +276,6 @@ export class SubjectSocket extends EventEmitter {
     // @ts-ignore
     delete this.client;
   };
-
-  end = () => this.close();
-  destroy = () => this.close();
 
   private runAsServer = async () => {
     if (this.role != "server") {
@@ -317,7 +339,7 @@ export class SubjectSocket extends EventEmitter {
       const id = socket.id;
       socket.close();
       delete this.sockets[id];
-      // do not bother to respond to close
+      mesg.respond("closed");
     } else if (cmd == "connect") {
       const data = mesg.data;
       if (data != null) {
@@ -371,7 +393,7 @@ export class SubjectSocket extends EventEmitter {
         await this.runAsClient();
       }
     } catch (err) {
-      console.log(`WARNING: socket error -- ${err}`);
+      console.log(`WARNING: socket connect error -- ${err}`);
       this.disconnect();
     }
   };
@@ -553,6 +575,22 @@ export class Socket extends EventEmitter {
     this.emit(state);
   };
 
+  end = async ({ timeout = 3000 }: { timeout?: number } = {}) => {
+    if (this.state == "closed") {
+      return;
+    }
+    try {
+      await this.subjectSocket.client.publish(this.clientSubject, null, {
+        headers: { [SOCKET_HEADER_CMD]: "close" },
+        timeout,
+      });
+    } catch (err) {
+      console.log(`WARNING: error closing socket - ${err}`);
+    }
+    this.close();
+  };
+
+  destroy = () => this.close();
   close = () => {
     if (this.state == "closed") {
       return;
@@ -567,8 +605,6 @@ export class Socket extends EventEmitter {
     this.removeAllListeners();
     delete this.subjectSocket.sockets[this.id];
   };
-  destroy = () => this.close();
-  end = () => this.close();
 
   write = (data, { headers }: { headers?: Headers } = {}) => {
     if (this.state != "ready") {
