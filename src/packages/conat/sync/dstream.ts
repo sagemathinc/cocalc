@@ -34,6 +34,7 @@ import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
 import { conat } from "@cocalc/conat/client";
+import { map as awaitMap } from "awaiting";
 
 export interface DStreamOptions {
   // what it's called by us
@@ -274,7 +275,15 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
-  private attemptToSave = reuseInFlight(async () => {
+  private attemptToSave = async () => {
+    if (true) {
+      await this.attemptToSaveBatch();
+    } else {
+      await this.attemptToSaveParallel();
+    }
+  };
+
+  private attemptToSaveBatch = reuseInFlight(async () => {
     if (this.stream == null) {
       throw Error("closed");
     }
@@ -325,8 +334,8 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
-  /* // non-batched version
-  private attemptToSave0 = reuseInFlight(async () => {
+  // non-batched version
+  private attemptToSaveParallel = reuseInFlight(async () => {
     const f = async (id) => {
       if (this.stream == null) {
         throw Error("closed");
@@ -363,9 +372,9 @@ export class DStream<T = any> extends EventEmitter {
     // NOTE: ES6 spec guarantees "String keys are returned in the order
     // in which they were added to the object."
     const ids = Object.keys(this.local);
+    const MAX_PARALLEL = 50;
     await awaitMap(ids, MAX_PARALLEL, f);
   });
-  */
 
   // load older messages starting at start_seq
   load = async (opts: { start_seq: number }) => {

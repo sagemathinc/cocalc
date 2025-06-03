@@ -468,6 +468,9 @@ export class SubjectSocket extends EventEmitter {
       const v: any[] = [];
       for (const id in this.sockets) {
         const f = async () => {
+          if (this.state == "closed") {
+            throw Error("closed");
+          }
           try {
             return await this.sockets[id].request(data, options);
           } catch (err) {
@@ -483,6 +486,9 @@ export class SubjectSocket extends EventEmitter {
       }
     }
     const subject = `${this.subject}.server.${this.id}`;
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
     return await this.client.request(subject, data, options);
   };
 

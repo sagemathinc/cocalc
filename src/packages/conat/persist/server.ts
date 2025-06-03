@@ -51,6 +51,7 @@ import type {
 } from "./storage";
 import { getStream, SERVICE } from "./util";
 import { throttle } from "lodash";
+import { type SetOptions } from "./client";
 
 const logger = getLogger("persist:server");
 
@@ -148,17 +149,16 @@ export function server({
             key,
             previousSeq,
             ttl,
-            headers,
             msgID,
             messageData,
-          } of mesg.data) {
+          } of mesg.data as SetOptions[]) {
             try {
               resp.push(
                 stream.set({
                   key,
                   previousSeq,
                   ttl,
-                  headers,
+                  headers: messageData.headers,
                   msgID,
                   raw: messageData.raw,
                   encoding: messageData.encoding,

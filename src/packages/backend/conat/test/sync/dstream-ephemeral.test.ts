@@ -13,7 +13,7 @@ pnpm test ./dstream-ephemeral.test.ts
 import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
 import { createDstreamEphemeral as create, EPHEMERAL_LIFETIME } from "./util";
 import { dstream as createDstream0 } from "@cocalc/backend/conat/sync";
-import { delay } from "awaiting";
+//import { delay } from "awaiting";
 
 beforeAll(before);
 

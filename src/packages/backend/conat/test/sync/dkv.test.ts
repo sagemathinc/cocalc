@@ -284,6 +284,7 @@ describe("do an insert and clear test", () => {
     kv.clear();
     expect(kv.getAll()).toEqual({});
     await kv.save();
+    await wait({ until: () => Object.keys(kv.getAll()).length == 0 });
     expect(kv.getAll()).toEqual({});
   });
 });

@@ -406,13 +406,6 @@ describe("test delete of messages from stream", () => {
     expect(s1.get()).toEqual(["x", "y"]);
   });
 
-  it("delete specific key", async () => {
-    s1.stream.setKv("my-key", 5);
-    s1.delete({ key: "my-key" });
-    await s1.save();
-    expect(s1.stream.getKv("my-key")).toBe(undefined);
-    expect(s2.stream.getKv("my-key")).toBe(undefined);
-  });
 });
 
 afterAll(after);

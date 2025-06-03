@@ -28,7 +28,8 @@ describe("test binary data with a dstream", () => {
     expect(s.name).toBe(name);
     s.publish(data10);
     expect(s.get(0).length).toEqual(data10.length);
-    await s.close();
+    await s.save();
+    s.close();
     s = await dstream({ name });
     expect(s.get(0).length).toEqual(data10.length);
   });
@@ -45,13 +46,14 @@ describe("test binary data with a dstream", () => {
     const data = Uint8Array.from(Buffer.from("x".repeat(maxPayload * 1.5)));
     s.publish(data);
     expect(s.get(s.length - 1).length).toEqual(data.length);
-    await s.close();
+    await s.save();
+    s.close();
     s = await dstream({ name });
     expect(s.get(s.length - 1).length).toEqual(data.length);
   });
 
   it("clean up", async () => {
-    await s.delete({all:true});
+    await s.delete({ all: true });
     await s.close();
   });
 });
@@ -69,7 +71,8 @@ describe("test binary data with a dkv", () => {
     s.x = data10;
     expect(s.x).toEqual(data10);
     expect(s.x.length).toEqual(data10.length);
-    await s.close();
+    await s.save();
+    s.close();
     s = await dkv({ name });
     await wait({ until: () => s.has("x") });
     expect(s.x.length).toEqual(data10.length);
@@ -81,14 +84,15 @@ describe("test binary data with a dkv", () => {
     const data = Uint8Array.from(Buffer.from("x".repeat(maxPayload * 1.5)));
     s.y = data;
     expect(s.y.length).toEqual(data.length);
-    await s.close();
+    await s.save();
+    s.close();
     s = await dkv({ name });
     expect(s.y.length).toEqual(data.length);
   });
 
   it("clean up", async () => {
     await s.clear();
-    await s.close();
+    s.close();
   });
 });
 
