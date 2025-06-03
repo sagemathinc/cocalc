@@ -90,10 +90,7 @@ export async function createTerminalService(path: string) {
       // save options to reuse.
       options = opts;
       const note = await createTerminal({ ...opts, path });
-      // passing back ephemeral is for backward compat, since old versions don't
-      // know about this, so they always pass back false, and the frontend can
-      // then use false.  TODO: remove this later.
-      return { success: "ok", note, ephemeral: opts.ephemeral };
+      return { success: "ok", note };
     },
 
     write: async (data: string): Promise<void> => {

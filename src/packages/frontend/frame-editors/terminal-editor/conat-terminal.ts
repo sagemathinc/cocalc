@@ -36,6 +36,7 @@ export class ConatTerminal extends EventEmitter {
     closePaths,
     options,
     measureSize,
+    ephemeral,
   }: {
     project_id: string;
     path: string;
@@ -44,8 +45,10 @@ export class ConatTerminal extends EventEmitter {
     closePaths;
     options?;
     measureSize?;
+    ephemeral?: boolean;
   }) {
     super();
+    this.ephemeral = ephemeral;
     this.project_id = project_id;
     this.path = path;
     this.options = options;
@@ -185,11 +188,10 @@ export class ConatTerminal extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
-        const { success, note, ephemeral } = await this.api.create({
+        const { success, note } = await this.api.create({
           ...this.options,
-          ephemeral: true,
+          ephemeral: this.ephemeral,
         });
-        this.ephemeral = ephemeral;
         if (!success) {
           throw Error(`failed to create terminal -- ${note}`);
         }
