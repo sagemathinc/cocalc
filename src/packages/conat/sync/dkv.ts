@@ -525,7 +525,9 @@ export class DKV<T = any> extends EventEmitter {
           // need to save anything, since we'll receive a message that overwrites this key.
           return;
         }
-        console.log(`WARNING: unexpected error saving dkv -- ${err}`);
+        if (!process.env.COCALC_TEST_MODE) {
+          console.warn(`WARNING: unexpected error saving dkv -- ${err}`);
+        }
         errors = true;
       }
     };

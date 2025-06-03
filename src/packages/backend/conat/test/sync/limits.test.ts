@@ -288,7 +288,8 @@ describe("create a dstream with limit on max_bytes, and confirm auto-delete work
   const name = `test-${Math.random()}`;
 
   it("creates the dstream", async () => {
-    s = await createDstream({ client, name, config: { max_bytes: 50 } });
+    // note: 60 and not 40 due to slack for headers
+    s = await createDstream({ client, name, config: { max_bytes: 60 } });
   });
 
   it("push a message, then another and see first disappears", async () => {

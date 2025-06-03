@@ -317,7 +317,9 @@ export class DStream<T = any> extends EventEmitter {
           // err has mesg and subject set.
           this.emit("reject", { err, mesg: v[i].mesg });
         }
-        console.log(`WARNING -- error publishing -- ${w[i].error}`);
+        if (!process.env.COCALC_TEST_MODE) {
+          console.warn(`WARNING -- error publishing -- ${w[i].error}`);
+        }
         errors = true;
         continue;
       }
