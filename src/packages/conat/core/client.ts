@@ -316,6 +316,12 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
+  if (!opts.address && !process.env.CONAT_SERVER) {
+    const x = cache.one();
+    if (x != null) {
+      return x;
+    }
+  }
   return cache(opts);
 }
 
