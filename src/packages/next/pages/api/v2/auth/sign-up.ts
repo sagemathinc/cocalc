@@ -247,7 +247,7 @@ export function checkObviousConditions({
   if (!password || password.length < 6) {
     issues.password = "Your password must not be very easy to guess.";
   } else if (password.length > MAX_PASSWORD_LENGTH) {
-    issues.password = `Your password must be shorter than ${MAX_PASSWORD_LENGTH} characters.`;
+    issues.password = `Your password must be at most ${MAX_PASSWORD_LENGTH} characters long.`;
   } else {
     const { score, help } = passwordStrength(password);
     if (score <= 2) {
