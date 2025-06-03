@@ -2,11 +2,50 @@
 pnpm test ./subject-socket.test.ts
 */
 
-import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  connect,
+  wait,
+  restartServer,
+} from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
 beforeAll(before);
+
+describe("create a client and server and socket, verify it works, restart conat server, then confirm that it still works", () => {
+  let client, server, cn1, cn2;
+  it("creates the client and server and confirms it works", async () => {
+    cn1 = connect();
+    server = cn1.socket.listen("cocalc");
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        socket.write(`${data}`.repeat(2));
+      });
+    });
+    cn2 = connect();
+    client = cn2.socket.connect("cocalc");
+    const resp = once(client, "data");
+    client.write("cocalc");
+    const [data] = await resp;
+    expect(data).toBe("cocalccocalc");
+  });
+
+  it("restarts the conat socketio server", async () => {
+    await restartServer();
+  });
+
+  it("the socket should still work", async () => {
+    expect(client.state).toBe("ready");
+    expect(server.state).toBe("ready");
+    const resp = once(client, "data");
+    client.write("cocalc");
+    const [data] = await resp;
+    expect(data).toBe("cocalccocalc");
+  });
+});
+
 describe("create a server and client, then send a message and get a response", () => {
   let client, server, cn1, cn2;
   it("creates the client and server", () => {
@@ -418,8 +457,8 @@ describe("Check that the automatic reconnection parameter works", () => {
 
     // write when not connected -- this should get sent
     // when we connect:
-    socket.write("hi"); 
-    
+    socket.write("hi");
+
     await once(socket, "ready");
     await y;
     await x;
@@ -524,13 +563,13 @@ describe("test request/respond from client to server and from server to client",
   });
 
   it("the server individually calls each socket", async () => {
-    expect((await sockets[0].request("server")).data).toBe(
-      "hi server, from socket1",
-    );
-
-    expect((await sockets[1].request("server")).data).toBe(
-      "hi server, from socket2",
-    );
+    // note that sockets[0] and sockets[1] might be in
+    // either order.
+    const x = (await sockets[0].request("server")).data;
+    const y = (await sockets[1].request("server")).data;
+    expect(x).not.toEqual(y);
+    expect(x).toContain("hi server, from socket");
+    expect(y).toContain("hi server, from socket");
   });
 
   it("broadcast a request to all connected sockets", async () => {

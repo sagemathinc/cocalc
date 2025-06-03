@@ -105,6 +105,9 @@ export class Listings extends EventEmitter {
         await this.listingsClient.watch(path, force);
         return;
       } catch (err) {
+        if (this.listingsClient == null) {
+          return;
+        }
         force = true;
         logger.debug(
           `WARNING: not yet able to watch '${path}' in ${this.project_id} -- ${err}`,

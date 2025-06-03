@@ -428,7 +428,9 @@ export class CoreStream<T = any> extends EventEmitter {
         // This normally doesn't happen but could if a persist server is being restarted
         // frequently or things are seriously broken.  We cause this in
         //    backend/conat/test/core/core-stream-break.test.ts
-        console.log(`WARNING: core-stream -- ${err}`);
+        if (!process.env.COCALC_TEST_MODE) {
+          console.log(`WARNING: core-stream -- ${err}`);
+        }
       }
       // above loop exists when the persistent server
       // stops sending messages for some reason. In that

@@ -231,8 +231,10 @@ export class SubjectSocket extends EventEmitter {
     this.reconnection = false;
     this.ended = true;
     if (this.role == "client") {
-      // tell server we're gone
-      await this.sendCommandToServer("close", undefined, timeout);
+      // tell server we're done
+      try {
+        await this.sendCommandToServer("close", undefined, timeout);
+      } catch {}
     } else {
       // tell all clients to end
       const end = async (id) => {
@@ -259,8 +261,12 @@ export class SubjectSocket extends EventEmitter {
     this.client.removeListener("disconnected", this.disconnect);
     this.client.removeListener("connected", this.connect);
     if (this.role == "client") {
-      // tell server we're gone
-      this.sendCommandToServer("close");
+      // tell server we're gone (but don't wait)
+      (async () => {
+        try {
+          await this.sendCommandToServer("close");
+        } catch {}
+      })();
     }
     this.queuedWrites = [];
     this.setState("closed");

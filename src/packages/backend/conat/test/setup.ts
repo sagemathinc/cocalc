@@ -46,6 +46,12 @@ export async function createServer(opts?) {
   return server;
 }
 
+export async function restartServer() {
+  const port = server.options.port;
+  await server.close();
+  await createServer({ port });
+}
+
 // one pre-made client
 export let client;
 export async function before() {
