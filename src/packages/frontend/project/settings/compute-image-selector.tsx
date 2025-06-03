@@ -46,7 +46,6 @@ import { CancelText } from "@cocalc/frontend/i18n/components";
 import { capitalize, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
-import { ComputeImages } from "../../custom-software/init";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -108,11 +107,6 @@ export function ComputeImageSelector({
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
     "software",
-  );
-
-  const images: ComputeImages | undefined = useTypedRedux(
-    "compute_images",
-    "images",
   );
 
   if (software_envs === undefined) {
