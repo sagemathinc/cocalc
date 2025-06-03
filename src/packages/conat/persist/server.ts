@@ -27,7 +27,7 @@ client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/b
 
 client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/backend/conat/sync').astream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'b.txt', client})
 
-client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/backend/conat/sync').dstream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'ds.txt', client})
+client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/backend/conat/sync').dstream({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'ds2.txt', client})
 
 
 client = await require('@cocalc/backend/conat').conat(); kv = require('@cocalc/backend/conat/sync').akv({project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f', name:'a.txt', client})
@@ -68,7 +68,7 @@ const DEFAULT_MESSAGES_THRESH = 20 * 1e6;
 // since of course there are major DOS and security concerns.
 const ENABLE_SQLITE_GENERAL_QUERIES = false;
 
-const SEND_THROTTLE = 15;
+const SEND_THROTTLE = 30;
 
 export function server({
   client,
@@ -140,7 +140,10 @@ export function server({
         } else if (request.cmd == "setMany") {
           // just like set except the main data of the mesg
           // has an array of set operations
-          const resp: { seq: number; time: number }[] = [];
+          const resp: (
+            | { seq: number; time: number }
+            | { error: string; code?: any }
+          )[] = [];
           for (const {
             key,
             previousSeq,
@@ -149,17 +152,21 @@ export function server({
             msgID,
             messageData,
           } of mesg.data) {
-            resp.push(
-              stream.set({
-                key,
-                previousSeq,
-                ttl,
-                headers,
-                msgID,
-                raw: messageData.raw,
-                encoding: messageData.encoding,
-              }),
-            );
+            try {
+              resp.push(
+                stream.set({
+                  key,
+                  previousSeq,
+                  ttl,
+                  headers,
+                  msgID,
+                  raw: messageData.raw,
+                  encoding: messageData.encoding,
+                }),
+              );
+            } catch (err) {
+              resp.push({ error: `${err}`, code: err.code });
+            }
           }
           mesg.respond(resp);
         } else if (request.cmd == "delete") {
@@ -290,7 +297,7 @@ function startChangefeed({ socket, stream, messagesThresh }) {
       return;
     }
     //console.log("stream change event", message);
-    logger.debug("changefeed got message", message, socket.state);
+    // logger.debug("changefeed got message", message, socket.state);
     unsentMessages.push(message);
     sendAllUnsentMessages();
   });

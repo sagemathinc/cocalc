@@ -483,6 +483,7 @@ export class DKV<T = any> extends EventEmitter {
         }
       }
     }
+    let errors = false;
     const f = async (key: string) => {
       if (this.kv == null) {
         // closed
@@ -524,10 +525,15 @@ export class DKV<T = any> extends EventEmitter {
           // need to save anything, since we'll receive a message that overwrites this key.
           return;
         }
-        throw err;
+        console.log(`WARNING: unexpected error saving dkv -- ${err}`);
+        errors = true;
       }
     };
     await awaitMap(Object.keys(obj), MAX_PARALLEL, f);
+    if (errors) {
+      // so it retries
+      throw Error("there were errors");
+    }
     return status;
   });
 

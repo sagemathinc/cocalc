@@ -459,16 +459,7 @@ export class SubjectSocket extends EventEmitter {
   };
 
   request = async (data, options?) => {
-    if (this.state == "closed") {
-      throw Error("closed");
-    }
-    if (this.state != "ready") {
-      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
-    }
-    // @ts-ignore
-    if (this.state == "closed") {
-      throw Error("closed");
-    }
+    await this.waitUntilReady(options?.timeout);
 
     if (this.role == "server") {
       // we call all connected sockets in parallel,
@@ -496,22 +487,24 @@ export class SubjectSocket extends EventEmitter {
   };
 
   requestMany = async (data, options?): Promise<Subscription> => {
-    if (this.state == "closed") {
-      throw Error("closed");
-    }
-    if (this.state != "ready") {
-      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
-    }
-    // @ts-ignore
-    if (this.state == "closed") {
-      throw Error("closed");
-    }
+    await this.waitUntilReady(options?.timeout);
     if (this.role == "server") {
       throw Error("requestMany with server not implemented");
     }
     const subject = `${this.subject}.server.${this.id}`;
     return await this.client.requestMany(subject, data, options);
   };
+
+  // usually all the timeouts are the same, so this reuseInFlight is very helpful
+  private waitUntilReady = reuseInFlight(async (timeout?: number) => {
+    if (this.state == "ready") {
+      return;
+    }
+    await once(this, "ready", timeout ?? DEFAULT_REQUEST_TIMEOUT);
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
+  });
 }
 
 // only used on the server
@@ -591,13 +584,21 @@ export class Socket extends EventEmitter {
 
   // use request reply where the client responds
   request = async (data, options?) => {
-    if (this.state != "ready") {
-      await once(this, "ready", options?.timeout ?? DEFAULT_REQUEST_TIMEOUT);
-    }
+    this.waitUntilReady(options?.timeout);
     return await this.subjectSocket.client.request(
       this.clientSubject,
       data,
       options,
     );
   };
+
+  private waitUntilReady = reuseInFlight(async (timeout?: number) => {
+    if (this.state == "ready") {
+      return;
+    }
+    await once(this, "ready", timeout ?? DEFAULT_REQUEST_TIMEOUT);
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
+  });
 }

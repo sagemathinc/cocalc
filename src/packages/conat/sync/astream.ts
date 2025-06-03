@@ -167,7 +167,9 @@ export class AStream<T = any> {
     });
   };
 
-  push = async (...args: T[]): Promise<{ seq: number; time: number }[]> => {
+  push = async (
+    ...args: T[]
+  ): Promise<({ seq: number; time: number } | { error: string })[]> => {
     // [ ] TODO: should break this up into chunks with a limit on size.
     const ops = args.map((mesg) => {
       return { messageData: messageData(mesg) };

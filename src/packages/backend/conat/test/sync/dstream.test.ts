@@ -402,6 +402,7 @@ describe("test delete of messages from stream", () => {
     const { seqs } = await s1.delete({ last_seq: seq });
     expect(seqs.length).toBe(2);
     expect(seqs[1]).toBe(seq);
+    await wait({ until: () => s1.length == 2 });
     expect(s1.get()).toEqual(["x", "y"]);
   });
 

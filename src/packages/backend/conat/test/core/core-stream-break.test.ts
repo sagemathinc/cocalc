@@ -73,7 +73,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
     await stream.publish("y");
   });
 
-  it("creates a dstream, publishes, sees it can't save, starts persist server and sees save works again", async () => {
+  it("creates a dstream, publishes, sees it hasn't saved, starts persist server and sees save works again", async () => {
     const d = await dstream({ name: "test2" });
     persistServer.close();
     d.publish("x");

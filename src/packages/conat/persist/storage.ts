@@ -289,6 +289,12 @@ export class PersistentStream extends EventEmitter {
     // due to not getting a response back from the server.
     msgID?: string;
   }): { seq: number; time: number } => {
+    if (previousSeq === null) {
+      previousSeq = undefined;
+    }
+    if (key === null) {
+      key = undefined;
+    }
     if (msgID !== undefined && this.msgIDs?.has(msgID)) {
       return this.msgIDs.get(msgID)!;
     }

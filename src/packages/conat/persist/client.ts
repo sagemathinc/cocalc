@@ -109,10 +109,7 @@ export class PersistStreamClient {
     ops: SetOptions[],
     { timeout }: { timeout?: number } = {},
   ): Promise<
-    {
-      seq: number;
-      time: number;
-    }[]
+    ({ seq: number; time: number } | { error: string; code?: any })[]
   > => {
     return this.checkForError(
       await this.socket.request(ops, {
@@ -260,7 +257,7 @@ export class PersistStreamClient {
   };
 }
 
-interface SetOptions {
+export interface SetOptions {
   messageData: MessageData;
   key?: string;
   ttl?: number;

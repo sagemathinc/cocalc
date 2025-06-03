@@ -14,20 +14,26 @@ See the guide for dkv, since it's very similar, especially for use in a browser.
 */
 
 import { EventEmitter } from "events";
-import { CoreStream, type RawMsg, type ChangeEvent } from "./core-stream";
+import {
+  CoreStream,
+  type RawMsg,
+  type ChangeEvent,
+  type PublishOptions,
+} from "./core-stream";
 import { randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
-import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
-import type { Client, Headers } from "@cocalc/conat/core/client";
+import {
+  type Client,
+  type Headers,
+  ConatError,
+} from "@cocalc/conat/core/client";
 import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
 import { conat } from "@cocalc/conat/client";
-
-const MAX_PARALLEL = 50;
 
 export interface DStreamOptions {
   // what it's called by us
@@ -247,7 +253,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   save = reuseInFlight(async () => {
-    let d = 100;
+    let d = 1000;
     while (true) {
       try {
         await this.attemptToSave();
@@ -268,9 +274,59 @@ export class DStream<T = any> extends EventEmitter {
     }
   });
 
-  // [ ] TODO: make faster by saving everything as a single message
-  // -- ie a batch write.  That said, in cocalc this case doesn't come up.
   private attemptToSave = reuseInFlight(async () => {
+    if (this.stream == null) {
+      throw Error("closed");
+    }
+    const v: { mesg: T; options: PublishOptions }[] = [];
+    const ids = Object.keys(this.local);
+    for (const id of ids) {
+      const mesg = this.local[id];
+      const options = {
+        ...this.publishOptions[id],
+        msgID: id,
+      };
+      v.push({ mesg, options });
+    }
+    const w: (
+      | { seq: number; time: number; error?: undefined }
+      | { error: string; code?: any }
+    )[] = await this.stream.publishMany(v);
+
+    if (this.raw == null) {
+      return;
+    }
+
+    let errors = false;
+    for (let i = 0; i < w.length; i++) {
+      const id = ids[i];
+      if (w[i].error) {
+        const x = w[i] as { error: string; code?: any };
+        if (x.code == "reject") {
+          delete this.local[id];
+          const err = new ConatError(x.error, { code: x.code });
+          // err has mesg and subject set.
+          this.emit("reject", { err, mesg: v[i].mesg });
+        }
+        console.log(`WARNING -- error publishing -- ${w[i].error}`);
+        errors = true;
+        continue;
+      }
+      const { seq } = w[i] as { seq: number };
+      if ((this.raw[this.raw.length - 1]?.seq ?? -1) < seq) {
+        // it still isn't in this.raw
+        this.saved[seq] = v[i].mesg;
+      }
+      delete this.local[id];
+      delete this.publishOptions[id];
+    }
+    if (errors) {
+      throw Error("there were errors saving");
+    }
+  });
+
+  /* // non-batched version
+  private attemptToSave0 = reuseInFlight(async () => {
     const f = async (id) => {
       if (this.stream == null) {
         throw Error("closed");
@@ -297,7 +353,7 @@ export class DStream<T = any> extends EventEmitter {
           // err has mesg and subject set.
           this.emit("reject", { err, mesg });
         } else {
-          throw err;
+          console.log(`WARNING: problem saving -- ${err}`);
         }
       }
       if (this.isStable()) {
@@ -309,6 +365,7 @@ export class DStream<T = any> extends EventEmitter {
     const ids = Object.keys(this.local);
     await awaitMap(ids, MAX_PARALLEL, f);
   });
+  */
 
   // load older messages starting at start_seq
   load = async (opts: { start_seq: number }) => {

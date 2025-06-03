@@ -49,7 +49,7 @@ describe("create a general kv and do basic operations", () => {
 
   it("checks that clear works", async () => {
     kv.clear();
-    await kv.save();
+    await wait({ until: () => kv.length == 0 });
     expect(kv.length).toBe(0);
     await wait({ until: () => kv2.length == 0 });
   });

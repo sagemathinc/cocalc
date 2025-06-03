@@ -47,6 +47,7 @@ import {
   type StorageOptions,
   type PersistStreamClient,
   stream as persist,
+  type SetOptions,
 } from "@cocalc/conat/persist/client";
 
 // when this many bytes of key:value have been changed (so need to be freed),
@@ -438,30 +439,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   publish = async (
     mesg: T,
-    options?: {
-      // headers for this message
-      headers?: Headers;
-      // unique id for this message to dedup so if you send the same
-      // message more than once with the same id it doesn't get published
-      // multiple times.
-      msgID?: string;
-      // key -- if specified a key field is also stored on the server,
-      // and any previous messages with the same key are deleted. Also,
-      // an entry is set in this.kv[key] so that this.getKv(key), etc. work.
-      key?: string;
-      // if key is specified and previousSeq is set, the server throws
-      // an error if the sequence number of the current key is
-      // not previousSeq.  We use this with this.seqKv(key) to
-      // provide read/change/write semantics and to know when we
-      // should resovle a merge conflict. This is ignored if
-      // key is not specified.
-      previousSeq?: number;
-      // if set to a number of ms AND the config option allow_msg_ttl
-      // is set on this persistent stream, then
-      // this message will be deleted after the given amount of time (in ms).
-      ttl?: number;
-      timeout?: number;
-    },
+    options?: PublishOptions,
   ): Promise<{ seq: number; time: number } | undefined> => {
     if (mesg === undefined) {
       if (options?.key !== undefined) {
@@ -474,9 +452,6 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
 
-    if (this.storage == null) {
-      throw Error("bug -- storage must be set");
-    }
     if (options?.msgID && this.msgIDs.has(options.msgID)) {
       // it's a dup
       return;
@@ -494,6 +469,33 @@ export class CoreStream<T = any> extends EventEmitter {
       this.msgIDs?.add(options.msgID);
     }
     return x;
+  };
+
+  publishMany = async (
+    messages: { mesg: T; options?: PublishOptions }[],
+  ): Promise<
+    ({ seq: number; time: number } | { error: string; code?: any })[]
+  > => {
+    const v: SetOptions[] = [];
+    let timeout: number | undefined = undefined;
+    for (const { mesg, options } of messages) {
+      if (options?.timeout) {
+        if (timeout === undefined) {
+          timeout = options.timeout;
+        } else {
+          timeout = Math.min(timeout, options.timeout);
+        }
+      }
+      const md = messageData(mesg, { headers: options?.headers });
+      v.push({
+        key: options?.key,
+        messageData: md,
+        previousSeq: options?.previousSeq,
+        msgID: options?.msgID,
+        ttl: options?.ttl,
+      });
+    }
+    return await this.persistClient.setMany(v, { timeout });
   };
 
   get = (n?): T | T[] => {
@@ -744,6 +746,31 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
   };
+}
+
+export interface PublishOptions {
+  // headers for this message
+  headers?: Headers;
+  // unique id for this message to dedup so if you send the same
+  // message more than once with the same id it doesn't get published
+  // multiple times.
+  msgID?: string;
+  // key -- if specified a key field is also stored on the server,
+  // and any previous messages with the same key are deleted. Also,
+  // an entry is set in this.kv[key] so that this.getKv(key), etc. work.
+  key?: string;
+  // if key is specified and previousSeq is set, the server throws
+  // an error if the sequence number of the current key is
+  // not previousSeq.  We use this with this.seqKv(key) to
+  // provide read/change/write semantics and to know when we
+  // should resovle a merge conflict. This is ignored if
+  // key is not specified.
+  previousSeq?: number;
+  // if set to a number of ms AND the config option allow_msg_ttl
+  // is set on this persistent stream, then
+  // this message will be deleted after the given amount of time (in ms).
+  ttl?: number;
+  timeout?: number;
 }
 
 export const cache = refCache<CoreStreamOptions, CoreStream>({

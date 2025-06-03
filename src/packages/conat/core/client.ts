@@ -263,7 +263,7 @@ export type ClientOptions = Options & {
 const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CN-Reply";
 export const DEFAULT_REQUEST_TIMEOUT = 10000;
-const DEFAULT_PUBLISH_TIMEOUT = 7500;
+export const DEFAULT_PUBLISH_TIMEOUT = 7500;
 const MAX_HEADER_SIZE = 100000;
 
 export enum DataEncoding {
