@@ -76,7 +76,7 @@ export default function init(
     }
     if (cache.has(target)) {
       dbg("using cache");
-      const proxy = cache.get(target);
+      const proxy = cache.get(target)!;
       proxy.ws(req, socket, head);
       return;
     }
