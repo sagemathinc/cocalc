@@ -15,7 +15,6 @@ import {
 } from "@cocalc/backend/conat/test/setup";
 import { stream } from "@cocalc/conat/persist/client";
 import { messageData } from "@cocalc/conat/core/client";
-import { delay } from "awaiting";
 
 beforeAll(before);
 
@@ -271,16 +270,25 @@ describe("test a changefeed", () => {
     );
   });
 
-  // [ ] TODO -- this is flakie
-  it.skip("restart the CONAT NETWORK", async () => {
+  it("restart the Conat network", async () => {
     await restartServer();
-    await delay(200);
   });
 
   it("verify changefeed still works even after restarting network server", async () => {
-    await s2.set({
-      key: "test3",
-      messageData: messageData("data3", { headers: { foo: "bar3" } }),
+    await wait({
+      until: async () => {
+        // this set is expected to fail while networking is restarting
+        try {
+          await s2.set({
+            key: "test3",
+            messageData: messageData("data3", { headers: { foo: "bar3" } }),
+            timeout: 500,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      },
     });
 
     // the changefeed should still work and detect the above write, because
@@ -297,13 +305,11 @@ describe("test a changefeed", () => {
     );
   });
 
-  // skip
   it("restart the persist server -- this is pretty brutal", async () => {
-    // [ ] TODO!!!!  this horribly breaks
-    // await restartPersistServer();
+    await restartPersistServer();
   });
 
-  it("verifies changefeed still works even after restarting persist server", async () => {
+  it("set still works (with error) after restarting persist server", async () => {
     // doing this set should fail due to persist for a second due server being
     // off and having to connect again.
     await wait({
@@ -312,13 +318,20 @@ describe("test a changefeed", () => {
           await s2.set({
             key: "test4",
             messageData: messageData("data4", { headers: { foo: "bar4" } }),
+            timeout: 500,
           });
 
           return true;
-        } catch {}
+        } catch {
+          return false;
+        }
       },
     });
+    const mesg = await s2.get({ key: "test4" });
+    expect(mesg.data).toBe("data4");
+  });
 
+  it("changefeed still works after restarting persist server", async () => {
     // the changefeed should still work and detect the above write, because
     // our sockets are robust.
     const { value, done } = await cf.next();

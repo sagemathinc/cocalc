@@ -101,11 +101,15 @@ export function server({
       logger.debug("server: got data ", data);
       if (stream === undefined) {
         storage = data.storage;
+        changefeed = data.changefeed;
         try {
           stream = await getStream({
             subject: socket.subject,
             storage,
           });
+          if (changefeed) {
+            startChangefeed({ socket, stream, messagesThresh });
+          }
         } catch (err) {
           error = `${err};`;
         }
@@ -126,20 +130,14 @@ export function server({
           throw Error(error);
         }
         if (storage === undefined || stream === undefined) {
-          // automatic reconnect must have happened -- grab the config info from the client
-          const resp = await socket.request(null, {
-            headers: { cmd: "state" },
+          // this happens, e.g., when you restart both the persist server and the conat
+          // socketio server together at the same time, so init doesn't work properly.
+          // Just have it reset in this rare case for now (TODO: maybe soemthing better,
+          // e.g., wait for {storage} mesg to arrive since it will once sockets sort out?)
+          mesg.respondSync(null, {
+            headers: { error: "storage must be defined", code: "reset" },
           });
-          const x = resp.data;
-          storage = x.storage;
-          stream = await getStream({
-            subject: socket.subject,
-            storage,
-          });
-          if (x.changefeed) {
-            changefeed = true;
-            startChangefeed({ socket, stream, messagesThresh });
-          }
+          return;
         }
         if (request.cmd == "set") {
           mesg.respondSync(
@@ -228,7 +226,9 @@ export function server({
           });
         }
       } catch (err) {
-        mesg.respondSync(null, { headers: { error: `${err}`, code: err.code } });
+        mesg.respondSync(null, {
+          headers: { error: `${err}`, code: err.code },
+        });
       }
     });
   });

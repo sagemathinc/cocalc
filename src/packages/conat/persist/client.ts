@@ -17,6 +17,8 @@ export { StoredMessage, StorageOptions };
 import { persistSubject, type User } from "./util";
 import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
+import { EventEmitter } from "events";
+import { throttle } from "lodash";
 
 //import { getLogger } from "@cocalc/conat/client";
 //const logger = getLogger("persist:client");
@@ -28,8 +30,8 @@ export interface ChangefeedEvent {
 
 export type Changefeed = EventIterator<ChangefeedEvent>;
 
-export class PersistStreamClient {
-  public readonly socket: ConatSocketClient;
+export class PersistStreamClient extends EventEmitter {
+  public socket: ConatSocketClient;
   private changefeeds: any[] = [];
 
   constructor(
@@ -37,29 +39,41 @@ export class PersistStreamClient {
     private storage: StorageOptions,
     private user: User,
   ) {
-    this.socket = this.client.socket.connect(persistSubject(this.user), {
-      reconnection: true,
-    });
-    this.socket.write({ storage: this.storage });
-    this.socket.on("request", (mesg) => {
-      if (mesg.headers?.cmd == "state") {
-        mesg.reply({
-          storage: this.storage,
-          changefeed: this.changefeeds.length > 0,
-        });
-      }
-    });
-    this.socket.on("ready", async () => {
-      if (this.changefeeds.length > 0) {
-        // ensure changefeeds are being watched...
-        await this.socket.request(null, {
-          headers: {
-            cmd: "changefeed",
-          },
-        });
-      }
-    });
+    super();
+    this.init();
   }
+
+  private init = throttle(
+    () => {
+      if (this.socket?.state == "ready") {
+        return;
+      }
+      this.socket?.close();
+
+      this.socket = this.client.socket.connect(persistSubject(this.user), {
+        reconnection: false,
+      });
+      this.socket.write({
+        storage: this.storage,
+        changefeed: this.changefeeds.length > 0,
+      });
+      this.socket.once("disconnected", () => {
+        this.init();
+      });
+      this.socket.once("closed", () => {
+        this.init();
+      });
+      this.socket.on("data", (updates, headers) => {
+        this.emit("changefeed", { updates, seq: headers?.seq });
+      });
+    },
+    3000,
+    { leading: true, trailing: true },
+  );
+
+  private reset = () => {
+    this.socket.close();
+  };
 
   close = () => {
     for (const iter of this.changefeeds) {
@@ -80,15 +94,8 @@ export class PersistStreamClient {
       throw Error(`${resp.headers?.error}`);
     }
     // an iterator over any updates that are published.
-    const iter = new EventIterator<ChangefeedEvent>(this.socket, "data", {
-      map: (args) => {
-        const updates = args[0];
-        const seq = args[1]?.seq;
-        if (seq == null) {
-          throw Error("invalid seq number");
-        }
-        return { updates, seq };
-      },
+    const iter = new EventIterator<ChangefeedEvent>(this, "changefeed", {
+      map: (args) => args[0],
     });
     this.changefeeds.push(iter);
     return iter;
@@ -264,6 +271,9 @@ export class PersistStreamClient {
   private checkForError = (mesg, noReturn = false) => {
     if (mesg.headers != null) {
       const { error, code } = mesg.headers;
+      if (code == "reset") {
+        this.reset();
+      }
       if (error || code) {
         throw new ConatError(error ?? "error", { code });
       }
