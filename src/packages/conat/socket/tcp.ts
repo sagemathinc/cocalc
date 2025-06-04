@@ -12,10 +12,10 @@ export interface TCP {
   recv: Receiver;
 }
 
-export function createTCP({ request, send, disconnect, role }): TCP {
+export function createTCP({ request, send, reset, role }): TCP {
   return {
     send: new Sender(send, role),
-    recv: new Receiver(request, disconnect, role),
+    recv: new Receiver(request, reset, role),
   };
 }
 
@@ -34,7 +34,7 @@ export class Receiver extends EventEmitter {
 
   constructor(
     private request,
-    private disconnect,
+    private reset,
     public readonly role: Role,
   ) {
     super();
@@ -110,8 +110,8 @@ export class Receiver extends EventEmitter {
       return;
     }
     if (resp.headers?.error) {
-      // missing data doesn't exist
-      this.disconnect();
+      // missing data doesn't exist -- must reset
+      this.reset();
       return;
     }
     // console.log("got missing", resp.data);

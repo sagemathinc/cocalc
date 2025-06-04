@@ -34,9 +34,6 @@ export interface ConatSocketOptions {
   // (Default: true) Whether reconnection is enabled or not.
   // If set to false, you need to manually reconnect:
   reconnection?: boolean;
-  // sent as body of message by client when initially connecting,
-  // and delivered as a write (avoids a round trip to initialize)
-  init?: any;
 }
 
 

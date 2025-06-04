@@ -55,7 +55,7 @@ export class ConatSocketClient extends ConatSocketBase {
     this.tcp = createTCP({
       request,
       role: this.role,
-      disconnect: this.disconnect,
+      reset: this.disconnect,
       send: this.sendToServer,
     });
 
@@ -95,7 +95,7 @@ export class ConatSocketClient extends ConatSocketBase {
       if (this.state == "closed") {
         return;
       }
-      const resp = await this.sendCommandToServer("connect", this.init);
+      const resp = await this.sendCommandToServer("connect", null);
       if (resp != "connected") {
         throw Error("failed to connect");
       }

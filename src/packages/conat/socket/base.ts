@@ -30,7 +30,6 @@ export abstract class ConatSocketBase extends EventEmitter {
   state: State = "disconnected";
   reconnection: boolean;
   ended: boolean = false;
-  init: any;
   maxQueueSize: number;
 
   // the following is all for compat with primus's api and has no meaning here.
@@ -48,7 +47,6 @@ export abstract class ConatSocketBase extends EventEmitter {
     id,
     reconnection = true,
     maxQueueSize = DEFAULT_MAX_QUEUE_SIZE,
-    init,
   }: ConatSocketOptions) {
     super();
     this.maxQueueSize = maxQueueSize;
@@ -59,7 +57,6 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.role = role;
     this.id = id;
     this.conn = { id };
-    this.init = init;
     this.connect();
   }
 

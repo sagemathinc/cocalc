@@ -39,8 +39,8 @@ export class PersistStreamClient {
   ) {
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       reconnection: true,
-      init: { storage: this.storage },
     });
+    this.socket.write({ storage: this.storage });
     this.socket.on("request", (mesg) => {
       if (mesg.headers?.cmd == "state") {
         mesg.reply({

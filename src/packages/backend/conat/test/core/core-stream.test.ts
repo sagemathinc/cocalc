@@ -54,6 +54,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     // publish a Date stays a Date
     const now = new Date();
     await stream.publish(now);
+    await wait({ until: () => stream.get(2) != null });
     expect(stream.get(2)).toEqual(now);
     expect(isDate(stream.get(2))).toEqual(true);
     expect(stream.storage.lifetime).toBe(EPHEMERAL_LIFETIME);
@@ -395,7 +396,7 @@ describe("test permissions", () => {
     // When we try to init, it must fail because the subject we use
     // for our location (the 'user', defined by
     // project_id: "00000000-0000-4000-8000-000000000000"
-    // above) doens't give permissions to hub/.
+    // above) doesn't give permissions to hub/.
     // NOTE: even if a browser client is accessing a project resource
     // they give the project_id, not their id.
     await expect(async () => {

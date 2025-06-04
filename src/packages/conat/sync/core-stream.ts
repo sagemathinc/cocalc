@@ -151,7 +151,7 @@ export class CoreStream<T = any> extends EventEmitter {
   // in a project has user {project_id} even if it is being accessed by
   // an account.
   private user: User;
-  private storage?: StorageOptions;
+  private storage: StorageOptions;
   private client?: Client;
   private persistClient: PersistStreamClient;
 
@@ -179,11 +179,6 @@ export class CoreStream<T = any> extends EventEmitter {
     };
     this._start_seq = start_seq;
     this.configOptions = config;
-    this.persistClient = persist({
-      client: this.client,
-      user: this.user,
-      storage: this.storage,
-    });
     return new Proxy(this, {
       get(target, prop) {
         return typeof prop == "string" && isNumericString(prop)
@@ -197,6 +192,11 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.client == null) {
       this.client = await conat();
     }
+    this.persistClient = persist({
+      client: this.client,
+      user: this.user,
+      storage: this.storage,
+    });
     await this.getAllFromPersist({
       start_seq: this._start_seq,
       noEmit: true,

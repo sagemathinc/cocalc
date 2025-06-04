@@ -53,7 +53,7 @@ export class ServerSocket extends EventEmitter {
     this.tcp = createTCP({
       request,
       role: this.conatSocket.role,
-      disconnect: this.close,
+      reset: this.close,
       send: this.send,
     });
 

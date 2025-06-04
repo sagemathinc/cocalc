@@ -133,11 +133,6 @@ export class ConatSocketServer extends ConatSocketBase {
       delete this.sockets[id];
       mesg.respond("closed");
     } else if (cmd == "connect") {
-      const data = mesg.data;
-      if (data != null) {
-        // data of connect message can be used to initialize the socket.
-        socket.emit("data", data);
-      }
       mesg.respond("connected");
     } else {
       mesg.respond({ error: `unknown command - '${cmd}'` });
