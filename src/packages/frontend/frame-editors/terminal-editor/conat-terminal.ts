@@ -255,7 +255,7 @@ export class ConatTerminal extends EventEmitter {
   private setReady = async () => {
     // wait until after render loop of terminal before allowing writing,
     // or we get corruption.
-    await delay(500);
+    await delay(1000);
     this.setState("running");
     this.emit("ready");
   };
