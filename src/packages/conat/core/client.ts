@@ -379,19 +379,20 @@ export class Client extends EventEmitter {
       logger.debug(message);
       this.permissionError[type]?.set(subject, message);
     });
-    this.conn.on("connect", () => {
-      this.setState("connected");
+    this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
-      this.syncSubscriptions();
+      try {
+        await this.syncSubscriptions();
+        if (this.conn.connected) {
+          this.setState("connected");
+        }
+      } catch {}
     });
     this.conn.io.on("error", (...args) => {
       logger.debug(
         `Conat: Error connecting to ${this.options.address} -- `,
         ...args,
       );
-    });
-    this.conn.on("conect", () => {
-      this.setState("connected");
     });
     this.conn.on("disconnect", () => {
       this.setState("disconnected");
@@ -498,6 +499,10 @@ export class Client extends EventEmitter {
   // syncSubscriptions ensures that we're subscribed on server
   // to what we think we're subscribed to.
   private syncSubscriptions = async () => {
+    if (this.info == null) {
+      const [info] = await once(this.conn as any, "info");
+      this.info = info;
+    }
     const subs = await this.getSubscriptions();
     //     console.log("syncSubscriptions", {
     //       server: subs,

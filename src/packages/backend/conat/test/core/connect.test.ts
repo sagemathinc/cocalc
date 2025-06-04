@@ -5,17 +5,50 @@ pnpm test ./connect.test.ts
 */
 
 import { getPort } from "@cocalc/backend/conat/test/util";
-import { initConatServer } from "@cocalc/backend/conat/test/setup";
-import { conat as connect } from "@cocalc/backend/conat/conat";
+import {
+  before,
+  after,
+  restartServer,
+  connect,
+  initConatServer,
+} from "@cocalc/backend/conat/test/setup";
 import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { once } from "@cocalc/util/async-utils";
 
 let port;
 beforeAll(async () => {
+  await before();
   port = await getPort();
 });
 
+describe("basic test of restarting the server causing a reconnect of client", () => {
+  let cn;
+  it("starts a client connecting to that port, despite there being no server yet", async () => {
+    cn = connect();
+    expect(cn.conn.connected).toBe(false);
+    expect(cn.state).toBe("disconnected");
+  });
+
+  it("now client should connect", async () => {
+    const connected = once(cn, "connected");
+    await cn.waitUntilConnected();
+    expect(cn.conn.connected).toBe(true);
+    await connected; // verify connected event fired
+    expect(cn.state).toBe("connected");
+  });
+
+  it.skip("close server and observe client disconnects, then connects again", async () => {
+    expect(cn.state).toBe("connected");
+    restartServer();
+    await once(cn, "disconnected");
+    await once(cn, "connected");
+  });
+
+  it("clean up", () => {
+    cn.close();
+  });
+});
 describe("create server *after* client and ensure connects properly", () => {
   let cn;
   it("starts a client connecting to that port, despite there being no server yet", async () => {
@@ -142,3 +175,5 @@ describe("create server after async creating a subscription and async publishing
     sub.close();
   });
 });
+
+afterAll(after);

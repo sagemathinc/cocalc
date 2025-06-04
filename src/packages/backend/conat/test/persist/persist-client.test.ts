@@ -172,10 +172,10 @@ describe("restarting the network but not the persist server", () => {
 });
 
 // [ ] TODO -- huge!!!
-describe.skip("restarting the network but with no delay afterawards horribly breaks!", () => {
+describe.skip("restarting the network but with no delay afterwards", () => {
   let client, s1;
 
-  it("creates a client and stream and write test data", async () => {
+  it("creates a client, stream and test data", async () => {
     client = connect();
     s1 = stream({
       client,
@@ -184,23 +184,18 @@ describe.skip("restarting the network but with no delay afterawards horribly bre
     });
     await s1.set({
       key: "test",
-      messageData: messageData("data", { headers: { foo: "bar" } }),
+      messageData: messageData("data"),
     });
+    const mesg = await s1.get({ key: "test" });
+    expect(mesg.data).toBe("data");
   });
 
   it("restart conat networking", async () => {
     await restartServer();
   });
 
-  it("it does start working", async () => {
-    await wait({
-      until: async () => {
-        try {
-          await s1.get({ key: "test", timeout: 1000 });
-          return true;
-        } catch {}
-      },
-    });
+  it("it start working again after restart", async () => {
+    expect(s1.socket.state).toBe('ready');
     const mesg = await s1.get({ key: "test" });
     expect(mesg.data).toBe("data");
   });
