@@ -49,7 +49,7 @@ const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 const MAX_DELAY = 10000;
 
 // See https://github.com/sagemathinc/cocalc/issues/8330
-const ENABLE_WEBGL = true;
+const ENABLE_WEBGL = false;
 
 interface Path {
   file?: string;

@@ -1,4 +1,4 @@
-import { SOCKET_HEADER_SEQ } from "./util";
+import { SOCKET_HEADER_SEQ, type Role } from "./util";
 import { EventEmitter } from "events";
 import {
   type Message,
@@ -7,7 +7,19 @@ import {
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-export class ReceiverTCP extends EventEmitter {
+export interface TCP {
+  send: Sender;
+  recv: Receiver;
+}
+
+export function createTCP({ request, send, disconnect, role }): TCP {
+  return {
+    send: new Sender(send, role),
+    recv: new Receiver(request, disconnect, role),
+  };
+}
+
+export class Receiver extends EventEmitter {
   private incoming: { [id: number]: MessageData } = {};
   private seq: {
     // next = seq of the next message we should emit
@@ -23,6 +35,7 @@ export class ReceiverTCP extends EventEmitter {
   constructor(
     private request,
     private disconnect,
+    public readonly role: Role,
   ) {
     super();
   }
@@ -39,8 +52,8 @@ export class ReceiverTCP extends EventEmitter {
     const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
     if (typeof seq != "number" || seq < 1) {
       console.log(
-        "WARNING: discarding message -- seq must be a positive integer",
-        { seq },
+        `WARNING: ${this.role} discarding message -- seq must be a positive integer`,
+        { seq, mesg: mesg.data, headers: mesg.headers },
       );
       return;
     }
@@ -144,11 +157,14 @@ export class ReceiverTCP extends EventEmitter {
   };
 }
 
-export class SenderTCP {
+export class Sender {
   private outgoing: { [id: number]: Message } = {};
   private seq = 0;
 
-  constructor(private send: (mesg: Message) => void) {}
+  constructor(
+    private send: (mesg: Message) => void,
+    public readonly role: Role,
+  ) {}
 
   close = () => {
     // @ts-ignore
@@ -159,7 +175,7 @@ export class SenderTCP {
 
   process = (mesg) => {
     this.seq += 1;
-    // console.log("SenderTCP.process", mesg.data, this.seq);
+    // console.log("Sender.process", mesg.data, this.seq);
     this.outgoing[this.seq] = mesg;
     mesg.headers = { ...mesg.headers, [SOCKET_HEADER_SEQ]: this.seq };
     this.send(mesg);

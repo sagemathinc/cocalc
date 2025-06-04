@@ -8,12 +8,12 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { SOCKET_HEADER_CMD, type State } from "./util";
-import { ReceiverTCP, SenderTCP } from "./tcp";
-import { type ConatSocket } from "./index";
+import { type TCP, createTCP } from "./tcp";
+import { type ConatSocketServer } from "./server";
 
 // One specific socket from the point of view of a server.
 export class ServerSocket extends EventEmitter {
-  private conatSocket: ConatSocket;
+  private conatSocket: ConatSocketServer;
   public readonly id: string;
   public lastPing = Date.now();
 
@@ -29,10 +29,7 @@ export class ServerSocket extends EventEmitter {
   // conn is just for compatibility with primus/socketio (?).
   public readonly conn: { id: string };
 
-  public tcp: {
-    send: SenderTCP;
-    recv: ReceiverTCP;
-  };
+  public tcp: TCP;
 
   constructor({ conatSocket, id, subject }) {
     super();
@@ -53,10 +50,13 @@ export class ServerSocket extends EventEmitter {
         headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
       });
 
-    this.tcp = {
-      send: new SenderTCP(this.send),
-      recv: new ReceiverTCP(request, this.close),
-    };
+    this.tcp = createTCP({
+      request,
+      role: this.conatSocket.role,
+      disconnect: this.close,
+      send: this.send,
+    });
+
     this.tcp.recv.on("message", (mesg) => {
       // console.log("tcp recv emitted message", mesg.data);
       this.emit("data", mesg.data, mesg.headers);

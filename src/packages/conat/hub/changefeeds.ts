@@ -1,6 +1,4 @@
 import { type Client } from "@cocalc/conat/core/client";
-import { type ConatSocket } from "@cocalc/conat/socket";
-export { type ConatSocket };
 import { uuid } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
