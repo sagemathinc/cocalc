@@ -14,7 +14,6 @@ import { useIntl } from "react-intl";
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
   useEffect,
   useIsMountedRef,
@@ -23,18 +22,24 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Gap, Icon } from "@cocalc/frontend/components";
+import {
+  A,
+  ErrorDisplay,
+  Gap,
+  Paragraph,
+  Icon,
+} from "@cocalc/frontend/components";
 import {
   derive_project_img_name,
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
-import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+// import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+// import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
@@ -53,10 +58,10 @@ interface Props {
 
 type EditState = "edit" | "view" | "saving";
 
-export const NewProjectCreator: React.FC<Props> = ({
+export function NewProjectCreator({
   start_in_edit_mode,
   default_value,
-}: Props) => {
+}: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
@@ -84,14 +89,14 @@ export const NewProjectCreator: React.FC<Props> = ({
     [customize_kucalc],
   );
 
-  const customize_software = useTypedRedux("customize", "software");
-  const [default_software_img, software_images] = useMemo(
-    () => [
-      customize_software.get("default"),
-      customize_software.get("environments"),
-    ],
-    [customize_software],
-  );
+  // const customize_software = useTypedRedux("customize", "software");
+  // const [default_software_img, software_images] = useMemo(
+  //   () => [
+  //     customize_software.get("default"),
+  //     customize_software.get("environments"),
+  //   ],
+  //   [customize_software],
+  // );
 
   const [form] = Form.useForm();
 
@@ -277,34 +282,8 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_custom_software(obj);
   }
 
-  function render_customize_software_env() {
-    return (
-      <>
-        <Form.Item label="Software environment">
-          <ComputeImageSelector
-            current_image={default_software_img ?? DEFAULT_COMPUTE_IMAGE}
-            layout={"dropdown"}
-            onSelect={(img) => {
-              const display = software_images.get(img)?.get("title");
-              custom_software_on_change({
-                image_selected: img,
-                title_text: display,
-                image_type: "standard",
-              });
-            }}
-            changing={false}
-            label={"set"}
-          />
-        </Form.Item>
-
-        <Card size="small" title="Software environment" style={CARD_STYLE}>
-          <SoftwareEnvironment
-            onChange={custom_software_on_change}
-            showTitle={false}
-          />
-        </Card>
-      </>
-    );
+  function render_select_software_env() {
+    return <SoftwareEnvironment onChange={custom_software_on_change} />;
   }
 
   function addSiteLicense(lic: string): void {
@@ -373,19 +352,19 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   function render_input_section(): JSX.Element | undefined {
     const helpTxt = intl.formatMessage({
-      id: "frontend.projects.create-project.helpTxt",
+      id: "projects.create-project.helpTxt",
       defaultMessage:
         "The title of your new project.  You can easily change this later!",
     });
 
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
-        <Row>
+        <Row gutter={[30, 20]}>
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
                 label={intl.formatMessage({
-                  id: "frontend.projects.create-project.title",
+                  id: "projects.create-project.title",
                   defaultMessage: "Project Title",
                 })}
                 name="title"
@@ -411,7 +390,7 @@ export const NewProjectCreator: React.FC<Props> = ({
             </Form>
           </Col>
           <Col sm={12}>
-            <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
+            <Paragraph type="secondary">
               A <A href="https://doc.cocalc.com/project.html">project</A> is a
               private computational workspace that you can use with
               collaborators that you explicitly invite. You can attach powerful{" "}
@@ -423,10 +402,10 @@ export const NewProjectCreator: React.FC<Props> = ({
                 storage
               </A>{" "}
               to a project.
-            </div>
+            </Paragraph>
           </Col>
+          {render_select_software_env()}
         </Row>
-        {render_customize_software_env()}
         {render_add_license()}
         {render_license()}
         <Row>
@@ -442,7 +421,7 @@ export const NewProjectCreator: React.FC<Props> = ({
               >
                 {intl.formatMessage(
                   {
-                    id: "frontend.projects.create-project.create",
+                    id: "projects.create-project.create",
                     defaultMessage:
                       "Create Project {requireLicense, select, true {(select license above)} other {}}",
                   },
@@ -482,4 +461,4 @@ export const NewProjectCreator: React.FC<Props> = ({
       {render_project_creation()}
     </div>
   );
-};
+}

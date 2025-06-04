@@ -20,7 +20,6 @@ import {
   Row,
   Space,
   Spin,
-  Switch,
 } from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
@@ -75,6 +74,7 @@ interface ComputeImageSelectorProps {
   size?: SizeType;
   label?: string; // the "okText" on the main button
   changing?: boolean;
+  customSwitch?: JSX.Element;
 }
 
 export function ComputeImageSelector({
@@ -85,6 +85,7 @@ export function ComputeImageSelector({
   size: propsSize,
   label: propsLabel,
   changing = false,
+  customSwitch,
 }: ComputeImageSelectorProps) {
   const intl = useIntl();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
@@ -92,7 +93,6 @@ export function ComputeImageSelector({
   const disabled = propsDisabled ?? false;
   const size = propsSize ?? "small";
   const label = propsLabel ?? capitalize(intl.formatMessage(labels.select));
-  const [dropdownCustom, setDropdownCustom] = useState(false);
 
   // initialize with the given default
   const [nextImg, setNextImg] = useState<string>(current_image);
@@ -196,22 +196,6 @@ export function ComputeImageSelector({
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
-    );
-  }
-
-  function render_dropdown_custom() {
-    if (!isCoCalcCom) return null;
-    return (
-      <Space style={{ marginLeft: "20px" }}>
-        <Switch
-          value={dropdownCustom}
-          onChange={setDropdownCustom}
-          title={"Switch to select a custom software environment"}
-          checkedChildren={"Custom"}
-          unCheckedChildren={"Standard"}
-        />
-        <HelpIcon title="Software Environment">help</HelpIcon>
-      </Space>
     );
   }
 
@@ -405,19 +389,10 @@ export function ComputeImageSelector({
     // used in projects → create new project
     case "dropdown":
       return (
-        <Row gutter={[10, 10]}>
-          <Col xs={24}>
-            <Icon name={SOFTWARE_ENVIRONMENT_ICON} />
-            <Gap />
-            {render_selector()}
-            <Gap />
-            {render_dropdown_custom()}
-          </Col>
-          <Col xs={24}>
-            <Paragraph>{render_info(nextImg)}</Paragraph>
-            {/* <pre>{JSON.stringify(images?.toJS(), null, 2)}</pre> */}
-          </Col>
-        </Row>
+        <Space direction="horizontal" size="small">
+          {render_selector()}
+          {customSwitch ? customSwitch : undefined}
+        </Space>
       );
     // successor of "vertical", where there is a dialog with a clear indication to click a button
     case "dialog":

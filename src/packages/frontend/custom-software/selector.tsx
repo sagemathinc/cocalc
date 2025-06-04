@@ -5,8 +5,8 @@
 
 // cSpell:ignore descr disp dflt
 
-import { Alert, Button, Col, Divider, List, Radio, Row } from "antd";
-import { join } from "path";
+import { Alert, Button, Col, List, Form, Space, Switch } from "antd";
+//import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
@@ -19,18 +19,18 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   A,
-  Gap,
   Icon,
   Markdown,
   Paragraph,
   SearchInput,
+  HelpIcon,
 } from "@cocalc/frontend/components";
 import {
   CompanyName,
   HelpEmailLink,
-  SiteName,
+  //SiteName,
 } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+//import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -44,7 +44,7 @@ import {
   is_custom_image,
 } from "./util";
 
-const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
+// const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
 const CS_LIST_STYLE: CSS = {
   height: "250px",
@@ -84,7 +84,6 @@ export async function derive_project_img_name(
   switch (image_type) {
     case "custom":
       return custom_image_name(image_selected);
-    case "default":
     case "standard":
       return image_selected;
     default:
@@ -96,12 +95,11 @@ export async function derive_project_img_name(
 interface Props {
   onChange: (obj: SoftwareEnvironmentState) => void;
   default_image?: string; // which one to initialize state to
-  showTitle?: boolean; // default true
 }
 
 // this is a selector for the software environment of a project
 export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
-  const { onChange, default_image, showTitle = true } = props;
+  const { onChange, default_image } = props;
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images",
@@ -128,7 +126,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     undefined,
   );
   const set_title_text = useState<string | undefined>(undefined)[1];
-  const [image_type, set_image_type] = useState<ComputeImageTypes>("default");
+  const [image_type, set_image_type] = useState<ComputeImageTypes>("standard");
 
   function set_state(
     image_selected: string | undefined,
@@ -250,12 +248,13 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           message={intl.formatMessage(
             {
               id: "custom-software.selector.message",
-              defaultMessage: `The selected <em>custom</em> software environment stays with the project.
+              defaultMessage: `A <em>custom</em> software environment stays with the project.
               Create a new project to work in a different software environment.
               You can always <A>copy files between projects</A> as well.
               `,
             },
             {
+              em: (c) => <em>{c}</em>,
               A: (c) => (
                 <A
                   href={
@@ -269,6 +268,23 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           )}
         />
       </>
+    );
+  }
+
+  function render_switch_custom() {
+    if (!onCoCalcCom || !haveSoftwareImages) return;
+    return (
+      <Space style={{ marginLeft: "20px" }}>
+        <Switch
+          value={image_type === "custom"}
+          onChange={(val) => {
+            set_state(undefined, undefined, val ? "custom" : "standard");
+          }}
+          title={"Switch to select a custom software environment"}
+          checkedChildren={"Custom"}
+          unCheckedChildren={"Standard"}
+        />
+      </Space>
     );
   }
 
@@ -385,194 +401,196 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_default_explanation(): JSX.Element {
-    if (onCoCalcCom) {
-      return (
-        <>
-          <b>Default</b>: large repository of software, well tested – maintained
-          by <CompanyName />, running <SiteName />.{" "}
-          <a
-            href={join(appBasePath, "doc/software.html")}
-            target={"_blank"}
-            rel={"noopener"}
-          >
-            More info...
-          </a>
-        </>
-      );
-    } else {
-      const dflt_img = software_images.get(dflt_software_img);
-      const descr = dflt_img?.get("descr") ?? "large repository of software";
-      const t = dflt_img?.get("title");
-      const title = t ? `${t}: ${descr}` : descr;
-      return (
-        <>
-          <b>Standard</b>: {title}
-        </>
-      );
-    }
-  }
+  // function render_default_explanation(): JSX.Element {
+  //   if (onCoCalcCom) {
+  //     return (
+  //       <>
+  //         <b>Default</b>: large repository of software, well tested – maintained
+  //         by <CompanyName />, running <SiteName />.{" "}
+  //         <a
+  //           href={join(appBasePath, "doc/software.html")}
+  //           target={"_blank"}
+  //           rel={"noopener"}
+  //         >
+  //           More info...
+  //         </a>
+  //       </>
+  //     );
+  //   } else {
+  //     const dflt_img = software_images.get(dflt_software_img);
+  //     const descr = dflt_img?.get("descr") ?? "large repository of software";
+  //     const t = dflt_img?.get("title");
+  //     const title = t ? `${t}: ${descr}` : descr;
+  //     return (
+  //       <>
+  //         <b>Standard</b>: {title}
+  //       </>
+  //     );
+  //   }
+  // }
 
-  function render_default() {
+  // function render_default() {
+  //   return (
+  //     <Radio
+  //       checked={image_type === "default"}
+  //       id={"default-compute-image"}
+  //       onChange={() => {
+  //         set_state(undefined, undefined, "default");
+  //       }}
+  //     >
+  //       {render_default_explanation()}
+  //     </Radio>
+  //   );
+  // }
+
+  // function render_standard_explanation(): JSX.Element {
+  //   if (onCoCalcCom) {
+  //     return (
+  //       <>
+  //         <b>Standard</b>: upcoming and archived versions of the "Default"
+  //         software environment.
+  //       </>
+  //     );
+  //   } else {
+  //     return (
+  //       <>
+  //         <b>Specialized</b>: alternative software environments for specific
+  //         purposes.
+  //       </>
+  //     );
+  //   }
+  // }
+
+  // function render_standard() {
+  //   if (!haveSoftwareImages) {
+  //     return;
+  //   }
+  //   return (
+  //     <Radio
+  //       checked={image_type === "standard"}
+  //       id={"default-compute-image"}
+  //       onChange={() => {
+  //         set_state(undefined, undefined, "standard");
+  //       }}
+  //     >
+  //       {render_standard_explanation()}
+  //     </Radio>
+  //   );
+  // }
+
+  // function render_custom() {
+  //   if (customize_kucalc !== KUCALC_COCALC_COM) {
+  //     return null;
+  //   }
+
+  //   if (images == null || images.size == 0) {
+  //     return "There are no customized software environments available.";
+  //   } else {
+  //     return (
+  //       <Radio
+  //         checked={image_type === "custom"}
+  //         id={"custom-compute-image"}
+  //         onChange={() => {
+  //           set_state(undefined, undefined, "custom");
+  //         }}
+  //       >
+  //         <b>Custom</b>
+  //         <sup>
+  //           <em>beta</em>
+  //         </sup>
+  //         : 3rd party software environments, e.g.{" "}
+  //         <a href={BINDER_URL} target={"_blank"} rel={"noopener"}>
+  //           Binder
+  //         </a>
+  //         .{" "}
+  //         <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
+  //           More info...
+  //         </a>
+  //       </Radio>
+  //     );
+  //   }
+  // }
+
+  function render_software_env_help() {
     return (
-      <Radio
-        checked={image_type === "default"}
-        id={"default-compute-image"}
-        onChange={() => {
-          set_state(undefined, undefined, "default");
-        }}
-      >
-        {render_default_explanation()}
-      </Radio>
-    );
-  }
-
-  function render_standard_explanation(): JSX.Element {
-    if (onCoCalcCom) {
-      return (
-        <>
-          <b>Standard</b>: upcoming and archived versions of the "Default"
-          software environment.
-        </>
-      );
-    } else {
-      return (
-        <>
-          <b>Specialized</b>: alternative software environments for specific
-          purposes.
-        </>
-      );
-    }
-  }
-
-  function render_standard_modify_later(): JSX.Element {
-    return (
-      <Alert
-        type="info"
-        banner
-        message={
-          <>
-            The selected <em>standard</em> software environment can be changed
-            in Project Settings → Control at any time.
-          </>
-        }
-      />
-    );
-  }
-
-  function render_standard() {
-    if (!haveSoftwareImages) {
-      return;
-    }
-    return (
-      <Radio
-        checked={image_type === "standard"}
-        id={"default-compute-image"}
-        onChange={() => {
-          set_state(undefined, undefined, "standard");
-        }}
-      >
-        {render_standard_explanation()}
-      </Radio>
-    );
-  }
-
-  function render_custom() {
-    if (customize_kucalc !== KUCALC_COCALC_COM) {
-      return null;
-    }
-
-    if (images == null || images.size == 0) {
-      return "There are no customized software environments available.";
-    } else {
-      return (
-        <Radio
-          checked={image_type === "custom"}
-          id={"custom-compute-image"}
-          onChange={() => {
-            set_state(undefined, undefined, "custom");
+      <HelpIcon title={intl.formatMessage(labels.software_environment)}>
+        <FormattedMessage
+          id="custom-software.selector.explanation.cocalc_com"
+          defaultMessage={`<em>Standard</em> software environments are well tested,
+            maintained by {CompanyName}
+            and can be changed in Project Settings → Control at any time.
+            <br/>
+            A <em>custom</em> software environments is provided by 3rd parties
+            and tried to the specific project – <A2>more info...</A2>.`}
+          values={{
+            br: () => <br />,
+            em: (c) => <em>{c}</em>,
+            CompanyName: () => <CompanyName />,
+            A2: (c) => (
+              <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
+                {c}
+              </a>
+            ),
           }}
-        >
-          <b>Custom</b>
-          <sup>
-            <em>beta</em>
-          </sup>
-          : 3rd party software environments, e.g.{" "}
-          <a href={BINDER_URL} target={"_blank"} rel={"noopener"}>
-            Binder
-          </a>
-          .{" "}
-          <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
-            More info...
-          </a>
-        </Radio>
-      );
-    }
+        />
+      </HelpIcon>
+    );
   }
 
   function render_standard_image_selector() {
-    if (image_type !== "standard") return;
-
-    return (
-      <Col sm={24}>
-        <ComputeImageSelector
-          current_image={image_selected ?? dflt_software_img}
-          layout={"horizontal"}
-          onSelect={(img) => {
-            const display = software_images.get(img)?.get("title");
-            set_state(img, display, "standard");
-          }}
-        />
-        <Gap />
-        {render_standard_modify_later()}
-      </Col>
-    );
-  }
-
-  function render_type_selection() {
     return (
       <>
-        {showTitle ? (
-          <div>{intl.formatMessage(labels.software_environment)}</div>
-        ) : undefined}
-
-        {onCoCalcCom ? (
-          <div>
-            <div style={{ marginBottom: "5px" }}>{render_default()}</div>
-            <div style={{ marginBottom: "5px" }}>{render_standard()}</div>
-            <div style={{ marginBottom: "5px" }}>{render_custom()}</div>
-          </div>
-        ) : (
-          render_onprem()
-        )}
+        <Col sm={12}>
+          <Form>
+            <Form.Item label={intl.formatMessage(labels.software)}>
+              <ComputeImageSelector
+                current_image={image_selected ?? dflt_software_img}
+                customSwitch={render_switch_custom()}
+                layout={"dropdown"}
+                onSelect={(img) => {
+                  const display = software_images.get(img)?.get("title");
+                  set_state(img, display, "standard");
+                }}
+                disabled={image_type !== "standard"}
+              />
+            </Form.Item>
+          </Form>
+        </Col>
+        <Col sm={12}>
+          <Paragraph type="secondary">
+            <FormattedMessage
+              id="custom-software.selector.explanation.onprem"
+              defaultMessage={`The software environment provides programming languages, tools and libraries for the project.`}
+            />{" "}
+            {render_software_env_help()}
+          </Paragraph>
+        </Col>
       </>
     );
   }
 
-  function render_divider() {
-    if (image_type === "default") return;
-    return (
-      <Divider orientation="left" plain>
-        {intl.formatMessage(labels.configuration)}
-      </Divider>
-    );
+  if (!haveSoftwareImages) {
+    return;
   }
 
   return (
-    <Row>
-      <Col sm={24} style={{ marginTop: "10px" }}>
-        {render_type_selection()}
-      </Col>
+    <>
+      {/* <Col sm={24} style={{ marginTop: "10px" }}>
+        {showTitle ? (
+          <div>{intl.formatMessage(labels.software_environment)}</div>
+        ) : undefined}
+      </Col> */}
 
       {onCoCalcCom ? (
         <>
-          {render_divider()}
           {render_standard_image_selector()}
           <Col sm={12}>{render_custom_images()}</Col>
           <Col sm={12}>{render_selected_custom_image_info()}</Col>
           <Col sm={24}>{render_custom_images_info()}</Col>
         </>
-      ) : undefined}
-    </Row>
+      ) : (
+        render_onprem()
+      )}
+    </>
   );
 };
