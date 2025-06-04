@@ -4,8 +4,8 @@ import {
   type MessageData,
   ConatError,
 } from "@cocalc/conat/core/client";
-import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
-export { type SubjectSocket };
+import { type ConatSocket } from "@cocalc/conat/socket";
+export { type ConatSocket };
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type {
   StorageOptions,
@@ -30,7 +30,7 @@ export interface ChangefeedEvent {
 export type Changefeed = EventIterator<ChangefeedEvent>;
 
 export class PersistStreamClient {
-  public readonly socket: SubjectSocket;
+  public readonly socket: ConatSocket;
   private changefeeds: any[] = [];
 
   constructor(

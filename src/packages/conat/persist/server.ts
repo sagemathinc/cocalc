@@ -41,8 +41,8 @@ client = await require('@cocalc/backend/conat').conat(); s = await require('@coc
 */
 
 import { type Client } from "@cocalc/conat/core/client";
-import { type SubjectSocket } from "@cocalc/conat/core/subject-socket";
-export { type SubjectSocket };
+import { type ConatSocket } from "@cocalc/conat/socket";
+export { type ConatSocket };
 import { getLogger } from "@cocalc/conat/client";
 import type {
   StoredMessage,

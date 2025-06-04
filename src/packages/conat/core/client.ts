@@ -225,10 +225,10 @@ import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
 import TTL from "@isaacs/ttlcache";
 import {
-  type SubjectSocket,
-  getSubjectSocketConnection,
-} from "./subject-socket";
-export { type SubjectSocket };
+  type ConatSocket,
+  getConatSocketConnection,
+} from "@cocalc/conat/socket";
+export { type ConatSocket };
 import {
   type SyncTableOptions,
   type ConatSyncTable,
@@ -1067,8 +1067,8 @@ export class Client extends EventEmitter {
     listen: (
       subject: string,
       opts?: { maxQueueSize?: number; reconnection?: boolean },
-    ): SubjectSocket =>
-      getSubjectSocketConnection({
+    ): ConatSocket =>
+      getConatSocketConnection({
         subject,
         role: "server",
         client: this,
@@ -1079,8 +1079,8 @@ export class Client extends EventEmitter {
     connect: (
       subject: string,
       opts?: { maxQueueSize?: number; reconnection?: boolean; init?: any },
-    ): SubjectSocket =>
-      getSubjectSocketConnection({
+    ): ConatSocket =>
+      getConatSocketConnection({
         subject,
         role: "client",
         client: this,

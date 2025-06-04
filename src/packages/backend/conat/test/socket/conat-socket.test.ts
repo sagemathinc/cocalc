@@ -1,5 +1,5 @@
 /*
-pnpm test ./subject-socket.test.ts
+pnpm test ./conat-socket.test.ts
 */
 
 import {
@@ -40,7 +40,10 @@ describe.only("create a client and server and socket, verify it works, restart c
     await Promise.all([once(cn1, "connected"), once(cn2, "connected")]);
   }
 
+  let socketDisconnects: string[] = [];
   it("restarts conat and observes clients both disconnect and connect", async () => {
+    client.on("disconnected", () => socketDisconnects.push("disconnected"));
+    server.on("disconnected", () => socketDisconnects.push("disconnected"));
     await restartServer();
     await waitForClientsToReconnect();
   });
@@ -61,38 +64,18 @@ describe.only("create a client and server and socket, verify it works, restart c
     expect((await client.request(null)).data).toBe("hello");
   });
 
-  //   it("observes the client socket does NOT disconnect, whereas the clients do", async () => {
-  //     const a = once(client, "disconnected", 1000);
-  //     try {
-  //       await a;
-  //     } catch (err) {
-  //       expect(`${err}`).toContain("timeout");
-  //     }
-  //   });
+  it("observes the socket did not disconnect - they never do until a timeout, being explicitly closed, which is the point of sockets", async () => {
+    expect(socketDisconnects.length).toBe(0);
+  });
 
-  //   it("very easy case: the socket should still work after both socket.io clients fully disconnect and reconnect", async () => {
-  //     // wait for client and server to reconnect
-  //     await Promise.all([
-  //       once(cn1, "disconnected"),
-  //       once(cn1, "connected"),
-  //       once(cn2, "disconnected"),
-  //       once(cn2, "connected"),
-  //     ]);
-  //     await delay(100);
-  //     const resp = once(client, "data");
-  //     client.write("cocalc");
-  //     const [data] = await resp;
-  //     expect(data).toBe("cocalccocalc");
-  //     expect((await client.request(null)).data).toBe("hello");
-  //   });
-
-  //   it.skip("but this is a *SOCKET*, so there must be no data loss or failure, even if we do send data before or while reconnecting", async () => {
-  //     client.write("cocalc");
-  //     await restartServer();
-  //     const resp = once(client, "data");
-  //     const [data] = await resp;
-  //     expect(data).toBe("cocalccocalc");
-  //   });
+  it.skip("in fact, there must be no data loss or failure, even if we send data before or while reconnecting", async () => {
+    client.write("cocalc");
+    await restartServer();
+    const resp = once(client, "data");
+    client.write(null);
+    const [data] = await resp;
+    expect(data).toBe("cocalccocalc");
+  });
 
   //   it.skip("but this is a *SOCKET*, so there must be no data loss or failure, even if we do send data before or while reconnecting", async () => {
   //     await restartServer();
