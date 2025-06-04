@@ -59,6 +59,33 @@ If you create a socket server on with a given subject, then
 it will use `${subject}.server.*` and `${subject}.client.*`, so
 don't use `${subject}.>` for anything else!
 
+
+DEVELOPMENT:
+
+Start node via 
+
+CONAT_SERVER=http://localhost:3000 node
+
+// conat socketio server
+
+s = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
+
+
+// server side of socket
+
+conat = await require('@cocalc/backend/conat').conat(); s = conat.socket.listen('conat.io');s.on('connection',(socket)=>{
+    console.log("got new connection", socket.id);
+    socket.on('data',(data) => console.log("got", {data})); 
+    socket.on('request', (mesg)=>{console.log("responding..."); mesg.respond('foo')})
+});0
+
+// client side of socket
+
+conat = await require('@cocalc/backend/conat').conat(); c = conat.socket.connect('conat.io');c.on('data',(data) => console.log("got", {data}));0
+
+c.write('hi')
+
+
 */
 
 import { EventEmitter } from "events";
@@ -67,13 +94,16 @@ import {
   type Headers,
   type Subscription,
   DEFAULT_REQUEST_TIMEOUT,
+  type Message,
+  messageData,
+  type MessageData,
 } from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 
-const SOCKET_HEADER_CMD = "CN-SckCmd";
-const SOCKET_HEADER_SEQ = "CN-SckSeq";
+const SOCKET_HEADER_CMD = "CN-SocketCmd";
+const SOCKET_HEADER_SEQ = "CN-SocketSeq";
 
 export type Role = "client" | "server";
 
@@ -93,7 +123,7 @@ const DEFAULT_MAX_QUEUE_SIZE = 100;
 
 const DEFAULT_TIMEOUT = 7500;
 
-type Command = "connect" | "close" | "ping";
+type Command = "connect" | "close" | "ping" | "socket";
 
 export interface SubjectSocketOptions {
   subject: string;
@@ -150,7 +180,10 @@ export class SubjectSocket extends EventEmitter {
   reconnection: boolean;
   ended: boolean = false;
   init: any;
-  sendSeq: number = 1;
+  private tcp?: {
+    send: SenderTCP;
+    recv: ReceiverTCP;
+  };
 
   constructor({
     subject,
@@ -173,6 +206,25 @@ export class SubjectSocket extends EventEmitter {
     this.conn = { id };
     this.init = init;
     this.connect();
+    if (this.role == "client") {
+      this.tcp = {
+        send: new SenderTCP(this.sendToServer),
+        recv: new ReceiverTCP(
+          async (mesg, opts?) =>
+            await this.client.request(
+              `${this.subject}.server.${this.id}`,
+              mesg,
+              {
+                ...opts,
+                headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
+              },
+            ),
+        ),
+      };
+      this.tcp.recv.on("message", (mesg) => {
+        this.emit("data", mesg.data, mesg.headers);
+      });
+    }
   }
 
   channel = (channel: string) => {
@@ -224,14 +276,6 @@ export class SubjectSocket extends EventEmitter {
     }
   };
 
-  private sendDataToServer = (data, headers) => {
-    const subject = `${this.subject}.server.${this.id}`;
-    this.client.publishSync(subject, data, {
-      headers: { ...headers, [SOCKET_HEADER_SEQ]: this.sendSeq },
-    });
-    this.sendSeq += 1;
-  };
-
   end = async ({ timeout = 3000 }: { timeout?: number } = {}) => {
     if (this.state == "closed") {
       return;
@@ -264,6 +308,11 @@ export class SubjectSocket extends EventEmitter {
   close = () => {
     if (this.state == "closed") {
       return;
+    }
+    if (this.tcp != null) {
+      this.tcp.send.close();
+      this.tcp.recv.close();
+      delete this.tcp;
     }
     this.client.removeListener("closed", this.close);
     this.client.removeListener("disconnected", this.disconnect);
@@ -307,6 +356,7 @@ export class SubjectSocket extends EventEmitter {
     this.sub = sub;
     this.setState("ready");
     for await (const mesg of this.sub) {
+      // console.log("got mesg", mesg.data, mesg.headers);
       if (this.state == ("closed" as any)) {
         return;
       }
@@ -346,7 +396,9 @@ export class SubjectSocket extends EventEmitter {
     mesg;
   }) => {
     socket.lastPing = Date.now();
-    if (cmd == "ping") {
+    if (cmd == "socket") {
+      socket.tcp.send.handleRequest(mesg);
+    } else if (cmd == "ping") {
       mesg.respond("pong");
     } else if (cmd == "close") {
       const id = socket.id;
@@ -399,7 +451,6 @@ export class SubjectSocket extends EventEmitter {
       return;
     }
     this.setState("connecting");
-    this.sendSeq = 1;
     try {
       if (this.role == "server") {
         await this.runAsServer();
@@ -416,6 +467,7 @@ export class SubjectSocket extends EventEmitter {
     if (this.role != "client") {
       throw Error("only client can connect");
     }
+    // console.log("subscribing to ", `${this.subject}.client.${this.id}`);
     this.sub = await this.client.subscribe(`${this.subject}.client.${this.id}`);
     if (this.state == "closed") {
       return;
@@ -427,28 +479,17 @@ export class SubjectSocket extends EventEmitter {
       }
       this.setState("ready");
       this.clientPing();
-      let recvSeq = 1;
       for await (const mesg of this.sub) {
-        if (mesg.headers?.[SOCKET_HEADER_CMD] == "close") {
+        const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
+        if (cmd == "socket") {
+          this.tcp?.send.handleRequest(mesg);
+        } else if (cmd == "close") {
           this.disconnect();
           return;
-        }
-        if (mesg.isRequest()) {
+        } else if (mesg.isRequest()) {
           this.emit("request", mesg);
         } else {
-          // log("got data");
-          const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
-          if (seq == recvSeq) {
-            recvSeq++;
-          } else {
-            console.log("WARNING: there was data loss! ", { seq, recvSeq });
-            if (recvSeq == 1) {
-              // very first is wrong, so must have been automatic failover load balancing.
-              this.disconnect();
-            }
-          }
-          delete mesg.headers![SOCKET_HEADER_SEQ];
-          this.emit("data", mesg.data, mesg.headers);
+          this.tcp?.recv.process(mesg);
         }
       }
     } catch {
@@ -484,13 +525,6 @@ export class SubjectSocket extends EventEmitter {
   // client: writes to server
   // server: broadcast to ALL connected clients
   write = (data, { headers }: { headers?: Headers } = {}): void => {
-    if (this.state != "ready") {
-      this.queuedWrites.push({ data, headers });
-      while (this.queuedWrites.length > this.maxQueueSize) {
-        this.queuedWrites.shift();
-      }
-      return;
-    }
     // @ts-ignore
     if (this.state == "closed") {
       throw Error("closed");
@@ -501,8 +535,36 @@ export class SubjectSocket extends EventEmitter {
         this.sockets[id].write(data, headers);
       }
     } else {
+      const mesg = messageData(data, { headers });
+      this.tcp?.send.process(mesg);
+    }
+  };
+
+  private sendDataToServer = (mesg) => {
+    const subject = `${this.subject}.server.${this.id}`;
+    this.client.publishSync(subject, null, {
+      raw: mesg.raw,
+      headers: mesg.headers,
+    });
+  };
+
+  private sendToServer = (mesg) => {
+    if (this.state != "ready") {
+      this.queuedWrites.push(mesg);
+      while (this.queuedWrites.length > this.maxQueueSize) {
+        this.queuedWrites.shift();
+      }
+      return;
+    }
+    // @ts-ignore
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
+    if (this.role == "server") {
+      throw Error("sendToServer is only for use by the client");
+    } else {
       // we are the client, so write to server
-      this.sendDataToServer(data, headers);
+      this.sendDataToServer(mesg);
     }
   };
 
@@ -537,6 +599,7 @@ export class SubjectSocket extends EventEmitter {
     if (this.state == "closed") {
       throw Error("closed");
     }
+    // console.log("sending request to subject ", subject);
     return await this.client.request(subject, data, options);
   };
 
@@ -578,8 +641,11 @@ export class Socket extends EventEmitter {
   public readonly address = { ip: "" };
   // conn is just for compatibility with primus/socketio (?).
   public readonly conn: { id: string };
-  private sendSeq: number = 1;
-  private recvSeq: number = 1;
+
+  public readonly tcp: {
+    send: SenderTCP;
+    recv: ReceiverTCP;
+  };
 
   constructor({ subjectSocket, id, subject }) {
     super();
@@ -590,6 +656,20 @@ export class Socket extends EventEmitter {
     this.clientSubject = segments.join(".");
     this.id = id;
     this.conn = { id };
+    this.tcp = {
+      send: new SenderTCP(this.send),
+      recv: new ReceiverTCP(
+        async (mesg, opts?) =>
+          await this.subjectSocket.client.request(this.clientSubject, mesg, {
+            ...opts,
+            headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
+          }),
+      ),
+    };
+    this.tcp.recv.on("message", (mesg) => {
+      // console.log("tcp recv emitted message", mesg.data);
+      this.emit("data", mesg.data, mesg.headers);
+    });
   }
 
   private setState = (state: State) => {
@@ -629,6 +709,12 @@ export class Socket extends EventEmitter {
         headers: { [SOCKET_HEADER_CMD]: "close" },
       });
     } catch {}
+    if (this.tcp != null) {
+      this.tcp.send.close();
+      this.tcp.recv.close();
+      // @ts-ignore
+      delete this.tcp;
+    }
     this.queuedWrites = [];
     this.setState("closed");
     this.removeAllListeners();
@@ -636,40 +722,19 @@ export class Socket extends EventEmitter {
   };
 
   receiveDataFromClient = (mesg) => {
-    // it's the low level data
-    const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
-    if (seq == this.recvSeq) {
-      this.recvSeq++;
-    } else {
-      if (this.recvSeq == 1) {
-        // very first sequence number is wrong.
-        // This happens with automatic failover load balancing, and we
-        // must send a hard reset to the client, since it has to start
-        // over, since *state* is lost.
-        this.close();
-        return;
-      }
-      console.log("WARNING: there was data loss on server side! ", {
-        seq,
-        recvSeq: this.recvSeq,
-        data: mesg.data,
-        headers: mesg.headers,
-      });
-    }
-    delete mesg.headers![SOCKET_HEADER_SEQ];
-    this.emit("data", mesg.data, mesg.headers);
+    this.tcp.recv.process(mesg);
   };
 
-  private sendDataToClient = (data, headers) => {
-    this.subjectSocket.client.publishSync(this.clientSubject, data, {
-      headers: { ...headers, [SOCKET_HEADER_SEQ]: this.sendSeq },
+  private sendDataToClient = (mesg) => {
+    this.subjectSocket.client.publishSync(this.clientSubject, null, {
+      raw: mesg.raw,
+      headers: mesg.headers,
     });
-    this.sendSeq += 1;
   };
 
-  write = (data, { headers }: { headers?: Headers } = {}) => {
+  private send = (mesg: Message) => {
     if (this.state != "ready") {
-      this.queuedWrites.push({ data, headers });
+      this.queuedWrites.push(mesg);
       while (this.queuedWrites.length > this.subjectSocket.maxQueueSize) {
         this.queuedWrites.shift();
       }
@@ -679,8 +744,13 @@ export class Socket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.sendDataToClient(data, headers);
+    this.sendDataToClient(mesg);
     return true;
+  };
+
+  write = (data, { headers }: { headers?: Headers } = {}) => {
+    const mesg = messageData(data, { headers });
+    this.tcp.send.process(mesg);
   };
 
   // use request reply where the client responds
@@ -702,4 +772,162 @@ export class Socket extends EventEmitter {
       throw Error("closed");
     }
   });
+}
+
+class ReceiverTCP extends EventEmitter {
+  private incoming: { [id: number]: MessageData } = {};
+  private seq: {
+    // next = seq of the next message we should emit
+    next: number;
+    // emitted = seq of the last message we actually did emit
+    emitted: number;
+    // reported = seq of last message we reported received to caller
+    reported: number;
+    // largest = largest seq of any message we have received
+    largest: number;
+  } = { next: 1, emitted: 0, reported: 0, largest: 0 };
+
+  constructor(private request) {
+    super();
+  }
+
+  close = () => {
+    this.removeAllListeners();
+    // @ts-ignore
+    delete this.incoming;
+    // @ts-ignore
+    delete this.seq;
+  };
+
+  process = (mesg: MessageData) => {
+    const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
+    if (typeof seq != "number" || seq < 1) {
+      console.log(
+        "WARNING: discarding message -- seq must be a positive integer",
+        { seq },
+      );
+      return;
+    }
+    this.seq.largest = Math.max(seq, this.seq.largest);
+    // console.log("process", { seq, next: this.seq.next });
+    if (seq == this.seq.next) {
+      this.emitMessage(mesg, seq);
+    } else if (seq > this.seq.next) {
+      // in the future -- save until we get this.seq.next:
+      this.incoming[seq] = mesg;
+    }
+    this.fetchMissing();
+  };
+
+  emitMessage = (mesg, seq) => {
+    if (seq != this.seq.next) {
+      throw Error("message sequence is wrong");
+    }
+    this.seq.next = seq + 1;
+    this.seq.emitted = seq;
+    delete mesg.headers?.[SOCKET_HEADER_SEQ];
+    this.emit("message", mesg);
+    this.reportReceived();
+  };
+
+  fetchMissing = reuseInFlight(async () => {
+    const missing: number[] = [];
+    for (let seq = this.seq.next; seq <= this.seq.largest; seq += 1) {
+      if (this.incoming[seq] === undefined) {
+        missing.push(seq);
+      }
+    }
+    if (missing.length == 0) {
+      return;
+    }
+    missing.sort();
+    let resp;
+    try {
+      resp = await this.request({ socket: { missing } });
+    } catch (err) {
+      console.log("WARNING: error requesting missing messages", missing, err);
+      return;
+    }
+    if (this.seq == null) {
+      return;
+    }
+    // console.log("got missing", resp.data);
+    for (const x of resp.data) {
+      this.process(messageData(null, x));
+    }
+    this.emitIncoming();
+  });
+
+  emitIncoming = () => {
+    // also emit any incoming that comes next
+    let seq = this.seq.next;
+    while (this.incoming[seq] != null && this.seq != null) {
+      const mesg = this.incoming[seq];
+      delete this.incoming[seq];
+      this.emitMessage(mesg, seq);
+      seq += 1;
+    }
+    this.reportReceived();
+  };
+
+  reportReceived = async () => {
+    if (this.seq.reported >= this.seq.emitted) {
+      // nothing to report
+      return;
+    }
+    const x = { socket: { emitted: this.seq.emitted } };
+    try {
+      await this.request(x);
+      if (this.seq == null) {
+        return;
+      }
+      this.seq.reported = x.socket.emitted;
+    } catch (err) {
+      console.log("WARNING -- failed to report received", err);
+    }
+  };
+}
+
+class SenderTCP {
+  private outgoing: { [id: number]: Message } = {};
+  private seq = 0;
+
+  constructor(private send: (mesg: Message) => void) {}
+
+  close = () => {
+    // @ts-ignore
+    delete this.outgoing;
+    // @ts-ignore
+    delete this.seq;
+  };
+
+  process = (mesg) => {
+    // console.log("SenderTCP", mesg.data, this.seq);
+    this.seq += 1;
+    this.outgoing[this.seq] = mesg;
+    mesg.headers = { ...mesg.headers, [SOCKET_HEADER_SEQ]: this.seq };
+    this.send(mesg);
+  };
+
+  handleRequest = (mesg) => {
+    if (mesg.data?.socket == null || this.seq == null) {
+      return;
+    }
+    const { emitted, missing } = mesg.data.socket;
+    if (emitted != null) {
+      for (const id in this.outgoing) {
+        if (parseInt(id) <= emitted) {
+          delete this.outgoing[id];
+        }
+      }
+      mesg.respond({ emitted });
+    } else if (missing != null) {
+      const v: Message[] = [];
+      for (const id of missing) {
+        v.push(this.outgoing[id]);
+      }
+      // console.log("sending missing", v);
+      mesg.respond(v);
+    }
+  };
 }
