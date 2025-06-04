@@ -91,10 +91,10 @@ async function listen({ sub, createReadStream }) {
 async function handleMessage(mesg, createReadStream) {
   try {
     await sendData(mesg, createReadStream);
-    mesg.respond(null, { headers: { done: true } });
+    await mesg.respond(null, { headers: { done: true } });
   } catch (err) {
     // console.log("sending ERROR", err);
-    mesg.respond(null, { headers: { error: `${err}` } });
+    mesg.respondSync(null, { headers: { error: `${err}` } });
   }
 }
 
@@ -115,7 +115,7 @@ async function sendData(mesg, createReadStream) {
     // get bounced by conat... 
     while (chunk.length > 0) {
       seq += 1;
-      mesg.respond(chunk.slice(0, MAX_NATS_CHUNK_SIZE), getSeqHeader(seq));
+      mesg.respondSync(chunk.slice(0, MAX_NATS_CHUNK_SIZE), getSeqHeader(seq));
       chunk = chunk.slice(MAX_NATS_CHUNK_SIZE);
     }
   }

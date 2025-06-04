@@ -145,7 +145,7 @@ async function handleMessage({
     // console.log("created writeStream");
     writeStream.on("error", (err) => {
       error = `${err}`;
-      mesg.respond({ error, status: "error" });
+      mesg.respondSync({ error, status: "error" });
       console.warn(`error writing ${path}: ${error}`);
       writeStream.emit("remove");
     });
@@ -170,10 +170,10 @@ async function handleMessage({
     }
     writeStream.end();
     writeStream.emit("rename");
-    mesg.respond({ status: "success", bytes, chunks });
+    mesg.respondSync({ status: "success", bytes, chunks });
   } catch (err) {
     if (!error) {
-      mesg.respond({ error: `${err}`, status: "error" });
+      mesg.respondSync({ error: `${err}`, status: "error" });
       writeStream?.emit("remove");
     }
   }

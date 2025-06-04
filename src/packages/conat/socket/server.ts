@@ -126,16 +126,16 @@ export class ConatSocketServer extends ConatSocketBase {
     if (cmd == "socket") {
       socket.tcp.send.handleRequest(mesg);
     } else if (cmd == "ping") {
-      mesg.respond("pong");
+      mesg.respondSync("pong");
     } else if (cmd == "close") {
       const id = socket.id;
       socket.close();
       delete this.sockets[id];
-      mesg.respond("closed");
+      mesg.respondSync("closed");
     } else if (cmd == "connect") {
-      mesg.respond("connected");
+      mesg.respondSync("connected");
     } else {
-      mesg.respond({ error: `unknown command - '${cmd}'` });
+      mesg.respondSync({ error: `unknown command - '${cmd}'` });
     }
   };
 

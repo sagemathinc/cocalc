@@ -142,7 +142,7 @@ export function server({
           }
         }
         if (request.cmd == "set") {
-          mesg.respond(
+          mesg.respondSync(
             stream.set({
               key: request.key,
               previousSeq: request.previousSeq,
@@ -183,19 +183,19 @@ export function server({
               resp.push({ error: `${err}`, code: err.code });
             }
           }
-          mesg.respond(resp);
+          mesg.respondSync(resp);
         } else if (request.cmd == "delete") {
-          mesg.respond(stream.delete(request));
+          mesg.respondSync(stream.delete(request));
         } else if (request.cmd == "config") {
-          mesg.respond(stream.config(request.config));
+          mesg.respondSync(stream.config(request.config));
         } else if (request.cmd == "get") {
           const resp = stream.get({ key: request.key, seq: request.seq });
           //console.log("got resp = ", resp);
           if (resp == null) {
-            mesg.respond(null);
+            mesg.respondSync(null);
           } else {
             const { raw, encoding, headers, seq, time, key } = resp;
-            mesg.respond(null, {
+            mesg.respondSync(null, {
               raw,
               encoding,
               headers: { ...headers, seq, time, key },
@@ -203,13 +203,13 @@ export function server({
           }
         } else if (request.cmd == "keys") {
           const resp = stream.keys();
-          mesg.respond(resp);
+          mesg.respondSync(resp);
         } else if (request.cmd == "sqlite") {
           if (!ENABLE_SQLITE_GENERAL_QUERIES) {
             throw Error("sqlite command not currently supported");
           }
           const resp = stream.sqlite(request.statement, request.params);
-          mesg.respond(resp);
+          mesg.respondSync(resp);
         } else if (request.cmd == "getAll") {
           logger.debug("getAll", { subject: socket.subject, request });
           // getAll uses requestMany which responds with all matching messages,
@@ -221,14 +221,14 @@ export function server({
             changefeed = true;
             startChangefeed({ socket, stream, messagesThresh });
           }
-          mesg.respond("created");
+          mesg.respondSync("created");
         } else {
-          mesg.respond(null, {
+          mesg.respondSync(null, {
             headers: { error: `unknown command ${request.cmd}`, code: 404 },
           });
         }
       } catch (err) {
-        mesg.respond(null, { headers: { error: `${err}`, code: err.code } });
+        mesg.respondSync(null, { headers: { error: `${err}`, code: err.code } });
       }
     });
   });
@@ -239,7 +239,7 @@ export function server({
 async function getAll({ stream, mesg, request, messagesThresh }) {
   let seq = 0;
   const respond = (error?, messages?: StoredMessage[]) => {
-    mesg.respond(messages, { headers: { error, seq } });
+    mesg.respondSync(messages, { headers: { error, seq } });
     seq += 1;
   };
 

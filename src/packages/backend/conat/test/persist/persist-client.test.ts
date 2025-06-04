@@ -154,7 +154,6 @@ describe("restarting the network but not the persist server", () => {
 
   it("restart conat networking", async () => {
     await restartServer();
-    await delay(500);
   });
 
   it("it does start working eventually", async () => {
@@ -171,8 +170,7 @@ describe("restarting the network but not the persist server", () => {
   });
 });
 
-// [ ] TODO -- huge!!!
-describe.skip("restarting the network but with no delay afterwards", () => {
+describe("restarting the network but with no delay afterwards", () => {
   let client, s1;
 
   it("creates a client, stream and test data", async () => {
@@ -194,8 +192,22 @@ describe.skip("restarting the network but with no delay afterwards", () => {
     await restartServer();
   });
 
-  it("it start working again after restart", async () => {
-    expect(s1.socket.state).toBe('ready');
+  it("it start working again after restart, though we expect some errors", async () => {
+    try {
+      await s1.get({ key: "test", timeout: 500 });
+    } catch (err) {
+      expect(`${err}`).toMatch(/timeout|subscribers|disconnected/);
+    }
+    await wait({
+      until: async () => {
+        try {
+          await s1.get({ key: "test", timeout: 1000 });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    });
     const mesg = await s1.get({ key: "test" });
     expect(mesg.data).toBe("data");
   });
@@ -260,9 +272,9 @@ describe("test a changefeed", () => {
   });
 
   // [ ] TODO -- this is flakie
-  it("restart the CONAT NETWORK", async () => {
-    // await restartServer();
-    //await delay(200);
+  it.skip("restart the CONAT NETWORK", async () => {
+    await restartServer();
+    await delay(200);
   });
 
   it("verify changefeed still works even after restarting network server", async () => {

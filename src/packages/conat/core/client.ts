@@ -485,7 +485,6 @@ export class Client extends EventEmitter {
     }
     // @ts-ignore
     delete this.queueGroups;
-    this.conn.close();
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;
@@ -495,6 +494,8 @@ export class Client extends EventEmitter {
     delete this.info;
     // @ts-ignore
     delete this.permissionError;
+
+    this.conn.close();
   };
 
   // syncSubscriptions ensures that we're subscribed on server
@@ -889,11 +890,10 @@ export class Client extends EventEmitter {
         v.push(headers);
       }
       if (confirm) {
+        let done = false;
         const f = (cb) => {
           const handle = (response) => {
-            if (this.conn.io._readyState == "closed") {
-              return;
-            }
+            // console.log("_publish", { done, subject, mesg, headers, confirm });
             if (response?.error) {
               cb(new ConatError(response.error, { code: response.code }));
             } else {
@@ -901,7 +901,6 @@ export class Client extends EventEmitter {
             }
           };
           if (timeout) {
-            let done = false;
             const timer = setTimeout(() => {
               done = true;
               cb(new ConatError("timeout", { code: 408 }));
@@ -976,6 +975,7 @@ export class Client extends EventEmitter {
         code: 503,
       });
     }
+
     for await (const resp of sub) {
       sub.stop();
       return resp;

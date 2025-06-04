@@ -76,7 +76,7 @@ s = await require('@cocalc/server/conat/socketio').initConatServer({port:3000});
 conat = await require('@cocalc/backend/conat').conat(); s = conat.socket.listen('conat.io');s.on('connection',(socket)=>{
     console.log("got new connection", socket.id);
     socket.on('data',(data) => console.log("got", {data})); 
-    socket.on('request', (mesg)=>{console.log("responding..."); mesg.respond('foo')})
+    socket.on('request', (mesg)=>{console.log("responding..."); mesg.respondSync('foo')})
 });0
 
 // client side of socket

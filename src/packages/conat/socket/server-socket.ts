@@ -100,11 +100,9 @@ export class ServerSocket extends EventEmitter {
       "connected",
       this.tcp.send.resendLastUntilAcked,
     );
-    try {
-      this.conatSocket.client.publishSync(this.clientSubject, null, {
-        headers: { [SOCKET_HEADER_CMD]: "close" },
-      });
-    } catch {}
+    this.conatSocket.client.publishSync(this.clientSubject, null, {
+      headers: { [SOCKET_HEADER_CMD]: "close" },
+    });
     if (this.tcp != null) {
       this.tcp.send.close();
       this.tcp.recv.close();

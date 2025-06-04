@@ -79,7 +79,7 @@ async function handleMessage(mesg, evaluate) {
 
   let seq = 0;
   const respond = ({ text, error }: { text?: string; error?: string }) => {
-    mesg.respond({ text, error, seq });
+    mesg.respondSync({ text, error, seq });
     seq += 1;
   };
 
@@ -88,7 +88,7 @@ async function handleMessage(mesg, evaluate) {
     if (done) return;
     done = true;
     // end response stream with null payload.
-    mesg.respond(null);
+    mesg.respondSync(null);
   };
 
   const stream = (text?) => {

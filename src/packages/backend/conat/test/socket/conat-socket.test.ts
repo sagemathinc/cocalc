@@ -179,7 +179,7 @@ describe("create a client first, then the server, and see that write still works
     client.write("cocalc", { headers: { my: "header" } });
   });
 
-  it("we fire off a request as well, but of course don't wait for it", () => {
+  it("we fire off a request as well, but don't wait for it", () => {
     requestPromise = client.request("foo");
   });
 
@@ -191,7 +191,7 @@ describe("create a client first, then the server, and see that write still works
         socket.write(`${data}`.repeat(2), { headers });
       });
       socket.on("request", (mesg) => {
-        mesg.respond("bar", { headers: "x" });
+        mesg.respondSync("bar", { headers: "x" });
       });
     });
   });
@@ -202,7 +202,7 @@ describe("create a client first, then the server, and see that write still works
     expect(headers).toEqual({ my: "header" });
   });
 
-  it("even the request works", async () => {
+  it("get back the response from the request we created above", async () => {
     const response = await requestPromise;
     expect(response.data).toBe("bar");
     expect(response.headers).toBe("x");

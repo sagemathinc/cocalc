@@ -149,14 +149,9 @@ export class Receiver extends EventEmitter {
         return;
       }
       this.seq.reported = x.socket.emitted;
-    } catch (err) {
-      // 503 would mean that the other side is temporarily not connected; that's expected
-      if (err.code != 503) {
-        console.log(
-          "WARNING -- unexpected error - failed to report received",
-          err,
-        );
-      }
+    } catch {
+      // When things are broken this should throw, and the natura of tcp is that
+      // things should sometimes be broken.
     }
   };
 }
@@ -229,7 +224,7 @@ export class Sender {
           delete this.outgoing[id];
         }
       }
-      mesg.respond({ emitted });
+      mesg.respondSync({ emitted });
     } else if (missing != null) {
       const v: Message[] = [];
       for (const id of missing) {
@@ -237,13 +232,13 @@ export class Sender {
         if (x == null) {
           // the data does not exist on this client.  This should only happen, e.g.,
           // on automatic failover with the sticky load balancer... ?
-          mesg.respond(null, { headers: { error: "nodata" } });
+          mesg.respondSync(null, { headers: { error: "nodata" } });
           return;
         }
         v.push(x);
       }
       //console.log("sending missing", v);
-      mesg.respond(v);
+      mesg.respondSync(v);
     }
   };
 }
