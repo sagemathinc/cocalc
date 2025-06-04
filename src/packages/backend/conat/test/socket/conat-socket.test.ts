@@ -14,7 +14,7 @@ import { delay } from "awaiting";
 
 beforeAll(before);
 
-describe.only("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
+describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   let client, server, cn1, cn2;
   it("creates the client and server and confirms it works", async () => {
     cn1 = connect();

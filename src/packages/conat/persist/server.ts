@@ -41,8 +41,10 @@ client = await require('@cocalc/backend/conat').conat(); s = await require('@coc
 */
 
 import { type Client } from "@cocalc/conat/core/client";
-import { type ConatSocket } from "@cocalc/conat/socket";
-export { type ConatSocket };
+import {
+  type ConatSocketServer,
+  type ServerSocket,
+} from "@cocalc/conat/socket";
 import { getLogger } from "@cocalc/conat/client";
 import type {
   StoredMessage,
@@ -83,10 +85,10 @@ export function server({
     throw Error("client must be specified");
   }
   const subject = `${SERVICE}.*`;
-  const server = client.socket.listen(subject);
+  const server: ConatSocketServer = client.socket.listen(subject);
   logger.debug("server: listening in on ", { subject });
 
-  server.on("connection", (socket) => {
+  server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
       id: socket.id,
       subject: socket.subject,

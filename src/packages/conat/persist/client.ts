@@ -4,8 +4,7 @@ import {
   type MessageData,
   ConatError,
 } from "@cocalc/conat/core/client";
-import { type ConatSocket } from "@cocalc/conat/socket";
-export { type ConatSocket };
+import { type ConatSocketClient } from "@cocalc/conat/socket";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type {
   StorageOptions,
@@ -30,7 +29,7 @@ export interface ChangefeedEvent {
 export type Changefeed = EventIterator<ChangefeedEvent>;
 
 export class PersistStreamClient {
-  public readonly socket: ConatSocket;
+  public readonly socket: ConatSocketClient;
   private changefeeds: any[] = [];
 
   constructor(
@@ -78,7 +77,7 @@ export class PersistStreamClient {
       },
     });
     if (resp.headers?.error) {
-      throw Error(resp.headers?.error);
+      throw Error(`${resp.headers?.error}`);
     }
     // an iterator over any updates that are published.
     const iter = new EventIterator<ChangefeedEvent>(this.socket, "data", {
