@@ -27,13 +27,13 @@ In another session:
 
 import {
   changefeedServer,
-  type ConatSocket,
+  type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
 
 import { db } from "@cocalc/database";
 import { conat } from "@cocalc/backend/conat";
 
-let server: ConatSocket | null = null;
+let server: ConatSocketServer | null = null;
 export function init() {
   const D = db();
   server = changefeedServer({

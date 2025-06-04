@@ -1,7 +1,8 @@
-import { type Client } from "@cocalc/conat/core/client";
+import { type Client, type ConatSocketServer } from "@cocalc/conat/core/client";
 import { uuid } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
+export { type ConatSocketServer };
 
 const logger = getLogger("hub:changefeeds");
 
@@ -24,7 +25,7 @@ export function changefeedServer({
   }) => void;
 
   cancelQuery: (uuid: string) => void;
-}) {
+}): ConatSocketServer {
   logger.debug("creating changefeed server");
   const server = client.socket.listen(SUBJECT);
 
