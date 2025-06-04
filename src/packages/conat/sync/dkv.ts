@@ -77,7 +77,11 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
-import type { Client, Headers } from "@cocalc/conat/core/client";
+import {
+  type Client,
+  ConatError,
+  type Headers,
+} from "@cocalc/conat/core/client";
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
 import { conat } from "@cocalc/conat/client";
@@ -134,6 +138,7 @@ export class DKV<T = any> extends EventEmitter {
   public readonly name: string;
   public readonly desc?: JSONValue;
   private saveErrors: boolean = false;
+  private invalidSeq = new Set<number>();
 
   constructor({
     name,
@@ -491,9 +496,14 @@ export class DKV<T = any> extends EventEmitter {
         // closed
         return;
       }
+      const previousSeq = this.seq(key);
       try {
+        if (previousSeq && this.invalidSeq.has(previousSeq)) {
+          throw new ConatError("waiting on new sequence via changefeed", {
+            code: "wrong-last-sequence",
+          });
+        }
         status.unsaved += 1;
-        const previousSeq = this.seq(key);
         await this.kv.setKv(key, obj[key] as T, {
           ...this.options[key],
           previousSeq,
@@ -526,10 +536,16 @@ export class DKV<T = any> extends EventEmitter {
           status.unsaved -= 1;
           this.emit("reject", { key, value });
         }
+        errors = true;
         if (err.code == "wrong-last-sequence") {
-          // this happens when another client has published a NEWER version of this key,
+          // This happens when another client has published a NEWER version of this key,
           // so the right thing is to just ignore this.  In a moment there will be no
           // need to save anything, since we'll receive a message that overwrites this key.
+          // It's very important that the changefeed actually be working, of course, which
+          // is why the this.invalidSeq, so we never retry in this case, since it can't work.
+          if (previousSeq) {
+            this.invalidSeq.add(previousSeq);
+          }
           return;
         }
         if (!process.env.COCALC_TEST_MODE) {
@@ -537,7 +553,6 @@ export class DKV<T = any> extends EventEmitter {
             `WARNING: unexpected error saving dkv '${this.name}' -- ${err}`,
           );
         }
-        errors = true;
       }
     };
     await awaitMap(Object.keys(obj), MAX_PARALLEL, f);

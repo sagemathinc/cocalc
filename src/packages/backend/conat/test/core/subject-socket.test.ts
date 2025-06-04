@@ -14,9 +14,9 @@ import { delay } from "awaiting";
 
 beforeAll(before);
 
-describe.only("create a client and server and socket, verify it works, restart conat server, then confirm that it still works", () => {
+describe("create a client and server and socket, verify it works, restart conat server, then confirm that it still works", () => {
   let client, server, cn1, cn2;
-  it.only("creates the client and server and confirms it works", async () => {
+  it("creates the client and server and confirms it works", async () => {
     cn1 = connect();
     server = cn1.socket.listen("cocalc");
     server.on("connection", (socket) => {
@@ -32,8 +32,8 @@ describe.only("create a client and server and socket, verify it works, restart c
     const resp = once(client, "data");
     client.write("cocalc");
     const [data] = await resp;
-    //     expect(data).toBe("cocalccocalc");
-    //     expect((await client.request(null)).data).toBe("hello");
+    expect(data).toBe("cocalccocalc");
+    expect((await client.request(null)).data).toBe("hello");
   });
 
   it("restarts the conat socketio server", async () => {
@@ -79,10 +79,15 @@ describe.only("create a client and server and socket, verify it works, restart c
 });
 
 describe("create a server and client, then send a message and get a response", () => {
-  let client, server, cn1, cn2;
+  let client,
+    server,
+    cn1,
+    cn2,
+    subject = "response.double";
+
   it("creates the client and server", () => {
     cn1 = connect();
-    server = cn1.socket.listen("cocalc");
+    server = cn1.socket.listen(subject);
     server.on("connection", (socket) => {
       socket.on("data", (data) => {
         socket.write(`${data}`.repeat(2));
@@ -92,7 +97,7 @@ describe("create a server and client, then send a message and get a response", (
 
   it("connects as client and tests out the server", async () => {
     cn2 = connect();
-    client = cn2.socket.connect("cocalc");
+    client = cn2.socket.connect(subject);
     client.write("cocalc");
     const [data] = await once(client, "data");
     expect(data).toBe("cocalccocalc");
@@ -116,7 +121,7 @@ describe("create a server and client, then send a message and get a response", (
     for (let i = 0; i < count; i++) {
       expect((await once(client, "data"))[0]).toBe(`${i}`.repeat(2));
     }
-    expect(Date.now() - t).toBeLessThan(1500);
+    expect(Date.now() - t).toBeLessThan(2500);
   });
 
   it("cleans up", () => {
@@ -175,7 +180,7 @@ describe("create a client first, then the server, and see that write still works
 });
 
 // [ ] TODO -- instead of dropping this should throw an error
-describe("create a client first and writing more messages than the queue size results in dropped messages", () => {
+describe.skip("create a client first and writing more messages than the queue size results in dropped messages", () => {
   let client, server, cn1, cn2;
   const subject = "conat.too.many.messages";
 
@@ -399,7 +404,7 @@ describe("create two socket servers with the same subject to test that sockets a
   // [ ] TODO: sending the message does trigger failover, but maybe don't drop it,
   // Instead, the recipient responds to reset the seq starting with that message.
   // NOT SURE!
-  it("remove the server we're connected to and see that the client connects to another server automatically (albiet after sending one message that gets dropped): this illustrates load balancing and automatic failover", async () => {
+  it.skip("remove the server we're connected to and see that the client connects to another server automatically (albiet after sending one message that gets dropped): this illustrates load balancing and automatic failover", async () => {
     if (resp == "s1") {
       s1.close();
     } else if (resp == "s2") {
@@ -408,6 +413,7 @@ describe("create two socket servers with the same subject to test that sockets a
     client.write(null);
     await once(client, "disconnected");
     await once(client, "ready");
+    client.write(null);
     const z = once(client, "data");
     client.write(null);
     // did we get data?

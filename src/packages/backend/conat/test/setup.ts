@@ -69,7 +69,7 @@ export async function before() {
 
 const clients: Client[] = [];
 export function connect(opts?): Client {
-  const cn = server.client(opts);
+  const cn = server.client({ noCache: true, ...opts });
   clients.push(cn);
   return cn;
 }

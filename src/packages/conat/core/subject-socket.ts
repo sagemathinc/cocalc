@@ -219,6 +219,7 @@ export class SubjectSocket extends EventEmitter {
                 headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
               },
             ),
+          this.disconnect,
         ),
       };
       this.tcp.recv.on("message", (mesg) => {
@@ -246,9 +247,8 @@ export class SubjectSocket extends EventEmitter {
   private setState = (state: State) => {
     this.state = state;
     if (state == "ready") {
-      for (const { data, headers } of this.queuedWrites) {
-        this.write(data, { headers });
-        this.queuedWrites = [];
+      for (const mesg of this.queuedWrites) {
+        this.sendDataToServer(mesg);
       }
     }
     this.emit(state);
@@ -664,6 +664,7 @@ export class Socket extends EventEmitter {
             ...opts,
             headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
           }),
+        this.close,
       ),
     };
     this.tcp.recv.on("message", (mesg) => {
@@ -787,7 +788,10 @@ class ReceiverTCP extends EventEmitter {
     largest: number;
   } = { next: 1, emitted: 0, reported: 0, largest: 0 };
 
-  constructor(private request) {
+  constructor(
+    private request,
+    private disconnect,
+  ) {
     super();
   }
 
@@ -815,8 +819,9 @@ class ReceiverTCP extends EventEmitter {
     } else if (seq > this.seq.next) {
       // in the future -- save until we get this.seq.next:
       this.incoming[seq] = mesg;
+      // console.log("doing fetchMissing because: ", { seq, next: this.seq.next });
+      this.fetchMissing();
     }
-    this.fetchMissing();
   };
 
   emitMessage = (mesg, seq) => {
@@ -826,13 +831,18 @@ class ReceiverTCP extends EventEmitter {
     this.seq.next = seq + 1;
     this.seq.emitted = seq;
     delete mesg.headers?.[SOCKET_HEADER_SEQ];
+    //     console.log("emitMessage", mesg.data, {
+    //       seq,
+    //       next: this.seq.next,
+    //       emitted: this.seq.emitted,
+    //     });
     this.emit("message", mesg);
     this.reportReceived();
   };
 
   fetchMissing = reuseInFlight(async () => {
     const missing: number[] = [];
-    for (let seq = this.seq.next; seq <= this.seq.largest; seq += 1) {
+    for (let seq = this.seq.next; seq <= this.seq.largest; seq++) {
       if (this.incoming[seq] === undefined) {
         missing.push(seq);
       }
@@ -845,10 +855,18 @@ class ReceiverTCP extends EventEmitter {
     try {
       resp = await this.request({ socket: { missing } });
     } catch (err) {
-      console.log("WARNING: error requesting missing messages", missing, err);
+      // 503 happens when the other side is temporarily not available
+      if (err.code != 503) {
+        console.log("WARNING: error requesting missing messages", missing, err);
+      }
       return;
     }
     if (this.seq == null) {
+      return;
+    }
+    if (resp.headers?.error) {
+      // missing data doesn't exist
+      this.disconnect();
       return;
     }
     // console.log("got missing", resp.data);
@@ -883,7 +901,13 @@ class ReceiverTCP extends EventEmitter {
       }
       this.seq.reported = x.socket.emitted;
     } catch (err) {
-      console.log("WARNING -- failed to report received", err);
+      // 503 would mean that the other side is temporarily not connected; that's expected
+      if (err.code != 503) {
+        console.log(
+          "WARNING -- unexpected error - failed to report received",
+          err,
+        );
+      }
     }
   };
 }
@@ -902,8 +926,8 @@ class SenderTCP {
   };
 
   process = (mesg) => {
-    // console.log("SenderTCP", mesg.data, this.seq);
     this.seq += 1;
+    // console.log("SenderTCP.process", mesg.data, this.seq);
     this.outgoing[this.seq] = mesg;
     mesg.headers = { ...mesg.headers, [SOCKET_HEADER_SEQ]: this.seq };
     this.send(mesg);
@@ -924,9 +948,16 @@ class SenderTCP {
     } else if (missing != null) {
       const v: Message[] = [];
       for (const id of missing) {
-        v.push(this.outgoing[id]);
+        const x = this.outgoing[id];
+        if (x == null) {
+          // the data does not exist on this client.  This should only happen, e.g.,
+          // on automatic failover with the sticky load balancer... ?
+          mesg.respond(null, { headers: { error: "nodata" } });
+          return;
+        }
+        v.push(x);
       }
-      // console.log("sending missing", v);
+      //console.log("sending missing", v);
       mesg.respond(v);
     }
   };
