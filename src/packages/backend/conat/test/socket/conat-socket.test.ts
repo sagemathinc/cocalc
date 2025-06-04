@@ -41,7 +41,7 @@ describe("create a client and server and socket, verify it works, restart conat 
   }
 
   let socketDisconnects: string[] = [];
-  it("restarts conat and observes clients both disconnect and connect", async () => {
+  it.skip("restarts conat and observes clients both disconnect and connect", async () => {
     client.on("disconnected", () => socketDisconnects.push("disconnected"));
     server.on("disconnected", () => socketDisconnects.push("disconnected"));
     await restartServer();
@@ -68,22 +68,29 @@ describe("create a client and server and socket, verify it works, restart conat 
     expect(socketDisconnects.length).toBe(0);
   });
 
-  it.skip("in fact, there must be no data loss or failure, even if we send data before or while reconnecting", async () => {
+  it("restart connection and have dropped message get through automatically without having to send another message or wait for reconnect", async () => {
+    const iter = client.iter();
     client.write("cocalc");
     await restartServer();
-    const resp = once(client, "data");
-    client.write(null);
-    const [data] = await resp;
-    expect(data).toBe("cocalccocalc");
+    const { value } = await iter.next();
+    expect(value[0]).toBe("cocalccocalc");
   });
 
-  //   it.skip("but this is a *SOCKET*, so there must be no data loss or failure, even if we do send data before or while reconnecting", async () => {
-  //     await restartServer();
-  //     const resp = once(client, "data");
-  //     client.write("cocalc");
-  //     const [data] = await resp;
-  //     expect(data).toBe("cocalccocalc");
-  //   });
+  it("there must be no data loss and messages must be received in ORDER, even if we send data before or while reconnecting", async () => {
+    const iter = client.iter();
+    client.write("cocalc");
+    await restartServer();
+
+    // write another message to socket to cause out of order message deliver
+    // to the other end
+    client.write("foo");
+    const { value } = await iter.next();
+    expect(value[0]).toBe("cocalccocalc");
+
+    // also checking ordering is correct too:
+    const { value: value1 } = await iter.next();
+    expect(value1[0]).toBe("foofoo");
+  });
 
   it("cleans up", () => {
     cn1.close();

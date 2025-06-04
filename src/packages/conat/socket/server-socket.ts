@@ -41,6 +41,7 @@ export class ServerSocket extends EventEmitter {
     this.id = id;
     this.conn = { id };
     this.initTCP();
+    this.conatSocket.client.on("connected", this.tcp.send.resendLastUntilAcked);
   }
 
   private initTCP = () => {
@@ -95,6 +96,10 @@ export class ServerSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
+    this.conatSocket.client.removeListener(
+      "connected",
+      this.tcp.send.resendLastUntilAcked,
+    );
     try {
       this.conatSocket.client.publishSync(this.clientSubject, null, {
         headers: { [SOCKET_HEADER_CMD]: "close" },
@@ -110,6 +115,8 @@ export class ServerSocket extends EventEmitter {
     this.setState("closed");
     this.removeAllListeners();
     delete this.conatSocket.sockets[this.id];
+    // @ts-ignore
+    delete this.conatSocket;
   };
 
   receiveDataFromClient = (mesg) => {

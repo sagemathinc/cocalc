@@ -13,6 +13,7 @@ import {
   type ConatSocketOptions,
 } from "./util";
 import { delay } from "awaiting";
+import { EventIterator } from "@cocalc/util/event-iterator";
 
 export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
@@ -27,6 +28,7 @@ export class ConatSocketClient extends ConatSocketBase {
         this.sendDataToServer(mesg);
       }
     });
+    this.client.on("connected", this.tcp.send.resendLastUntilAcked);
   }
 
   channel(channel: string) {
@@ -205,6 +207,7 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
+    this.client.removeListener("connected", this.tcp.send.resendLastUntilAcked);
     this.queuedWrites = [];
     // tell server we're gone (but don't wait)
     (async () => {
@@ -226,5 +229,9 @@ export class ConatSocketClient extends ConatSocketBase {
     }
     const mesg = messageData(data, { headers });
     this.tcp?.send.process(mesg);
+  };
+
+  iter = () => {
+    return new EventIterator<[any, Headers]>(this, "data");
   };
 }

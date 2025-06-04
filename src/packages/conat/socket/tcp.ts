@@ -6,6 +6,9 @@ import {
   type MessageData,
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { delay } from "awaiting";
+
+const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
 export interface TCP {
   send: Sender;
@@ -50,6 +53,7 @@ export class Receiver extends EventEmitter {
 
   process = (mesg: MessageData) => {
     const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
+    // console.log(this.role, "recv", { data: mesg.data, seq });
     if (typeof seq != "number" || seq < 1) {
       console.log(
         `WARNING: ${this.role} discarding message -- seq must be a positive integer`,
@@ -160,6 +164,7 @@ export class Receiver extends EventEmitter {
 export class Sender {
   private outgoing: { [id: number]: Message } = {};
   private seq = 0;
+  timeout = DEFAULT_TIMEOUT;
 
   constructor(
     private send: (mesg: Message) => void,
@@ -178,8 +183,40 @@ export class Sender {
     // console.log("Sender.process", mesg.data, this.seq);
     this.outgoing[this.seq] = mesg;
     mesg.headers = { ...mesg.headers, [SOCKET_HEADER_SEQ]: this.seq };
+    // console.log(this.role, "send", { data: mesg.data, seq: this.seq });
     this.send(mesg);
   };
+
+  private lastAcked = (): boolean => {
+    return this.seq == 0 || this.outgoing[this.seq] === undefined;
+  };
+
+  // if socket is suspicious that the most recently sent message may
+  // have been dropped, they call this.  If indeed it was not acknowledged,
+  // the last message will get sent again, which also will trigger the
+  // other side of the socket to fetch anything else that it did not receive.
+  private resendLast = () => {
+    if (this.lastAcked()) {
+      // console.log("resendLast -- nothing to do");
+      // no-op
+    }
+    // console.log("resendLast -- resending");
+    this.send(this.outgoing[this.seq]);
+  };
+
+  resendLastUntilAcked = reuseInFlight(async () => {
+    const end = Date.now() + this.timeout;
+    let d = 500;
+    while (
+      this.outgoing !== undefined &&
+      !this.lastAcked() &&
+      Date.now() < end
+    ) {
+      this.resendLast();
+      d = Math.min(Date.now() - end, Math.min(15000, d * 1.3));
+      await delay(d);
+    }
+  });
 
   handleRequest = (mesg) => {
     if (mesg.data?.socket == null || this.seq == null) {
