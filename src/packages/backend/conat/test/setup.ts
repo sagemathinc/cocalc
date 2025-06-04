@@ -52,6 +52,12 @@ export async function restartServer() {
   await createServer({ port });
 }
 
+export async function restartPersistServer() {
+  await persistServer.close();
+  client = connect();
+  persistServer = createPersistServer({ client });
+}
+
 // one pre-made client
 export let client;
 export async function before() {

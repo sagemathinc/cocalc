@@ -295,7 +295,9 @@ interface Options {
 
 export const stream = refCacheSync<Options, PersistStreamClient>({
   name: "persistent-stream-client",
-  createKey: ({ user, storage }: Options) => JSON.stringify([user, storage]),
+  createKey: ({ user, storage, client }: Options) => {
+    return JSON.stringify([user, storage, client.id]);
+  },
   createObject: ({ client, user, storage }: Options) => {
     // avoid wasting server resources, etc., by always checking permissions client side first
     assertHasWritePermission({ user, storage });

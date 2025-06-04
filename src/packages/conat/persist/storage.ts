@@ -197,9 +197,11 @@ export class PersistentStream extends EventEmitter {
     super();
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
-    this.db = createDatabase(
-      this.options.ephemeral ? ":memory:" : this.options.path + ".db",
-    );
+    const location = this.options.ephemeral
+      ? ":memory:"
+      : this.options.path + ".db";
+    this.db = createDatabase(location);
+    //console.log(location);
     this.init();
   }
 
@@ -241,12 +243,14 @@ export class PersistentStream extends EventEmitter {
   };
 
   close = () => {
-    this.vacuum();
-    this.db?.close();
+    if (this.db != null) {
+      this.vacuum();
+      this.db.prepare("PRAGMA wal_checkpoint(FULL)").run();
+      this.db.close();
+      // @ts-ignore
+    }
     // @ts-ignore
     delete this.options;
-    // @ts-ignore
-    delete this.db;
     this.msgIDs?.clear();
     // @ts-ignore
     delete this.msgIDs;
