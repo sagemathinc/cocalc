@@ -529,6 +529,7 @@ export class DKV<T = any> extends EventEmitter {
             code: err.code,
           });
         }
+        errors = true;
         if (err.code == "reject") {
           const value = this.local[key];
           // can never save this.
@@ -536,7 +537,6 @@ export class DKV<T = any> extends EventEmitter {
           status.unsaved -= 1;
           this.emit("reject", { key, value });
         }
-        errors = true;
         if (err.code == "wrong-last-sequence") {
           // This happens when another client has published a NEWER version of this key,
           // so the right thing is to just ignore this.  In a moment there will be no
@@ -561,7 +561,11 @@ export class DKV<T = any> extends EventEmitter {
       throw Error(`there were errors saving dkv '${this.name}'`);
       // so it retries
     } else {
-      if (!process.env.COCALC_TEST_MODE && this.saveErrors) {
+      if (
+        !process.env.COCALC_TEST_MODE &&
+        this.saveErrors &&
+        status.unsaved == 0
+      ) {
         this.saveErrors = false;
         console.log(`SUCCESS: dkv ${this.name} fully saved`);
       }

@@ -417,10 +417,23 @@ export class CoreStream<T = any> extends EventEmitter {
   private listen = async () => {
     let d = 250;
     while (this.client != null) {
+      let lastSeq: number | undefined = undefined;
       try {
-        for await (const { updates } of await this.persistClient.changefeed()) {
+        for await (const {
+          updates,
+          seq,
+        } of await this.persistClient.changefeed()) {
           if (this.client == null) {
             return;
+          }
+          if (lastSeq === undefined) {
+            lastSeq = seq;
+          } else {
+            if (lastSeq + 1 != seq) {
+              throw Error("missed a seq in changefeed");
+            } else {
+              lastSeq = seq;
+            }
           }
           this.processPersistentMessages(updates, false);
         }

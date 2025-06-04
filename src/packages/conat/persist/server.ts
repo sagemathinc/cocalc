@@ -125,7 +125,9 @@ export function server({
         }
         if (storage === undefined || stream === undefined) {
           // automatic reconnect must have happened -- grab the config info from the client
-          const resp = await socket.request(null);
+          const resp = await socket.request(null, {
+            headers: { cmd: "state" },
+          });
           const x = resp.data;
           storage = x.storage;
           stream = await getStream({

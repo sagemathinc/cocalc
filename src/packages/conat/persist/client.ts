@@ -43,10 +43,22 @@ export class PersistStreamClient {
       init: { storage: this.storage },
     });
     this.socket.on("request", (mesg) => {
-      mesg.reply({
-        storage: this.storage,
-        changefeed: this.changefeeds.length > 0,
-      });
+      if (mesg.headers?.cmd == "state") {
+        mesg.reply({
+          storage: this.storage,
+          changefeed: this.changefeeds.length > 0,
+        });
+      }
+    });
+    this.socket.on("ready", async () => {
+      if (this.changefeeds.length > 0) {
+        // ensure changefeeds are being watched...
+        await this.socket.request(null, {
+          headers: {
+            cmd: "changefeed",
+          },
+        });
+      }
     });
   }
 
