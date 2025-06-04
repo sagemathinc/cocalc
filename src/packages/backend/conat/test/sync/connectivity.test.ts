@@ -6,14 +6,14 @@ pnpm test ./connectivity.test.ts
 */
 
 import { dkv } from "@cocalc/backend/conat/sync";
-import { delay } from "awaiting";
+//import { delay } from "awaiting";
 import {
   before,
   after,
-  connect,
+ // connect,
   restartServer,
 } from "@cocalc/backend/conat/test/setup";
-import { wait } from "@cocalc/backend/conat/test/util";
+//import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
 
