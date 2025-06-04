@@ -40,7 +40,7 @@ client = await require('@cocalc/backend/conat').conat(); s = await require('@coc
 
 */
 
-import { type Client } from "@cocalc/conat/core/client";
+import { type Client, ConatError } from "@cocalc/conat/core/client";
 import {
   type ConatSocketServer,
   type ServerSocket,
@@ -94,6 +94,7 @@ export function server({
       subject: socket.subject,
     });
     let error = "";
+    let errorCode: any = undefined;
     let changefeed = false;
     let storage: undefined | StorageOptions = undefined;
     let stream: undefined | PersistentStream = undefined;
@@ -111,7 +112,8 @@ export function server({
             startChangefeed({ socket, stream, messagesThresh });
           }
         } catch (err) {
-          error = `${err};`;
+          error = `${err}`;
+          errorCode = err.code;
         }
       }
     });
@@ -127,7 +129,7 @@ export function server({
 
       try {
         if (error) {
-          throw Error(error);
+          throw new ConatError(error, { code: errorCode });
         }
         if (storage === undefined || stream === undefined) {
           // this happens, e.g., when you restart both the persist server and the conat
@@ -239,7 +241,7 @@ export function server({
 async function getAll({ stream, mesg, request, messagesThresh }) {
   let seq = 0;
   const respond = (error?, messages?: StoredMessage[]) => {
-    mesg.respondSync(messages, { headers: { error, seq } });
+    mesg.respondSync(messages, { headers: { error, seq, code: error?.code } });
     seq += 1;
   };
 

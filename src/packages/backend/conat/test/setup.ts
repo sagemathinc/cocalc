@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "path";
 export { wait } from "@cocalc/backend/conat/test/util";
 export { delay } from "awaiting";
+export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 
 const logger = getLogger("conat:test:setup");
 

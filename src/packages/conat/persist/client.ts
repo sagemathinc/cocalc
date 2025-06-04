@@ -229,7 +229,10 @@ export class PersistStreamClient extends EventEmitter {
       timeout,
       maxWait,
     });
-    for await (const { data } of sub) {
+    for await (const { data, headers } of sub) {
+      if (headers?.error) {
+        throw new ConatError(`${headers.error}`, { code: headers.code });
+      }
       if (data == null || this.socket.state == "closed") {
         // done
         return;

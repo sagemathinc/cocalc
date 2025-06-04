@@ -201,7 +201,20 @@ export class CoreStream<T = any> extends EventEmitter {
       start_seq: this._start_seq,
       noEmit: true,
     });
-    this.configOptions = await this.config(this.configOptions);
+    let d = 750;
+    while (this.client != null) {
+      try {
+        this.configOptions = await this.config(this.configOptions);
+        break;
+      } catch (err) {
+        if (err.code == 403) {
+          // fatal permission error
+          throw err;
+        }
+        d = Math.min(15000, d * 1.3);
+        await delay(d);
+      }
+    }
     // NOTE: if we miss a message between getAllFromLeader and when we start listening,
     // then the sequence number will have a gap, and we'll immediately reconnect, starting
     // at the right point. So no data can possibly be lost.
@@ -245,27 +258,38 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    if (this.client == null) {
-      return;
-    }
-    // console.log("get persistent stream", { start_seq });
-    const sub = await this.persistClient.getAll({
-      start_seq,
-    });
-    while (true) {
-      const { value, done } = await sub.next();
-      // console.log("got ", { value, done });
-      if (done) {
-        return;
+    let d = 750;
+    while (this.client != null) {
+      try {
+        // console.log("get persistent stream", { start_seq });
+        const sub = await this.persistClient.getAll({
+          start_seq,
+        });
+        // console.log("got sub");
+        while (true) {
+          const { value, done } = await sub.next();
+          if (done) {
+            return;
+          }
+          const messages = value as StoredMessage[];
+          const seq = this.processPersistentMessages(messages, noEmit);
+          if (seq != null) {
+            // we update start_seq in case we need to try again
+            start_seq = seq! + 1;
+          }
+        }
+      } catch (err) {
+        //         console.log(
+        //           `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
+        //         );
+        if (err.code == 403) {
+          // fatal permission error
+          throw err;
+        }
+        d = Math.min(15000, d * 1.3);
+        await delay(d);
       }
-      const messages = value as StoredMessage[];
-      const seq = this.processPersistentMessages(messages, noEmit);
-      if (seq != null) {
-        // we update start_seq in case we need to try again
-        start_seq = seq! + 1;
-      }
     }
-    // console.log("finished getAll");
   };
 
   private processPersistentMessages = (

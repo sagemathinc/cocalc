@@ -270,9 +270,8 @@ describe("test key:value delete", () => {
   });
 
   it("also delete the empty key one", async () => {
-    const n = stream.length;
     await stream2.deleteKv("");
-    await wait({ until: () => stream.length > n });
+    await wait({ until: async () => (await stream2.getKv("")) == undefined });
     expect(await stream2.getKv("")).toEqual(undefined);
     await wait({ until: () => stream.getKv("") === undefined });
   });

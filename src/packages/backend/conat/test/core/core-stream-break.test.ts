@@ -17,6 +17,7 @@ import {
   wait,
   delay,
   persistServer as setupPersistServer,
+  setDefaultTimeouts,
 } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
@@ -26,6 +27,9 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   let stream;
   let pclient;
   let persistServer;
+
+  // use much shorter timeout for this test of restarting persist server, which isn't a NORMAL thing.
+  setDefaultTimeouts({ request: 750, publish: 750 });
 
   it("close the persist server that was setup as part of before above", async () => {
     await setupPersistServer.end();
@@ -59,7 +63,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
 
     await expect(async () => {
       await stream.publish("y", { timeout: 100 });
-    }).rejects.toThrowError("no subscribers");
+    }).rejects.toThrowError();
 
     try {
       await stream.publish("y", { timeout: 100 });
@@ -68,9 +72,18 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
     }
   });
 
-  it("starts persist server and can publish again", async () => {
+  it("starts persist server and can eventually publish again", async () => {
     persistServer = initPersistServer({ client: pclient });
-    await stream.publish("y");
+    await wait({
+      until: async () => {
+        try {
+          await stream.publish("y");
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    });
   });
 
   it("creates a dstream, publishes, sees it hasn't saved, starts persist server and sees save works again", async () => {
