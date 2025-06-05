@@ -105,9 +105,9 @@ export class Receiver extends EventEmitter {
       resp = await this.request({ socket: { missing } });
     } catch (err) {
       // 503 happens when the other side is temporarily not available
-      if (err.code != 503) {
-        console.log("WARNING: error requesting missing messages", missing, err);
-      }
+      //       if (err.code != 503) {
+      //         console.log("WARNING: error requesting missing messages", missing, err);
+      //       }
       return;
     }
     if (this.seq == null) {

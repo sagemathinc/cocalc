@@ -512,7 +512,7 @@ export class Client extends EventEmitter {
 
   // syncSubscriptions ensures that we're subscribed on server
   // to what we think we're subscribed to.
-  private syncSubscriptions = async () => {
+  syncSubscriptions = reuseInFlight(async () => {
     if (this.info == null) {
       const [info] = await once(this.conn as any, "info");
       this.info = info;
@@ -539,7 +539,7 @@ export class Client extends EventEmitter {
         this.conn.emit("unsubscribe", { subject });
       }
     }
-  };
+  });
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
 
@@ -615,6 +615,11 @@ export class Client extends EventEmitter {
       if (queue && this.queueGroups[subject] != queue) {
         throw Error(
           `client can only have one queue group subscription for a given subject -- subject='${subject}', queue='${queue}'`,
+        );
+      }
+      if (queue == STICKY_QUEUE_GROUP) {
+        throw Error(
+          `can only have one sticky subscription per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
