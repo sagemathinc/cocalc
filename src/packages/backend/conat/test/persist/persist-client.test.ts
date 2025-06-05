@@ -236,7 +236,7 @@ describe("restarting the network but with no delay afterwards", () => {
   });
 });
 
-describe.only("test a changefeed", () => {
+describe("test a changefeed", () => {
   let client, s1, cf;
 
   it("creates a client, stream and changefeed", async () => {
@@ -355,7 +355,7 @@ describe.only("test a changefeed", () => {
     expect(mesg.data).toBe("data4");
   });
 
-  it("changefeed still works after restarting persist server", async () => {
+  it("changefeed still works after restarting persist server, though what gets received is somewhat random -- the persist server doesn't have its own state so can't guarantee continguous changefeeds when it restarts", async () => {
     await s2.set({
       key: "test5",
       messageData: messageData("data5", { headers: { foo: "bar5" } }),
@@ -363,11 +363,10 @@ describe.only("test a changefeed", () => {
     });
     const { value, done } = await cf.next();
     expect(done).toBe(false);
-    expect(value.updates[0]).toEqual(
-      expect.objectContaining({
-        headers: { foo: "bar5" },
-      }),
-    );
+    expect(
+      value.updates[0].headers.foo == "bar4" ||
+        value.updates[0].headers.foo == "bar5",
+    ).toBe(true);
   });
 });
 

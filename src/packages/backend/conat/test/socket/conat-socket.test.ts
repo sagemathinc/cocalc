@@ -1,5 +1,7 @@
 /*
+
 pnpm test ./conat-socket.test.ts
+
 */
 
 import {
@@ -222,35 +224,70 @@ describe("create a client first, then the server, and see that write still works
   });
 });
 
-// [ ] TODO -- instead of dropping this should throw an error
-describe.skip("create a client first and writing more messages than the queue size results in dropped messages", () => {
+describe("create a client first and write more messages than the queue size results in an error", () => {
   let client, server, cn1, cn2;
   const subject = "conat.too.many.messages";
 
   let count = 5,
-    maxQueueSize = 3;
-  it("connects as client and tests out the server", async () => {
+    maxQueueSize = 3,
+    iter;
+  it("connects as client with a small queue and fill it", async () => {
     cn2 = connect();
+    let fails = 0;
     client = cn2.socket.connect(subject, { maxQueueSize });
+    iter = client.iter();
     for (let i = 0; i < count; i++) {
-      client.write(`${i}`);
+      try {
+        client.write(`${i}`);
+      } catch (err) {
+        // should fail for i=4,5
+        expect(i).toBeGreaterThan(count - maxQueueSize);
+        fails += 1;
+      }
     }
+    expect(fails).toBe(2);
     expect(client.queuedWrites.length).toBe(3);
   });
 
-  it("creates the client and server", () => {
+  const serverRecv: any[] = [];
+  let serverSocket;
+  it("creates the server", () => {
     cn1 = connect();
     server = cn1.socket.listen(subject, { maxQueueSize });
     server.on("connection", (socket) => {
+      serverSocket = socket;
       socket.on("data", (data) => {
+        serverRecv.push(data);
         socket.write(`${data}`.repeat(2));
       });
     });
   });
 
-  it(`only ${maxQueueSize} messages got through (some were dropped)`, async () => {
-    for (let i = count - maxQueueSize; i < count; i++) {
-      expect((await once(client, "data"))[0]).toBe(`${i}`.repeat(2));
+  it(`first ${maxQueueSize} messages do get sent`, async () => {
+    for (let i = 0; i < maxQueueSize; i++) {
+      const { value } = await iter.next();
+      expect(value[0]).toBe(`${i}`.repeat(2));
+    }
+    expect(serverRecv).toEqual(["0", "1", "2"]);
+  });
+
+  it("we can now send another message without an error", () => {
+    client.write("foo");
+  });
+
+  it("writing too many messages to the server socket also fails", async () => {
+    if (serverSocket.tcp.send.unsent > 0) {
+      await once(serverSocket, "drain");
+    }
+    expect(serverSocket.tcp.send.unsent).toBe(0);
+    serverSocket.write(0);
+    serverSocket.write(1);
+    serverSocket.write(2);
+    expect(() => serverSocket.write(3)).toThrow("WRITE FAILED");
+    try {
+      serverSocket.write(4);
+    } catch (err) {
+      expect(err.code).toBe("ENOBUFS");
     }
   });
 

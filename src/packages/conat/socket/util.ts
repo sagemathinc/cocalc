@@ -16,8 +16,12 @@ export type Role = "client" | "server";
 export const PING_PONG_INTERVAL = 60000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
-// Any write beyond the last this many are discarded:
-export const DEFAULT_MAX_QUEUE_SIZE = 100;
+// Any write beyond this size result in an exception.
+// NOTE: in nodejs the default for exactly this is "infinite=use up all RAM", so
+// maybe we should make this even larger (?).
+// Also note that this is just the *number* of messages, and a message can have
+// any size.
+export const DEFAULT_MAX_QUEUE_SIZE = 1000;
 
 export const DEFAULT_COMMAND_TIMEOUT = 2500;
 

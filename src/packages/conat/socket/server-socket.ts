@@ -4,6 +4,7 @@ import {
   DEFAULT_REQUEST_TIMEOUT,
   type Message,
   messageData,
+  ConatError,
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
@@ -54,11 +55,15 @@ export class ServerSocket extends EventEmitter {
       role: this.conatSocket.role,
       reset: this.close,
       send: this.send,
+      size: this.conatSocket.maxQueueSize,
     });
 
     this.tcp.recv.on("message", (mesg) => {
       // console.log("tcp recv emitted message", mesg.data);
       this.emit("data", mesg.data, mesg.headers);
+    });
+    this.tcp.send.on("drain", () => {
+      this.emit("drain");
     });
   }
 
@@ -142,9 +147,11 @@ export class ServerSocket extends EventEmitter {
     return true;
   };
 
+  // writes will raise an exception if: (1) the socket is closed, or (2)
+  // you hit maxQueueSize un-ACK'd messages.
   write = (data, { headers }: { headers?: Headers } = {}) => {
     if (this.state == "closed") {
-      return;
+      throw new ConatError("closed", { code: "EPIPE" });
     }
     const mesg = messageData(data, { headers });
     this.tcp?.send.process(mesg);

@@ -10,6 +10,7 @@ import {
   type Message,
   messageData,
   type MessageData,
+  ConatError,
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
@@ -21,9 +22,9 @@ export interface TCP {
   recv: Receiver;
 }
 
-export function createTCP({ request, send, reset, role }): TCP {
+export function createTCP({ request, send, reset, role, size }): TCP {
   return {
-    send: new Sender(send, role),
+    send: new Sender(send, role, size),
     recv: new Receiver(request, reset, role),
   };
 }
@@ -162,17 +163,22 @@ export class Receiver extends EventEmitter {
   };
 }
 
-export class Sender {
+export class Sender extends EventEmitter {
   private outgoing: { [id: number]: Message } = {};
   private seq = 0;
   timeout = DEFAULT_TIMEOUT;
+  private unsent: number = 0;
 
   constructor(
     private send: (mesg: Message) => void,
     public readonly role: Role,
-  ) {}
+    private size: number,
+  ) {
+    super();
+  }
 
   close = () => {
+    this.removeAllListeners();
     // @ts-ignore
     delete this.outgoing;
     // @ts-ignore
@@ -180,9 +186,16 @@ export class Sender {
   };
 
   process = (mesg) => {
+    if (this.unsent >= this.size) {
+      throw new ConatError(
+        `WRITE FAILED: socket buffer size ${this.size} exceeded`,
+        { code: "ENOBUFS" },
+      );
+    }
     this.seq += 1;
     // console.log("Sender.process", mesg.data, this.seq);
     this.outgoing[this.seq] = mesg;
+    this.unsent++;
     mesg.headers = { ...mesg.headers, [SOCKET_HEADER_SEQ]: this.seq };
     // console.log(this.role, "send", { data: mesg.data, seq: this.seq });
     this.send(mesg);
@@ -228,6 +241,10 @@ export class Sender {
       for (const id in this.outgoing) {
         if (parseInt(id) <= emitted) {
           delete this.outgoing[id];
+          this.unsent--;
+          if (this.unsent == 0) {
+            this.emit("drain");
+          }
         }
       }
       mesg.respondSync({ emitted });

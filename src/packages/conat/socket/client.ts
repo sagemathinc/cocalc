@@ -2,6 +2,7 @@ import {
   messageData,
   type Subscription,
   type Headers,
+  ConatError,
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatSocketBase } from "./base";
@@ -67,10 +68,14 @@ export class ConatSocketClient extends ConatSocketBase {
       role: this.role,
       reset: this.disconnect,
       send: this.sendToServer,
+      size: this.maxQueueSize,
     });
 
     this.tcp.recv.on("message", (mesg) => {
       this.emit("data", mesg.data, mesg.headers);
+    });
+    this.tcp.send.on("drain", () => {
+      this.emit("drain");
     });
   }
 
@@ -264,10 +269,12 @@ export class ConatSocketClient extends ConatSocketBase {
     super.close();
   }
 
+  // writes will raise an exception if: (1) the socket is closed code='EPIPE', or (2)
+  // you hit maxQueueSize un-ACK'd messages, code='ENOBUFS'
   write = (data, { headers }: { headers?: Headers } = {}): void => {
     // @ts-ignore
     if (this.state == "closed") {
-      throw Error("closed");
+      throw new ConatError("closed", { code: "EPIPE" });
     }
     const mesg = messageData(data, { headers });
     this.tcp?.send.process(mesg);
