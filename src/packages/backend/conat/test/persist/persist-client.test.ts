@@ -210,6 +210,30 @@ describe("restarting the network but with no delay afterwards", () => {
     const mesg = await s1.get({ key: "test" });
     expect(mesg.data).toBe("data");
   });
+
+  it("restarts BOTH the socketio conat server and the persist server", () => {
+    restartServer();
+    restartPersistServer();
+  });
+
+  it("it start working again after restart, though we expect some errors", async () => {
+    await wait({
+      until: async () => {
+        try {
+          await s1.set({
+            key: "test-10",
+            messageData: messageData("data", { headers: { foo: "bar" } }),
+            timeout: 500,
+          });
+          return true;
+        } catch (err) {
+          return false;
+        }
+      },
+    });
+    const mesg = await s1.get({ key: "test-10" });
+    expect(mesg.data).toBe("data");
+  });
 });
 
 describe("test a changefeed", () => {
