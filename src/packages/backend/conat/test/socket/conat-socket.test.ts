@@ -8,11 +8,15 @@ import {
   connect,
   wait,
   restartServer,
+  setDefaultTimeouts,
 } from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
-beforeAll(before);
+beforeAll(async () => {
+  await before();
+  setDefaultTimeouts({ request: 1000, publish: 1000 });
+});
 
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   let client,

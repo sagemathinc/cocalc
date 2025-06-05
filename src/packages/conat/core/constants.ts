@@ -5,5 +5,5 @@
 const MB = 1e6;
 export const MAX_PAYLOAD = 1 * MB;
 export const MAX_DISCONNECTION_DURATION = 2 * 60 * 1000;
-export const MAX_SUBSCRIPTIONS_PER_CLIENT = 250;
+export const MAX_SUBSCRIPTIONS_PER_CLIENT = 500;
 
