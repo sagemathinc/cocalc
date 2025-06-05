@@ -38,7 +38,7 @@ describe("basic test of restarting the server causing a reconnect of client", ()
     expect(cn.state).toBe("connected");
   });
 
-  it.skip("close server and observe client disconnects, then connects again", async () => {
+  it("close server and observe client disconnects, then connects again", async () => {
     expect(cn.state).toBe("connected");
     restartServer();
     await once(cn, "disconnected");

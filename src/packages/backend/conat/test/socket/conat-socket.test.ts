@@ -54,7 +54,7 @@ describe("create a client and server and socket, verify it works, restart conat 
   }
 
   let socketDisconnects: string[] = [];
-  it.skip("restarts conat and observes clients both disconnect and connect", async () => {
+  it("restarts conat and observes clients both disconnect and connect", async () => {
     client.on("disconnected", () => socketDisconnects.push("disconnected"));
     server.on("disconnected", () => socketDisconnects.push("disconnected"));
     await restartServer();
@@ -512,7 +512,7 @@ describe("create two socket servers with the same subject to test that sockets a
     //     console.log({ value });
   });
 
-  it.skip("cleans up", () => {
+  it("cleans up", () => {
     s1.close();
     s2.close();
     s3.close();

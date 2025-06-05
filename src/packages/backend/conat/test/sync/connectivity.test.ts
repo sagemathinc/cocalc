@@ -6,14 +6,7 @@ pnpm test ./connectivity.test.ts
 */
 
 import { dkv } from "@cocalc/backend/conat/sync";
-//import { delay } from "awaiting";
-import {
-  before,
-  after,
- // connect,
-  restartServer,
-} from "@cocalc/backend/conat/test/setup";
-//import { wait } from "@cocalc/backend/conat/test/util";
+import { before, after, restartServer } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -33,7 +26,7 @@ describe("test that dkv survives server restart", () => {
     expect(kv.hasUnsavedChanges()).toBe(false);
   });
 
-  it.skip("restart the socketio server and confirm that dkv still works", async () => {
+  it("restart the socketio server and confirm that dkv still works", async () => {
     await restartServer();
     kv.b = 7;
     expect(kv.b).toEqual(7);
