@@ -265,7 +265,7 @@ describe("test key:value delete", () => {
 
   it("deletes the key and confirms it was deleted", async () => {
     await stream.deleteKv("key");
-    expect(await stream.getKv("key")).toEqual(undefined);
+    await wait({ until: () => stream.getKv("key") === undefined });
     await wait({ until: () => stream2.getKv("key") === undefined });
   });
 

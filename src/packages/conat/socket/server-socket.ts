@@ -118,7 +118,7 @@ export class ServerSocket extends EventEmitter {
   };
 
   receiveDataFromClient = (mesg) => {
-    this.tcp.recv.process(mesg);
+    this.tcp?.recv.process(mesg);
   };
 
   private sendDataToClient = (mesg) => {
@@ -145,8 +145,11 @@ export class ServerSocket extends EventEmitter {
   };
 
   write = (data, { headers }: { headers?: Headers } = {}) => {
+    if (this.state == "closed") {
+      return;
+    }
     const mesg = messageData(data, { headers });
-    this.tcp.send.process(mesg);
+    this.tcp?.send.process(mesg);
   };
 
   // use request reply where the client responds

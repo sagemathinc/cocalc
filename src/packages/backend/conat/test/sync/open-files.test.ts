@@ -15,7 +15,7 @@ pnpm test ./open-files.test.ts
 import { openFiles as createOpenFiles } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
-import { before, after } from "@cocalc/backend/conat/test/setup";
+import { before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -77,7 +77,7 @@ describe("create open file tracker and do some basic operations", () => {
     expect(v.length).toBe(2);
   });
 
-  it("delete file1 and verify that it is deleted is sync'd", async () => {
+  it("delete file1 and verify fact that it is deleted is sync'd", async () => {
     o1.delete(file1);
     expect(o1.get(file1)).toBe(undefined);
     expect(o1.getAll().length).toBe(1);
@@ -95,15 +95,15 @@ describe("create open file tracker and do some basic operations", () => {
     expect(o3.getAll().length).toBe(1);
     o3.close();
 
-    // verify file is gone in o2, at least after change event (if necessary)
-    if (o2.get(file1) !== undefined) {
-      console.log("wait for o2 change");
-      await once(o2, "change", 250);
-    }
+    // verify file is gone in o2, at least after waiting (if necessary)
+    await wait({
+      until: () => {
+        return o2.get(file1) == null;
+      },
+    });
     expect(o2.get(file1)).toBe(undefined);
     // should be 1 due to file2 still being there:
     expect(o2.getAll().length).toBe(1);
-
   });
 
   it("sets an error", async () => {

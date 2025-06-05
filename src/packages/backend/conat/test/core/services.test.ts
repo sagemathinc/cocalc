@@ -12,7 +12,7 @@ beforeAll(before);
 describe("test creating subscriptions with service property set", () => {
   let client1, client2;
   it("create two clients", async () => {
-    client1 = connect({ reconnectionDelay: 50 });
+    client1 = connect({ reconnectionDelay: 250 });
     client2 = connect();
   });
 

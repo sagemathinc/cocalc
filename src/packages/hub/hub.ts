@@ -259,7 +259,6 @@ async function startServer(): Promise<void> {
     await initHttpRedirect(program.hostname);
   }
 
-
   if (program.conatServer || program.proxyServer || program.nextServer) {
     logger.info(
       "Starting registering periodically with the database and updating a health check...",
@@ -342,12 +341,14 @@ async function startServer(): Promise<void> {
 // more than once per minute.
 const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
 
+// note -- we show the error twice in these, one in backticks, since sometimes
+// that works better.
 function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
     logger.error(
       "BUG ****************************************************************************",
     );
-    logger.error("Uncaught exception: " + err);
+    logger.error("Uncaught exception: " + err, ` ${err}`);
     console.error(err.stack);
     logger.error(err.stack);
     logger.error(
@@ -367,7 +368,13 @@ function addErrorListeners(uncaught_exception_total) {
       "BUG UNHANDLED REJECTION *********************************************************",
     );
     console.error(p, reason); // strangely sometimes logger.error can't actually show the traceback...
-    logger.error("Unhandled Rejection at:", p, "reason:", reason);
+    logger.error(
+      "Unhandled Rejection at:",
+      p,
+      "reason:",
+      reason,
+      ` : ${p} -- ${reason}`,
+    );
     logger.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
@@ -509,7 +516,7 @@ async function main(): Promise<void> {
     }
   }
   if (program.all) {
-      program.conatMicroservices =
+    program.conatMicroservices =
       program.conatServer =
       program.conatChangefeedServer =
       program.proxyServer =

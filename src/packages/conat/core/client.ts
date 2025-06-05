@@ -367,7 +367,7 @@ export class Client extends EventEmitter {
 
   constructor(options: ClientOptions) {
     super();
-    this.setMaxListeners(300);
+    this.setMaxListeners(50);
     this.options = options;
 
     // for socket.io the address has no base url
