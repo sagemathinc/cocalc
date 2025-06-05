@@ -394,11 +394,11 @@ export class Client extends EventEmitter {
     });
     this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
+      if (this.conn.connected) {
+        this.setState("connected");
+      }
       try {
         await this.syncSubscriptions();
-        if (this.conn.connected) {
-          this.setState("connected");
-        }
       } catch {}
     });
     this.conn.io.on("error", (...args) => {
