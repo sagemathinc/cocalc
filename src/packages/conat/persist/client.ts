@@ -33,6 +33,7 @@ export type Changefeed = EventIterator<ChangefeedEvent>;
 export class PersistStreamClient extends EventEmitter {
   public socket: ConatSocketClient;
   private changefeeds: any[] = [];
+  private state: "ready" | "closed" = "ready";
 
   constructor(
     private client: Client,
@@ -40,11 +41,15 @@ export class PersistStreamClient extends EventEmitter {
     private user: User,
   ) {
     super();
+    // console.log("PersistStreamClient.constructor", this.storage);
     this.init();
   }
 
   private init = throttle(
     () => {
+      if (this.state == "closed") {
+        return;
+      }
       if (this.socket?.state == "ready") {
         return;
       }
@@ -76,6 +81,8 @@ export class PersistStreamClient extends EventEmitter {
   };
 
   close = () => {
+    // console.log("PersistStreamClient.close", this.storage);
+    this.state = "closed";
     for (const iter of this.changefeeds) {
       iter.close();
       this.changefeeds.length = 0;

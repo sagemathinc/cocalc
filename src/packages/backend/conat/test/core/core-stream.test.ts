@@ -15,6 +15,7 @@ import {
 import { wait } from "@cocalc/backend/conat/test/util";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
+import { once } from "@cocalc/util/async-utils";
 
 const EPHEMERAL_LIFETIME = 2000;
 
@@ -435,6 +436,33 @@ describe("test permissions", () => {
     }).rejects.toThrowError("permission denied");
 
     stream.close();
+  });
+});
+
+describe("test creating and closing a core-stream doesn't leak subscriptions", () => {
+  let client;
+  let stream;
+  let name = "sub.count";
+  let subs;
+
+  it("make a new client and count subscriptions", async () => {
+    client = connect();
+    await once(client, "connected");
+    subs = client.numSubscriptions();
+    expect(subs).toBe(1); // the inbox
+  });
+
+  it("creates persistent stream", async () => {
+    stream = await cstream({ client, name, ephemeral: false });
+    await stream.setKv("my", "value");
+    expect(client.numSubscriptions()).toBe(2);
+  });
+
+  it("close the stream and confirm subs returns to 1", async () => {
+    stream.close();
+    await expect(() => {
+      client.numSubscriptions() == 1;
+    });
   });
 });
 

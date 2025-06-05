@@ -1191,6 +1191,7 @@ class SubscriptionEmitter extends EventEmitter {
 
   close = () => {
     this.refCount -= 1;
+    // console.log("SubscriptionEmitter.close - refCount =", this.refCount, this.subject);
     if (this.refCount > 0) {
       return;
     }

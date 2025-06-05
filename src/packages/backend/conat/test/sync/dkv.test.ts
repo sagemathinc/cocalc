@@ -462,4 +462,31 @@ describe("ensure there isn't a really obvious subscription leak", () => {
   });
 });
 
+describe("test creating and closing a dkv doesn't leak subscriptions", () => {
+  let client;
+  let kv;
+  let name = "sub.count";
+  let subs;
+
+  it("make a new client and count subscriptions", async () => {
+    client = connect();
+    await once(client, "connected");
+    subs = client.numSubscriptions();
+    expect(subs).toBe(1); // the inbox
+  });
+
+  it("creates dkv", async () => {
+    kv = await createDkv({ name });
+    kv.set("x", 5);
+    await wait({ until: () => kv.length == 1 });
+  });
+
+  it("close the kv and confirm subs returns to 1", async () => {
+    kv.close();
+    await expect(() => {
+      client.numSubscriptions() == 1;
+    });
+  });
+});
+
 afterAll(after);

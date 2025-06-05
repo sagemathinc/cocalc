@@ -89,11 +89,15 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   protected async run() {
-    // console.log("subscribing to ", `${this.subject}.client.${this.id}`);
+    if (this.state == "closed") {
+      return;
+    }
+    // console.trace("client socket -- subscribing to ", `${this.subject}.client.${this.id}`);
     try {
       this.sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
       );
+      // @ts-ignore
       if (this.state == "closed") {
         return;
       }
@@ -207,6 +211,7 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
+    this.sub?.close();
     this.client.removeListener("connected", this.tcp.send.resendLastUntilAcked);
     this.queuedWrites = [];
     // tell server we're gone (but don't wait)
