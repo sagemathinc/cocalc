@@ -17,7 +17,7 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:conat:* node
     x = await require("@cocalc/project/conat/open-files").init(); Object.keys(x)
 
 
-[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
+[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers', 'cc' ]
 
 > x.openFiles.getAll();
 
@@ -102,6 +102,7 @@ import {
   ComputeServerManager,
 } from "@cocalc/conat/compute/manager";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
+import { connectToConat } from "@cocalc/project/conat/connection";
 
 // ensure conat connection stuff is initialized
 import "@cocalc/project/conat/env";
@@ -183,7 +184,14 @@ export async function init() {
   formatter = await createFormatterService({ openSyncDocs: openDocs });
 
   // useful for development
-  return { openFiles, openDocs, formatter, terminate, computeServers };
+  return {
+    openFiles,
+    openDocs,
+    formatter,
+    terminate,
+    computeServers,
+    cc: await connectToConat(),
+  };
 }
 
 export function terminate() {

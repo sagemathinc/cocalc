@@ -466,7 +466,7 @@ export class CoreStream<T = any> extends EventEmitter {
         // frequently or things are seriously broken.  We cause this in
         //    backend/conat/test/core/core-stream-break.test.ts
         if (!process.env.COCALC_TEST_MODE) {
-          console.log(`WARNING: core-stream -- ${err}`);
+          console.log(`WARNING: core-stream -- ${err}`, this.storage);
         }
       }
       // above loop exists when the persistent server
