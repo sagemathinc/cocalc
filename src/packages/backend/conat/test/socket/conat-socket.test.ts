@@ -394,12 +394,20 @@ describe("create two socket servers with the same subject to test that sockets a
     c2 = connect();
     s1 = c1.socket.listen(subject);
     s1.on("connection", (socket) => {
-      socket.on("data", () => socket.write("s1"));
+      // console.log("s1 got connection");
+      socket.on("data", () => {
+        // console.log("s1 got data");
+        socket.write("s1");
+      });
       socket.on("request", (mesg) => mesg.respond("s1"));
     });
     s2 = c2.socket.listen(subject);
     s2.on("connection", (socket) => {
-      socket.on("data", () => socket.write("s2"));
+      // console.log("s2 got connection");
+      socket.on("data", () => {
+        //        console.log("s2 got data");
+        socket.write("s2");
+      });
       socket.on("request", (mesg) => mesg.respond("s2"));
     });
   });
@@ -427,9 +435,12 @@ describe("create two socket servers with the same subject to test that sockets a
     s3 = c3b.socket.listen(subject);
     let newServerGotConnection = false;
     s3.on("connection", (socket) => {
-      console.log("s3 got a connection");
+      //console.log("s3 got a connection");
       newServerGotConnection = true;
-      socket.on("data", () => socket.write("s3"));
+      socket.on("data", () => {
+        //console.log("s3 got data", { data });
+        socket.write("s3");
+      });
     });
     const iter = client.iter();
     for (let i = 0; i < 25; i++) {
@@ -449,24 +460,18 @@ describe("create two socket servers with the same subject to test that sockets a
     }
   });
 
-  // [ ] TODO: sending the message does trigger failover, but maybe don't drop it,
-  // Instead, the recipient responds to reset the seq starting with that message.
-  // NOT SURE!
-  it.skip("remove the server we're connected to and see that the client connects to another server automatically (albiet after sending one message that gets dropped): this illustrates load balancing and automatic failover", async () => {
+  it("remove the server we're connected to and see that the client connects to another server automatically: this illustrates load balancing and automatic failover", async () => {
     if (resp == "s1") {
       s1.close();
     } else if (resp == "s2") {
       s2.close();
     }
-    console.log("killing another server");
-    client.disconnect();
+    await once(client, "disconnected");
     await once(client, "ready");
     const iter = client.iter();
-    client.write(null);
-    client.write(null);
-    //     await delay(1000);
-    //     client.write(null);
-    // const { value } = await iter.next();
+    client.write("hi");
+    const { value } = await iter.next();
+    expect(value.data).not.toBe(resp);
     //     console.log({ value });
   });
 

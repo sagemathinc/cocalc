@@ -44,7 +44,7 @@ export class ServerSocket extends EventEmitter {
     this.conatSocket.client.on("connected", this.tcp.send.resendLastUntilAcked);
   }
 
-  private initTCP = () => {
+  initTCP() {
     const request = async (mesg, opts?) =>
       await this.conatSocket.client.request(this.clientSubject, mesg, {
         ...opts,
@@ -62,7 +62,7 @@ export class ServerSocket extends EventEmitter {
       // console.log("tcp recv emitted message", mesg.data);
       this.emit("data", mesg.data, mesg.headers);
     });
-  };
+  }
 
   private setState = (state: State) => {
     this.state = state;

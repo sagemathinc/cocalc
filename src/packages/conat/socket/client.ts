@@ -41,10 +41,14 @@ export class ConatSocketClient extends ConatSocketBase {
     }) as ConatSocketClient;
   }
 
-  private initTCP = () => {
+  initTCP() {
     if (this.role == "server") {
       // tcp for the server is on each individual socket.
       return;
+    }
+    if (this.tcp != null) {
+      this.tcp.send.close();
+      this.tcp.recv.close();
     }
     // request = send a socket request mesg to the server ack'ing or
     // asking for a resend of missing data.
@@ -64,7 +68,7 @@ export class ConatSocketClient extends ConatSocketBase {
     this.tcp.recv.on("message", (mesg) => {
       this.emit("data", mesg.data, mesg.headers);
     });
-  };
+  }
 
   private sendCommandToServer = async (
     cmd: "close" | "ping" | "connect",
@@ -92,7 +96,10 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
-    // console.trace("client socket -- subscribing to ", `${this.subject}.client.${this.id}`);
+    //     console.log(
+    //       "client socket -- subscribing to ",
+    //       `${this.subject}.client.${this.id}`,
+    //     );
     try {
       this.sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
@@ -108,6 +115,10 @@ export class ConatSocketClient extends ConatSocketBase {
       this.setState("ready");
       this.clientPing();
       for await (const mesg of this.sub) {
+        //         console.log(
+        //           `${this.subject}.client.${this.id} -- sub message `,
+        //           mesg.data,
+        //         );
         const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
         if (cmd == "socket") {
           this.tcp?.send.handleRequest(mesg);

@@ -11,6 +11,7 @@ import {
   type State,
   DEFAULT_MAX_QUEUE_SIZE,
   type ConatSocketOptions,
+  RECONNECT_DELAY,
 } from "./util";
 import { type ServerSocket } from "./server-socket";
 
@@ -66,6 +67,8 @@ export abstract class ConatSocketBase extends EventEmitter {
 
   abstract end(opts: { timeout?: number });
 
+  protected abstract initTCP();
+
   protected setState = (state: State) => {
     this.state = state;
     this.emit(state);
@@ -103,7 +106,10 @@ export abstract class ConatSocketBase extends EventEmitter {
     }
     this.sockets = {};
     if (this.reconnection) {
-      setTimeout(this.connect, 1000);
+      setTimeout(() => {
+        this.initTCP();
+        this.connect();
+      }, RECONNECT_DELAY);
     }
   };
 

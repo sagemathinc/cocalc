@@ -5,6 +5,8 @@ import { delay } from "awaiting";
 import { type Headers } from "@cocalc/conat/core/client";
 
 export class ConatSocketServer extends ConatSocketBase {
+  initTCP() {}
+
   channel(channel: string) {
     return new ConatSocketServer({
       subject: this.subject + "." + channel,

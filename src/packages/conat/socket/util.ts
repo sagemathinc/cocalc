@@ -36,4 +36,5 @@ export interface ConatSocketOptions {
   reconnection?: boolean;
 }
 
+export const RECONNECT_DELAY = 1000;
 

@@ -1,3 +1,9 @@
+/*
+This is an implementation of the core idea of TCP, i.e.,
+it is a "transmission control protocol", which ensures
+in order exactly once message delivery.
+*/
+
 import { SOCKET_HEADER_SEQ, type Role } from "./util";
 import { EventEmitter } from "events";
 import {
