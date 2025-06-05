@@ -17,10 +17,26 @@ export async function getPort(): Promise<number> {
   });
 }
 
-export async function wait({ until }: { until: Function }) {
-  let d = 5;
-  while (!(await until())) {
+export async function wait({
+  until,
+  start = 5,
+  decay = 1.2,
+  max = 250,
+}: {
+  until: Function;
+  start?: number;
+  decay?: number;
+  max?: number;
+}) {
+  let d = start;
+  while (true) {
+    try {
+      const x = await until();
+      if (x) {
+        return;
+      }
+    } catch {}
     await delay(d);
-    d = Math.min(1000, d * 1.2);
+    d = Math.min(max, d * decay);
   }
 }

@@ -54,6 +54,7 @@ import type {
 import { getStream, SERVICE } from "./util";
 import { throttle } from "lodash";
 import { type SetOptions } from "./client";
+import { once } from "@cocalc/util/async-utils";
 
 const logger = getLogger("persist:server");
 
@@ -86,7 +87,7 @@ export function server({
   }
   const subject = `${SERVICE}.*`;
   const server: ConatSocketServer = client.socket.listen(subject);
-  logger.debug("server: listening in on ", { subject });
+  logger.debug("server: listening on ", { subject });
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -100,7 +101,7 @@ export function server({
     let stream: undefined | PersistentStream = undefined;
     socket.on("data", async (data) => {
       logger.debug("server: got data ", data);
-      if (stream === undefined) {
+      if (stream == null) {
         storage = data.storage;
         changefeed = data.changefeed;
         try {
@@ -111,6 +112,7 @@ export function server({
           if (changefeed) {
             startChangefeed({ socket, stream, messagesThresh });
           }
+          socket.emit("stream-initialized");
         } catch (err) {
           error = `${err}`;
           errorCode = err.code;
@@ -118,6 +120,7 @@ export function server({
       }
     });
     socket.on("closed", () => {
+      logger.debug("socket closed", socket.subject);
       storage = undefined;
       stream?.close();
       stream = undefined;
@@ -125,21 +128,17 @@ export function server({
 
     socket.on("request", async (mesg) => {
       const request = mesg.headers;
-      logger.debug("got request", request);
+      // logger.debug("got request", request);
 
       try {
         if (error) {
           throw new ConatError(error, { code: errorCode });
         }
-        if (storage === undefined || stream === undefined) {
-          // this happens, e.g., when you restart both the persist server and the conat
-          // socketio server together at the same time, so init doesn't work properly.
-          // Just have it reset in this rare case for now (TODO: maybe soemthing better,
-          // e.g., wait for {storage} mesg to arrive since it will once sockets sort out?)
-          mesg.respondSync(null, {
-            headers: { error: "storage must be defined", code: "reset" },
-          });
-          return;
+        if (stream == null) {
+          await once(socket, "stream-initialized", request.timeout ?? 30000);
+        }
+        if (stream == null) {
+          throw Error("bug");
         }
         if (request.cmd == "set") {
           mesg.respondSync(

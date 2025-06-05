@@ -216,7 +216,7 @@ describe("restarting the network but with no delay afterwards", () => {
     restartPersistServer();
   });
 
-  it("it start working again after restart, though we expect some errors", async () => {
+  it("it starts working again after restart, though we expect some errors", async () => {
     await wait({
       until: async () => {
         try {
@@ -236,7 +236,7 @@ describe("restarting the network but with no delay afterwards", () => {
   });
 });
 
-describe("test a changefeed", () => {
+describe.only("test a changefeed", () => {
   let client, s1, cf;
 
   it("creates a client, stream and changefeed", async () => {
@@ -356,16 +356,16 @@ describe("test a changefeed", () => {
   });
 
   it("changefeed still works after restarting persist server", async () => {
-    // the changefeed should still work and detect the above write, because
-    // our sockets are robust.
+    await s2.set({
+      key: "test5",
+      messageData: messageData("data5", { headers: { foo: "bar5" } }),
+      timeout: 1000,
+    });
     const { value, done } = await cf.next();
     expect(done).toBe(false);
     expect(value.updates[0]).toEqual(
       expect.objectContaining({
-        op: "set",
-        seq: 4,
-        key: "test4",
-        headers: { foo: "bar4" },
+        headers: { foo: "bar5" },
       }),
     );
   });

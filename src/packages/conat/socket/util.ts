@@ -19,7 +19,7 @@ export const PING_PONG_INTERVAL = 60000;
 // Any write beyond the last this many are discarded:
 export const DEFAULT_MAX_QUEUE_SIZE = 100;
 
-export const DEFAULT_TIMEOUT = 7500;
+export const DEFAULT_COMMAND_TIMEOUT = 2500;
 
 export type Command = "connect" | "close" | "ping" | "socket";
 
@@ -38,3 +38,8 @@ export interface ConatSocketOptions {
 
 export const RECONNECT_DELAY = 1000;
 
+export function clientSubject(subject: string) {
+  const segments = subject.split(".");
+  segments[segments.length - 2] = "client";
+  return segments.join(".");
+}

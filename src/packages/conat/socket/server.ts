@@ -1,8 +1,16 @@
 import { ConatSocketBase } from "./base";
-import { PING_PONG_INTERVAL, type Command, SOCKET_HEADER_CMD } from "./util";
+import {
+  PING_PONG_INTERVAL,
+  type Command,
+  SOCKET_HEADER_CMD,
+  clientSubject,
+} from "./util";
 import { ServerSocket } from "./server-socket";
 import { delay } from "awaiting";
 import { type Headers } from "@cocalc/conat/core/client";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("socket:server");
 
 export class ConatSocketServer extends ConatSocketBase {
   initTCP() {}
@@ -39,9 +47,26 @@ export class ConatSocketServer extends ConatSocketBase {
       if (this.state == ("closed" as any)) {
         return;
       }
+      const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
       const id = mesg.subject.split(".").slice(-1)[0];
       let socket = this.sockets[id];
+
       if (socket === undefined) {
+        if (cmd == "close") {
+          // already closed
+          continue;
+        }
+        // not connected yet -- anything except a connect message is ignored.
+        if (cmd != "connect") {
+          logger.debug(
+            "ignoring data from not-connected socket -- telling it to close",
+            { id, cmd },
+          );
+          this.client.publishSync(clientSubject(mesg.subject), null, {
+            headers: { [SOCKET_HEADER_CMD]: "close" },
+          });
+          continue;
+        }
         // new connection
         socket = new ServerSocket({
           conatSocket: this,
@@ -51,7 +76,7 @@ export class ConatSocketServer extends ConatSocketBase {
         this.sockets[id] = socket;
         this.emit("connection", socket);
       }
-      const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
+
       if (cmd !== undefined) {
         // note: test this first since it is also a request
         // a special internal control command

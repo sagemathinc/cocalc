@@ -9,11 +9,14 @@ import { type TCP, createTCP } from "./tcp";
 import {
   PING_PONG_INTERVAL,
   SOCKET_HEADER_CMD,
-  DEFAULT_TIMEOUT,
+  DEFAULT_COMMAND_TIMEOUT,
   type ConatSocketOptions,
 } from "./util";
 import { delay } from "awaiting";
 import { EventIterator } from "@cocalc/util/event-iterator";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("socket:client");
 
 export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
@@ -22,6 +25,7 @@ export class ConatSocketClient extends ConatSocketBase {
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
+    logger.debug("creating a client socket connecting to ", this.subject);
     this.initTCP();
     this.on("ready", () => {
       for (const mesg of this.queuedWrites) {
@@ -72,19 +76,20 @@ export class ConatSocketClient extends ConatSocketBase {
 
   private sendCommandToServer = async (
     cmd: "close" | "ping" | "connect",
-    mesg?,
-    timeout?,
+    timeout = DEFAULT_COMMAND_TIMEOUT,
   ) => {
+    logger.debug("sendCommandToServer", { cmd, timeout });
     const headers = {
       [SOCKET_HEADER_CMD]: cmd,
       id: this.id,
     };
     const subject = `${this.subject}.server.${this.id}`;
-    const resp = await this.client.request(subject, mesg ?? null, {
+    const resp = await this.client.request(subject, null, {
       headers,
-      timeout: timeout ?? DEFAULT_TIMEOUT,
+      timeout,
     });
     const value = resp.data;
+    logger.debug("sendCommandToServer: got resp", { cmd, value });
     if (value?.error) {
       throw Error(value?.error);
     } else {
@@ -101,6 +106,7 @@ export class ConatSocketClient extends ConatSocketBase {
     //       `${this.subject}.client.${this.id}`,
     //     );
     try {
+      logger.debug("run: getting subscription");
       this.sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
       );
@@ -108,7 +114,24 @@ export class ConatSocketClient extends ConatSocketBase {
       if (this.state == "closed") {
         return;
       }
-      const resp = await this.sendCommandToServer("connect", null);
+      let resp: any = undefined;
+      let d = 500;
+      while (true) {
+        // @ts-ignore
+        if (this.state == "closed") {
+          logger.debug("closed -- giving up on connecting");
+          return;
+        }
+        try {
+          logger.debug("sending connect command to server");
+          resp = await this.sendCommandToServer("connect");
+          break;
+        } catch (err) {
+          logger.debug("failed to connect", err);
+          await delay(d);
+          d = Math.min(10000, d * 1.3);
+        }
+      }
       if (resp != "connected") {
         throw Error("failed to connect");
       }
@@ -120,6 +143,7 @@ export class ConatSocketClient extends ConatSocketBase {
         //           mesg.data,
         //         );
         const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
+        logger.debug("client got cmd", cmd);
         if (cmd == "socket") {
           this.tcp?.send.handleRequest(mesg);
         } else if (cmd == "close") {
@@ -131,7 +155,8 @@ export class ConatSocketClient extends ConatSocketBase {
           this.tcp?.recv.process(mesg);
         }
       }
-    } catch {
+    } catch (err) {
+      logger.debug("socket connect failed", err);
       this.disconnect();
     }
   }
@@ -213,7 +238,7 @@ export class ConatSocketClient extends ConatSocketBase {
     this.ended = true;
     // tell server we're done
     try {
-      await this.sendCommandToServer("close", undefined, timeout);
+      await this.sendCommandToServer("close", timeout);
     } catch {}
     this.close();
   }
@@ -222,6 +247,7 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
+    this.state = "closed";
     this.sub?.close();
     this.client.removeListener("connected", this.tcp.send.resendLastUntilAcked);
     this.queuedWrites = [];
@@ -250,4 +276,26 @@ export class ConatSocketClient extends ConatSocketBase {
   iter = () => {
     return new EventIterator<[any, Headers]>(this, "data");
   };
+}
+
+export async function retry<T = any>(
+  f,
+  {
+    start = 1000,
+    decay = 1.3,
+    max = 15000,
+  }: {
+    start?: number;
+    decay?: number;
+    max?: number;
+  },
+): Promise<T> {
+  let d = start;
+  while (true) {
+    try {
+      return await f();
+    } catch {}
+    await delay(d);
+    d = Math.min(max, d * decay);
+  }
 }

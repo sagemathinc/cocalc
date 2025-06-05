@@ -48,10 +48,12 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
   it("stops persist server again, but this time starts creating csteam before starting persist server", async () => {
     await persistServer.end({ timeout: 500 });
     stream = null;
+    // start creating the cstream immediately:
     (async () => {
       stream = await cstream({ client, name: "test1" });
     })();
-    await delay(50);
+    // wait before starting the persist server
+    await delay(100);
     persistServer = initPersistServer({ client: pclient });
     await wait({ until: () => stream != null });
     expect(stream.length).toBe(1);
@@ -79,7 +81,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
         try {
           await stream.publish("y");
           return true;
-        } catch {
+        } catch (err) {
           return false;
         }
       },

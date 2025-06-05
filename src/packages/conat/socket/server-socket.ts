@@ -7,7 +7,7 @@ import {
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
-import { SOCKET_HEADER_CMD, type State } from "./util";
+import { SOCKET_HEADER_CMD, type State, clientSubject } from "./util";
 import { type TCP, createTCP } from "./tcp";
 import { type ConatSocketServer } from "./server";
 
@@ -35,9 +35,7 @@ export class ServerSocket extends EventEmitter {
     super();
     this.subject = subject;
     this.conatSocket = conatSocket;
-    const segments = subject.split(".");
-    segments[segments.length - 2] = "client";
-    this.clientSubject = segments.join(".");
+    this.clientSubject = clientSubject(subject);
     this.id = id;
     this.conn = { id };
     this.initTCP();

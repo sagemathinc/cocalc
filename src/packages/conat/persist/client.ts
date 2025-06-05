@@ -18,10 +18,9 @@ import { persistSubject, type User } from "./util";
 import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
-import { throttle } from "lodash";
+import { getLogger } from "@cocalc/conat/client";
 
-//import { getLogger } from "@cocalc/conat/client";
-//const logger = getLogger("persist:client");
+const logger = getLogger("persist:client");
 
 export interface ChangefeedEvent {
   updates: (SetOperation | DeleteOperation)[];
@@ -41,43 +40,36 @@ export class PersistStreamClient extends EventEmitter {
     private user: User,
   ) {
     super();
-    // console.log("PersistStreamClient.constructor", this.storage);
+    logger.debug("constructor", this.storage);
     this.init();
   }
 
-  private init = throttle(
-    () => {
-      if (this.state == "closed") {
-        return;
-      }
-      if (this.socket?.state == "ready") {
-        return;
-      }
-      this.socket?.close();
-
-      this.socket = this.client.socket.connect(persistSubject(this.user), {
-        reconnection: false,
-      });
-      this.socket.write({
-        storage: this.storage,
-        changefeed: this.changefeeds.length > 0,
-      });
-      this.socket.once("disconnected", () => {
-        this.init();
-      });
-      this.socket.once("closed", () => {
-        this.init();
-      });
-      this.socket.on("data", (updates, headers) => {
-        this.emit("changefeed", { updates, seq: headers?.seq });
-      });
-    },
-    3000,
-    { leading: true, trailing: true },
-  );
-
-  private reset = () => {
-    this.socket.close();
+  private init = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.socket?.close();
+    logger.debug(
+      "init",
+      this.storage,
+      "connecting to ",
+      persistSubject(this.user),
+    );
+    this.socket = this.client.socket.connect(persistSubject(this.user), {
+      reconnection: false,
+    });
+    this.socket.write({
+      storage: this.storage,
+      changefeed: this.changefeeds.length > 0,
+    });
+    this.socket.once("disconnected", () => {
+      this.socket.removeListener("closed", this.init);
+      this.init();
+    });
+    this.socket.once("closed", this.init);
+    this.socket.on("data", (updates, headers) => {
+      this.emit("changefeed", { updates, seq: headers?.seq });
+    });
   };
 
   close = () => {
@@ -130,6 +122,7 @@ export class PersistStreamClient extends EventEmitter {
           ttl,
           previousSeq,
           msgID,
+          timeout,
         },
         timeout,
       }),
@@ -146,6 +139,7 @@ export class PersistStreamClient extends EventEmitter {
       await this.socket.request(ops, {
         headers: {
           cmd: "setMany",
+          timeout,
         },
         timeout,
       }),
@@ -170,6 +164,7 @@ export class PersistStreamClient extends EventEmitter {
           seq,
           last_seq,
           all,
+          timeout,
         },
         timeout,
       }),
@@ -188,6 +183,7 @@ export class PersistStreamClient extends EventEmitter {
         headers: {
           cmd: "config",
           config,
+          timeout,
         } as any,
         timeout,
       }),
@@ -205,7 +201,7 @@ export class PersistStreamClient extends EventEmitter {
     | { key: string; seq?: undefined }
   )): Promise<ConatMessage | undefined> => {
     const resp = await this.socket.request(null, {
-      headers: { cmd: "get", seq, key } as any,
+      headers: { cmd: "get", seq, key, timeout } as any,
       timeout,
     });
     this.checkForError(resp, true);
@@ -232,6 +228,7 @@ export class PersistStreamClient extends EventEmitter {
         cmd: "getAll",
         start_seq,
         end_seq,
+        timeout,
       } as any,
       timeout,
       maxWait,
@@ -251,7 +248,7 @@ export class PersistStreamClient extends EventEmitter {
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
     return this.checkForError(
       await this.socket.request(null, {
-        headers: { cmd: "keys" } as any,
+        headers: { cmd: "keys", timeout } as any,
         timeout,
       }),
     );
@@ -281,9 +278,6 @@ export class PersistStreamClient extends EventEmitter {
   private checkForError = (mesg, noReturn = false) => {
     if (mesg.headers != null) {
       const { error, code } = mesg.headers;
-      if (code == "reset") {
-        this.reset();
-      }
       if (error || code) {
         throw new ConatError(error ?? "error", { code });
       }
