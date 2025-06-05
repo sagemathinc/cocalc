@@ -50,6 +50,10 @@ import {
   type SetOptions,
 } from "@cocalc/conat/persist/client";
 import { delay } from "awaiting";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+const log = (..._args) => {};
+//const log = console.log;
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -216,8 +220,7 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
     // NOTE: if we miss a message between getAllFromLeader and when we start listening,
-    // then the sequence number will have a gap, and we'll immediately reconnect, starting
-    // at the right point. So no data can possibly be lost.
+    // it will get filled in, due to sequence number tracking.
     this.listen();
   };
 
@@ -259,9 +262,10 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("bug -- storage must be set");
     }
     let d = 750;
+
     while (this.client != null) {
       try {
-        // console.log("get persistent stream", { start_seq });
+        // console.log("get persistent stream", { start_seq }, this.storage);
         const sub = await this.persistClient.getAll({
           start_seq,
         });
@@ -272,7 +276,10 @@ export class CoreStream<T = any> extends EventEmitter {
             return;
           }
           const messages = value as StoredMessage[];
-          const seq = this.processPersistentMessages(messages, noEmit);
+          const seq = this.processPersistentMessages(messages, {
+            noEmit,
+            noSeqCheck: true,
+          });
           if (seq != null) {
             // we update start_seq in case we need to try again
             start_seq = seq! + 1;
@@ -294,7 +301,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private processPersistentMessages = (
     messages: (SetOperation | DeleteOperation | StoredMessage)[],
-    noEmit?: boolean,
+    opts: { noEmit?: boolean; noSeqCheck?: boolean },
   ) => {
     // console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
@@ -304,7 +311,7 @@ export class CoreStream<T = any> extends EventEmitter {
     let seq = undefined;
     for (const mesg of messages) {
       try {
-        this.processPersistentMessage(mesg, noEmit);
+        this.processPersistentMessage(mesg, opts);
         if (mesg["seq"] != null) {
           seq = mesg["seq"];
         }
@@ -317,19 +324,19 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private processPersistentMessage = (
     mesg: SetOperation | DeleteOperation | StoredMessage,
-    noEmit?: boolean,
+    opts: { noEmit?: boolean; noSeqCheck?: boolean },
   ) => {
     if ((mesg as DeleteOperation).op == "delete") {
-      this.processPersistentDelete(mesg as DeleteOperation, noEmit);
+      this.processPersistentDelete(mesg as DeleteOperation, opts);
     } else {
       // set is the default
-      this.processPersistentSet(mesg as SetOperation, noEmit);
+      this.processPersistentSet(mesg as SetOperation, opts);
     }
   };
 
   private processPersistentDelete = (
     { seqs }: DeleteOperation,
-    noEmit?: boolean,
+    { noEmit }: { noEmit?: boolean },
   ) => {
     //console.log("processPersistentDelete", seqs);
     const X = new Set<number>(seqs);
@@ -382,10 +389,38 @@ export class CoreStream<T = any> extends EventEmitter {
     }
   };
 
+  private processPersistentSetLargestSeq: number = 0;
+  private missingMessages = new Set<number>();
   private processPersistentSet = (
     { seq, time, key, encoding, raw: data, headers, msgID }: SetOperation,
-    noEmit?: boolean,
+    {
+      noEmit,
+      noSeqCheck,
+    }: {
+      noEmit?: boolean;
+      noSeqCheck?: boolean;
+    },
   ) => {
+    if (!noSeqCheck && this.processPersistentSetLargestSeq > 0) {
+      const expected = this.processPersistentSetLargestSeq + 1;
+      if (seq > expected) {
+        log(
+          "processPersistentSet -- detected missed seq number",
+          { seq, expected: this.processPersistentSetLargestSeq + 1 },
+          this.storage,
+        );
+        // We record that some are missing.
+        for (let s = expected; s <= seq - 1; s++) {
+          this.missingMessages.add(s);
+          this.getAllMissingMessages();
+        }
+      }
+    }
+
+    if (seq > this.processPersistentSetLargestSeq) {
+      this.processPersistentSetLargestSeq = seq;
+    }
+
     const mesg = decode({ encoding, data });
     const raw = {
       timestamp: time,
@@ -439,45 +474,41 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
+    log("core-stream: listen", this.storage);
     let d = 250;
     while (this.client != null) {
-      let lastSeq: number | undefined = undefined;
       try {
+        log("core-stream: start listening on changefeed", this.storage);
         const changefeed = await this.persistClient.changefeed();
-        for await (const {
-          updates,
-          seq,
-        } of changefeed) {
+        for await (const { updates } of changefeed) {
+          log("core-stream: process updates", updates, this.storage);
           if (this.client == null) {
             return;
           }
-          if (lastSeq === undefined) {
-            lastSeq = seq;
-          } else {
-            if (lastSeq + 1 != seq) {
-              // Expected to happen on reconnects -- in this case
-              // we exit the changefeed, which triggers catch up
-              // and making another changefeed.
-              changefeed.close();
-              break;
-            } else {
-              lastSeq = seq;
-            }
-          }
-          this.processPersistentMessages(updates, false);
+          this.processPersistentMessages(updates, {
+            noEmit: false,
+            noSeqCheck: false,
+          });
         }
       } catch (err) {
         // This normally doesn't happen but could if a persist server is being restarted
         // frequently or things are seriously broken.  We cause this in
         //    backend/conat/test/core/core-stream-break.test.ts
         if (!process.env.COCALC_TEST_MODE) {
-          console.log(`WARNING: core-stream -- ${err}`, this.storage);
+          log(
+            `WARNING: core-stream changefeed error -- ${err}`,
+            this.storage,
+          );
         }
       }
-      // above loop exists when the persistent server
+      // above loop exits when the persistent server
       // stops sending messages for some reason. In that
       // case we reconnect, picking up where we left off:
       if (this.client == null) return;
+      log(
+        "core-stream: get missing from when changefeed ended",
+        this.storage,
+      );
       await this.getAllFromPersist({
         start_seq: this.lastSeq + 1,
         noEmit: false,
@@ -677,10 +708,42 @@ export class CoreStream<T = any> extends EventEmitter {
       start_seq,
       end_seq,
     });
-    for await (const messages of sub) {
-      this.processPersistentMessages(messages, noEmit);
+    for await (const updates of sub) {
+      this.processPersistentMessages(updates, { noEmit, noSeqCheck: true });
     }
   };
+
+  private getAllMissingMessages = reuseInFlight(async () => {
+    let d = 1000;
+    while (this.missingMessages.size > 0) {
+      try {
+        const missing = Array.from(this.missingMessages);
+        missing.sort();
+        log("core-stream: getMissingSeq", missing, this.storage);
+        const sub = await this.persistClient.getAll({
+          start_seq: missing[0],
+          end_seq: missing[missing.length - 1],
+        });
+        for await (const updates of sub) {
+          this.processPersistentMessages(updates, {
+            noEmit: false,
+            noSeqCheck: true,
+          });
+        }
+        for (const seq of missing) {
+          this.missingMessages.delete(seq);
+        }
+      } catch (err) {
+        log(
+          "core-stream: WARNING -- issue getting missing updates",
+          err,
+          this.storage,
+        );
+        d = Math.min(d * 1.3, 15000);
+      }
+      await delay(d);
+    }
+  });
 
   // get server assigned time of n-th message in stream
   time = (n: number): Date | undefined => {
