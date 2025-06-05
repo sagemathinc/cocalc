@@ -443,10 +443,11 @@ export class CoreStream<T = any> extends EventEmitter {
     while (this.client != null) {
       let lastSeq: number | undefined = undefined;
       try {
+        const changefeed = await this.persistClient.changefeed();
         for await (const {
           updates,
           seq,
-        } of await this.persistClient.changefeed()) {
+        } of changefeed) {
           if (this.client == null) {
             return;
           }
@@ -454,7 +455,11 @@ export class CoreStream<T = any> extends EventEmitter {
             lastSeq = seq;
           } else {
             if (lastSeq + 1 != seq) {
-              throw Error("missed a seq in changefeed");
+              // Expected to happen on reconnects -- in this case
+              // we exit the changefeed, which triggers catch up
+              // and making another changefeed.
+              changefeed.close();
+              break;
             } else {
               lastSeq = seq;
             }
