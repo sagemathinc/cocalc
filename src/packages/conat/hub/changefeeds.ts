@@ -9,6 +9,9 @@ const logger = getLogger("hub:changefeeds");
 const SERVICE = "changefeeds";
 const SUBJECT = "changefeeds.*";
 
+const MAX_PER_ACCOUNT = 200;
+const numPerAccount: { [account_id: string]: number } = {};
+
 export function changefeedServer({
   client,
   userQuery,
@@ -27,12 +30,44 @@ export function changefeedServer({
   cancelQuery: (uuid: string) => void;
 }): ConatSocketServer {
   logger.debug("creating changefeed server");
-  const server = client.socket.listen(SUBJECT);
+  const server = client.socket.listen(SUBJECT, {
+    keepAlive: 15000,
+    keepAliveTimeout: 10000,
+  });
+  let numConnections = 0;
 
   server.on("connection", (socket) => {
     const account_id = socket.subject.split(".")[1].slice("account-".length);
+    if ((numPerAccount[account_id] ?? 0) >= MAX_PER_ACCOUNT) {
+      logger.debug("limit", {
+        account_id,
+        global: numConnections,
+        account: numPerAccount[account_id],
+      });
+      try {
+        socket.write({
+          error: `there is a limit of ${MAX_PER_ACCOUNT} changefeeds per account`,
+        });
+      } catch {}
+      socket.close();
+    }
+    numPerAccount[account_id] = (numPerAccount[account_id] ?? 0) + 1;
+    numConnections++;
+    logger.debug("new connection", {
+      account_id,
+      global: numConnections,
+      account: numPerAccount[account_id],
+    });
+
     const changes = uuid();
     socket.on("closed", () => {
+      numConnections--;
+      numPerAccount[account_id] = (numPerAccount[account_id] ?? 0) - 1;
+      logger.debug("close connection ", {
+        account_id,
+        global: numConnections,
+        account: numPerAccount[account_id],
+      });
       cancelQuery(changes);
     });
     socket.on("data", (data) => {
@@ -45,7 +80,13 @@ export function changefeedServer({
           account_id,
           cb: (error, update) => {
             // logger.debug("got: ", { error, update });
-            socket.write({ error, update });
+            try {
+              socket.write({ error, update });
+            } catch (err) {
+              // happens if buffer is full or socket is closed.  in both cases, might was well
+              // just close the socket.
+              error = `${err}`;
+            }
             if (error) {
               socket.close();
             }
@@ -53,10 +94,15 @@ export function changefeedServer({
         });
       } catch (err) {
         logger.debug("error creating query", err);
-        socket.write({ error: `${err}` });
+        try {
+          socket.write({ error: `${err}` });
+        } catch {}
         socket.close();
       }
     });
+  });
+  server.on("close", () => {
+    logger.debug("shutting down changefeed server");
   });
 
   return server;
@@ -83,6 +129,8 @@ export function changefeed({
 }) {
   const socket = client.socket.connect(changefeedSubject({ account_id }), {
     reconnection: false,
+    keepAlive: 60000,
+    keepAliveTimeout: 7500,
   });
   logger.debug("creating changefeed", { query, options });
   socket.write({ query, options });

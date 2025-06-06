@@ -23,21 +23,32 @@ export const PING_PONG_INTERVAL = 60000;
 // any size.
 export const DEFAULT_MAX_QUEUE_SIZE = 1000;
 
-export const DEFAULT_COMMAND_TIMEOUT = 2500;
+export const DEFAULT_COMMAND_TIMEOUT = 3000;
+
+export const DEFAULT_KEEP_ALIVE = 30000;
+export const DEFAULT_KEEP_ALIVE_TIMEOUT = 10000;
 
 export type Command = "connect" | "close" | "ping" | "socket";
 
 import { type Client } from "@cocalc/conat/core/client";
 
-export interface ConatSocketOptions {
-  subject: string;
-  client: Client;
-  role: Role;
-  id: string;
+export interface SocketConfiguration {
   maxQueueSize?: number;
   // (Default: true) Whether reconnection is enabled or not.
   // If set to false, you need to manually reconnect:
   reconnection?: boolean;
+  // ping other end of the socket if no data is received for keepAlive ms;
+  // if other side doesn't respond within keepAliveTimeout, then the
+  // connection switches to the 'disconnected' state.
+  keepAlive?: number; // default: 30s
+  keepAliveTimeout?: number; // default: 10s}
+}
+
+export interface ConatSocketOptions extends SocketConfiguration {
+  subject: string;
+  client: Client;
+  role: Role;
+  id: string;
 }
 
 export const RECONNECT_DELAY = 1000;

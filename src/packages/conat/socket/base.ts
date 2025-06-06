@@ -12,6 +12,8 @@ import {
   DEFAULT_MAX_QUEUE_SIZE,
   type ConatSocketOptions,
   RECONNECT_DELAY,
+  DEFAULT_KEEP_ALIVE,
+  DEFAULT_KEEP_ALIVE_TIMEOUT,
 } from "./util";
 import { type ServerSocket } from "./server-socket";
 
@@ -32,6 +34,8 @@ export abstract class ConatSocketBase extends EventEmitter {
   reconnection: boolean;
   ended: boolean = false;
   maxQueueSize: number;
+  keepAlive: number;
+  keepAliveTimeout: number;
 
   // the following is all for compat with primus's api and has no meaning here.
   address = { ip: "" };
@@ -48,6 +52,8 @@ export abstract class ConatSocketBase extends EventEmitter {
     id,
     reconnection = true,
     maxQueueSize = DEFAULT_MAX_QUEUE_SIZE,
+    keepAlive = DEFAULT_KEEP_ALIVE,
+    keepAliveTimeout = DEFAULT_KEEP_ALIVE_TIMEOUT,
   }: ConatSocketOptions) {
     super();
     this.maxQueueSize = maxQueueSize;
@@ -57,6 +63,8 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.client.on("closed", this.close);
     this.role = role;
     this.id = id;
+    this.keepAlive = keepAlive;
+    this.keepAliveTimeout = keepAliveTimeout;
     this.conn = { id };
     this.connect();
   }

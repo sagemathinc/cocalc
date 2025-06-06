@@ -151,9 +151,16 @@ export class ConatSocketServer extends ConatSocketBase {
   }) => {
     socket.lastPing = Date.now();
     if (cmd == "socket") {
-      socket.tcp.send.handleRequest(mesg);
+      socket.tcp?.send.handleRequest(mesg);
     } else if (cmd == "ping") {
-      mesg.respondSync("pong");
+      if (socket.state == "ready") {
+        // ONLY respond to ping for a server socket if that socket is
+        // actually ready!   ping's are meant to check whether the server
+        // socket views itself as connected right now. If not, connected,
+        // ping should timeout
+        logger.debug("responding to ping from client", socket.id);
+        mesg.respondSync(null);
+      }
     } else if (cmd == "close") {
       const id = socket.id;
       socket.close();

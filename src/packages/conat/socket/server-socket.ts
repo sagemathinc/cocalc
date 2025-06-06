@@ -11,6 +11,10 @@ import { once } from "@cocalc/util/async-utils";
 import { SOCKET_HEADER_CMD, type State, clientSubject } from "./util";
 import { type TCP, createTCP } from "./tcp";
 import { type ConatSocketServer } from "./server";
+import { keepAlive, KeepAlive } from "./keepalive";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("socket:server-socket");
 
 // One specific socket from the point of view of a server.
 export class ServerSocket extends EventEmitter {
@@ -30,7 +34,8 @@ export class ServerSocket extends EventEmitter {
   // conn is just for compatibility with primus/socketio (?).
   public readonly conn: { id: string };
 
-  public tcp: TCP;
+  public tcp?: TCP;
+  private alive?: KeepAlive;
 
   constructor({ conatSocket, id, subject }) {
     super();
@@ -40,8 +45,26 @@ export class ServerSocket extends EventEmitter {
     this.id = id;
     this.conn = { id };
     this.initTCP();
-    this.conatSocket.client.on("connected", this.tcp.send.resendLastUntilAcked);
+    if (this.tcp == null) {
+      throw Error("bug");
+    }
+    this.initKeepAlive();
   }
+
+  private initKeepAlive = () => {
+    this.alive?.close();
+    this.alive = keepAlive({
+      role: "server",
+      ping: async () => {
+        await this.request(null, {
+          headers: { [SOCKET_HEADER_CMD]: "ping" },
+          timeout: this.conatSocket.keepAliveTimeout,
+        });
+      },
+      disconnect: this.close,
+      keepAlive: this.conatSocket.keepAlive,
+    });
+  };
 
   initTCP() {
     const request = async (mesg, opts?) =>
@@ -49,6 +72,14 @@ export class ServerSocket extends EventEmitter {
         ...opts,
         headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
       });
+    if (this.tcp != null) {
+      this.conatSocket.client.removeListener(
+        "connected",
+        this.tcp.send.resendLastUntilAcked,
+      );
+      this.tcp.send.close();
+      this.tcp.recv.close();
+    }
 
     this.tcp = createTCP({
       request,
@@ -57,6 +88,7 @@ export class ServerSocket extends EventEmitter {
       send: this.send,
       size: this.conatSocket.maxQueueSize,
     });
+    this.conatSocket.client.on("connected", this.tcp.send.resendLastUntilAcked);
 
     this.tcp.recv.on("message", (mesg) => {
       // console.log("tcp recv emitted message", mesg.data);
@@ -99,19 +131,20 @@ export class ServerSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.conatSocket.client.removeListener(
-      "connected",
-      this.tcp.send.resendLastUntilAcked,
-    );
     this.conatSocket.client.publishSync(this.clientSubject, null, {
       headers: { [SOCKET_HEADER_CMD]: "close" },
     });
+
     if (this.tcp != null) {
       this.tcp.send.close();
       this.tcp.recv.close();
       // @ts-ignore
       delete this.tcp;
     }
+
+    this.alive?.close();
+    delete this.alive;
+
     this.queuedWrites = [];
     this.setState("closed");
     this.removeAllListeners();
@@ -121,6 +154,7 @@ export class ServerSocket extends EventEmitter {
   };
 
   receiveDataFromClient = (mesg) => {
+    this.alive?.recv();
     this.tcp?.recv.process(mesg);
   };
 
@@ -160,6 +194,7 @@ export class ServerSocket extends EventEmitter {
   // use request reply where the client responds
   request = async (data, options?) => {
     this.waitUntilReady(options?.timeout);
+    logger.debug("server sending request to ", this.clientSubject);
     return await this.conatSocket.client.request(
       this.clientSubject,
       data,

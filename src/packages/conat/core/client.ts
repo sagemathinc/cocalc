@@ -228,6 +228,7 @@ import {
   ConatSocketServer,
   ConatSocketClient,
   ServerSocket,
+  type SocketConfiguration,
 } from "@cocalc/conat/socket";
 export { type ConatSocketServer, ConatSocketClient, ServerSocket };
 import {
@@ -1082,10 +1083,7 @@ export class Client extends EventEmitter {
   };
 
   socket = {
-    listen: (
-      subject: string,
-      opts?: { maxQueueSize?: number; reconnection?: boolean },
-    ): ConatSocketServer =>
+    listen: (subject: string, opts?: SocketConfiguration): ConatSocketServer =>
       new ConatSocketServer({
         subject,
         role: "server",
@@ -1094,10 +1092,7 @@ export class Client extends EventEmitter {
         ...opts,
       }),
 
-    connect: (
-      subject: string,
-      opts?: { maxQueueSize?: number; reconnection?: boolean; init?: any },
-    ): ConatSocketClient =>
+    connect: (subject: string, opts?: SocketConfiguration): ConatSocketClient =>
       new ConatSocketClient({
         subject,
         role: "client",

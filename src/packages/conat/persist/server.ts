@@ -100,7 +100,7 @@ export function server({
     let storage: undefined | StorageOptions = undefined;
     let stream: undefined | PersistentStream = undefined;
     socket.on("data", async (data) => {
-      logger.debug("server: got data ", data);
+      // logger.debug("server: got data ", data);
       if (stream == null) {
         storage = data.storage;
         changefeed = data.changefeed;

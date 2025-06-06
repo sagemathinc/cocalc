@@ -30,8 +30,8 @@ export function createTCP({ request, send, reset, role, size }): TCP {
 }
 
 export class Receiver extends EventEmitter {
-  private incoming: { [id: number]: MessageData } = {};
-  private seq: {
+  private incoming?: { [id: number]: MessageData } = {};
+  private seq?: {
     // next = seq of the next message we should emit
     next: number;
     // emitted = seq of the last message we actually did emit
@@ -52,13 +52,12 @@ export class Receiver extends EventEmitter {
 
   close = () => {
     this.removeAllListeners();
-    // @ts-ignore
     delete this.incoming;
-    // @ts-ignore
     delete this.seq;
   };
 
   process = (mesg: MessageData) => {
+    if(this.seq === undefined || this.incoming === undefined) return;
     const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
     // console.log(this.role, "recv", { data: mesg.data, seq });
     if (typeof seq != "number" || seq < 1) {
@@ -81,6 +80,7 @@ export class Receiver extends EventEmitter {
   };
 
   emitMessage = (mesg, seq) => {
+    if(this.seq === undefined) return;
     if (seq != this.seq.next) {
       throw Error("message sequence is wrong");
     }
@@ -97,6 +97,7 @@ export class Receiver extends EventEmitter {
   };
 
   fetchMissing = reuseInFlight(async () => {
+    if(this.seq === undefined || this.incoming === undefined) return;
     const missing: number[] = [];
     for (let seq = this.seq.next; seq <= this.seq.largest; seq++) {
       if (this.incoming[seq] === undefined) {
@@ -133,6 +134,7 @@ export class Receiver extends EventEmitter {
   });
 
   emitIncoming = () => {
+    if(this.seq === undefined || this.incoming === undefined) return;
     // also emit any incoming that comes next
     let seq = this.seq.next;
     while (this.incoming[seq] != null && this.seq != null) {
@@ -145,6 +147,7 @@ export class Receiver extends EventEmitter {
   };
 
   reportReceived = async () => {
+    if(this.seq === undefined) return;
     if (this.seq.reported >= this.seq.emitted) {
       // nothing to report
       return;

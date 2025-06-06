@@ -4,25 +4,24 @@ import {
   type Headers,
   ConatError,
 } from "@cocalc/conat/core/client";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatSocketBase } from "./base";
 import { type TCP, createTCP } from "./tcp";
 import {
-  PING_PONG_INTERVAL,
   SOCKET_HEADER_CMD,
   DEFAULT_COMMAND_TIMEOUT,
   type ConatSocketOptions,
 } from "./util";
 import { delay } from "awaiting";
 import { EventIterator } from "@cocalc/util/event-iterator";
+import { keepAlive, KeepAlive } from "./keepalive";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("socket:client");
 
 export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
-
-  private tcp: TCP;
+  private tcp?: TCP;
+  private alive?: KeepAlive;
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
@@ -33,7 +32,9 @@ export class ConatSocketClient extends ConatSocketBase {
         this.sendDataToServer(mesg);
       }
     });
-    this.client.on("connected", this.tcp.send.resendLastUntilAcked);
+    if (this.tcp == null) {
+      throw Error("bug");
+    }
   }
 
   channel(channel: string) {
@@ -46,17 +47,35 @@ export class ConatSocketClient extends ConatSocketBase {
     }) as ConatSocketClient;
   }
 
+  private initKeepAlive = () => {
+    this.alive?.close();
+    this.alive = keepAlive({
+      role: "client",
+      ping: async () =>
+        await this.request(null, {
+          headers: { [SOCKET_HEADER_CMD]: "ping" },
+          timeout: this.keepAliveTimeout,
+        }),
+      disconnect: this.disconnect,
+      keepAlive: this.keepAlive,
+    });
+  };
+
   initTCP() {
     if (this.role == "server") {
       // tcp for the server is on each individual socket.
       return;
     }
     if (this.tcp != null) {
+      this.client.removeListener(
+        "connected",
+        this.tcp.send.resendLastUntilAcked,
+      );
       this.tcp.send.close();
       this.tcp.recv.close();
     }
-    // request = send a socket request mesg to the server ack'ing or
-    // asking for a resend of missing data.
+    // request = send a socket request mesg to the server side of the socket
+    // either ack what's received or asking for a resend of missing data.
     const request = async (mesg, opts?) =>
       await this.client.request(`${this.subject}.server.${this.id}`, mesg, {
         ...opts,
@@ -70,6 +89,8 @@ export class ConatSocketClient extends ConatSocketBase {
       send: this.sendToServer,
       size: this.maxQueueSize,
     });
+
+    this.client.on("connected", this.tcp.send.resendLastUntilAcked);
 
     this.tcp.recv.on("message", (mesg) => {
       this.emit("data", mesg.data, mesg.headers);
@@ -130,6 +151,7 @@ export class ConatSocketClient extends ConatSocketBase {
         try {
           logger.debug("sending connect command to server");
           resp = await this.sendCommandToServer("connect");
+          this.alive?.recv();
           break;
         } catch (err) {
           logger.debug("failed to connect", err);
@@ -141,12 +163,9 @@ export class ConatSocketClient extends ConatSocketBase {
         throw Error("failed to connect");
       }
       this.setState("ready");
-      this.clientPing();
+      this.initKeepAlive();
       for await (const mesg of this.sub) {
-        //         console.log(
-        //           `${this.subject}.client.${this.id} -- sub message `,
-        //           mesg.data,
-        //         );
+        this.alive?.recv();
         const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
         logger.debug("client got cmd", cmd);
         if (cmd == "socket") {
@@ -154,6 +173,9 @@ export class ConatSocketClient extends ConatSocketBase {
         } else if (cmd == "close") {
           this.disconnect();
           return;
+        } else if (cmd == "ping") {
+          logger.debug("responding to ping from server", this.id);
+          mesg.respond(null);
         } else if (mesg.isRequest()) {
           this.emit("request", mesg);
         } else {
@@ -165,31 +187,6 @@ export class ConatSocketClient extends ConatSocketBase {
       this.disconnect();
     }
   }
-
-  // we send pings to the server and it responds with a pong.
-  // if response fails, reconnect.
-  private clientPing = reuseInFlight(async () => {
-    while (this.state != "closed") {
-      if (this.state == "ready") {
-        try {
-          // console.log("client: sending a ping");
-          const x = await this.sendCommandToServer("ping");
-          // console.log("client: sending a ping got back ", x);
-          if (x != "pong") {
-            throw Error("ping failed");
-          }
-        } catch (err) {
-          // console.log("client: sending a ping error ", err);
-          //console.log("ping failed");
-          // if sending ping fails, disconnect
-          this.disconnect();
-          return;
-        }
-      }
-      // console.log("waiting ", PING_PONG_INTERVAL);
-      await delay(PING_PONG_INTERVAL);
-    }
-  });
 
   private sendDataToServer = (mesg) => {
     const subject = `${this.subject}.server.${this.id}`;
@@ -254,7 +251,12 @@ export class ConatSocketClient extends ConatSocketBase {
     }
     this.state = "closed";
     this.sub?.close();
-    this.client.removeListener("connected", this.tcp.send.resendLastUntilAcked);
+    if (this.tcp != null) {
+      this.client.removeListener(
+        "connected",
+        this.tcp.send.resendLastUntilAcked,
+      );
+    }
     this.queuedWrites = [];
     // tell server we're gone (but don't wait)
     (async () => {
@@ -262,10 +264,14 @@ export class ConatSocketClient extends ConatSocketBase {
         await this.sendCommandToServer("close");
       } catch {}
     })();
-    this.tcp.send.close();
-    this.tcp.recv.close();
-    // @ts-ignore
-    delete this.tcp;
+    if (this.tcp != null) {
+      this.tcp.send.close();
+      this.tcp.recv.close();
+      // @ts-ignore
+      delete this.tcp;
+    }
+    this.alive?.close();
+    delete this.alive;
     super.close();
   }
 
