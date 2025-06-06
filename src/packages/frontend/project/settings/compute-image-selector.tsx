@@ -15,6 +15,7 @@ import {
   DescriptionsProps,
   Divider,
   Dropdown,
+  Flex,
   MenuProps,
   Modal,
   Row,
@@ -31,7 +32,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
-  A,
   Gap,
   HelpIcon,
   Icon,
@@ -45,6 +45,7 @@ import { CancelText } from "@cocalc/frontend/i18n/components";
 import { capitalize, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
+import { SoftwareEnvironmentInformation } from "./software-env-info";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -75,23 +76,22 @@ interface ComputeImageSelectorProps {
   label?: string; // the "okText" on the main button
   changing?: boolean;
   customSwitch?: JSX.Element;
+  hideSelector?: boolean;
 }
 
 export function ComputeImageSelector({
   current_image,
   onSelect,
   layout,
-  disabled: propsDisabled,
-  size: propsSize,
+  disabled = false,
+  size = "small",
   label: propsLabel,
   changing = false,
   customSwitch,
+  hideSelector = false,
 }: ComputeImageSelectorProps) {
   const intl = useIntl();
-  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
 
-  const disabled = propsDisabled ?? false;
-  const size = propsSize ?? "small";
   const label = propsLabel ?? capitalize(intl.formatMessage(labels.select));
 
   // initialize with the given default
@@ -190,9 +190,12 @@ export function ComputeImageSelector({
   }
 
   function render_selector() {
+    // returning a placeholder to keep the switch on the right in place
+    if (hideSelector) return <span></span>;
+
     return (
       <Dropdown menu={getMenu()} trigger={["click"]} disabled={disabled}>
-        <Button size={size} disabled={disabled}>
+        <Button size={size} disabled={disabled} block={layout === "dropdown"}>
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
@@ -301,62 +304,7 @@ export function ComputeImageSelector({
       <>
         <Descriptions bordered column={1} size={"small"} items={items} />
         <Divider />
-        <Paragraph>
-          <FormattedMessage
-            id="project.settings.compute-image-selector.software-env-info"
-            defaultMessage={`The selected software environment provides all the software, this project can make use of.
-            If you need additional software, you can either install it in the project or contact support.
-            Learn about <A1>installing Python packages</A1>,
-            <A2>Python Jupyter Kernel</A2>,
-            <A3>R Packages</A3> and <A4>Julia packages</A4>.`}
-            values={{
-              A1: (c) => (
-                <A
-                  href={"https://doc.cocalc.com/howto/install-python-lib.html"}
-                >
-                  {c}
-                </A>
-              ),
-              A2: (c) => (
-                <A
-                  href={
-                    "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
-                  }
-                >
-                  {c}
-                </A>
-              ),
-              A3: (c) => (
-                <A href={"https://doc.cocalc.com/howto/install-r-package.html"}>
-                  {c}
-                </A>
-              ),
-              A4: (c) => (
-                <A
-                  href={
-                    "https://doc.cocalc.com/howto/install-julia-package.html"
-                  }
-                >
-                  {c}
-                </A>
-              ),
-            }}
-          />
-        </Paragraph>
-        {isCoCalcCom ? (
-          <Paragraph>
-            <FormattedMessage
-              id="project.settings.compute-image-selector.software-env-info.cocalc_com"
-              defaultMessage={`Learn more about specific environments in the <A1>software inventory</A1>.
-              Snapshots of what has been available at a specific point in time
-              are available for each line of environments.
-              Only the current default environment is updated regularly.`}
-              values={{
-                A1: (c) => <A href={"https://cocalc.com/software/"}>{c}</A>,
-              }}
-            />
-          </Paragraph>
-        ) : undefined}
+        <SoftwareEnvironmentInformation />
       </>
     );
   }
@@ -389,10 +337,10 @@ export function ComputeImageSelector({
     // used in projects → create new project
     case "dropdown":
       return (
-        <Space direction="horizontal" size="small">
+        <Flex vertical={false} justify={"space-between"} align={"center"}>
           {render_selector()}
           {customSwitch ? customSwitch : undefined}
-        </Space>
+        </Flex>
       );
     // successor of "vertical", where there is a dialog with a clear indication to click a button
     case "dialog":

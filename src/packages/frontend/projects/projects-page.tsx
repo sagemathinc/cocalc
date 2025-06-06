@@ -123,7 +123,7 @@ export const ProjectsPage: React.FC = () => {
         style={{ margin: "15px auto", maxWidth: "900px" }}
       >
         <NewProjectCreator
-          start_in_edit_mode={n === 0}
+          noProjects={n === 0}
           default_value={search || `Untitled ${ts}`}
         />
       </div>

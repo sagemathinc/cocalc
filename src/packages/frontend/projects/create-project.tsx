@@ -7,11 +7,11 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Row, Space } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row, Space } from "antd";
 import { delay } from "awaiting";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
-import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -22,13 +22,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  A,
-  ErrorDisplay,
-  Gap,
-  Paragraph,
-  Icon,
-} from "@cocalc/frontend/components";
+import { A, ErrorDisplay, Icon, Paragraph } from "@cocalc/frontend/components";
 import {
   derive_project_img_name,
   SoftwareEnvironment,
@@ -52,21 +46,16 @@ const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
 const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 
 interface Props {
-  start_in_edit_mode?: boolean;
+  noProjects?: boolean;
   default_value?: string;
 }
 
 type EditState = "edit" | "view" | "saving";
 
-export function NewProjectCreator({
-  start_in_edit_mode,
-  default_value,
-}: Props) {
+export function NewProjectCreator({ noProjects, default_value }: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
-  const [state, set_state] = useState<EditState>(
-    start_in_edit_mode ? "edit" : "view",
-  );
+  const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
@@ -88,15 +77,6 @@ export function NewProjectCreator({
     () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
     [customize_kucalc],
   );
-
-  // const customize_software = useTypedRedux("customize", "software");
-  // const [default_software_img, software_images] = useMemo(
-  //   () => [
-  //     customize_software.get("default"),
-  //     customize_software.get("environments"),
-  //   ],
-  //   [customize_software],
-  // );
 
   const [form] = Form.useForm();
 
@@ -182,27 +162,16 @@ export function NewProjectCreator({
     cancel_editing();
   }
 
-  function render_info_alert(): JSX.Element | undefined {
-    if (state === "saving") {
-      return (
-        <div style={{ marginTop: "30px" }}>
-          <Alert bsStyle="info">
-            <Icon name="cocalc-ring" spin />
-            <Gap /> Creating project...
-          </Alert>
-        </div>
-      );
-    }
-  }
-
   function render_error(): JSX.Element | undefined {
-    if (error) {
-      return (
-        <div style={{ marginTop: "30px" }}>
+    if (!error) return;
+
+    return (
+      <Row>
+        <Col sm={24}>
           <ErrorDisplay error={error} onClose={() => set_error("")} />
-        </div>
-      );
-    }
+        </Col>
+      </Row>
+    );
   }
 
   function show_account_tab() {
@@ -229,7 +198,7 @@ export function NewProjectCreator({
           <Button
             cocalc-test={"create-project"}
             size="large"
-            disabled={state !== "view"}
+            disabled={noProjects || state !== "view"}
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
@@ -280,10 +249,6 @@ export function NewProjectCreator({
       set_title(obj.title_text);
     }
     set_custom_software(obj);
-  }
-
-  function render_select_software_env() {
-    return <SoftwareEnvironment onChange={custom_software_on_change} />;
   }
 
   function addSiteLicense(lic: string): void {
@@ -354,12 +319,12 @@ export function NewProjectCreator({
     const helpTxt = intl.formatMessage({
       id: "projects.create-project.helpTxt",
       defaultMessage:
-        "The title of your new project.  You can easily change this later!",
+        "The title of your new project.  You can easily change it later!",
     });
 
     return (
-      <Well style={{ backgroundColor: "#FFF" }}>
-        <Row gutter={[30, 20]}>
+      <>
+        <Row gutter={[30, 15]}>
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
@@ -376,7 +341,7 @@ export function NewProjectCreator({
                     message: helpTxt,
                   },
                 ]}
-                help={"You can change the title at any time."}
+                help={helpTxt}
               >
                 <Input
                   ref={new_project_title_ref}
@@ -391,68 +356,99 @@ export function NewProjectCreator({
           </Col>
           <Col sm={12}>
             <Paragraph type="secondary">
-              A <A href="https://doc.cocalc.com/project.html">project</A> is a
-              private computational workspace that you can use with
-              collaborators that you explicitly invite. You can attach powerful{" "}
-              <A href="https://doc.cocalc.com/compute_server.html">
-                GPUs, CPUs
-              </A>{" "}
-              and{" "}
-              <A href="https://doc.cocalc.com/cloud_file_system.html">
-                storage
-              </A>{" "}
-              to a project.
+              <FormattedMessage
+                id="projects.create-project.explanation"
+                defaultMessage={`A <A1>project</A1> is a private computational workspace,
+                  where you can work with collaborators that you explicitly invite.
+                  You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a project.`}
+                values={{
+                  A1: (c) => (
+                    <A href="https://doc.cocalc.com/project.html">{c}</A>
+                  ),
+                  A2: (c) => (
+                    <A href="https://doc.cocalc.com/compute_server.html">{c}</A>
+                  ),
+                  A3: (c) => (
+                    <A href="https://doc.cocalc.com/cloud_file_system.html">
+                      {c}
+                    </A>
+                  ),
+                }}
+              />
             </Paragraph>
           </Col>
-          {render_select_software_env()}
+          <SoftwareEnvironment onChange={custom_software_on_change} />
         </Row>
         {render_add_license()}
         {render_license()}
-        <Row>
-          <Col sm={24} style={{ marginTop: "10px" }}>
-            <Space>
-              <Button disabled={state === "saving"} onClick={cancel_editing}>
-                {intl.formatMessage(labels.cancel)}
-              </Button>
-              <Button
-                disabled={isDisabled()}
-                onClick={() => create_project()}
-                type="primary"
-              >
-                {intl.formatMessage(
-                  {
-                    id: "projects.create-project.create",
-                    defaultMessage:
-                      "Create Project {requireLicense, select, true {(select license above)} other {}}",
-                  },
-                  {
-                    requireLicense: requireLicense && !license_id,
-                  },
-                )}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={24}>
-            {render_error()}
-            {render_info_alert()}
-          </Col>
-        </Row>
-      </Well>
+        {noProjects && (
+          <Row>
+            <Col sm={24} style={{ marginTop: "10px" }}>
+              <Space>
+                <Button disabled={state === "saving"} onClick={cancel_editing}>
+                  {intl.formatMessage(labels.cancel)}
+                </Button>
+                <Button
+                  disabled={isDisabled()}
+                  onClick={() => create_project()}
+                  type="primary"
+                >
+                  {renderOKButtonText()}
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        )}
+        {render_error()}
+      </>
+    );
+  }
+
+  function renderOKButtonText() {
+    return intl.formatMessage(
+      {
+        id: "projects.create-project.create",
+        defaultMessage:
+          "Create Project {requireLicense, select, true {(select license above)} other {}}",
+      },
+      {
+        requireLicense: requireLicense && !license_id,
+      },
     );
   }
 
   function render_project_creation(): JSX.Element | undefined {
     if (state === "view") return;
-    return (
-      <Row style={{ width: "100%", paddingBottom: "20px" }}>
-        <Col sm={24}>
-          <Gap />
+    // if user has no projects yet, show the create dialog directly – otherwise its a modal
+    if (noProjects) {
+      return (
+        <Well style={{ backgroundColor: "#FFF" }}>
           {render_input_section()}
-        </Col>
-      </Row>
-    );
+        </Well>
+      );
+    } else {
+      return (
+        <Modal
+          title={intl.formatMessage(labels.create_project)}
+          open={state === "edit" || state === "saving"}
+          okText={renderOKButtonText()}
+          cancelText={intl.formatMessage(labels.cancel)}
+          onCancel={cancel_editing}
+          onOk={create_project}
+          confirmLoading={state === "saving"}
+          width={{
+            xs: "90%",
+            sm: "90%",
+            md: "80%",
+            lg: "75%",
+            xl: "70%",
+            xxl: "60%",
+          }}
+        >
+          {render_input_section()}
+        </Modal>
+      );
+    }
   }
 
   return (
