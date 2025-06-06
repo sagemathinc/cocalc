@@ -5,7 +5,6 @@ pnpm test ./basic.test.ts
 */
 
 import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
-import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
 
