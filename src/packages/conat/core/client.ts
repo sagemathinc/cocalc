@@ -350,8 +350,7 @@ export class Client extends EventEmitter {
   public conn: ReturnType<typeof connectToSocketIO>;
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
-  public subs: { [subject: string]: SubscriptionEmitter } = {};
-  public info: ServerInfo | undefined = undefined;
+  private subs: { [subject: string]: SubscriptionEmitter } = {};
   private readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
@@ -359,6 +358,7 @@ export class Client extends EventEmitter {
     pub: new TTL<string, string>({ ttl: 1000 * 60 }),
     sub: new TTL<string, string>({ ttl: 1000 * 60 }),
   };
+  public info: ServerInfo | undefined = undefined;
   public readonly stats: ConnectionStats = {
     send: { messages: 0, bytes: 0 },
     recv: { messages: 0, bytes: 0 },
@@ -737,7 +737,7 @@ export class Client extends EventEmitter {
       closeWhenOffCalled,
     });
     this.subs[subject] = sub;
-    this.stats.subs += 1;
+    this.stats.subs++;
     let promise;
     if (confirm) {
       const f = (cb) => {
@@ -778,7 +778,7 @@ export class Client extends EventEmitter {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
       if (this.subs[subject] != null) {
-        this.stats.subs -= 1;
+        this.stats.subs--;
         delete this.subs[subject];
       }
     });
@@ -1294,7 +1294,6 @@ class SubscriptionEmitter extends EventEmitter {
     if (!force && this.refCount > 0) {
       return;
     }
-    delete this.client.subs?.[this.subject];
     this.emit("close");
     this.client.conn.removeListener(this.subject, this.handle);
     // @ts-ignore
