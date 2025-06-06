@@ -155,6 +155,7 @@ export class ConatClient extends EventEmitter {
                 info: (...args) => console.info(name, ...args),
                 debug: (...args) => console.log(name, ...args),
                 warn: (...args) => console.warn(name, ...args),
+                silly: (...args) => console.log(name, ...args),
               };
             }
           : undefined,

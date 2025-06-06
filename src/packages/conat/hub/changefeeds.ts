@@ -137,6 +137,7 @@ export function changefeed({
     keepAliveTimeout: KEEPALIVE_TIMEOUT,
   });
   logger.debug("creating changefeed", { query, options });
+  // console.log("creating changefeed", { query, options });
   socket.write({ query, options });
   const cf = new EventIterator<{ error?: string; update: Update }>(
     socket,
@@ -145,17 +146,25 @@ export function changefeed({
       map: (args) => {
         const { error, update } = args[0] ?? {};
         if (error) {
+          // console.log("changefeed: error returned from server, query");
           throw Error(error);
         } else {
           return update;
         }
       },
       onEnd: () => {
+        // console.log("changefeed: onEnd", query);
         socket.close();
       },
     },
   );
-  socket.on("closed", () => cf.throw(Error("closed")));
-  socket.on("disconnected", () => cf.throw(Error("disconnected")));
+  socket.on("closed", () => {
+    // console.log("changefeed: closed", query);
+    cf.throw(Error("closed"));
+  });
+  socket.on("disconnected", () => {
+    //    console.log("changefeed: disconnected", query);
+    cf.throw(Error("disconnected"));
+  });
   return cf;
 }

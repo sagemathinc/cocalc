@@ -34,6 +34,7 @@ const FALLBACK_LOGGER = {
   debug: () => {},
   info: () => {},
   warn: () => {},
+  silly: () => {},
 } as Logger;
 
 export class ClientWithState extends EventEmitter {
@@ -160,9 +161,10 @@ export function getLogger(name) {
   } catch {}
   // make logger that starts working after global client is set
   const logger: any = {};
-  for (const s of ["debug", "info", "warn"]) {
+  for (const s of ["debug", "info", "warn", "silly"]) {
     logger[s] = tmpLogger(s, name, logger);
   }
+  logger.silly = logger.debug;
   return logger;
 }
 

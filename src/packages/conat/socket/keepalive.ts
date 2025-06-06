@@ -18,8 +18,8 @@ export class KeepAlive {
   private state: "ready" | "closed" = "ready";
 
   constructor(
-    private ping: () => Promise<any>,
-    private disconnect: () => void,
+    private ping?: () => Promise<any>,
+    private disconnect?: () => void,
     private keepAlive: number,
     private role: Role,
   ) {
@@ -28,13 +28,13 @@ export class KeepAlive {
 
   private run = async () => {
     while (this.state == "ready") {
-      if (Date.now() - this.last >= this.keepAlive) {
+      if (Date.now() - (this.last ?? 0) >= this.keepAlive) {
         try {
-          logger.debug(this.role, "keepalive -- sending ping");
-          await this.ping();
+          logger.silly(this.role, "keepalive -- sending ping");
+          await this.ping?.();
         } catch (err) {
-          logger.debug(this.role, "keepalive -- ping failed -- disconnecting");
-          this.disconnect();
+          logger.silly(this.role, "keepalive -- ping failed -- disconnecting");
+          this.disconnect?.();
           this.close();
           return;
         }
@@ -43,7 +43,7 @@ export class KeepAlive {
       if (this.state == ("closed" as any)) {
         return;
       }
-      await delay(this.keepAlive - (Date.now() - this.last));
+      await delay(this.keepAlive - (Date.now() - (this.last ?? 0)));
     }
   };
 
@@ -55,11 +55,8 @@ export class KeepAlive {
 
   close = () => {
     this.state = "closed";
-    // @ts-ignore
     delete this.last;
-    // @ts-ignore
     delete this.ping;
-    // @ts-ignore
     delete this.disconnect;
   };
 }
