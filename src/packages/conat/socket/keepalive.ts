@@ -18,8 +18,8 @@ export class KeepAlive {
   private state: "ready" | "closed" = "ready";
 
   constructor(
-    private ping?: () => Promise<any>,
-    private disconnect?: () => void,
+    private ping: () => Promise<any>,
+    private disconnect: () => void,
     private keepAlive: number,
     private role: Role,
   ) {
@@ -55,8 +55,11 @@ export class KeepAlive {
 
   close = () => {
     this.state = "closed";
+    // @ts-ignore
     delete this.last;
+    // @ts-ignore
     delete this.ping;
+    // @ts-ignore
     delete this.disconnect;
   };
 }
