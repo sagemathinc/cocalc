@@ -260,11 +260,14 @@ export class DStream<T = any> extends EventEmitter {
 
   save = reuseInFlight(async () => {
     let d = 1000;
-    while (true) {
+    while (this.stream != null) {
       try {
         await this.attemptToSave();
         //console.log("successfully saved");
       } catch (err) {
+        if (this.stream == null) {
+          return;
+        }
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
         if (!process.env.COCALC_TEST_MODE) {

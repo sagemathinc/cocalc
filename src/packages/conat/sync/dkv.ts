@@ -453,12 +453,15 @@ export class DKV<T = any> extends EventEmitter {
       return await this.attemptToSave();
     }
     let d = 100;
-    while (true) {
+    while (this.kv != null) {
       let status;
       try {
         status = await this.attemptToSave();
         //console.log("successfully saved");
       } catch (_err) {
+        if (this.kv == null) {
+          return;
+        }
         if (!process.env.COCALC_TEST_MODE) {
           console.log(
             "WARNING: dkv attemptToSave failed -- ",
@@ -487,6 +490,7 @@ export class DKV<T = any> extends EventEmitter {
       if (obj[key] === TOMBSTONE) {
         status.unsaved += 1;
         await this.kv.deleteKv(key);
+        if (this.kv == null) return;
         status.delete += 1;
         status.unsaved -= 1;
         delete obj[key];
@@ -514,6 +518,7 @@ export class DKV<T = any> extends EventEmitter {
           ...this.options[key],
           previousSeq,
         });
+        if (this.kv == null) return;
         if (DEBUG) {
           console.log("kv store -- attemptToSave succeed", this.desc, {
             key,
