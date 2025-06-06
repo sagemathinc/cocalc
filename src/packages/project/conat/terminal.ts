@@ -21,6 +21,7 @@ import {
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
 import { ThrottleString as Throttle } from "@cocalc/util/throttle";
+import { join } from "path";
 
 const logger = getLogger("project:conat:terminal");
 
@@ -297,6 +298,8 @@ class Session {
   init = async () => {
     const { head, tail } = path_split(this.path);
     const env = {
+      HISTFILE: join(head, `.${tail}.bash_history`),
+      PROMPT_COMMAND: "history -a",
       COCALC_TERMINAL_FILENAME: tail,
       ...envForSpawn(),
       ...this.options.env,
