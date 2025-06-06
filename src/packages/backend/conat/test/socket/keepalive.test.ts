@@ -37,7 +37,7 @@ describe("test a server with a short keepalive time", () => {
   });
 
   it("waits twice the keepAlive time and observes time was updated and sockets still alive", async () => {
-    await delay(2.1 * keepAlive);
+    await delay(4 * keepAlive);
     expect(sockets[0].state).toBe("ready");
     expect(Math.abs(sockets[0].alive.last - Date.now())).toBeLessThan(
       1.2 * (keepAlive + keepAliveTimeout),
@@ -80,11 +80,11 @@ describe.only("test a client with a short keepalive time", () => {
     expect(client.keepAliveTimeout).toBe(keepAliveTimeout);
   });
 
-  it("waits twice the keepAlive time and observes time was updated and sockets still alive", async () => {
-    await delay(2.1 * keepAlive);
+  it("waits several times the keepAlive time and observes time was updated and sockets still alive", async () => {
+    await delay(4 * keepAlive);
     expect(client.state).toBe("ready");
     expect(Math.abs(client.alive.last - Date.now())).toBeLessThan(
-      1.2 * (keepAlive + keepAliveTimeout),
+      keepAlive + keepAliveTimeout,
     );
   });
 

@@ -12,6 +12,10 @@ const SUBJECT = "changefeeds.*";
 const MAX_PER_ACCOUNT = 200;
 const numPerAccount: { [account_id: string]: number } = {};
 
+const CLIENT_KEEPALIVE = 90000;
+const SERVER_KEEPALIVE = 45000;
+const KEEPALIVE_TIMEOUT = 10000;
+
 export function changefeedServer({
   client,
   userQuery,
@@ -31,8 +35,8 @@ export function changefeedServer({
 }): ConatSocketServer {
   logger.debug("creating changefeed server");
   const server = client.socket.listen(SUBJECT, {
-    keepAlive: 15000,
-    keepAliveTimeout: 10000,
+    keepAlive: SERVER_KEEPALIVE,
+    keepAliveTimeout: KEEPALIVE_TIMEOUT,
   });
   let numConnections = 0;
 
@@ -129,8 +133,8 @@ export function changefeed({
 }) {
   const socket = client.socket.connect(changefeedSubject({ account_id }), {
     reconnection: false,
-    keepAlive: 60000,
-    keepAliveTimeout: 7500,
+    keepAlive: CLIENT_KEEPALIVE,
+    keepAliveTimeout: KEEPALIVE_TIMEOUT,
   });
   logger.debug("creating changefeed", { query, options });
   socket.write({ query, options });
