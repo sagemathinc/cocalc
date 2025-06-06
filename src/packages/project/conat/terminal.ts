@@ -21,7 +21,6 @@ import {
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { isEqual, throttle } from "lodash";
 import { ThrottleString as Throttle } from "@cocalc/util/throttle";
-import { join } from "path";
 
 const logger = getLogger("project:conat:terminal");
 
