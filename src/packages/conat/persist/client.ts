@@ -29,6 +29,8 @@ export interface ChangefeedEvent {
 
 export type Changefeed = EventIterator<ChangefeedEvent>;
 
+// const paths = new Set<string>();
+
 export class PersistStreamClient extends EventEmitter {
   public socket: ConatSocketClient;
   private changefeeds: any[] = [];
@@ -40,7 +42,7 @@ export class PersistStreamClient extends EventEmitter {
     private user: User,
   ) {
     super();
-    //console.log("persist -- create", this.storage.path);
+    // paths.add(this.storage.path);
     logger.debug("constructor", this.storage);
     this.init();
   }
@@ -50,15 +52,22 @@ export class PersistStreamClient extends EventEmitter {
       return;
     }
     this.socket?.close();
-    logger.debug(
-      "init",
-      this.storage,
-      "connecting to ",
-      persistSubject(this.user),
-    );
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       reconnection: false,
     });
+    logger.debug(
+      "init",
+      this.storage.path,
+      "connecting to ",
+      persistSubject(this.user),
+    );
+//     console.log(
+//       "persist -- create",
+//       this.storage.path,
+//       paths,
+//       "with id=",
+//       this.socket.id,
+//     );
     this.socket.write({
       storage: this.storage,
       changefeed: this.changefeeds.length > 0,
@@ -74,7 +83,8 @@ export class PersistStreamClient extends EventEmitter {
   };
 
   close = () => {
-    // console.log("persist -- close", this.storage.path);
+    // paths.delete(this.storage.path);
+    // console.log("persist -- close", this.storage.path, paths);
     this.state = "closed";
     for (const iter of this.changefeeds) {
       iter.close();

@@ -363,10 +363,7 @@ describe("test a changefeed", () => {
     });
     const { value, done } = await cf.next();
     expect(done).toBe(false);
-    expect(
-      value.updates[0].headers.foo == "bar4" ||
-        value.updates[0].headers.foo == "bar5",
-    ).toBe(true);
+    expect(value.updates[0].headers?.foo?.startsWith("bar4")).toBe(true);
   });
 });
 

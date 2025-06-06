@@ -10,9 +10,9 @@ Access this in the browser for the project you have open:
 */
 
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
+import { once } from "@cocalc/util/async-utils";
 
 type State = "init" | "connected" | "closed";
 
@@ -28,9 +28,7 @@ export interface Options {
 }
 
 export function computeServerManager(options: Options) {
-  const M = new ComputeServerManager(options);
-  M.init();
-  return M;
+  return new ComputeServerManager(options);
 }
 
 export class ComputeServerManager extends EventEmitter {
@@ -48,18 +46,23 @@ export class ComputeServerManager extends EventEmitter {
 
   waitUntilReady = async () => {
     if (this.state == "closed") {
-      throw Error("manager is closed");
+      throw Error("closed");
     } else if (this.state == "connected") {
       return;
     }
-    await this.init();
+    await once(this, "connected");
   };
 
   save = async () => {
     await this.dkv?.save();
   };
 
-  init = reuseInFlight(async () => {
+  private initialized = false;
+  init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     let wait = 3000;
     while (this.state == "init") {
       try {
@@ -67,18 +70,22 @@ export class ComputeServerManager extends EventEmitter {
           name: "compute-server-manager",
           ...this.options,
         });
+        if (this.state == ("closed" as any)) {
+          d.close();
+          return;
+        }
         this.dkv = d;
         d.on("change", this.handleChange);
         this.setState("connected");
       } catch (err) {
         wait = Math.min(15000, wait * 1.3) + Math.random();
         console.log(
-          `WARNING: temporary issue creating compute server manager -- ${err} -- will retry in ${Math.round(wait/1000)}s`,
+          `WARNING: temporary issue creating compute server manager -- ${err} -- will retry in ${Math.round(wait / 1000)}s`,
         );
         await delay(wait);
       }
     }
-  });
+  };
 
   private handleChange = ({ key: path, value, prev }) => {
     this.emit("change", {
@@ -89,7 +96,7 @@ export class ComputeServerManager extends EventEmitter {
   };
 
   close = () => {
-    // console.log("closing a compute server manager");
+    // console.log("close compute server manager", this.options);
     if (this.dkv != null) {
       this.dkv.removeListener("change", this.handleChange);
       this.dkv.close();
@@ -171,6 +178,9 @@ export class ComputeServerManager extends EventEmitter {
     path: string,
   ): Promise<{ [path: string]: number }> => {
     await this.waitUntilReady();
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
     const kv = this.getDkv();
     const v: { [path: string]: number } = {};
     const slash = path.endsWith("/") ? path : path + "/";

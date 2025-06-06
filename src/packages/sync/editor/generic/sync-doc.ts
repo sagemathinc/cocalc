@@ -1090,14 +1090,9 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  // Close synchronized editing of this string; this stops listening
-  // for changes and stops broadcasting changes.
-  close = reuseInFlight(async () => {
-    if (this.state == "closed") {
-      return;
-    }
-    const dbg = this.dbg("close");
-    dbg("close");
+  // more gentle version -- this can cause the project actions
+  // to be *created* etc.
+  end = reuseInFlight(async () => {
     if (this.client.is_browser() && this.state == "ready") {
       try {
         await this.save_to_disk();
@@ -1107,6 +1102,18 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    this.close();
+  });
+
+  // Close synchronized editing of this string; this stops listening
+  // for changes and stops broadcasting changes.
+  close = reuseInFlight(async () => {
+    if (this.state == "closed") {
+      return;
+    }
+    const dbg = this.dbg("close");
+    dbg("close");
+
     SyncDoc.computeServerManagerDoc?.removeListener(
       "change",
       this.handleComputeServerManagerChange,
@@ -1163,16 +1170,11 @@ export class SyncDoc extends EventEmitter {
       this.patch_list.close();
     }
 
-    //
-    // ASYNC STUFF - in particular, these may all
-    // attempt to do some last attempt to send changes
-    // to the database.
-    //
     try {
-      await this.async_close();
-      dbg("async_close -- successfully saved all data to database");
+      this.closeTables();
+      dbg("closeTables -- successfully saved all data to database");
     } catch (err) {
-      dbg(`async_close -- ERROR -- ${err}`);
+      dbg(`closeTables -- ERROR -- ${err}`);
     }
     // this avoids memory leaks:
     close(this);
@@ -1182,36 +1184,12 @@ export class SyncDoc extends EventEmitter {
     dbg("close done");
   });
 
-  private async_close = async () => {
-    const promises: Promise<any>[] = [];
-
-    if (this.syncstring_table != null) {
-      promises.push(this.syncstring_table.close());
-    }
-
-    if (this.patches_table != null) {
-      promises.push(this.patches_table.close());
-    }
-
-    if (this.cursors_table != null) {
-      promises.push(this.cursors_table.close());
-    }
-
-    if (this.evaluator != null) {
-      promises.push(this.evaluator.close());
-    }
-
-    if (this.ipywidgets_state != null) {
-      promises.push(this.ipywidgets_state.close());
-    }
-
-    const results = await Promise.allSettled(promises);
-
-    results.forEach((result) => {
-      if (result.status === "rejected") {
-        throw Error(result.reason);
-      }
-    });
+  private closeTables = async () => {
+    this.syncstring_table?.close();
+    this.patches_table?.close();
+    this.cursors_table?.close();
+    this.evaluator?.close();
+    this.ipywidgets_state?.close();
   };
 
   // TODO: We **have** to do this on the client, since the backend

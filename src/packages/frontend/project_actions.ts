@@ -8,7 +8,7 @@ declare let window, document, $;
 
 import * as async from "async";
 import { callback } from "awaiting";
-import { List, Map, Set, fromJS } from "immutable";
+import { List, Map, Set as immutableSet, fromJS } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
@@ -283,12 +283,13 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
 } as const;
 
 export class ProjectActions extends Actions<ProjectStoreState> {
+  public state: "ready" | "closed" = "ready";
   public project_id: string;
   private _last_history_state: string;
   private last_close_timer: number;
-  private _activity_indicator_timers: { [key: string]: number };
+  private _activity_indicator_timers: { [key: string]: number } = {};
   private _init_done = false;
-  private new_filename_generator;
+  private new_filename_generator = new NewFilenames("", false);
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
   private computeServerManager?: ComputeServerManager;
@@ -297,10 +298,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
-    this.new_filename_generator = new NewFilenames("", false);
-    this._activity_indicator_timers = {};
+    // console.trace("create project actions", this.project_id)
     this.open_files = new OpenFiles(this);
-    this.initComputeServers();
+    this.initComputeServerManager();
+    this.initComputeServersTable();
     this.initProjectStatus();
   }
 
@@ -309,8 +310,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   destroy = (): void => {
-    if (this.open_files == null) return;
-    this.closeComputeServers();
+    // console.log("destroy project actions", this.project_id)
+    if (this.state == "closed") {
+      return;
+    }
+    this.state = "closed";
+    this.closeComputeServerManager();
+    this.closeComputeServerTable();
     this.projectStatusSub?.close();
     delete this.projectStatusSub;
     must_define(this.redux);
@@ -318,10 +324,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     for (const table in QUERIES) {
       this.remove_table(table);
     }
-    this.open_files.close();
+
+    this.open_files?.close();
     delete this.open_files;
-    this.computeServerManager?.close();
-    delete this.computeServerManager;
     webapp_client.conat_client.closeOpenFiles(this.project_id);
   };
 
@@ -1598,7 +1603,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files?: Set<string>;
+      checked_files?: immutableSet<string>;
       file_action?: string | undefined;
     } = {};
     if (checked) {
@@ -1628,7 +1633,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
@@ -1650,7 +1655,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
@@ -3484,29 +3489,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     })();
   };
 
-  private initComputeServers = () => {
-    // table of information about all the compute servers in this project
-    computeServers.init(this.project_id);
-    // table mapping paths to the id of the compute server it is hosted on
-    this.computeServerManager = computeServerManager({
-      project_id: this.project_id,
-    });
-    this.computeServerManager.on("connected", () => {
-      if (this.computeServerManager == null) {
-        return;
-      }
-      const compute_server_ids = this.computeServerManager.getAll() as any;
-      for (let path in compute_server_ids) {
-        compute_server_ids[path] = compute_server_ids[path].id;
-      }
-      this.setState({ compute_server_ids });
-    });
-    this.computeServerManager.on(
-      "change",
-      this.handleComputeServerManagerChange,
-    );
-  };
-
   private initProjectStatus = async () => {
     this.projectStatusSub = await getProjectStatus({
       project_id: this.project_id,
@@ -3518,13 +3500,52 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  private closeComputeServers = () => {
+  private initComputeServersTable = () => {
+    // table of information about all the compute servers in this project
+    computeServers.init(this.project_id);
+  };
+
+  private closeComputeServerTable = () => {
     computeServers.close(this.project_id);
-    this.computeServerManager?.removeListener(
+  };
+
+  private initComputeServerManager = () => {
+    // console.log("initComputeServerManager");
+    if (this.state == "closed") {
+      return;
+    }
+    // table mapping paths to the id of the compute server it is hosted on
+    this.computeServerManager = computeServerManager({
+      project_id: this.project_id,
+    });
+    this.computeServerManager.once("connected", () => {
+      if (this.state == "closed" || this.computeServerManager == null) {
+        return;
+      }
+      const compute_server_ids = {
+        ...this.computeServerManager.getAll(),
+      } as any;
+      for (const path in compute_server_ids) {
+        compute_server_ids[path] = compute_server_ids[path].id;
+      }
+      this.setState({ compute_server_ids });
+    });
+    this.computeServerManager.on(
       "change",
       this.handleComputeServerManagerChange,
     );
-    this.computeServerManager?.close();
+  };
+
+  private closeComputeServerManager = () => {
+    // console.log("closeComputeServerManager");
+    if (this.computeServerManager == null) {
+      return;
+    }
+    this.computeServerManager.removeListener(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
+    this.computeServerManager.close();
     delete this.computeServerManager;
   };
 

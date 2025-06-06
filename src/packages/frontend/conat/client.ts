@@ -26,10 +26,6 @@ import type {
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { listingsClient } from "@cocalc/conat/service/listings";
-import {
-  computeServerManager,
-  type Options as ComputeServerManagerOptions,
-} from "@cocalc/conat/compute/manager";
 import getTime, { getSkew, init as initTime } from "@cocalc/conat/time";
 import { llm } from "@cocalc/conat/llm/client";
 import { inventory } from "@cocalc/conat/sync/inventory";
@@ -441,12 +437,6 @@ export class ConatClient extends EventEmitter {
     compute_server_id?: number;
   }) => {
     return await listingsClient(opts);
-  };
-
-  computeServerManager = async (options: ComputeServerManagerOptions) => {
-    const M = computeServerManager(options);
-    await M.init();
-    return M;
   };
 
   getTime = (): number => {
