@@ -186,7 +186,7 @@ export class Listings extends EventEmitter {
     path: string,
   ): Promise<DirectoryListingEntry[] | undefined> => {
     if (this.listingsClient == null) {
-      throw Error("listings not ready");
+      return;
     }
     return this.listingsClient.get(path)?.files;
   };
@@ -196,14 +196,15 @@ export class Listings extends EventEmitter {
     path: string,
   ): Promise<number | undefined> => {
     if (this.listingsClient == null) {
-      throw Error("listings not ready");
+      // throw Error("listings not ready");
+      return;
     }
     return this.listingsClient.get(path)?.more ? 1 : 0;
   };
 
   getMissing = (path: string): number | undefined => {
     if (this.listingsClient == null) {
-      throw Error("listings not ready");
+      return;
     }
     return this.listingsClient.get(path)?.more ? 1 : 0;
   };
