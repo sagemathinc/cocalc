@@ -298,7 +298,7 @@ class Session {
   init = async () => {
     const { head, tail } = path_split(this.path);
     const env = {
-      HISTFILE: join(tail, ".bash_history"),
+      HISTFILE: tail + ".bash_history",
       PROMPT_COMMAND: "history -a",
       COCALC_TERMINAL_FILENAME: tail,
       ...envForSpawn(),
