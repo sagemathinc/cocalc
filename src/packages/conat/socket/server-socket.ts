@@ -211,4 +211,8 @@ export class ServerSocket extends EventEmitter {
       throw Error("closed");
     }
   });
+
+  waitUntilDrain = async () => {
+    await this.tcp?.send.waitUntilDrain();
+  };
 }

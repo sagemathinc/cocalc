@@ -476,9 +476,15 @@ export class Client extends EventEmitter {
         sub = await this.subscribe(this.inboxSubject + ".*");
         break;
       } catch (err) {
+        if (this.state == "closed") {
+          return;
+        }
         // this should only fail due to permissions issues, at which point
         // request can't work, but pub/sub can.
-        logger.debug(`WARNING: inbox not available -- ${err}`);
+        console.log(`WARNING: inbox not available -- ${err}`);
+      }
+      if (this.state == ("closed" as any)) {
+        return;
       }
       await delay(d);
       d = Math.min(15000, d * 1.3);
@@ -534,11 +540,14 @@ export class Client extends EventEmitter {
     // @ts-ignore
     delete this.permissionError;
 
-    this.conn.close();
+    try {
+      this.conn.close();
+    } catch {}
   };
 
   private syncSubscriptions = reuseInFlight(async () => {
     let d = 1000;
+    let fails = 0;
     while (true) {
       try {
         if (this.info == null) {
@@ -550,12 +559,17 @@ export class Client extends EventEmitter {
           //console.log("successful sync, plus no changes -- we're done.");
           return;
         } else {
-          console.log(
-            "successful sync, but changes, so we try again just in case",
-          );
+          //           console.log(
+          //             "successful sync, but changes, so we try again just in case",
+          //           );
         }
       } catch (err) {
-        console.trace(`WARNING: failed to sync subscriptions -- ${err}`);
+        fails++;
+        if (fails >= 3) {
+          console.log(
+            `WARNING: failed to sync subscriptions ${fails} times -- ${err}`,
+          );
+        }
       }
       await delay(d);
       d = Math.min(15000, d * 1.3);
@@ -603,11 +617,11 @@ export class Client extends EventEmitter {
         }
       }
     }
-    const extra: string[] = [];
+    const extra: { subject: string }[] = [];
     for (const subject in subs) {
       if (this.queueGroups[subject] != null) {
         // server thinks we're subscribed but we do not think so, so cancel that
-        extra.push(subject);
+        extra.push({ subject });
       }
     }
     if (extra.length > 0) {

@@ -293,6 +293,7 @@ describe("ensure there isn't a really obvious subscription leak", () => {
 
   it("create a client, which initially has only one subscription (the inbox)", async () => {
     client = connect();
+    await client.getInbox();
     expect(client.numSubscriptions()).toBe(1);
   });
 
@@ -405,7 +406,6 @@ describe("test delete of messages from stream", () => {
     await wait({ until: () => s1.length == 2 });
     expect(s1.get()).toEqual(["x", "y"]);
   });
-
 });
 
 afterAll(after);

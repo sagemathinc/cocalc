@@ -2,6 +2,8 @@
 Very basic test of conat core client and server.
 
 pnpm test ./basic.test.ts
+
+
 */
 
 import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
@@ -153,7 +155,7 @@ describe("basic test of publish and subscribe", () => {
   });
 });
 
-describe.only("basic tests of request/respond", () => {
+describe("basic tests of request/respond", () => {
   let c1, c2;
 
   it("create two clients", () => {
@@ -190,19 +192,16 @@ describe.only("basic tests of request/respond", () => {
   });
 
   it("stop our server above (close subscription) and confirm get 503 error", async () => {
+    const n = c2.numSubscriptions();
     sub.close();
-    await wait({
-      until: async () => {
-        try {
-          await c1.request("eval", "1+2+3+4+5");
-        } catch (err) {
-          if (err.code == 503) {
-            return true;
-          }
-        }
-        return false;
-      },
-    });
+    expect(c2.numSubscriptions()).toBe(n - 1);
+    await c2.syncSubscriptions();
+    expect(c2.numSubscriptions()).toBe(n - 1);
+    try {
+      await c1.request("eval", "1+2+3+4+5", { timeout: 2000 });
+    } catch (err) {
+      expect(err.code).toBe(503);
+    }
   });
 
   let callIter;

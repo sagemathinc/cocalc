@@ -448,6 +448,7 @@ describe("test creating and closing a core-stream doesn't leak subscriptions", (
   it("make a new client and count subscriptions", async () => {
     client = connect();
     await once(client, "connected");
+    await client.getInbox();
     subs = client.numSubscriptions();
     expect(subs).toBe(1); // the inbox
   });

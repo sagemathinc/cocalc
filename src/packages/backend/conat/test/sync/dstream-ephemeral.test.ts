@@ -276,6 +276,8 @@ describe("ensure there isn't a really obvious subscription leak", () => {
 
   it("create a client, which initially has only one subscription (the inbox)", async () => {
     client = connect();
+    expect(client.numSubscriptions()).toBe(0);
+    await client.getInbox();
     expect(client.numSubscriptions()).toBe(1);
   });
 

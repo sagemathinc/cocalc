@@ -555,17 +555,25 @@ export class ConatServer {
       }
     };
 
-    socket.on("subscribe", async (x, respond) => {
-      if (is_array(x)) {
-        const v: any[] = [];
-        for (const y of x) {
-          v.push(await subscribe(y));
+    socket.on(
+      "subscribe",
+      async (
+        x: { subject; queue; ephemeral } | { subject; queue; ephemeral }[],
+        respond,
+      ) => {
+        let r;
+        if (is_array(x)) {
+          const v: any[] = [];
+          for (const y of x) {
+            v.push(await subscribe(y));
+          }
+          r = v;
+        } else {
+          r = await subscribe(x);
         }
-        respond?.(v);
-      } else {
-        respond?.(await subscribe(x));
-      }
-    });
+        respond?.(r);
+      },
+    );
 
     socket.on("subscriptions", (_, respond) => {
       if (respond == null) {
@@ -574,7 +582,7 @@ export class ConatServer {
       respond(Array.from(this.subscriptions[id]));
     });
 
-    const unsubscribe = ({ subject }) => {
+    const unsubscribe = ({ subject }: { subject: string }) => {
       if (!this.subscriptions[id].has(subject)) {
         return;
       }
@@ -583,17 +591,18 @@ export class ConatServer {
       this.stats[socket.id].subs -= 1;
     };
 
-    socket.on("unsubscribe", (x, respond) => {
-      if (is_array(x)) {
-        const v: any[] = [];
-        for (const y of x) {
-          v.push(unsubscribe(y));
+    socket.on(
+      "unsubscribe",
+      (x: { subject: string } | { subject: string }[], respond) => {
+        let r;
+        if (is_array(x)) {
+          r = x.map(unsubscribe);
+        } else {
+          r = unsubscribe(x);
         }
-        respond?.(v);
-      } else {
-        respond?.(unsubscribe(x));
-      }
-    });
+        respond?.(r);
+      },
+    );
 
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });

@@ -17,7 +17,7 @@ import { delay } from "awaiting";
 
 beforeAll(async () => {
   await before();
-  setDefaultTimeouts({ request: 1000, publish: 1000 });
+  setDefaultTimeouts({ request: 750, publish: 750 });
 });
 
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
@@ -271,7 +271,8 @@ describe("create a client first and write more messages than the queue size resu
     expect(serverRecv).toEqual(["0", "1", "2"]);
   });
 
-  it("we can now send another message without an error", () => {
+  it("wait for client to drain; then we can now send another message without an error", async () => {
+    await client.waitUntilDrain();
     client.write("foo");
   });
 

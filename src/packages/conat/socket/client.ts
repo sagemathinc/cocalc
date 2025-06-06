@@ -100,6 +100,10 @@ export class ConatSocketClient extends ConatSocketBase {
     });
   }
 
+  waitUntilDrain = async () => {
+    await this.tcp?.send.waitUntilDrain();
+  };
+
   private sendCommandToServer = async (
     cmd: "close" | "ping" | "connect",
     timeout = DEFAULT_COMMAND_TIMEOUT,

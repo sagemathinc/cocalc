@@ -14,6 +14,7 @@ import {
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
+import { once } from "@cocalc/util/async-utils";
 
 const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
@@ -57,7 +58,7 @@ export class Receiver extends EventEmitter {
   };
 
   process = (mesg: MessageData) => {
-    if(this.seq === undefined || this.incoming === undefined) return;
+    if (this.seq === undefined || this.incoming === undefined) return;
     const seq = mesg.headers?.[SOCKET_HEADER_SEQ];
     // console.log(this.role, "recv", { data: mesg.data, seq });
     if (typeof seq != "number" || seq < 1) {
@@ -80,7 +81,7 @@ export class Receiver extends EventEmitter {
   };
 
   emitMessage = (mesg, seq) => {
-    if(this.seq === undefined) return;
+    if (this.seq === undefined) return;
     if (seq != this.seq.next) {
       throw Error("message sequence is wrong");
     }
@@ -97,7 +98,7 @@ export class Receiver extends EventEmitter {
   };
 
   fetchMissing = reuseInFlight(async () => {
-    if(this.seq === undefined || this.incoming === undefined) return;
+    if (this.seq === undefined || this.incoming === undefined) return;
     const missing: number[] = [];
     for (let seq = this.seq.next; seq <= this.seq.largest; seq++) {
       if (this.incoming[seq] === undefined) {
@@ -134,7 +135,7 @@ export class Receiver extends EventEmitter {
   });
 
   emitIncoming = () => {
-    if(this.seq === undefined || this.incoming === undefined) return;
+    if (this.seq === undefined || this.incoming === undefined) return;
     // also emit any incoming that comes next
     let seq = this.seq.next;
     while (this.incoming[seq] != null && this.seq != null) {
@@ -147,7 +148,7 @@ export class Receiver extends EventEmitter {
   };
 
   reportReceived = async () => {
-    if(this.seq === undefined) return;
+    if (this.seq === undefined) return;
     if (this.seq.reported >= this.seq.emitted) {
       // nothing to report
       return;
@@ -267,4 +268,18 @@ export class Sender extends EventEmitter {
       mesg.respondSync(v);
     }
   };
+
+  waitUntilDrain = reuseInFlight(async () => {
+    if (this.unsent == 0) {
+      return;
+    }
+    try {
+      await once(this, "drain");
+    } catch (err) {
+      if (this.outgoing == null) {
+        return;
+      }
+      throw err;
+    }
+  });
 }
