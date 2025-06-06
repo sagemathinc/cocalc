@@ -7,13 +7,13 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Row, Space } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row, Space } from "antd";
 import { delay } from "awaiting";
-import { useIntl } from "react-intl";
-import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
   useEffect,
   useIsMountedRef,
@@ -22,16 +22,18 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Gap, Icon } from "@cocalc/frontend/components";
+import { A, ErrorDisplay, Icon, Paragraph } from "@cocalc/frontend/components";
 import {
   derive_project_img_name,
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
+// import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
+// import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
@@ -44,24 +46,18 @@ const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
 const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 
 interface Props {
-  start_in_edit_mode?: boolean;
+  noProjects?: boolean;
   default_value?: string;
 }
 
 type EditState = "edit" | "view" | "saving";
 
-export const NewProjectCreator: React.FC<Props> = ({
-  start_in_edit_mode,
-  default_value,
-}: Props) => {
+export function NewProjectCreator({ noProjects, default_value }: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
-  const [state, set_state] = useState<EditState>(
-    start_in_edit_mode ? "edit" : "view",
-  );
+  const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
-  const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
   const [custom_software, set_custom_software] =
@@ -112,7 +108,6 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_title_text(default_value ?? "");
     set_error("");
     set_custom_software({});
-    set_show_advanced(false);
     set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
@@ -167,27 +162,16 @@ export const NewProjectCreator: React.FC<Props> = ({
     cancel_editing();
   }
 
-  function render_info_alert(): JSX.Element | undefined {
-    if (state === "saving") {
-      return (
-        <div style={{ marginTop: "30px" }}>
-          <Alert bsStyle="info">
-            <Icon name="cocalc-ring" spin />
-            <Gap /> Creating project...
-          </Alert>
-        </div>
-      );
-    }
-  }
-
   function render_error(): JSX.Element | undefined {
-    if (error) {
-      return (
-        <div style={{ marginTop: "30px" }}>
+    if (!error) return;
+
+    return (
+      <Row>
+        <Col sm={24}>
           <ErrorDisplay error={error} onClose={() => set_error("")} />
-        </div>
-      );
-    }
+        </Col>
+      </Row>
+    );
   }
 
   function show_account_tab() {
@@ -214,7 +198,7 @@ export const NewProjectCreator: React.FC<Props> = ({
           <Button
             cocalc-test={"create-project"}
             size="large"
-            disabled={state !== "view"}
+            disabled={noProjects || state !== "view"}
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
@@ -267,80 +251,49 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_custom_software(obj);
   }
 
-  function render_advanced() {
-    if (!show_advanced) return;
-    return (
-      <Card size="small" title="Software environment" style={CARD_STYLE}>
-        <SoftwareEnvironment
-          onChange={custom_software_on_change}
-          showTitle={false}
-        />
-      </Card>
-    );
-  }
-
   function addSiteLicense(lic: string): void {
     set_license_id(lic);
   }
 
   function render_add_license() {
-    if (!show_add_license) return;
-    return (
-      <Card
-        size="small"
-        title={
-          <h4>
-            <div style={{ float: "right" }}>
-              <BuyLicenseForProject />
-            </div>
-            <Icon name="key" /> Select License
-          </h4>
-        }
-        style={CARD_STYLE}
-      >
-        <SiteLicenseInput
-          requireValid
-          confirmLabel={"Add this license"}
-          onChange={addSiteLicense}
-          requireLicense
-          requireMessage={`A license is required to create additional projects.`}
-        />
-      </Card>
-    );
-  }
-
-  function render_advanced_toggle(): JSX.Element | undefined {
-    // we only support custom images on cocalc.com and onprem
     if (!show) return;
-    if (show_advanced) return;
-    return (
-      <div style={TOGGLE_STYLE}>
-        <Button
-          onClick={() => set_show_advanced(true)}
-          type="link"
-          style={TOGGLE_BUTTON_STYLE}
+    if (!show_add_license) {
+      return (
+        <div style={TOGGLE_STYLE}>
+          <Button
+            disabled={requireLicense}
+            onClick={() => set_show_add_license(true)}
+            type="link"
+            style={TOGGLE_BUTTON_STYLE}
+          >
+            <Icon name="plus" /> Add a license key...
+          </Button>
+        </div>
+      );
+    } else {
+      return (
+        <Card
+          size="small"
+          title={
+            <h4>
+              <div style={{ float: "right" }}>
+                <BuyLicenseForProject />
+              </div>
+              <Icon name="key" /> Select License
+            </h4>
+          }
+          style={CARD_STYLE}
         >
-          <Icon name="plus" /> Customize the software environment...
-        </Button>
-      </div>
-    );
-  }
-
-  function render_add_license_toggle(): JSX.Element | undefined {
-    if (!show) return;
-    if (show_add_license) return;
-    return (
-      <div style={TOGGLE_STYLE}>
-        <Button
-          disabled={requireLicense}
-          onClick={() => set_show_add_license(true)}
-          type="link"
-          style={TOGGLE_BUTTON_STYLE}
-        >
-          <Icon name="plus" /> Add a license key...
-        </Button>
-      </div>
-    );
+          <SiteLicenseInput
+            requireValid
+            confirmLabel={"Add this license"}
+            onChange={addSiteLicense}
+            requireLicense
+            requireMessage={`A license is required to create additional projects.`}
+          />
+        </Card>
+      );
+    }
   }
 
   function render_license() {
@@ -363,15 +316,22 @@ export const NewProjectCreator: React.FC<Props> = ({
   }
 
   function render_input_section(): JSX.Element | undefined {
-    const helpTxt =
-      "The title of your new project.  You can easily change this later!";
+    const helpTxt = intl.formatMessage({
+      id: "projects.create-project.helpTxt",
+      defaultMessage:
+        "The title of your new project.  You can easily change it later!",
+    });
+
     return (
-      <Well style={{ backgroundColor: "#FFF" }}>
-        <Row>
+      <>
+        <Row gutter={[30, 15]}>
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
-                label="Project Title"
+                label={intl.formatMessage({
+                  id: "projects.create-project.title",
+                  defaultMessage: "Project Title",
+                })}
                 name="title"
                 initialValue={title_text}
                 rules={[
@@ -381,6 +341,7 @@ export const NewProjectCreator: React.FC<Props> = ({
                     message: helpTxt,
                   },
                 ]}
+                help={helpTxt}
               >
                 <Input
                   ref={new_project_title_ref}
@@ -392,71 +353,102 @@ export const NewProjectCreator: React.FC<Props> = ({
                 />
               </Form.Item>
             </Form>
-            <div style={{ color: COLORS.GRAY, float: "right" }}>
-              You can change the title at any time.
-            </div>
           </Col>
           <Col sm={12}>
-            <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
-              A <A href="https://doc.cocalc.com/project.html">project</A> is a
-              private computational workspace that you can use with
-              collaborators that you explicitly invite. You can attach powerful{" "}
-              <A href="https://doc.cocalc.com/compute_server.html">
-                GPUs, CPUs
-              </A>{" "}
-              and{" "}
-              <A href="https://doc.cocalc.com/cloud_file_system.html">
-                storage
-              </A>{" "}
-              to a project.
-            </div>
+            <Paragraph type="secondary">
+              <FormattedMessage
+                id="projects.create-project.explanation"
+                defaultMessage={`A <A1>project</A1> is a private computational workspace,
+                  where you can work with collaborators that you explicitly invite.
+                  You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a project.`}
+                values={{
+                  A1: (c) => (
+                    <A href="https://doc.cocalc.com/project.html">{c}</A>
+                  ),
+                  A2: (c) => (
+                    <A href="https://doc.cocalc.com/compute_server.html">{c}</A>
+                  ),
+                  A3: (c) => (
+                    <A href="https://doc.cocalc.com/cloud_file_system.html">
+                      {c}
+                    </A>
+                  ),
+                }}
+              />
+            </Paragraph>
           </Col>
+          <SoftwareEnvironment onChange={custom_software_on_change} />
         </Row>
-        {render_add_license_toggle()}
         {render_add_license()}
         {render_license()}
-        {render_advanced_toggle()}
-        {render_advanced()}
-        <Row>
-          <Col sm={24} style={{ marginTop: "10px" }}>
-            <Space>
-              <Button
-                disabled={state === "saving"}
-                onClick={cancel_editing}
-              >
-                {intl.formatMessage(labels.cancel)}
-              </Button>
-              <Button
-                disabled={isDisabled()}
-                onClick={() => create_project()}
-                type="primary"
-              >
-                Create Project
-                {requireLicense && !license_id && <> (select license above)</>}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={24}>
-            {render_error()}
-            {render_info_alert()}
-          </Col>
-        </Row>
-      </Well>
+        {noProjects && (
+          <Row>
+            <Col sm={24} style={{ marginTop: "10px" }}>
+              <Space>
+                <Button disabled={state === "saving"} onClick={cancel_editing}>
+                  {intl.formatMessage(labels.cancel)}
+                </Button>
+                <Button
+                  disabled={isDisabled()}
+                  onClick={() => create_project()}
+                  type="primary"
+                >
+                  {renderOKButtonText()}
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        )}
+        {render_error()}
+      </>
+    );
+  }
+
+  function renderOKButtonText() {
+    return intl.formatMessage(
+      {
+        id: "projects.create-project.create",
+        defaultMessage:
+          "Create Project {requireLicense, select, true {(select license above)} other {}}",
+      },
+      {
+        requireLicense: requireLicense && !license_id,
+      },
     );
   }
 
   function render_project_creation(): JSX.Element | undefined {
-    if (state == "view") return;
-    return (
-      <Row style={{ width: "100%", paddingBottom: "20px" }}>
-        <Col sm={24}>
-          <Gap />
+    if (state === "view") return;
+    // if user has no projects yet, show the create dialog directly – otherwise its a modal
+    if (noProjects) {
+      return (
+        <Well style={{ backgroundColor: "#FFF" }}>
           {render_input_section()}
-        </Col>
-      </Row>
-    );
+        </Well>
+      );
+    } else {
+      return (
+        <Modal
+          title={intl.formatMessage(labels.create_project)}
+          open={state === "edit" || state === "saving"}
+          okText={renderOKButtonText()}
+          cancelText={intl.formatMessage(labels.cancel)}
+          onCancel={cancel_editing}
+          onOk={create_project}
+          confirmLoading={state === "saving"}
+          width={{
+            xs: "90%",
+            sm: "90%",
+            md: "80%",
+            lg: "75%",
+            xl: "70%",
+            xxl: "60%",
+          }}
+        >
+          {render_input_section()}
+        </Modal>
+      );
+    }
   }
 
   return (
@@ -465,4 +457,4 @@ export const NewProjectCreator: React.FC<Props> = ({
       {render_project_creation()}
     </div>
   );
-};
+}
