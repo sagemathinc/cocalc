@@ -211,6 +211,7 @@ import {
 } from "@cocalc/conat/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 import { getLogger } from "@cocalc/conat/client";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { join } from "path";
@@ -387,7 +388,10 @@ export class Client extends EventEmitter {
       path,
     });
     this.conn.on("info", (info) => {
+      const firstTime = this.info == null;
       this.info = info;
+      this.emit("info", info);
+      setTimeout(this.syncSubscriptions, firstTime ? 3000 : 0);
     });
     this.conn.on("permission", ({ message, type, subject }) => {
       logger.debug(message);
@@ -398,9 +402,6 @@ export class Client extends EventEmitter {
       if (this.conn.connected) {
         this.setState("connected");
       }
-      try {
-        await this.syncSubscriptions();
-      } catch {}
     });
     this.conn.io.on("error", (...args) => {
       logger.debug(
@@ -411,9 +412,14 @@ export class Client extends EventEmitter {
     this.conn.on("disconnect", () => {
       this.setState("disconnected");
     });
-
     this.initInbox();
   }
+
+  private waitUntilSignedIn = reuseInFlight(async () => {
+    if (this.info == null || this.state != "connected") {
+      await once(this, "info");
+    }
+  });
 
   private setState = (state: State) => {
     if (this.state == "closed" || this.state == state) {
@@ -430,7 +436,20 @@ export class Client extends EventEmitter {
     return `${this.inboxSubject}.${randomId()}`;
   };
 
-  private initInbox = () => {
+  private getInbox = reuseInFlight(async (): Promise<EventEmitter> => {
+    if (this.inbox == null) {
+      if (this.state == "closed") {
+        throw Error("closed");
+      }
+      await once(this, "inbox");
+    }
+    if (this.inbox == null) {
+      throw Error("bug");
+    }
+    return this.inbox;
+  });
+
+  private initInbox = async () => {
     // For request/respond instead of setting up one
     // inbox *every time there is a request*, we setup a single
     // inbox once and for all for all responses.  We listen for
@@ -450,15 +469,21 @@ export class Client extends EventEmitter {
     }
     this.inboxSubject = `${inboxPrefix}.${randomId()}`;
     let sub;
-    try {
-      sub = this.subscribeSync(this.inboxSubject + ".*");
-    } catch (err) {
-      // this should only fail due to permissions issues, at which point
-      // request can't work, but pub/sub can.
-      logger.debug(`WARNING: inbox not available -- ${err}`);
-      this.inboxSubject = "";
-      return;
+    let d = 1000;
+    while (true) {
+      try {
+        await this.waitUntilSignedIn();
+        sub = await this.subscribe(this.inboxSubject + ".*");
+        break;
+      } catch (err) {
+        // this should only fail due to permissions issues, at which point
+        // request can't work, but pub/sub can.
+        logger.debug(`WARNING: inbox not available -- ${err}`);
+      }
+      await delay(d);
+      d = Math.min(15000, d * 1.3);
     }
+
     this.inbox = new EventEmitter();
     (async () => {
       for await (const mesg of sub) {
@@ -468,6 +493,7 @@ export class Client extends EventEmitter {
         this.inbox.emit(mesg.subject, mesg);
       }
     })();
+    this.emit("inbox", this.inboxSubject);
   };
 
   // There should usually be no reason to call this because socket.io
@@ -481,11 +507,11 @@ export class Client extends EventEmitter {
   });
 
   close = () => {
-    this.setState("closed");
-    this.removeAllListeners();
-    if (this.options == null) {
+    if (this.state == "closed") {
       return;
     }
+    this.setState("closed");
+    this.removeAllListeners();
     for (const subject in this.queueGroups) {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
@@ -511,43 +537,101 @@ export class Client extends EventEmitter {
     this.conn.close();
   };
 
-  // syncSubscriptions ensures that we're subscribed on server
-  // to what we think we're subscribed to.
-  syncSubscriptions = reuseInFlight(async () => {
-    if (this.info == null) {
-      const [info] = await once(this.conn as any, "info");
-      this.info = info;
+  private syncSubscriptions = reuseInFlight(async () => {
+    let d = 1000;
+    while (true) {
+      try {
+        if (this.info == null) {
+          // no point in trying until we are signed in
+          await once(this, "info");
+        }
+        const stable = await this.syncSubscriptions0(10000);
+        if (stable) {
+          //console.log("successful sync, plus no changes -- we're done.");
+          return;
+        } else {
+          console.log(
+            "successful sync, but changes, so we try again just in case",
+          );
+        }
+      } catch (err) {
+        console.trace(`WARNING: failed to sync subscriptions -- ${err}`);
+      }
+      await delay(d);
+      d = Math.min(15000, d * 1.3);
     }
-    const subs = await this.getSubscriptions();
+  });
+
+  // syncSubscriptions0 ensures that we're subscribed on server
+  // to what we think we're subscribed to, or throws an error.
+  private syncSubscriptions0 = async (timeout: number): Promise<boolean> => {
+    if (this.info == null) {
+      throw Error("not signed in");
+    }
+    const subs = await this.getSubscriptions(timeout);
     //     console.log("syncSubscriptions", {
     //       server: subs,
-    //       clent: Object.keys(this.queueGroups),
+    //       client: Object.keys(this.queueGroups),
     //     });
-    // logger.debug`Conat: restoring subscriptions`, Array.from(subs));
+    const missing: { subject: string; queue: string }[] = [];
     for (const subject in this.queueGroups) {
       // subscribe on backend to all subscriptions we think we should have that
       // the server does not have
       if (!subs.has(subject)) {
-        this.conn.emit("subscribe", {
+        missing.push({
           subject,
           queue: this.queueGroups[subject],
         });
       }
     }
-    for (const subject in subs) {
-      if (this.queueGroups[subject] != null) {
-        // server thinks we're subscribed but we do not, so cancel
-        this.conn.emit("unsubscribe", { subject });
+    let stable = true;
+    if (missing.length > 0) {
+      stable = false;
+      const resp = await callback(
+        this.conn.timeout(timeout).emit.bind(this.conn),
+        "subscribe",
+        missing,
+      );
+      // some subscription could fail due to permissions changes, e.g., user got
+      // removed from a project.
+      for (let i = 0; i < missing.length; i++) {
+        if (resp[i].error) {
+          const sub = this.subs[missing[i].subject];
+          if (sub != null) {
+            sub.close(true);
+          }
+        }
       }
     }
-  });
+    const extra: string[] = [];
+    for (const subject in subs) {
+      if (this.queueGroups[subject] != null) {
+        // server thinks we're subscribed but we do not think so, so cancel that
+        extra.push(subject);
+      }
+    }
+    if (extra.length > 0) {
+      await callback(
+        this.conn.timeout(timeout).emit.bind(this.conn),
+        "unsubscribe",
+        extra,
+      );
+      stable = false;
+    }
+    return stable;
+  };
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
 
-  private getSubscriptions = async (): Promise<Set<string>> => {
-    const f = (cb) =>
-      this.conn.emit("subscriptions", null, (subs) => cb(undefined, subs));
-    return new Set(await callback(f));
+  private getSubscriptions = async (
+    timeout = DEFAULT_REQUEST_TIMEOUT,
+  ): Promise<Set<string>> => {
+    const subs = await callback(
+      this.conn.timeout(timeout).emit.bind(this.conn),
+      "subscriptions",
+      null,
+    );
+    return new Set(subs);
   };
 
   // returns EventEmitter that emits 'message', mesg: Message
@@ -594,7 +678,7 @@ export class Client extends EventEmitter {
       timeout?: number;
     } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
-    if (this.options == null) {
+    if (this.state == "closed") {
       throw Error("closed");
     }
     if (!isValidSubject(subject)) {
@@ -633,13 +717,13 @@ export class Client extends EventEmitter {
       queue = randomId();
     }
     this.queueGroups[subject] = queue;
-    this.stats.subs += 1;
     sub = new SubscriptionEmitter({
       client: this,
       subject,
       closeWhenOffCalled,
     });
     this.subs[subject] = sub;
+    this.stats.subs += 1;
     let promise;
     if (confirm) {
       const f = (cb) => {
@@ -674,12 +758,15 @@ export class Client extends EventEmitter {
       promise = undefined;
     }
     sub.once("close", () => {
-      if (this.queueGroups?.[subject] == null) {
+      if (this.state == "closed") {
         return;
       }
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
-      this.stats.subs -= 1;
+      if (this.subs[subject] != null) {
+        this.stats.subs -= 1;
+        delete this.subs[subject];
+      }
     });
     return { sub, promise };
   };
@@ -715,6 +802,7 @@ export class Client extends EventEmitter {
     subject: string,
     opts?: SubscriptionOptions,
   ): Promise<Subscription> => {
+    await this.waitUntilSignedIn();
     const { sub, promise } = this.subscriptionEmitter(subject, {
       confirm: true,
       closeWhenOffCalled: true,
@@ -827,7 +915,7 @@ export class Client extends EventEmitter {
     mesg,
     opts?: PublishOptions,
   ): { bytes: number } => {
-    if (this.options == null) {
+    if (this.state == "closed") {
       // already closed
       return { bytes: 0 };
     }
@@ -847,10 +935,11 @@ export class Client extends EventEmitter {
     // **right now** or received these messages.
     count: number;
   }> => {
-    if (this.options == null) {
+    if (this.state == "closed") {
       // already closed
       return { bytes: 0, count: 0 };
     }
+    await this.waitUntilSignedIn();
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
@@ -870,7 +959,7 @@ export class Client extends EventEmitter {
       timeout = DEFAULT_PUBLISH_TIMEOUT,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
-    if (this.options == null) {
+    if (this.state == "closed") {
       return { bytes: 0 };
     }
     if (!isValidSubjectWithoutWildcards(subject)) {
@@ -972,11 +1061,9 @@ export class Client extends EventEmitter {
     if (timeout <= 0) {
       throw Error("timeout must be positive");
     }
+    const inbox = await this.getInbox();
     const inboxSubject = this.temporaryInboxSubject();
-    if (this.inbox == null) {
-      throw Error("inbox not configured");
-    }
-    const sub = new EventIterator<Message>(this.inbox, inboxSubject, {
+    const sub = new EventIterator<Message>(inbox, inboxSubject, {
       idle: timeout,
       limit: 1,
       map: (args) => args[0],
@@ -1028,11 +1115,9 @@ export class Client extends EventEmitter {
     if (maxWait != null && maxWait <= 0) {
       throw Error("maxWait must be positive");
     }
+    const inbox = await this.getInbox();
     const inboxSubject = this.temporaryInboxSubject();
-    if (this.inbox == null) {
-      throw Error("inbox not configured");
-    }
-    const sub = new EventIterator<Message>(this.inbox, inboxSubject, {
+    const sub = new EventIterator<Message>(inbox, inboxSubject, {
       idle: maxWait,
       limit: maxMessages,
       map: (args) => args[0],
@@ -1189,10 +1274,10 @@ class SubscriptionEmitter extends EventEmitter {
     this.closeWhenOffCalled = closeWhenOffCalled;
   }
 
-  close = () => {
+  close = (force?) => {
     this.refCount -= 1;
     // console.log("SubscriptionEmitter.close - refCount =", this.refCount, this.subject);
-    if (this.refCount > 0) {
+    if (!force && this.refCount > 0) {
       return;
     }
     delete this.client.subs?.[this.subject];
@@ -1206,6 +1291,7 @@ class SubscriptionEmitter extends EventEmitter {
     delete this.subject;
     // @ts-ignore
     delete this.closeWhenOffCalled;
+    this.removeAllListeners();
   };
 
   off(a, b) {

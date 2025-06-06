@@ -97,6 +97,11 @@ export const Page: React.FC = () => {
     };
   }, []);
 
+  const [showSignInTab, setShowSignInTab] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowSignInTab(true), 3000);
+  }, []);
+
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
@@ -208,7 +213,7 @@ export const Page: React.FC = () => {
   }
 
   function render_sign_in_tab(): JSX.Element | null {
-    if (is_logged_in) return null;
+    if (is_logged_in || !showSignInTab) return null;
 
     return (
       <Next

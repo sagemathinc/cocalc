@@ -52,6 +52,7 @@ import {
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
+import { is_array } from "@cocalc/util/misc";
 
 const DEBUG = false;
 
@@ -533,15 +534,15 @@ export class ConatServer {
       }
     });
 
-    socket.on("subscribe", async ({ subject, queue, ephemeral }, respond) => {
+    const subscribe = async ({ subject, queue, ephemeral }) => {
       try {
         if (this.subscriptions[id].has(subject)) {
-          throw Error(`already subscribed to '${subject}'`);
+          return { status: "already-added" };
         }
         await this.subscribe({ socket, subject, queue, user, ephemeral });
         this.subscriptions[id].add(subject);
         this.stats[socket.id].subs += 1;
-        respond?.({ status: "added" });
+        return { status: "added" };
       } catch (err) {
         if (err.code == 403) {
           socket.emit("permission", {
@@ -550,7 +551,19 @@ export class ConatServer {
             type: "sub",
           });
         }
-        respond?.({ error: `${err}`, code: err.code });
+        return { error: `${err}`, code: err.code };
+      }
+    };
+
+    socket.on("subscribe", async (x, respond) => {
+      if (is_array(x)) {
+        const v: any[] = [];
+        for (const y of x) {
+          v.push(await subscribe(y));
+        }
+        respond?.(v);
+      } else {
+        respond?.(await subscribe(x));
       }
     });
 
@@ -561,14 +574,25 @@ export class ConatServer {
       respond(Array.from(this.subscriptions[id]));
     });
 
-    socket.on("unsubscribe", ({ subject }, respond) => {
+    const unsubscribe = ({ subject }) => {
       if (!this.subscriptions[id].has(subject)) {
         return;
       }
       this.unsubscribe({ socket, subject });
       this.subscriptions[id].delete(subject);
       this.stats[socket.id].subs -= 1;
-      respond?.();
+    };
+
+    socket.on("unsubscribe", (x, respond) => {
+      if (is_array(x)) {
+        const v: any[] = [];
+        for (const y of x) {
+          v.push(unsubscribe(y));
+        }
+        respond?.(v);
+      } else {
+        respond?.(unsubscribe(x));
+      }
     });
 
     socket.on("disconnecting", async () => {

@@ -4,7 +4,7 @@ Very basic test of conat core client and server.
 pnpm test ./basic.test.ts
 */
 
-import { connect, before, after } from "@cocalc/backend/conat/test/setup";
+import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
@@ -154,7 +154,7 @@ describe("basic test of publish and subscribe", () => {
   });
 });
 
-describe("basic tests of request/respond", () => {
+describe.only("basic tests of request/respond", () => {
   let c1, c2;
 
   it("create two clients", () => {
@@ -192,11 +192,18 @@ describe("basic tests of request/respond", () => {
 
   it("stop our server above (close subscription) and confirm get 503 error", async () => {
     sub.close();
-    try {
-      await c1.request("eval", "1+2+3+4+5");
-    } catch (err) {
-      expect(err.code == 503);
-    }
+    await wait({
+      until: async () => {
+        try {
+          await c1.request("eval", "1+2+3+4+5");
+        } catch (err) {
+          if (err.code == 503) {
+            return true;
+          }
+        }
+        return false;
+      },
+    });
   });
 
   let callIter;

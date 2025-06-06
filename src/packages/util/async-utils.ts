@@ -123,54 +123,51 @@ import { CB } from "./types/database";
    in our applications.
    If timeout_ms is nonzero and event doesn't happen an
    exception is thrown.
+   If the obj throws 'closed' before the event is emitted,
+   then this throws an error, since clearly event can never be emitted.
    */
 export async function once(
   obj: EventEmitter,
   event: string,
   timeout_ms: number = 0,
 ): Promise<any> {
-  if (obj == null) {
-    throw Error("once -- obj is undefined");
-  }
-  if (typeof obj.once != "function") {
+  if (obj == null) throw Error("once -- obj is undefined");
+  if (typeof obj.once != "function")
     throw Error("once -- obj.once must be a function");
-  }
-  if (timeout_ms > 0) {
-    // just to keep both versions more readable...
-    return once_with_timeout(obj, event, timeout_ms);
-  }
-  let val: any[] = [];
-  function wait(cb: Function): void {
-    obj.once(event, function (...args): void {
-      val = args;
-      cb();
-    });
-  }
-  await awaiting.callback(wait);
-  return val;
-}
 
-async function once_with_timeout(
-  obj: EventEmitter,
-  event: string,
-  timeout_ms: number,
-): Promise<any> {
-  let val: any[] = [];
-  function wait(cb: Function): void {
-    function fail(): void {
-      obj.removeListener(event, handler);
-      cb("timeout");
+  return new Promise((resolve, reject) => {
+    let timer: NodeJS.Timeout | undefined;
+
+    function cleanup() {
+      obj.removeListener(event, onEvent);
+      obj.removeListener("closed", onClosed);
+      if (timer) clearTimeout(timer);
     }
-    const timer = setTimeout(fail, timeout_ms);
-    function handler(...args): void {
-      clearTimeout(timer);
-      val = args;
-      cb();
+
+    function onEvent(...args: any[]) {
+      cleanup();
+      resolve(args);
     }
-    obj.once(event, handler);
-  }
-  await awaiting.callback(wait);
-  return val;
+
+    function onClosed() {
+      cleanup();
+      reject(new Error(`once: "${event}" not emitted before "closed"`));
+    }
+
+    function onTimeout() {
+      cleanup();
+      reject(
+        new Error(`once: timeout of ${timeout_ms}ms waiting for "${event}"`),
+      );
+    }
+
+    obj.once(event, onEvent);
+    obj.once("closed", onClosed);
+
+    if (timeout_ms > 0) {
+      timer = setTimeout(onTimeout, timeout_ms);
+    }
+  });
 }
 
 // Alternative to callback_opts that behaves like the callback defined in awaiting.

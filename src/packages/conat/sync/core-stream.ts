@@ -555,6 +555,7 @@ export class CoreStream<T = any> extends EventEmitter {
   publishMany = async (
     messages: { mesg: T; options?: PublishOptions }[],
   ): Promise<
+    
     ({ seq: number; time: number } | { error: string; code?: any })[]
   > => {
     const v: SetOptions[] = [];
