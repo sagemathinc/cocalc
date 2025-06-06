@@ -194,8 +194,12 @@ export class DKV<T = any> extends EventEmitter {
       },
     });
   }
-
-  init = reuseInFlight(async () => {
+  private initialized = false;
+  init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     if (this.kv == null) {
       throw Error("closed");
     }
@@ -204,16 +208,18 @@ export class DKV<T = any> extends EventEmitter {
     // allow_msg_ttl is used for deleting tombstones.
     await this.kv.config({ allow_msg_ttl: true });
     this.emit("connected");
-  });
+  };
 
   close = () => {
     if (this.kv == null) {
       return;
     }
-    this.kv.close();
+    const kv = this.kv;
+    delete this.kv;
+    kv.removeListener("change", this.handleRemoteChange);
+    kv.close();
     this.emit("closed");
     this.removeAllListeners();
-    delete this.kv;
     // @ts-ignore
     delete this.local;
     // @ts-ignore

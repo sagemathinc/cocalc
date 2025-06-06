@@ -345,7 +345,11 @@ export class SyncDoc extends EventEmitter {
   until it is (however long, etc.).  If this fails, it closes
   this SyncDoc.
   */
-  private init = async (): Promise<void> => {
+  private initialized = false;
+  private init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
     // const start = Date.now();
     this.assert_not_closed("init");
     const log = this.dbg("init");

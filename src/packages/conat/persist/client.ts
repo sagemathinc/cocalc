@@ -40,6 +40,7 @@ export class PersistStreamClient extends EventEmitter {
     private user: User,
   ) {
     super();
+    //console.log("persist -- create", this.storage.path);
     logger.debug("constructor", this.storage);
     this.init();
   }
@@ -73,7 +74,7 @@ export class PersistStreamClient extends EventEmitter {
   };
 
   close = () => {
-    // console.log("PersistStreamClient.close", this.storage);
+    // console.log("persist -- close", this.storage.path);
     this.state = "closed";
     for (const iter of this.changefeeds) {
       iter.close();

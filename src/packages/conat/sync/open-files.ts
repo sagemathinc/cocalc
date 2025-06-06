@@ -161,7 +161,12 @@ export class OpenFiles extends EventEmitter {
     this.emit(state);
   };
 
+  private initialized = false;
   init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     const d = await dkv<KVEntry>({
       name: "open-files",
       project_id: this.project_id,

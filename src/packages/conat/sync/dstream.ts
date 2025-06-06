@@ -87,7 +87,12 @@ export class DStream<T = any> extends EventEmitter {
     });
   }
 
-  init = reuseInFlight(async () => {
+  private initialized = false;
+  init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     if (this.stream == null) {
       throw Error("closed");
     }
@@ -98,7 +103,7 @@ export class DStream<T = any> extends EventEmitter {
     });
     await this.stream.init();
     this.emit("connected");
-  });
+  };
 
   private handleChange = ({ mesg, raw, msgID }: ChangeEvent<T>) => {
     if (raw?.seq !== undefined) {

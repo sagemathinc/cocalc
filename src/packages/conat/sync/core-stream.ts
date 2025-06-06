@@ -192,7 +192,12 @@ export class CoreStream<T = any> extends EventEmitter {
     });
   }
 
+  private initialized = false;
   init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     if (this.client == null) {
       this.client = await conat();
     }
@@ -495,20 +500,14 @@ export class CoreStream<T = any> extends EventEmitter {
         // frequently or things are seriously broken.  We cause this in
         //    backend/conat/test/core/core-stream-break.test.ts
         if (!process.env.COCALC_TEST_MODE) {
-          log(
-            `WARNING: core-stream changefeed error -- ${err}`,
-            this.storage,
-          );
+          log(`WARNING: core-stream changefeed error -- ${err}`, this.storage);
         }
       }
       // above loop exits when the persistent server
       // stops sending messages for some reason. In that
       // case we reconnect, picking up where we left off:
       if (this.client == null) return;
-      log(
-        "core-stream: get missing from when changefeed ended",
-        this.storage,
-      );
+      log("core-stream: get missing from when changefeed ended", this.storage);
       await this.getAllFromPersist({
         start_seq: this.lastSeq + 1,
         noEmit: false,
@@ -555,7 +554,6 @@ export class CoreStream<T = any> extends EventEmitter {
   publishMany = async (
     messages: { mesg: T; options?: PublishOptions }[],
   ): Promise<
-    
     ({ seq: number; time: number } | { error: string; code?: any })[]
   > => {
     const v: SetOptions[] = [];
@@ -901,6 +899,7 @@ export const cache = refCache<CoreStreamOptions, CoreStream>({
     return jsonStableStringify(options)!;
   },
 });
+
 export async function cstream<T>(
   options: CoreStreamOptions,
 ): Promise<CoreStream<T>> {

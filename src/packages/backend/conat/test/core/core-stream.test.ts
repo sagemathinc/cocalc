@@ -375,6 +375,7 @@ describe("test msgID dedup", () => {
 });
 
 import { disablePermissionCheck } from "@cocalc/conat/persist/client";
+
 describe("test permissions", () => {
   it("create a CoreStream, but change the path to one that wouldn't be allowed given the subject", async () => {
     const client = connect();
@@ -409,7 +410,7 @@ describe("test permissions", () => {
   it("do the tests again, but with the client side permission check disabled, to make sure the server denies us", async () => {
     disablePermissionCheck();
     const client = connect();
-    const stream: any = new CoreStream({
+    let stream: any = new CoreStream({
       client,
       name: "conat2.ipynb",
       project_id: "00000000-0000-4000-8000-000000000000",
@@ -419,7 +420,13 @@ describe("test permissions", () => {
     await expect(async () => {
       await stream.init();
     }).rejects.toThrowError("permission denied");
+    stream.close();
 
+    stream = new CoreStream({
+      client,
+      name: "conat2.ipynb",
+      project_id: "00000000-0000-4000-8000-000000000000",
+    });
     // instead change the user and make sure denied
     stream.storage.path = origPath;
     // wrong project
@@ -427,7 +434,13 @@ describe("test permissions", () => {
     await expect(async () => {
       await stream.init();
     }).rejects.toThrowError("permission denied");
+    stream.close();
 
+    stream = new CoreStream({
+      client,
+      name: "conat2.ipynb",
+      project_id: "00000000-0000-4000-8000-000000000000",
+    });
     stream.storage.path = origPath;
     // wrong user type
     stream.user = { account_id: "00000000-0000-4000-8000-000000000000" };

@@ -114,7 +114,13 @@ describe("do a more challenging test that involves a larger file that has to be 
   });
 
   it("confirm that the dest file is correct", async () => {
-    const d = (await readFile(dest)).toString();
+    let d = (await readFile(dest)).toString();
+    if (d.length != CONTENT.length) {
+      // under heavy load file might not have been flushed **to disk** (even though it was fully and
+      // correctly received), so we wait to give it a chance, then try again.
+      await delay(1000);
+      d = (await readFile(dest)).toString();
+    }
     expect(d.length).toEqual(CONTENT.length);
     // not directly comparing, since huge and if something goes wrong the output
     // saying the test failed is huge.
@@ -128,8 +134,5 @@ describe("do a more challenging test that involves a larger file that has to be 
     }
   });
 });
-
-
-
 
 afterAll(after);

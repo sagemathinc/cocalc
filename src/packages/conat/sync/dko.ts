@@ -12,7 +12,6 @@ DEVELOPMENT:
 */
 
 import { EventEmitter } from "events";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
 import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
@@ -27,13 +26,10 @@ export function userKvKey(options: DKVOptions) {
 }
 
 export class DKO<T = any> extends EventEmitter {
-  opts: DKVOptions;
   dkv?: DKV; // can't type this
 
-  constructor(opts: DKVOptions) {
+  constructor(private opts: DKVOptions) {
     super();
-    this.opts = opts;
-    this.init();
     return new Proxy(this, {
       deleteProperty(target, prop) {
         if (typeof prop == "string") {
@@ -60,56 +56,64 @@ export class DKO<T = any> extends EventEmitter {
     });
   }
 
-  init = reuseInFlight(async () => {
-    if (this.dkv != null) {
-      throw Error("already initialized");
+  private dkvOnChange = ({ key: path, value }) => {
+    if (path == null) {
+      // TODO: could this happen?
+      return;
     }
+    const { key, field } = this.fromPath(path);
+    if (!field) {
+      // there is no field part of the path, which happens
+      // only for delete of entire object, after setting all
+      // the fields to null.
+      this.emit("change", { key });
+    } else {
+      if (value === undefined && this.dkv?.get(key) == null) {
+        // don't emit change setting fields to undefined if the
+        // object was already deleted.
+        return;
+      }
+      this.emit("change", { key, field, value });
+    }
+  };
+
+  private dkvOnReject = ({ key: path, value }) => {
+    if (path == null) {
+      // TODO: would this happen?
+      return;
+    }
+    const { key, field } = this.fromPath(path);
+    if (!field) {
+      this.emit("reject", { key });
+    } else {
+      this.emit("reject", { key, field, value });
+    }
+  };
+
+  private initialized = false;
+  init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    this.initialized = true;
     this.dkv = await createDKV<{ [key: string]: any }>({
       ...this.opts,
       name: dkoPrefix(this.opts.name),
     });
-    this.dkv.on("change", ({ key: path, value }) => {
-      if (path == null) {
-        // TODO: could this happen?
-        return;
-      }
-      const { key, field } = this.fromPath(path);
-      if (!field) {
-        // there is no field part of the path, which happens
-        // only for delete of entire object, after setting all
-        // the fields to null.
-        this.emit("change", { key });
-      } else {
-        if (value === undefined && this.dkv?.get(key) == null) {
-          // don't emit change setting fields to undefined if the
-          // object was already deleted.
-          return;
-        }
-        this.emit("change", { key, field, value });
-      }
-    });
-
-    this.dkv.on("reject", ({ key: path, value }) => {
-      if (path == null) {
-        // TODO: would this happen?
-        return;
-      }
-      const { key, field } = this.fromPath(path);
-      if (!field) {
-        this.emit("reject", { key });
-      } else {
-        this.emit("reject", { key, field, value });
-      }
-    });
-    await this.dkv.init();
-  });
+    this.dkv.on("change", this.dkvOnChange);
+    this.dkv.on("reject", this.dkvOnReject);
+  };
 
   close = async () => {
     if (this.dkv == null) {
       return;
     }
+    this.dkv.removeListener("change", this.dkvOnChange);
+    this.dkv.removeListener("reject", this.dkvOnReject);
     await this.dkv.close();
     delete this.dkv;
+    // @ts-ignore
+    delete this.opts;
     this.emit("closed");
     this.removeAllListeners();
   };
