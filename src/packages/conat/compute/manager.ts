@@ -153,14 +153,22 @@ export class ComputeServerManager extends EventEmitter {
     path: string;
     id: number;
   }) => {
-    await this.waitUntilReady();
+    try {
+      await this.waitUntilReady();
+    } catch {
+      return;
+    }
     this.set(path, id);
   };
 
   // Call this if you want no compute servers to provide the backend server
   // for given path.
   disconnectComputeServer = async ({ path }: { path: string }) => {
-    await this.waitUntilReady();
+    try {
+      await this.waitUntilReady();
+    } catch {
+      return;
+    }
     this.delete(path);
   };
 
@@ -168,7 +176,11 @@ export class ComputeServerManager extends EventEmitter {
   // path, if one is set. Otherwise, return undefined
   // if nothing is explicitly set for this path (i.e., usually means home base).
   getServerIdForPath = async (path: string): Promise<number | undefined> => {
-    await this.waitUntilReady();
+    try {
+      await this.waitUntilReady();
+    } catch {
+      return;
+    }
     return this.get(path);
   };
 
