@@ -60,6 +60,10 @@ import * as theme from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
+import { delay } from "awaiting";
+
+// update every 2 minutes.
+const UPDATE_INTERVAL = 2 * 60000;
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -268,10 +272,7 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-// For now, hopefully not used (this was the old approach).
-// in the future we might want to reload the configuration, though.
-// Note that this *is* clearly used as a fallback below though...!
-async function init_customize() {
+async function loadCustomizeState() {
   if (typeof process != "undefined") {
     // running in node.js
     return;
@@ -312,7 +313,12 @@ async function init_customize() {
   actions.setState({ token: !!registration });
 }
 
-init_customize();
+export async function init() {
+  while (true) {
+    await loadCustomizeState();
+    await delay(UPDATE_INTERVAL);
+  }
+}
 
 function process_ollama(ollama?) {
   if (!ollama) return;
@@ -335,7 +341,7 @@ function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] =
-      obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
+      obj[k] != null ? obj[k] : (v.to_val?.(v.default, obj_orig) ?? v.default);
   }
   // the llm markup special case
   obj.llm_markup = obj_orig._llm_markup ?? 30;
