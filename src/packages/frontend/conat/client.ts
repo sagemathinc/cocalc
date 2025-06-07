@@ -122,6 +122,12 @@ export class ConatClient extends EventEmitter {
     return this._conatClient!;
   };
 
+  private permanentlyDisconnected = false;
+  permanentlyDisconnect = () => {
+    this.permanentlyDisconnected = true;
+    this.standby();
+  };
+
   is_signed_in = (): boolean => {
     return !!this._conatClient?.info?.user?.account_id;
   };
@@ -143,7 +149,7 @@ export class ConatClient extends EventEmitter {
     setConatClient({
       account_id: this.client.account_id,
       conat: async () => this.conat(),
-      reconnect: this.reconnect,
+      reconnect: async () => this.reconnect(),
       getLogger:
         false && DEBUG
           ? (name) => {
@@ -202,18 +208,25 @@ export class ConatClient extends EventEmitter {
     this.client.emit("remember_me_failed", { error });
   };
 
-  reconnect = reuseInFlight(async () => {
+  reconnect = () => {
     this._conatClient?.conn.io.engine.close();
-    this._conatClient?.conn.connect();
-  });
+    this.resume();
+  };
 
   // if there is a connection, put it in standby
   standby = () => {
     // @ts-ignore
     this._conatClient?.conn.io.disconnect();
   };
+
   // if there is a connection, resume it
-  resume = async () => {
+  resume = () => {
+    if (this.permanentlyDisconnected) {
+      console.log(
+        "Not connecting -- client is permanently disconnected and must refresh their browser",
+      );
+      return;
+    }
     this._conatClient?.conn.io.connect();
   };
 

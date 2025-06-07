@@ -261,6 +261,10 @@ export class CustomizeActions extends Actions<CustomizeState> {
       unlicensed_project_timetravel_limit: undefined,
     });
   };
+  
+  reload = async () => {
+    await loadCustomizeState();
+  };
 }
 
 export const store = redux.createStore("customize", CustomizeStore, defaults);

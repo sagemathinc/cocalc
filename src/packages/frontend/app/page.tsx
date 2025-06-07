@@ -46,7 +46,8 @@ import PopconfirmModal from "./popconfirm-modal";
 import SettingsModal from "./settings-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
-import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import { CookieWarning, LocalStorageWarning } from "./warnings";
+import VersionWarning from "./version-warning";
 import Next from "@cocalc/frontend/components/next";
 import { ClientContext } from "@cocalc/frontend/client/context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -109,7 +110,6 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
-  const new_version = useTypedRedux("page", "new_version");
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
@@ -370,7 +370,7 @@ export const Page: React.FC = () => {
         </div>
       )}
       {show_connection && <ConnectionInfo />}
-      {new_version && <VersionWarning new_version={new_version} />}
+      <VersionWarning />
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
