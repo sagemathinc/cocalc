@@ -110,6 +110,7 @@ import {
 } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
+import { delay } from "awaiting";
 
 const { defaults, required } = misc;
 
@@ -282,6 +283,31 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
   },
 } as const;
 
+// isOpen should reliably return whether or not a vien project
+// is currently open in this client, in the sense that its actions
+// are defined.
+const openProjectIds = new Set<string>();
+
+async function syncOpenProjectTabs(interval = 5000) {
+  while (true) {
+    await delay(interval);
+    const open_projects = redux.getStore("projects")?.get("open_projects");
+    if (open_projects == null) {
+      continue;
+    }
+    const openProjectTabs = new Set(open_projects?.toJS());
+    // console.log("syncOpenProjectTabs", { openProjectTabs, openProjectIds });
+    for (const project_id of openProjectIds) {
+      if (!openProjectTabs.has(project_id)) {
+        // console.log("syncOpenProjectTabs: removing ", project_id);
+        redux.removeProjectReferences(project_id);
+      }
+    }
+  }
+}
+
+syncOpenProjectTabs();
+
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
   public project_id: string;
@@ -298,6 +324,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
+    openProjectIds.add(this.project_id);
     // console.trace("create project actions", this.project_id)
     this.open_files = new OpenFiles(this);
     this.initComputeServerManager();
@@ -315,6 +342,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.state = "closed";
+    openProjectIds.delete(this.project_id);
     this.closeComputeServerManager();
     this.closeComputeServerTable();
     this.projectStatusSub?.close();
@@ -1269,6 +1297,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
+    if (this.state == "closed") {
+      return;
+    }
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     // this is what is currently configured:

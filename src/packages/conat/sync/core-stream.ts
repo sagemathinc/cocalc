@@ -343,6 +343,7 @@ export class CoreStream<T = any> extends EventEmitter {
     { seqs }: DeleteOperation,
     { noEmit }: { noEmit?: boolean },
   ) => {
+    if (this.raw == null) return;
     //console.log("processPersistentDelete", seqs);
     const X = new Set<number>(seqs);
     // seqs is a list of integers.  We remove
@@ -406,6 +407,7 @@ export class CoreStream<T = any> extends EventEmitter {
       noSeqCheck?: boolean;
     },
   ) => {
+    if (this.raw == null) return;
     if (!noSeqCheck && this.processPersistentSetLargestSeq > 0) {
       const expected = this.processPersistentSetLargestSeq + 1;
       if (seq > expected) {
@@ -475,6 +477,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private emitChange = (e: ChangeEvent<T>) => {
+    if (this.raw == null) return;
     this.emit("change", e);
   };
 

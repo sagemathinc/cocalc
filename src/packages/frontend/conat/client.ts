@@ -477,5 +477,5 @@ function setNotDeleted({ project_id, path }) {
     return;
   }
   const actions = redux.getProjectActions(project_id);
-  actions.setRecentlyDeleted(path, 0);
+  actions?.setRecentlyDeleted(path, 0);
 }
