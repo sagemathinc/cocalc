@@ -85,12 +85,20 @@ async function versionCheckLoop(client) {
   while (true) {
     try {
       const { version } = await hub.system.getCustomize(["version"]);
-      if ((ourVersion ?? 0) < (version?.min_project ?? 0)) {
-        logger.debug("ERROR: our version is too old.  Terminating project!");
-        setTimeout(() => process.exit(1), 10000);
+      logger.debug("versionCheckLoop: ", { ...version, ourVersion });
+      if (version != null) {
+        const requiredVersion = compute_server_id
+          ? (version.min_compute_server ?? 0)
+          : (version.min_project ?? 0);
+        if ((ourVersion ?? 0) < requiredVersion) {
+          logger.debug(
+            `ERROR: our CoCalc version ${ourVersion} is older than the required version ${requiredVersion}.  \n\n** TERMINATING DUE TO VERSION BEING TOO OLD!!**\n\n`,
+          );
+          setTimeout(() => process.exit(1), 10);
+        }
       }
     } catch (err) {
-      logger.debug(`WARNING: issue getting version info from hub -- ${err}`);
+      logger.debug(`WARNING: problem getting version info from hub -- ${err}`);
     }
     await delay(VERSION_CHECK_INTERVAL);
   }

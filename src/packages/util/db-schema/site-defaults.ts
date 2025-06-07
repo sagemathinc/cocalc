@@ -97,6 +97,7 @@ export type SiteSettingsKeys =
   | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
+  | "version_min_compute_server"
   | "version_compute_server_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
@@ -542,7 +543,15 @@ export const site_settings_conf: SiteSettings = {
   },
   version_min_project: {
     name: "Required project version",
-    desc: "Minimal version required by projects (if project older, will be force restarted).",
+    desc: "Minimal version required by projects (if older, will terminate).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
+    tags: ["Version"],
+  },
+  version_min_compute_server: {
+    name: "Required compute server version",
+    desc: "Minimal version required by compute server (if older, will terminate).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
