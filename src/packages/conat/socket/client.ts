@@ -41,11 +41,8 @@ export class ConatSocketClient extends ConatSocketBase {
   }
 
   channel(channel: string) {
-    return new ConatSocketClient({
-      subject: this.subject + "." + channel,
-      client: this.client,
-      role: this.role,
-      id: this.id,
+    return this.client.socket.connect(this.subject + "." + channel, {
+      desc: `${this.desc ?? ""}.channel('${channel}')`,
       maxQueueSize: this.maxQueueSize,
     }) as ConatSocketClient;
   }

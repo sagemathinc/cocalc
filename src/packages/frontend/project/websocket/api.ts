@@ -90,15 +90,14 @@ export class API {
   };
 
   private getChannel = (
-    channel_name: string,
+    channel: string,
     compute_server_id?: number,
   ): Channel => {
-    const conatPrimus = webapp_client.conat_client.primus({
+    return webapp_client.conat_client.primus({
       project_id: this.project_id,
       compute_server_id,
-    });
-    // TODO -- typing
-    return conatPrimus.channel(channel_name) as unknown as Channel;
+      channel,
+    }) as unknown as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {

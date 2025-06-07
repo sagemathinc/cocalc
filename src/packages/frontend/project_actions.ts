@@ -288,7 +288,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
 // are defined.
 const openProjectIds = new Set<string>();
 
-async function syncOpenProjectTabs(interval = 5000) {
+async function syncOpenProjectTabsLoop(interval = 5000) {
   while (true) {
     await delay(interval);
     const open_projects = redux.getStore("projects")?.get("open_projects");
@@ -306,7 +306,7 @@ async function syncOpenProjectTabs(interval = 5000) {
   }
 }
 
-syncOpenProjectTabs();
+syncOpenProjectTabsLoop();
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";

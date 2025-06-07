@@ -19,11 +19,8 @@ export class ConatSocketServer extends ConatSocketBase {
   initTCP() {}
 
   channel(channel: string) {
-    return new ConatSocketServer({
-      subject: this.subject + "." + channel,
-      client: this.client,
-      role: this.role,
-      id: this.id,
+    return this.client.socket.listen(this.subject + "." + channel, {
+      desc: `${this.desc ?? ""}.channel('${channel}')`,
     }) as ConatSocketServer;
   }
 

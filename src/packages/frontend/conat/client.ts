@@ -382,7 +382,9 @@ export class ConatClient extends EventEmitter {
     if (channel) {
       subject += "." + channel;
     }
-    return this.conat().socket.connect(subject);
+    return this.conat().socket.connect(subject, {
+      desc: `primus-${channel ?? ""}`,
+    });
   };
 
   openFiles = reuseInFlight(async (project_id: string) => {

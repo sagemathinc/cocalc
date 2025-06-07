@@ -197,7 +197,7 @@ export class ConatTerminal extends EventEmitter {
         }
         return;
       } catch (err) {
-        console.log(`Warning -- ${err} (will retry)`);
+        console.log(`WARNING: starting terminal -- ${err} (will retry)`);
         try {
           await this.api.conat.waitFor({ maxWait });
         } catch (err) {
@@ -210,26 +210,29 @@ export class ConatTerminal extends EventEmitter {
   });
 
   private getStream = async () => {
-    const { conat_client } = webapp_client;
-    return await conat_client.dstream<string>({
-      name: `terminal-${this.path}`,
-      project_id: this.project_id,
-      ephemeral: this.ephemeral,
-    });
-  };
-
-  init = async () => {
-    this.setState("init");
-    await this.start();
-    if (this.state == "closed") {
-      return;
-    }
     if (this.stream != null) {
       this.stream.close();
       delete this.stream;
     }
-    this.stream = await this.getStream();
-    this.consumeDataStream();
+    if (this.state == "closed") {
+      return;
+    }
+    this.stream = await webapp_client.conat_client.dstream<string>({
+      name: `terminal-${this.path}`,
+      project_id: this.project_id,
+      ephemeral: this.ephemeral,
+    });
+    if (this.state == ("closed" as any)) {
+      this.stream.close();
+      delete this.stream;
+      return;
+    }
+    await this.consumeDataStream();
+  };
+
+  init = async () => {
+    await Promise.all([this.start(), this.getStream()]);
+    await this.setReady();
   };
 
   private handleStreamData = (data) => {
@@ -238,26 +241,25 @@ export class ConatTerminal extends EventEmitter {
     }
   };
 
-  private consumeDataStream = () => {
+  private consumeDataStream = async () => {
     if (this.stream == null) {
       return;
     }
     const initData = this.stream.getAll().join("");
     this.handleStreamData(initData);
-    this.setReady();
     this.stream.on("change", this.handleStreamData);
+    // wait until after render loop of terminal before allowing writing,
+    // or we get corruption.
+    await delay(500);
+  };
+
+  private setReady = async () => {
+    this.setState("running");
+    this.emit("ready");
     if (this.writeQueue) {
       // causes anything in queue to be sent and queue to be cleared:
       this.write("");
     }
-  };
-
-  private setReady = async () => {
-    // wait until after render loop of terminal before allowing writing,
-    // or we get corruption.
-    await delay(1000);
-    this.setState("running");
-    this.emit("ready");
   };
 
   private browserClient = () => {

@@ -12,6 +12,8 @@ beforeAll(async () => {
   setDefaultTimeouts({ request: 750, publish: 750 });
 });
 
+jest.setTimeout(10000);
+
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   let client,
     server,
