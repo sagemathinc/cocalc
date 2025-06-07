@@ -50,7 +50,6 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 
 */
 
-import getLogger from "@cocalc/backend/logger";
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { getSubject } from "../names";
@@ -59,8 +58,9 @@ import { close as closeListings } from "@cocalc/project/conat/listings";
 import { project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/conat/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/conat/files/write";
+import { getLogger } from "@cocalc/project/logger";
 
-const logger = getLogger("project:conat:api");
+const logger = getLogger("conat:api");
 
 export function init() {
   serve();
