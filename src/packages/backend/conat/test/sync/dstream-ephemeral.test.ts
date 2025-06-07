@@ -100,8 +100,9 @@ describe("create two dstreams and observe sync between them", () => {
   it("now write to s2 and save and see that reflected in s1", async () => {
     s2.push("hi from s2");
     await s2.save();
-    await wait({ until: () => s1[1] == "hi from s2" });
+    await wait({ until: () => s1[1] == "hi from s2" && s2[1] == "hi from s2" });
     expect(s1[1]).toEqual("hi from s2");
+    expect(s2[1]).toEqual("hi from s2");
   });
 
   it("s1.stream and s2.stream should be the same right now", () => {

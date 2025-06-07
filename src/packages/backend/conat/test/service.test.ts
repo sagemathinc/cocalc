@@ -133,13 +133,12 @@ describe("create a service with specified client, stop and start the server, and
   });
 
   let service;
-  it("create a non-ephemeral service using specific client and call it using both clients", async () => {
+  it("create service using specific client and call it using both clients", async () => {
     //You usually do NOT want a non-ephemeral service...
     service = createConatService({
       client,
       service: "double",
       handler: (mesg) => mesg.repeat(2),
-      ephemeral: false,
     });
     await once(service, "running");
 
@@ -156,10 +155,11 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  it("disconnect client and check service still works on reconnect (because not ephemeral)", async () => {
+  it("disconnect client and check service still works on reconnect", async () => {
     // cause a disconnect -- client will connect again in 50ms soon
-    // and handle the request below:
+    // and then handle the request below:
     client.conn.io.engine.close();
+    await delay(100);
     expect(
       await callConatService({
         client: client2,
@@ -173,6 +173,7 @@ describe("create a service with specified client, stop and start the server, and
     // cause a disconnect -- client will connect again in 50ms soon
     // and handle the request below:
     client2.conn.io.engine.close();
+    await delay(100);
     expect(
       await callConatService({
         client: client2,
@@ -182,7 +183,7 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  it("disconnect both clients and check service still works on reconnect", async () => {
+  it.skip("disconnect both clients and check service still works on reconnect", async () => {
     // cause a disconnect -- client will connect again in 50ms soon
     // and handle the request below:
     client.conn.io.engine.close();

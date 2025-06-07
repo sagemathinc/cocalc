@@ -4,12 +4,11 @@ pnpm test ./services.test.ts
 
 import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import { Client, type Message } from "@cocalc/conat/core/client";
-import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
 
-describe("test creating subscriptions with service property set", () => {
+describe("test creating subscriptions", () => {
   let client1, client2;
   it("create two clients", async () => {
     client1 = connect({ reconnectionDelay: 250 });
@@ -17,15 +16,15 @@ describe("test creating subscriptions with service property set", () => {
   });
 
   let sub;
-  it("create an ephemeral subscription in client1 and make sure it can be used from client2", async () => {
-    sub = await client1.subscribe("foo", { ephemeral: true });
+  it("create a subscription in client1 and make sure it can be used from client2", async () => {
+    sub = await client1.subscribe("foo");
     const { count } = await client2.publish("foo", "hello");
     expect(count).toBe(1);
     const { value } = await sub.next();
     expect(value.data).toBe("hello");
   });
 
-  it("disconnects client1 and observes that client2 doesn't think client1 is listening anymore, rather than having requests 'hang forever'", async () => {
+  it("disconnects client1 and observes that client2 doesn't think client1 is listening anymore, rather than having requests 'hang until timeout'", async () => {
     client1.conn.io.engine.close();
     await wait({
       until: async () => {
@@ -44,29 +43,14 @@ describe("test creating subscriptions with service property set", () => {
     });
   });
 
-  let sub2;
-  it("tries the same with services not set and observes that messages are queued", async () => {
-    sub2 = await client1.subscribe("foo2", { ephemeral: false });
-    client1.conn.io.engine.close();
-    await delay(10);
-    const { count } = await client2.publish("foo2", "hello");
-    expect(count).toBe(1);
-  });
-
-  it("gets the message upon reconnect", async () => {
-    const { value } = await sub2.next();
-    expect(value.data).toBe("hello");
-  });
-
   it("cleans up", () => {
     sub.close();
-    sub2.close();
     client1.close();
     client2.close();
   });
 });
 
-describe("services with the ephemeral option", () => {
+describe("more service tests", () => {
   let client1: Client, client2: Client;
   it("create two clients", async () => {
     client1 = connect({ reconnectionDelay: 1000 });

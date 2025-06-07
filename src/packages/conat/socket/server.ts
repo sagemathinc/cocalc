@@ -34,7 +34,6 @@ export class ConatSocketServer extends ConatSocketBase {
     this.deleteDeadSockets();
     const sub = await this.client.subscribe(`${this.subject}.server.*`, {
       sticky: true,
-      ephemeral: true,
     });
     if (this.state == "closed") {
       sub.close();

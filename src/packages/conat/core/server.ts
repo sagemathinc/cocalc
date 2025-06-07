@@ -95,10 +95,6 @@ export class ConatServer {
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
 
   private sockets: { [id: string]: any } = {};
-  // which subscriptions are ephemeral:
-  private ephemeral: {
-    [id: string]: Set<string>;
-  } = {};
   private stats: { [id: string]: ServerConnectionStats } = {};
   private disconnectingTimeout: {
     [id: string]: ReturnType<typeof setTimeout>;
@@ -195,7 +191,6 @@ export class ConatServer {
     }
     const room = socketSubjectRoom({ socket, subject });
     socket.leave(room);
-    (this.ephemeral[socket.id] ?? new Set<string>()).delete(subject);
     await this.updateInterest({ op: "delete", subject, room });
   };
 
@@ -353,7 +348,7 @@ export class ConatServer {
     this.sticky[pattern][subject] = target;
   };
 
-  private subscribe = async ({ socket, subject, queue, ephemeral, user }) => {
+  private subscribe = async ({ socket, subject, queue, user }) => {
     if (DEBUG) {
       this.log("subscribe ", { id: socket.id, subject, queue });
     }
@@ -387,14 +382,6 @@ export class ConatServer {
     // a subscriber before the socket is actually getting messages.
     await socket.join(room);
     await this.updateInterest({ op: "add", subject, room, queue });
-    if (this.ephemeral[socket.id] === undefined) {
-      this.ephemeral[socket.id] = new Set<string>();
-    }
-    if (ephemeral) {
-      this.ephemeral[socket.id].add(subject);
-    } else {
-      this.ephemeral[socket.id].delete(subject);
-    }
   };
 
   private publish = async ({ subject, data, from }): Promise<number> => {
@@ -528,12 +515,12 @@ export class ConatServer {
       }
     });
 
-    const subscribe = async ({ subject, queue, ephemeral }) => {
+    const subscribe = async ({ subject, queue }) => {
       try {
         if (this.subscriptions[id].has(subject)) {
           return { status: "already-added" };
         }
-        await this.subscribe({ socket, subject, queue, user, ephemeral });
+        await this.subscribe({ socket, subject, queue, user });
         this.subscriptions[id].add(subject);
         this.stats[socket.id].subs += 1;
         return { status: "added" };
@@ -552,7 +539,7 @@ export class ConatServer {
     socket.on(
       "subscribe",
       async (
-        x: { subject; queue; ephemeral } | { subject; queue; ephemeral }[],
+        x: { subject; queue; } | { subject; queue; }[],
         respond,
       ) => {
         let r;
@@ -600,10 +587,6 @@ export class ConatServer {
 
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });
-      for (const subject of this.ephemeral[socket.id] ?? []) {
-        this.unsubscribe({ socket, subject });
-        this.subscriptions[id].delete(subject);
-      }
       const rooms = Array.from(socket.rooms) as string[];
       for (const room of rooms) {
         const subject = getSubjectFromRoom(room);

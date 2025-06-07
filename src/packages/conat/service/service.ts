@@ -108,10 +108,6 @@ export interface Options extends ServiceDescription {
   version?: string;
   handler: (mesg) => Promise<any>;
   client?: Client;
-  // NOTE: Unlike subscriptions, ephemeral defaults to true for services, because
-  // usually users want a quick *response*, rather than queuing up requests to a
-  // server that might never reconnect.
-  ephemeral?: boolean;
 }
 
 export function createConatService(options: Options) {
@@ -196,7 +192,7 @@ export class ConatService extends EventEmitter {
 
   constructor(options: Options) {
     super();
-    this.options = { ephemeral: true, ...options };
+    this.options = options;
     this.name = serviceName(this.options);
     this.subject = serviceSubject(options);
     this.runService();
@@ -219,10 +215,7 @@ export class ConatService extends EventEmitter {
     const queue = this.options.all ? randomId() : "0";
     // service=true so upon disconnect the socketio backend server
     // immediately stops routing traffic to this.
-    this.sub = await cn.subscribe(this.subject, {
-      queue,
-      ephemeral: this.options.ephemeral,
-    });
+    this.sub = await cn.subscribe(this.subject, { queue });
     this.emit("running");
     await this.listen();
   };

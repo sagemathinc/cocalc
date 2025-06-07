@@ -290,9 +290,6 @@ interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
   queue?: string;
-  // ephemeral: the instant there are no matching actively connected subscribers,
-  // senders get a 503 error; this is very good for services, but bad for clients.
-  ephemeral?: boolean;
   // sticky: when a choice from a queue group is made, the same choice is always made
   // in the future for any messages with the same subject, until the target goes away.
   // Setting this just sets the queue option to STICKY_QUEUE_GROUP.
@@ -384,6 +381,10 @@ export class Client extends EventEmitter {
       transports: ["websocket"],
       // nodejs specific for project/compute server in some settings
       rejectUnauthorized: false,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+      reconnectionAttempts: 120,
       ...options,
       path,
     });
@@ -656,7 +657,6 @@ export class Client extends EventEmitter {
       queue,
       sticky,
       confirm,
-      ephemeral,
       timeout,
     }: {
       // if true, when the off method of the event emitter is called, then
@@ -672,20 +672,6 @@ export class Client extends EventEmitter {
 
       // confirm -- get confirmation back from server that subscription was created
       confirm?: boolean;
-
-      // If ephemeral is true this subscription is deleted from the server
-      // the moment the client disconnects, so that the server doesn't queue
-      // up messages to to this subscription.
-      // IMPORTANT: the *subscription itself* doesn't get killed on disconnect!
-      // The subscription will be resumed automatically when the client reconnects.
-      // The idea is that there will be no old queued up messages waiting for it.
-      //
-      // If ephemeral is false, this subscription is acting more as a client
-      // to receive data, so we want it to persist on the server longterm
-      // even while disconnected (and leverage connectionStateRecovery). E.g.,
-      // it might be listening for updates to a stream.  After a few minutes
-      // it still stops queuing up messages though.
-      ephemeral?: boolean;
 
       // how long to wait to confirm creation of the subscription;
       // only used when confirm=true.
@@ -751,24 +737,20 @@ export class Client extends EventEmitter {
         if (timeout) {
           this.conn
             .timeout(timeout)
-            .emit(
-              "subscribe",
-              { subject, queue, ephemeral },
-              (err, response) => {
-                if (err) {
-                  handle({ error: `${err}`, code: 408 });
-                } else {
-                  handle(response);
-                }
-              },
-            );
+            .emit("subscribe", { subject, queue }, (err, response) => {
+              if (err) {
+                handle({ error: `${err}`, code: 408 });
+              } else {
+                handle(response);
+              }
+            });
         } else {
-          this.conn.emit("subscribe", { subject, queue, ephemeral }, handle);
+          this.conn.emit("subscribe", { subject, queue }, handle);
         }
       };
       promise = callback(f);
     } else {
-      this.conn.emit("subscribe", { subject, queue, ephemeral });
+      this.conn.emit("subscribe", { subject, queue });
       promise = undefined;
     }
     sub.once("close", () => {
@@ -807,7 +789,6 @@ export class Client extends EventEmitter {
       closeWhenOffCalled: true,
       sticky: opts?.sticky,
       queue: opts?.queue,
-      ephemeral: opts?.ephemeral,
     });
     return this.subscriptionIterator(sub, opts);
   };
@@ -822,7 +803,6 @@ export class Client extends EventEmitter {
       closeWhenOffCalled: true,
       queue: opts?.queue,
       sticky: opts?.sticky,
-      ephemeral: opts?.ephemeral,
       timeout: opts?.timeout,
     });
     await promise;
@@ -835,7 +815,7 @@ export class Client extends EventEmitter {
   A service is a subscription with a function to respond to requests by name.
   Call service with an implementation:
 
-     service = await client1.service('arith',  {mul : async (a,b)=>{a*b}, add : async (a,b)=>a+b}, {ephemeral:true})
+     service = await client1.service('arith',  {mul : async (a,b)=>{a*b}, add : async (a,b)=>a+b})
 
   Use the service:
   
@@ -857,11 +837,9 @@ export class Client extends EventEmitter {
   service: <T = any>(
     subject: string,
     impl: T,
-    // default to ephemeral:true for services
     opts?: SubscriptionOptions,
   ) => Promise<Subscription> = async (subject, impl, opts) => {
     const sub = await this.subscribe(subject, {
-      ephemeral: true,
       ...opts,
       queue: "0",
     });
