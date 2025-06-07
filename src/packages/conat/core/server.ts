@@ -44,11 +44,7 @@ import {
   type ClientOptions,
   STICKY_QUEUE_GROUP,
 } from "./client";
-import {
-  MAX_PAYLOAD,
-  MAX_DISCONNECTION_DURATION,
-  MAX_SUBSCRIPTIONS_PER_CLIENT,
-} from "./constants";
+import { MAX_PAYLOAD, MAX_SUBSCRIPTIONS_PER_CLIENT } from "./constants";
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
@@ -84,7 +80,6 @@ export interface Options {
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
   valkey?: string;
-  maxDisconnectionDuration?: number;
   maxSubscriptionsPerClient?: number;
 }
 
@@ -120,7 +115,6 @@ export class ConatServer {
       getUser,
       isAllowed,
       valkey,
-      maxDisconnectionDuration = MAX_DISCONNECTION_DURATION,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
     } = options;
     this.options = {
@@ -128,7 +122,6 @@ export class ConatServer {
       id,
       path,
       valkey,
-      maxDisconnectionDuration,
       maxSubscriptionsPerClient,
     };
     this.getUser = getUser ?? (async () => null);
@@ -150,12 +143,13 @@ export class ConatServer {
       httpServer: httpServer ? "httpServer(...)" : undefined,
       valkey,
     });
+    // NOTE: do NOT enable connectionStateRecovery; it seems to cause issues
+    // when restarting the server.
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
       adapter:
         this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
-      connectionStateRecovery: { maxDisconnectionDuration },
       // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
       perMessageDeflate: { threshold: 1024 },
     };
@@ -611,32 +605,11 @@ export class ConatServer {
         this.subscriptions[id].delete(subject);
       }
       const rooms = Array.from(socket.rooms) as string[];
-      if (this.disconnectingTimeout[id]) {
-        clearTimeout(this.disconnectingTimeout[id]);
+      for (const room of rooms) {
+        const subject = getSubjectFromRoom(room);
+        this.unsubscribe({ socket, subject });
       }
-      this.log("setting a new disconnectingTimeout - ", { id, user });
-      this.disconnectingTimeout[id] = setTimeout(
-        () => {
-          this.log("firing disconnectingTimeout - ", { id, user });
-          if (!this.io.of("/").adapter.sids.has(id)) {
-            // User is gone right now and did NOT reconnect (thus clearning disconnectingTimeout)
-            // during the wait interval.  Clear their subscription state.
-            // It's very important to ONLY do this if they are really gone, since if they
-            // come back, socketio smooths things over, so they don't even know they might need
-            // to resubscribe... or they already did resubscribe, and we would just be breaking
-            // things for them.
-            this.log("disconnecting - fully gone", { id, user });
-            for (const room of rooms) {
-              const subject = getSubjectFromRoom(room);
-              this.unsubscribe({ socket, subject });
-            }
-            delete this.subscriptions[id];
-          } else {
-            this.log("disconnecting - came back", { id, user });
-          }
-        },
-        (this.options.maxDisconnectionDuration ?? 0) + 10000,
-      );
+      delete this.subscriptions[id];
     });
   };
 

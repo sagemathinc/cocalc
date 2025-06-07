@@ -998,6 +998,12 @@ export class Client extends EventEmitter {
     const promises: any[] = [];
     let count = 0;
     for (let i = 0; i < raw.length; i += chunkSize) {
+      // !!FOR TESTING ONLY!!
+      //       if (Math.random() <= 0.01) {
+      //         console.log("simulating a chunk drop", { subject, seq });
+      //         seq += 1;
+      //         continue;
+      //       }
       const done = i + chunkSize >= raw.length ? 1 : 0;
       const v: any[] = [
         subject,
@@ -1273,8 +1279,14 @@ interface Chunk {
   headers?: any;
 }
 
+// if an incoming message has chunks at least this old
+// we give up on it and discard all of them.  This avoids
+// memory leaks when a chunk is dropped.
+const MAX_CHUNK_TIME = 2 * 60000;
+
 class SubscriptionEmitter extends EventEmitter {
-  private incoming: { [id: string]: Partial<Chunk>[] } = {};
+  private incoming: { [id: string]: (Partial<Chunk> & { time: number })[] } =
+    {};
   private client: Client;
   private closeWhenOffCalled?: boolean;
   private subject: string;
@@ -1286,6 +1298,7 @@ class SubscriptionEmitter extends EventEmitter {
     this.subject = subject;
     this.client.conn.on(subject, this.handle);
     this.closeWhenOffCalled = closeWhenOffCalled;
+    this.dropOldLoop();
   }
 
   close = (force?) => {
@@ -1328,26 +1341,46 @@ class SubscriptionEmitter extends EventEmitter {
         // part of a dropped message -- by definition this should just
         // silently happen and be handled via application level encodings
         // elsewhere
-        console.log("WARNING: drop -- first message has wrong seq", { seq });
-        this.emit("drop");
+        console.log(
+          `WARNING: drop packet from ${this.subject} -- first message has wrong seq`,
+          { seq },
+        );
         return;
       }
       incoming[id] = [];
     } else {
-      const prev = incoming[id].slice(-1)[0].seq ?? -100;
+      const prev = incoming[id].slice(-1)[0].seq ?? -1;
       if (prev + 1 != seq) {
-        console.log("WARNING: drop -- seq mismatch", { prev, seq });
+        console.log(
+          `WARNING: drop packet from ${this.subject} -- seq number wrong`,
+          { prev, seq },
+        );
         // part of message was dropped -- discard everything
         delete incoming[id];
-        this.emit("drop");
         return;
       }
     }
-    incoming[id].push(chunk);
+    incoming[id].push({ ...chunk, time: Date.now() });
     if (chunk.done) {
       // console.log("assembling ", incoming[id].length, "chunks");
       const chunks = incoming[id].map((x) => x.buffer!);
+      // TESTING ONLY!!
+      // This is not necessary due to the above checks as messages arrive.
+      //       for (let i = 0; i < incoming[id].length; i++) {
+      //         if (incoming[id][i]?.seq != i) {
+      //           console.log(`WARNING: bug -- invalid chunk data! -- ${subject}`);
+      //           throw Error("bug -- invalid chunk data!");
+      //         }
+      //       }
       const raw = concatArrayBuffers(chunks);
+
+      // TESTING ONLY!!
+      //       try {
+      //         decode({ encoding, data: raw });
+      //       } catch (err) {
+      //         console.log(`ERROR - invalid data ${subject}`, incoming[id], err);
+      //       }
+
       delete incoming[id];
       const mesg = new Message({
         encoding,
@@ -1359,6 +1392,22 @@ class SubscriptionEmitter extends EventEmitter {
       this.emit("message", mesg);
       this.client.stats.recv.messages += 1;
       this.client.stats.recv.bytes += raw.byteLength;
+    }
+  };
+
+  dropOldLoop = async () => {
+    while (this.incoming != null) {
+      const cutoff = Date.now() - MAX_CHUNK_TIME;
+      for (const id in this.incoming) {
+        const chunks = this.incoming[id];
+        if (chunks.length > 0 && chunks[0].time <= cutoff) {
+          console.log(
+            `WARNING: drop partial message from ${this.subject} due to timeout`,
+          );
+          delete this.incoming[id];
+        }
+      }
+      await delay(MAX_CHUNK_TIME / 2);
     }
   };
 }
