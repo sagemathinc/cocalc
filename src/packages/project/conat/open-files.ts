@@ -149,7 +149,6 @@ export async function init() {
   openFiles = await createOpenFiles();
 
   computeServers = computeServerManager({ project_id });
-  await computeServers.init();
   computeServers.on("change", async ({ path, id }) => {
     if (openFiles == null) {
       return;
