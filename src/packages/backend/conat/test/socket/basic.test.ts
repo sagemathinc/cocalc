@@ -9,7 +9,6 @@ import {
   after,
   connect,
   wait,
-  restartServer,
   setDefaultTimeouts,
 } from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
