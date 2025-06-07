@@ -105,7 +105,7 @@ export function changefeedServer({
       }
     });
   });
-  server.on("close", () => {
+  server.on("closed", () => {
     logger.debug("shutting down changefeed server");
   });
 

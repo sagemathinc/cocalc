@@ -348,6 +348,12 @@ export class Client extends EventEmitter {
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
   private subs: { [subject: string]: SubscriptionEmitter } = {};
+  private sockets: {
+    // all socket servers created using this Client
+    servers: { [subject: string]: ConatSocketServer };
+    // all client connections created using this Client.
+    clients: { [subject: string]: { [id: string]: ConatSocketClient } };
+  } = { servers: {}, clients: {} };
   private readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
@@ -519,6 +525,9 @@ export class Client extends EventEmitter {
     }
     this.setState("closed");
     this.removeAllListeners();
+    this.closeAllSockets();
+    // @ts-ignore
+    delete this.sockets;
     for (const subject in this.queueGroups) {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
@@ -753,7 +762,7 @@ export class Client extends EventEmitter {
       this.conn.emit("subscribe", { subject, queue });
       promise = undefined;
     }
-    sub.once("close", () => {
+    sub.once("closed", () => {
       if (this.state == "closed") {
         return;
       }
@@ -1166,23 +1175,68 @@ export class Client extends EventEmitter {
   };
 
   socket = {
-    listen: (subject: string, opts?: SocketConfiguration): ConatSocketServer =>
-      new ConatSocketServer({
+    listen: (
+      subject: string,
+      opts?: SocketConfiguration,
+    ): ConatSocketServer => {
+      if (this.sockets.servers[subject] !== undefined) {
+        throw Error(
+          `there can be at most one socket server per client listening on a subject (subject='${subject}')`,
+        );
+      }
+      const server = new ConatSocketServer({
         subject,
         role: "server",
         client: this,
         id: this.id,
         ...opts,
-      }),
+      });
+      this.sockets.servers[subject] = server;
+      server.once("closed", () => {
+        delete this.sockets.servers[subject];
+      });
+      return server;
+    },
 
-    connect: (subject: string, opts?: SocketConfiguration): ConatSocketClient =>
-      new ConatSocketClient({
+    connect: (
+      subject: string,
+      opts?: SocketConfiguration,
+    ): ConatSocketClient => {
+      const id = randomId();
+      const client = new ConatSocketClient({
         subject,
         role: "client",
         client: this,
-        id: randomId(),
+        id,
         ...opts,
-      }),
+      });
+      if (this.sockets.clients[subject] === undefined) {
+        this.sockets.clients[subject] = { [id]: client };
+      } else {
+        this.sockets.clients[subject][id] = client;
+      }
+      client.once("closed", () => {
+        const v = this.sockets.clients[subject];
+        if (v != null) {
+          delete v[id];
+          if (isEmpty(v)) {
+            delete this.sockets.clients[subject];
+          }
+        }
+      });
+      return client;
+    },
+  };
+
+  closeAllSockets = () => {
+    for (const subject in this.sockets.servers) {
+      this.sockets.servers[subject].close();
+    }
+    for (const subject in this.sockets.clients) {
+      for (const id in this.sockets.clients[subject]) {
+        this.sockets.clients[subject][id].close();
+      }
+    }
   };
 
   message = (mesg, options?) => messageData(mesg, options);
@@ -1282,10 +1336,10 @@ class SubscriptionEmitter extends EventEmitter {
   close = (force?) => {
     this.refCount -= 1;
     // console.log("SubscriptionEmitter.close - refCount =", this.refCount, this.subject);
-    if (!force && this.refCount > 0) {
+    if (this.client == null || (!force && this.refCount > 0)) {
       return;
     }
-    this.emit("close");
+    this.emit("closed");
     this.client.conn.removeListener(this.subject, this.handle);
     // @ts-ignore
     delete this.incoming;
@@ -1494,4 +1548,11 @@ export class ConatError extends Error {
     super(mesg);
     this.code = code;
   }
+}
+
+function isEmpty(obj: object): boolean {
+  for (const _x in obj) {
+    return false;
+  }
+  return true;
 }

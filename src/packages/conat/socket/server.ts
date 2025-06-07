@@ -12,6 +12,9 @@ import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("socket:server");
 
+// DO NOT directly instantiate here -- instead, call the
+// socket.listen method on ConatClient.
+
 export class ConatSocketServer extends ConatSocketBase {
   initTCP() {}
 

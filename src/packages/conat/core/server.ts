@@ -461,7 +461,7 @@ export class ConatServer {
 
   private handleSocket = async (socket) => {
     this.sockets[socket.id] = socket;
-    socket.on("close", () => {
+    socket.once("closed", () => {
       delete this.sockets[socket.id];
       delete this.stats[socket.id];
     });

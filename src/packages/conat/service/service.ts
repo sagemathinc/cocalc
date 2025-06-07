@@ -248,7 +248,7 @@ export class ConatService extends EventEmitter {
     if (!this.subject) {
       return;
     }
-    this.emit("close");
+    this.emit("closed");
     this.removeAllListeners();
     this.sub?.stop();
     delete this.sub;

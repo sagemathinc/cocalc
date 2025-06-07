@@ -559,6 +559,13 @@ export class DKV<T = any> extends EventEmitter {
           }
           return;
         }
+        if (err.code == 408) {
+          // timeout -- expected to happen periodically, of course
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log("WARNING: timeout saving (will try again soon)");
+          }
+          return;
+        }
         if (!process.env.COCALC_TEST_MODE) {
           console.warn(
             `WARNING: unexpected error saving dkv '${this.name}' -- ${err}`,

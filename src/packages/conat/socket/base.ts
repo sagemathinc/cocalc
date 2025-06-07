@@ -60,7 +60,6 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.reconnection = reconnection;
     this.subject = subject;
     this.client = client;
-    this.client.on("closed", this.close);
     this.role = role;
     this.id = id;
     this.keepAlive = keepAlive;
@@ -88,7 +87,6 @@ export abstract class ConatSocketBase extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.client.removeListener("closed", this.close);
     this.setState("closed");
     this.removeAllListeners();
 

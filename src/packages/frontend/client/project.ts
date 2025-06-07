@@ -551,9 +551,13 @@ export class ProjectClient {
     return await this.computeServers(project_id)?.getServerIdForPath(path);
   };
 
-  // will throw exception if compute servers dkv not yet initialized
+  // will return undefined if compute servers not yet initialized
   getServerIdForPathSync = ({ project_id, path }): number | undefined => {
-    return this.computeServers(project_id).get(path);
+    const cs = this.computeServers(project_id);
+    if (cs?.state != "connected") {
+      return undefined;
+    }
+    return cs.get(path);
   };
 }
 

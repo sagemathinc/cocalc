@@ -18,6 +18,9 @@ import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("socket:client");
 
+// DO NOT directly instantiate here -- instead, call the
+// socket.connect method on ConatClient.
+
 export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
   private tcp?: TCP;
@@ -253,7 +256,6 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
-    this.state = "closed";
     this.sub?.close();
     if (this.tcp != null) {
       this.client.removeListener(

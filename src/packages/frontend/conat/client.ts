@@ -174,7 +174,7 @@ export class ConatClient extends EventEmitter {
       await once(client.conn as any, "info");
     }
     if (client.info?.user?.account_id) {
-      console.log("Connected as ", client.info?.user);
+      console.log("Connected as ", JSON.stringify(client.info?.user));
       this.signedIn({
         account_id: client.info.user.account_id,
         hub: client.info.id,
