@@ -131,12 +131,14 @@ export function changefeed({
   client: Client;
   account_id: string;
 }) {
+  const table = Object.keys(query)[0];
   const socket = client.socket.connect(changefeedSubject({ account_id }), {
     reconnection: false,
     keepAlive: CLIENT_KEEPALIVE,
     keepAliveTimeout: KEEPALIVE_TIMEOUT,
+    desc: `postgresql-changefeed-${table}`,
   });
-  logger.debug("creating changefeed", { query, options });
+  logger.debug("creating changefeed", { table, options });
   // console.log("creating changefeed", { query, options });
   socket.write({ query, options });
   const cf = new EventIterator<{ error?: string; update: Update }>(

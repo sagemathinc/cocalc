@@ -18,6 +18,7 @@ import {
 import { type ServerSocket } from "./server-socket";
 
 export abstract class ConatSocketBase extends EventEmitter {
+  public readonly desc?: string;
   subject: string;
   client: Client;
   role: Role;
@@ -54,6 +55,7 @@ export abstract class ConatSocketBase extends EventEmitter {
     maxQueueSize = DEFAULT_MAX_QUEUE_SIZE,
     keepAlive = DEFAULT_KEEP_ALIVE,
     keepAliveTimeout = DEFAULT_KEEP_ALIVE_TIMEOUT,
+    desc,
   }: ConatSocketOptions) {
     super();
     this.maxQueueSize = maxQueueSize;
@@ -64,6 +66,7 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.id = id;
     this.keepAlive = keepAlive;
     this.keepAliveTimeout = keepAliveTimeout;
+    this.desc = desc;
     this.conn = { id };
     this.connect();
   }

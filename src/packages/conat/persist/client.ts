@@ -53,6 +53,7 @@ export class PersistStreamClient extends EventEmitter {
     }
     this.socket?.close();
     this.socket = this.client.socket.connect(persistSubject(this.user), {
+      desc: `persist: ${this.storage.path}`,
       reconnection: false,
     });
     logger.debug(
@@ -61,13 +62,13 @@ export class PersistStreamClient extends EventEmitter {
       "connecting to ",
       persistSubject(this.user),
     );
-//     console.log(
-//       "persist -- create",
-//       this.storage.path,
-//       paths,
-//       "with id=",
-//       this.socket.id,
-//     );
+    //     console.log(
+    //       "persist -- create",
+    //       this.storage.path,
+    //       paths,
+    //       "with id=",
+    //       this.socket.id,
+    //     );
     this.socket.write({
       storage: this.storage,
       changefeed: this.changefeeds.length > 0,

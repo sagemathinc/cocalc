@@ -42,6 +42,8 @@ export interface SocketConfiguration {
   // connection switches to the 'disconnected' state.
   keepAlive?: number; // default: 30s
   keepAliveTimeout?: number; // default: 10s}
+  // desc = optional, purely for admin/user
+  desc?: string;
 }
 
 export interface ConatSocketOptions extends SocketConfiguration {
