@@ -112,7 +112,7 @@ export async function get_directory_listing(opts: ListingOpts) {
   }
 }
 
-import { Listings } from "@cocalc/frontend/nats/listings";
+import { Listings } from "@cocalc/frontend/conat/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   log("get_directory_listing2", opts);

@@ -5,15 +5,7 @@
 
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
-
 import { redux } from "@cocalc/frontend/app-framework";
-import type { EmbeddingData } from "@cocalc/util/db-schema/llm";
-import {
-  MAX_EMBEDDINGS_TOKENS,
-  MAX_REMOVE_LIMIT,
-  MAX_SAVE_LIMIT,
-  MAX_SEARCH_LIMIT,
-} from "@cocalc/util/db-schema/llm";
 import {
   LanguageModel,
   LanguageServiceCore,
@@ -21,7 +13,6 @@ import {
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
-import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 import type { History } from "./types";
 import {
@@ -41,15 +32,6 @@ interface QueryLLMProps {
   chatStream?: ChatStream; // if given, uses chat stream
   tag?: string;
   startStreamExplicitly?: boolean;
-}
-
-interface EmbeddingsQuery {
-  scope: string | string[];
-  limit: number; // client automatically deals with large limit by making multiple requests (i.e., there is no limit on the limit)
-  text?: string;
-  filter?: object;
-  selector?: { include?: string[]; exclude?: string[] };
-  offset?: number | string;
 }
 
 export class LLMClient {
@@ -183,13 +165,13 @@ export class LLMClient {
 
     if (chatStream == null) {
       // not streaming
-      return await this.client.nats_client.llm(options);
+      return await this.client.conat_client.llm(options);
     }
 
     chatStream.once("start", async () => {
       // streaming version
       try {
-        await this.client.nats_client.llm({
+        await this.client.conat_client.llm({
           ...options,
           stream: chatStream.process,
         });
@@ -200,139 +182,6 @@ export class LLMClient {
 
     return "see stream for output";
   }
-
-  public async embeddings_search(
-    query: EmbeddingsQuery,
-  ): Promise<{ id: string; payload: object }[]> {
-    let limit = Math.min(MAX_SEARCH_LIMIT, query.limit);
-    const result = await this.embeddings_search_call({ ...query, limit });
-
-    if (result.length >= MAX_SEARCH_LIMIT) {
-      // get additional pages
-      while (true) {
-        const offset =
-          query.text == null ? result[result.length - 1].id : result.length;
-        const page = await this.embeddings_search_call({
-          ...query,
-          limit,
-          offset,
-        });
-        // Include the new elements
-        result.push(...page);
-        if (page.length < MAX_SEARCH_LIMIT) {
-          // didn't reach the limit, so we're done.
-          break;
-        }
-      }
-    }
-    return result;
-  }
-
-  private async embeddings_search_call({
-    scope,
-    limit,
-    text,
-    filter,
-    selector,
-    offset,
-  }: EmbeddingsQuery) {
-    text = text?.trim();
-    const resp = await this.client.async_call({
-      message: message.openai_embeddings_search({
-        scope,
-        text,
-        filter,
-        limit,
-        selector,
-        offset,
-      }),
-    });
-    return resp.matches;
-  }
-
-  public async embeddings_save({
-    project_id,
-    path,
-    data: data0,
-  }: {
-    project_id: string;
-    path: string;
-    data: EmbeddingData[];
-  }): Promise<string[]> {
-    this.assertHasNeuralSearch();
-    const { truncateMessage } = await import("@cocalc/frontend/misc/llm");
-
-    // Make data be data0, but without mutate data0
-    // and with any text truncated to fit in the
-    // embeddings limit.
-    const data: EmbeddingData[] = [];
-    for (const x of data0) {
-      const { text } = x;
-      if (typeof text != "string") {
-        throw Error("text must be a string");
-      }
-      const text1 = truncateMessage(text, MAX_EMBEDDINGS_TOKENS);
-      if (text1.length != text.length) {
-        data.push({ ...x, text: text1 });
-      } else {
-        data.push(x);
-      }
-    }
-
-    const ids: string[] = [];
-    let v = data;
-    while (v.length > 0) {
-      const resp = await this.client.async_call({
-        message: message.openai_embeddings_save({
-          project_id,
-          path,
-          data: v.slice(0, MAX_SAVE_LIMIT),
-        }),
-      });
-      ids.push(...resp.ids);
-      v = v.slice(MAX_SAVE_LIMIT);
-    }
-
-    return ids;
-  }
-
-  public async embeddings_remove({
-    project_id,
-    path,
-    data,
-  }: {
-    project_id: string;
-    path: string;
-    data: EmbeddingData[];
-  }): Promise<string[]> {
-    this.assertHasNeuralSearch();
-
-    const ids: string[] = [];
-    let v = data;
-    while (v.length > 0) {
-      const resp = await this.client.async_call({
-        message: message.openai_embeddings_remove({
-          project_id,
-          path,
-          data: v.slice(0, MAX_REMOVE_LIMIT),
-        }),
-      });
-      ids.push(...resp.ids);
-      v = v.slice(MAX_REMOVE_LIMIT);
-    }
-
-    return ids;
-  }
-
-  neuralSearchIsEnabled(): boolean {
-    return !!redux.getStore("customize").get("neural_search_enabled");
-  }
-
-  assertHasNeuralSearch() {
-    if (!this.neuralSearchIsEnabled()) {
-      throw Error("OpenAI support is not currently enabled on this server");
-    }
-  }
 }
 
 class ChatStream extends EventEmitter {
@@ -340,7 +189,7 @@ class ChatStream extends EventEmitter {
     super();
   }
 
-  process = (text: string|null) => {
+  process = (text: string | null) => {
     // emits undefined text when done (or err below)
     this.emit("token", text);
   };

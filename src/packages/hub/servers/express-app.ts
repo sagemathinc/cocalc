@@ -19,7 +19,6 @@ import { initAnalytics } from "../analytics";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { getLogger } from "../logger";
 import initProxy from "../proxy";
-import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobUpload from "./app/blob-upload";
 import initUpload from "./app/upload";
@@ -27,12 +26,11 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
-import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { initNatsServer } from "./nats";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -43,6 +41,7 @@ interface Options {
   isPersonal: boolean;
   nextServer: boolean;
   proxyServer: boolean;
+  conatServer: boolean;
   cert?: string;
   key?: string;
   listenersHack: boolean;
@@ -100,8 +99,6 @@ export default async function init(opts: Options): Promise<{
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
 
-  initAPI(router, opts.projectControl);
-
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
   await initStatic(router);
@@ -128,8 +125,6 @@ export default async function init(opts: Options): Promise<{
   initBlobs(router);
   initBlobUpload(router);
   initUpload(router);
-  initSetCookies(router);
-  initNatsServer(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
@@ -155,6 +150,11 @@ export default async function init(opts: Options): Promise<{
       app,
       listenersHack: opts.listenersHack,
     });
+  }
+
+  if (opts.conatServer) {
+    winston.info(`initializing the Conat Server`);
+    initConatServer({ httpServer, path: join(basePath, "conat") });
   }
 
   // IMPORTANT:

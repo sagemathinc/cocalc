@@ -23,7 +23,7 @@
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/comm": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "execa": "^8.0.1",

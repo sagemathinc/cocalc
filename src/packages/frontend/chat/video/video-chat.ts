@@ -92,7 +92,7 @@ export class VideoChat {
   private chatroomId = (): string => {
     const secret_token = redux
       .getStore("projects")
-      .getIn(["project_map", this.project_id, "status", "secret_token"]);
+      .getIn(["project_map", this.project_id, "secret_token"]);
     if (!secret_token) {
       alert_message({
         type: "error",

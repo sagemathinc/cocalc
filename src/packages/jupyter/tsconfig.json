@@ -10,6 +10,6 @@
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../util" },
-    { "path": "../nats" }
+    { "path": "../conat" }
   ]
 }

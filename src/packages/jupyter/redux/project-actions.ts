@@ -30,9 +30,9 @@ import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
-import { initNatsService } from "@cocalc/jupyter/kernel/nats-service";
-import { type DKV, dkv } from "@cocalc/nats/sync/dkv";
-import { computeServerManager } from "@cocalc/nats/compute/manager";
+import { initConatService } from "@cocalc/jupyter/kernel/conat-service";
+import { type DKV, dkv } from "@cocalc/conat/sync/dkv";
+import { computeServerManager } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // see https://github.com/sagemathinc/cocalc/issues/8060
@@ -175,8 +175,8 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     this._initialize_manager_already_done = true;
 
-    dbg("initialize Jupyter NATS api handler");
-    await this.initNatsApi();
+    dbg("initialize Jupyter Conat api handler");
+    await this.initConatApi();
 
     dbg("initializing blob store");
     await this.initBlobStore();
@@ -217,13 +217,13 @@ export class JupyterActions extends JupyterActions0 {
     );
   }
 
-  private natsService?;
-  private initNatsApi = reuseInFlight(async () => {
-    if (this.natsService != null) {
-      this.natsService.close();
-      this.natsService = null;
+  private conatService?;
+  private initConatApi = reuseInFlight(async () => {
+    if (this.conatService != null) {
+      this.conatService.close();
+      this.conatService = null;
     }
-    const service = (this.natsService = await initNatsService({
+    const service = (this.conatService = await initConatService({
       project_id: this.project_id,
       path: this.path,
     }));

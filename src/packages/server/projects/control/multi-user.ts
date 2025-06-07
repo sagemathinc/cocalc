@@ -71,7 +71,7 @@ class Project extends BaseProject {
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     winston.debug(
-      `got status of ${this.project_id} = ${JSON.stringify(status)}`
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`,
     );
     this.saveStatusToDatabase(status);
     return status;
@@ -116,7 +116,7 @@ class Project extends BaseProject {
             return false;
           }
           const status = await this.status();
-          return !!status.secret_token && !!status["hub-server.port"];
+          return !!status["hub-server.port"];
         },
         maxTime: MAX_START_TIME_MS,
       });
@@ -155,7 +155,7 @@ class Project extends BaseProject {
     await copyPath(
       opts,
       this.project_id,
-      opts.target_project_id ? getUid(opts.target_project_id) : undefined
+      opts.target_project_id ? getUid(opts.target_project_id) : undefined,
     );
     return "";
   }

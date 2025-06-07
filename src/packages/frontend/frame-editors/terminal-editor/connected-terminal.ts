@@ -14,11 +14,11 @@ extra support for being connected to:
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
-import { Terminal as XTerminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { WebglAddon } from "xterm-addon-webgl";
-import "xterm/css/xterm.css";
+import { Terminal as XTerminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
+import "@xterm/xterm/css/xterm.css";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
@@ -37,7 +37,7 @@ import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { NatsTerminalConnection } from "./nats-terminal-connection";
+import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
 
 declare const $: any;
@@ -91,7 +91,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private last_geom: { rows: number; cols: number } | undefined;
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
-  private conn?: NatsTerminalConnection;
+  private conn?: ConatTerminal;
   private touch_interval;
 
   public is_visible: boolean = false;
@@ -286,7 +286,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (this.state == "closed") {
         return;
       }
-      const conn = new NatsTerminalConnection({
+      const conn = new ConatTerminal({
         path: this.term_path,
         project_id: this.project_id,
         terminalResize: this.terminal_resize,
@@ -707,7 +707,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_terminal_data(): void {
     this.terminal.onData((data) => {
-      if (this.ignore_terminal_data && this.conn?.state == "init") {
+      if (this.ignore_terminal_data && data.startsWith("\x1B")) {
         return;
       }
       this.conn_write(data);

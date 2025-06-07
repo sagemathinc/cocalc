@@ -24,7 +24,6 @@ import { Actions, Store, redux } from "@cocalc/frontend/app-framework";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { CSILauncher } from "./custom-image";
-import { ShareLauncher } from "./share";
 
 export const NAME = "launch-actions";
 const LS_KEY = NAME;
@@ -117,8 +116,7 @@ export async function launch() {
         new CSILauncher(image_id).launch();
         return;
       case "share":
-        new ShareLauncher(launch).launch();
-        return;
+        throw Error("share launcher is deprecated");
       default:
         console.warn(`launch type "${type}" unknown`);
         return;

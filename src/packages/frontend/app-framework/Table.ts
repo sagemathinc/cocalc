@@ -7,8 +7,6 @@ import { AppRedux } from "../app-framework";
 import { bind_methods } from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
 
-declare let Primus;
-
 export type TableConstructor<T extends Table> = new (name, redux) => T;
 
 export abstract class Table {

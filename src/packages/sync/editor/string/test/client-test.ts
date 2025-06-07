@@ -9,7 +9,6 @@ Minimal client class that we use for testing.
 
 import { EventEmitter } from "events";
 import { bind_methods, keys } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
@@ -156,17 +155,6 @@ export class Client extends EventEmitter implements Client0 {
 
   public set_deleted(_filename: string, _project_id?: string): void {}
 
-  async synctable_project(
-    _project_id: string,
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ): Promise<SyncTable> {
-    const s = new SyncTable(query, options, this, throttle_changes);
-    await once(s, "connected");
-    return s;
-  }
-
   async synctable_database(
     _query: any,
     _options: any,
@@ -175,15 +163,15 @@ export class Client extends EventEmitter implements Client0 {
     throw Error("synctable_database: not implemented");
   }
 
-  async synctable_nats(_query: any): Promise<SyncTable> {
-    throw Error("synctable_nats: not implemented");
+  async synctable_conat(_query: any): Promise<SyncTable> {
+    throw Error("synctable_conat: not implemented");
   }
-  async pubsub_nats(_query: any): Promise<SyncTable> {
-    throw Error("pubsub_nats: not implemented");
+  async pubsub_conat(_query: any): Promise<SyncTable> {
+    throw Error("pubsub_conat: not implemented");
   }
 
-  async natsRequest(_subject: string, _mesg: any, _options?) {
-    throw Error("natsRequest: not implemented");
+  async conatRequest(_subject: string, _mesg: any, _options?) {
+    throw Error("conatRequest: not implemented");
   }
 
   // account_id or project_id

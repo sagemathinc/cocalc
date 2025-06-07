@@ -109,7 +109,7 @@ class Project extends BaseProject {
             return false;
           }
           const status = await this.status();
-          return !!status.secret_token && !!status["hub-server.port"];
+          return !!status["hub-server.port"];
         },
         maxTime: MAX_START_TIME_MS,
       });

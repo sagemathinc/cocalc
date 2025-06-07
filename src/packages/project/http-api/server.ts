@@ -26,7 +26,6 @@ import { apiServerPortFile } from "@cocalc/project/data";
 import { getSecretToken } from "@cocalc/project/servers/secret-token";
 import { once } from "@cocalc/util/async-utils";
 import { split } from "@cocalc/util/misc";
-import getSyncdocHistory from "./get-syncdoc-history";
 import readTextFile from "./read-text-file";
 import writeTextFile from "./write-text-file";
 
@@ -121,8 +120,6 @@ function handleAuth(req): void {
 async function handleEndpoint(req): Promise<any> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
   switch (endpoint) {
-    case "get-syncdoc-history":
-      return await getSyncdocHistory(getParams(req, ["path", "patches"]));
     case "write-text-file":
       return await writeTextFile(getParams(req, ["path", "content"]));
     case "read-text-file":

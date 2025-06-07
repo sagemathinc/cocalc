@@ -14,7 +14,6 @@ import { delay } from "awaiting";
 import { cancelAll } from "./handle-query";
 import initialize from "./initialize";
 import { callProjectMessage } from "./handle-message";
-
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 

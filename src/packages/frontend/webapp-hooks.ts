@@ -31,22 +31,11 @@ export function init() {
     cb();
   };
 
-  webapp_client.on("mesg_info", function (info) {
-    const f = () => {
-      const account_store = redux.getActions("account");
-      if (account_store != undefined) {
-        account_store.setState({ mesg_info: info });
-      }
-    };
-    // must be scheduled separately, since this notification can be triggered during rendering
-    setTimeout(f, 1);
-  });
-
   function signed_in(mesg) {
     setRememberMe(appBasePath);
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
-    console.log(`Signed into ${mesg.hub} at ${new Date()}`);
+    console.log(`Signed into conat server ${mesg.hub} at ${new Date()}`);
     if (first_login) {
       first_login = false;
       if (!should_load_target_url()) {

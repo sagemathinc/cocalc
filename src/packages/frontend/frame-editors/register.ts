@@ -19,7 +19,6 @@ import "./pdf-editor/register";
 
 import "./terminal-editor/register";
 import "./x11-editor/register";
-import "./lean-editor/register";
 import "./jupyter-editor/register";
 import "./time-travel-editor/register";
 import "./course-editor/register";

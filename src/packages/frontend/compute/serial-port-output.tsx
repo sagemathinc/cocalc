@@ -18,7 +18,7 @@ const EXPONENTIAL_BACKOFF = 1.3;
 import { Button, Checkbox, Modal, Spin, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import { Terminal } from "xterm";
+import { Terminal } from "@xterm/xterm";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";

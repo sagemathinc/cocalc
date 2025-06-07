@@ -3,7 +3,7 @@ Support legacy TimeTravel history from before the switch to NATS.
 */
 
 import { type Client } from "./types";
-import { type DB } from "@cocalc/nats/hub-api/db";
+import { type DB } from "@cocalc/conat/hub/api/db";
 
 export interface LegacyPatch {
   time: Date;
@@ -30,7 +30,7 @@ export class LegacyHistory {
     path: string;
   }) {
     // this is only available on the frontend browser, which is all that matters.
-    this.db = (client as any).nats_client?.hub.db as any;
+    this.db = (client as any).conat_client?.hub.db as any;
     this.project_id = project_id;
     this.path = path;
   }
@@ -57,8 +57,8 @@ export class LegacyHistory {
       return { patches: [], users: [] };
     }
     const s = await this.db.getLegacyTimeTravelPatches({
-      requestMany: true, // since response may be large
-      timeout: 60000,
+      // long timeout, since response may be large or take a while to pull out of cold storage
+      timeout: 90000,
       uuid: info.uuid,
     });
     let patches;

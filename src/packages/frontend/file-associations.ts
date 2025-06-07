@@ -46,6 +46,7 @@ const codemirror_associations: { [ext: string]: string } = {
   cpp: "text/x-c++src",
   cc: "text/x-c++src",
   tcc: "text/x-c++src",
+  cjs: "javascript",
   conf: "nginx", // should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
   csharp: "text/x-csharp",
   "c#": "text/x-csharp",
@@ -80,7 +81,6 @@ const codemirror_associations: { [ext: string]: string } = {
   jsx: "jsx",
   json: "javascript",
   jsonl: "javascript", // See https://jsonlines.org/
-  lean: "lean", // obviously nowhere close...
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
@@ -270,14 +270,6 @@ file_associations["html"] = {
   opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
   name: "html",
 } as const;
-
-file_associations["lean"] = {
-  editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
-  icon: "file-code",
-  opts: { indent_unit: 4, tab_size: 4, mode: "lean" },
-  name: "lean",
-  exclude_from_compute_server: true,
-};
 
 file_associations["md"] = file_associations["markdown"] = {
   icon: "markdown",

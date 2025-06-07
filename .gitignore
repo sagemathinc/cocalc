@@ -159,3 +159,5 @@ src/packages/frontend/i18n/trans/*.compiled.json
 **/*.db
 
 src/packages/project/nats/project-env.sh
+
+**/*.bash_history

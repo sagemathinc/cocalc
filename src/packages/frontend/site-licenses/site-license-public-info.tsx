@@ -9,6 +9,7 @@ import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { isEqual } from "lodash";
 import { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { isValidUUID } from "@cocalc/util/misc";
 
 import {
   React,
@@ -127,9 +128,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     await Promise.all(
       Object.keys(site_licenses).map(async function (license_id) {
         try {
+          if(!isValidUUID(license_id)) {
+            return;
+          }
           const info = await site_license_public_info(license_id, force);
           if (info == null) {
-            throw new Error(`license ${license_id} not found`);
+            throw new Error(`license '${license_id}' not found`);
           }
           infos[license_id] = info;
         } catch (err) {
@@ -232,8 +236,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             status === "expired"
               ? true
               : v?.expires != null
-              ? new Date() >= v.expires
-              : false;
+                ? new Date() >= v.expires
+                : false;
           return {
             key: idx,
             license_id: k,

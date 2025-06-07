@@ -3,7 +3,7 @@ packages:
   - backend
   - comm
   - jupyter
-  - nats
+  - conat
   - project
   - sync
   - sync-fs
@@ -11,7 +11,7 @@ packages:
   - util
   - terminal
   - compute
-  - nats
+  - conat
 
 onlyBuiltDependencies:
   - '@cocalc/fuse-native'

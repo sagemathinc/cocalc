@@ -29,7 +29,7 @@ export const TAGS = [
   "Email",
   "Logo",
   "Version",
-  "Nats",
+  "Conat",
   "Stripe",
   "captcha",
   "Zendesk",

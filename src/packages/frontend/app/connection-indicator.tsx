@@ -42,11 +42,10 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
 
     const intl = useIntl();
     const hub_status = useTypedRedux("page", "connection_status");
-    const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
-    const nats = useTypedRedux("page", "nats");
-    const nats_status = nats?.get("state") ?? "disconnected";
-    const connection_status = worst(hub_status, nats_status);
+    const conat = useTypedRedux("page", "conat");
+    const conatState = conat?.get("state") ?? "disconnected";
+    const connection_status = worst(hub_status, conatState);
 
     const connecting_style: CSS = {
       flex: "1",
@@ -75,18 +74,12 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
 
     function render_connection_status() {
       if (connection_status === "connected") {
-        const icon_style: CSS = { ...BASE_STYLE, fontSize: fontSizeIcons };
-        if (mesg_info?.get("enqueued") ?? 0 > 6) {
-          // serious backlog of data!
-          icon_style.color = "red";
-        } else if (mesg_info?.get("count") ?? 0 > 2) {
-          // worrisome amount
-          icon_style.color = "#08e";
-        } else if (mesg_info?.get("count") ?? 0 > 0) {
-          // working well but doing something minimal
-          icon_style.color = "#00c";
-        }
-        return <Icon name="wifi" style={icon_style} />;
+        return (
+          <Icon
+            name="wifi"
+            style={{ ...BASE_STYLE, fontSize: fontSizeIcons }}
+          />
+        );
       } else if (connection_status === "connecting") {
         return (
           <div style={connecting_style}>

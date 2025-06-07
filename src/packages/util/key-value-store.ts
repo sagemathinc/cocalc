@@ -38,17 +38,17 @@ class KeyValueStore {
       // supported by modern browsers
       value = value.freeze(); // so doesn't get mutated
     }
-    if (this._data) this._data[json(key)] = value;
+    if (this._data) this._data[json(key)!] = value;
   }
 
   get(key) {
     this.assert_not_closed();
-    return this._data?.[json(key)];
+    return this._data?.[json(key)!];
   }
 
   delete(key) {
     this.assert_not_closed();
-    delete this._data?.[json(key)];
+    delete this._data?.[json(key)!];
   }
 
   close() {

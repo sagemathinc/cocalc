@@ -60,11 +60,7 @@ export function isMainConfiguration(
 ): config is MainConfiguration {
   const mconf = <MainConfiguration>config;
   // don't test for disabled_ext, because that's added later
-  return (
-    isMainCapabilities(mconf.capabilities) &&
-    mconf.timestamp != null &&
-    typeof mconf.timestamp == "string"
-  );
+  return isMainCapabilities(mconf.capabilities) && !!mconf.timestamp;
 }
 
 // if prettier exists, this adds all syntaxes to format via prettier
@@ -165,11 +161,16 @@ export async function get_configuration(
       aspect,
       no_cache,
     );
-  if (config == null) return prev;
+  if (config == null) {
+    return prev;
+  }
   // console.log("project_actions::init_configuration", aspect, config);
 
   if (aspect == ("main" as ConfigurationAspect)) {
-    if (!isMainConfiguration(config)) return;
+    if (!isMainConfiguration(config)) {
+      console.log("reject", isMainConfiguration(config), config);
+      return;
+    }
     const caps = config.capabilities;
     // TEST x11/latex/sage disabilities
     // caps.x11 = false;
@@ -184,7 +185,9 @@ export async function get_configuration(
       // jupyter.lab = false;
       // TEST no kernelspec → we can't read any kernels → entirely disable jupyter
       // jupyter.kernelspec = false;
-      if (!jupyter.kernelspec) caps.jupyter = false;
+      if (!jupyter.kernelspec) {
+        caps.jupyter = false;
+      }
     }
 
     // disable/hide certain file extensions if certain capabilities are missing

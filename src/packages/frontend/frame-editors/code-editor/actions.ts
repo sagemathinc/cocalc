@@ -2249,7 +2249,7 @@ export class Actions<
       }
       this.setFormatError("");
     } catch (err) {
-      this.setFormatError(`${err}`, this._syncstring.to_str());
+      this.setFormatError(`${err}`, this._syncstring?.to_str());
     } finally {
       this.set_status("");
     }

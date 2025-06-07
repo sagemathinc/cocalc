@@ -222,14 +222,17 @@ export function TerminalFlyout({
     // or switches to being visible and was not initialized.
     // See https://github.com/sagemathinc/cocalc/issues/5133
     if (terminalRef.current != null || !is_visible) return;
-    init_terminal();
+    // wait until is actually in the DOM before trying to render,
+    // or it will crash for sure (due to changes in @xterm)
+    setTimeout(init_terminal, 0);
   }, [is_visible]);
 
   useEffect(() => {
     // defensive, like with the frame terminal -- see https://github.com/sagemathinc/cocalc/issues/3819
     if (terminalRef.current == null) return;
     delete_terminal();
-    init_terminal();
+    // see comment about regarding the setTimeout
+    setTimeout(init_terminal, 0);
   }, [id]);
 
   // resize is a counter, increases with debouncing, if size change.

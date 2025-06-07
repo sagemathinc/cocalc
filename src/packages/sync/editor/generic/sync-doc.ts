@@ -19,7 +19,7 @@ EVENTS:
 - ... TODO
 */
 
-const USE_NATS = true;
+const USE_CONAT = true;
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
@@ -94,7 +94,6 @@ import {
   hash_string,
   keys,
   minutes_ago,
-  uuid,
 } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
@@ -114,12 +113,11 @@ import type {
   Patch,
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
-import { NATS_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/nats";
+import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
-import { waitUntilConnected } from "@cocalc/nats/util";
-import { getLogger } from "@cocalc/nats/client";
+import { getLogger } from "@cocalc/conat/client";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -165,9 +163,7 @@ export interface UndoState {
 }
 
 // NOTE: Do not make multiple SyncDoc's for the same document, especially
-// not on the frontend.  Proper reference counted handling of this is done
-// at sync/client/sync-client.ts, or in some applications where you can easily
-// be sure there is only reference, just be sure.
+// not on the frontend.
 
 const logger = getLogger("sync-doc");
 logger.debug("init");
@@ -177,9 +173,6 @@ export class SyncDoc extends EventEmitter {
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
-
-  // This id is used for equality test and caching.
-  private id: string = uuid();
 
   private client: Client;
   private _from_str: (str: string) => Document; // creates a doc from a string.
@@ -266,7 +259,7 @@ export class SyncDoc extends EventEmitter {
   // static because we want exactly one across all docs!
   private static computeServerManagerDoc?: SyncDoc;
 
-  private useNats: boolean;
+  private useConat: boolean;
   legacy: LegacyHistory;
 
   constructor(opts: SyncOpts) {
@@ -302,10 +295,10 @@ export class SyncDoc extends EventEmitter {
       client: this.client,
     });
 
-    // NOTE: Do not use nats in test mode, since there we use a minimal
+    // NOTE: Do not use conat in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't
-    // use nats.  We also use this for the messages composer.
-    this.useNats = USE_NATS && !isTestClient(opts.client);
+    // use conat.  We also use this for the messages composer.
+    this.useConat = USE_CONAT && !isTestClient(opts.client);
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether
@@ -352,7 +345,12 @@ export class SyncDoc extends EventEmitter {
   until it is (however long, etc.).  If this fails, it closes
   this SyncDoc.
   */
-  private init = async (): Promise<void> => {
+  private initialized = false;
+  private init = async () => {
+    if (this.initialized) {
+      throw Error("init can only be called once");
+    }
+    // const start = Date.now();
     this.assert_not_closed("init");
     const log = this.dbg("init");
 
@@ -362,9 +360,6 @@ export class SyncDoc extends EventEmitter {
         //const t0 = new Date();
 
         log("initializing all tables...");
-        if (this.useNats) {
-          await waitUntilConnected();
-        }
         await this.initAll();
         log("initAll succeeded");
         // got it!
@@ -390,6 +385,7 @@ export class SyncDoc extends EventEmitter {
         d = Math.min(d * 1.3, 15000);
       }
     }
+    // console.log(`time to popen ${this.path}:`, (Date.now() - start) / 1000);
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
@@ -409,6 +405,7 @@ export class SyncDoc extends EventEmitter {
   // on the result, you need to clear it when the state
   // changes. See the function handleComputeServerManagerChange.
   private isFileServer = reuseInFlight(async () => {
+    if (this.state == "closed") return;
     if (this.client.is_browser()) {
       // browser is never the file server (yet), and doesn't need to do
       // anything related to watching for changes in state.
@@ -617,7 +614,7 @@ export class SyncDoc extends EventEmitter {
       // table not initialized yet
       return;
     }
-    if (this.useNats) {
+    if (this.useConat) {
       const time = this.client.server_time().valueOf();
       const x: {
         user_id: number;
@@ -660,7 +657,7 @@ export class SyncDoc extends EventEmitter {
 
   set_cursor_locs: typeof this.setCursorLocsNoThrottle = throttle(
     this.setCursorLocsNoThrottle,
-    USE_NATS ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
+    USE_CONAT ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
     {
       leading: true,
       trailing: true,
@@ -1093,14 +1090,9 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  // Close synchronized editing of this string; this stops listening
-  // for changes and stops broadcasting changes.
-  close = reuseInFlight(async () => {
-    if (this.state == "closed") {
-      return;
-    }
-    const dbg = this.dbg("close");
-    dbg("close");
+  // more gentle version -- this can cause the project actions
+  // to be *created* etc.
+  end = reuseInFlight(async () => {
     if (this.client.is_browser() && this.state == "ready") {
       try {
         await this.save_to_disk();
@@ -1110,6 +1102,18 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    this.close();
+  });
+
+  // Close synchronized editing of this string; this stops listening
+  // for changes and stops broadcasting changes.
+  close = reuseInFlight(async () => {
+    if (this.state == "closed") {
+      return;
+    }
+    const dbg = this.dbg("close");
+    dbg("close");
+
     SyncDoc.computeServerManagerDoc?.removeListener(
       "change",
       this.handleComputeServerManagerChange,
@@ -1166,16 +1170,11 @@ export class SyncDoc extends EventEmitter {
       this.patch_list.close();
     }
 
-    //
-    // ASYNC STUFF - in particular, these may all
-    // attempt to do some last attempt to send changes
-    // to the database.
-    //
     try {
-      await this.async_close();
-      dbg("async_close -- successfully saved all data to database");
+      this.closeTables();
+      dbg("closeTables -- successfully saved all data to database");
     } catch (err) {
-      dbg(`async_close -- ERROR -- ${err}`);
+      dbg(`closeTables -- ERROR -- ${err}`);
     }
     // this avoids memory leaks:
     close(this);
@@ -1185,36 +1184,12 @@ export class SyncDoc extends EventEmitter {
     dbg("close done");
   });
 
-  private async_close = async () => {
-    const promises: Promise<any>[] = [];
-
-    if (this.syncstring_table != null) {
-      promises.push(this.syncstring_table.close());
-    }
-
-    if (this.patches_table != null) {
-      promises.push(this.patches_table.close());
-    }
-
-    if (this.cursors_table != null) {
-      promises.push(this.cursors_table.close());
-    }
-
-    if (this.evaluator != null) {
-      promises.push(this.evaluator.close());
-    }
-
-    if (this.ipywidgets_state != null) {
-      promises.push(this.ipywidgets_state.close());
-    }
-
-    const results = await Promise.allSettled(promises);
-
-    results.forEach((result) => {
-      if (result.status === "rejected") {
-        throw Error(result.reason);
-      }
-    });
+  private closeTables = async () => {
+    this.syncstring_table?.close();
+    this.patches_table?.close();
+    this.cursors_table?.close();
+    this.evaluator?.close();
+    this.ipywidgets_state?.close();
   };
 
   // TODO: We **have** to do this on the client, since the backend
@@ -1238,7 +1213,7 @@ export class SyncDoc extends EventEmitter {
   // patches table uses the string_id, which is a SHA1 hash.
   private ensure_syncstring_exists_in_db = async (): Promise<void> => {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
-    if (this.useNats) {
+    if (this.useConat) {
       dbg("skipping -- no database");
       return;
     }
@@ -1278,7 +1253,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("synctable");
     const dbg = this.dbg("synctable");
     if (
-      !this.useNats &&
+      !this.useConat &&
       !this.ephemeral &&
       this.persistent &&
       this.data_server == "project"
@@ -1291,8 +1266,15 @@ export class SyncDoc extends EventEmitter {
       options.push({ ephemeral: true });
     }
     let synctable;
-    if (this.useNats && query.patches) {
-      synctable = await this.client.synctable_nats(query, {
+    let ephemeral = false;
+    for (const x of options) {
+      if (x.ephemeral) {
+        ephemeral = true;
+        break;
+      }
+    }
+    if (this.useConat && query.patches) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1301,9 +1283,10 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         desc: { path: this.path },
         start_seq: this.last_seq,
+        ephemeral,
       });
-    } else if (this.useNats && query.syncstrings) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && query.syncstrings) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1312,9 +1295,10 @@ export class SyncDoc extends EventEmitter {
         atomic: false,
         immutable: true,
         desc: { path: this.path },
+        ephemeral,
       });
-    } else if (this.useNats && query.ipywidgets) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && query.ipywidgets) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1323,13 +1307,13 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         // for now just putting a 1-day limit on the ipywidgets table
-        // so we don't waste a ton of space.  TODO: We could to also clear this
-        // table on halt, startup, etc.
-        limits: { max_age: 1000 * 60 * 60 * 24 },
+        // so we don't waste a ton of space.
+        config: { max_age: 1000 * 60 * 60 * 24 },
         desc: { path: this.path },
+        ephemeral: true, // ipywidgets state always ephemeral
       });
-    } else if (this.useNats && (query.eval_inputs || query.eval_outputs)) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat && (query.eval_inputs || query.eval_outputs)) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1337,11 +1321,12 @@ export class SyncDoc extends EventEmitter {
         stream: false,
         atomic: true,
         immutable: true,
-        limits: { max_age: 30000 },
+        config: { max_age: 5 * 60 * 1000 },
         desc: { path: this.path },
+        ephemeral: true, // eval state (for sagews) is always ephemeral
       });
-    } else if (this.useNats) {
-      synctable = await this.client.synctable_nats(query, {
+    } else if (this.useConat) {
+      synctable = await this.client.synctable_conat(query, {
         obj: {
           project_id: this.project_id,
           path: this.path,
@@ -1350,18 +1335,10 @@ export class SyncDoc extends EventEmitter {
         atomic: true,
         immutable: true,
         desc: { path: this.path },
+        ephemeral,
       });
     } else {
       switch (this.data_server) {
-        case "project":
-          synctable = await this.client.synctable_project(
-            this.project_id,
-            query,
-            options,
-            throttle_changes,
-            this.id,
-          );
-          break;
         case "database":
           if (this.client.synctable_database == null) {
             throw Error("database server not supported by project");
@@ -1414,29 +1391,10 @@ export class SyncDoc extends EventEmitter {
         doctype: JSON.stringify(this.doctype),
       });
     } else {
-      dbg("waiting for, then handling the first update...");
-      await this.handle_syncstring_update();
+      dbg("handling the first update...");
+      this.handle_syncstring_update();
     }
-    this.syncstring_table.on(
-      "change",
-      this.handle_syncstring_update.bind(this),
-    );
-
-    // Wait until syncstring is not archived -- if we open an
-    // older syncstring, the patches may be archived,
-    // and we have to wait until
-    // after they have been pulled from blob storage before
-    // we init the patch table, load from disk, etc.
-    const is_not_archived: () => boolean = () => {
-      const ss = this.syncstring_table_get_one();
-      if (ss != null) {
-        return !ss.get("archived");
-      } else {
-        return false;
-      }
-    };
-    dbg("waiting for syncstring to be not archived");
-    await this.syncstring_table.wait(is_not_archived, 120);
+    this.syncstring_table.on("change", this.handle_syncstring_update);
   };
 
   // Used for internal debug logging
@@ -1513,11 +1471,16 @@ export class SyncDoc extends EventEmitter {
         desc: "syncdoc -- load_from_disk",
       });
       log("done loading from disk");
-      this.assert_not_closed("initAll -- load from disk");
+    } else {
+      if (this.patch_list?.count() == 0) {
+        await Promise.race([
+          this.waitUntilFullyReady(),
+          once(this.patch_list!, "change"),
+        ]);
+      }
     }
-
-    log("wait_until_fully_ready");
-    await this.wait_until_fully_ready();
+    this.assert_not_closed("initAll -- load from disk");
+    this.emit("init");
 
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
@@ -1543,45 +1506,33 @@ export class SyncDoc extends EventEmitter {
 
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
-  private wait_until_fully_ready = async (): Promise<void> => {
+  private waitUntilFullyReady = async (): Promise<void> => {
     this.assert_not_closed("wait_until_fully_ready");
     const dbg = this.dbg("wait_until_fully_ready");
     dbg();
 
     if (this.client.is_browser() && this.init_error()) {
-      // init is set and is in error state.  Give the backend 3 seconds
+      // init is set and is in error state.  Give the backend a few seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
       try {
-        await this.syncstring_table.wait(() => !this.init_error(), 3);
+        await this.syncstring_table.wait(() => !this.init_error(), 5);
       } catch (err) {
         // fine -- let the code below deal with this problem...
       }
     }
 
-    const is_init_and_not_archived = (t: SyncTable) => {
-      this.assert_not_closed("is_init_and_not_archived");
+    const is_init = (t: SyncTable) => {
+      this.assert_not_closed("is_init");
       const tbl = t.get_one();
       if (tbl == null) {
         dbg("null");
         return false;
       }
-      // init must be set in table and archived must NOT be
-      // set, so patches are loaded from blob store.
-      const init = tbl.get("init");
-      if (init && !tbl.get("archived")) {
-        dbg("good to go");
-        return init.toJS();
-      } else {
-        dbg("not init yet");
-        return false;
-      }
+      return tbl.get("init") != null;
     };
     dbg("waiting for init...");
-    const init = await this.syncstring_table.wait(
-      is_init_and_not_archived.bind(this),
-      0,
-    );
+    const init = await this.syncstring_table.wait(is_init, 0);
     dbg("init done");
     if (init.error) {
       throw Error(init.error);
@@ -1610,17 +1561,16 @@ export class SyncDoc extends EventEmitter {
         dbg("handled update queue");
       }
     }
-    this.emit("init");
   };
 
-  private assert_table_is_ready(table: string): void {
+  private assert_table_is_ready = (table: string): void => {
     const t = this[table + "_table"]; // not using string template only because it breaks codemirror!
     if (t == null || t.get_state() != "connected") {
       throw Error(
         `Table ${table} must be connected.  string_id=${this.string_id}`,
       );
     }
-  }
+  };
 
   assert_is_ready = (desc: string): void => {
     if (this.state != "ready") {
@@ -1793,7 +1743,7 @@ export class SyncDoc extends EventEmitter {
   private patch_table_query = (cutoff?: number) => {
     const query = {
       string_id: this.string_id,
-      is_snapshot: false, // only used with nats
+      is_snapshot: false, // only used with conat
       time: cutoff ? { ">=": cutoff } : null,
       wall: null,
       // compressed format patch as a JSON *string*
@@ -1947,9 +1897,9 @@ export class SyncDoc extends EventEmitter {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
-    if (this.useNats) {
-      dbg("NATS cursors support using pub/sub");
-      this.cursors_table = await this.client.pubsub_nats({
+    if (this.useConat) {
+      dbg("cursors broadcast using pub/sub");
+      this.cursors_table = await this.client.pubsub_conat({
         project_id: this.project_id,
         path: this.path,
         name: "cursors",
@@ -2265,13 +2215,13 @@ export class SyncDoc extends EventEmitter {
     // active, so we check if we should make a snapshot. There is the
     // potential of a race condition where more than one clients make
     // a snapshot at the same time -- this would waste a little space
-    // in the nats jetstream, but is otherwise harmless, since the snapshots
+    // in the stream, but is otherwise harmless, since the snapshots
     // are identical.
     this.snapshot_if_necessary();
   };
 
   private dstream = () => {
-    // @ts-ignore -- in general patches_table might not be a nats one still,
+    // @ts-ignore -- in general patches_table might not be a conat one still,
     // or at least dstream is an internal implementation detail.
     const { dstream } = this.patches_table ?? {};
     if (dstream == null) {
@@ -2280,11 +2230,11 @@ export class SyncDoc extends EventEmitter {
     return dstream;
   };
 
-  // return the NATS sequence number of the oldest entry in the
+  // return the conat-assigned sequence number of the oldest entry in the
   // patch list with the given time, and also:
   //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
   //    - index -- the global index of the entry with the given time.
-  private natsSnapshotSeqInfo = (
+  private conatSnapshotSeqInfo = (
     time: number,
   ): { seq: number; prev_seq?: number } => {
     const dstream = this.dstream();
@@ -2339,7 +2289,7 @@ export class SyncDoc extends EventEmitter {
 
     const snapshot: string = this.patch_list.value({ time }).to_str();
     // save the snapshot itself in the patches table.
-    const seq_info = this.natsSnapshotSeqInfo(time);
+    const seq_info = this.conatSnapshotSeqInfo(time);
     const obj = {
       size: snapshot.length,
       string_id: this.string_id,
@@ -2754,11 +2704,7 @@ export class SyncDoc extends EventEmitter {
 
     if (this.path == null) {
       // We just opened the file -- emit a load time estimate.
-      if (x.archived) {
-        this.emit("load-time-estimate", { type: "archived", time: 3 });
-      } else {
-        this.emit("load-time-estimate", { type: "ready", time: 1 });
-      }
+      this.emit("load-time-estimate", { type: "ready", time: 1 });
     }
     // TODO: handle doctype change here (?)
     this.setLastSnapshot(x.last_snapshot);
@@ -3575,7 +3521,7 @@ export class SyncDoc extends EventEmitter {
         path: this.path,
         project_id: this.project_id,
       });
-      await delay(NATS_OPEN_FILE_TOUCH_INTERVAL);
+      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 }

@@ -8,7 +8,7 @@ declare let window, document, $;
 
 import * as async from "async";
 import { callback } from "awaiting";
-import { List, Map, Set, fromJS } from "immutable";
+import { List, Map, Set as immutableSet, fromJS } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
@@ -107,7 +107,10 @@ import { get_editor } from "./editors/react-wrapper";
 import {
   computeServerManager,
   type ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
+} from "@cocalc/conat/compute/manager";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
+import { delay } from "awaiting";
 
 const { defaults, required } = misc;
 
@@ -280,25 +283,53 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
   },
 } as const;
 
+// isOpen should reliably return whether or not a vien project
+// is currently open in this client, in the sense that its actions
+// are defined.
+const openProjectIds = new Set<string>();
+
+async function syncOpenProjectTabs(interval = 5000) {
+  while (true) {
+    await delay(interval);
+    const open_projects = redux.getStore("projects")?.get("open_projects");
+    if (open_projects == null) {
+      continue;
+    }
+    const openProjectTabs = new Set(open_projects?.toJS());
+    // console.log("syncOpenProjectTabs", { openProjectTabs, openProjectIds });
+    for (const project_id of openProjectIds) {
+      if (!openProjectTabs.has(project_id)) {
+        // console.log("syncOpenProjectTabs: removing ", project_id);
+        redux.removeProjectReferences(project_id);
+      }
+    }
+  }
+}
+
+syncOpenProjectTabs();
+
 export class ProjectActions extends Actions<ProjectStoreState> {
+  public state: "ready" | "closed" = "ready";
   public project_id: string;
   private _last_history_state: string;
   private last_close_timer: number;
-  private _activity_indicator_timers: { [key: string]: number };
+  private _activity_indicator_timers: { [key: string]: number } = {};
   private _init_done = false;
-  private new_filename_generator;
+  private new_filename_generator = new NewFilenames("", false);
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
   private computeServerManager?: ComputeServerManager;
+  private projectStatusSub?;
 
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
-    this.new_filename_generator = new NewFilenames("", false);
-    this._activity_indicator_timers = {};
+    openProjectIds.add(this.project_id);
+    // console.trace("create project actions", this.project_id)
     this.open_files = new OpenFiles(this);
-    this.initNatsPermissions();
-    this.initComputeServers();
+    this.initComputeServerManager();
+    this.initComputeServersTable();
+    this.initProjectStatus();
   }
 
   public async api(): Promise<API> {
@@ -306,18 +337,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   destroy = (): void => {
-    if (this.open_files == null) return;
-    this.closeComputeServers();
+    // console.log("destroy project actions", this.project_id)
+    if (this.state == "closed") {
+      return;
+    }
+    this.state = "closed";
+    openProjectIds.delete(this.project_id);
+    this.closeComputeServerManager();
+    this.closeComputeServerTable();
+    this.projectStatusSub?.close();
+    delete this.projectStatusSub;
     must_define(this.redux);
     this.close_all_files();
     for (const table in QUERIES) {
       this.remove_table(table);
     }
-    this.open_files.close();
+
+    this.open_files?.close();
     delete this.open_files;
-    this.computeServerManager?.close();
-    delete this.computeServerManager;
-    webapp_client.nats_client.closeOpenFiles(this.project_id);
+    webapp_client.conat_client.closeOpenFiles(this.project_id);
   };
 
   private save_session(): void {
@@ -1259,6 +1297,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
+    if (this.state == "closed") {
+      return;
+    }
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     // this is what is currently configured:
@@ -1593,7 +1634,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files?: Set<string>;
+      checked_files?: immutableSet<string>;
       file_action?: string | undefined;
     } = {};
     if (checked) {
@@ -1623,7 +1664,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
@@ -1645,7 +1686,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
@@ -1938,75 +1979,79 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
-  async init_configuration(
-    aspect: ConfigurationAspect = "main",
-    no_cache = false,
-  ): Promise<Configuration | void> {
-    this.setState({ configuration_loading: true });
+  init_configuration = reuseInFlight(
+    async (
+      aspect: ConfigurationAspect = "main",
+      no_cache = false,
+    ): Promise<Configuration | void> => {
+      this.setState({ configuration_loading: true });
 
-    const store = this.get_store();
-    if (store == null) {
-      // console.warn("project_actions::init_configuration: no store");
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      const store = this.get_store();
+      if (store == null) {
+        // console.warn("project_actions::init_configuration: no store");
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    const prev = store.get("configuration") as ProjectConfiguration;
-    if (!no_cache) {
-      // already done before?
-      if (prev != null) {
-        const conf = prev.get(aspect) as Configuration;
-        if (conf != null) {
-          this.setState({ configuration_loading: false });
-          return conf;
+      const prev = store.get("configuration") as ProjectConfiguration;
+      if (!no_cache) {
+        // already done before?
+        if (prev != null) {
+          const conf = prev.get(aspect) as Configuration;
+          if (conf != null) {
+            this.setState({ configuration_loading: false });
+            return conf;
+          }
         }
       }
-    }
 
-    // we do not know the configuration aspect. "next" will be the updated datastructure.
-    let next;
+      // we do not know the configuration aspect. "next" will be the updated datastructure.
+      let next;
 
-    await retry_until_success({
-      f: async () => {
-        try {
-          next = await get_configuration(
-            webapp_client,
-            this.project_id,
-            aspect,
-            prev,
-            no_cache,
-          );
-        } catch (e) {
-          // not implemented error happens, when the project is still the old one
-          // in that case, do as if everything is available
-          if (e.message.indexOf("not implemented") >= 0) {
-            return null;
+      await retry_until_success({
+        f: async () => {
+          try {
+            next = await get_configuration(
+              webapp_client,
+              this.project_id,
+              aspect,
+              prev,
+              no_cache,
+            );
+          } catch (e) {
+            // not implemented error happens, when the project is still the old one
+            // in that case, do as if everything is available
+            if (e.message.indexOf("not implemented") >= 0) {
+              return null;
+            }
+            //             console.log(
+            //               `WARNING -- project_actions::init_configuration err: ${e}`,
+            //             );
+            throw e;
           }
-          // console.log("project_actions::init_configuration err:", e);
-          throw e;
-        }
-      },
-      start_delay: 1000,
-      max_delay: 5000,
-      desc: "project_actions::init_configuration",
-    });
+        },
+        start_delay: 2000,
+        max_delay: 5000,
+        desc: "project_actions::init_configuration",
+      });
 
-    // there was a problem or configuration is not known
-    if (next == null) {
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      // there was a problem or configuration is not known
+      if (next == null) {
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    this.setState(
-      fromJS({
-        configuration: next,
-        available_features: feature_is_available(next),
-        configuration_loading: false,
-      } as any),
-    );
+      this.setState(
+        fromJS({
+          configuration: next,
+          available_features: feature_is_available(next),
+          configuration_loading: false,
+        } as any),
+      );
 
-    return next.get(aspect) as Configuration;
-  }
+      return next.get(aspect) as Configuration;
+    },
+  );
 
   // this is called once by the project initialization
   private async init_library() {
@@ -2113,9 +2158,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     misc.retry_until_success({
       f: fetch,
-      start_delay: 1000,
-      max_delay: 10000,
-      max_time: 1000 * 60 * 3, // try for at most 3 minutes
+      start_delay: 15000,
+      max_delay: 30000,
+      max_time: 1000 * 60, // try for at most 3 minutes
       cb: () => {
         _init_library_index_ongoing[this.project_id] = false;
       },
@@ -3038,38 +3083,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  private async neuralSearch(text, path) {
-    try {
-      const scope = `projects/${this.project_id}/files/${path}`;
-      const results = await webapp_client.openai_client.embeddings_search({
-        text,
-        limit: 25,
-        scope,
-      });
-      const search_results: {
-        filename: string;
-        description: string;
-        fragment_id?: FragmentId;
-      }[] = [];
-      for (const result of results) {
-        const url = result.payload["url"] as string | undefined;
-        if (!url) continue;
-        const [filename, fragment_id] = url.slice(scope.length + 1).split("#");
-        const description = result.payload["text"] ?? "";
-        search_results.push({
-          filename: filename[0] == "/" ? filename.slice(1) : filename,
-          description,
-          fragment_id: Fragment.decode(fragment_id),
-        });
-      }
-      this.setState({ search_results });
-    } catch (err) {
-      this.setState({
-        search_error: `${err}`,
-      });
-    }
-  }
-
   search = () => {
     let cmd, ins;
     const store = this.get_store();
@@ -3100,11 +3113,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       hidden_files: store.get("hidden_files"),
       git_grep: store.get("git_grep"),
     });
-
-    if (store.get("neural_search")) {
-      this.neuralSearch(query, path);
-      return;
-    }
 
     // generate the grep command for the given query with the given flags
     if (store.get("case_sensitive")) {
@@ -3504,7 +3512,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setRecentlyDeleted(path, 0);
     (async () => {
       try {
-        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        const o = await webapp_client.conat_client.openFiles(this.project_id);
         o.setNotDeleted(path);
       } catch (err) {
         console.log("WARNING: issue undeleting file", err);
@@ -3512,19 +3520,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     })();
   };
 
-  private initComputeServers = () => {
+  private initProjectStatus = async () => {
+    this.projectStatusSub = await getProjectStatus({
+      project_id: this.project_id,
+      compute_server_id: 0,
+    });
+    for await (const mesg of this.projectStatusSub) {
+      const status = mesg.data;
+      this.setState({ status });
+    }
+  };
+
+  private initComputeServersTable = () => {
     // table of information about all the compute servers in this project
     computeServers.init(this.project_id);
+  };
+
+  private closeComputeServerTable = () => {
+    computeServers.close(this.project_id);
+  };
+
+  private initComputeServerManager = () => {
+    // console.log("initComputeServerManager");
+    if (this.state == "closed") {
+      return;
+    }
     // table mapping paths to the id of the compute server it is hosted on
     this.computeServerManager = computeServerManager({
       project_id: this.project_id,
     });
-    this.computeServerManager.on("connected", () => {
-      if (this.computeServerManager == null) {
+    this.computeServerManager.once("connected", () => {
+      if (this.state == "closed" || this.computeServerManager == null) {
         return;
       }
-      const compute_server_ids = this.computeServerManager.getAll() as any;
-      for (let path in compute_server_ids) {
+      const compute_server_ids = {
+        ...this.computeServerManager.getAll(),
+      } as any;
+      for (const path in compute_server_ids) {
         compute_server_ids[path] = compute_server_ids[path].id;
       }
       this.setState({ compute_server_ids });
@@ -3535,23 +3567,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
-  private initNatsPermissions = async () => {
-    try {
-      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
-    } catch (err) {
-      console.log(
-        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
-      );
+  private closeComputeServerManager = () => {
+    // console.log("closeComputeServerManager");
+    if (this.computeServerManager == null) {
+      return;
     }
-  };
-
-  private closeComputeServers = () => {
-    computeServers.close(this.project_id);
-    this.computeServerManager?.removeListener(
+    this.computeServerManager.removeListener(
       "change",
       this.handleComputeServerManagerChange,
     );
-    this.computeServerManager?.close();
+    this.computeServerManager.close();
     delete this.computeServerManager;
   };
 
@@ -3644,7 +3669,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   projectApi = (opts?) => {
-    return webapp_client.nats_client.projectApi({
+    return webapp_client.conat_client.projectApi({
       ...opts,
       project_id: this.project_id,
     });

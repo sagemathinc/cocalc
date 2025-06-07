@@ -264,11 +264,9 @@ export class PageActions extends Actions<PageState> {
     this.setState({ ping, avgping });
   }
 
-  set_connection_status(connection_status, time: Date) {
-    if (time > (redux.getStore("page").get("last_status_time") ?? 0)) {
-      this.setState({ connection_status, last_status_time: time });
-    }
-  }
+  set_connection_status = (connection_status, time: Date) => {
+    this.setState({ connection_status, last_status_time: time });
+  };
 
   set_connection_quality(connection_quality) {
     this.setState({ connection_quality });

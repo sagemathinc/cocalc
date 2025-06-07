@@ -5,8 +5,12 @@
 import { Helmet } from "react-helmet";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+declare var DEBUG;
 
 window.addEventListener("load", async function () {
+  if (DEBUG) {
+    return null;
+  }
   const path = join(appBasePath, "webapp/serviceWorker.js");
 
   try {
@@ -18,8 +22,6 @@ window.addEventListener("load", async function () {
     console.log(`${path} registration failed: `, err);
   }
 });
-
-declare var DEBUG;
 
 export default function Manifest() {
   if (DEBUG) {
