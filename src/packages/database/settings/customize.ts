@@ -127,6 +127,15 @@ export default async function getCustomize(
       strategies,
 
       verifyEmailAddresses: settings.verify_emails && settings.email_enabled,
+
+      version: {
+        min_project: parseInt(settings.version_min_project),
+        min_browser: parseInt(settings.version_min_browser),
+        recommended_browser: parseInt(settings.version_recommended_browser),
+        compute_server_min_project: parseInt(
+          settings.version_compute_server_min_project,
+        ),
+      },
     };
   }
   return fields ? copy_with(cachedCustomize, fields) : cachedCustomize;
