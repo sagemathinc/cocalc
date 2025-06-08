@@ -7,6 +7,7 @@
     "./llm/*": "./dist/llm/*.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",
+    "./hub/changefeeds": "./dist/hub/changefeeds/index.js",
     "./hub/api": "./dist/hub/api/index.js",
     "./hub/api/*": "./dist/hub/api/*.js",
     "./compute/*": "./dist/compute/*.js",

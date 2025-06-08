@@ -43,7 +43,7 @@ export class ConatChangefeed extends EventEmitter {
   };
 
   connect = async () => {
-    this.log("connecting...")
+    this.log("connecting...");
     this.cf = changefeed({
       client: await conat(),
       account_id: this.account_id,

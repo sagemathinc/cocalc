@@ -762,6 +762,16 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
+        if (err.code == 429) {
+          const message = `${err}`;
+          console.log(message);
+          this.client.alert_message?.({
+            title: `Too Many Requests (${this.table})`,
+            message,
+            type: "error",
+          });
+          await delay(30 * 1000);
+        }
         if (first) {
           // don't warn the first time
           first = false;
