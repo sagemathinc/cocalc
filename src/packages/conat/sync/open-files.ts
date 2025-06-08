@@ -36,7 +36,7 @@ import getTime, { getSkew } from "@cocalc/conat/time";
 
 // info about interest in open files (and also what was explicitly deleted) older
 // than this is automatically purged.
-const MAX_AGE_MS = 7 * (1000 * 60 * 60 * 24);
+const MAX_AGE_MS = 1000 * 60 * 60 * 24;
 
 interface Deleted {
   // what deleted state is
@@ -74,6 +74,12 @@ export interface KVEntry {
   backend?: Backend;
 }
 
+export interface Entry extends KVEntry {
+  // path to file relative to HOME
+  path: string;
+}
+
+/*
 function resolveMergeConflict(local: KVEntry, remote: KVEntry): KVEntry {
   const time = mergeTime(remote?.time, local?.time);
   const deleted = mergeDeleted(remote?.deleted, local?.deleted);
@@ -85,10 +91,6 @@ function resolveMergeConflict(local: KVEntry, remote: KVEntry): KVEntry {
   };
 }
 
-export interface Entry extends KVEntry {
-  // path to file relative to HOME
-  path: string;
-}
 
 function mergeTime(
   a: number | undefined,
@@ -126,6 +128,7 @@ function mergeBackend(a: Backend | undefined, b: Backend | undefined) {
   // would be worrisome, but quickly sort itself out.
   return a.time >= b.time ? a : b;
 }
+*/
 
 interface Options {
   project_id: string;
@@ -175,7 +178,7 @@ export class OpenFiles extends EventEmitter {
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,
-      merge: ({ local, remote }) => resolveMergeConflict(local, remote),
+      //merge: ({ local, remote }) => resolveMergeConflict(local, remote),
     });
     this.dkv = d;
     d.on("change", this.handleChange);

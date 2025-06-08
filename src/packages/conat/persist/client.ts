@@ -31,7 +31,8 @@ export type Changefeed = EventIterator<ChangefeedEvent>;
 
 // const paths = new Set<string>();
 
-export class PersistStreamClient extends EventEmitter {
+export { type PersistStreamClient };
+class PersistStreamClient extends EventEmitter {
   public socket: ConatSocketClient;
   private changefeeds: any[] = [];
   private state: "ready" | "closed" = "ready";
