@@ -52,6 +52,8 @@ import {
 import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+const PUBLISH_MANY_BATCH_SIZE = 500;
+
 const log = (..._args) => {};
 //const log = console.log;
 
@@ -559,6 +561,24 @@ export class CoreStream<T = any> extends EventEmitter {
   ): Promise<
     ({ seq: number; time: number } | { error: string; code?: any })[]
   > => {
+    let result: (
+      | { seq: number; time: number }
+      | { error: string; code?: any }
+    )[] = [];
+
+    for (let i = 0; i < messages.length; i += PUBLISH_MANY_BATCH_SIZE) {
+      const batch = messages.slice(i, i + PUBLISH_MANY_BATCH_SIZE);
+      result = result.concat(await this.publishMany0(batch));
+    }
+
+    return result;
+  };
+
+  private publishMany0 = async (
+    messages: { mesg: T; options?: PublishOptions }[],
+  ): Promise<
+    ({ seq: number; time: number } | { error: string; code?: any })[]
+  > => {
     const v: SetOptions[] = [];
     let timeout: number | undefined = undefined;
     for (const { mesg, options } of messages) {
@@ -619,8 +639,27 @@ export class CoreStream<T = any> extends EventEmitter {
       headers?: Headers;
       previousSeq?: number;
     },
-  ) => {
+  ): Promise<{ seq: number; time: number } | undefined> => {
     return await this.publish(mesg, { ...options, key });
+  };
+
+  setKvMany = async (
+    x: {
+      key: string;
+      mesg: T;
+      options?: {
+        headers?: Headers;
+        previousSeq?: number;
+      };
+    }[],
+  ): Promise<
+    ({ seq: number; time: number } | { error: string; code?: any })[]
+  > => {
+    const messages: { mesg: T; options?: PublishOptions }[] = [];
+    for (const { key, mesg, options } of x) {
+      messages.push({ mesg, options: { ...options, key } });
+    }
+    return await this.publishMany(messages);
   };
 
   deleteKv = async (

@@ -299,7 +299,7 @@ export class PersistentStream extends EventEmitter {
     if (key === null) {
       key = undefined;
     }
-    if (msgID !== undefined && this.msgIDs?.has(msgID)) {
+    if (msgID != null && this.msgIDs?.has(msgID)) {
       return this.msgIDs.get(msgID)!;
     }
     if (key !== undefined && previousSeq !== undefined) {
