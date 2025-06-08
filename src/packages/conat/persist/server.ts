@@ -209,6 +209,8 @@ export function server({
           }
           const resp = stream.sqlite(request.statement, request.params);
           mesg.respondSync(resp);
+        } else if (request.cmd == "serverId") {
+          mesg.respondSync(server.id);
         } else if (request.cmd == "getAll") {
           logger.debug("getAll", { subject: socket.subject, request });
           // getAll uses requestMany which responds with all matching messages,

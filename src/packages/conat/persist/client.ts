@@ -87,6 +87,7 @@ export class PersistStreamClient extends EventEmitter {
     // paths.delete(this.storage.path);
     // console.log("persist -- close", this.storage.path, paths);
     this.state = "closed";
+    this.emit("closed");
     for (const iter of this.changefeeds) {
       iter.close();
       this.changefeeds.length = 0;
@@ -297,6 +298,15 @@ export class PersistStreamClient extends EventEmitter {
     if (!noReturn) {
       return mesg.data;
     }
+  };
+
+  // id of the remote server we're connected to
+  serverId = async () => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: { cmd: "serverId" },
+      }),
+    );
   };
 }
 

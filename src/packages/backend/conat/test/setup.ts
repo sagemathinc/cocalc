@@ -16,6 +16,7 @@ import { join } from "path";
 export { wait } from "@cocalc/backend/conat/test/util";
 export { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
+export { once } from "@cocalc/util/async-utils";
 
 const logger = getLogger("conat:test:setup");
 

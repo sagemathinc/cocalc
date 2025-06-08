@@ -131,7 +131,7 @@ export abstract class ConatSocketBase extends EventEmitter {
     try {
       await this.run();
     } catch (err) {
-      console.log(`WARNING: ${this.role} socket connect error -- ${err}`);
+      // console.log(`WARNING: ${this.role} socket connect error -- ${err}`);
       this.disconnect();
     }
   };
