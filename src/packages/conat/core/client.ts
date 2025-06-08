@@ -429,7 +429,7 @@ export class Client extends EventEmitter {
   });
 
   private setState = (state: State) => {
-    if (this.state == "closed" || this.state == state) {
+    if (this.isClosed() || this.state == state) {
       return;
     }
     this.state = state;
@@ -445,7 +445,7 @@ export class Client extends EventEmitter {
 
   private getInbox = reuseInFlight(async (): Promise<EventEmitter> => {
     if (this.inbox == null) {
-      if (this.state == "closed") {
+      if (this.isClosed()) {
         throw Error("closed");
       }
       await once(this, "inbox");
@@ -483,7 +483,7 @@ export class Client extends EventEmitter {
         sub = await this.subscribe(this.inboxSubject + ".*");
         break;
       } catch (err) {
-        if (this.state == "closed") {
+        if (this.isClosed()) {
           return;
         }
         // this should only fail due to permissions issues, at which point
@@ -519,8 +519,12 @@ export class Client extends EventEmitter {
     await once(this.conn, "connect");
   });
 
+  private isClosed = () => {
+    return this.state == "closed";
+  };
+
   close = () => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return;
     }
     this.setState("closed");
@@ -558,12 +562,15 @@ export class Client extends EventEmitter {
   private syncSubscriptions = reuseInFlight(async () => {
     let d = 1000;
     let fails = 0;
-    while (true) {
+    while (this.state != "closed") {
       try {
         if (this.info == null) {
-          // no point in trying until we are signed in
+          // no point in trying until we are signed in and connected
           await once(this, "info");
         }
+        if (this.isClosed()) return;
+        await this.waitUntilConnected();
+        if (this.isClosed()) return;
         const stable = await this.syncSubscriptions0(10000);
         if (stable) {
           //console.log("successful sync, plus no changes -- we're done.");
@@ -589,6 +596,7 @@ export class Client extends EventEmitter {
   // syncSubscriptions0 ensures that we're subscribed on server
   // to what we think we're subscribed to, or throws an error.
   private syncSubscriptions0 = async (timeout: number): Promise<boolean> => {
+    if (this.isClosed()) return true;
     if (this.info == null) {
       throw Error("not signed in");
     }
@@ -687,7 +695,7 @@ export class Client extends EventEmitter {
       timeout?: number;
     } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     if (!isValidSubject(subject)) {
@@ -763,7 +771,7 @@ export class Client extends EventEmitter {
       promise = undefined;
     }
     sub.once("closed", () => {
-      if (this.state == "closed") {
+      if (this.isClosed()) {
         return;
       }
       this.conn.emit("unsubscribe", { subject });
@@ -916,7 +924,7 @@ export class Client extends EventEmitter {
     mesg,
     opts?: PublishOptions,
   ): { bytes: number } => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       // already closed
       return { bytes: 0 };
     }
@@ -936,7 +944,7 @@ export class Client extends EventEmitter {
     // **right now** or received these messages.
     count: number;
   }> => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       // already closed
       return { bytes: 0, count: 0 };
     }
@@ -960,7 +968,7 @@ export class Client extends EventEmitter {
       timeout = DEFAULT_PUBLISH_TIMEOUT,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return { bytes: 0 };
     }
     if (!isValidSubjectWithoutWildcards(subject)) {
