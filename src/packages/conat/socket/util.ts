@@ -25,8 +25,8 @@ export const DEFAULT_MAX_QUEUE_SIZE = 1000;
 
 export const DEFAULT_COMMAND_TIMEOUT = 3000;
 
-export const DEFAULT_KEEP_ALIVE = 30000;
-export const DEFAULT_KEEP_ALIVE_TIMEOUT = 10000;
+export const DEFAULT_KEEP_ALIVE = 90000;
+export const DEFAULT_KEEP_ALIVE_TIMEOUT = 15000;
 
 export type Command = "connect" | "close" | "ping" | "socket";
 
@@ -40,8 +40,8 @@ export interface SocketConfiguration {
   // ping other end of the socket if no data is received for keepAlive ms;
   // if other side doesn't respond within keepAliveTimeout, then the
   // connection switches to the 'disconnected' state.
-  keepAlive?: number; // default: 30s
-  keepAliveTimeout?: number; // default: 10s}
+  keepAlive?: number; // default: DEFAULT_KEEP_ALIVE
+  keepAliveTimeout?: number; // default: DEFAULT_KEEP_ALIVE_TIMEOUT}
   // desc = optional, purely for admin/user
   desc?: string;
 }
