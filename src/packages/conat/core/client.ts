@@ -1,8 +1,8 @@
 /*
 core/client.s -- core conat client
 
-This is a client that has a
-similar API to NATS / Socket.io, but is much, much better in so many ways:
+This is a client that has a similar API to NATS / Socket.io, but is much, 
+much better in so many ways:
 
 - It has global pub/sub just like with NATS. This uses the server to
   rebroadcast messages, and for authentication.

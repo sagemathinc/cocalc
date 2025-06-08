@@ -1,5 +1,15 @@
 /*
-NATS Kv associated to a project to keep track of open files.
+Keep track of open files.
+
+We use the "dko" distributed key:value store because of the potential of merge
+conflicts, e.g,. one client changes the compute server id and another changes
+whether a file is deleted.  By using dko, only the field that changed is sync'd
+out, so we get last-write-wins on the level of fields.
+
+(An old version use dkv with merge conflict resolution, but with multiple clients
+and the project, feedback loops or something happened and it would start getting
+slow -- basically, merge conflicts could take a few seconds to resolve, which would
+make opening a file start to be slow.)
 
 DEVELOPMENT:
 
@@ -30,7 +40,7 @@ z.getAll()
 */
 
 import { type State } from "@cocalc/conat/types";
-import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
+import { dko, type DKO } from "@cocalc/conat/sync/dko";
 import { EventEmitter } from "events";
 import getTime, { getSkew } from "@cocalc/conat/time";
 
@@ -67,7 +77,7 @@ export interface KVEntry {
   // of merge conflict we can do something sensible.
   deleted?: Deleted;
 
-  // if file is actively opened on a compute server, then it sets
+  // if file is actively opened on a compute server/project, then it sets
   // this entry.  Right when it closes the file, it clears this.
   // If it gets killed/broken and doesn't have a chance to clear it, then
   // backend.time can be used to decide this isn't valid.
@@ -78,57 +88,6 @@ export interface Entry extends KVEntry {
   // path to file relative to HOME
   path: string;
 }
-
-/*
-function resolveMergeConflict(local: KVEntry, remote: KVEntry): KVEntry {
-  const time = mergeTime(remote?.time, local?.time);
-  const deleted = mergeDeleted(remote?.deleted, local?.deleted);
-  const backend = mergeBackend(remote?.backend, local?.backend);
-  return {
-    time,
-    deleted,
-    backend,
-  };
-}
-
-
-function mergeTime(
-  a: number | undefined,
-  b: number | undefined,
-): number | undefined {
-  // time of interest should clearly always be the largest known value so far.
-  if (a == null && b == null) {
-    return undefined;
-  }
-  return Math.max(a ?? 0, b ?? 0);
-}
-
-function mergeDeleted(a: Deleted | undefined, b: Deleted | undefined) {
-  if (a == null) {
-    return b;
-  }
-  if (b == null) {
-    return a;
-  }
-  // now both a and b are not null, so some merge is needed: we
-  // use last write wins.
-  return a.time >= b.time ? a : b;
-}
-
-function mergeBackend(a: Backend | undefined, b: Backend | undefined) {
-  if (a == null) {
-    return b;
-  }
-  if (b == null) {
-    return a;
-  }
-  // now both a and b are not null, so some merge is needed: we
-  // use last write wins.
-  // NOTE: This should likely not happen or only happen for a moment and
-  // would be worrisome, but quickly sort itself out.
-  return a.time >= b.time ? a : b;
-}
-*/
 
 interface Options {
   project_id: string;
@@ -146,7 +105,7 @@ export class OpenFiles extends EventEmitter {
   private project_id: string;
   private noCache?: boolean;
   private noAutosave?: boolean;
-  private dkv?: DKV;
+  private kv?: DKO;
   public state: "disconnected" | "connected" | "closed" = "disconnected";
 
   constructor({ project_id, noAutosave, noCache }: Options) {
@@ -170,7 +129,7 @@ export class OpenFiles extends EventEmitter {
       throw Error("init can only be called once");
     }
     this.initialized = true;
-    const d = await dkv<KVEntry>({
+    const d = await dko<KVEntry>({
       name: "open-files",
       project_id: this.project_id,
       config: {
@@ -178,9 +137,8 @@ export class OpenFiles extends EventEmitter {
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,
-      //merge: ({ local, remote }) => resolveMergeConflict(local, remote),
     });
-    this.dkv = d;
+    this.kv = d;
     d.on("change", this.handleChange);
     // ensure clock is synchronized
     await getSkew();
@@ -196,28 +154,28 @@ export class OpenFiles extends EventEmitter {
   };
 
   close = () => {
-    if (this.dkv == null) {
+    if (this.kv == null) {
       return;
     }
     this.setState("closed");
     this.removeAllListeners();
-    this.dkv.removeListener("change", this.handleChange);
-    this.dkv.close();
-    delete this.dkv;
+    this.kv.removeListener("change", this.handleChange);
+    this.kv.close();
+    delete this.kv;
     // @ts-ignore
     delete this.project_id;
   };
 
-  private getDkv = () => {
-    const { dkv } = this;
-    if (dkv == null) {
+  private getKv = () => {
+    const { kv } = this;
+    if (kv == null) {
       throw Error("closed");
     }
-    return dkv;
+    return kv;
   };
 
   private set = (path, entry: KVEntry) => {
-    this.getDkv().set(path, entry);
+    this.getKv().set(path, entry);
   };
 
   // When a client has a file open, they should periodically
@@ -227,10 +185,10 @@ export class OpenFiles extends EventEmitter {
     if (!path) {
       throw Error("path must be specified");
     }
-    const dkv = this.getDkv();
+    const kv = this.getKv();
     // n =  sequence number to make sure a write happens, which updates
     // server assigned timestamp.
-    const cur = dkv.get(path);
+    const cur = kv.get(path);
     const time = getTime();
     this.set(path, {
       ...cur,
@@ -239,34 +197,34 @@ export class OpenFiles extends EventEmitter {
   };
 
   setError = (path: string, err?: any) => {
-    const dkv = this.getDkv();
+    const kv = this.getKv();
     if (!err) {
-      const current = { ...dkv.get(path) };
+      const current = { ...kv.get(path) };
       delete current.error;
       this.set(path, current);
     } else {
-      const current = { ...dkv.get(path) };
+      const current = { ...kv.get(path) };
       current.error = { time: Date.now(), error: `${err}` };
       this.set(path, current);
     }
   };
 
   setDeleted = (path: string) => {
-    const dkv = this.getDkv();
+    const kv = this.getKv();
     this.set(path, {
-      ...dkv.get(path),
+      ...kv.get(path),
       deleted: { deleted: true, time: getTime() },
     });
   };
 
   isDeleted = (path: string) => {
-    return !!this.getDkv().get(path)?.deleted?.deleted;
+    return !!this.getKv().get(path)?.deleted?.deleted;
   };
 
   setNotDeleted = (path: string) => {
-    const dkv = this.getDkv();
+    const kv = this.getKv();
     this.set(path, {
-      ...dkv.get(path),
+      ...kv.get(path),
       deleted: { deleted: false, time: getTime() },
     });
   };
@@ -275,23 +233,23 @@ export class OpenFiles extends EventEmitter {
   // This should be called by that backend periodically
   // when it has the file opened.
   setBackend = (path: string, id: number) => {
-    const dkv = this.getDkv();
+    const kv = this.getKv();
     this.set(path, {
-      ...dkv.get(path),
+      ...kv.get(path),
       backend: { id, time: getTime() },
     });
   };
 
   // get current backend that has file opened.
   getBackend = (path: string): Backend | undefined => {
-    return this.getDkv().get(path)?.backend;
+    return this.getKv().get(path)?.backend;
   };
 
   // ONLY if backend for path is currently set to id, then clear
   // the backend field.
   setNotBackend = (path: string, id: number) => {
-    const dkv = this.getDkv();
-    const cur = { ...dkv.get(path) };
+    const kv = this.getKv();
+    const cur = { ...kv.get(path) };
     if (cur?.backend?.id == id) {
       delete cur.backend;
       this.set(path, cur);
@@ -299,14 +257,14 @@ export class OpenFiles extends EventEmitter {
   };
 
   getAll = (): Entry[] => {
-    const x = this.getDkv().getAll();
+    const x = this.getKv().getAll();
     return Object.keys(x).map((path) => {
       return { ...x[path], path };
     });
   };
 
   get = (path: string): Entry | undefined => {
-    const x = this.getDkv().get(path);
+    const x = this.getKv().get(path);
     if (x == null) {
       return x;
     }
@@ -314,18 +272,18 @@ export class OpenFiles extends EventEmitter {
   };
 
   delete = (path) => {
-    this.getDkv().delete(path);
+    this.getKv().delete(path);
   };
 
   clear = () => {
-    this.getDkv().clear();
+    this.getKv().clear();
   };
 
   save = async () => {
-    await this.getDkv().save();
+    await this.getKv().save();
   };
 
   hasUnsavedChanges = () => {
-    return this.getDkv().hasUnsavedChanges();
+    return this.getKv().hasUnsavedChanges();
   };
 }

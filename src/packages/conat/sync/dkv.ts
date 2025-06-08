@@ -88,6 +88,7 @@ import { conat } from "@cocalc/conat/client";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
+
 const DEBUG = false;
 
 export type MergeFunction = (opts: {
@@ -480,6 +481,10 @@ export class DKV<T = any> extends EventEmitter {
   });
 
   private attemptToSave = reuseInFlight(async () => {
+    //     let start = Date.now();
+    //     if (DEBUG) {
+    //       console.log("attempttoSave: start");
+    //     }
     if (this.kv == null) {
       throw Error("closed");
     }
@@ -506,7 +511,7 @@ export class DKV<T = any> extends EventEmitter {
         // closed
         return;
       }
-      const previousSeq = this.seq(key);
+      const previousSeq = this.merge != null ? this.seq(key) : undefined;
       try {
         if (previousSeq && this.invalidSeq.has(previousSeq)) {
           throw new ConatError("waiting on new sequence via changefeed", {
@@ -588,6 +593,10 @@ export class DKV<T = any> extends EventEmitter {
         console.log(`SUCCESS: dkv ${this.name} fully saved`);
       }
     }
+    //     if (DEBUG) {
+    //       console.log("attemptToSave: done", Date.now() - start);
+    //     }
+
     return status;
   });
 

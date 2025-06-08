@@ -5,7 +5,8 @@ for streaming data.
 **This is ONLY for the scope of patches in a single
   project and IS NOT USED IN ANY WAY WITH POSTGRESQL.**
 
-It uses a NATS stream to store the elements in a well defined order.
+It uses a conat persistent stream to store the elements
+in a well defined order.
 */
 
 import jsonStableStringify from "json-stable-stringify";

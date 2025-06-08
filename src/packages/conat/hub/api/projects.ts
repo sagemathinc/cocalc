@@ -27,7 +27,7 @@ export type AddCollaborator =
   | { account_id: string[]; token_id: string[]; project_id?: undefined };
 
 export interface Projects {
-  // request to have NATS permissions to project subjects.
+  // request to have conat permissions to project subjects.
   createProject: (opts: CreateProjectOptions) => Promise<string>;
 
   copyPathBetweenProjects: (opts: UserCopyOptions) => Promise<void>;

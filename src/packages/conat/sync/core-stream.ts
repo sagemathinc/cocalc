@@ -7,7 +7,7 @@ simple to use, with save in the background. Instead, operations
 are async, and the API is complicated. We build dkv, dstream, akv, etc. on
 top of this with a much friendly API.
 
-NOTE: unlike in NATS, in kv mode, the keys can be any utf-8 string.
+NOTE: unlike in conat, in kv mode, the keys can be any utf-8 string.
 We use the subject to track communication involving this stream, but
 otherwise it has no relevant to the keys.   Conat's core pub/sub/request/
 reply model is very similar to NATS, but the analogue of Jetstream is

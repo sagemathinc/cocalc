@@ -1,8 +1,15 @@
 /*
 Distributed eventually consistent key:object store, where changes propogate sparsely.
 
-The "values" MUST be objects and no keys or fields of objects can container the sep character,
-which is '|' by default.
+The "values" MUST be objects and no keys or fields of objects can container the 
+sep character, which is '|' by default.
+
+NOTE: Whenever you do a set, the lodash isEqual function is used to see which fields
+you are setting are actually different, and only those get sync'd out.
+This takes more resources on each client, but less on the network and servers.
+It also means that if two clients write to an object at the same time but to
+different field (a merge conflict), then the result gets merged together properly
+with last write wins per field.
 
 DEVELOPMENT:
 
@@ -16,6 +23,7 @@ import { dkv as createDKV, DKV, DKVOptions } from "./dkv";
 import { is_object } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import jsonStableStringify from "json-stable-stringify";
+import { isEqual } from "lodash";
 
 export function userKvKey(options: DKVOptions) {
   if (!options.name) {
@@ -201,9 +209,17 @@ export class DKO<T = any> extends EventEmitter {
       throw Error("values must be objects");
     }
     const fields = Object.keys(obj);
-    this.dkv.set(key, fields);
+    const cur = this.dkv.get(key);
+    if (!isEqual(cur, fields)) {
+      this.dkv.set(key, fields);
+    }
     for (const field of fields) {
-      this.dkv.set(this.toPath(key, field), obj[field]);
+      const path = this.toPath(key, field);
+      const value = obj[field];
+      const cur = this.dkv.get(path);
+      if (!isEqual(cur, value)) {
+        this.dkv.set(path, value);
+      }
     }
   };
 

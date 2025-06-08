@@ -2,7 +2,7 @@
 Read a file from a project/compute server via an async generator, so it is memory
 efficient.
 
-This is a NATS service that uses requestMany, takes as input a filename path, and streams all
+This is a conat service that uses requestMany, takes as input a filename path, and streams all
 the binary data from that path.
 
 We use headers to add sequence numbers into the response messages.
@@ -98,7 +98,7 @@ async function handleMessage(mesg, createReadStream) {
   }
 }
 
-const MAX_NATS_CHUNK_SIZE = 16384 * 16 * 3;
+const MAX_CHUNK_SIZE = 16384 * 16 * 3;
 
 function getSeqHeader(seq) {
   return { headers: { seq } };
@@ -112,11 +112,11 @@ async function sendData(mesg, createReadStream) {
   })) {
     // console.log("sending ", { seq, bytes: chunk.length });
     // We must break the chunk into smaller messages or it will
-    // get bounced by conat... 
+    // get bounced by conat...
     while (chunk.length > 0) {
       seq += 1;
-      mesg.respondSync(chunk.slice(0, MAX_NATS_CHUNK_SIZE), getSeqHeader(seq));
-      chunk = chunk.slice(MAX_NATS_CHUNK_SIZE);
+      mesg.respondSync(chunk.slice(0, MAX_CHUNK_SIZE), getSeqHeader(seq));
+      chunk = chunk.slice(MAX_CHUNK_SIZE);
     }
   }
 }

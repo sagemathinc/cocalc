@@ -124,7 +124,7 @@ export async function reconnect() {
 
 export const conat: () => Promise<ConatClient> = reuseInFlight(async () => {
   if (globalClient == null) {
-    throw Error("must set the global NATS client");
+    throw Error("must set the global Conat client");
   }
   initTime();
   return await globalClient.conat();
@@ -132,7 +132,7 @@ export const conat: () => Promise<ConatClient> = reuseInFlight(async () => {
 
 export function getClient(): ClientWithState {
   if (globalClient == null) {
-    throw Error("must set the global NATS client");
+    throw Error("must set the global Conat client");
   }
   initTime();
   return globalClient;

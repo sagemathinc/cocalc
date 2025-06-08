@@ -1,10 +1,10 @@
 /*
-Streaming write over NATS to a project or compute server.
+Streaming write over Conat to a project or compute server.
 
 This is a key component to support user uploads, while being memory efficient
-by streaming the write.  Basically it uses NATS to support efficiently doing
+by streaming the write.  Basically it uses conat to support efficiently doing
 streaming writes of files to any compute server or project that is somehow
-connected to NATS.
+connected to conat.
 
 INSTRUCTIONS:
 
@@ -30,7 +30,7 @@ HOW THIS WORKS:
 
 Here's how this works from the side of the compute server:
 
-- We start a request/response NATS server on the compute server:
+- We start a request/response conat server on the compute server:
 - There's one message it accepts, which is:
     "Using streaming download to get {path} from  [subject]."
   The sender of that message should set a long timeout (e.g., 10 minutes).

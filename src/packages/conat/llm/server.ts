@@ -1,5 +1,5 @@
 /*
-Multiresponse request/response NATS server that makes
+Multiresponse request/response conat server that makes
 llm's available to users of CoCalc.
 
 Query with a multiResponse request at this subject

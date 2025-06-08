@@ -85,7 +85,7 @@ export class SyncTableKV extends EventEmitter {
 
   // WARNING: be *VERY* careful before changing how the name is
   // derived from the query, since if you change this all the current
-  // data in NATS that caches the changefeeds is basically lost
+  // data in conat that caches the changefeeds is basically lost
   // and users MUST refresh their browsers (and maybe projects restart?)
   // to get new changefeeds, since they are watching something given
   // by this name.  I.e., this name shouldn't ever be changed.
@@ -94,9 +94,9 @@ export class SyncTableKV extends EventEmitter {
   // A big choice here is the full name or just something short like the
   // sha1 hash, but I've chosen the full name, since then it is always easy
   // to know what the query was, i.e., use base64 decoding then you
-  // have the query.  It's less efficient though since the NATS subjects
+  // have the query.  It's less efficient though since the conat subjects
   // can be long, depending on the query.
-  // This way if we are just watching general NATS traffic and see something
+  // This way if we are just watching general conat traffic and see something
   // suspicious, even if we have no idea initially where it came from,
   // we can easily see by decoding it.
   // Including even the fields with no values distinguishes different
