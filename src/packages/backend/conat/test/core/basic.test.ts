@@ -1,7 +1,7 @@
 /*
 Very basic test of conat core client and server.
 
-pnpm test ./basic.test.ts
+pnpm test `pwd`/basic.test.ts
 
 
 */
@@ -318,6 +318,54 @@ describe("creating multiple subscriptions to the same subject", () => {
     s1.close();
     s2.close();
     expect(c1.subs[subject]).toBe(undefined);
+  });
+});
+
+const requestManyCount = 3;
+describe(`use requestMany to send one message and receive responses from ${requestManyCount} servers in parallel`, () => {
+  let subject = "requst.many.parallel";
+  let subs: any[] = [];
+  let clients: any[] = [];
+
+  it(`creates ${requestManyCount} subscribers`, async () => {
+    for (let i = 0; i < requestManyCount; i++) {
+      const client = connect();
+      // use a different queue group for each:
+      const sub = await client.subscribe(subject, { queue: `${i}` });
+      sub.emitter.on("message", (mesg) => {
+        mesg.respondSync(i);
+      });
+      clients.push(client);
+      subs.push(sub);
+    }
+  });
+
+  it(`uses requestMany to call all ${requestManyCount} subscribers in parallel and get **all** ${requestManyCount}  results that come back within 500ms`, async () => {
+    const client = connect();
+    const responses: any[] = [];
+    for await (const x of await client.requestMany(subject, "hello", {
+      timeout: 500,
+    })) {
+      responses.push(x.data);
+      if (responses.length == requestManyCount) {
+        break;
+      }
+    }
+    expect(new Set(responses).size).toBe(requestManyCount);
+    client.close();
+  });
+
+  it(`use request to call all ${requestManyCount} subscribers in parallel and get back the first to respond (all else are ignored)`, async () => {
+    const client = connect();
+    const resp = await client.request(subject, "hello");
+    expect(typeof resp.data).toBe("number");
+    client.close();
+  });
+
+  it("cleans up", () => {
+    for (const client of clients) {
+      client.close();
+    }
   });
 });
 

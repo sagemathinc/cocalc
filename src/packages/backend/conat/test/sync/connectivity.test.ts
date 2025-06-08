@@ -58,6 +58,7 @@ describe("test that dkv survives server restart", () => {
     expect(kv.hasUnsavedChanges()).toBe(false);
   });
 
+  jest.setTimeout(10000);
   it("restart both servers at once", async () => {
     await Promise.all([restartPersistServer(), restartServer()]);
     kv.b = 389;

@@ -49,6 +49,10 @@ class PersistStreamClient extends EventEmitter {
   }
 
   private init = () => {
+    if (this.client.state == "closed") {
+      this.close();
+      return;
+    }
     if (this.state == "closed") {
       return;
     }
@@ -77,12 +81,10 @@ class PersistStreamClient extends EventEmitter {
 
     this.socket.once("disconnected", () => {
       this.socket.removeAllListeners();
-      console.log("socket disconnected");
       setTimeout(this.init, 3000);
     });
     this.socket.once("closed", () => {
       this.socket.removeAllListeners();
-      console.log("socket closed");
       setTimeout(this.init, 3000);
     });
 
@@ -309,7 +311,6 @@ class PersistStreamClient extends EventEmitter {
   private checkForError = (mesg, noReturn = false) => {
     if (mesg.headers != null) {
       const { error, code } = mesg.headers;
-      console.log("got error", { error, code });
       if (error || code) {
         throw new ConatError(error ?? "error", { code });
       }
