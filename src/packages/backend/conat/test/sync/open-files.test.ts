@@ -33,7 +33,7 @@ describe("create open file tracker and do some basic operations", () => {
     o1 = await create();
     o2 = await create();
     // ensure caching disabled so our sync tests are real
-    expect(o1.getDkv() === o2.getDkv()).toBe(false);
+    expect(o1.getKv() === o2.getKv()).toBe(false);
     o1.clear();
     await o1.save();
     expect(o1.hasUnsavedChanges()).toBe(false);
@@ -83,27 +83,22 @@ describe("create open file tracker and do some basic operations", () => {
     expect(o1.getAll().length).toBe(1);
     await o1.save();
 
-    // TODO/warning/weird: If I comment out this use of o3,
-    // then the test involving o2 below doesn't work sometimes, i.e., for some reason
-    // sync isn't working with the delete for two dkv's in the same process at once.
-    // (In practice our sync is between completely different clients, so I'm not
-    // super worried about this.)
-    // in a newly opened tracker, the file is clearly gone:
-    const o3 = await create();
-    expect(o3.get(file1)).toBe(undefined);
-    // should be 1 due to file2 still being there:
-    expect(o3.getAll().length).toBe(1);
-    o3.close();
-
     // verify file is gone in o2, at least after waiting (if necessary)
     await wait({
       until: () => {
-        return o2.get(file1) == null;
+        return o2.getAll().length == 1;
       },
     });
     expect(o2.get(file1)).toBe(undefined);
     // should be 1 due to file2 still being there:
     expect(o2.getAll().length).toBe(1);
+
+    // Also confirm file1 is gone in a newly opened one:
+    const o3 = await create();
+    expect(o3.get(file1)).toBe(undefined);
+    // should be 1 due to file2 still being there, but not file1.
+    expect(o3.getAll().length).toBe(1);
+    o3.close();
   });
 
   it("sets an error", async () => {
