@@ -51,10 +51,17 @@ import type {
   PersistentStream,
   StorageOptions,
 } from "./storage";
-import { getStream, SERVICE } from "./util";
+import {
+  getStream,
+  SERVICE,
+  MAX_PER_USER,
+  MAX_GLOBAL,
+  RESOURCE,
+} from "./util";
 import { throttle } from "lodash";
 import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
+import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 
 const logger = getLogger("persist:server");
 
@@ -88,6 +95,17 @@ export function server({
   const subject = `${SERVICE}.*`;
   const server: ConatSocketServer = client.socket.listen(subject);
   logger.debug("server: listening on ", { subject });
+  const usage = new UsageMonitor({
+    maxPerUser: MAX_PER_USER,
+    max: MAX_GLOBAL,
+    resource: RESOURCE,
+    log: (...args) => {
+      logger.debug(RESOURCE, ...args);
+    },
+  });
+  server.on("close", () => {
+    usage.close();
+  });
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -99,12 +117,17 @@ export function server({
     let changefeed = false;
     let storage: undefined | StorageOptions = undefined;
     let stream: undefined | PersistentStream = undefined;
+    let user = "";
+    let added = false;
     socket.on("data", async (data) => {
       // logger.debug("server: got data ", data);
       if (stream == null) {
         storage = data.storage;
         changefeed = data.changefeed;
         try {
+          user = socket.subject.split(".")[1];
+          usage.add(user);
+          added = true;
           stream = await getStream({
             subject: socket.subject,
             storage,
@@ -116,6 +139,7 @@ export function server({
         } catch (err) {
           error = `${err}`;
           errorCode = err.code;
+          socket.write(null, { headers: { error, code: errorCode } });
         }
       }
     });
@@ -124,6 +148,9 @@ export function server({
       storage = undefined;
       stream?.close();
       stream = undefined;
+      if (added) {
+        usage.delete(user);
+      }
     });
 
     socket.on("request", async (mesg) => {

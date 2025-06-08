@@ -38,22 +38,9 @@ export function changefeedServer({
     maxPerUser: MAX_PER_ACCOUNT,
     max: MAX_GLOBAL,
     resource: RESOURCE,
-  });
-  usage.on("total", (total, limit) => {
-    logger.debug(RESOURCE, { total, limit });
-  });
-  usage.on("add", (user, count, limit) => {
-    logger.debug(RESOURCE, "add", { user, count, limit });
-  });
-  usage.on("delete", (user, count, limit) => {
-    logger.debug(RESOURCE, "delete", { user, count, limit });
-  });
-  usage.on("deny", (user, limit, type) => {
-    logger.debug(RESOURCE, "not allowed due to hitting the limit", {
-      type,
-      user,
-      limit,
-    });
+    log: (...args) => {
+      logger.debug(RESOURCE, ...args);
+    },
   });
 
   const server = client.socket.listen(SUBJECT, {
@@ -76,8 +63,10 @@ export function changefeedServer({
       socket.close();
       return;
     }
+    let added = false;
     try {
       usage.add(account_id);
+      added = true;
     } catch (err) {
       socket.write({ error: `${err}`, code: err.code });
       socket.close();
@@ -87,7 +76,9 @@ export function changefeedServer({
     const changes = uuid();
 
     socket.on("closed", () => {
-      usage.delete(account_id);
+      if (added) {
+        usage.delete(account_id);
+      }
       cancelQuery(changes);
     });
 

@@ -74,12 +74,27 @@ class PersistStreamClient extends EventEmitter {
       storage: this.storage,
       changefeed: this.changefeeds.length > 0,
     });
+
     this.socket.once("disconnected", () => {
-      this.socket.removeListener("closed", this.init);
-      this.init();
+      this.socket.removeAllListeners();
+      console.log("socket disconnected");
+      setTimeout(this.init, 3000);
     });
-    this.socket.once("closed", this.init);
+    this.socket.once("closed", () => {
+      this.socket.removeAllListeners();
+      console.log("socket closed");
+      setTimeout(this.init, 3000);
+    });
+
     this.socket.on("data", (updates, headers) => {
+      if (updates == null && headers != null) {
+        // has to be an error
+        this.emit(
+          "error",
+          new ConatError(headers?.error, { code: headers?.code }),
+        );
+        this.close();
+      }
       this.emit("changefeed", { updates, seq: headers?.seq });
     });
   };
@@ -104,7 +119,9 @@ class PersistStreamClient extends EventEmitter {
       },
     });
     if (resp.headers?.error) {
-      throw Error(`${resp.headers?.error}`);
+      throw new ConatError(`${resp.headers?.error}`, {
+        code: resp.headers?.code,
+      });
     }
     // an iterator over any updates that are published.
     const iter = new EventIterator<ChangefeedEvent>(this, "changefeed", {
@@ -292,6 +309,7 @@ class PersistStreamClient extends EventEmitter {
   private checkForError = (mesg, noReturn = false) => {
     if (mesg.headers != null) {
       const { error, code } = mesg.headers;
+      console.log("got error", { error, code });
       if (error || code) {
         throw new ConatError(error ?? "error", { code });
       }

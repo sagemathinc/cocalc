@@ -45,6 +45,12 @@ import { pstream, PersistentStream } from "./storage";
 import { join } from "path";
 import { syncFiles, ensureContainingDirectoryExists } from "./context";
 
+// this is per-server -- and "user" means where the resource is, usually
+// a given project.  E.g., 500 streams in a project, across many users.
+export const MAX_PER_USER = 500;
+export const MAX_GLOBAL = 10000;
+export const RESOURCE = "persistent storage";
+
 //import { getLogger } from "@cocalc/conat/client";
 //const logger = getLogger("persist:util");
 

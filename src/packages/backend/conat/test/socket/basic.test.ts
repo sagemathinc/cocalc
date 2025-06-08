@@ -1,6 +1,6 @@
 /*
 
-pnpm test ./conat-socket.test.ts
+pnpm test ./basic.test.ts
 
 */
 

@@ -208,6 +208,9 @@ export class CoreStream<T = any> extends EventEmitter {
       user: this.user,
       storage: this.storage,
     });
+    this.persistClient.on("error", (err) => {
+      console.log(`WARNING: persistent stream issue -- ${err}`);
+    });
     await this.getAllFromPersist({
       start_seq: this._start_seq,
       noEmit: true,
@@ -293,16 +296,20 @@ export class CoreStream<T = any> extends EventEmitter {
           }
         }
       } catch (err) {
-        //         console.log(
-        //           `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
-        //         );
         if (err.code == 403) {
           // fatal permission error
           throw err;
         }
-        d = Math.min(15000, d * 1.3);
-        await delay(d);
+        if (err.code == 429) {
+          // too many users
+          throw err;
+        }
+        console.log(
+          `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
+        );
       }
+      d = Math.min(15000, d * 1.3);
+      await delay(d);
     }
   };
 

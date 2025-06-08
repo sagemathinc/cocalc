@@ -8,5 +8,9 @@ export const RESOURCE = "connections to CoCalc";
 export const MAX_PAYLOAD = 8 * MB;
 
 export const MAX_SUBSCRIPTIONS_PER_CLIENT = 500;
+
+// hubs must have a much larger limit since they server everybody...
+export const MAX_SUBSCRIPTIONS_PER_HUB = 15000;
+
 export const MAX_CONNECTIONS_PER_USER = 100;
 export const MAX_CONNECTIONS = 10000;

@@ -10,6 +10,7 @@ interface Options {
   resource: string;
   maxPerUser?: number;
   max?: number;
+  log?: (...args) => void;
 }
 
 export class UsageMonitor extends EventEmitter {
@@ -21,6 +22,7 @@ export class UsageMonitor extends EventEmitter {
     super();
     this.options = options;
     logger.debug("creating usage monitor", this.options);
+    this.initLogging();
   }
 
   close = () => {
@@ -29,6 +31,29 @@ export class UsageMonitor extends EventEmitter {
   };
 
   private toJson = (user: JSONValue) => json(user) ?? "";
+
+  private initLogging = () => {
+    const { log } = this.options;
+    if (log == null) {
+      return;
+    }
+    this.on("total", (total, limit) => {
+      log("usage", this.options.resource, { total, limit });
+    });
+    this.on("add", (user, count, limit) => {
+      log("usage", this.options.resource, "add", { user, count, limit });
+    });
+    this.on("delete", (user, count, limit) => {
+      log("usage", this.options.resource, "delete", { user, count, limit });
+    });
+    this.on("deny", (user, limit, type) => {
+      log("usage", this.options.resource, "not allowed due to hitting limit", {
+        type,
+        user,
+        limit,
+      });
+    });
+  };
 
   add = (user: JSONValue) => {
     const u = this.toJson(user);

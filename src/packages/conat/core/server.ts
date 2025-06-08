@@ -50,6 +50,7 @@ import {
   MAX_CONNECTIONS,
   MAX_PAYLOAD,
   MAX_SUBSCRIPTIONS_PER_CLIENT,
+  MAX_SUBSCRIPTIONS_PER_HUB,
 } from "./constants";
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
@@ -88,6 +89,7 @@ export interface Options {
   isAllowed?: AllowFunction;
   valkey?: string;
   maxSubscriptionsPerClient?: number;
+  maxSubscriptionsPerHub?: number;
 }
 
 export class ConatServer {
@@ -120,6 +122,7 @@ export class ConatServer {
       isAllowed,
       valkey,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
+      maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
     } = options;
     this.options = {
       port,
@@ -127,6 +130,7 @@ export class ConatServer {
       path,
       valkey,
       maxSubscriptionsPerClient,
+      maxSubscriptionsPerHub,
     };
     this.getUser = getUser ?? (async () => null);
     this.isAllowed = isAllowed ?? (async () => true);
@@ -177,27 +181,11 @@ export class ConatServer {
   };
 
   private initUsage = () => {
-    const usage = new UsageMonitor({
+    this.usage = new UsageMonitor({
       maxPerUser: MAX_CONNECTIONS_PER_USER,
       max: MAX_CONNECTIONS,
       resource: RESOURCE,
-    });
-    this.usage = usage;
-    usage.on("total", (total, limit) => {
-      this.log("usage", { total, limit });
-    });
-    usage.on("add", (user, count, limit) => {
-      this.log("usage", "add", { user, count, limit });
-    });
-    usage.on("delete", (user, count, limit) => {
-      this.log("usage", "delete", { user, count, limit });
-    });
-    usage.on("deny", (user, limit, type) => {
-      this.log("usage", "not allowed due to hitting limit", {
-        type,
-        user,
-        limit,
-      });
+      log: (...args) => this.log("usage", ...args),
     });
   };
 
@@ -401,7 +389,13 @@ export class ConatServer {
         code: 403,
       });
     }
-    const maxSubs = this.options.maxSubscriptionsPerClient ?? 0;
+    let maxSubs;
+    if (user?.hub_id) {
+      maxSubs =
+        this.options.maxSubscriptionsPerHub ?? MAX_SUBSCRIPTIONS_PER_HUB;
+    } else {
+      maxSubs = this.options.maxSubscriptionsPerClient ?? MAX_SUBSCRIPTIONS_PER_CLIENT;
+    }
     if (maxSubs) {
       const numSubs = this.subscriptions?.[socket.id]?.size ?? 0;
       if (numSubs >= maxSubs) {
@@ -506,9 +500,11 @@ export class ConatServer {
       subs: 0,
     };
     let user: any = null;
+    let added = false;
     try {
       user = await this.getUser(socket);
       this.usage.add(user);
+      added = true;
     } catch (err) {
       // getUser is supposed to throw an error if authentication fails
       // for any reason
@@ -622,7 +618,9 @@ export class ConatServer {
 
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });
-      this.usage.delete(user);
+      if (added) {
+        this.usage.delete(user);
+      }
       const rooms = Array.from(socket.rooms) as string[];
       for (const room of rooms) {
         const subject = getSubjectFromRoom(room);
