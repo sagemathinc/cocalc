@@ -113,7 +113,10 @@ alert_message({ type: "success", message: "This is a success alert" });
 alert_message({ type: "info", message: "This is an info alert" });
 */
 
-function stripExcessiveError(s: string): string {
+function stripExcessiveError(s) {
+  if (typeof s != "string") {
+    return s;
+  }
   s = s.trim();
   if (s.startsWith("Error: Error:")) {
     s = s.slice("Error: ".length);

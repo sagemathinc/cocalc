@@ -6,6 +6,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import {
   SUBJECT,
   MAX_PER_ACCOUNT,
+  MAX_GLOBAL,
   SERVER_KEEPALIVE,
   KEEPALIVE_TIMEOUT,
   RESOURCE,
@@ -35,19 +36,24 @@ export function changefeedServer({
 
   const usage = new UsageMonitor({
     maxPerUser: MAX_PER_ACCOUNT,
+    max: MAX_GLOBAL,
     resource: RESOURCE,
   });
-  usage.on("total", (total) => {
-    logger.debug(RESOURCE, { total });
+  usage.on("total", (total, limit) => {
+    logger.debug(RESOURCE, { total, limit });
   });
-  usage.on("add", (user, count) => {
-    logger.debug(RESOURCE, "add", { user, count });
+  usage.on("add", (user, count, limit) => {
+    logger.debug(RESOURCE, "add", { user, count, limit });
   });
-  usage.on("delete", (user, count) => {
-    logger.debug(RESOURCE, "delete", { user, count });
+  usage.on("delete", (user, count, limit) => {
+    logger.debug(RESOURCE, "delete", { user, count, limit });
   });
-  usage.on("deny", (user) => {
-    logger.debug(RESOURCE, "not allowed due to hitting the limit", { user });
+  usage.on("deny", (user, limit, type) => {
+    logger.debug(RESOURCE, "not allowed due to hitting the limit", {
+      type,
+      user,
+      limit,
+    });
   });
 
   const server = client.socket.listen(SUBJECT, {
@@ -125,6 +131,7 @@ export function changefeedServer({
   });
   server.on("closed", () => {
     logger.debug("shutting down changefeed server");
+    usage.close();
   });
 
   return server;

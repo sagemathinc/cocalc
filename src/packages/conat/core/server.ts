@@ -44,11 +44,18 @@ import {
   type ClientOptions,
   STICKY_QUEUE_GROUP,
 } from "./client";
-import { MAX_PAYLOAD, MAX_SUBSCRIPTIONS_PER_CLIENT } from "./constants";
+import {
+  RESOURCE,
+  MAX_CONNECTIONS_PER_USER,
+  MAX_CONNECTIONS,
+  MAX_PAYLOAD,
+  MAX_SUBSCRIPTIONS_PER_CLIENT,
+} from "./constants";
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
+import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 
 const DEBUG = false;
 
@@ -99,6 +106,7 @@ export class ConatServer {
   private disconnectingTimeout: {
     [id: string]: ReturnType<typeof setTimeout>;
   } = {};
+  private usage: UsageMonitor;
 
   constructor(options: Options) {
     const {
@@ -156,6 +164,7 @@ export class ConatServer {
       this.io = new Server(port, socketioOptions);
       this.log(`listening on port ${port}`);
     }
+    this.initUsage();
     this.init();
   }
 
@@ -167,11 +176,37 @@ export class ConatServer {
     }
   };
 
+  private initUsage = () => {
+    const usage = new UsageMonitor({
+      maxPerUser: MAX_CONNECTIONS_PER_USER,
+      max: MAX_CONNECTIONS,
+      resource: RESOURCE,
+    });
+    this.usage = usage;
+    usage.on("total", (total, limit) => {
+      this.log("usage", { total, limit });
+    });
+    usage.on("add", (user, count, limit) => {
+      this.log("usage", "add", { user, count, limit });
+    });
+    usage.on("delete", (user, count, limit) => {
+      this.log("usage", "delete", { user, count, limit });
+    });
+    usage.on("deny", (user, limit, type) => {
+      this.log("usage", "not allowed due to hitting limit", {
+        type,
+        user,
+        limit,
+      });
+    });
+  };
+
   close = async () => {
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
       delete this[prop];
     }
+    this.usage?.close();
   };
 
   private info = (): ServerInfo => {
@@ -473,10 +508,13 @@ export class ConatServer {
     let user: any = null;
     try {
       user = await this.getUser(socket);
+      this.usage.add(user);
     } catch (err) {
       // getUser is supposed to throw an error if authentication fails
       // for any reason
-      user = { error: `${err}` };
+      // Also, if the connection limit is hit they still connect, but as
+      // the error user who can't do anything (hence not waste resources).
+      user = { error: `${err}`, code: err.code };
     }
     this.stats[socket.id].user = user;
     const id = socket.id;
@@ -538,10 +576,7 @@ export class ConatServer {
 
     socket.on(
       "subscribe",
-      async (
-        x: { subject; queue; } | { subject; queue; }[],
-        respond,
-      ) => {
+      async (x: { subject; queue } | { subject; queue }[], respond) => {
         let r;
         if (is_array(x)) {
           const v: any[] = [];
@@ -587,6 +622,7 @@ export class ConatServer {
 
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });
+      this.usage.delete(user);
       const rooms = Array.from(socket.rooms) as string[];
       for (const room of rooms) {
         const subject = getSubjectFromRoom(room);

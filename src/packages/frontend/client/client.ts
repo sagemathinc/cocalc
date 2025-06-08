@@ -113,6 +113,7 @@ export interface WebappClient extends EventEmitter {
   mark_file: (opts: any) => Promise<void>;
   set_connected?: Function;
   version: Function;
+  alert_message: Function;
 }
 
 export const WebappClient = null; // webpack + TS es2020 modules need this

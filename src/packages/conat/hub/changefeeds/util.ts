@@ -7,6 +7,7 @@ export const SUBJECT = "changefeeds.*";
 // before those changefeeds they had open freed (due to the
 // keepalive times below).
 export const MAX_PER_ACCOUNT = 500;
+export const MAX_GLOBAL = 5000;
 
 export const CLIENT_KEEPALIVE = 90000;
 export const SERVER_KEEPALIVE = 45000;
