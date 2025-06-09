@@ -28,14 +28,14 @@ import { Server } from "socket.io";
 import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
-import { conatValkey } from "@cocalc/backend/data";
+import { conatValkey, conatSocketioCount } from "@cocalc/backend/data";
 
 const logger = getLogger("conat-server");
 
 export async function init(options: Partial<Options> = {}) {
   logger.debug("init");
 
-  return createConatServer({
+  const opts = {
     logger: logger.debug,
     Server,
     getUser,
@@ -43,5 +43,13 @@ export async function init(options: Partial<Options> = {}) {
     systemAccountPassword: await secureRandomString(64),
     valkey: conatValkey,
     ...options,
-  });
+  };
+
+  if (!conatSocketioCount || conatSocketioCount <= 1) {
+    return createConatServer(opts);
+  } else {
+    // spawn conatSocketioCount subprocesses listening on random available ports
+    // and all connected to valkey.   Proxy traffic to them.
+    throw Error(`not implemented -- socket count = ${conatSocketioCount}`);
+  }
 }

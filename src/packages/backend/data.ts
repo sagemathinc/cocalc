@@ -242,6 +242,11 @@ export function setConatValkey(valkey: string) {
   conatValkey = valkey;
 }
 
+export let conatSocketioCount = parseInt(process.env.CONAT_SOCKETIO_COUNT ?? '1');
+export function setConatSocketioCount(count: number) {
+  conatSocketioCount = count ? count : 1;
+}
+
 // API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
