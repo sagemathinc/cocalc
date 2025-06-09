@@ -123,6 +123,7 @@ export class ConatServer {
       Server,
       httpServer,
       port = 3000,
+      ssl = false,
       id = randomId(),
       logger,
       path = "/conat",
@@ -135,6 +136,7 @@ export class ConatServer {
     } = options;
     this.options = {
       port,
+      ssl,
       id,
       path,
       valkey,
@@ -673,7 +675,7 @@ export class ConatServer {
   client = (options?: ClientOptions): Client => {
     const port = this.options.port;
     const path = this.options.path?.slice(0, -"/conat".length) ?? "";
-    const address = `http${this.options.ssl ? "s" : ""}://localhost:${port}${path}`;
+    const address = `http${this.options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
     return connect({
       address,
       noCache: true,
