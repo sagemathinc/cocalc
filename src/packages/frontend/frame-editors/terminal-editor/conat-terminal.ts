@@ -180,7 +180,7 @@ export class ConatTerminal extends EventEmitter {
     this.close();
   };
 
-  private start = reuseInFlight(async () => {
+  private start = async () => {
     this.setState("init");
     let timeout = 2000;
     while (true) {
@@ -208,7 +208,7 @@ export class ConatTerminal extends EventEmitter {
         }
       }
     }
-  });
+  };
 
   private getStream = async () => {
     if (this.stream != null) {
@@ -231,10 +231,10 @@ export class ConatTerminal extends EventEmitter {
     await this.consumeDataStream();
   };
 
-  init = async () => {
+  init = reuseInFlight(async () => {
     await Promise.all([this.start(), this.getStream()]);
     await this.setReady();
-  };
+  });
 
   private handleStreamData = (data) => {
     if (data) {

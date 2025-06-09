@@ -46,8 +46,6 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const MAX_DELAY = 10000;
-
 const ENABLE_WEBGL = true;
 
 interface Path {
@@ -70,10 +68,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private is_paused: boolean = false;
   private pauseKeyCount: number = 0;
   private keyhandler_initialized: boolean = false;
-  // last time user typed something
-  private lastSend = 0;
-  // last time we received data back from project
-  private lastReceive = 0;
   /* We initially have to ignore when rendering the initial history.
     To TEST this, do this in a terminal, then reconnect:
          printf "\E[c\n" ; sleep 1 ; echo
@@ -179,7 +173,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
-    this.reconnectIfNotResponding();
 
     // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
     // "It’s best practice to debounce calls to resize, this will help ensure that
@@ -306,7 +299,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       });
       conn.on("data", this.handleDataFromProject);
       conn.on("init", (data) => {
-        // during init we write a bunch of data to the terminal (everything 
+        // during init we write a bunch of data to the terminal (everything
         // so far), and the terminal would respond to some of that data with
         // control codes.  We thus set ignoreData:true, so that during the
         // parsing of this data by the browser terminal, those control codes
@@ -354,16 +347,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.conn.write(data);
-    this.lastSend = Date.now();
-  };
-
-  private reconnectIfNotResponding = async () => {
-    while (this.state != "closed") {
-      if (this.lastSend - this.lastReceive >= MAX_DELAY) {
-        await this.connect();
-      }
-      await delay(MAX_DELAY / 2);
-    }
   };
 
   private handleDataFromProject = (data: any): void => {
@@ -380,7 +363,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private activity = () => {
-    this.lastReceive = Date.now();
     this.project_actions.flag_file_activity(this.path);
   };
 
