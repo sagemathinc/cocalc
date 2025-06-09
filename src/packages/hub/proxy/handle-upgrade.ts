@@ -3,6 +3,7 @@
 import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
+
 import getLogger from "@cocalc/hub/logger";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { getTarget } from "./target";
@@ -71,11 +72,14 @@ export default function init(
     if (internal_url != null) {
       req.url = internal_url;
     }
-    if (cache.has(target)) {
-      dbg("using cache");
-      const proxy = cache.get(target)!;
-      proxy.ws(req, socket, head);
-      return;
+
+    {
+      const proxy = cache.get(target);
+      if (proxy != null) {
+        dbg("using cache");
+        proxy.ws(req, socket, head);
+        return;
+      }
     }
 
     dbg("target", target);
