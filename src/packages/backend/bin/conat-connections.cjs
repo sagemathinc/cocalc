@@ -1,11 +1,10 @@
 const { conat } = require('@cocalc/backend/conat')
+const { connections, usage } = require('@cocalc/conat/monitor/tables');
 
 async function main() {
-    const subject = process.argv[2] ?? '>';
-    console.log("watching ", {subject})
-    const cn = await conat()
-    const stats = await cn.call('sys').stats();
-    console.log(stats);
+    const client = conat();
+    await usage(client);
+    await connections(client);
     process.exit(0);
 }
 

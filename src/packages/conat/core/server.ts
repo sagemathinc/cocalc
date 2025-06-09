@@ -692,7 +692,14 @@ export class ConatServer {
       usage: () => this.usage.stats(),
       // user has to explicitly refresh there browser after
       // being disconnected this way
-      disconnect: (id) => this.io.in(id).disconnectSockets(),
+      disconnect: (ids: string | string[]) => {
+        if (typeof ids == "string") {
+          ids = [ids];
+        }
+        for (const id of ids) {
+          this.io.in(id).disconnectSockets();
+        }
+      },
     });
   };
 }

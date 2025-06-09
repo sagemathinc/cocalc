@@ -26,7 +26,7 @@ const DEFINITION = `CoCalc Environment Variables:
 
 import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
@@ -223,9 +223,9 @@ export const conatPasswordPath = join(secrets, "conat_password");
 try {
   conatPassword = readFileSync(conatPasswordPath).toString().trim();
 } catch {
-  // generate something at random for this process session (used, e.g., by
-  // unit testing if no file exists)
+  // generate something at random
   conatPassword = secureRandomStringSync(64);
+  writeFileSync(conatPasswordPath, conatPassword);
 }
 export function setConatPassword(password: string) {
   conatPassword = password;

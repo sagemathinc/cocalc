@@ -19,7 +19,8 @@
     "test": "pnpm exec jest --forceExit",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
-    "conat-connections": "node ./bin/conat-connections.cjs"
+    "conat-connections": "node ./bin/conat-connections.cjs",
+    "conat-disconnect": "node ./bin/conat-disconnect.cjs"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
