@@ -71,7 +71,11 @@ export function init(opts) {
   return new ConatServer(opts);
 }
 
-export type UserFunction = (socket) => Promise<any>;
+export type UserFunction = (
+  socket,
+  systemAccounts?: { [cookieName: string]: { password: string; user: any } },
+) => Promise<any>;
+
 export type AllowFunction = (opts: {
   type: "pub" | "sub";
   user: any;
@@ -90,6 +94,7 @@ export interface Options {
   valkey?: string;
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
+  systemAccountPassword?: string;
 }
 
 export class ConatServer {
@@ -104,10 +109,11 @@ export class ConatServer {
   private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
 
   private sockets: { [id: string]: any } = {};
-  private stats: { [id: string]: ServerConnectionStats } = {};
   private disconnectingTimeout: {
     [id: string]: ReturnType<typeof setTimeout>;
   } = {};
+
+  private stats: { [id: string]: ServerConnectionStats } = {};
   private usage: UsageMonitor;
 
   constructor(options: Options) {
@@ -123,6 +129,7 @@ export class ConatServer {
       valkey,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
+      systemAccountPassword,
     } = options;
     this.options = {
       port,
@@ -131,8 +138,27 @@ export class ConatServer {
       valkey,
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
+      systemAccountPassword,
     };
-    this.getUser = getUser ?? (async () => null);
+    this.getUser = async (socket) => {
+      if (getUser == null) {
+        // no auth at all
+        return null;
+      } else {
+        let systemAccounts;
+        if (this.options.systemAccountPassword) {
+          systemAccounts = {
+            sys: {
+              password: this.options.systemAccountPassword,
+              user: { hub_id: "system" },
+            },
+          };
+        } else {
+          systemAccounts = undefined;
+        }
+        return await getUser(socket, systemAccounts);
+      }
+    };
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
     this.logger = logger;
@@ -147,7 +173,7 @@ export class ConatServer {
     this.log("Starting Conat server...", {
       id,
       path,
-      port: httpServer ? undefined : port,
+      port: this.options.port,
       httpServer: httpServer ? "httpServer(...)" : undefined,
       valkey,
     });
@@ -170,6 +196,9 @@ export class ConatServer {
     }
     this.initUsage();
     this.init();
+    if (this.options.systemAccountPassword) {
+      this.initSystemService();
+    }
   }
 
   private init = () => {
@@ -394,7 +423,8 @@ export class ConatServer {
       maxSubs =
         this.options.maxSubscriptionsPerHub ?? MAX_SUBSCRIPTIONS_PER_HUB;
     } else {
-      maxSubs = this.options.maxSubscriptionsPerClient ?? MAX_SUBSCRIPTIONS_PER_CLIENT;
+      maxSubs =
+        this.options.maxSubscriptionsPerClient ?? MAX_SUBSCRIPTIONS_PER_CLIENT;
     }
     if (maxSubs) {
       const numSubs = this.subscriptions?.[socket.id]?.size ?? 0;
@@ -498,6 +528,7 @@ export class ConatServer {
     this.stats[socket.id] = {
       send: { messages: 0, bytes: 0 },
       subs: 0,
+      connected: Date.now(),
     };
     let user: any = null;
     let added = false;
@@ -532,6 +563,7 @@ export class ConatServer {
         this.stats[socket.id].send.messages += 1;
       }
       this.stats[socket.id].send.bytes += data[4]?.length ?? 0;
+      this.stats[socket.id].active = Date.now();
       // this.log(JSON.stringify(this.stats));
 
       try {
@@ -557,6 +589,7 @@ export class ConatServer {
         await this.subscribe({ socket, subject, queue, user });
         this.subscriptions[id].add(subject);
         this.stats[socket.id].subs += 1;
+        this.stats[socket.id].active = Date.now();
         return { status: "added" };
       } catch (err) {
         if (err.code == 403) {
@@ -601,6 +634,7 @@ export class ConatServer {
       this.unsubscribe({ socket, subject });
       this.subscriptions[id].delete(subject);
       this.stats[socket.id].subs -= 1;
+      this.stats[socket.id].active = Date.now();
     };
 
     socket.on(
@@ -618,6 +652,7 @@ export class ConatServer {
 
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });
+      delete this.stats[socket.id];
       if (added) {
         this.usage.delete(user);
       }
@@ -634,11 +669,30 @@ export class ConatServer {
   // This is useful for unit testing and is not cached by default (i.e., multiple
   // calls return distinct clients).
   client = (options?: ClientOptions): Client => {
-    const path = this.options.path?.slice(-"/conat".length) ?? "";
+    const port = this.options.port;
+    const path = this.options.path?.slice(0, -"/conat".length) ?? "";
+    const address = `http://localhost:${port}${path}`;
     return connect({
-      address: `http://localhost:${this.options.port}${path}`,
+      address,
       noCache: true,
       ...options,
+    });
+  };
+
+  initSystemService = async () => {
+    if (!this.options.systemAccountPassword) {
+      throw Error("system service requires system account");
+    }
+    this.log("starting service listening on sys", this.options);
+    const client = this.client({
+      extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
+    });
+    await client.service("sys", {
+      stats: () => this.stats,
+      usage: () => this.usage.stats(),
+      // user has to explicitly refresh there browser after
+      // being disconnected this way
+      disconnect: (id) => this.io.in(id).disconnectSockets(),
     });
   };
 }

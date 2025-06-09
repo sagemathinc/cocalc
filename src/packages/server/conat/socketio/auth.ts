@@ -15,12 +15,30 @@ import {
 } from "@cocalc/backend/auth/cookie-names";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
+import { getAdmins } from "@cocalc/server/accounts/is-admin";
 
-export async function getUser(socket): Promise<CoCalcUser> {
+export async function getUser(
+  socket,
+  systemAccounts?: { [cookieName: string]: { password: string; user: any } },
+): Promise<CoCalcUser> {
   if (!socket.handshake.headers.cookie) {
     throw Error("you must set authentication cookies");
   }
+
   const cookies = parse(socket.handshake.headers.cookie);
+
+  if (systemAccounts != null) {
+    for (const cookieName in systemAccounts) {
+      if (cookies[cookieName] !== undefined) {
+        if (cookies[cookieName] == systemAccounts[cookieName].password) {
+          return systemAccounts[cookieName].user;
+        } else {
+          throw Error("invalid system account password");
+        }
+      }
+    }
+  }
+
   if (cookies[HUB_PASSWORD_COOKIE_NAME]) {
     if (cookies[HUB_PASSWORD_COOKIE_NAME] == conatPassword) {
       return { hub_id: "hub" };
@@ -193,9 +211,15 @@ async function isAccountAllowed({
   if (subject.startsWith(`account.${account_id}.`)) {
     return true;
   }
+
+  const v = subject.split(".");
   // *.account-${account_id}.>
-  if (subject.split(".")[1] == `account-${account_id}`) {
+  if (v[1] == `account-${account_id}`) {
     return true;
+  }
+
+  if (v[0] == "sys") {
+    return (await getAdmins()).has(account_id);
   }
 
   // account accessing a project

@@ -31,6 +31,7 @@ import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
 import { initConatServer } from "@cocalc/server/conat/socketio";
+import port from "@cocalc/backend/port";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -154,7 +155,7 @@ export default async function init(opts: Options): Promise<{
 
   if (opts.conatServer) {
     winston.info(`initializing the Conat Server`);
-    initConatServer({ httpServer, path: join(basePath, "conat") });
+    initConatServer({ httpServer, path: join(basePath, "conat"), port });
   }
 
   // IMPORTANT:

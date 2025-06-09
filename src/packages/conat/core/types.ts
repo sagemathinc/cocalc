@@ -15,6 +15,8 @@ export interface ServerConnectionStats {
   user?: User;
   send: { messages: number; bytes: number };
   subs: number;
+  connected?: number; // time connected
+  active?: number;
 }
 
 export interface ConnectionStats extends ServerConnectionStats {

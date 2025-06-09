@@ -422,7 +422,7 @@ export class Client extends EventEmitter {
     this.initInbox();
   }
 
-  private waitUntilSignedIn = reuseInFlight(async () => {
+  waitUntilSignedIn = reuseInFlight(async () => {
     if (this.info == null || this.state != "connected") {
       await once(this, "info");
     }

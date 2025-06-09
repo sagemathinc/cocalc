@@ -25,6 +25,10 @@ export class UsageMonitor extends EventEmitter {
     this.initLogging();
   }
 
+  stats = () => {
+    return { total: this.total, perUser: this.perUser };
+  };
+
   close = () => {
     this.removeAllListeners();
     this.perUser = {};
@@ -85,7 +89,11 @@ export class UsageMonitor extends EventEmitter {
     this.total -= 1;
     const u = this.toJson(user);
     let count = (this.perUser[u] ?? 0) - 1;
-    this.perUser[u] = count;
+    if (count <= 0) {
+      delete this.perUser[u];
+    } else {
+      this.perUser[u] = count;
+    }
     this.emit("total", this.total);
     this.emit("delete", user, count);
   };

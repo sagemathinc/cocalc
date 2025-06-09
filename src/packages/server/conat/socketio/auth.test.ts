@@ -4,7 +4,7 @@ pnpm test `pwd`/auth.test.ts
 
 */
 
-import { isAllowed } from "./auth";
+import { getUser, isAllowed } from "./auth";
 import { inboxPrefix } from "@cocalc/conat/names";
 
 // Mock the module where isCollaborator is exported from
@@ -269,8 +269,7 @@ describe("test isAllowed for collaboration -- this is the most nontrivial one", 
       }),
     ).toBe(true);
   });
-  
-  
+
   it("check on another project that not a collab on", async () => {
     (isCollaborator as jest.Mock).mockResolvedValue(false);
 
@@ -281,5 +280,38 @@ describe("test isAllowed for collaboration -- this is the most nontrivial one", 
         type: "pub",
       }),
     ).toBe(false);
+  });
+});
+
+describe("tests system accounts", () => {
+  it("verifies a system user is not authenticated when there is no system account specified", async () => {
+    const socket = { handshake: { headers: { cookie: "Foo=bar;" } } };
+    expect(async () => {
+      await getUser(socket);
+    }).rejects.toThrow("must set one of the following cookies");
+  });
+
+  it("verifies system user works", async () => {
+    const socket = { handshake: { headers: { cookie: "System=pw;" } } };
+    expect(
+      await getUser(socket, {
+        System: {
+          password: "pw",
+          user: { hub_id: "system" },
+        },
+      }),
+    ).toEqual({ hub_id: "system" });
+  });
+
+  it("verifies system user works only with correct password", async () => {
+    const socket = { handshake: { headers: { cookie: "System=bad;" } } };
+    expect(async () => {
+      await getUser(socket, {
+        System: {
+          password: "pw",
+          user: { hub_id: "system" },
+        },
+      });
+    }).rejects.toThrow("invalid");
   });
 });
