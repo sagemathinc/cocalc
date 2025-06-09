@@ -248,9 +248,6 @@ export class ConatTerminal extends EventEmitter {
     const initData = this.stream.getAll().join("");
     this.handleStreamData(initData);
     this.stream.on("change", this.handleStreamData);
-    // wait until after render loop of terminal before allowing writing,
-    // or we get corruption.
-    await delay(500);
   };
 
   private setReady = async () => {
