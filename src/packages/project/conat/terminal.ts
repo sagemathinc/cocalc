@@ -303,12 +303,12 @@ class Session {
   init = async () => {
     const { head, tail } = path_split(this.path);
     const env = {
+      PROMPT_COMMAND: "history -a",
+      HISTFILE: historyFile(this.path),
       ...this.options.env,
       ...envForSpawn(),
       COCALC_TERMINAL_FILENAME: tail,
       TMUX: undefined, // ensure not set
-      PROMPT_COMMAND: "history -a",
-      HISTFILE: tail + ".bash_history",
     };
     const command = this.options.command ?? DEFAULT_COMMAND;
     const args = this.options.args ?? [];
@@ -525,4 +525,9 @@ function getCWD(pathHead, cwd?): string {
     }
   }
   return pathHead;
+}
+
+function historyFile(path: string) {
+  const i = path.lastIndexOf("-");
+  return `${path_split(path.slice(0, i)).tail}.bash_history`;
 }

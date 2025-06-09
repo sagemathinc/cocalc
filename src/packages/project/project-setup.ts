@@ -139,6 +139,8 @@ export function cleanup(): void {
     "COCALC_SECRET_TOKEN",
     "COCALC_SECRET_TOKEN_VALUE",
     "PORT",
+    "HISTFILE",
+    "PROMPT_COMMAND",
   ];
   envrm.forEach((name) => delete process.env[name]);
 
