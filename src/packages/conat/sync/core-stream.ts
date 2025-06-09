@@ -767,7 +767,7 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private getAllMissingMessages = reuseInFlight(async () => {
     let d = 1000;
-    while (this.missingMessages.size > 0) {
+    while (this.missingMessages.size > 0 && this.client != null) {
       try {
         const missing = Array.from(this.missingMessages);
         missing.sort();
