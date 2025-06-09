@@ -84,6 +84,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     do something, then exit.
     */
 
+  private ignore_terminal_data: boolean = true;
   private render_buffer: string = "";
   private conn_write_buffer: string[] = [];
   private history: string = "";
@@ -279,6 +280,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.conn.close();
         delete this.conn;
       }
+      this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
       await this.configureComputeServerId();
       if (this.state == "closed") {
@@ -307,6 +309,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       conn.on("data", this.handleDataFromProject);
       conn.once("ready", () => {
         delete this.last_geom;
+        this.ignore_terminal_data = false;
         this.set_connection_status("connected");
         this.scroll_to_bottom();
         this.terminal.refresh(0, this.terminal.rows - 1);
@@ -364,7 +367,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.activity();
-    if (this.is_paused) {
+    if (this.is_paused && !this.ignore_terminal_data) {
       this.render_buffer += data;
     } else {
       this.render(data);
@@ -450,6 +453,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
       // record that terminal is being actively used.
       this.last_active = Date.now();
+      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.pauseKeyCount += 1;
@@ -658,6 +662,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // no need to resize
       return;
     }
+    if (this.ignore_terminal_data) {
+      // CRITICAL -- we must wait until after the
+      // next call to no_ignore before doing
+      // the resize; otherwise, the resize causes
+      // no_ignore to trigger prematurely (#3277).
+      this.resize_after_no_ignore = { rows, cols };
+      return;
+    }
     this.terminal_resize({ rows, cols });
   };
 
@@ -695,13 +707,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_terminal_data(): void {
     this.terminal.onData((data) => {
-      if (data.startsWith("\x1B[200")) {
-        // paste event
-        this.conn_write(data);
+      if (this.ignore_terminal_data && this.conn?.state == "init") {
+        return;
       }
-    });
-    this.terminal.onKey(({ key }) => {
-      this.conn_write(key);
+      this.conn_write(data);
     });
   }
 
@@ -746,6 +755,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   measureSize = ({ kick }: { kick?: boolean } = {}): void => {
+    if (this.ignore_terminal_data) {
+      // during initial load
+      return;
+    }
     const geom = this.fitAddon?.proposeDimensions();
     if (geom == null) {
       return;
