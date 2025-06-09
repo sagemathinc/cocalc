@@ -305,7 +305,7 @@ export const EXTRAS: SettingsExtras = {
   conat_socketio_count: {
     name: "Number of Conat [Socketio](https://socket.io/) Servers to Run",
     desc: "The number of conat socketio servers to create.  When running CoCalc on a single server, you can run a single socketio websocket server in the same nodejs process as everything else.  Alternnatively, if you set this value to a number $n$ bigger than 1 and enable valkey by setting a connection string above, then $n$ random ports will be chosen and $n$ separate socket.io servers will be spawned as subprocesses listening on those ports.  The main hub server will load balance websocket connections to these servers.  This allows you to scale the traffic load beyond a single CPU.",
-    default: 1,
+    default: "1",
     valid: only_pos_int,
     tags: ["Conat"],
   },
