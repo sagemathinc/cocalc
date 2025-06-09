@@ -17,6 +17,7 @@ Then make a client connected to each:
 
     c1 = require('@cocalc/conat/core/client').connect('http://localhost:3000');
     c2 = require('@cocalc/conat/core/client').connect('http://localhost:3001');
+    
 */
 
 import {
@@ -27,6 +28,7 @@ import { Server } from "socket.io";
 import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
+import { conatValkey } from "@cocalc/backend/data";
 
 const logger = getLogger("conat-server");
 
@@ -39,6 +41,7 @@ export async function init(options: Partial<Options> = {}) {
     getUser,
     isAllowed,
     systemAccountPassword: await secureRandomString(64),
+    valkey: conatValkey,
     ...options,
   });
 }

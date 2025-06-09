@@ -187,6 +187,7 @@ export type SiteSettingsExtrasKeys =
   | "conat_heading"
   | "conat_server"
   | "conat_password"
+  | "conat_valkey"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -273,7 +274,7 @@ const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
 export const EXTRAS: SettingsExtras = {
   conat_heading: {
     name: "Conat Configuration",
-    desc: "Configuration of Conat, which CoCalc uses extensively for communication.",
+    desc: "Conat is a [NATS](https://nats.io/)-like [socketio](https://socket.io/) websocket server and persistence layer that CoCalc uses extensively for communication.",
     default: "",
     type: "header",
     tags: ["Conat"],
@@ -281,16 +282,23 @@ export const EXTRAS: SettingsExtras = {
   // Conat config may be loaded from via code in packages/server/conat/configuration.ts
   conat_server: {
     name: "Conat Server URL",
-    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.  This URL should include any base path.",
+    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.  This URL should include any base path. E.g., https://cocalc.com",
     default: "",
     password: false,
     tags: ["Conat"],
   },
   conat_password: {
     name: "Conat Password",
-    desc: "Password for conat hub admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
+    desc: "Password for conat *hub* admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
     default: "",
     password: true,
+    tags: ["Conat"],
+  },
+  conat_valkey: {
+    name: "Valkey Connection String",
+    desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`",
+    default: "",
+    password: false,
     tags: ["Conat"],
   },
   openai_section: {

@@ -76,7 +76,7 @@ export async function connections(client: Client) {
     `Total for ${rows.length - 1} connections:`,
     "",
     totals[3],
-    totals[4],
+    human_readable_size(totals[4]),
     totals[5],
   ]);
 

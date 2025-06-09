@@ -428,6 +428,21 @@ export class Client extends EventEmitter {
     }
   });
 
+  // There should usually be no reason to call this because socket.io
+  // is so good at abstracting this away. It's useful for unit testing.
+  waitUntilConnected = reuseInFlight(async () => {
+    if (this.conn.connected) {
+      return;
+    }
+    // @ts-ignore
+    await once(this.conn, "connect");
+  });
+
+  waitUntilReady = reuseInFlight(async () => {
+    await this.waitUntilSignedIn();
+    await this.waitUntilConnected();
+  });
+
   private setState = (state: State) => {
     if (this.isClosed() || this.state == state) {
       return;
@@ -508,16 +523,6 @@ export class Client extends EventEmitter {
     })();
     this.emit("inbox", this.inboxSubject);
   };
-
-  // There should usually be no reason to call this because socket.io
-  // is so good at abstracting this away. It's useful for unit testing.
-  waitUntilConnected = reuseInFlight(async () => {
-    if (this.conn.connected) {
-      return;
-    }
-    // @ts-ignore
-    await once(this.conn, "connect");
-  });
 
   private isClosed = () => {
     return this.state == "closed";
