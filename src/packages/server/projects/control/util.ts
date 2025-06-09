@@ -235,6 +235,7 @@ const ENV_VARS_DELETE = [
   "LS_COLORS",
   "INIT_CWD",
   "DEBUG_FILE",
+  "SECRETS",
 ] as const;
 
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
