@@ -247,9 +247,6 @@ export class NatsTerminalConnection extends EventEmitter {
   };
 
   private setReady = async () => {
-    // wait until after render loop of terminal before allowing writing,
-    // or we get corruption.
-    await delay(500);
     this.setState("running");
     this.emit("ready");
   };
