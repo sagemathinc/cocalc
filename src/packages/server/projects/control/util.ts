@@ -129,8 +129,22 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       uid,
       gid: uid,
     });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+      if (stdout.length > 10000) {
+        stdout = stdout.slice(-5000);
+      }
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+      if (stderr.length > 10000) {
+        stderr = stderr.slice(-5000);
+      }
+    });
     child.on("error", (err) => {
-      logger.debug(`project daemon error ${err}`);
+      logger.debug(`project daemon error ${err} -- \n${stdout}\n${stderr}`);
       cb(err);
     });
     child.on("exit", async (code) => {
@@ -138,7 +152,10 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       if (code != 0) {
         try {
           const s = (await readFile(env.LOGS)).toString();
-          logger.debug("project log file ended: ", s.slice(-2000));
+          logger.debug("project log file ended: ", s.slice(-2000), {
+            stdout,
+            stderr,
+          });
         } catch (err) {
           // there's a lot of reasons the log file might not even exist,
           // e.g., debugging is not enabled

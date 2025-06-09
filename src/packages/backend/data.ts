@@ -222,10 +222,16 @@ export let conatPassword = "";
 export const conatPasswordPath = join(secrets, "conat_password");
 try {
   conatPassword = readFileSync(conatPasswordPath).toString().trim();
-} catch {
-  // generate something at random
-  conatPassword = secureRandomStringSync(64);
-  writeFileSync(conatPasswordPath, conatPassword);
+} catch (err) {
+  if (err.code != "EACCES") {
+    // probably just isn't there yet.
+    // generate something at random
+    conatPassword = secureRandomStringSync(64);
+    try {
+      // try to write -- we might not have write access
+      writeFileSync(conatPasswordPath, conatPassword);
+    } catch {}
+  }
 }
 export function setConatPassword(password: string) {
   conatPassword = password;
