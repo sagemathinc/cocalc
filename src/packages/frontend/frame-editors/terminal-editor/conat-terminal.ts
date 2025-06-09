@@ -182,7 +182,7 @@ export class ConatTerminal extends EventEmitter {
 
   private start = reuseInFlight(async () => {
     this.setState("init");
-    let maxWait = 5000;
+    let timeout = 2000;
     while (true) {
       try {
         if (this.state == "closed") {
@@ -191,6 +191,7 @@ export class ConatTerminal extends EventEmitter {
         const { success, note } = await this.api.create({
           ...this.options,
           ephemeral: this.ephemeral,
+          timeout,
         });
         if (!success) {
           throw Error(`failed to create terminal -- ${note}`);
@@ -199,11 +200,11 @@ export class ConatTerminal extends EventEmitter {
       } catch (err) {
         console.log(`WARNING: starting terminal -- ${err} (will retry)`);
         try {
-          await this.api.conat.waitFor({ maxWait });
+          await this.api.conat.waitFor({ maxWait: timeout });
         } catch (err) {
-          maxWait = Math.min(15000, 1.3 * maxWait);
+          timeout = Math.min(15000, 1.3 * timeout);
           console.log(`WARNING -- waiting for terminal server -- ${err}`);
-          await delay(3000);
+          await delay(2000);
         }
       }
     }
@@ -246,7 +247,7 @@ export class ConatTerminal extends EventEmitter {
       return;
     }
     const initData = this.stream.getAll().join("");
-    this.handleStreamData(initData);
+    this.emit("init", initData);
     this.stream.on("change", this.handleStreamData);
   };
 
