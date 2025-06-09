@@ -95,6 +95,8 @@ export interface Options {
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
   systemAccountPassword?: string;
+  // if true, use https when creating an internal client.
+  ssl?: boolean;
 }
 
 export class ConatServer {
@@ -671,7 +673,7 @@ export class ConatServer {
   client = (options?: ClientOptions): Client => {
     const port = this.options.port;
     const path = this.options.path?.slice(0, -"/conat".length) ?? "";
-    const address = `http://localhost:${port}${path}`;
+    const address = `http${this.options.ssl ? "s" : ""}://localhost:${port}${path}`;
     return connect({
       address,
       noCache: true,

@@ -155,7 +155,12 @@ export default async function init(opts: Options): Promise<{
 
   if (opts.conatServer) {
     winston.info(`initializing the Conat Server`);
-    initConatServer({ httpServer, path: join(basePath, "conat"), port });
+    initConatServer({
+      httpServer,
+      path: join(basePath, "conat"),
+      port,
+      ssl: !!opts.cert,
+    });
   }
 
   // IMPORTANT:
