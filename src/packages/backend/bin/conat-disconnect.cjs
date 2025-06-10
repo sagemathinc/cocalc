@@ -6,7 +6,7 @@ async function main() {
     const ids = process.argv.slice(2);
     console.log(ids);
     const client = await conat()
-    await client.call('sys').disconnect(ids);
+    await client.call('sys.conat.server').disconnect(ids);
     process.exit(0);
 }
 

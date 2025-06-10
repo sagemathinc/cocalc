@@ -846,7 +846,8 @@ export class Client extends EventEmitter {
      await arith.add(2,3)
 
   There's by default a single queue group '0', so if you create multiple services on various
-  computers, then requests are load balanced across them automatically.
+  computers, then requests are load balanced across them automatically.  Explicitly set
+  a random queue group (or something else) and use callMany if you don't want this behavior.
 
   Close the service when done:
 
@@ -863,7 +864,7 @@ export class Client extends EventEmitter {
   ) => Promise<Subscription> = async (subject, impl, opts) => {
     const sub = await this.subscribe(subject, {
       ...opts,
-      queue: "0",
+      queue: opts?.queue ?? "0",
     });
     const respond = async (mesg: Message) => {
       try {
@@ -919,6 +920,38 @@ export class Client extends EventEmitter {
             return undefined;
           }
           return async (...args) => await call(name, args);
+        },
+      },
+    ) as T;
+  }
+
+  callMany<T = any>(subject: string, opts?: RequestManyOptions): T {
+    const maxWait = opts?.maxWait ? opts?.maxWait : DEFAULT_REQUEST_TIMEOUT;
+    const self = this;
+    async function* callMany(name: string, args: any[]) {
+      const sub = await self.requestMany(subject, [name, args], {
+        ...opts,
+        maxWait,
+      });
+      for await (const resp of sub) {
+        if (resp.headers?.error) {
+          yield new ConatError(`${resp.headers.error}`, {
+            code: resp.headers.code,
+          });
+        } else {
+          yield resp.data;
+        }
+      }
+    }
+
+    return new Proxy(
+      {},
+      {
+        get: (_, name) => {
+          if (typeof name !== "string") {
+            return undefined;
+          }
+          return async (...args) => await callMany(name, args);
         },
       },
     ) as T;
@@ -1117,18 +1150,11 @@ export class Client extends EventEmitter {
   // sending messages doesn't know.  This is a shortcoming the
   // pub/sub model.  You must decide entirely based on your
   // own application protocol how to terminate.
-  async requestMany(
+  requestMany = async (
     subject: string,
     mesg: any,
-    {
-      maxMessages,
-      maxWait,
-      ...options
-    }: PublishOptions & {
-      maxWait?: number;
-      maxMessages?: number;
-    } = {},
-  ): Promise<Subscription> {
+    { maxMessages, maxWait, ...options }: RequestManyOptions = {},
+  ): Promise<Subscription> => {
     if (maxMessages != null && maxMessages <= 0) {
       throw Error("maxMessages must be positive");
     }
@@ -1154,7 +1180,7 @@ export class Client extends EventEmitter {
       );
     }
     return sub;
-  }
+  };
 
   // watch: this is mainly for debugging and interactive use.
   watch = (
@@ -1271,6 +1297,11 @@ interface PublishOptions {
   raw?;
   // timeout used when publishing a message and awaiting a response.
   timeout?: number;
+}
+
+interface RequestManyOptions extends PublishOptions {
+  maxWait?: number;
+  maxMessages?: number;
 }
 
 export function encode({

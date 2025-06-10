@@ -2,7 +2,12 @@
 pnpm test ./services.test.ts
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  connect,
+  delay,
+} from "@cocalc/backend/conat/test/setup";
 import { Client, type Message } from "@cocalc/conat/core/client";
 import { wait } from "@cocalc/backend/conat/test/util";
 
@@ -102,6 +107,82 @@ describe("more service tests", () => {
     service.close();
     client1.close();
     client2.close();
+  });
+});
+
+describe("illustrate using callMany to call multiple services and get all the results as an iterator", () => {
+  let client1: Client, client2: Client, client3: Client;
+  it("create three clients", async () => {
+    client1 = connect();
+    client2 = connect();
+    client3 = connect();
+  });
+
+  let service1, service2;
+  interface Api {
+    who: () => Promise<number>;
+  }
+  it("create simple service on client1 and client2", async () => {
+    service1 = await client1.service<Api>(
+      "whoami",
+      {
+        who: async () => {
+          return 1;
+        },
+      },
+      { queue: "1" },
+    );
+    service2 = await client2.service<Api>(
+      "whoami",
+      {
+        who: async () => {
+          // make this one slow:
+          await delay(250);
+          return 2;
+        },
+      },
+      { queue: "2" },
+    );
+  });
+
+  it("call it without callMany -- this actually sends the request to *both* servers and returns the quicker one.", async () => {
+    const call = client3.call<Api>("whoami");
+    // quicker one is always 1:
+    expect(await call.who()).toBe(1);
+    expect(await call.who()).toBe(1);
+    expect(await call.who()).toBe(1);
+  });
+
+  it("call the service using callMany and get TWO results in parallel", async () => {
+    const callMany = client3.callMany("whoami", { maxWait: 500 });
+    const X: number[] = [];
+    const start = Date.now();
+    for await (const a of await callMany.who()) {
+      X.push(a);
+    }
+    expect(X.length).toBe(2);
+    expect(new Set(X)).toEqual(new Set([1, 2]));
+    expect(Date.now() - start).toBeGreaterThan(500);
+  });
+
+  it("call the service using callMany but limit results using mesgLimit instead of time", async () => {
+    const callMany = client3.callMany("whoami", { maxMessages: 2 });
+    const X: number[] = [];
+    const start = Date.now();
+    for await (const a of await callMany.who()) {
+      X.push(a);
+    }
+    expect(X.length).toBe(2);
+    expect(new Set(X)).toEqual(new Set([1, 2]));
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it("cleans up", () => {
+    service1.close();
+    service2.close();
+    client1.close();
+    client2.close();
+    client3.close();
   });
 });
 

@@ -691,20 +691,28 @@ export class ConatServer {
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
-    await client.service("sys", {
-      stats: () => this.stats,
-      usage: () => this.usage.stats(),
-      // user has to explicitly refresh there browser after
-      // being disconnected this way
-      disconnect: (ids: string | string[]) => {
-        if (typeof ids == "string") {
-          ids = [ids];
-        }
-        for (const id of ids) {
-          this.io.in(id).disconnectSockets();
-        }
+    await client.service(
+      "sys.conat.server",
+      {
+        stats: () => {
+          return { [this.id]: this.stats };
+        },
+        usage: () => {
+          return { [this.id]: this.usage.stats() };
+        },
+        // user has to explicitly refresh there browser after
+        // being disconnected this way
+        disconnect: (ids: string | string[]) => {
+          if (typeof ids == "string") {
+            ids = [ids];
+          }
+          for (const id of ids) {
+            this.io.in(id).disconnectSockets();
+          }
+        },
       },
-    });
+      { queue: this.id },
+    );
   };
 }
 
