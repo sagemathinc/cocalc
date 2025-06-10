@@ -107,7 +107,6 @@ export interface CoreStreamOptions {
   desc?: JSONValue;
 
   ephemeral?: boolean;
-  lifetime?: number;
 
   client?: Client;
 
@@ -168,7 +167,6 @@ export class CoreStream<T = any> extends EventEmitter {
     config,
     start_seq,
     ephemeral = false,
-    lifetime,
     client,
   }: CoreStreamOptions) {
     super();
@@ -181,7 +179,6 @@ export class CoreStream<T = any> extends EventEmitter {
     this.storage = {
       path: storagePath({ account_id, project_id, name }),
       ephemeral,
-      lifetime,
     };
     this._start_seq = start_seq;
     this.configOptions = config;

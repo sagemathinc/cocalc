@@ -179,9 +179,6 @@ export interface StorageOptions {
   // table, which is enforced on all writes.  Clients should always set max_bytes,
   // possibly as low as they can, and check by reading back what is set.
   ephemeral?: boolean;
-  // for ephemeral streams, lifetime determines how long until they are cleared from
-  // memory if not active.
-  lifetime?: number;
   // compression configuration
   compression?: Compression;
 }

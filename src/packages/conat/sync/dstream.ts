@@ -49,7 +49,6 @@ export interface DStreamOptions {
   client?: Client;
   noAutosave?: boolean;
   ephemeral?: boolean;
-  lifetime?: number; // for ephemeral streams
 
   noCache?: boolean;
   noInventory?: boolean;

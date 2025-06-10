@@ -17,8 +17,6 @@ import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 
-const EPHEMERAL_LIFETIME = 2000;
-
 beforeAll(before);
 
 describe("create a client, create an ephemeral core-stream, and do basic tests", () => {
@@ -28,7 +26,6 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   const opts = {
     name,
     ephemeral: true,
-    lifetime: EPHEMERAL_LIFETIME,
     noCache: true,
   };
 
@@ -58,7 +55,6 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     await wait({ until: () => stream.get(2) != null });
     expect(stream.get(2)).toEqual(now);
     expect(isDate(stream.get(2))).toEqual(true);
-    expect(stream.storage.lifetime).toBe(EPHEMERAL_LIFETIME);
   });
 
   it("publishing undefined is not allowed", async () => {
@@ -84,7 +80,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
     await wait({
       until: async () => {
         stream.close();
-        await delay(EPHEMERAL_LIFETIME + 500);
+        await delay(2500);
         stream = await cstream({ client, ...opts });
         return stream.length == 0;
       },

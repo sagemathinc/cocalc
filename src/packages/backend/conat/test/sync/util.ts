@@ -1,5 +1,4 @@
 import { dstream } from "@cocalc/backend/conat/sync";
-export const EPHEMERAL_LIFETIME = 2000;
 
 export async function createDstream() {
   const name = `test-${Math.random()}`;
@@ -12,6 +11,5 @@ export async function createDstreamEphemeral() {
     name,
     noAutosave: true,
     ephemeral: true,
-    lifetime: 2000,
   });
 }

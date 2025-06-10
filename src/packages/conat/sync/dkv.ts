@@ -122,8 +122,6 @@ export interface DKVOptions {
   noAutosave?: boolean;
 
   ephemeral?: boolean;
-  // for ephemeral dkv
-  lifetime?: number;
 
   noCache?: boolean;
 }
@@ -151,7 +149,6 @@ export class DKV<T = any> extends EventEmitter {
     config,
     noAutosave,
     ephemeral = false,
-    lifetime,
   }: DKVOptions) {
     super();
     if (client == null) {
@@ -168,7 +165,6 @@ export class DKV<T = any> extends EventEmitter {
       client,
       config,
       ephemeral,
-      lifetime,
     });
 
     return new Proxy(this, {

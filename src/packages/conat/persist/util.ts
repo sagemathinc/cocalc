@@ -17,7 +17,7 @@ TERMINAL 1: This sets up the environment and starts the server running:
 
 TERMINAL 2: In another node session, create a client:
 
-    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, options:{lifetime:1000*60}}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
+    user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {id, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage}); console.log({id}); for await(const x of stream) { console.log(x.data) }; console.log("DONE")
 
 // client also does this periodically to keep subscription alive:
 
@@ -37,7 +37,7 @@ user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.d
    
 Also getAll using start_seq:
 
-   cf = const {id, lifetime, stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10, options:{lifetime:1000*60}}); for await(const x of stream) { console.log(x) };
+   cf = const {id,  stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10}); for await(const x of stream) { console.log(x) };
 */
 
 import { assertHasWritePermission } from "./auth";
