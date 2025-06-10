@@ -1,7 +1,7 @@
 /*
 core/client.s -- core conat client
 
-This is a client that has a similar API to NATS / Socket.io, but is much, 
+This is a client that has a similar API to NATS / Socket.io, but is much,
 much better in so many ways:
 
 - It has global pub/sub just like with NATS. This uses the server to
@@ -67,7 +67,7 @@ The methods you call on the client to build everything are:
    messages in reply.   Typically you end the response stream by sending
    a null message, but what you do is up to you.  This is very useful
    for streaming arbitrarily large data, long running changefeeds, LLM
-   responses, etc. 
+   responses, etc.
 
 
 Messages:  A message mesg is:
@@ -210,7 +210,7 @@ import {
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { once } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/conat/client";
 import { refCacheSync } from "@cocalc/util/refcache";
@@ -491,25 +491,26 @@ export class Client extends EventEmitter {
     }
     this.inboxSubject = `${inboxPrefix}.${randomId()}`;
     let sub;
-    let d = 1000;
-    while (true) {
-      try {
-        await this.waitUntilSignedIn();
-        sub = await this.subscribe(this.inboxSubject + ".*");
-        break;
-      } catch (err) {
-        if (this.isClosed()) {
-          return;
+    await until(
+      async () => {
+        try {
+          await this.waitUntilSignedIn();
+          sub = await this.subscribe(this.inboxSubject + ".*");
+          return true;
+        } catch (err) {
+          if (this.isClosed()) {
+            return true;
+          }
+          // this should only fail due to permissions issues, at which point
+          // request can't work, but pub/sub can.
+          console.log(`WARNING: inbox not available -- ${err}`);
         }
-        // this should only fail due to permissions issues, at which point
-        // request can't work, but pub/sub can.
-        console.log(`WARNING: inbox not available -- ${err}`);
-      }
-      if (this.state == ("closed" as any)) {
-        return;
-      }
-      await delay(d);
-      d = Math.min(15000, d * 1.3);
+        return false;
+      },
+      { start: 1000, max: 15000 },
+    );
+    if (this.isClosed()) {
+      return;
     }
 
     this.inbox = new EventEmitter();
@@ -840,7 +841,7 @@ export class Client extends EventEmitter {
      service = await client1.service('arith',  {mul : async (a,b)=>{a*b}, add : async (a,b)=>a+b})
 
   Use the service:
-  
+
      arith = await client2.call('arith')
      await arith.mul(2,3)
      await arith.add(2,3)
@@ -852,9 +853,9 @@ export class Client extends EventEmitter {
   Close the service when done:
 
      service.close();
-     
+
   See backend/conat/test/core/services.test.ts for a tested and working example
-  that involves typescript and shows how to use wildcard subjects and get the 
+  that involves typescript and shows how to use wildcard subjects and get the
   specific subject used for a call by using that this is bound to the calling mesg.
   */
   service: <T = any>(

@@ -28,11 +28,16 @@ export async function wait({
   decay?: number;
   max?: number;
 }) {
-  await until(f, {
-    start,
-    decay,
-    max,
-    min: 5,
-    timeout: 10000,
-  });
+  await until(
+    async () => {
+      return !!(await f());
+    },
+    {
+      start,
+      decay,
+      max,
+      min: 5,
+      timeout: 10000,
+    },
+  );
 }

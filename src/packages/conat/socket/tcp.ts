@@ -231,6 +231,7 @@ export class Sender extends EventEmitter {
             return true;
           }
           this.resendLast();
+          return false;
         },
         { start: 500, max: 15000, decay: 1.3, timeout: this.timeout },
       );

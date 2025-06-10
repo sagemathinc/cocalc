@@ -856,8 +856,9 @@ async function touchPath(project_id: string, path: string): Promise<void> {
   // Also this is in a separate function so we can await it and catch exception.
   try {
     await touch(project_id, path);
-  } catch (err) {
-    console.warn(`error touching ${path} -- ${err}`);
+  } catch {
+    // expected to fail, e.g., it will on compute server while waiting to switch
+    //console.warn(`error touching ${path} -- ${err}`);
   }
 }
 

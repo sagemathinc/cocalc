@@ -11,8 +11,7 @@ Access this in the browser for the project you have open:
 
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 import { EventEmitter } from "events";
-import { delay } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 
 type State = "init" | "connected" | "closed";
 
@@ -63,28 +62,35 @@ export class ComputeServerManager extends EventEmitter {
       throw Error("init can only be called once");
     }
     this.initialized = true;
-    let wait = 3000;
-    while (this.state == "init") {
-      try {
+    await until(
+      async () => {
+        if (this.state != "init") {
+          return true;
+        }
         const d = await dkv<Info>({
           name: "compute-server-manager",
           ...this.options,
         });
         if (this.state == ("closed" as any)) {
           d.close();
-          return;
+          return true;
         }
         this.dkv = d;
         d.on("change", this.handleChange);
         this.setState("connected");
-      } catch (err) {
-        wait = Math.min(15000, wait * 1.3) + Math.random();
-        console.log(
-          `WARNING: temporary issue creating compute server manager -- ${err} -- will retry in ${Math.round(wait / 1000)}s`,
-        );
-        await delay(wait);
-      }
-    }
+        return true;
+      },
+      {
+        start: 3000,
+        decay: 1.3,
+        max: 15000,
+        log: (...args) =>
+          console.log(
+            "WARNING: issue creating compute server manager",
+            ...args,
+          ),
+      },
+    );
   };
 
   private handleChange = ({ key: path, value, prev }) => {

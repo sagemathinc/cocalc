@@ -24,22 +24,26 @@ interface RetryOptions {
   max?: number;
   min?: number;
   timeout?: number;
+  log?: (...args) => void;
 }
 
 // clean and simple async (or sync) retry function. It
 // does "await f()" until (1) no exception is raised, and
-// (2) the return value is truthy.  It then returns that value.
+// (2) the return value is true.
 // It optionally can take a timeout, which if hit it will
 // throw Error('timeout').   retry_until_success below is an
 // a variant of this pattern keeps retrying until f doesn't throw.
+// The input function f must always return true or false,
+// which helps a lot to avoid bugs.
 export async function until(
-  f: Function,
+  f: (() => Promise<boolean>) | (() => boolean),
   {
     start = 500,
     decay = 1.3,
     max = 15000,
     min = 50,
     timeout = 0,
+    log,
   }: RetryOptions,
 ) {
   const end = timeout ? Date.now() + timeout : undefined;
@@ -48,9 +52,11 @@ export async function until(
     try {
       const x = await f();
       if (x) {
-        return x;
+        return;
       }
-    } catch {}
+    } catch (err) {
+      log?.(err, `will retry in ${Math.round(d / 1000)} seconds`);
+    }
     if (end) {
       d = Math.max(min, Math.min(end - Date.now(), Math.min(max, d * decay)));
     } else {
