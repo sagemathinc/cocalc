@@ -92,7 +92,6 @@ import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { createFormatterService } from "./formatter";
 import { type ConatService } from "@cocalc/conat/service/service";
-import { createTerminalService } from "./terminal";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
 import { unlink } from "fs/promises";
@@ -434,8 +433,7 @@ const openDoc = reuseInFlight(async (path: string) => {
     openTimes[path] = Date.now();
 
     if (path.endsWith(".term")) {
-      const service = await createTerminalService(path);
-      openDocs[path] = service;
+      // terminals are handled directly by the project api
       return;
     }
 

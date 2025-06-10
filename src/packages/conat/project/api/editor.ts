@@ -12,6 +12,7 @@ export const editor = {
   jupyterKernels: true,
   formatterString: true,
   printSageWS: true,
+  createTerminalService: true,
 };
 
 export interface Editor {
@@ -42,4 +43,15 @@ export interface Editor {
   }) => Promise<string>;
 
   printSageWS: (opts) => Promise<string>;
+
+  createTerminalService: (
+    path,
+    opts: {
+      env?: { [key: string]: string };
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      ephemeral?: boolean;
+    },
+  ) => Promise<void>;
 }

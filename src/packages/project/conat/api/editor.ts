@@ -30,3 +30,5 @@ export async function printSageWS(opts): Promise<string> {
   });
   return pdf;
 }
+
+export { createTerminalService } from "@cocalc/project/conat/terminal";

@@ -182,30 +182,24 @@ export class ConatTerminal extends EventEmitter {
 
   private start = async () => {
     this.setState("init");
-    let timeout = 2000;
+    let d = 2000;
     while (true) {
       try {
         if (this.state == "closed") {
           return;
         }
-        const { success, note } = await this.api.create({
+        const api = webapp_client.conat_client.projectApi({
+          project_id: this.project_id,
+        });
+        await api.editor.createTerminalService(this.path, {
           ...this.options,
           ephemeral: this.ephemeral,
-          timeout,
         });
-        if (!success) {
-          throw Error(`failed to create terminal -- ${note}`);
-        }
         return;
       } catch (err) {
         console.log(`WARNING: starting terminal -- ${err} (will retry)`);
-        try {
-          await this.api.conat.waitFor({ maxWait: timeout });
-        } catch (err) {
-          timeout = Math.min(15000, 1.3 * timeout);
-          console.log(`WARNING -- waiting for terminal server -- ${err}`);
-          await delay(2000);
-        }
+        d = Math.min(30000, 1.3 * d);
+        await delay(d);
       }
     }
   };
