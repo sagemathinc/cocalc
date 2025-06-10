@@ -149,7 +149,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_open_file(event: OpenFile): JSX.Element {
       return (
         <span>
-          opened
+          Opened
           <Gap />
           <PathLink
             path={event.filename}

@@ -2406,7 +2406,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         opts0.target_path,
         misc.path_split(src_path).tail,
       );
-      opts0.timeout = 90;
+      opts0.timeout = 90 * 1000;
       try {
         await webapp_client.project_client.copy_path_between_projects(opts0);
         cb();

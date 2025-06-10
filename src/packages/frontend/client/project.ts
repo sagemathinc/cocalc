@@ -126,7 +126,7 @@ export class ProjectClient {
     overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
     delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
     backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // **timeout in seconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    timeout?: number; // **timeout in milliseconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
     exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
   }): Promise<void> => {
     await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
