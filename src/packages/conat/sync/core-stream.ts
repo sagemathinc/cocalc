@@ -49,8 +49,8 @@ import {
   stream as persist,
   type SetOptions,
 } from "@cocalc/conat/persist/client";
-import { delay } from "awaiting";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { until } from "@cocalc/util/async-utils";
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
 
@@ -217,20 +217,26 @@ export class CoreStream<T = any> extends EventEmitter {
       start_seq: this._start_seq,
       noEmit: true,
     });
-    let d = 750;
-    while (this.client != null) {
-      try {
-        this.configOptions = await this.config(this.configOptions);
-        break;
-      } catch (err) {
-        if (err.code == 403) {
-          // fatal permission error
-          throw err;
+
+    await until(
+      async () => {
+        if (this.client == null) {
+          return true;
         }
-        d = Math.min(15000, d * 1.3);
-        await delay(d);
-      }
-    }
+        try {
+          this.configOptions = await this.config(this.configOptions);
+          return true;
+        } catch (err) {
+          if (err.code == 403) {
+            // fatal permission error
+            throw err;
+          }
+        }
+        return false;
+      },
+      { start: 750 },
+    );
+
     // NOTE: if we miss a message between getAllFromLeader and when we start listening,
     // it will get filled in, due to sequence number tracking.
     this.listen();
@@ -273,48 +279,51 @@ export class CoreStream<T = any> extends EventEmitter {
     if (this.storage == null) {
       throw Error("bug -- storage must be set");
     }
-    let d = 750;
-
-    while (this.client != null) {
-      try {
-        // console.log("get persistent stream", { start_seq }, this.storage);
-        const sub = await this.persistClient.getAll({
-          start_seq,
-        });
-        // console.log("got sub");
-        while (true) {
-          const { value, done } = await sub.next();
-          if (done) {
-            return;
-          }
-          const messages = value as StoredMessage[];
-          const seq = this.processPersistentMessages(messages, {
-            noEmit,
-            noSeqCheck: true,
+    await until(
+      async () => {
+        if (this.client == null) {
+          return true;
+        }
+        try {
+          // console.log("get persistent stream", { start_seq }, this.storage);
+          const sub = await this.persistClient.getAll({
+            start_seq,
           });
-          if (seq != null) {
-            // we update start_seq in case we need to try again
-            start_seq = seq! + 1;
+          // console.log("got sub");
+          while (true) {
+            const { value, done } = await sub.next();
+            if (done) {
+              return true;
+            }
+            const messages = value as StoredMessage[];
+            const seq = this.processPersistentMessages(messages, {
+              noEmit,
+              noSeqCheck: true,
+            });
+            if (seq != null) {
+              // we update start_seq in case we need to try again
+              start_seq = seq! + 1;
+            }
+          }
+        } catch (err) {
+          if (err.code == 403) {
+            // fatal permission error
+            throw err;
+          }
+          if (err.code == 429) {
+            // too many users
+            throw err;
+          }
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(
+              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
+            );
           }
         }
-      } catch (err) {
-        if (err.code == 403) {
-          // fatal permission error
-          throw err;
-        }
-        if (err.code == 429) {
-          // too many users
-          throw err;
-        }
-        if (!process.env.COCALC_TEST_MODE) {
-          console.log(
-            `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
-          );
-        }
-      }
-      d = Math.min(15000, d * 1.3);
-      await delay(d);
-    }
+        return false;
+      },
+      { start: 750 },
+    );
   };
 
   private processPersistentMessages = (
@@ -496,41 +505,49 @@ export class CoreStream<T = any> extends EventEmitter {
 
   private listen = async () => {
     log("core-stream: listen", this.storage);
-    let d = 250;
-    while (this.client != null) {
-      try {
-        log("core-stream: start listening on changefeed", this.storage);
-        const changefeed = await this.persistClient.changefeed();
-        for await (const { updates } of changefeed) {
-          log("core-stream: process updates", updates, this.storage);
-          if (this.client == null) {
-            return;
+    await until(
+      async () => {
+        if (this.client == null) {
+          return true;
+        }
+        try {
+          log("core-stream: start listening on changefeed", this.storage);
+          const changefeed = await this.persistClient.changefeed();
+          for await (const { updates } of changefeed) {
+            log("core-stream: process updates", updates, this.storage);
+            if (this.client == null) return true;
+            this.processPersistentMessages(updates, {
+              noEmit: false,
+              noSeqCheck: false,
+            });
           }
-          this.processPersistentMessages(updates, {
-            noEmit: false,
-            noSeqCheck: false,
-          });
+        } catch (err) {
+          // This normally doesn't happen but could if a persist server is being restarted
+          // frequently or things are seriously broken.  We cause this in
+          //    backend/conat/test/core/core-stream-break.test.ts
+          if (!process.env.COCALC_TEST_MODE) {
+            log(
+              `WARNING: core-stream changefeed error -- ${err}`,
+              this.storage,
+            );
+          }
         }
-      } catch (err) {
-        // This normally doesn't happen but could if a persist server is being restarted
-        // frequently or things are seriously broken.  We cause this in
-        //    backend/conat/test/core/core-stream-break.test.ts
-        if (!process.env.COCALC_TEST_MODE) {
-          log(`WARNING: core-stream changefeed error -- ${err}`, this.storage);
-        }
-      }
-      // above loop exits when the persistent server
-      // stops sending messages for some reason. In that
-      // case we reconnect, picking up where we left off:
-      if (this.client == null) return;
-      log("core-stream: get missing from when changefeed ended", this.storage);
-      await this.getAllFromPersist({
-        start_seq: this.lastSeq + 1,
-        noEmit: false,
-      });
-      await delay(d);
-      d = Math.min(10000, d * 1.3);
-    }
+        // above loop exits when the persistent server
+        // stops sending messages for some reason. In that
+        // case we reconnect, picking up where we left off:
+        if (this.client == null) return true;
+        log(
+          "core-stream: get missing from when changefeed ended",
+          this.storage,
+        );
+        await this.getAllFromPersist({
+          start_seq: this.lastSeq + 1,
+          noEmit: false,
+        });
+        return false;
+      },
+      { start: 500, max: 7500, decay: 1.2 },
+    );
   };
 
   publish = async (
@@ -766,35 +783,39 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private getAllMissingMessages = reuseInFlight(async () => {
-    let d = 1000;
-    while (this.missingMessages.size > 0 && this.client != null) {
-      try {
-        const missing = Array.from(this.missingMessages);
-        missing.sort();
-        log("core-stream: getMissingSeq", missing, this.storage);
-        const sub = await this.persistClient.getAll({
-          start_seq: missing[0],
-          end_seq: missing[missing.length - 1],
-        });
-        for await (const updates of sub) {
-          this.processPersistentMessages(updates, {
-            noEmit: false,
-            noSeqCheck: true,
+    await until(
+      async () => {
+        if (this.client == null || this.missingMessages.size == 0) {
+          return true;
+        }
+        try {
+          const missing = Array.from(this.missingMessages);
+          missing.sort();
+          log("core-stream: getMissingSeq", missing, this.storage);
+          const sub = await this.persistClient.getAll({
+            start_seq: missing[0],
+            end_seq: missing[missing.length - 1],
           });
+          for await (const updates of sub) {
+            this.processPersistentMessages(updates, {
+              noEmit: false,
+              noSeqCheck: true,
+            });
+          }
+          for (const seq of missing) {
+            this.missingMessages.delete(seq);
+          }
+        } catch (err) {
+          log(
+            "core-stream: WARNING -- issue getting missing updates",
+            err,
+            this.storage,
+          );
         }
-        for (const seq of missing) {
-          this.missingMessages.delete(seq);
-        }
-      } catch (err) {
-        log(
-          "core-stream: WARNING -- issue getting missing updates",
-          err,
-          this.storage,
-        );
-        d = Math.min(d * 1.3, 15000);
-      }
-      await delay(d);
-    }
+        return false;
+      },
+      { start: 1000, max: 15000, decay: 1.3 },
+    );
   });
 
   // get server assigned time of n-th message in stream

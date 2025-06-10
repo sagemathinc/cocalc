@@ -6,9 +6,9 @@ Eventually Consistent Distributed Key:Value Store
   inside of the named KV store.
 
 - You may define a 3-way merge function, which is used to automatically resolve all
-  conflicting writes.   The default is to use our local version, i.e., "last write 
+  conflicting writes.   The default is to use our local version, i.e., "last write
   to remote wins".  The function is run locally so can have access to any state.
-  
+
 - All set/get/delete operations are synchronous.
 
 - The state gets sync'd in the backend to persistent storage on Conat as soon as possible,
@@ -75,7 +75,6 @@ import {
 } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
-import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import {
   type Client,
@@ -85,6 +84,7 @@ import {
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
 import { conat } from "@cocalc/conat/client";
+import { until } from "@cocalc/util/async-utils";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -453,31 +453,31 @@ export class DKV<T = any> extends EventEmitter {
     if (this.noAutosave) {
       return await this.attemptToSave();
     }
-    let d = 100;
-    while (this.kv != null) {
-      let status;
-      try {
-        status = await this.attemptToSave();
-        //console.log("successfully saved");
-      } catch (_err) {
+    let status;
+
+    await until(
+      async () => {
         if (this.kv == null) {
-          return;
+          return true;
         }
-        if (!process.env.COCALC_TEST_MODE) {
-          console.log(
-            "WARNING: dkv attemptToSave failed -- ",
-            this.name,
-            this.kv?.name,
-            _err,
-          );
+        try {
+          status = await this.attemptToSave();
+          //console.log("successfully saved");
+        } catch (err) {
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(
+              "WARNING: dkv attemptToSave failed -- ",
+              this.name,
+              this.kv?.name,
+              err,
+            );
+          }
         }
-      }
-      if (!this.hasUnsavedChanges()) {
-        return status;
-      }
-      d = Math.min(10000, d * 1.3) + Math.random() * 100;
-      await delay(d);
-    }
+        return !this.hasUnsavedChanges();
+      },
+      { start: 150, decay: 1.3, max: 10000 },
+    );
+    return status;
   });
 
   private attemptToSave = async () => {

@@ -22,7 +22,6 @@ import {
 } from "./core-stream";
 import { randomId } from "@cocalc/conat/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { delay } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
 import refCache from "@cocalc/util/refcache";
 import {
@@ -35,6 +34,7 @@ import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
 import { conat } from "@cocalc/conat/client";
 import { map as awaitMap } from "awaiting";
+import { until } from "@cocalc/util/async-utils";
 
 export interface DStreamOptions {
   // what it's called by us
@@ -259,28 +259,26 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   save = reuseInFlight(async () => {
-    let d = 1000;
-    while (this.stream != null) {
-      try {
-        await this.attemptToSave();
-        //console.log("successfully saved");
-      } catch (err) {
+    await until(
+      async () => {
         if (this.stream == null) {
-          return;
+          return true;
         }
-        d = Math.min(10000, d * 1.3) + Math.random() * 100;
-        await delay(d);
-        if (!process.env.COCALC_TEST_MODE) {
-          console.warn(
-            `WARNING: stream attemptToSave failed -- ${err}`,
-            this.name,
-          );
+        try {
+          await this.attemptToSave();
+          //console.log("successfully saved");
+        } catch (err) {
+          if (!process.env.COCALC_TEST_MODE) {
+            console.warn(
+              `WARNING: stream attemptToSave failed -- ${err}`,
+              this.name,
+            );
+          }
         }
-      }
-      if (!this.hasUnsavedChanges()) {
-        return;
-      }
-    }
+        return !this.hasUnsavedChanges();
+      },
+      { start: 150, decay: 1.3, max: 10000 },
+    );
   });
 
   private attemptToSave = async () => {

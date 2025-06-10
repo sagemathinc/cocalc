@@ -30,7 +30,11 @@ export async function wait({
 }) {
   await until(
     async () => {
-      return !!(await f());
+      try {
+        return !!(await f());
+      } catch {
+        return false;
+      }
     },
     {
       start,

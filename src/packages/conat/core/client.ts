@@ -566,37 +566,34 @@ export class Client extends EventEmitter {
   };
 
   private syncSubscriptions = reuseInFlight(async () => {
-    let d = 1000;
     let fails = 0;
-    while (this.state != "closed") {
-      try {
-        if (this.info == null) {
-          // no point in trying until we are signed in and connected
-          await once(this, "info");
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        try {
+          if (this.info == null) {
+            // no point in trying until we are signed in and connected
+            await once(this, "info");
+          }
+          if (this.isClosed()) return true;
+          await this.waitUntilConnected();
+          if (this.isClosed()) return true;
+          const stable = await this.syncSubscriptions0(10000);
+          if (stable) {
+            return true;
+          }
+        } catch (err) {
+          fails++;
+          if (fails >= 3) {
+            console.log(
+              `WARNING: failed to sync subscriptions ${fails} times -- ${err}`,
+            );
+          }
         }
-        if (this.isClosed()) return;
-        await this.waitUntilConnected();
-        if (this.isClosed()) return;
-        const stable = await this.syncSubscriptions0(10000);
-        if (stable) {
-          //console.log("successful sync, plus no changes -- we're done.");
-          return;
-        } else {
-          //           console.log(
-          //             "successful sync, but changes, so we try again just in case",
-          //           );
-        }
-      } catch (err) {
-        fails++;
-        if (fails >= 3) {
-          console.log(
-            `WARNING: failed to sync subscriptions ${fails} times -- ${err}`,
-          );
-        }
-      }
-      await delay(d);
-      d = Math.min(15000, d * 1.3);
-    }
+        return false;
+      },
+      { start: 1000, max: 15000 },
+    );
   });
 
   // syncSubscriptions0 ensures that we're subscribed on server
