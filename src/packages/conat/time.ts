@@ -1,7 +1,7 @@
 /*
 Time sync -- relies on a hub running a time sync server.
 
-IMPORTANT: Our realtime sync algorithm doesn't depend on an accurate clock anymore.
+IMPORTANT: Our realtime sync algorithm does NOT depend on an accurate clock anymore.
 We may use time to compute logical timestamps for convenience, but they will always be
 increasing and fall back to a non-time sequence for a while in case a clock is out of sync.
 We do use the time for displaying edit times to users, which is one reason why syncing
@@ -77,7 +77,7 @@ async function syncLoop() {
       }
       await delay(d);
     } catch (err) {
-      console.log(`WARNING: failed to sync clock -- ${err}`);
+      // console.log(`WARNING: failed to sync clock -- ${err}`);
       // reset delay
       d = INTERVAL_START;
       await delay(d);
@@ -104,7 +104,7 @@ export const getSkew = reuseInFlight(async (): Promise<number> => {
     skew = start + rtt / 2 - serverTime;
     return skew;
   } catch (err) {
-    console.log("WARNING: temporary issue syncing time", err);
+    // console.log("WARNING: temporary issue syncing time", err);
     skew = 0;
     return 0;
   }
