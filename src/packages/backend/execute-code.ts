@@ -5,7 +5,7 @@
 
 // Execute code in a subprocess.
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import LRU from "lru-cache";
 import {
   ChildProcessWithoutNullStreams,
@@ -43,7 +43,12 @@ const PREFIX = "COCALC_PROJECT_ASYNC_EXEC";
 const ASYNC_CACHE_MAX = envToInt(`${PREFIX}_CACHE_MAX`, 100);
 const ASYNC_CACHE_TTL_S = envToInt(`${PREFIX}_TTL_S`, 60 * 60);
 // for async execution, every that many secs check up on the child-tree
-const MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+let MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+
+export function setMonitorIntervalSeconds(n) {
+  MONITOR_INTERVAL_S = n;
+}
+
 const MONITOR_STATS_LENGTH_MAX = envToInt(
   `${PREFIX}_MONITOR_STATS_LENGTH_MAX`,
   100,
@@ -355,7 +360,7 @@ function doSpawn(
     if (job_id == null || pid == null || job_config == null) return;
     const monitor = new ProcessStats();
     await monitor.init();
-    await new Promise((done) => setTimeout(done, 1000));
+    await delay(1000);
     if (callback_done) return;
 
     while (true) {
@@ -394,7 +399,7 @@ function doSpawn(
       // i.e. after 6 minutes, we check every minute
       const next_s = Math.max(1, Math.floor(elapsed_s / 6));
       const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
-      await new Promise((done) => setTimeout(done, wait_s * 1000));
+      await delay(wait_s * 1000);
     }
   }
 
