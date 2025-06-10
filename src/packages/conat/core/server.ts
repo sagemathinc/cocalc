@@ -1,5 +1,13 @@
 /*
 
+Just try it out, start up node.js in this directory and:
+
+    s = require('@cocalc/conat/core/server').init({port:4567, getUser:()=>{return {hub_id:'hub'}}})
+    c = s.client();
+    c.watch('foo')
+    c2 = s.client();
+    c2.pub('foo', 'bar')
+
 
 cd packages/server
 
