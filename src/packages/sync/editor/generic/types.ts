@@ -120,6 +120,14 @@ export interface ProjectClient extends EventEmitter {
 
   watch_file: (opts: { path: string }) => FileWatcher;
 
+  synctable_ephemeral?: (
+    project_id: string,
+    query: any,
+    options: any,
+    throttle_changes?: number,
+    id?: string,
+  ) => Promise<SyncTable>;
+
   synctable_conat: (query: any, obj?) => Promise<any>;
   pubsub_conat: (query: any, obj?) => Promise<any>;
   callConatService?: CallConatServiceFunction;
@@ -156,12 +164,6 @@ export interface Client extends ProjectClient {
     action: string;
     ttl: number;
   }) => void;
-
-  synctable_database?: (
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ) => Promise<SyncTable>;
 
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 

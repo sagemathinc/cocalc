@@ -247,7 +247,6 @@ export class SyncDoc extends EventEmitter {
   private save_to_disk_end_ctime: number | undefined;
 
   private persistent: boolean = false;
-  public readonly data_server: DataServer = "project";
 
   private last_has_unsaved_changes?: boolean = undefined;
 
@@ -1252,17 +1251,12 @@ export class SyncDoc extends EventEmitter {
   ): Promise<SyncTable> => {
     this.assert_not_closed("synctable");
     const dbg = this.dbg("synctable");
-    if (
-      !this.useConat &&
-      !this.ephemeral &&
-      this.persistent &&
-      this.data_server == "project"
-    ) {
+    if (!this.useConat && !this.ephemeral && this.persistent) {
       // persistent table in a non-ephemeral syncdoc, so ensure that table is
       // persisted to database (not just in memory).
       options = options.concat([{ persistent: true }]);
     }
-    if (this.ephemeral && this.data_server == "project") {
+    if (this.ephemeral) {
       options.push({ ephemeral: true });
     }
     let synctable;
@@ -1338,20 +1332,16 @@ export class SyncDoc extends EventEmitter {
         ephemeral,
       });
     } else {
-      switch (this.data_server) {
-        case "database":
-          if (this.client.synctable_database == null) {
-            throw Error("database server not supported by project");
-          }
-          synctable = await this.client.synctable_database?.(
-            query,
-            options,
-            throttle_changes,
-          );
-          break;
-        default:
-          throw Error(`uknown server ${this.data_server}`);
+      // only used for unit tests and the ephemeral messaging composer
+      if (this.client.synctable_ephemeral == null) {
+        throw Error(`client does not support sync properly`);
       }
+      synctable = await this.client.synctable_ephemeral(
+        this.project_id,
+        query,
+        options,
+        throttle_changes,
+      );
     }
     // We listen and log error events.  This is useful because in some settings, e.g.,
     // in the project, an eventemitter with no listener for errors, which has an error,
@@ -1943,12 +1933,7 @@ export class SyncDoc extends EventEmitter {
     // need to persist it to the database, obviously!
     // Also, queue_size:1 makes it so only the last cursor position is
     // saved, e.g., in case of disconnect and reconnect.
-    let options;
-    if (this.data_server == "project") {
-      options = [{ ephemeral: true }, { queue_size: 1 }];
-    } else {
-      options = [];
-    }
+    const options = [{ ephemeral: true }, { queue_size: 1 }]; // probably deprecated
     this.cursors_table = await this.synctable(query, options, 1000);
     this.assert_not_closed("init_cursors -- after making synctable");
 
@@ -2147,6 +2132,9 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     await this.handle_patch_update_queue();
+    if (this.state != "ready") {
+      return;
+    }
 
     // Ensure all patches are saved to backend.
     // We do this after the above, so that creating the newest patch

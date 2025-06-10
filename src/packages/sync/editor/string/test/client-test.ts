@@ -15,6 +15,7 @@ import {
 } from "../../generic/types";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+import { once } from "@cocalc/util/async-utils";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {
   private path: string;
@@ -155,12 +156,15 @@ export class Client extends EventEmitter implements Client0 {
 
   public set_deleted(_filename: string, _project_id?: string): void {}
 
-  async synctable_database(
-    _query: any,
-    _options: any,
-    _throttle_changes?: number,
+  async synctable_ephemeral(
+    _project_id: string,
+    query: any,
+    options: any,
+    throttle_changes?: number,
   ): Promise<SyncTable> {
-    throw Error("synctable_database: not implemented");
+    const s = new SyncTable(query, options, this, throttle_changes);
+    await once(s, "connected");
+    return s;
   }
 
   async synctable_conat(_query: any): Promise<SyncTable> {
