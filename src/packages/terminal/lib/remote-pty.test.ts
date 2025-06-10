@@ -14,6 +14,7 @@ import {
   waitForPidToChange,
 } from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
+import { until } from "@cocalc/util/async-utils";
 
 describe("tests remotePty connecting and handling data with **simulated** pty and explicitly pushing messages back and forth (for low level tests)", () => {
   let terminal;
@@ -53,6 +54,9 @@ describe("tests remotePty connecting and handling data with **simulated** pty an
     const pid = terminal.getPid();
     remoteSpark = ptyChannel.createSpark("192.168.2.2");
     expect(terminal.getPid()).toBe(undefined);
+    await until(async () => {
+      return (await isPidRunning(pid)) == false;
+    });
     // check that original process is no longer running.
     expect(await isPidRunning(pid)).toBe(false);
   });
@@ -71,6 +75,9 @@ describe("tests remotePty connecting and handling data with **simulated** pty an
     remoteSpark.end();
     await waitForPidToChange(terminal, 0);
     const pid = terminal.getPid();
+    await until(async () => {
+      return (await isPidRunning(pid)) == true;
+    });
     expect(await isPidRunning(pid)).toBe(true);
   });
 
