@@ -533,7 +533,7 @@ export class ConatServer {
       send: { messages: 0, bytes: 0 },
       subs: 0,
       connected: Date.now(),
-      address: socket.handshake.address,
+      address: getAddress(socket),
     };
     let user: any = null;
     let added = false;
@@ -759,4 +759,29 @@ export function consistentChoice(v: Set<string>, resource: string): string {
     hr.add(x);
   }
   return hr.get(resource);
+}
+
+// See https://socket.io/how-to/get-the-ip-address-of-the-client
+function getAddress(socket) {
+  const header = socket.handshake.headers["forwarded"];
+  if (header) {
+    for (const directive of header.split(",")[0].split(";")) {
+      if (directive.startsWith("for=")) {
+        return directive.substring(4);
+      }
+    }
+  }
+
+  let addr = socket.handshake.headers["x-forwarded-for"]?.split(",")?.[0];
+  if (addr) {
+    return addr;
+  }
+  for (const other of ["cf-connecting-ip", "fastly-client-ip"]) {
+    addr = socket.handshake.headers[other];
+    if (addr) {
+      return addr;
+    }
+  }
+
+  return socket.handshake.address;
 }

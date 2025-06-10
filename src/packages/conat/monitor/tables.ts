@@ -30,9 +30,15 @@ function formatCompactDuration(ms: number): string {
   return out;
 }
 
+interface Options {
+  client: Client;
+  maxWait?: number;
+  maxMessages?: number;
+}
+
 // cd packages/backend; pnpm conat-connections
-export async function usage(client: Client, maxWait = 3000) {
-  const sys = client.callMany("sys.conat.server", { maxWait });
+export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
+  const sys = client.callMany("sys.conat.server", { maxWait, maxMessages });
   const data = await sys.usage();
   const rows: any[] = [];
   let total = 0;
@@ -58,8 +64,8 @@ export async function usage(client: Client, maxWait = 3000) {
   return table;
 }
 
-export async function stats(client: Client, maxWait = 3000) {
-  const sys = client.callMany("sys.conat.server", { maxWait });
+export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
+  const sys = client.callMany("sys.conat.server", { maxWait, maxMessages });
   const data = await sys.stats();
 
   const rows: any[] = [];
@@ -121,12 +127,22 @@ export async function stats(client: Client, maxWait = 3000) {
   return table;
 }
 
-export async function showUsersAndStats(client: Client, maxWait = 3000) {
-  console.log(`Gathering stats for ${maxWait / 1000} seconds...\n\n`);
+export async function showUsersAndStats({
+  client,
+  maxWait = 3000,
+  maxMessages,
+}: Options) {
+  let s;
+  if (maxMessages) {
+    s = `for up ${maxMessages} servers `;
+  } else {
+    s = "";
+  }
+  console.log(`Gather data ${s}for up to ${maxWait / 1000} seconds...\n\n`);
   const X = [usage, stats];
   const tables: any[] = [];
   const f = async (i) => {
-    tables.push(await X[i](client, maxWait));
+    tables.push(await X[i]({ client, maxWait, maxMessages }));
   };
   await Promise.all([f(0), f(1)]);
   console.log(tables[0].toString());
