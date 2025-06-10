@@ -1,5 +1,5 @@
 import { createServer } from "http";
-import { delay } from "awaiting";
+import { until } from "@cocalc/util/async-utils";
 
 export async function getPort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -18,25 +18,21 @@ export async function getPort(): Promise<number> {
 }
 
 export async function wait({
-  until,
+  until: f,
   start = 5,
   decay = 1.2,
-  max = 250,
+  max = 300,
 }: {
   until: Function;
   start?: number;
   decay?: number;
   max?: number;
 }) {
-  let d = start;
-  while (true) {
-    try {
-      const x = await until();
-      if (x) {
-        return;
-      }
-    } catch {}
-    await delay(d);
-    d = Math.min(max, d * decay);
-  }
+  await until(f, {
+    start,
+    decay,
+    max,
+    min: 5,
+    timeout: 10000,
+  });
 }

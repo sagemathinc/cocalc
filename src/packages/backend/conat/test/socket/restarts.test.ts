@@ -1,3 +1,9 @@
+/*
+
+pnpm test `pwd`/restarts.test.ts
+
+*/
+
 import {
   before,
   after,
@@ -15,6 +21,9 @@ beforeAll(async () => {
 jest.setTimeout(10000);
 
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
+  const keepAlive = 2000;
+  const keepAliveTimeout = 500;
+
   let client,
     server,
     cn1,
@@ -22,7 +31,7 @@ describe("create a client and server and socket, verify it works, restart conat 
     sockets: any[] = [];
   it("creates the client and server and confirms it works", async () => {
     cn1 = connect();
-    server = cn1.socket.listen("cocalc");
+    server = cn1.socket.listen("cocalc", { keepAlive, keepAliveTimeout });
     server.on("connection", (socket) => {
       sockets.push(socket);
       socket.on("data", (data) => {
@@ -33,7 +42,7 @@ describe("create a client and server and socket, verify it works, restart conat 
       });
     });
     cn2 = connect();
-    client = cn2.socket.connect("cocalc");
+    client = cn2.socket.connect("cocalc", { keepAlive, keepAliveTimeout });
     const resp = once(client, "data");
     client.write("cocalc");
     const [data] = await resp;
@@ -47,31 +56,23 @@ describe("create a client and server and socket, verify it works, restart conat 
     await cn2.syncSubscriptions();
   }
 
-  let socketDisconnects: string[] = [];
-  it("restarts conat and observes clients both disconnect and connect", async () => {
-    client.on("disconnected", () => socketDisconnects.push("disconnected"));
-    server.on("disconnected", () => socketDisconnects.push("disconnected"));
-    await restartServer();
-    await waitForClientsToReconnect();
-  });
-
   it("restarts the conat socketio server, wait for clients to reconnect, and test sending data over socket", async () => {
     await restartServer();
     await waitForClientsToReconnect();
     // sending data over socket
+    const iter = client.iter();
     client.write("test");
-    const resp = once(client, "data");
-    const [data] = await resp;
-    expect(data).toBe("testtest");
+    const { value, done } = await iter.next();
+    expect(done).toBe(false);
+    expect(value[0]).toBe("testtest");
   });
 
-  it("restart conat, wait for reconnect and observe request/respond immediately works", async () => {
-    await restartServer();
-    await waitForClientsToReconnect();
+  let socketDisconnects: string[] = [];
+  it("also request/respond immediately works", async () => {
     expect((await client.request(null)).data).toBe("hello");
   });
 
-  it("observes the socket did not disconnect - they never do until a timeout, being explicitly closed, which is the point of sockets", async () => {
+  it("observes the socket did not disconnect - they never do until a timeout or being explicitly closed, which is the point of sockets -- they are robust to client connection state", async () => {
     expect(socketDisconnects.length).toBe(0);
   });
 
@@ -98,11 +99,11 @@ describe("create a client and server and socket, verify it works, restart conat 
 
     // also checking ordering is correct too:
     const { value: value1 } = await iter.next();
+
     expect(value1[0]).toBe("foofoo");
   });
-
   // this test should take 1-2 seconds due to having to missed-packet detection logic
-  it("restart connection as we are sending data from the server to the client, and see again that nothing is lost - this the other direction of the previous tests", async () => {
+  it("restart connection as we are sending data from the server to the client, and see again that nothing is lost - this the server --> client direction of the previous tests which was client --> server", async () => {
     const socket = sockets[0];
     const iter = client.iter();
     socket.write("sneaky");

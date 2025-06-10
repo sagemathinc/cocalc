@@ -16,8 +16,50 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
-
 import { reuseInFlight } from "./reuse-in-flight";
+
+interface RetryOptions {
+  start?: number;
+  decay?: number;
+  max?: number;
+  min?: number;
+  timeout?: number;
+}
+
+// clean and simple async (or sync) retry function. It
+// does "await f()" until (1) no exception is raised, and
+// (2) the return value is truthy.  It then returns that value.
+// It optionally can take a timeout, which if hit it will
+// throw Error('timeout').   retry_until_success below is an
+// a variant of this pattern keeps retrying until f doesn't throw.
+export async function until(
+  f: Function,
+  {
+    start = 500,
+    decay = 1.3,
+    max = 15000,
+    min = 50,
+    timeout = 0,
+  }: RetryOptions,
+) {
+  const end = timeout ? Date.now() + timeout : undefined;
+  let d = start;
+  while (end === undefined || Date.now() < end) {
+    try {
+      const x = await f();
+      if (x) {
+        return x;
+      }
+    } catch {}
+    if (end) {
+      d = Math.max(min, Math.min(end - Date.now(), Math.min(max, d * decay)));
+    } else {
+      d = Math.max(min, Math.min(max, d * decay));
+    }
+    await awaiting.delay(d);
+  }
+  throw Error("timeout");
+}
 
 export { asyncDebounce, asyncThrottle } from "./async-debounce-throttle";
 

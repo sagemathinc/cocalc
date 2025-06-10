@@ -171,7 +171,9 @@ export class ConatSocketClient extends ConatSocketBase {
       for await (const mesg of this.sub) {
         this.alive?.recv();
         const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
-        logger.silly("client got cmd", cmd);
+        if (cmd) {
+          logger.silly("client got cmd", cmd);
+        }
         if (cmd == "socket") {
           this.tcp?.send.handleRequest(mesg);
         } else if (cmd == "close") {
@@ -181,8 +183,10 @@ export class ConatSocketClient extends ConatSocketBase {
           logger.silly("responding to ping from server", this.id);
           mesg.respond(null);
         } else if (mesg.isRequest()) {
+          logger.silly("client got request");
           this.emit("request", mesg);
         } else {
+          logger.silly("client got data", { data: mesg.data });
           this.tcp?.recv.process(mesg);
         }
       }

@@ -13,8 +13,7 @@ import {
   ConatError,
 } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { delay } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 
 const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
@@ -222,17 +221,22 @@ export class Sender extends EventEmitter {
     this.send(this.outgoing[this.seq]);
   };
 
+  // this gets tested in backend/conat/test/socket/restarts.test.ts
   resendLastUntilAcked = reuseInFlight(async () => {
-    const end = Date.now() + this.timeout;
-    let d = 500;
-    while (
-      this.outgoing !== undefined &&
-      !this.lastAcked() &&
-      Date.now() < end
-    ) {
-      this.resendLast();
-      d = Math.min(Date.now() - end, Math.min(15000, d * 1.3));
-      await delay(d);
+    try {
+      await until(
+        () => {
+          if (this.outgoing === undefined || this.lastAcked()) {
+            // done -- condition satisfied
+            return true;
+          }
+          this.resendLast();
+        },
+        { start: 500, max: 15000, decay: 1.3, timeout: this.timeout },
+      );
+    } catch {
+      // it will throw if it hits the timeout -- silently ignore, since
+      // there's no guarantee resendLastUntilAcked actually succeeds
     }
   });
 
