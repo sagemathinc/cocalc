@@ -71,11 +71,10 @@ these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/sc
 ~/cocalc/src$ pnpm build-dev
 ```
 
-This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm build-dev` finishes successfully, you can start using CoCalc by starting the database, nats server and the backend hub in three terminals.  \(Note that 'pnpm nats\-server' will download, install and configure NATS automatically.\)  You can start the database, nats\-server and hub in any order.
+This will do `pnpm install` for all packages, and also build the typescript code, and anything else into a dist directory for each module. Once `pnpm build-dev` finishes successfully, you can start using CoCalc by starting the database and the backend hub in two terminals.  You can start the database and hub in any order.
 
 ```sh
 ~/cocalc/src$ pnpm database    # in one terminal
-~/cocalc/src$ pnpm nats-server # in one terminal
 ~/cocalc/src$ pnpm hub         # in another terminal
 ```
 
@@ -184,14 +183,6 @@ which installs exactly the right packages, and builds the code.
 #### Environment Variables
 
 See `packages/backend/data.ts` . In particular, you can set BASE_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults. Data is stored in `cocalc/src/data/` by default.
-
-For NATS when doing development, it can be useful to set these in .bashrc so NATS uses ports of your choosing that are available.
-
-```sh
-export COCALC_NATS_SERVER_NAME=localhost
-export COCALC_NATS_PORT=5007
-export COCALC_NATS_WS_PORT=5008
-```
 
 #### File System Build Caching
 
