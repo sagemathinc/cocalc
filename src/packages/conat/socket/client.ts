@@ -11,10 +11,10 @@ import {
   DEFAULT_COMMAND_TIMEOUT,
   type ConatSocketOptions,
 } from "./util";
-import { delay } from "awaiting";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { keepAlive, KeepAlive } from "./keepalive";
 import { getLogger } from "@cocalc/conat/client";
+import { until } from "@cocalc/util/async-utils";
 
 const logger = getLogger("socket:client");
 
@@ -145,24 +145,25 @@ export class ConatSocketClient extends ConatSocketBase {
         return;
       }
       let resp: any = undefined;
-      let d = 500;
-      while (true) {
-        // @ts-ignore
-        if (this.state == "closed") {
-          logger.silly("closed -- giving up on connecting");
-          return;
-        }
-        try {
-          logger.silly("sending connect command to server");
-          resp = await this.sendCommandToServer("connect");
-          this.alive?.recv();
-          break;
-        } catch (err) {
-          logger.silly("failed to connect", err);
-          await delay(d);
-          d = Math.min(10000, d * 1.3);
-        }
-      }
+      await until(
+        async () => {
+          if (this.state == "closed") {
+            logger.silly("closed -- giving up on connecting");
+            return true;
+          }
+          try {
+            logger.silly("sending connect command to server");
+            resp = await this.sendCommandToServer("connect");
+            this.alive?.recv();
+            return true;
+          } catch (err) {
+            logger.silly("failed to connect", err);
+          }
+          return false;
+        },
+        { start: 500, decay: 1.3, max: 10000 },
+      );
+
       if (resp != "connected") {
         throw Error("failed to connect");
       }
@@ -296,26 +297,4 @@ export class ConatSocketClient extends ConatSocketBase {
   iter = () => {
     return new EventIterator<[any, Headers]>(this, "data");
   };
-}
-
-export async function retry<T = any>(
-  f,
-  {
-    start = 1000,
-    decay = 1.3,
-    max = 15000,
-  }: {
-    start?: number;
-    decay?: number;
-    max?: number;
-  },
-): Promise<T> {
-  let d = start;
-  while (true) {
-    try {
-      return await f();
-    } catch {}
-    await delay(d);
-    d = Math.min(max, d * decay);
-  }
 }

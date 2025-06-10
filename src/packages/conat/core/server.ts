@@ -264,8 +264,8 @@ export class ConatServer {
     // [ ] TODO: we need to limit the size of the stream and/or
     // timeout interest and/or reconcile it periodically with
     // actual connected users to avoid the interest object
-    // getting too big for now reason.  E.g, maybe all subscriptions
-    // need to be renewed periodically
+    // getting too big for no reason.  E.g, maybe all subscriptions
+    // need to be renewed periodically.
     let lastId = "0";
     let d = 50;
     while (true) {

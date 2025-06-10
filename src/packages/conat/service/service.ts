@@ -14,10 +14,10 @@ import { type Location } from "@cocalc/conat/types";
 import { trunc_middle } from "@cocalc/util/misc";
 import { conat, getLogger } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
-import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { encodeBase64 } from "@cocalc/conat/util";
 import { type Client } from "@cocalc/conat/core/client";
+import { until } from "@cocalc/util/async-utils";
 
 const DEFAULT_TIMEOUT = 10 * 1000;
 
@@ -279,6 +279,8 @@ export async function pingConatService({
   return [pong];
 }
 
+// NOTE: anything that has to rely on waitForConatService should
+// likely be rewritten differently...
 export async function waitForConatService({
   options,
   maxWait = 60000,
@@ -286,31 +288,24 @@ export async function waitForConatService({
   options: ServiceDescription;
   maxWait?: number;
 }) {
-  let d = 1000;
-  let m = 100;
-  const start = Date.now();
-  const getPing = async (m: number) => {
-    try {
-      return await pingConatService({ options, maxWait: m });
-    } catch {
-      // ping can fail, e.g, if not connected to conat at all or the ping
-      // service isn't up yet.
-      return [] as string[];
-    }
-  };
-  let ping = await getPing(m);
-  while (ping.length == 0) {
-    d = Math.min(10000, d * 1.3);
-    m = Math.min(1500, m * 1.3);
-    if (Date.now() - start + d >= maxWait) {
-      logger.debug(
-        `timeout waiting for ${serviceName(options)} to start...`,
-        d,
-      );
-      throw Error("timeout");
-    }
-    await delay(d);
-    ping = await getPing(m);
-  }
+  let ping: string[] = [];
+  let pingMaxWait = 250;
+  await until(
+    async () => {
+      pingMaxWait = Math.min(3000, pingMaxWait * 1.4);
+      try {
+        ping = await pingConatService({ options, maxWait: pingMaxWait });
+        return ping.length > 0;
+      } catch {
+        return false;
+      }
+    },
+    {
+      start: 1000,
+      max: 10000,
+      decay: 1.3,
+      timeout: maxWait,
+    },
+  );
   return ping;
 }

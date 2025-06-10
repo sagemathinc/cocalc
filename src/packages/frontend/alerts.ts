@@ -85,25 +85,6 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   }
 }
 
-function check_for_clock_skew() {
-  const local_time = Date.now();
-  const s = Math.ceil(
-    Math.abs(
-      webapp_client.time_client.server_time().valueOf() - local_time.valueOf(),
-    ) / 1000,
-  );
-  if (s > 120) {
-    return alert_message({
-      type: "error",
-      timeout: 9999,
-      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`,
-    });
-  }
-}
-
-// Wait until after the page is loaded and clock sync'd before checking for skew.
-setTimeout(check_for_clock_skew, 60000);
-
 // for testing/development
 /*
 alert_message({ type: "error", message: "This is an error" });

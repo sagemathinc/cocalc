@@ -42,7 +42,7 @@ export async function until(
     min = 50,
     timeout = 0,
     log,
-  }: RetryOptions,
+  }: RetryOptions = {},
 ) {
   const end = timeout ? Date.now() + timeout : undefined;
   let d = start;
