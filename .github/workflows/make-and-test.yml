@@ -65,7 +65,6 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "18"
           - "20"
         pg-version:
           - "13.12"
