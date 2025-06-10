@@ -17,6 +17,8 @@ export interface ServerConnectionStats {
   subs: number;
   connected?: number; // time connected
   active?: number;
+  // ip address
+  address?: string;
 }
 
 export interface ConnectionStats extends ServerConnectionStats {

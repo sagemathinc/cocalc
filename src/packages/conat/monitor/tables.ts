@@ -58,44 +58,50 @@ export async function usage(client: Client, maxWait = 3000) {
   return table;
 }
 
-export async function connections(client: Client, maxWait = 3000) {
+export async function stats(client: Client, maxWait = 3000) {
   const sys = client.callMany("sys.conat.server", { maxWait });
   const data = await sys.stats();
 
   const rows: any[] = [];
-  const totals = [0, 0, 0, 0, 0, 0, 0];
+  const cols = 8;
+  const totals = Array(cols).fill(0);
   for await (const X of data) {
     for (const server in X) {
       const stats = X[server];
       for (const id in stats) {
         const x = stats[id];
-        const user = JSON.stringify(x.user).slice(1, -1);
+        let user;
+        if (x.user?.error) {
+          user = user.error;
+        } else {
+          user = JSON.stringify(x.user).slice(1, -1);
+        }
         const uptime = formatCompactDuration(Date.now() - x.connected);
         rows.push([
           id,
           user,
           server,
+          x.address,
           uptime,
           x.send.messages,
           human_readable_size(x.send.bytes),
           x.subs,
         ]);
-        totals[4] += x.send.messages;
-        totals[5] += x.send.bytes;
-        totals[6] += x.subs;
+        totals[cols - 3] += x.send.messages;
+        totals[cols - 2] += x.send.bytes;
+        totals[cols - 1] += x.subs;
       }
     }
   }
-  rows.sort(field_cmp("6"));
-  rows.push(["", "", "", "", "", "", ""]);
+  rows.sort(field_cmp(`${cols - 1}`));
+  rows.push(Array(cols).fill(""));
   rows.push([
     "TOTALS",
     `Total for ${rows.length - 1} connections:`,
-    "",
-    "",
-    totals[3],
-    human_readable_size(totals[4]),
-    totals[5],
+    ...Array(cols - 5).fill(""),
+    totals[cols - 3],
+    human_readable_size(totals[cols - 2]),
+    totals[cols - 1],
   ]);
 
   const table = new AsciiTable3(`${rows.length - 2} Conat Connections`)
@@ -103,6 +109,7 @@ export async function connections(client: Client, maxWait = 3000) {
       "ID",
       "User",
       "Server",
+      "Address",
       "Uptime",
       "Out Msgs",
       "Out Bytes",
@@ -114,9 +121,9 @@ export async function connections(client: Client, maxWait = 3000) {
   return table;
 }
 
-export async function showUsersAndConnections(client: Client, maxWait = 3000) {
+export async function showUsersAndStats(client: Client, maxWait = 3000) {
   console.log(`Gathering stats for ${maxWait / 1000} seconds...\n\n`);
-  const X = [usage, connections];
+  const X = [usage, stats];
   const tables: any[] = [];
   const f = async (i) => {
     tables.push(await X[i](client, maxWait));

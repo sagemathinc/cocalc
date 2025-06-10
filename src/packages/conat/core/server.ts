@@ -533,6 +533,7 @@ export class ConatServer {
       send: { messages: 0, bytes: 0 },
       subs: 0,
       connected: Date.now(),
+      address: socket.handshake.address,
     };
     let user: any = null;
     let added = false;
