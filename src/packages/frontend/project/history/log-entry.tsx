@@ -109,7 +109,7 @@ function TookTime({
   }
   let description = `${ms}ms`;
 
-  if (display == "seconds") {
+  if (display == "seconds" && ms >= 1000) {
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 

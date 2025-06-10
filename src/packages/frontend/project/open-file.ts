@@ -449,7 +449,7 @@ async function convert_sagenb_worksheet(
   return filename.slice(0, filename.length - 3) + "sagews";
 }
 
-const log_open_time: { [path: string]: { id: string; start: Date } } = {};
+const log_open_time: { [path: string]: { id: string; start: number } } = {};
 
 export function log_file_open(
   project_id: string,
@@ -482,7 +482,7 @@ export function log_file_open(
     const key = `${project_id}-${path}`;
     log_open_time[key] = {
       id,
-      start: webapp_client.server_time(),
+      start: Date.now(),
     };
   }
 }
@@ -502,7 +502,7 @@ export function log_opened_time(project_id: string, path: string): void {
   // do not allow recording the time more than once, which would be weird.
   delete log_open_time[key];
   const actions = redux.getProjectActions(project_id);
-  const time = webapp_client.server_time().valueOf() - start.valueOf();
+  const time = Date.now() - start;
   actions.log({ time }, id);
 }
 

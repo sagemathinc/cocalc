@@ -1012,6 +1012,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open the given file in this project.
   open_file = async (opts: OpenFileOpts): Promise<void> => {
+    // Log that we *started* opening the file.
+    log_file_open(this.project_id, opts.path);
     await open_file(this, opts);
   };
 
@@ -1055,8 +1057,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext,
     );
 
-    // Log that we opened the file.
-    log_file_open(this.project_id, path);
     return { name, Editor };
   };
 

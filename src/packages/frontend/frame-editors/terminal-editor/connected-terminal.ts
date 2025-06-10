@@ -106,6 +106,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private render_done: Function[] = [];
   private ignoreData: boolean = false;
 
+  private firstOpen = true;
+
   constructor(
     actions: Actions<T>,
     number: number,
@@ -330,6 +332,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
             this.conn.write(buf);
             this.conn_write_buffer.length = 0;
           }
+        }
+        if (this.firstOpen) {
+          this.firstOpen = false;
+          this.project_actions.log_opened_time(this.path);
         }
       });
       if (endswith(this.path, ".term")) {
