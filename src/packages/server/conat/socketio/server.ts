@@ -24,7 +24,6 @@ import {
   init as createConatServer,
   type Options,
 } from "@cocalc/conat/core/server";
-import { Server } from "socket.io";
 import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
@@ -37,7 +36,6 @@ export async function init(options: Partial<Options> = {}) {
 
   const opts = {
     logger: logger.debug,
-    Server,
     getUser,
     isAllowed,
     systemAccountPassword: await secureRandomString(64),

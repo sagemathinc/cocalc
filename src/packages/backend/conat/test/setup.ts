@@ -5,7 +5,6 @@ import {
   type Options,
   type ConatServer,
 } from "@cocalc/conat/core/server";
-import { Server } from "socket.io";
 import getLogger from "@cocalc/backend/logger";
 import { setConatClient } from "@cocalc/conat/client";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
@@ -33,7 +32,6 @@ export async function initConatServer(
 
   return createConatServer({
     logger: logger.debug,
-    Server,
     ...options,
   });
 }

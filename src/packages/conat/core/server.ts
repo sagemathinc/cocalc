@@ -36,6 +36,7 @@ import {
 } from "@cocalc/conat/util";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
+import { Server } from "socket.io";
 import { delay } from "awaiting";
 import {
   ConatError,
@@ -67,7 +68,7 @@ interface InterestUpdate {
   room: string;
 }
 
-export function init(opts) {
+export function init(opts: Options) {
   return new ConatServer(opts);
 }
 
@@ -83,7 +84,6 @@ export type AllowFunction = (opts: {
 }) => Promise<boolean>;
 
 export interface Options {
-  Server;
   httpServer?;
   port?: number;
   id?: string;
@@ -120,7 +120,6 @@ export class ConatServer {
 
   constructor(options: Options) {
     const {
-      Server,
       httpServer,
       port = 3000,
       ssl = false,

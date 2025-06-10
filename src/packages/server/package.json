@@ -116,7 +116,6 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
-    "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
     "uuid": "^8.3.2"
   },

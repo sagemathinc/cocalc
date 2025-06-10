@@ -10,7 +10,6 @@ Environment variables:
 */
 
 import { init as createConatServer } from "@cocalc/conat/core/server";
-import { Server } from "socket.io";
 
 const DEFAULT_PORT = 3000;
 
@@ -19,4 +18,4 @@ const port = parseInt(process.env.CONAT_PORT ?? `${DEFAULT_PORT}`);
 console.log("* CONATS *");
 console.log(`http://localhost:${port}`);
 
-createConatServer({ port, Server, logger: console.log });
+createConatServer({ port, logger: console.log });
