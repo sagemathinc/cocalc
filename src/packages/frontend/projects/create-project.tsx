@@ -65,8 +65,15 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   const new_project_title_ref = useRef(null);
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const compute_servers_enabled = useTypedRedux(
+    "customize",
+    "compute_servers_enabled",
+  );
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
+  // only require a license on cocalc.com, if users has no upgrades, and if configured to require a license
   const requireLicense =
+    isCoCalcCom &&
     !hasLegacyUpgrades &&
     !!useTypedRedux("customize", "require_license_to_create_project");
   const [show_add_license, set_show_add_license] =
@@ -288,7 +295,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
             requireValid
             confirmLabel={"Add this license"}
             onChange={addSiteLicense}
-            requireLicense
+            requireLicense={requireLicense}
             requireMessage={`A license is required to create additional projects.`}
           />
         </Card>
@@ -318,8 +325,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   function render_input_section(): JSX.Element | undefined {
     const helpTxt = intl.formatMessage({
       id: "projects.create-project.helpTxt",
-      defaultMessage:
-        "The title of your new project.  You can easily change it later!",
+      defaultMessage: "You can easily change the title later!",
     });
 
     return (
@@ -360,8 +366,11 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
                 id="projects.create-project.explanation"
                 defaultMessage={`A <A1>project</A1> is a private computational workspace,
                   where you can work with collaborators that you explicitly invite.
-                  You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a project.`}
+                  {compute_servers_enabled, select,
+                  true {You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a project.}
+                  other {}}`}
                 values={{
+                  compute_servers_enabled,
                   A1: (c) => (
                     <A href="https://doc.cocalc.com/project.html">{c}</A>
                   ),
@@ -431,6 +440,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
         <Modal
           title={intl.formatMessage(labels.create_project)}
           open={state === "edit" || state === "saving"}
+          okButtonProps={{ disabled: isDisabled() }}
           okText={renderOKButtonText()}
           cancelText={intl.formatMessage(labels.cancel)}
           onCancel={cancel_editing}

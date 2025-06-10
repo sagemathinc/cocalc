@@ -324,12 +324,19 @@ export function ComputeImageSelector({
       return (
         <Row gutter={[10, 10]}>
           <Col xs={24}>
-            <Icon name={SOFTWARE_ENVIRONMENT_ICON} />
+            {render_selector()}
             <Gap />
-            <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
-              {render_selector()}
-            </span>
-            <Gap />
+            <HelpIcon title={intl.formatMessage(labels.software_environment)}>
+              <FormattedMessage
+                id="custom-software.selector.explanation"
+                defaultMessage={`Select the software environment.
+                Either go with the default environment, or select one of the more specialized ones.
+                Whatever choice you make, you can change it later in
+                Project Settings → Control → Software Environment.`}
+              />
+            </HelpIcon>
+          </Col>
+          <Col xs={24}>
             <span>{render_info(nextImg)}</span>
           </Col>
         </Row>
@@ -337,10 +344,19 @@ export function ComputeImageSelector({
     // used in projects → create new project
     case "dropdown":
       return (
-        <Flex vertical={false} justify={"space-between"} align={"center"}>
-          {render_selector()}
-          {customSwitch ? customSwitch : undefined}
-        </Flex>
+        <Row gutter={[10, 10]}>
+          <Col xs={24}>
+            <Flex vertical={false} justify={"space-between"} align={"center"}>
+              {render_selector()}
+              {customSwitch ? customSwitch : undefined}
+            </Flex>
+          </Col>
+          {!hideSelector && (
+            <Col xs={24}>
+              <Text type="secondary">{render_info(nextImg)}</Text>
+            </Col>
+          )}
+        </Row>
       );
     // successor of "vertical", where there is a dialog with a clear indication to click a button
     case "dialog":

@@ -5,7 +5,7 @@
 
 // cSpell:ignore descr disp dflt
 
-import { Alert, Button, Col, Form, List, Space, Switch } from "antd";
+import { Col, Form, List, Space, Switch } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
@@ -25,13 +25,13 @@ import {
   SearchInput,
 } from "@cocalc/frontend/components";
 import { CompanyName, HelpEmailLink } from "@cocalc/frontend/customize";
-//import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SoftwareEnvironmentInformation } from "@cocalc/frontend/project/settings/software-env-info";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { SOFTWARE_ENVIRONMENT_ICON } from "../project/settings/software-consts";
 import { ComputeImage, ComputeImageTypes, ComputeImages } from "./init";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
@@ -39,8 +39,6 @@ import {
   custom_image_name,
   is_custom_image,
 } from "./util";
-
-// const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
 const CS_LIST_STYLE: CSS = {
   height: "250px",
@@ -357,58 +355,37 @@ export function SoftwareEnvironment(props: Props) {
     );
   }
 
+  function render_software_form_label() {
+    return (
+      <span>
+        <Icon name={SOFTWARE_ENVIRONMENT_ICON} />{" "}
+        {intl.formatMessage(labels.software)}
+      </span>
+    );
+  }
+
   function render_onprem() {
     const selected = image_selected ?? dflt_software_img;
     return (
       <>
-        <Paragraph>
-          <FormattedMessage
-            id="custom-software.selector.explanation"
-            defaultMessage={`Select the software environment.
-                Either go with the default environment, or select one of the more specialized ones.
-                Whatever choice you make, you can change it later in
-                Project Settings → Control → Software Environment at any time.`}
-          />
-        </Paragraph>
-        <Paragraph>
-          <ComputeImageSelector
-            size={"middle"}
-            current_image={selected}
-            layout={"horizontal"}
-            onSelect={(img) => {
-              const display = software_images.get(img)?.get("title");
-              set_state(img, display, "standard");
-            }}
-          />
-        </Paragraph>
-        <Paragraph>
-          {selected !== dflt_software_img ? (
-            <Alert
-              type="info"
-              banner
-              closable
-              message={
-                <>
-                  {intl.formatMessage({
-                    id: "custom-software.selector.non-standard",
-                    defaultMessage:
-                      "You selected a non-standard software environment",
-                  })}
-                  :{" "}
-                  <Button
-                    size="small"
-                    type="link"
-                    onClick={() => {
-                      set_state(dflt_software_img, undefined, "standard");
-                    }}
-                  >
-                    {intl.formatMessage(labels.reset)}
-                  </Button>
-                </>
-              }
-            />
-          ) : undefined}
-        </Paragraph>
+        <Col sm={24}>
+          <Form>
+            <Form.Item
+              label={render_software_form_label()}
+              style={{ marginBottom: "0px" }}
+            >
+              <ComputeImageSelector
+                size={"middle"}
+                current_image={selected}
+                layout={"horizontal"}
+                onSelect={(img) => {
+                  const display = software_images.get(img)?.get("title");
+                  set_state(img, display, "standard");
+                }}
+              />
+            </Form.Item>
+          </Form>
+        </Col>
       </>
     );
   }
@@ -440,7 +417,10 @@ export function SoftwareEnvironment(props: Props) {
       <>
         <Col sm={12}>
           <Form>
-            <Form.Item label={intl.formatMessage(labels.software)}>
+            <Form.Item
+              label={render_software_form_label()}
+              style={{ marginBottom: "0px" }}
+            >
               <ComputeImageSelector
                 size="middle"
                 current_image={image_selected ?? dflt_software_img}
