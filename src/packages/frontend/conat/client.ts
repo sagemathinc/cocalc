@@ -7,8 +7,7 @@ import {
 } from "@cocalc/conat/sync/synctable";
 import { randomId, inboxPrefix } from "@cocalc/conat/names";
 import { projectSubject } from "@cocalc/conat/names";
-import { parse_query } from "@cocalc/sync/table/util";
-import { keys } from "lodash";
+import { parseQueryWithOptions } from "@cocalc/sync/table/util";
 import { type HubApi, initHubApi } from "@cocalc/conat/hub/api";
 import { type ProjectApi, initProjectApi } from "@cocalc/conat/project/api";
 import { isValidUUID } from "@cocalc/util/misc";
@@ -350,17 +349,10 @@ export class ConatClient extends EventEmitter {
   };
 
   synctable: ConatSyncTableFunction = async (
-    query,
+    query0,
     options?,
   ): Promise<ConatSyncTable> => {
-    query = parse_query(query);
-    const table = keys(query)[0];
-    const obj = options?.obj;
-    if (obj != null) {
-      for (const k in obj) {
-        query[table][0][k] = obj[k];
-      }
-    }
+    const { query, table } = parseQueryWithOptions(query0, options);
     if (options?.project_id != null && query[table][0]["project_id"] === null) {
       query[table][0]["project_id"] = options.project_id;
     }
