@@ -132,13 +132,6 @@ export class Session {
     this.stream.on("reject", () => {
       this.throttledEllipses();
     });
-    if (
-      this.stream.length > 1 &&
-      !this.stream.get(this.stream.length - 1)?.includes(EXIT_MESSAGE) &&
-      !this.stream.get(this.stream.length - 2)?.includes(EXIT_MESSAGE)
-    ) {
-      this.stream.publish(EXIT_MESSAGE);
-    }
   };
 
   private throttledEllipses = throttle(
