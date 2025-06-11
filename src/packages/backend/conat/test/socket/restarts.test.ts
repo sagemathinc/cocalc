@@ -10,7 +10,6 @@ import {
   connect,
   restartServer,
   setDefaultTimeouts,
-  delay,
 } from "@cocalc/backend/conat/test/setup";
 import { once } from "@cocalc/util/async-utils";
 
@@ -47,7 +46,7 @@ describe("create a client and server and socket, verify it works, restart conat 
 
     const iter = client.iter();
     client.write("cocalc");
-    const { value, done } = await iter.next();
+    const { value } = await iter.next();
     expect(value[0]).toBe("cocalccocalc");
 
     expect((await client.request(null)).data).toBe("hello");
@@ -114,7 +113,7 @@ describe("test of socket and restarting server -- restart while sending data fro
     client = cn2.socket.connect(SUBJECT);
     const iter = client.iter();
     client.write("cocalc");
-    const { value, done } = await iter.next();
+    const { value } = await iter.next();
     expect(value[0]).toBe("cocalccocalc");
   });
 
@@ -156,7 +155,7 @@ describe("another restart test: sending data while reconnecting to try to screw 
     client = cn2.socket.connect(SUBJECT);
     iter = client.iter();
     client.write("one ");
-    const { value, done } = await iter.next();
+    const { value } = await iter.next();
     expect(value[0]).toBe("one one ");
   });
 

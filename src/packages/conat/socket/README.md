@@ -28,6 +28,13 @@ immediately notified.
 
 Of course you can also send arbitrary messages over the socket.
 
+STATS:
+
+- disconnected
+- connecting
+- ready: 
+- closed: nothing further can be done with the socket
+
 LOAD BALANCING AND AUTOMATIC FAILOVER:
 
 We use a *sticky* subscription on the server's side.  This means
@@ -62,6 +69,7 @@ DEVELOPMENT:
 
 Start node via
 
+```
 CONAT_SERVER=http://localhost:3000 node
 
 // conat socketio server
@@ -81,4 +89,5 @@ conat = await require('@cocalc/backend/conat').conat(); s = conat.socket.listen(
 conat = await require('@cocalc/backend/conat').conat(); c = conat.socket.connect('conat.io');c.on('data',(data) => console.log("got", {data}));0
 
 c.write('hi')
+```
 
