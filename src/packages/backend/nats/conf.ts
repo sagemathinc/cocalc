@@ -112,6 +112,7 @@ jetstream: enabled
 
 jetstream {
   store_dir: data/nats/jetstream
+  max_file_store: 2000GB
 }
 
 websocket {
