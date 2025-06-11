@@ -243,7 +243,6 @@ export class ConatClient extends EventEmitter {
     return createConatService(options);
   };
 
-  // TODO: plan to deprecated...?
   projectWebsocketApi = async ({
     project_id,
     compute_server_id,

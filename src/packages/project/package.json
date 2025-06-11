@@ -5,6 +5,7 @@
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
     "./conat": "./dist/conat/index.js",
+    "./conat/terminal": "./dist/conat/terminal/index.js",
     "./*": "./dist/*.js",
     "./project-info": "./dist/project-info/index.js"
   },
