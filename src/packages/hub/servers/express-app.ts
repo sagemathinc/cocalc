@@ -11,7 +11,6 @@ import { parse as parseURL } from "url";
 import webpackDevMiddleware from "webpack-dev-middleware";
 import webpackHotMiddleware from "webpack-hot-middleware";
 import { path as WEBAPP_PATH } from "@cocalc/assets";
-import basePath from "@cocalc/backend/base-path";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 import { path as STATIC_PATH } from "@cocalc/static";
@@ -30,8 +29,8 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
+import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
-import port from "@cocalc/backend/port";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -150,6 +149,7 @@ export default async function init(opts: Options): Promise<{
       httpServer,
       app,
       listenersHack: opts.listenersHack,
+      proxyConat: !opts.conatServer,
     });
   }
 
@@ -157,8 +157,6 @@ export default async function init(opts: Options): Promise<{
     winston.info(`initializing the Conat Server`);
     initConatServer({
       httpServer,
-      path: join(basePath, "conat"),
-      port,
       ssl: !!opts.cert,
     });
   }
@@ -170,7 +168,6 @@ export default async function init(opts: Options): Promise<{
     // The Next.js server
     await initNext(app);
   }
-
   return { httpServer, router };
 }
 

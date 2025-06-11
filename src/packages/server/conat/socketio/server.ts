@@ -28,6 +28,9 @@ import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
 import { conatValkey, conatSocketioCount } from "@cocalc/backend/data";
+import basePath from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
+import { join } from "path";
 
 const logger = getLogger("conat-server");
 
@@ -40,6 +43,8 @@ export async function init(options: Partial<Options> = {}) {
     isAllowed,
     systemAccountPassword: await secureRandomString(64),
     valkey: conatValkey,
+    path: join(basePath, "conat"),
+    port,
     ...options,
   };
 

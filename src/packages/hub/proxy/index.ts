@@ -18,6 +18,7 @@ interface Options {
   projectControl: ProjectControlFunction; // controls projects (aka "compute server")
   isPersonal: boolean; // if true, disables all access controls
   listenersHack: boolean;
+  proxyConat: boolean;
 }
 
 export default function init(opts: Options) {

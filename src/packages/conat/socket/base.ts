@@ -69,6 +69,7 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.desc = desc;
     this.conn = { id };
     this.connect();
+    this.setMaxListeners(100);
   }
 
   abstract channel(channel: string);

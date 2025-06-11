@@ -43,8 +43,11 @@ import initExpressApp from "./servers/express-app";
 import {
   loadConatConfiguration,
   initConatChangefeedServer,
-  initConatMicroservices,
+  initConatApi,
+  initConatPersist,
 } from "@cocalc/server/conat";
+import { initConatServer } from "@cocalc/server/conat/socketio";
+
 import initHttpRedirect from "./servers/http-redirect";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
@@ -178,12 +181,18 @@ async function startServer(): Promise<void> {
   // This loads from the database credentials to use Conat.
   await loadConatConfiguration();
 
-  if (program.conatMicroservices) {
-    await initConatMicroservices();
+  if (program.conatCore) {
+    // launch standalone socketio websocket server (no http server)
+    await initConatServer();
   }
 
-  if (program.conatChangefeedServer) {
+  if (program.conatApi || program.conatServer) {
+    await initConatApi();
     await initConatChangefeedServer();
+  }
+
+  if (program.conatPersist || program.conatServer) {
+    await initConatPersist();
   }
 
   if (program.conatServer) {
@@ -217,38 +226,43 @@ async function startServer(): Promise<void> {
     }
   }
 
-  const { router, httpServer } = await initExpressApp({
-    isPersonal: program.personal,
-    projectControl,
-    conatServer: !!program.conatServer,
-    proxyServer: !!program.proxyServer,
-    nextServer: !!program.nextServer,
-    cert: program.httpsCert,
-    key: program.httpsKey,
-    listenersHack:
-      program.mode == "single-user" &&
-      program.proxyServer &&
-      program.nextServer &&
-      process.env["NODE_ENV"] == "development",
-  });
+  if (
+    program.conatServer ||
+    program.proxyServer ||
+    program.nextServer ||
+    program.conatApi
+  ) {
+    const { router, httpServer } = await initExpressApp({
+      isPersonal: program.personal,
+      projectControl,
+      conatServer: !!program.conatServer,
+      proxyServer: true, // always
+      nextServer: !!program.nextServer,
+      cert: program.httpsCert,
+      key: program.httpsKey,
+      listenersHack:
+        program.mode == "single-user" &&
+        program.proxyServer &&
+        program.nextServer &&
+        process.env["NODE_ENV"] == "development",
+    });
 
-  // The express app create via initExpressApp above **assumes** that init_passport is done
-  // or complains a lot. This is obviously not really necessary, but we leave it for now.
-  await callback2(init_passport, {
-    router,
-    database,
-    host: program.hostname,
-  });
+    // The express app create via initExpressApp above **assumes** that init_passport is done
+    // or complains a lot. This is obviously not really necessary, but we leave it for now.
+    await callback2(init_passport, {
+      router,
+      database,
+      host: program.hostname,
+    });
 
-  logger.info(`starting webserver listening on ${program.hostname}:${port}`);
-  await callback(httpServer.listen.bind(httpServer), port, program.hostname);
+    logger.info(`starting webserver listening on ${program.hostname}:${port}`);
+    await callback(httpServer.listen.bind(httpServer), port, program.hostname);
 
-  if (port == 443 && program.httpsCert && program.httpsKey) {
-    // also start a redirect from port 80 to port 443.
-    await initHttpRedirect(program.hostname);
-  }
+    if (port == 443 && program.httpsCert && program.httpsKey) {
+      // also start a redirect from port 80 to port 443.
+      await initHttpRedirect(program.hostname);
+    }
 
-  if (program.conatServer || program.proxyServer || program.nextServer) {
     logger.info(
       "Starting registering periodically with the database and updating a health check...",
     );
@@ -397,15 +411,19 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-server",
-      "run a hub that provides a single-core conat server (socketio) as part of its http server. This is needed for dev and small deployments of cocalc.",
+      "run a hub that provides a single-core conat server (socketio), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
-      "--conat-microservices",
-      "run a hub that serves standard conat microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+      "--conat-core",
+      "run a hub that provides the core conat communication layer server over a websocket (but not http server).  If you run more than one of these at once they MUST be configured to use valkey, or messages won't get transmitted between them.",
     )
     .option(
-      "--conat-changefeed-server",
-      "run Conat microservice to provide postgre/s based changefeeds; there must be AT LEAST one of these.",
+      "--conat-api",
+      "run a hub that connect to conat-core and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
+    )
+    .option(
+      "--conat-persist",
+      "run a hub that connects to conat-core and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
@@ -504,9 +522,7 @@ async function main(): Promise<void> {
     }
   }
   if (program.all) {
-    program.conatMicroservices =
-      program.conatServer =
-      program.conatChangefeedServer =
+    program.conatServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =
