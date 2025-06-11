@@ -18,14 +18,9 @@ const logger = getLogger("project:conat:terminal:session");
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
-// The printf at the end clears the line so the user doesn't see it. This took
-// way too long to figure out how to do. See
-//   https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-// const COMPUTE_SERVER_PROMPT_MESSAGE =
-//   `PS1="(\\h) \\w$ "; history -d $(history 1); printf '\\e[A\\e[K'\n`;
+const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; tput rmcup; clear -x; history -d $(history 1);\n`;
 
-const COMPUTE_SERVER_PROMPT_MESSAGE =
-  'PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n';
+const PROJECT_INIT = "tput rmcup; clear -x; history -d $(history 1);\n";
 
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
@@ -133,6 +128,7 @@ export class Session {
         max_msgs_per_second: MAX_MSGS_PER_SECOND,
       },
     });
+    this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
     this.stream.on("reject", () => {
       this.throttledEllipses();
     });
@@ -181,10 +177,14 @@ export class Session {
       rows: this.size?.rows,
       cols: this.size?.cols,
     });
-    if (compute_server_id && command == "/bin/bash") {
-      // set the prompt to show the remote hostname explicitly,
-      // then clear the screen.
-      this.pty.write(COMPUTE_SERVER_PROMPT_MESSAGE);
+    if (command.endsWith("bash")) {
+      if (compute_server_id) {
+        // set the prompt to show the remote hostname explicitly,
+        // then clear the screen.
+        this.pty.write(COMPUTE_SERVER_INIT);
+      } else {
+        this.pty.write(PROJECT_INIT);
+      }
     }
     this.state = "running";
     logger.debug("creating stream");

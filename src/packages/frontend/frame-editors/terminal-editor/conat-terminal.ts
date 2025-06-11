@@ -11,6 +11,7 @@ import {
   createBrowserClient,
 } from "@cocalc/conat/service/terminal";
 import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
+import { until } from "@cocalc/util/async-utils";
 
 type State = "disconnected" | "init" | "running" | "closed";
 
@@ -27,6 +28,7 @@ export class ConatTerminal extends EventEmitter {
   private options?;
   private writeQueue: string = "";
   private ephemeral?: boolean;
+  private computeServers?;
 
   constructor({
     project_id,
@@ -60,6 +62,10 @@ export class ConatTerminal extends EventEmitter {
     this.openPaths = openPaths;
     this.closePaths = closePaths;
     webapp_client.conat_client.on("connected", this.clearWriteQueue);
+    this.computeServers = webapp_client.project_client.computeServers(
+      this.project_id,
+    );
+    this.computeServers?.on("change", this.handleComputeServersChange);
   }
 
   clearWriteQueue = () => {
@@ -163,6 +169,10 @@ export class ConatTerminal extends EventEmitter {
       "connected",
       this.clearWriteQueue,
     );
+    this.computeServers?.removeListener(
+      "change",
+      this.handleComputeServersChange,
+    );
     this.stream?.close();
     delete this.stream;
     this.service?.close();
@@ -180,34 +190,43 @@ export class ConatTerminal extends EventEmitter {
     this.close();
   };
 
-  private start = async () => {
+  // try to get project/compute_server to start the corresponding
+  // terminal session on the backend.  Keeps retrying until either
+  // this object is closed or it succeeds.
+  public start = reuseInFlight(async () => {
     this.setState("init");
-    let d = 2000;
-    while (true) {
-      try {
-        if (this.state == "closed") {
-          return;
-        }
+    await until(
+      async () => {
+        if (this.state == "closed") return true;
         const compute_server_id =
-          await webapp_client.project_client.getServerIdForPath({
+          (await webapp_client.project_client.getServerIdForPath({
             project_id: this.project_id,
             path: this.path,
-          }) ?? 0;
+          })) ?? 0;
         const api = webapp_client.conat_client.projectApi({
           project_id: this.project_id,
           compute_server_id,
         });
-        await api.editor.createTerminalService(this.path, {
-          ...this.options,
-          ephemeral: this.ephemeral,
-        });
-        return;
-      } catch (err) {
-        console.log(`WARNING: starting terminal -- ${err} (will retry)`);
-        d = Math.min(30000, 1.3 * d);
-        await delay(d);
-      }
+        try {
+          await api.editor.createTerminalService(this.path, {
+            ...this.options,
+            ephemeral: this.ephemeral,
+          });
+          return true;
+        } catch (err) {
+          console.log(`WARNING: starting terminal -- ${err} (will retry)`);
+          return false;
+        }
+      },
+      { start: 2000, decay: 1.3, max: 15000 },
+    );
+  });
+
+  private handleComputeServersChange = ({ path }) => {
+    if (path != this.path) {
+      return;
     }
+    this.start();
   };
 
   private getStream = async () => {

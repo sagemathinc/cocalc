@@ -46,24 +46,15 @@ export class TerminalManager {
 
   private handleComputeServersChange = async ({ path, id = 0 }) => {
     const service = this.services[path];
+    if (service == null) return;
     if (id != compute_server_id) {
-      if (service == null) return;
       logger.debug(
         `terminal '${path}' moved: ${compute_server_id} --> ${id}:  Stopping`,
       );
+      this.sessions[path]?.close();
       service.close();
       delete this.services[path];
-      this.sessions[path]?.close();
       delete this.sessions[path];
-    } else {
-      if (service != null) return;
-      logger.debug(`terminal '${path}' moved to us. Starting.`);
-      // todo -- makes no sense
-      try {
-        await this.createTerminalService(path);
-      } catch (err) {
-        logger.debug(`WARNING: error creating terminal service -- ${err}`);
-      }
     }
   };
 
