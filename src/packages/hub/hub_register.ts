@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// Hub Registration (recording number of clients)
+// Hub Registration
 
 const winston = require("./logger").getLogger("hub");
 import * as misc from "@cocalc/util/misc";
@@ -17,18 +17,6 @@ let the_database: PostgreSQL | undefined = undefined;
 let the_host: string | undefined = undefined;
 let the_port: number | undefined = undefined;
 let the_interval: number | undefined = undefined; // seconds
-let the_clients: any = {};
-
-const number_of_clients = () => misc.len(the_clients);
-
-function _number_of_clients() {
-  if (the_database == null) {
-    throw new Error("database not yet set");
-  }
-  return number_of_clients();
-}
-
-export { _number_of_clients as number_of_clients };
 
 function register_hub(cb) {
   winston.debug("register_hub");
@@ -63,13 +51,13 @@ function register_hub(cb) {
   winston.debug("register_hub -- doing db query");
   if (the_host == null || the_port == null || the_interval == null) {
     throw new Error(
-      "the_host, the_port, and the_interval must be set before registering this hub"
+      "the_host, the_port, and the_interval must be set before registering this hub",
     );
   }
   the_database.register_hub({
     host: the_host,
     port: the_port,
-    clients: number_of_clients(),
+    clients: 0, // TODO
     ttl: 3 * the_interval,
     cb(err) {
       if (err) {
@@ -92,7 +80,6 @@ export { _database_is_working as database_is_working };
 
 interface Opts {
   database: PostgreSQL;
-  clients: any;
   host: string;
   port: number;
   interval_s: number;
@@ -102,7 +89,6 @@ interface Opts {
 export function start(opts: Opts): void {
   opts = defaults(opts, {
     database: required,
-    clients: required,
     host: required,
     port: required,
     interval_s: required,
@@ -115,7 +101,6 @@ export function start(opts: Opts): void {
     started = true;
   }
   the_database = opts.database;
-  the_clients = opts.clients;
   the_host = opts.host;
   the_port = opts.port;
   the_interval = opts.interval_s;

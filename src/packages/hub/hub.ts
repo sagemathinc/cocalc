@@ -35,7 +35,6 @@ import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
@@ -47,7 +46,6 @@ import {
   initConatMicroservices,
 } from "@cocalc/server/conat";
 import initHttpRedirect from "./servers/http-redirect";
-import initVersionServer from "./servers/version";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
@@ -58,12 +56,7 @@ const logger = getLogger("hub");
 let program: { [option: string]: any } = {};
 export { program };
 
-// How frequently to register with the database that this hub is up and running,
-// and also report number of connected clients.
 const REGISTER_INTERVAL_S = 20;
-
-// the jsmap of connected clients
-const clients = getClients();
 
 async function reset_password(email_address: string): Promise<void> {
   try {
@@ -194,10 +187,6 @@ async function startServer(): Promise<void> {
   }
 
   if (program.conatServer) {
-    // Initialize the version server -- must happen after updating schema
-    // (for first ever run).
-    await initVersionServer();
-
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill
       // all the running projects when starting the hub:
@@ -268,7 +257,6 @@ async function startServer(): Promise<void> {
     // also confirms that database is working.
     await callback2(startHubRegister, {
       database,
-      clients,
       host: program.hostname,
       port,
       interval_s: REGISTER_INTERVAL_S,
