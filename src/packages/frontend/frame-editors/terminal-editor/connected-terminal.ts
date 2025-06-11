@@ -317,7 +317,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         // are ignored.   Not doing this properly was the longterm source of
         // control code corruption in the terminal.
         await this.render(data, { ignoreData: true });
-        this.scroll_to_bottom();
       });
       conn.once("ready", () => {
         delete this.last_geom;

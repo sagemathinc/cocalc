@@ -135,7 +135,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
       return false;
     });
 
-    terminalRef.current.scroll_to_bottom();
+    // terminalRef.current.scroll_to_bottom();
   }
 
   const set_font_size = throttle(() => {
