@@ -3,8 +3,10 @@ import {
   createConatService,
   pingConatService,
   waitForConatService,
+  type ConatService,
 } from "./service";
 import type { Options, ServiceCall } from "./service";
+export type { ConatService };
 
 export interface Extra {
   ping: typeof pingConatService;
@@ -50,7 +52,7 @@ export function createServiceClient<Api>(options: Omit<ServiceCall, "mesg">) {
 export function createServiceHandler<Api>({
   impl,
   ...options
-}: Omit<Options, "handler"> & { impl: Api }) {
+}: Omit<Options, "handler"> & { impl: Api }): ConatService {
   return createConatService({
     ...options,
     handler: async (mesg) => await impl[mesg.name](...mesg.args),

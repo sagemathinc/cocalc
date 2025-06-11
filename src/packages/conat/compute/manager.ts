@@ -16,7 +16,7 @@ import { once, until } from "@cocalc/util/async-utils";
 type State = "init" | "connected" | "closed";
 
 export interface Info {
-  // compute server where this path should be opened
+  // id = compute server where this path should be opened
   id: number;
 }
 
@@ -125,8 +125,6 @@ export class ComputeServerManager extends EventEmitter {
     }
     return this.dkv;
   };
-
-  // Modern sync API:  used in backend.
 
   set = (path, id) => {
     const kv = this.getDkv();

@@ -188,8 +188,14 @@ export class ConatTerminal extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
+        const compute_server_id =
+          await webapp_client.project_client.getServerIdForPath({
+            project_id: this.project_id,
+            path: this.path,
+          }) ?? 0;
         const api = webapp_client.conat_client.projectApi({
           project_id: this.project_id,
+          compute_server_id,
         });
         await api.editor.createTerminalService(this.path, {
           ...this.options,

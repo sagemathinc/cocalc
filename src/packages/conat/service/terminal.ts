@@ -2,7 +2,13 @@
 Service for controlling a terminal served from a project/compute server.
 */
 
-import { createServiceClient, createServiceHandler } from "./typed";
+import {
+  createServiceClient,
+  createServiceHandler,
+  type ConatService,
+} from "./typed";
+
+export type { ConatService };
 
 export const SIZE_TIMEOUT_MS = 45000;
 
@@ -47,7 +53,7 @@ export function createTerminalClient({ project_id, path }) {
 
 export type TerminalServiceApi = ReturnType<typeof createTerminalClient>;
 
-export async function createTerminalServer({
+export function createTerminalServer({
   project_id,
   path,
   impl,
@@ -55,8 +61,8 @@ export async function createTerminalServer({
   project_id: string;
   path: string;
   impl;
-}) {
-  return await createServiceHandler<TerminalApi>({
+}): ConatService {
+  return createServiceHandler<TerminalApi>({
     project_id,
     path,
     service: "terminal-server",
@@ -86,7 +92,7 @@ export function createBrowserClient({ project_id, path }) {
   });
 }
 
-export async function createBrowserService({
+export function createBrowserService({
   project_id,
   path,
   impl,
@@ -94,8 +100,8 @@ export async function createBrowserService({
   project_id: string;
   path: string;
   impl: TerminalBrowserApi;
-}) {
-  return await createServiceHandler<TerminalBrowserApi>({
+}): ConatService {
+  return createServiceHandler<TerminalBrowserApi>({
     project_id,
     path,
     service: "terminal-browser",

@@ -56,7 +56,7 @@ export interface DStreamOptions {
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: CoreStream;
+  private stream: CoreStream;
   private messages: T[];
   private raw: RawMsg[];
   private noAutosave: boolean;
@@ -92,7 +92,7 @@ export class DStream<T = any> extends EventEmitter {
       throw Error("init can only be called once");
     }
     this.initialized = true;
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     this.stream.on("change", this.handleChange);
@@ -133,12 +133,17 @@ export class DStream<T = any> extends EventEmitter {
     return true;
   };
 
+  isClosed = () => {
+    return this.stream == null;
+  };
+
   close = () => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       return;
     }
     const stream = this.stream;
     stream.removeListener("change", this.handleChange);
+    // @ts-ignore
     delete this.stream;
     stream.close();
     this.emit("closed");
@@ -152,7 +157,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   get = (n?): T | T[] => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     if (n == null) {
@@ -170,7 +175,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   getAll = (): T[] => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     return [
@@ -192,7 +197,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   time = (n: number): Date | undefined => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("not initialized");
     }
     return this.stream.time(n);
@@ -200,7 +205,7 @@ export class DStream<T = any> extends EventEmitter {
 
   // all server assigned times of messages in the stream.
   times = (): (Date | undefined)[] => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("not initialized");
     }
     return this.stream.times();
@@ -231,14 +236,14 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   headers = (n) => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     return this.stream.headers(n);
   };
 
   push = (...args: T[]) => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     for (const mesg of args) {
@@ -247,7 +252,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   hasUnsavedChanges = (): boolean => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       return false;
     }
     return Object.keys(this.local).length > 0;
@@ -260,7 +265,7 @@ export class DStream<T = any> extends EventEmitter {
   save = reuseInFlight(async () => {
     await until(
       async () => {
-        if (this.stream == null) {
+        if (this.isClosed()) {
           return true;
         }
         try {
@@ -269,8 +274,9 @@ export class DStream<T = any> extends EventEmitter {
         } catch (err) {
           if (!process.env.COCALC_TEST_MODE) {
             console.warn(
-              `WARNING: stream attemptToSave failed -- ${err}`,
+              `WARNING: stream attemptToSave failed`,
               this.name,
+              err,
             );
           }
         }
@@ -289,7 +295,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   private attemptToSaveBatch = reuseInFlight(async () => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     const v: { mesg: T; options: PublishOptions }[] = [];
@@ -307,7 +313,7 @@ export class DStream<T = any> extends EventEmitter {
       | { error: string; code?: any }
     )[] = await this.stream.publishMany(v);
 
-    if (this.raw == null) {
+    if (this.isClosed()) {
       return;
     }
 
@@ -346,7 +352,7 @@ export class DStream<T = any> extends EventEmitter {
   // non-batched version
   private attemptToSaveParallel = reuseInFlight(async () => {
     const f = async (id) => {
-      if (this.stream == null) {
+      if (this.isClosed()) {
         throw Error("closed");
       }
       const mesg = this.local[id];
@@ -356,7 +362,7 @@ export class DStream<T = any> extends EventEmitter {
           ...this.publishOptions[id],
           msgID: id,
         });
-        if (this.raw == null) {
+        if (this.isClosed()) {
           return;
         }
         if ((this.raw[this.raw.length - 1]?.seq ?? -1) < seq) {
@@ -391,7 +397,7 @@ export class DStream<T = any> extends EventEmitter {
 
   // load older messages starting at start_seq
   load = async (opts: { start_seq: number }) => {
-    if (this.stream == null) {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     await this.stream.load(opts);
@@ -402,8 +408,8 @@ export class DStream<T = any> extends EventEmitter {
   // NOTE: for ephemeral streams, other clients will NOT see the result of a purge (unless they reconnect).
   delete = async (opts?) => {
     await this.save();
-    if (this.stream == null) {
-      throw Error("not initialized");
+    if (this.isClosed()) {
+      throw Error("closed");
     }
     return await this.stream.delete(opts);
   };
@@ -416,8 +422,8 @@ export class DStream<T = any> extends EventEmitter {
   config = async (
     config: Partial<Configuration> = {},
   ): Promise<Configuration> => {
-    if (this.stream == null) {
-      throw Error("not initialized");
+    if (this.isClosed()) {
+      throw Error("closed");
     }
     return await this.stream.config(config);
   };
@@ -442,11 +448,11 @@ export class DStream<T = any> extends EventEmitter {
   // [ ] TODO: this will be moved to persistence server, which is where it belongs.
   private updateInventory = asyncThrottle(
     async () => {
-      if (this.stream == null || this.opts.noInventory) {
+      if (this.isClosed() || this.opts.noInventory) {
         return;
       }
       await delay(500);
-      if (this.stream == null) {
+      if (this.isClosed()) {
         return;
       }
       const name = this.name;
@@ -460,7 +466,7 @@ export class DStream<T = any> extends EventEmitter {
         }
         const { account_id, project_id, desc, limits } = this.opts;
         inv = await inventory({ account_id, project_id });
-        if (this.stream == null) {
+        if (this.isClosed()) {
           return;
         }
         if (!inv.needsUpdate({ name, type: "stream", valueType })) {

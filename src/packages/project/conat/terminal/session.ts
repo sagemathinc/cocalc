@@ -242,7 +242,7 @@ export class Session {
       return;
     }
     const { rows, cols } = size;
-    logger.debug("resize", "new size", rows, cols);
+    // logger.debug("resize", "new size", rows, cols);
     try {
       this.setSizePty({ rows, cols });
       // tell browsers about our new size

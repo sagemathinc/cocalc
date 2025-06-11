@@ -178,7 +178,7 @@ export class ConatSocketClient extends ConatSocketBase {
           logger.silly("client got request");
           this.emit("request", mesg);
         } else {
-          logger.silly("client got data", { data: mesg.data });
+          logger.silly("client got data"); //, { data: mesg.data });
           this.tcp?.recv.process(mesg);
         }
       }

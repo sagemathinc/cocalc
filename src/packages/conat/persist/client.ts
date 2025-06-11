@@ -81,11 +81,11 @@ class PersistStreamClient extends EventEmitter {
 
     this.socket.once("disconnected", () => {
       this.socket.removeAllListeners();
-      setTimeout(this.init, 3000);
+      setTimeout(this.init, 1000);
     });
     this.socket.once("closed", () => {
       this.socket.removeAllListeners();
-      setTimeout(this.init, 3000);
+      setTimeout(this.init, 1000);
     });
 
     this.socket.on("data", (updates, headers) => {
