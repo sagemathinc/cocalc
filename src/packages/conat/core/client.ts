@@ -237,6 +237,13 @@ import {
   type ConatSyncTable,
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
+
+const MSGPACK_ENCODER_OPTIONS = {
+  // ignoreUndefined is critical so database queries work properly, and
+  // also we have a lot of api calls with tons of wasted undefined values.
+  ignoreUndefined: true,
+};
+
 export const STICKY_QUEUE_GROUP = "sticky";
 
 type State = "disconnected" | "connected" | "closed";
@@ -1328,7 +1335,7 @@ export function encode({
   mesg: any;
 }) {
   if (encoding == DataEncoding.MsgPack) {
-    return msgpack.encode(mesg);
+    return msgpack.encode(mesg, MSGPACK_ENCODER_OPTIONS);
   } else if (encoding == DataEncoding.JsonCodec) {
     return jsonEncoder(mesg);
   } else {
