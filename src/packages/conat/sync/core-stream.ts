@@ -508,7 +508,7 @@ export class CoreStream<T = any> extends EventEmitter {
           return true;
         }
         try {
-          log("core-stream: start listening on changefeed", this.storage);
+          log("core-stream: START listening on changefeed", this.storage);
           const changefeed = await this.persistClient.changefeed();
           for await (const { updates } of changefeed) {
             log("core-stream: process updates", updates, this.storage);
@@ -529,6 +529,7 @@ export class CoreStream<T = any> extends EventEmitter {
             );
           }
         }
+        log("core-stream: STOP listening on changefeed", this.storage);
         // above loop exits when the persistent server
         // stops sending messages for some reason. In that
         // case we reconnect, picking up where we left off:

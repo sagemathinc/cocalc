@@ -116,7 +116,6 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.sockets = {};
     if (this.reconnection) {
       setTimeout(() => {
-        this.initTCP();
         this.connect();
       }, RECONNECT_DELAY);
     }

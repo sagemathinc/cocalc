@@ -117,7 +117,7 @@ export class DStream<T = any> extends EventEmitter {
       // see it doubled in this.getAll().
       delete this.local[msgID];
     }
-    this.emit("change", mesg);
+    this.emit("change", mesg, raw?.seq);
     if (this.isStable()) {
       this.emit("stable");
     }

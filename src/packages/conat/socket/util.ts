@@ -53,7 +53,7 @@ export interface ConatSocketOptions extends SocketConfiguration {
   id: string;
 }
 
-export const RECONNECT_DELAY = 1000;
+export const RECONNECT_DELAY = 500;
 
 export function clientSubject(subject: string) {
   const segments = subject.split(".");

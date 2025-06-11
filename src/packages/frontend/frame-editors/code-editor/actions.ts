@@ -1227,7 +1227,8 @@ export class Actions<
     if (
       this.is_public ||
       !this.store.get("is_loaded") ||
-      this._syncstring == null
+      this._syncstring == null ||
+      this._syncstring.get_state() != "ready"
     ) {
       return;
     }

@@ -46,7 +46,7 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const MAX_DELAY = 10000;
+const MAX_DELAY = 15000;
 
 const ENABLE_WEBGL = true;
 
@@ -366,6 +366,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.lastSend = Date.now();
   };
 
+  // this should never ever be necessary.  It's a just-in-case things
+  // were myseriously totally broken measure...
   private reconnectIfNotResponding = async () => {
     while (this.state != "closed") {
       if (this.lastSend - this.lastReceive >= MAX_DELAY) {

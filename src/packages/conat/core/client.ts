@@ -418,9 +418,16 @@ export class Client extends EventEmitter {
     });
     this.conn.on("disconnect", () => {
       this.setState("disconnected");
+      this.disconnectAllSockets();
     });
     this.initInbox();
   }
+
+  disconnect = () => {
+    this.disconnectAllSockets();
+    // @ts-ignore
+    setTimeout(() => this.conn.io.disconnect(), 1);
+  };
 
   waitUntilSignedIn = reuseInFlight(async () => {
     if (this.info == null || this.state != "connected") {
@@ -1271,7 +1278,18 @@ export class Client extends EventEmitter {
     },
   };
 
-  closeAllSockets = () => {
+  private disconnectAllSockets = () => {
+    for (const subject in this.sockets.servers) {
+      this.sockets.servers[subject].disconnect();
+    }
+    for (const subject in this.sockets.clients) {
+      for (const id in this.sockets.clients[subject]) {
+        this.sockets.clients[subject][id].disconnect();
+      }
+    }
+  };
+
+  private closeAllSockets = () => {
     for (const subject in this.sockets.servers) {
       this.sockets.servers[subject].close();
     }

@@ -62,10 +62,6 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   initTCP() {
-    if (this.role == "server") {
-      // tcp for the server is on each individual socket.
-      return;
-    }
     if (this.tcp != null) {
       this.client.removeListener(
         "connected",
