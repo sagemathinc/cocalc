@@ -228,29 +228,27 @@ describe("test a changefeed", () => {
     );
   });
 
-  it("restart the Conat network", async () => {
+  // this takes a while due to it having to deal with the network restart
+  it("restart conat socketio server, and verify changefeed still works", async () => {
     await restartServer();
-  });
-
-  it("verify changefeed still works even after restarting network server", async () => {
     await wait({
       until: async () => {
         // this set is expected to fail while networking is restarting
         try {
-          await s2.set({
+          await s1.set({
             key: "test3",
             messageData: messageData("data3", { headers: { foo: "bar3" } }),
-            timeout: 500,
+            timeout: 1000,
           });
           return true;
         } catch {
           return false;
         }
       },
+      start: 500,
     });
 
-    // the changefeed should still work and detect the above write, because
-    // our sockets are robust.
+    // the changefeed should still work and detect the above write that succeeded.
     const { value, done } = await cf.next();
     expect(done).toBe(false);
     expect(value.updates[0]).toEqual(

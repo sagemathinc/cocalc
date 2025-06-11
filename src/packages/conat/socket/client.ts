@@ -169,7 +169,7 @@ export class ConatSocketClient extends ConatSocketBase {
         if (cmd == "socket") {
           this.tcp?.send.handleRequest(mesg);
         } else if (cmd == "close") {
-          this.disconnect();
+          this.close();
           return;
         } else if (cmd == "ping") {
           logger.silly("responding to ping from server", this.id);

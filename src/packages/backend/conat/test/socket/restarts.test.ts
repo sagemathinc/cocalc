@@ -18,7 +18,7 @@ beforeAll(async () => {
   setDefaultTimeouts({ request: 750, publish: 750 });
 });
 
-// jest.setTimeout(10000);
+jest.setTimeout(15000);
 
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   const SUBJECT = "reconnect.one";
@@ -77,12 +77,12 @@ describe("create a client and server and socket, verify it works, restart conat 
   });
 
   // this test should take several seconds due to having to missed-packet detection logic
-  it("restart connection right when message is being sent, and have dropped message eventually get through automatically without waiting for reconnect", async () => {
+  it("restart connection right when message is being sent; dropped message eventually gets through automatically without waiting for reconnect", async () => {
     const iter = client.iter();
-    client.write("conat");
+    client.write("conat ");
     await restartServer();
     const { value } = await iter.next();
-    expect(value[0]).toBe("conatconat");
+    expect(value[0]).toBe("conat conat ");
   });
 
   it("cleans up", () => {

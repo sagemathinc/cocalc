@@ -267,7 +267,7 @@ describe("create a server and client. Disconnect the client and see from the ser
 
   it("creates the server", () => {
     cn1 = connect();
-    server = cn1.socket.listen("subject");
+    server = cn1.socket.listen("disconnect.io");
     server.on("connection", (socket) => {
       socket.on("data", () => {
         socket.write(`clients=${Object.keys(server.sockets).length}`);
@@ -279,7 +279,7 @@ describe("create a server and client. Disconnect the client and see from the ser
   let client;
   it("connects with a client", async () => {
     cn1 = connect();
-    client = cn1.socket.connect("subject");
+    client = cn1.socket.connect("disconnect.io");
     const r = once(client, "data");
     client.write("hello");
     expect((await r)[0]).toBe("clients=1");
@@ -294,29 +294,22 @@ describe("create a server and client. Disconnect the client and see from the ser
     });
   });
 
-  it("creates a new client, connects to server, then closes the server and the client sees that it is no longer connected. Opening new server on same subject and it connects again.", async () => {
-    client = cn1.socket.connect("subject");
+  it("creates a new client, connects to server, then closes the server and the client sees that and closes.", async () => {
+    client = cn1.socket.connect("disconnect.io");
+    const iter = client.iter();
     // confirm working:
     client.write("hello");
-    const r = once(client, "data");
-    client.write("hello");
-    expect((await r)[0]).toBe("clients=1");
+    const { value } = await iter.next();
+    expect(value[0]).toBe("clients=1");
 
     expect(client.state).toBe("ready");
+    const closed = once(client, "closed");
     // now close server and wait for state to quickly automatically
     // switch to not ready anymore
     const t0 = Date.now();
     server.close();
-    await wait({
-      until: () => client.state != "ready",
-    });
-    expect(Date.now() - t0).toBeLessThan(500);
-
-    // Create new  server and it connects
-    server = cn1.socket.listen("subject");
-    await wait({
-      until: () => client.state == "ready",
-    });
+    await closed;
+    expect(Date.now() - t0).toBeLessThan(250);
   });
 });
 
@@ -394,19 +387,13 @@ describe("create two socket servers with the same subject to test that sockets a
     }
   });
 
-  it("remove the server we're connected to and see that the client connects to another server automatically: this illustrates load balancing and automatic failover", async () => {
+  it("remove the server we're connected to and see that the client socket closes, since all state on the other end is gone (this is the only possible thing that should happen!)", async () => {
     if (resp == "s1") {
       s1.close();
     } else if (resp == "s2") {
       s2.close();
     }
-    await once(client, "disconnected");
-    await once(client, "ready");
-    const iter = client.iter();
-    client.write("hi");
-    const { value } = await iter.next();
-    expect(value.data).not.toBe(resp);
-    //     console.log({ value });
+    await once(client, "closed");
   });
 
   it("cleans up", () => {

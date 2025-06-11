@@ -28,12 +28,14 @@ immediately notified.
 
 Of course you can also send arbitrary messages over the socket.
 
-STATS:
+STATES:
 
-- disconnected
-- connecting
-- ready: 
-- closed: nothing further can be done with the socket
+- disconnected \- not actively sending or receiving messages.  You can write to the socket and messages will be buffered to be sent when connected.
+- connecting \- in the process of connecting
+- ready \- actively connected and listening for incoming messages
+- closed: _nothing_ further can be done with the socket.  
+
+A socket can be closed by the remote side.
 
 LOAD BALANCING AND AUTOMATIC FAILOVER:
 
