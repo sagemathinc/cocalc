@@ -63,12 +63,7 @@ export class ConatSocketClient extends ConatSocketBase {
 
   initTCP() {
     if (this.tcp != null) {
-      this.client.removeListener(
-        "connected",
-        this.tcp.send.resendLastUntilAcked,
-      );
-      this.tcp.send.close();
-      this.tcp.recv.close();
+      throw Error("this.tcp already initialized");
     }
     // request = send a socket request mesg to the server side of the socket
     // either ack what's received or asking for a resend of missing data.
@@ -86,7 +81,7 @@ export class ConatSocketClient extends ConatSocketBase {
       size: this.maxQueueSize,
     });
 
-    this.client.on("connected", this.tcp.send.resendLastUntilAcked);
+    this.client.on("disconnected", this.tcp.send.resendLastUntilAcked);
 
     this.tcp.recv.on("message", (mesg) => {
       this.emit("data", mesg.data, mesg.headers);
@@ -257,7 +252,7 @@ export class ConatSocketClient extends ConatSocketBase {
     this.sub?.close();
     if (this.tcp != null) {
       this.client.removeListener(
-        "connected",
+        "disconnected",
         this.tcp.send.resendLastUntilAcked,
       );
     }

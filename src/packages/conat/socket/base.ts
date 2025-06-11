@@ -111,9 +111,8 @@ export abstract class ConatSocketBase extends EventEmitter {
     this.sub?.close();
     delete this.sub;
     for (const id in this.sockets) {
-      this.sockets[id].destroy();
+      this.sockets[id].disconnect();
     }
-    this.sockets = {};
     if (this.reconnection) {
       setTimeout(() => {
         this.connect();

@@ -67,20 +67,14 @@ export class ServerSocket extends EventEmitter {
   };
 
   initTCP() {
+    if (this.tcp != null) {
+      throw Error("this.tcp already initialized");
+    }
     const request = async (mesg, opts?) =>
       await this.conatSocket.client.request(this.clientSubject, mesg, {
         ...opts,
         headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
       });
-    if (this.tcp != null) {
-      this.conatSocket.client.removeListener(
-        "connected",
-        this.tcp.send.resendLastUntilAcked,
-      );
-      this.tcp.send.close();
-      this.tcp.recv.close();
-    }
-
     this.tcp = createTCP({
       request,
       role: this.conatSocket.role,
@@ -88,7 +82,10 @@ export class ServerSocket extends EventEmitter {
       send: this.send,
       size: this.conatSocket.maxQueueSize,
     });
-    this.conatSocket.client.on("connected", this.tcp.send.resendLastUntilAcked);
+    this.conatSocket.client.on(
+      "disconnected",
+      this.tcp.send.resendLastUntilAcked,
+    );
 
     this.tcp.recv.on("message", (mesg) => {
       // console.log("tcp recv emitted message", mesg.data);
@@ -99,13 +96,28 @@ export class ServerSocket extends EventEmitter {
     });
   }
 
+  disconnect = () => {
+    this.setState("disconnected");
+    if (this.conatSocket.state == "ready") {
+      this.setState("ready");
+    } else {
+      this.conatSocket.once("ready", this.onServerSocketReady);
+    }
+  };
+
+  private onServerSocketReady = () => {
+    if (this.state != "closed") {
+      this.setState("ready");
+    }
+  };
+
   private setState = (state: State) => {
     this.state = state;
     if (state == "ready") {
-      for (const { data, headers } of this.queuedWrites) {
-        this.write(data, { headers });
-        this.queuedWrites = [];
+      for (const mesg of this.queuedWrites) {
+        this.sendDataToClient(mesg);
       }
+      this.queuedWrites = [];
     }
     this.emit(state);
   };
@@ -131,11 +143,16 @@ export class ServerSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
+    this.conatSocket.removeListener("ready", this.onServerSocketReady);
     this.conatSocket.client.publishSync(this.clientSubject, null, {
       headers: { [SOCKET_HEADER_CMD]: "close" },
     });
 
     if (this.tcp != null) {
+      this.conatSocket.client.removeListener(
+        "disconnected",
+        this.tcp.send.resendLastUntilAcked,
+      );
       this.tcp.send.close();
       this.tcp.recv.close();
       // @ts-ignore

@@ -79,7 +79,7 @@ export class Receiver extends EventEmitter {
     }
   };
 
-  emitMessage = (mesg, seq) => {
+  private emitMessage = (mesg, seq) => {
     if (this.seq === undefined) return;
     if (seq != this.seq.next) {
       throw Error("message sequence is wrong");
@@ -92,11 +92,12 @@ export class Receiver extends EventEmitter {
     //       next: this.seq.next,
     //       emitted: this.seq.emitted,
     //     });
+    //    console.log(this.role, "tcp recv", seq, mesg.data);
     this.emit("message", mesg);
     this.reportReceived();
   };
 
-  fetchMissing = reuseInFlight(async () => {
+  private fetchMissing = reuseInFlight(async () => {
     if (this.seq === undefined || this.incoming === undefined) return;
     const missing: number[] = [];
     for (let seq = this.seq.next; seq <= this.seq.largest; seq++) {
@@ -133,7 +134,7 @@ export class Receiver extends EventEmitter {
     this.emitIncoming();
   });
 
-  emitIncoming = () => {
+  private emitIncoming = () => {
     if (this.seq === undefined || this.incoming === undefined) return;
     // also emit any incoming that comes next
     let seq = this.seq.next;
@@ -146,7 +147,7 @@ export class Receiver extends EventEmitter {
     this.reportReceived();
   };
 
-  reportReceived = async () => {
+  private reportReceived = async () => {
     if (this.seq === undefined) return;
     if (this.seq.reported >= this.seq.emitted) {
       // nothing to report
@@ -235,7 +236,7 @@ export class Sender extends EventEmitter {
         },
         { start: 500, max: 15000, decay: 1.3, timeout: this.timeout },
       );
-    } catch {
+    } catch (_err) {
       // it will throw if it hits the timeout -- silently ignore, since
       // there's no guarantee resendLastUntilAcked actually succeeds
     }
