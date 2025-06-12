@@ -226,10 +226,10 @@ importers:
         version: 4.17.21
       socket.io:
         specifier: ^4.8.1
-        version: 4.8.1(supports-color@9.4.0)
+        version: 4.8.1
       socket.io-client:
         specifier: ^4.8.1
-        version: 4.8.1(supports-color@9.4.0)
+        version: 4.8.1
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -1063,21 +1063,12 @@ importers:
       '@nteract/messaging':
         specifier: ^7.0.20
         version: 7.0.20
-      '@types/json-stable-stringify':
-        specifier: ^1.0.32
-        version: 1.2.0
-      '@types/node-cleanup':
-        specifier: ^2.1.2
-        version: 2.1.5
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
       debug:
         specifier: ^4.4.0
         version: 4.4.1(supports-color@8.1.1)
-      enchannel-zmq-backend:
-        specifier: ^9.1.23
-        version: 9.1.23(rxjs@7.8.2)
       execa:
         specifier: ^8.0.1
         version: 8.0.1
@@ -1117,6 +1108,9 @@ importers:
       portfinder:
         specifier: ^1.0.32
         version: 1.0.37
+      rxjs:
+        specifier: ^6.6.7
+        version: 6.6.7
       shell-escape:
         specifier: ^0.2.0
         version: 0.2.0
@@ -1126,10 +1120,19 @@ importers:
       uuid:
         specifier: ^8.3.2
         version: 8.3.2
+      zeromq:
+        specifier: ^6.4.2
+        version: 6.4.2
     devDependencies:
+      '@types/json-stable-stringify':
+        specifier: ^1.0.32
+        version: 1.2.0
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.103
+      '@types/node-cleanup':
+        specifier: ^2.1.2
+        version: 2.1.5
 
   next:
     dependencies:
@@ -1410,9 +1413,6 @@ importers:
       ws:
         specifier: ^8.18.0
         version: 8.18.2
-      zeromq:
-        specifier: ^5.2.8
-        version: 5.3.1
     devDependencies:
       '@types/body-parser':
         specifier: ^1.19.5
@@ -5574,6 +5574,10 @@ packages:
     resolution: {integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==}
     engines: {node: '>=0.10.0'}
 
+  cmake-ts@0.6.1:
+    resolution: {integrity: sha512-uUn2qGhf20j8W/sQ7+UnvvqO1zNccqgbLgwRJi7S23FsjMWJqxvKK80Vc+tvLNKfpJzwH0rgoQD1l24SMnX0yg==}
+    hasBin: true
+
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
@@ -6571,11 +6575,6 @@ packages:
 
   enabled@2.0.0:
     resolution: {integrity: sha512-AKrN98kuwOzMIdAizXGI86UFBoo26CL21UM763y1h/GMSJ4/OHU9k2YlsmBpyScFo/wbLzWQJBMCW4+IO3/+OQ==}
-
-  enchannel-zmq-backend@9.1.23:
-    resolution: {integrity: sha512-yBSCr2DZcKqTZhJME5jvAiU0waMiEHU8iGxeezbEqQAVQUZR9IZyKLU8Q6RZMIIUk2alzeeh2WVuYRWPrJXtpQ==}
-    peerDependencies:
-      rxjs: ^6.3.3
 
   encodeurl@1.0.2:
     resolution: {integrity: sha512-TPJXq8JqFaVYm2CWmPvnP2Iyo4ZSM7/QKcSmuMLDObfpH5fi7RUGmd/rTDf+rut/saiDiQEeVTNgAmJEdAOx0w==}
@@ -8312,10 +8311,6 @@ packages:
       node-notifier:
         optional: true
 
-  jmp@2.0.0:
-    resolution: {integrity: sha512-VATfWVHErQJA2XMtmQjJQHHyQ/hxjHMmsy+egmwRk/RzFchQB4xjrR1iX496VZr+Hyhcr4zvL+IkkSlIYKx6Yw==}
-    engines: {node: '>=6'}
-
   jquery-focus-exit@1.0.1:
     resolution: {integrity: sha512-p79pTJKVsrYX4bZML+bc1MnRe9IrxcpIIeUqyfuVMpLFR4L05r7zxBe3YywPjn74hNavuOA2KNBhy36UXroMiA==}
     peerDependencies:
@@ -9024,9 +9019,6 @@ packages:
     resolution: {integrity: sha512-at/ZndSy3xEGJ8i0ygALh8ru9qy7gWW1cmkaqBN29JmMlIvM//MEO9y1sk/avxuwnPcfhkejkLsuPxH81BrkSg==}
     engines: {node: '>=0.8.0'}
 
-  nan@2.17.0:
-    resolution: {integrity: sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ==}
-
   nan@2.20.0:
     resolution: {integrity: sha512-bk3gXBZDGILuuo/6sKtr0DQmSThYHLtNCdSdXk9YkxD/jK6X2vmCyyXBBxyqZ4XcnzTyYEAThfX3DCEnLf6igw==}
 
@@ -9129,6 +9121,10 @@ packages:
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
+  node-addon-api@8.3.1:
+    resolution: {integrity: sha512-lytcDEdxKjGJPTLEfW4mYMigRezMlyJY8W4wxJK8zE533Jlb8L8dRuObJFWg2P+AuOIxoCgKF+2Oq4d4Zd0OUA==}
+    engines: {node: ^18 || ^20 || >= 21}
+
   node-cjsx@2.0.0:
     resolution: {integrity: sha512-WstoLFETzse3jiXc7tcL9BI81k7L9Rgi4SjAWe691TZiooZRUpuCmIcZYcYzkDFtmg8FJkuK9WDFsz6llmBHcg==}
 
@@ -9165,10 +9161,6 @@ packages:
   node-forge@1.3.1:
     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
     engines: {node: '>= 6.13.0'}
-
-  node-gyp-build@4.5.0:
-    resolution: {integrity: sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==}
-    hasBin: true
 
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -11861,15 +11853,6 @@ packages:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
     hasBin: true
 
-  uuid@3.4.0:
-    resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
-    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-    hasBin: true
-
-  uuid@7.0.3:
-    resolution: {integrity: sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==}
-    hasBin: true
-
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
@@ -12282,9 +12265,9 @@ packages:
     resolution: {integrity: sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==}
     engines: {node: '>=12.20'}
 
-  zeromq@5.3.1:
-    resolution: {integrity: sha512-4WDF9bNWWXe8OAI319bVw5dmG4BklEk8wzFGwRQxEzKb+0mgDU5J/jtyZPo0BEusVIU1+3mRQIEdT5LtQn+aAw==}
-    engines: {node: '>=6.0'}
+  zeromq@6.4.2:
+    resolution: {integrity: sha512-FnQlI4lEAewE4JexJ6kqQuBVzRf0Mg1n/qE3uXilfosf+X5lqJPiaYfdL/w4SzgAEVBTyqbMt9NbjwI5H89Yaw==}
+    engines: {node: '>= 12'}
 
   zlibjs@0.3.1:
     resolution: {integrity: sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==}
@@ -12811,7 +12794,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.6.0
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -14066,7 +14049,7 @@ snapshots:
       '@types/xml2js': 0.4.14
       '@xmldom/is-dom-node': 1.0.1
       '@xmldom/xmldom': 0.8.10
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
       xml-crypto: 6.1.0
       xml-encryption: 3.1.0
       xml2js: 0.6.2
@@ -14619,8 +14602,8 @@ snapshots:
   '@socket.io/redis-streams-adapter@0.2.2(socket.io-adapter@2.5.5)':
     dependencies:
       '@msgpack/msgpack': 2.8.0
-      debug: 4.3.7(supports-color@9.4.0)
-      socket.io-adapter: 2.5.5(supports-color@9.4.0)
+      debug: 4.3.7
+      socket.io-adapter: 2.5.5
     transitivePeerDependencies:
       - supports-color
 
@@ -15504,7 +15487,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -15799,7 +15782,7 @@ snapshots:
 
   axios@1.9.0:
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.1)
       form-data: 4.0.2
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -16331,6 +16314,8 @@ snapshots:
   clsx@1.2.1: {}
 
   cluster-key-slot@1.1.2: {}
+
+  cmake-ts@0.6.1: {}
 
   co@4.6.0: {}
 
@@ -17087,13 +17072,7 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
-  debug@4.3.7(supports-color@9.4.0):
-    dependencies:
-      ms: 2.1.3
-    optionalDependencies:
-      supports-color: 9.4.0
-
-  debug@4.4.1:
+  debug@4.3.7:
     dependencies:
       ms: 2.1.3
 
@@ -17424,13 +17403,6 @@ snapshots:
 
   enabled@2.0.0: {}
 
-  enchannel-zmq-backend@9.1.23(rxjs@7.8.2):
-    dependencies:
-      '@nteract/messaging': 7.0.20
-      jmp: 2.0.0
-      rxjs: 7.8.2
-      uuid: 7.0.3
-
   encodeurl@1.0.2: {}
 
   encodeurl@2.0.0: {}
@@ -17443,10 +17415,10 @@ snapshots:
     dependencies:
       once: 1.4.0
 
-  engine.io-client@6.6.3(supports-color@9.4.0):
+  engine.io-client@6.6.3:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@9.4.0)
+      debug: 4.3.7
       engine.io-parser: 5.2.3
       ws: 8.17.1
       xmlhttprequest-ssl: 2.1.2
@@ -17457,7 +17429,7 @@ snapshots:
 
   engine.io-parser@5.2.3: {}
 
-  engine.io@6.6.4(supports-color@9.4.0):
+  engine.io@6.6.4:
     dependencies:
       '@types/cors': 2.8.18
       '@types/node': 18.19.103
@@ -17465,7 +17437,7 @@ snapshots:
       base64id: 2.0.0
       cookie: 0.7.2
       cors: 2.8.5
-      debug: 4.3.7(supports-color@9.4.0)
+      debug: 4.3.7
       engine.io-parser: 5.2.3
       ws: 8.17.1
     transitivePeerDependencies:
@@ -18075,8 +18047,6 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
-
-  follow-redirects@1.15.9: {}
 
   follow-redirects@1.15.9(debug@4.4.1):
     optionalDependencies:
@@ -18923,7 +18893,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18957,14 +18927,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.1
+      debug: 4.4.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -19832,11 +19802,6 @@ snapshots:
       - supports-color
       - ts-node
 
-  jmp@2.0.0:
-    dependencies:
-      uuid: 3.4.0
-      zeromq: 5.3.1
-
   jquery-focus-exit@1.0.1(jquery@3.7.1):
     dependencies:
       jquery: 3.7.1
@@ -20642,8 +20607,6 @@ snapshots:
       rimraf: 2.4.5
     optional: true
 
-  nan@2.17.0: {}
-
   nan@2.20.0: {}
 
   nanoid@3.3.11: {}
@@ -20757,6 +20720,8 @@ snapshots:
 
   node-addon-api@7.1.1: {}
 
+  node-addon-api@8.3.1: {}
+
   node-cjsx@2.0.0:
     dependencies:
       coffee-react-transform: 4.0.0
@@ -20785,8 +20750,6 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   node-forge@1.3.1: {}
-
-  node-gyp-build@4.5.0: {}
 
   node-int64@0.4.0: {}
 
@@ -22986,42 +22949,42 @@ snapshots:
 
   smart-buffer@4.2.0: {}
 
-  socket.io-adapter@2.5.5(supports-color@9.4.0):
+  socket.io-adapter@2.5.5:
     dependencies:
-      debug: 4.3.7(supports-color@9.4.0)
+      debug: 4.3.7
       ws: 8.17.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  socket.io-client@4.8.1(supports-color@9.4.0):
+  socket.io-client@4.8.1:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@9.4.0)
-      engine.io-client: 6.6.3(supports-color@9.4.0)
-      socket.io-parser: 4.2.4(supports-color@9.4.0)
+      debug: 4.3.7
+      engine.io-client: 6.6.3
+      socket.io-parser: 4.2.4
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  socket.io-parser@4.2.4(supports-color@9.4.0):
+  socket.io-parser@4.2.4:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@9.4.0)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
-  socket.io@4.8.1(supports-color@9.4.0):
+  socket.io@4.8.1:
     dependencies:
       accepts: 1.3.8
       base64id: 2.0.0
       cors: 2.8.5
-      debug: 4.3.7(supports-color@9.4.0)
-      engine.io: 6.6.4(supports-color@9.4.0)
-      socket.io-adapter: 2.5.5(supports-color@9.4.0)
-      socket.io-parser: 4.2.4(supports-color@9.4.0)
+      debug: 4.3.7
+      engine.io: 6.6.4
+      socket.io-adapter: 2.5.5
+      socket.io-parser: 4.2.4
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -23937,10 +23900,6 @@ snapshots:
 
   uuid@11.1.0: {}
 
-  uuid@3.4.0: {}
-
-  uuid@7.0.3: {}
-
   uuid@8.3.2: {}
 
   uuid@9.0.1: {}
@@ -24451,10 +24410,10 @@ snapshots:
 
   yocto-queue@1.2.1: {}
 
-  zeromq@5.3.1:
+  zeromq@6.4.2:
     dependencies:
-      nan: 2.17.0
-      node-gyp-build: 4.5.0
+      cmake-ts: 0.6.1
+      node-addon-api: 8.3.1
 
   zlibjs@0.3.1: {}
 

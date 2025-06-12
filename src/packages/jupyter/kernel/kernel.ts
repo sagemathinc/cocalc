@@ -29,7 +29,7 @@ import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
-import { createMainChannel } from "enchannel-zmq-backend";
+import { createMainChannel } from "@cocalc/jupyter/zmq/enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
@@ -226,7 +226,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   // Everything should work, except you can't *spawn* such a kernel.
   public name: string | undefined;
 
-  public store: any; // this is a key:value store used mainly for stdin support right now. NOTHING TO DO WITH REDUX!
+  // this is a key:value store used mainly for stdin support right now. NOTHING TO DO WITH REDUX!
+  public store: any;
+
   public readonly identity: string = uuid();
 
   private stderr: string = "";
@@ -355,7 +357,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         this._kernel = await launchJupyterKernel(this.name, opts);
         await this.finish_spawn();
       } catch (err) {
-        dbg("ERROR spawning kernel", err);
+        dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
         // @ts-ignore
         if (this._state == "closed") {
           throw Error("closed -- kernel spawn later");
@@ -459,11 +461,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         //      https://github.com/sagemathinc/cocalc/issues/7040
       }
     }, MAX_KERNEL_SPAWN_TIME);
-    const channel = await createMainChannel(
-      this._kernel.config,
-      "",
-      this.identity,
-    );
+    const channel = await createMainChannel(this._kernel.config);
     if (local.gaveUp) {
       return;
     }

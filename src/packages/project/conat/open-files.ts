@@ -488,3 +488,15 @@ const openDoc = reuseInFlight(async (path: string) => {
     }
   }
 });
+. project-env.sh 
+node
+unset DEBUG
+node
+. project-env.sh 
+node
+ls
+more project-env.sh 
+ls
+. project-env.sh 
+unset DEBUG
+node
