@@ -16,7 +16,7 @@ import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";
 import mime from "mime-types";
 
-const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml", "text/html"]);
+const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml" /*, "text/html"*/]);
 
 const logger = getLogger("proxy:handle-request");
 
