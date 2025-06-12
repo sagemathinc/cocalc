@@ -30,7 +30,6 @@ misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 blobs = require('./blobs')
-clients = require('./clients')
 
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
@@ -372,9 +371,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # know the client's id, which is a random uuid, assigned each time the user connects.
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
-            # NOTE: this should be possible to deprecate, because the clients all connect via
-            # a websocket directly to the project.
-            clients.pushToClient(mesg)
+            # *DEPRECATED*
             return
         if mesg.event == 'version'
             @local_hub_version(mesg.version)
