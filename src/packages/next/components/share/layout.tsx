@@ -27,9 +27,7 @@ export function Layout({ title, children, top }: Props) {
   return (
     <>
       <Head>
-        <title>
-          {`${siteName} -- ${title}`}
-        </title>
+        <title>{`${siteName} -- ${title}`}</title>
         <meta name="description" content="CoCalc Share Server" />
         {noindex && <meta name="robots" content="noindex,nofollow" />}
         <link rel="icon" href={favicon} />
@@ -44,7 +42,6 @@ export function Layout({ title, children, top }: Props) {
               margin: "0 auto",
               maxWidth: SHARE_MAX_WIDTH,
               fontSize: "11pt",
-              padding: "15px",
             }}
           >
             {children}
@@ -61,9 +58,7 @@ export function Embed({ title, children }: Props) {
   return (
     <>
       <Head>
-        <title>
-          {`${siteName} -- ${title}`}
-        </title>
+        <title>{`${siteName} -- ${title}`}</title>
         <link rel="icon" href={favicon} />
       </Head>
       <Analytics />

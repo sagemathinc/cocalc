@@ -375,5 +375,5 @@ function getCWD(pathHead, cwd?): string {
 
 function historyFile(path: string) {
   const i = path.lastIndexOf("-");
-  return `${path_split(path.slice(0, i)).tail}.bash_history`;
+  return path_split(path.slice(0, i)).tail.slice(1);
 }
