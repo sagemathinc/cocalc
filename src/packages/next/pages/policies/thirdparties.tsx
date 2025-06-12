@@ -45,25 +45,6 @@ export default function TermsOfService({ customize }) {
               </p>
               <ul>
                 <li>
-                  <A href="https://www.backblaze.com/">Backblaze</A>
-                  <ul>
-                    <li>Usage: backups accessible to admins only.</li>
-                    <li>
-                      Shared PII: everything. Backblaze does not process these
-                      data for its own purposes.
-                    </li>
-                    <li>
-                      <A href="https://www.backblaze.com/company/privacy.html">
-                        Privacy Policy
-                      </A>{" "}
-                      and{" "}
-                      <A href="https://www.backblaze.com/company/dpa.html">
-                        Data Processing Addendum
-                      </A>
-                    </li>
-                  </ul>
-                </li>
-                <li>
                   <A href="https://www.cloudflare.com/">Cloudflare</A>
                   <ul>
                     <li>Usage: DDOS protection, data traffic management.</li>
@@ -371,6 +352,9 @@ export default function TermsOfService({ customize }) {
               </p>
               <h1>Changes</h1>
               <ul>
+                <li>
+                  June 7, 2025: Removed Backblaze, previously used for backups.
+                </li>
                 <li>
                   February 19, 2025: Removed Google Analytics, which we no
                   longer use. Broke content into categories. Unified formatting
