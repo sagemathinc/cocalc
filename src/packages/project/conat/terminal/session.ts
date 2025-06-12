@@ -13,6 +13,7 @@ import {
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
 import { ThrottleString as Throttle } from "@cocalc/util/throttle";
+import { join } from "path";
 
 const logger = getLogger("project:conat:terminal:session");
 
@@ -375,5 +376,6 @@ function getCWD(pathHead, cwd?): string {
 
 function historyFile(path: string) {
   const i = path.lastIndexOf("-");
-  return path_split(path.slice(0, i)).tail.slice(1);
+  const { head, tail } = path_split(path.slice(0, i));
+  return join(process.env.HOME ?? "", head, tail.slice(1));
 }
