@@ -219,7 +219,7 @@ export function setConatServer(server: string) {
 
 // Password used by hub (not users!) to connect to a Conat server:
 export let conatPassword = "";
-export const conatPasswordPath = join(secrets, "conat_password");
+export const conatPasswordPath = join(secrets, "conat-password");
 try {
   conatPassword = readFileSync(conatPasswordPath).toString().trim();
 } catch (err) {
@@ -241,8 +241,16 @@ export let conatValkey = process.env.CONAT_VALKEY ?? "";
 export function setConatValkey(valkey: string) {
   conatValkey = valkey;
 }
+export let valkeyPassword = "";
+const valkeyPasswordPath = join(secrets, "valkey-password");
+try {
+  valkeyPassword = readFileSync(valkeyPasswordPath).toString().trim();
+} catch {}
 
-export let conatSocketioCount = parseInt(process.env.CONAT_SOCKETIO_COUNT ?? '1');
+
+export let conatSocketioCount = parseInt(
+  process.env.CONAT_SOCKETIO_COUNT ?? "1",
+);
 export function setConatSocketioCount(count: number) {
   conatSocketioCount = count ? count : 1;
 }

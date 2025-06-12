@@ -66,6 +66,7 @@ import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
+import { until } from "@cocalc/util/async-utils";
 
 const DEBUG = false;
 
@@ -107,6 +108,8 @@ export interface Options {
   ssl?: boolean;
 }
 
+type State = "ready" | "closed";
+
 export class ConatServer {
   public readonly io;
   public readonly id: string;
@@ -125,6 +128,7 @@ export class ConatServer {
 
   private stats: { [id: string]: ServerConnectionStats } = {};
   private usage: UsageMonitor;
+  private state: State = "ready";
 
   constructor(options: Options) {
     const {
@@ -180,6 +184,7 @@ export class ConatServer {
         pub: new Valkey(valkey),
         sub: new Valkey(valkey),
       };
+      this.trimValkeyStreamsLoop();
     }
     this.log("Starting Conat server...", {
       id,
@@ -230,6 +235,10 @@ export class ConatServer {
   };
 
   close = async () => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.state = "closed";
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
       delete this[prop];
@@ -338,6 +347,31 @@ export class ConatServer {
         JSON.stringify(update),
       );
     }
+  };
+
+  private trimValkeyStreamsLoop = async () => {
+    const STREAMS = ["interest", "sticky"];
+    const MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+    const TRIM_INTERVAL = 2 * 60 * 1000;
+    await until(
+      async () => {
+        if (!this.valkey || this.state == "closed") {
+          return true;
+        }
+        const cutoff = Date.now() - MAX_AGE_MS;
+        const minId = Math.floor(cutoff) + "-0";
+        for (const stream of STREAMS) {
+          try {
+            await this.valkey.pub.xtrim(stream, "MINID", minId);
+          } catch (e) {
+            this.log(`Error trimming stream ${stream}:`, e);
+          }
+        }
+        // keep loop going
+        return false;
+      },
+      { start: TRIM_INTERVAL, max: TRIM_INTERVAL },
+    );
   };
 
   private _updateInterest = ({ op, subject, queue, room }: InterestUpdate) => {
