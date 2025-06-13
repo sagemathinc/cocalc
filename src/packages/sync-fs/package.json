@@ -14,7 +14,8 @@
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf node_modules dist",
-    "test": "pnpm exec jest --forceExit --runInBand"
+    "test": "pnpm exec jest --forceExit --runInBand",
+    "depcheck": "pnpx depcheck --ignores execa"
   },
   "author": "SageMath, Inc.",
   "keywords": ["cocalc", "jupyter"],
