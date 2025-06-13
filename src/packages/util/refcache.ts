@@ -26,7 +26,7 @@ export default function refCache<
   createObject,
   name,
 }: {
-  createKey?: (opts: Options) => string;
+  createKey?: (opts: Options) => string | null | undefined;
   createObject: (opts: Options) => Promise<T>;
   name: string;
 }) {
@@ -37,14 +37,14 @@ export default function refCache<
     createKey = (x) => jsonStableStringify(x) ?? "";
   }
   const createObjectReuseInFlight = reuseInFlight(createObject, {
-    createKey: (args) => createKey(args[0]),
+    createKey: (args) => createKey(args[0]) ?? "",
   });
 
   const get = async (opts: Options): Promise<T> => {
     if (opts.noCache) {
       return await createObject(opts);
     }
-    const key = createKey(opts);
+    const key = createKey(opts) ?? "";
     if (cache[key] != undefined) {
       count[key] += 1;
       if (VERBOSE) {
@@ -113,7 +113,7 @@ export function refCacheSync<
   createObject,
   name,
 }: {
-  createKey?: (opts: Options) => string;
+  createKey?: (opts: Options) => string | null | undefined;
   createObject: (opts: Options) => T;
   name: string;
 }) {
@@ -127,7 +127,7 @@ export function refCacheSync<
     if (opts.noCache) {
       return createObject(opts);
     }
-    const key = createKey(opts);
+    const key = createKey(opts) ?? "";
     if (cache[key] != undefined) {
       count[key] += 1;
       if (VERBOSE) {

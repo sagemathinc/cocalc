@@ -50,7 +50,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
           key: 0,
           on_click: () => actions?.open_directory("", true, false),
           active: current_path_depth === -1,
-        })
+        }),
       );
 
       const pathLen = current_path_depth;
@@ -77,7 +77,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
             on_click: (path) => actions?.open_directory(path, true, false),
             active: is_current,
             history: is_history,
-          })
+          }),
         );
       });
       return v;
@@ -88,5 +88,5 @@ export const PathNavigator: React.FC<Props> = React.memo(
     return (
       <Breadcrumb style={style} className={className} items={make_path()} />
     );
-  }
+  },
 );
