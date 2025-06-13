@@ -314,7 +314,7 @@ const createChangefeed = reuseInFlight(
     const desc = jsonStableStringify({
       query,
       ...user,
-    });
+    })!;
     const hash = sha1(desc);
     if (coordinator == null) {
       logger.debug("coordinator is not defined");
