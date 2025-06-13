@@ -5,7 +5,8 @@
 
 // cSpell:ignore descr disp dflt
 
-import { Col, Form, List, Space, Switch } from "antd";
+import { Col, Form, List } from "antd";
+import { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
@@ -39,6 +40,7 @@ import {
   custom_image_name,
   is_custom_image,
 } from "./util";
+import { SoftwareInfo } from "../project/settings/types";
 
 const CS_LIST_STYLE: CSS = {
   height: "250px",
@@ -95,11 +97,11 @@ interface Props {
 // this is a selector for the software environment of a project
 export function SoftwareEnvironment(props: Props) {
   const { onChange, default_image } = props;
+  const intl = useIntl();
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images",
   );
-  const intl = useIntl();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
@@ -122,6 +124,8 @@ export function SoftwareEnvironment(props: Props) {
   );
   const set_title_text = useState<string | undefined>(undefined)[1];
   const [image_type, set_image_type] = useState<ComputeImageTypes>("standard");
+
+  const [softwareInfo, setSoftwareInfo] = useState<SoftwareInfo | null>(null);
 
   function set_state(
     image_selected: string | undefined,
@@ -250,23 +254,6 @@ export function SoftwareEnvironment(props: Props) {
           <HelpEmailLink color={COLORS.GRAY} />.
         </Paragraph>
       </Col>
-    );
-  }
-
-  function render_switch_custom() {
-    if (!onCoCalcCom || !haveSoftwareImages) return;
-    return (
-      <Space style={{ marginLeft: "20px" }}>
-        <Switch
-          value={image_type === "custom"}
-          onChange={(val) => {
-            set_state(undefined, undefined, val ? "custom" : "standard");
-          }}
-          title={"Switch to select a custom software environment"}
-          checkedChildren={"Custom"}
-          unCheckedChildren={"Standard"}
-        />
-      </Space>
     );
   }
 
@@ -424,14 +411,12 @@ export function SoftwareEnvironment(props: Props) {
               <ComputeImageSelector
                 size="middle"
                 current_image={image_selected ?? dflt_software_img}
-                customSwitch={render_switch_custom()}
                 layout={"dropdown"}
+                setSoftwareInfo={setSoftwareInfo}
                 onSelect={(img) => {
                   const display = software_images.get(img)?.get("title");
                   set_state(img, display, "standard");
                 }}
-                disabled={image_type !== "standard"}
-                hideSelector={image_type === "custom"}
               />
             </Form.Item>
           </Form>
@@ -445,6 +430,7 @@ export function SoftwareEnvironment(props: Props) {
             {render_software_env_help()}
           </Paragraph>
         </Col>
+        {softwareInfo && <Col sm={24}>{softwareInfo}</Col>}
       </>
     );
   }

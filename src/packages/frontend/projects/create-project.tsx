@@ -60,8 +60,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   const [error, set_error] = useState<string>("");
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
-  const [custom_software, set_custom_software] =
-    useState<SoftwareEnvironmentState>({});
+  const [specialized, set_specialized] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef(null);
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
@@ -114,7 +113,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     set_state("view");
     set_title_text(default_value ?? "");
     set_error("");
-    set_custom_software({});
+    set_specialized({});
     set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
@@ -134,7 +133,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     let project_id: string;
     const opts = {
       title: title_text,
-      image: await derive_project_img_name(custom_software),
+      image: await derive_project_img_name(specialized),
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
       license: license_id,
     };
@@ -227,9 +226,9 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
       // currently saving (?)
       state === "saving" ||
       // user wants a non-default image, but hasn't selected one yet
-      ((custom_software.image_type === "custom" ||
-        custom_software.image_type === "standard") &&
-        custom_software.image_selected == null)
+      ((specialized.image_type === "custom" ||
+        specialized.image_type === "standard") &&
+        specialized.image_selected == null)
     );
   }
 
@@ -251,11 +250,11 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     }
   }
 
-  function custom_software_on_change(obj: SoftwareEnvironmentState): void {
+  function software_on_change(obj: SoftwareEnvironmentState): void {
     if (obj.title_text != null && (!title_prefill || !title_text)) {
       set_title(obj.title_text);
     }
-    set_custom_software(obj);
+    set_specialized(obj);
   }
 
   function addSiteLicense(lic: string): void {
@@ -334,10 +333,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
-                label={intl.formatMessage({
-                  id: "projects.create-project.title",
-                  defaultMessage: "Project Title",
-                })}
+                label={intl.formatMessage(labels.title)}
                 name="title"
                 initialValue={title_text}
                 rules={[
@@ -386,7 +382,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
               />
             </Paragraph>
           </Col>
-          <SoftwareEnvironment onChange={custom_software_on_change} />
+          <SoftwareEnvironment onChange={software_on_change} />
         </Row>
         {render_add_license()}
         {render_license()}

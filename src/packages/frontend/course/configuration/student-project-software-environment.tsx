@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cspell:ignore descr
+
 import { Alert, Button, Card, Divider, Radio, Space } from "antd";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -52,7 +54,7 @@ export function StudentProjectSoftwareEnvironment({
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
-  const dflt_compute_img = customize_software.get("default");
+  const default_compute_img = customize_software.get("default");
 
   // by default, we inherit the software image from the project where this course is run from
   const inherit = inherit_compute_image ?? true;
@@ -163,7 +165,7 @@ export function StudentProjectSoftwareEnvironment({
   }
 
   function render_description() {
-    const img_id = software_image ?? dflt_compute_img;
+    const img_id = software_image ?? default_compute_img;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
       if (custom_images == null) return;

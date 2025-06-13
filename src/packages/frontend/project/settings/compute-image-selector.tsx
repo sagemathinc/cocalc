@@ -7,23 +7,23 @@
 
 // cSpell:ignore descr
 
-import { DownOutlined } from "@ant-design/icons";
+//import { DownOutlined } from "@ant-design/icons";
 import {
   Button,
   Col,
   Descriptions,
   DescriptionsProps,
   Divider,
-  Dropdown,
-  Flex,
-  MenuProps,
   Modal,
   Row,
+  Select,
   Space,
   Spin,
 } from "antd";
-import { SizeType } from "antd/es/config-provider/SizeContext";
+import type { SizeType } from "antd/es/config-provider/SizeContext";
+import type { SelectProps } from "antd/lib";
 import { fromJS } from "immutable";
+import { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
@@ -36,9 +36,15 @@ import {
   HelpIcon,
   Icon,
   Loading,
+  Markdown,
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
+import {
+  ComputeImage,
+  ComputeImages,
+} from "@cocalc/frontend/custom-software/init";
+import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
@@ -46,8 +52,11 @@ import { capitalize, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareEnvironmentInformation } from "./software-env-info";
+import { SoftwareInfo } from "./types";
 
-type MenuItem = Required<MenuProps>["items"][number];
+//type MenuItem = Required<MenuProps>["items"][number];
+type SelectOptions = SelectProps["options"];
+type SelectOption = NonNullable<SelectOptions>[number];
 
 const title = (x) => x.get("short") ?? x.get("title") ?? x.get("id") ?? "";
 
@@ -75,8 +84,7 @@ interface ComputeImageSelectorProps {
   size?: SizeType;
   label?: string; // the "okText" on the main button
   changing?: boolean;
-  customSwitch?: JSX.Element;
-  hideSelector?: boolean;
+  setSoftwareInfo?: (info?) => void;
 }
 
 export function ComputeImageSelector({
@@ -87,8 +95,7 @@ export function ComputeImageSelector({
   size = "small",
   label: propsLabel,
   changing = false,
-  customSwitch,
-  hideSelector = false,
+  setSoftwareInfo,
 }: ComputeImageSelectorProps) {
   const intl = useIntl();
 
@@ -121,6 +128,11 @@ export function ComputeImageSelector({
     img_sorter,
   );
 
+  const specializedSoftware: ComputeImages | undefined = useTypedRedux(
+    "compute_images",
+    "images",
+  );
+
   const defaultComputeImg = software_envs.get("default");
   const GROUPS: string[] = software_envs.get("groups").toJS();
 
@@ -138,67 +150,97 @@ export function ComputeImageSelector({
   const current_title = getComputeImgTitle(current_image);
   const selected_title = getComputeImgTitle(nextImg);
 
-  function render_menu_children(group: string): MenuItem[] {
+  function render_menu_children(group: string): SelectOption[] {
     return computeEnvs
       .filter(
         (item) => item.get("group") === group && !item.get("hidden", false),
       )
-      .map((img, key) => {
+      .map((img, value) => {
         const registry = img.get("registry");
         const tag = img.get("tag");
-        const labelStr = img.get("short") ?? img.get("title") ?? key;
-        const label =
-          key === defaultComputeImg ? (
+        const labelStr = img.get("short") ?? img.get("title") ?? value;
+        const label: ReactNode =
+          value === defaultComputeImg ? (
             <Text strong>{labelStr}</Text>
           ) : (
             <>{labelStr}</>
           );
         const extra = registry && tag ? ` (${registry}:${tag})` : "";
         const title = `${img.get("descr")}${extra}`;
-        return { key, title, label: label as any };
+        return { value, title, label: label as any };
       })
       .valueSeq()
       .toJS();
   }
 
-  function render_menu_group(group: string): MenuItem {
-    const children = render_menu_children(group);
-    if (children.length === 0) return null;
+  function render_menu_group(group: string): SelectOption | null {
+    const options = render_menu_children(group);
+    if (options.length === 0) return null;
     return {
-      key: group,
-      children,
+      key: `group-${group}`,
       label: group,
-      type: "group",
+      title: group,
+      options,
     };
   }
 
-  function menu_items(): MenuProps["items"] {
-    return GROUPS.map(render_menu_group);
-  }
+  function render_special_images(): SelectOption {
+    if (specializedSoftware == null) return [];
 
-  function getMenu() {
+    const options: SelectOptions = specializedSoftware
+      .filter((img) => img.get("type", "") === "custom")
+      .sortBy((img) => img.get("display", "").toLowerCase())
+      .entrySeq()
+      .map((e) => {
+        const [id, img] = e;
+        const display = img.get("display", "");
+        return {
+          value: `${CUSTOM_IMG_PREFIX}${id}`,
+          label: display,
+          title: JSON.stringify(img.toJS()),
+          searchStr: img.get("search_str", ""),
+        };
+      })
+      .toJS();
+
     return {
-      onClick: (e) => {
-        setNextImg(e.key);
-        if (layout !== "dialog") {
-          onSelect(e.key);
-        }
-      },
-      style: { maxHeight: "50vh", overflow: "auto" },
-      items: menu_items(),
+      key: "group-specialized",
+      label: "Specialized",
+      title: "Specialized",
+      options,
     };
+  }
+
+  function select_options(): SelectOptions {
+    const standard = GROUPS.map(render_menu_group).filter((x) => x != null);
+    const special = render_special_images();
+    return [...standard, special];
   }
 
   function render_selector() {
-    // returning a placeholder to keep the switch on the right in place
-    if (hideSelector) return <span></span>;
-
     return (
-      <Dropdown menu={getMenu()} trigger={["click"]} disabled={disabled}>
-        <Button size={size} disabled={disabled} block={layout === "dropdown"}>
-          {selected_title} <DownOutlined />
-        </Button>
-      </Dropdown>
+      <Select
+        showSearch
+        value={nextImg}
+        labelRender={() => selected_title}
+        disabled={disabled}
+        style={{ width: "100%" }}
+        filterOption={(input, option) => {
+          const l = `${option?.label ?? ""}`;
+          const s: string = (option as any)?.searchStr ?? "";
+          return [l, s].join(" ").toLowerCase().includes(input.toLowerCase());
+        }}
+        onSelect={(key) => {
+          console.log("selector onSelect key =", key);
+          setNextImg(key);
+          const info = get_info(key);
+          setSoftwareInfo?.(info);
+          if (layout !== "dialog") {
+            onSelect(key);
+          }
+        }}
+        options={select_options()}
+      />
     );
   }
 
@@ -220,29 +262,91 @@ export function ComputeImageSelector({
     );
   }
 
-  function get_info(img: string) {
+  function getCustomImageInfo(id: string): {
+    desc: string;
+    title: string;
+    extra?: ReactNode;
+  } {
+    const data = specializedSoftware?.get(id);
+    if (data == null) {
+      // we have a serious problem
+      console.warn(`compute_image data missing for '${id}'`);
+      return { title: id, desc: "No data available" };
+    }
+    // some fields are derived in the "Table" when the data comes in
+    const img: ComputeImage = data;
+    const display = img.get("display") ?? id;
+    const desc = img.get("desc", "");
+    const url = img.get("url");
+    const src = img.get("src");
+    const displayTag = img.get("display_tag");
+
+    const render_source = () => {
+      if (src == null || src.length == 0) return;
+      return (
+        <div style={{ marginTop: "5px" }}>
+          Source: <code>{src}</code>
+        </div>
+      );
+    };
+
+    const render_url = () => {
+      if (url == null || url.length == 0) return;
+      return (
+        <div style={{ marginTop: "5px" }}>
+          <a href={url} target={"_blank"} rel={"noopener"}>
+            <Icon name="external-link" /> Website
+          </a>
+        </div>
+      );
+    };
+
+    return {
+      title: id,
+      desc: display,
+      extra: (
+        <div>
+          <h3 style={{ marginTop: "5px" }}>{display}</h3>
+          <div style={{ marginTop: "5px" }}>
+            Image ID: <code>{displayTag}</code>
+          </div>
+          <div
+            style={{ marginTop: "10px", overflowY: "auto", maxHeight: "200px" }}
+          >
+            <Markdown value={desc} className={"cc-custom-image-desc"} />
+          </div>
+          {render_source()}
+          {render_url()}
+        </div>
+      ),
+    };
+  }
+
+  function getStandardImageInfo(img: string): SoftwareInfo {
     const title = getComputeImgTitle(img);
     const desc =
       getComputeImgInfo(img, "descr") ||
       `(${intl.formatMessage(labels.no_description)})`;
     const registry = getComputeImgInfo(img, "registry");
     const tag = getComputeImgInfo(img, "tag");
-    const extra = registry && tag ? `${registry}:${tag}` : null;
+    const extra =
+      registry && tag ? (
+        <Text type="secondary"> ({`${registry}:${tag}`})</Text>
+      ) : undefined;
     return { title, desc, registry, tag, extra };
   }
 
+  function get_info(img: string): SoftwareInfo {
+    if (img.startsWith(CUSTOM_IMG_PREFIX)) {
+      return getCustomImageInfo(img.substring(CUSTOM_IMG_PREFIX.length));
+    } else {
+      return getStandardImageInfo(img);
+    }
+  }
+
   function render_info(img: string) {
-    const { desc, extra } = get_info(img);
-    return (
-      <>
-        <Text>{desc}</Text>
-        {extra ? (
-          <>
-            <Text type="secondary"> ({extra})</Text>
-          </>
-        ) : null}
-      </>
-    );
+    const { desc } = get_info(img);
+    return <Text>{desc}</Text>;
   }
 
   function renderDialogButton() {
@@ -345,17 +449,10 @@ export function ComputeImageSelector({
     case "dropdown":
       return (
         <Row gutter={[10, 10]}>
+          <Col xs={24}>{render_selector()}</Col>
           <Col xs={24}>
-            <Flex vertical={false} justify={"space-between"} align={"center"}>
-              {render_selector()}
-              {customSwitch ? customSwitch : undefined}
-            </Flex>
+            <Text type="secondary">{render_info(nextImg)}</Text>
           </Col>
-          {!hideSelector && (
-            <Col xs={24}>
-              <Text type="secondary">{render_info(nextImg)}</Text>
-            </Col>
-          )}
         </Row>
       );
     // successor of "vertical", where there is a dialog with a clear indication to click a button
