@@ -11,7 +11,11 @@ A frozen copy of the object is saved in the key:value store,
 so it won't get mutated.
 */
 
-import json from "json-stable-stringify";
+import json0 from "json-stable-stringify";
+
+function json(x) {
+  return json0(x) ?? "";
+}
 
 export const key_value_store = () => new KeyValueStore();
 
