@@ -24,6 +24,7 @@ import {
   type Configuration,
   type PartialInventory,
 } from "@cocalc/conat/persist/storage";
+import { AsciiTable3 } from "@cocalc/ascii-table3";
 
 export const INVENTORY_UPDATE_INTERVAL = 30000;
 export const THROTTLE_MS = 10000;
@@ -94,7 +95,7 @@ export class Inventory {
     name: string;
     bytes: number;
     count: number;
-    limits: Configuration;
+    limits: Partial<Configuration>;
     desc?: JSONValue;
     seq: number;
   }) => {
@@ -249,20 +250,11 @@ export class Inventory {
       throw Error("not initialized");
     }
     const all = this.dkv.getAll();
-    log(`
-Inventory for ${JSON.stringify(this.location)}`);
     log(
       "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'-last'|...})",
     );
-    log(
-      "╭──────────┬─────────────────────────────────────────────────────┬───────────────────────┬──────────────────┬──────────────────┬──────────────────┬───────────────────────╮",
-    );
-    log(
-      `│ ${padRight("Type", 7)} │ ${padRight("Name", 50)} │ ${padRight("Created", 20)} │ ${padRight("Size", 15)} │ ${padRight("Count", 15)} │ ${padRight("Value Type", 15)} │ ${padRight("Last Update", 20)} │`,
-    );
-    log(
-      "├──────────┼─────────────────────────────────────────────────────┼───────────────────────┼──────────────────┼──────────────────┼──────────────────┼───────────────────────┤",
-    );
+
+    const rows: any[] = [];
     for (const key of this.sortedKeys(all, sort)) {
       const { last, created, count, bytes, desc, limits } = all[key];
       if (path0 && desc?.["path"] != path0) {
@@ -284,34 +276,41 @@ Inventory for ${JSON.stringify(this.location)}`);
       ) {
         continue;
       }
-      log(
-        `│ ${padRight(type ?? "-", 7)} │ ${padRight(name, 50)} │ ${padRight(dateToString(new Date(created)), 20)} │ ${padRight(humanReadableSize(bytes), 15)} │ ${padRight(count, 15)} │ ${padRight(dateToString(new Date(last)), 20)} │`,
-      );
-      if (desc) {
-        log(`│          |   ${padRight(JSON.stringify(desc), 153)} |`);
-      }
-      if (limits) {
-        log(`│          │   ${padRight(JSON.stringify(limits), 153)} |`);
-      }
+      rows.push([
+        type,
+        name,
+        dateToString(new Date(created)),
+        humanReadableSize(bytes),
+        count,
+        dateToString(new Date(last)),
+        desc ? JSON.stringify(desc) : "",
+        Object.keys(limits).length > 0 ? JSON.stringify(limits) : "--",
+      ]);
     }
-    log(
-      "╰──────────┴─────────────────────────────────────────────────────┴───────────────────────┴──────────────────┴──────────────────┴──────────────────┴───────────────────────╯",
-    );
+
+    const table = new AsciiTable3(
+      `Inventory for ${JSON.stringify(this.location)}`,
+    )
+      .setHeading(
+        "Type",
+        "Name",
+        "Created",
+        "Size",
+        "Count",
+        "Last Update",
+        "Desc",
+        "Limits",
+      )
+      .addRowMatrix(rows);
+    table.setStyle("unicode-round");
+    table.setWidth(7, 50).setWrapped(1);
+    table.setWidth(8, 30).setWrapped(1);
+    log(table.toString());
   };
 }
 
 function dateToString(d: Date) {
   return d.toISOString().replace("T", " ").replace("Z", "").split(".")[0];
-}
-
-function padRight(s: any, n) {
-  if (typeof s != "string") {
-    s = `${s}`;
-  }
-  while (s.length <= n) {
-    s += " ";
-  }
-  return s;
 }
 
 export const cache = refCache<Location & { noCache?: boolean }, Inventory>({

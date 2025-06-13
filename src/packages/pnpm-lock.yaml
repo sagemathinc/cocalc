@@ -176,6 +176,9 @@ importers:
 
   conat:
     dependencies:
+      '@cocalc/ascii-table3':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@cocalc/comm':
         specifier: workspace:*
         version: link:../comm
@@ -194,9 +197,6 @@ importers:
       '@socket.io/redis-streams-adapter':
         specifier: ^0.2.2
         version: 0.2.2(socket.io-adapter@2.5.5)
-      ascii-table3:
-        specifier: ^1.0.0
-        version: 1.0.0
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -2644,6 +2644,10 @@ packages:
     resolution: {integrity: sha512-YstAqNb0MCN8PjdLCDfRsBcGVRN41f3vgLvaI0IrIcBp4AqILRSS0DeWNGkicC+f/zRIPJLc+9RURVSepwvfBw==}
     hasBin: true
 
+  '@cocalc/ascii-table3@1.0.1':
+    resolution: {integrity: sha512-GNsWMSk3gqItk/Q7c4gRXCR8N/kfYiD8cMCx8zts0TAg0c09boKrihFqj/3OMM5jLuxVnqqXxarPNyVzp9vKjw==}
+    engines: {node: '>=11.14.0'}
+
   '@cocalc/gcloud-pricing-calculator@1.16.0':
     resolution: {integrity: sha512-68vc0B1fvAC0ZG3Xp0OTnMThbBTKVf+UWNJQdOWVAMNTpLdKaT9S/H/KraP1Y6P7A+05bxmSAiw2oCiBxoDtoA==}
     engines: {node: '>=0.18.0'}
@@ -5034,10 +5038,6 @@ packages:
 
   asap@2.0.6:
     resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
-
-  ascii-table3@1.0.0:
-    resolution: {integrity: sha512-aHtMiF1Y1h6aUCdEfCV+DUFzXtD7y9tWJnsU//n+7+Uh5tmhFOtW5kECEzfTxSKn/uiNTrvGCuGnD+wLkn5qRw==}
-    engines: {node: '>=11.14.0'}
 
   asn1@0.2.6:
     resolution: {integrity: sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==}
@@ -12789,6 +12789,10 @@ snapshots:
     dependencies:
       commander: 2.20.3
 
+  '@cocalc/ascii-table3@1.0.1':
+    dependencies:
+      printable-characters: 1.0.42
+
   '@cocalc/gcloud-pricing-calculator@1.16.0':
     dependencies:
       awaiting: 3.0.0
@@ -15717,10 +15721,6 @@ snapshots:
   arrify@2.0.1: {}
 
   asap@2.0.6: {}
-
-  ascii-table3@1.0.0:
-    dependencies:
-      printable-characters: 1.0.42
 
   asn1@0.2.6:
     dependencies:

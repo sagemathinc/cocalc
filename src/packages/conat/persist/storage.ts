@@ -60,7 +60,7 @@ import TTL from "@isaacs/ttlcache";
 export interface PartialInventory {
   // how much space is used by this stream
   bytes: number;
-  limits: Configuration;
+  limits: Partial<Configuration>;
   // number of messages
   count: number;
   // for streams, the seq number up to which this data is valid, i.e.,
@@ -495,7 +495,7 @@ export class PersistentStream extends EventEmitter {
     return {
       bytes: this.totalSize(),
       count: this.length,
-      limits: this.config(),
+      limits: this.getConfig(),
       seq: this.seq(),
     };
   };
@@ -525,6 +525,22 @@ export class PersistentStream extends EventEmitter {
         throw err;
       }
     }
+  };
+
+  // only returns fields that are not set to their default value,
+  // and doesn't enforce any limits
+  getConfig = (): Partial<Configuration> => {
+    const cur: any = {};
+    for (const { field, value } of this.db
+      .prepare("SELECT * FROM config")
+      .all() as any) {
+      const { def, fromDb } = CONFIGURATION[field];
+      cur[field] = fromDb(value);
+      if (cur[field] == def) {
+        delete cur[field];
+      }
+    }
+    return cur;
   };
 
   config = (config?: Partial<Configuration>): Configuration => {

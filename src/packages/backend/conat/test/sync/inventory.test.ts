@@ -11,9 +11,9 @@ import { before, after, client } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
-describe("test the (partial) inventory method on core stream", () => {
+describe("test the (partial) inventory method on dkv", () => {
   let dkv, dstream;
-  const name = `inventory-1`;
+  const name = `inventory-dkv`;
 
   it("creates a kv and grabs the partial inventory", async () => {
     dkv = await client.sync.dkv({ name });
@@ -23,13 +23,6 @@ describe("test the (partial) inventory method on core stream", () => {
       count: 0,
       limits: {
         allow_msg_ttl: true,
-        discard_policy: "old",
-        max_age: 0,
-        max_bytes: -1,
-        max_bytes_per_second: -1,
-        max_msg_size: -1,
-        max_msgs: -1,
-        max_msgs_per_second: -1,
       },
       seq: 0,
     });
@@ -43,13 +36,6 @@ describe("test the (partial) inventory method on core stream", () => {
       count: 1,
       limits: {
         allow_msg_ttl: true,
-        discard_policy: "old",
-        max_age: 0,
-        max_bytes: -1,
-        max_bytes_per_second: -1,
-        max_msg_size: -1,
-        max_msgs: -1,
-        max_msgs_per_second: -1,
       },
       seq: 1,
     });
@@ -70,18 +56,64 @@ describe("test the (partial) inventory method on core stream", () => {
     const { limits } = await dkv.kv.inventory();
     expect(limits).toEqual({
       allow_msg_ttl: true,
-      discard_policy: "old",
       max_age: 100000,
       max_bytes: 100,
-      max_bytes_per_second: -1,
       max_msg_size: 100,
-      max_msgs: -1,
-      max_msgs_per_second: -1,
     });
   });
-  
-  it("cleans up", async () => {
-    client.close();
+});
+
+describe("test the (partial) inventory method on a dstream", () => {
+  let dstream;
+  const name = `inventory-dstream`;
+
+  it("creates a dstream and grabs the partial inventory", async () => {
+    dstream = await client.sync.dstream({ name });
+    const i = await dstream.stream.inventory();
+    expect(i).toEqual({
+      bytes: 0,
+      count: 0,
+      limits: {},
+      seq: 0,
+    });
+  });
+
+  it("publish see that updated in the inventory data", async () => {
+    dstream.publish(5);
+    await dstream.save();
+    const i = await dstream.stream.inventory();
+    expect(i).toEqual({
+      bytes: 1,
+      count: 1,
+      limits: {},
+      seq: 1,
+    });
+  });
+
+  it("publish some more", async () => {
+    dstream.push(1, 2, 3, 4);
+    await dstream.save();
+    const i = await dstream.stream.inventory();
+    expect(i).toEqual({
+      bytes: 5,
+      count: 5,
+      limits: {},
+      seq: 5,
+    });
+  });
+
+  it("change some limits", async () => {
+    await dstream.config({
+      max_age: 100000,
+      max_bytes: 100,
+      max_msg_size: 100,
+    });
+    const { limits } = await dstream.stream.inventory();
+    expect(limits).toEqual({
+      max_age: 100000,
+      max_bytes: 100,
+      max_msg_size: 100,
+    });
   });
 });
 

@@ -7,7 +7,7 @@ have for various reasons.
 
 */
 
-import { AsciiTable3 } from "ascii-table3";
+import { AsciiTable3 } from "@cocalc/ascii-table3";
 import { type Client } from "@cocalc/conat/core/client";
 import { field_cmp, human_readable_size } from "@cocalc/util/misc";
 import dayjs from "dayjs";
@@ -60,7 +60,7 @@ export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
     .setHeading("Server", "User", "Connections")
     .addRowMatrix(rows);
 
-  table.setStyle("unicode-single");
+  table.setStyle("unicode-round");
   return table;
 }
 
@@ -123,7 +123,7 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
     )
     .addRowMatrix(rows);
 
-  table.setStyle("unicode-single");
+  table.setStyle("unicode-round");
   return table;
 }
 
