@@ -12,7 +12,7 @@ import { before, after, client } from "@cocalc/backend/conat/test/setup";
 beforeAll(before);
 
 describe("test the (partial) inventory method on dkv", () => {
-  let dkv, dstream;
+  let dkv;
   const name = `inventory-dkv`;
 
   it("creates a kv and grabs the partial inventory", async () => {
