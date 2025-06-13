@@ -16,24 +16,15 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "mathjax",
-    "markdown",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies-COMMENT": "We must install react so that react-intl doesn't install the rwrong version! See https://github.com/sagemathinc/cocalc/issues/8132",
   "dependencies": {
@@ -43,9 +34,7 @@
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.11",
-    "debug": "^4.4.0",
     "decimal.js-light": "^2.5.1",
-    "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^4.3.0",
     "js-base64": "^3.7.7",
@@ -70,20 +59,13 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
-    "@types/debug": "^4.1.12",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
     "@types/seedrandom": "^3.0.8",
     "@types/uuid": "^8.3.1",
-    "coffee-cache": "^1.0.2",
-    "coffee-coverage": "^3.0.1",
-    "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "seedrandom": "^3.0.5",
-    "should": "^7.1.1",
-    "should-sinon": "0.0.3",
-    "sinon": "^4.5.0",
     "tsd": "^0.22.0"
   }
 }

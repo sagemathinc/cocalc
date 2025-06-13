@@ -2110,15 +2110,9 @@ importers:
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
-      debug:
-        specifier: ^4.4.0
-        version: 4.4.1(supports-color@8.1.1)
       decimal.js-light:
         specifier: ^2.5.1
         version: 2.5.1
-      events:
-        specifier: 3.3.0
-        version: 3.3.0
       get-random-values:
         specifier: ^1.2.0
         version: 1.2.2
@@ -2171,9 +2165,6 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
     devDependencies:
-      '@types/debug':
-        specifier: ^4.1.12
-        version: 4.1.12
       '@types/json-stable-stringify':
         specifier: ^1.0.32
         version: 1.2.0
@@ -2189,30 +2180,12 @@ importers:
       '@types/uuid':
         specifier: ^8.3.1
         version: 8.3.4
-      coffee-cache:
-        specifier: ^1.0.2
-        version: 1.0.2
-      coffee-coverage:
-        specifier: ^3.0.1
-        version: 3.0.1
-      coffeescript:
-        specifier: ^2.5.1
-        version: 2.7.0
       expect:
         specifier: ^26.6.2
         version: 26.6.2
       seedrandom:
         specifier: ^3.0.5
         version: 3.0.5
-      should:
-        specifier: ^7.1.1
-        version: 7.1.1
-      should-sinon:
-        specifier: 0.0.3
-        version: 0.0.3(should@7.1.1)
-      sinon:
-        specifier: ^4.5.0
-        version: 4.5.0
       tsd:
         specifier: ^0.22.0
         version: 0.22.0
@@ -5587,10 +5560,6 @@ packages:
 
   coffee-cache@1.0.2:
     resolution: {integrity: sha512-sIqhtqg5AOfgVWH8uQ0b0i0rkawDD1icZNOgyYNJOlJBm8RrEzstLeOwgjZPcyVeMq0jNryx2TDL5xcPUo/27A==}
-
-  coffee-coverage@3.0.1:
-    resolution: {integrity: sha512-wY7ZYhxhQoG27XbJgWx2QUCi9xHrJO91+4RA7hjAWV2VVugZv3ULPXGGetI04SmFZeQ3rnZ1eFTdksi9LdEKqg==}
-    hasBin: true
 
   coffee-loader@3.0.0:
     resolution: {integrity: sha512-2UPQNXfMAt4RmI/K9VxnLyrXdYdHPHQuEFiGcb70pTsVPmrV9M6Xg3p9ub7t1ettZZqvXUujjHozp22uTfLkzg==}
@@ -9733,10 +9702,6 @@ packages:
   pkg-types@2.1.0:
     resolution: {integrity: sha512-wmJwA+8ihJixSoHKxZJRBQG1oY8Yr9pGLzRmSsNms0iNWyHHAlZCa7mmKiFR10YPZuz/2k169JiS/inOjBCZ2A==}
 
-  pkginfo@0.4.1:
-    resolution: {integrity: sha512-8xCNE/aT/EXKenuMDZ+xTVwkT8gsoHN2z/Q29l80u0ppGEXVvsKRzNMbtKhg8LS8k1tJLAHHylf6p4VFmP6XUQ==}
-    engines: {node: '>= 0.4.0'}
-
   playwright-core@1.51.1:
     resolution: {integrity: sha512-/crRMj8+j/Nq5s8QcvegseuyeZPxpQCZb6HNk3Sos3BlZyAknRjoyJPFWkpNn8v0+P3WiwqFF8P+zQo4eqiNuw==}
     engines: {node: '>=18'}
@@ -10892,11 +10857,6 @@ packages:
 
   should-proxy@1.0.4:
     resolution: {integrity: sha512-RPQhIndEIVUCjkfkQ6rs6sOR6pkxJWCNdxtfG5pP0RVgUYbK5911kLTF0TNcCC0G3YCGd492rMollFT2aTd9iQ==}
-
-  should-sinon@0.0.3:
-    resolution: {integrity: sha512-jav6kEQ4BcbXGgLl+NuHmGkO23W+XTV5ovBftVSPSuiMAjQisU5o1NCU71HafZwGF5+HQiFxiEcQlpspnonVwQ==}
-    peerDependencies:
-      should: '>= 4.x'
 
   should-type@0.2.0:
     resolution: {integrity: sha512-ixbc1p6gw4W29fp4MifFynWVQvuqfuZjib+y1tWezbjinoXu0eab/rXxLDP6drfZXlz6lZBwuzHJrs/BjLCLuQ==}
@@ -16325,14 +16285,6 @@ snapshots:
     dependencies:
       mkpath: 0.1.0
 
-  coffee-coverage@3.0.1:
-    dependencies:
-      argparse: 1.0.10
-      coffeescript: 2.7.0
-      lodash: 4.17.21
-      minimatch: 3.1.2
-      pkginfo: 0.4.1
-
   coffee-loader@3.0.0(coffeescript@2.7.0)(webpack@5.99.5):
     dependencies:
       coffeescript: 2.7.0
@@ -21367,8 +21319,6 @@ snapshots:
       exsolve: 1.0.4
       pathe: 2.0.3
 
-  pkginfo@0.4.1: {}
-
   playwright-core@1.51.1:
     optional: true
 
@@ -22845,10 +22795,6 @@ snapshots:
       should-type: 0.2.0
 
   should-proxy@1.0.4: {}
-
-  should-sinon@0.0.3(should@7.1.1):
-    dependencies:
-      should: 7.1.1
 
   should-type@0.2.0: {}
 

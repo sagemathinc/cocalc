@@ -158,4 +158,4 @@ src/packages/frontend/i18n/trans/*.compiled.json
 
 **/*.db
 **/project-env.sh
-**/.bash_history
+**/*.bash_history
