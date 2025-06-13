@@ -298,3 +298,5 @@ function checkApiServer(server) {
 }
 
 sanityChecks();
+ls ../../data/
+ls ../../data/sync

@@ -63,7 +63,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private terminal_settings: Map<string, any>;
   private project_id: string;
   private path: string;
-  private term_path: string;
+  private termPath: string;
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
@@ -135,7 +135,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     // This is the one and only place number is used.
     // It's very important though.
-    this.term_path = termPath({ path: this.path, number, cmd });
+    this.termPath = termPath({ path: this.path, number, cmd });
     this.id = id;
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
@@ -289,7 +289,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         return;
       }
       const conn = new ConatTerminal({
-        path: this.term_path,
+        termPath: this.termPath,
+        path: this.path,
         project_id: this.project_id,
         terminalResize: this.terminal_resize,
         openPaths: this.open_paths,
@@ -761,7 +762,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   async edit_init_script(): Promise<void> {
     try {
-      await open_init_file(this.actions._get_project_actions(), this.term_path);
+      await open_init_file(this.actions._get_project_actions(), this.termPath);
     } catch (err) {
       if (this.state === "closed") {
         return;
@@ -773,7 +774,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   popout(): void {
     this.actions
       ._get_project_actions()
-      .open_file({ path: this.term_path, foreground: true });
+      .open_file({ path: this.termPath, foreground: true });
   }
 
   set_font_size(font_size: number): void {
@@ -832,7 +833,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     return (
-      (await computeServerAssociations.getServerIdForPath(this.term_path)) ?? 0
+      (await computeServerAssociations.getServerIdForPath(this.termPath)) ?? 0
     );
   };
 
@@ -845,7 +846,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const cur = await computeServerAssociations.getServerIdForPath(
-      this.term_path,
+      this.termPath,
     );
     if (cur != null) {
       // nothing to do -- it's already explicitly set.
@@ -860,13 +861,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       await redux
         .getActions("page")
         .popconfirm(
-          modalParams({ current: 0, target: id, path: this.term_path }),
+          modalParams({ current: 0, target: id, path: this.termPath }),
         )
     ) {
       // yes, switch it
       computeServerAssociations.connectComputeServerToPath({
         id,
-        path: this.term_path,
+        path: this.termPath,
       });
       await computeServerAssociations.save();
     }

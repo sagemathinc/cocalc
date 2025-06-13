@@ -42,10 +42,10 @@ interface TerminalApi {
   close: (browser_id: string) => Promise<void>;
 }
 
-export function createTerminalClient({ project_id, path }) {
+export function createTerminalClient({ project_id, termPath }) {
   return createServiceClient<TerminalApi>({
     project_id,
-    path,
+    path: termPath,
     service: "terminal-server",
     timeout: 3000,
   });
@@ -55,16 +55,16 @@ export type TerminalServiceApi = ReturnType<typeof createTerminalClient>;
 
 export function createTerminalServer({
   project_id,
-  path,
+  termPath,
   impl,
 }: {
   project_id: string;
-  path: string;
+  termPath: string;
   impl;
 }): ConatService {
   return createServiceHandler<TerminalApi>({
     project_id,
-    path,
+    path: termPath,
     service: "terminal-server",
     description: "Terminal service.",
     impl,
@@ -84,26 +84,26 @@ export interface TerminalBrowserApi {
   size: (opts: { rows: number; cols: number }) => Promise<void>;
 }
 
-export function createBrowserClient({ project_id, path }) {
+export function createBrowserClient({ project_id, termPath }) {
   return createServiceClient<TerminalBrowserApi>({
     project_id,
-    path,
+    path: termPath,
     service: "terminal-browser",
   });
 }
 
 export function createBrowserService({
   project_id,
-  path,
+  termPath,
   impl,
 }: {
   project_id: string;
-  path: string;
+  termPath: string;
   impl: TerminalBrowserApi;
 }): ConatService {
   return createServiceHandler<TerminalBrowserApi>({
     project_id,
-    path,
+    path: termPath,
     service: "terminal-browser",
     description: "Browser Terminal service.",
     all: true,

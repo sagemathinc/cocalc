@@ -14,12 +14,14 @@ import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
 import { ThrottleString as Throttle } from "@cocalc/util/throttle";
 import { join } from "path";
+import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 
 const logger = getLogger("project:conat:terminal:session");
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
-const SOFT_RESET = "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x";
+const SOFT_RESET =
+  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x";
 
 const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(history 1);\n`;
 
@@ -52,8 +54,8 @@ type State = "running" | "off" | "closed";
 
 export class Session {
   public state: State = "off";
-  public options;
-  private path: string;
+  public options: CreateTerminalOptions;
+  private termPath: string;
   private pty?;
   private size?: { rows: number; cols: number };
   private browserApi: ReturnType<typeof createBrowserClient>;
@@ -63,12 +65,12 @@ export class Session {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
 
-  constructor({ path, options }) {
-    logger.debug("create session ", { path, options });
-    this.path = path;
-    this.browserApi = createBrowserClient({ project_id, path });
+  constructor({ termPath, options }) {
+    logger.debug("create session ", { termPath, options });
+    this.termPath = termPath;
+    this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
-    this.streamName = `terminal-${path}`;
+    this.streamName = `terminal-${termPath}`;
   }
 
   write = async (data) => {
@@ -146,10 +148,10 @@ export class Session {
   );
 
   init = async () => {
-    const { head, tail } = path_split(this.path);
+    const { head, tail } = path_split(this.termPath);
     const env = {
       PROMPT_COMMAND: "history -a",
-      HISTFILE: historyFile(this.path),
+      HISTFILE: historyFile(this.options.path),
       ...this.options.env,
       ...envForSpawn(),
       COCALC_TERMINAL_FILENAME: tail,
@@ -157,7 +159,7 @@ export class Session {
     };
     const command = this.options.command ?? DEFAULT_COMMAND;
     const args = this.options.args ?? [];
-    const initFilename: string = console_init_filename(this.path);
+    const initFilename: string = console_init_filename(this.termPath);
     if (await exists(initFilename)) {
       args.push("--init-file");
       args.push(path_split(initFilename).tail);
@@ -377,7 +379,10 @@ function getCWD(pathHead, cwd?): string {
 }
 
 function historyFile(path: string) {
-  const i = path.lastIndexOf("-");
-  const { head, tail } = path_split(path.slice(0, i));
-  return join(process.env.HOME ?? "", head, tail.slice(1));
+  const { head, tail } = path_split(path);
+  return join(
+    process.env.HOME ?? "",
+    head,
+    tail.endsWith(".term") ? tail : ".bash_history",
+  );
 }

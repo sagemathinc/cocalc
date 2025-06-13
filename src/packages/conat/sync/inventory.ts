@@ -1,5 +1,5 @@
 /*
-Inventory of all streams and key:value stores in a specific project, account or the public space.
+Inventory of all streams and key:value stores in a specific project or account.
 
 DEVELOPMENT:
 
@@ -347,3 +347,4 @@ export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
 export async function inventory(options: Location = {}): Promise<Inventory> {
   return await cache(options);
 }
+

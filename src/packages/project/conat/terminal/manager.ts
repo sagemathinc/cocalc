@@ -13,30 +13,23 @@ import {
   ComputeServerManager,
 } from "@cocalc/conat/compute/manager";
 const logger = getLogger("project:conat:terminal:manager");
-
-interface CreateOptions {
-  env?: { [key: string]: string };
-  command?: string;
-  args?: string[];
-  cwd?: string;
-  ephemeral?: boolean;
-}
+import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 
 let manager: TerminalManager | null = null;
 export const createTerminalService = async (
-  path: string,
-  opts?: CreateOptions,
+  termPath: string,
+  opts?: CreateTerminalOptions,
 ) => {
   if (manager == null) {
     logger.debug("createTerminalService -- creating manager");
     manager = new TerminalManager();
   }
-  return await manager.createTerminalService(path, opts);
+  return await manager.createTerminalService(termPath, opts);
 };
 
 export class TerminalManager {
-  private services: { [path: string]: ConatService } = {};
-  private sessions: { [path: string]: Session } = {};
+  private services: { [termPath: string]: ConatService } = {};
+  private sessions: { [termPath: string]: Session } = {};
   private computeServers?: ComputeServerManager;
 
   constructor() {
@@ -44,17 +37,17 @@ export class TerminalManager {
     this.computeServers.on("change", this.handleComputeServersChange);
   }
 
-  private handleComputeServersChange = async ({ path, id = 0 }) => {
-    const service = this.services[path];
+  private handleComputeServersChange = async ({ path: termPath, id = 0 }) => {
+    const service = this.services[termPath];
     if (service == null) return;
     if (id != compute_server_id) {
       logger.debug(
-        `terminal '${path}' moved: ${compute_server_id} --> ${id}:  Stopping`,
+        `terminal '${termPath}' moved: ${compute_server_id} --> ${id}:  Stopping`,
       );
-      this.sessions[path]?.close();
+      this.sessions[termPath]?.close();
       service.close();
-      delete this.services[path];
-      delete this.sessions[path];
+      delete this.services[termPath];
+      delete this.sessions[termPath];
     }
   };
 
@@ -63,8 +56,8 @@ export class TerminalManager {
     if (this.computeServers == null) {
       return;
     }
-    for (const path in this.services) {
-      this.services[path].close();
+    for (const termPath in this.services) {
+      this.services[termPath].close();
     }
     this.services = {};
     this.sessions = {};
@@ -77,45 +70,44 @@ export class TerminalManager {
   };
 
   private getSession = async (
-    path: string,
+    termPath: string,
     options,
     noCreate?: boolean,
   ): Promise<Session> => {
-    const cur = this.sessions[path];
+    const cur = this.sessions[termPath];
     if (cur != null) {
       return cur;
     }
     if (noCreate) {
       throw Error("no terminal session");
     }
-    await this.createTerminal({ ...options, path });
-    const session = this.sessions[path];
+    await this.createTerminal({ ...options, termPath });
+    const session = this.sessions[termPath];
     if (session == null) {
       throw Error(
-        `BUG: failed to create terminal session - ${path} (this should not happen)`,
+        `BUG: failed to create terminal session - ${termPath} (this should not happen)`,
       );
     }
     return session;
   };
 
   createTerminalService = reuseInFlight(
-    async (path: string, opts?: CreateOptions) => {
-      if (this.services[path] != null) {
+    async (termPath: string, opts?: CreateTerminalOptions) => {
+      if (this.services[termPath] != null) {
         return;
       }
       let options: any = undefined;
 
       const getSession = async (options, noCreate?) =>
-        await this.getSession(path, options, noCreate);
+        await this.getSession(termPath, options, noCreate);
 
       const impl = {
         create: async (
-          opts: CreateOptions,
+          opts: CreateTerminalOptions,
         ): Promise<{ success: "ok"; note?: string; ephemeral?: boolean }> => {
-          console.log(new Date(), "terminal.create", path, opts);
           // save options to reuse.
           options = opts;
-          const note = await this.createTerminal({ ...opts, path });
+          const note = await this.createTerminal({ ...opts, termPath });
           return { success: "ok", note };
         },
 
@@ -157,19 +149,19 @@ export class TerminalManager {
         },
 
         close: async (browser_id: string) => {
-          this.sessions[path]?.browserLeaving(browser_id);
+          this.sessions[termPath]?.browserLeaving(browser_id);
         },
       };
 
-      const server = createTerminalServer({ path, project_id, impl });
+      const server = createTerminalServer({ termPath, project_id, impl });
 
       server.on("close", () => {
-        this.sessions[path]?.close();
-        delete this.sessions[path];
-        delete this.services[path];
+        this.sessions[termPath]?.close();
+        delete this.sessions[termPath];
+        delete this.services[termPath];
       });
 
-      this.services[path] = server;
+      this.services[termPath] = server;
 
       if (opts != null) {
         await impl.create(opts);
@@ -177,11 +169,11 @@ export class TerminalManager {
     },
   );
 
-  closeTerminal = (path: string) => {
-    const cur = this.sessions[path];
+  closeTerminal = (termPath: string) => {
+    const cur = this.sessions[termPath];
     if (cur != null) {
       cur.close();
-      delete this.sessions[path];
+      delete this.sessions[termPath];
     }
   };
 
@@ -190,17 +182,17 @@ export class TerminalManager {
       if (params == null) {
         throw Error("params must be specified");
       }
-      const { path, ...options } = params;
-      if (!path) {
-        throw Error("path must be specified");
+      const { termPath, ...options } = params;
+      if (!termPath) {
+        throw Error("termPath must be specified");
       }
-      await ensureContainingDirectoryExists(path);
+      await ensureContainingDirectoryExists(termPath);
       let note = "";
-      const cur = this.sessions[path];
+      const cur = this.sessions[termPath];
       if (cur != null) {
         if (!isEqual(cur.options, options) || cur.state == "closed") {
           // clean up -- we will make new one below
-          this.closeTerminal(path);
+          this.closeTerminal(termPath);
           note += "Closed existing session. ";
         } else {
           // already have a working session with correct options
@@ -209,23 +201,23 @@ export class TerminalManager {
         }
       }
       note += "Creating new session.";
-      let session = new Session({ path, options });
+      let session = new Session({ termPath, options });
       await session.init();
       if (session.state == "closed") {
         // closed during init -- unlikely but possible; try one more time
-        session = new Session({ path, options });
+        session = new Session({ termPath, options });
         await session.init();
         if (session.state == "closed") {
-          throw Error(`unable to create terminal session for ${path}`);
+          throw Error(`unable to create terminal session for ${termPath}`);
         }
       } else {
-        this.sessions[path] = session;
+        this.sessions[termPath] = session;
         return note;
       }
     },
     {
       createKey: (args) => {
-        return args[0]?.path ?? "";
+        return args[0]?.termPath ?? "";
       },
     },
   );

@@ -18,6 +18,7 @@ type State = "disconnected" | "init" | "running" | "closed";
 export class ConatTerminal extends EventEmitter {
   private project_id: string;
   private path: string;
+  private termPath: string;
   public state: State = "init";
   private stream?: DStream<string>;
   private terminalResize;
@@ -33,6 +34,7 @@ export class ConatTerminal extends EventEmitter {
   constructor({
     project_id,
     path,
+    termPath,
     terminalResize,
     openPaths,
     closePaths,
@@ -42,6 +44,7 @@ export class ConatTerminal extends EventEmitter {
   }: {
     project_id: string;
     path: string;
+    termPath: string;
     terminalResize;
     openPaths;
     closePaths;
@@ -53,10 +56,11 @@ export class ConatTerminal extends EventEmitter {
     this.ephemeral = ephemeral;
     this.project_id = project_id;
     this.path = path;
+    this.termPath = termPath;
     this.options = options;
-    this.touchLoop({ project_id, path });
+    this.touchLoop({ project_id, path: termPath });
     this.sizeLoop(measureSize);
-    this.api = createTerminalClient({ project_id, path });
+    this.api = createTerminalClient({ project_id, termPath });
     this.createBrowserService();
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
@@ -201,16 +205,17 @@ export class ConatTerminal extends EventEmitter {
         const compute_server_id =
           (await webapp_client.project_client.getServerIdForPath({
             project_id: this.project_id,
-            path: this.path,
+            path: this.termPath,
           })) ?? 0;
         const api = webapp_client.conat_client.projectApi({
           project_id: this.project_id,
           compute_server_id,
         });
         try {
-          await api.editor.createTerminalService(this.path, {
+          await api.editor.createTerminalService(this.termPath, {
             ...this.options,
             ephemeral: this.ephemeral,
+            path: this.path,
           });
           return true;
         } catch (err) {
@@ -223,7 +228,7 @@ export class ConatTerminal extends EventEmitter {
   });
 
   private handleComputeServersChange = ({ path }) => {
-    if (path != this.path) {
+    if (path != this.termPath) {
       return;
     }
     this.start();
@@ -238,7 +243,7 @@ export class ConatTerminal extends EventEmitter {
       return;
     }
     this.stream = await webapp_client.conat_client.dstream<string>({
-      name: `terminal-${this.path}`,
+      name: `terminal-${this.termPath}`,
       project_id: this.project_id,
       ephemeral: this.ephemeral,
     });
@@ -310,7 +315,7 @@ export class ConatTerminal extends EventEmitter {
   private browserClient = () => {
     return createBrowserClient({
       project_id: this.project_id,
-      path: this.path,
+      termPath: this.termPath,
     });
   };
 
@@ -342,7 +347,7 @@ export class ConatTerminal extends EventEmitter {
     };
     this.service = await createBrowserService({
       project_id: this.project_id,
-      path: this.path,
+      termPath: this.termPath,
       impl,
     });
   };
