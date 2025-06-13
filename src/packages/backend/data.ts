@@ -296,3 +296,5 @@ function checkApiServer(server) {
     throw Error("API_SERVER must start with http:// or https://");
   }
 }
+
+sanityChecks();
