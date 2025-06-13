@@ -31,6 +31,7 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
   paddingTop: "3px",
   cursor: "pointer",
+  background: "#e8e8e8",
 } as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -111,7 +112,7 @@ function ChatButton({ project_id, path, chatState }) {
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
-        style={{ color: chatState ? "orange" : "#333" }}
+        style={{ background: chatState ? "white" : undefined }}
       >
         <Icon name="comment" />
         <HiddenXS>

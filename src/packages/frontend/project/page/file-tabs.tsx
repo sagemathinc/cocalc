@@ -32,11 +32,11 @@ function Label({ path, project_id, label }) {
       path={path}
       label={label}
       noPopover={active != null}
-      style={
-        width != null
+      style={{
+        ...(width != null
           ? { width: Math.max(MIN_WIDTH, width + 15), marginRight: "-10px" }
-          : undefined
-      }
+          : undefined),
+      }}
     />
   );
 }
@@ -148,7 +148,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       <Tabs
         animated={false}
         renderTabBar={renderTabBar}
-        tabBarStyle={{ minHeight: "36px" }}
+        tabBarStyle={{
+          minHeight: "36px",
+          background: "#e8e8e8",
+          borderTop: "1px solid lightgrey",
+        }}
         onEdit={onEdit}
         style={{ width: "100%" }}
         size="small"
