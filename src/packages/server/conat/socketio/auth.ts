@@ -17,12 +17,14 @@ import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { getAdmins } from "@cocalc/server/accounts/is-admin";
 
+const COOKIES = `'${HUB_PASSWORD_COOKIE_NAME}', '${REMEMBER_ME_COOKIE_NAME}', ${API_COOKIE_NAME}, '${PROJECT_SECRET_COOKIE_NAME}' or '${PROJECT_ID_COOKIE_NAME}'`;
+
 export async function getUser(
   socket,
   systemAccounts?: { [cookieName: string]: { password: string; user: any } },
 ): Promise<CoCalcUser> {
   if (!socket.handshake.headers.cookie) {
-    throw Error("you must set authentication cookies");
+    throw Error(`no auth cookie set; set one of ${COOKIES}`);
   }
 
   const cookies = parse(socket.handshake.headers.cookie);
@@ -74,9 +76,7 @@ export async function getUser(
 
   const value = cookies[REMEMBER_ME_COOKIE_NAME];
   if (!value) {
-    throw Error(
-      `must set one of the following cookies: '${HUB_PASSWORD_COOKIE_NAME}', '${REMEMBER_ME_COOKIE_NAME}' or ${API_COOKIE_NAME} or '${PROJECT_SECRET_COOKIE_NAME}' and '${PROJECT_ID_COOKIE_NAME}'`,
-    );
+    throw Error(`must set one of the following cookies: ${COOKIES}`);
   }
   const hash = getRememberMeHashFromCookieValue(value);
   if (!hash) {

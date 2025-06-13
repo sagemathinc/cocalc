@@ -335,7 +335,7 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
-  if (!opts.address && !process.env.CONAT_SERVER) {
+  if (!opts.address) {
     const x = cache.one();
     if (x != null) {
       return x;
@@ -387,6 +387,9 @@ export class Client extends EventEmitter {
       this.options.address,
     );
     logger.debug(`Conat: Connecting to ${this.options.address}...`);
+    //     if (options.extraHeaders == null) {
+    //       console.trace("WARNING: no auth set");
+    //     }
     this.conn = connectToSocketIO(address, {
       // A major problem if we allow long polling is that we must always use at most
       // half the chunk size... because there is no way to know if recipients will be
@@ -394,13 +397,16 @@ export class Client extends EventEmitter {
       transports: ["websocket"],
       // nodejs specific for project/compute server in some settings
       rejectUnauthorized: false,
+
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 30000,
       reconnectionAttempts: 120,
+
       ...options,
       path,
     });
+
     this.conn.on("info", (info) => {
       const firstTime = this.info == null;
       this.info = info;
