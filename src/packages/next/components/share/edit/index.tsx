@@ -58,7 +58,8 @@ export default function Edit({
   return (
     <span>
       <Button
-        type="primary"
+        style={{ marginLeft: "-15px" }}
+        type="link"
         disabled={expanded}
         onClick={(e) => {
           e.preventDefault();
@@ -66,7 +67,7 @@ export default function Edit({
         }}
         key="edit"
       >
-        <Icon name="pencil" /> Edit your own copy...
+        <Icon name="pencil" /> Edit Copy
       </Button>
       {expanded && (
         <EditOptions

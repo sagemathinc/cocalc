@@ -40,6 +40,7 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
+import { raw_url } from "../frame-tree/util";
 
 interface Props {
   id: string;
@@ -115,6 +116,9 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   };
 
   useEffect(() => {
+    if (trust) {
+      return;
+    }
     let actual_path = path;
     if (mode == "rmd" && derived_file_types != undefined) {
       if (derived_file_types.contains("html")) {
@@ -254,6 +258,19 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_iframe() {
+    if (trust) {
+      const src = `${raw_url(project_id, path)}?param=${reload}`;
+      return (
+        <iframe
+          ref={iframe}
+          src={src}
+          width={"100%"}
+          height={"100%"}
+          style={{ border: 0, ...style }}
+          onLoad={iframe_loaded}
+        />
+      );
+    }
     if (init) {
       // in the init phase.
       return (
@@ -269,7 +286,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     return (
       <iframe
         ref={iframe}
-        srcDoc={!trust && mode != "rmd" ? value : srcDoc ?? ""}
+        srcDoc={!trust && mode != "rmd" ? value : (srcDoc ?? "")}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, ...style }}
@@ -323,21 +340,23 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // the cocalc-editor-div is needed for a safari hack only
   return (
     <div style={STYLE} className={"cocalc-editor-div smc-vfill"} ref={rootEl}>
-      <div>
-        <Tooltip
-          title={
-            "Arbitrary HTML is potentially dangerous.  If you trust this content, switch this to trusted."
-          }
-        >
-          <Switch
-            style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
-            checked={trust}
-            onChange={(checked) => setTrust(checked)}
-            unCheckedChildren={"Untrusted"}
-            checkedChildren={"Trusted"}
-          />
-        </Tooltip>
-      </div>
+      {
+        <div>
+          <Tooltip
+            title={
+              "Arbitrary HTML is potentially dangerous.  If you trust this content, switch this to trusted."
+            }
+          >
+            <Switch
+              style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
+              checked={trust}
+              onChange={(checked) => setTrust(checked)}
+              unCheckedChildren={"Untrusted"}
+              checkedChildren={"Trusted"}
+            />
+          </Tooltip>
+        </div>
+      }
       {render_iframe()}
     </div>
   );
