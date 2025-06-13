@@ -1448,8 +1448,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.16.0
-        version: 1.16.0
+        specifier: ^1.17.0
+        version: 1.17.0
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -2648,8 +2648,8 @@ packages:
     resolution: {integrity: sha512-GNsWMSk3gqItk/Q7c4gRXCR8N/kfYiD8cMCx8zts0TAg0c09boKrihFqj/3OMM5jLuxVnqqXxarPNyVzp9vKjw==}
     engines: {node: '>=11.14.0'}
 
-  '@cocalc/gcloud-pricing-calculator@1.16.0':
-    resolution: {integrity: sha512-68vc0B1fvAC0ZG3Xp0OTnMThbBTKVf+UWNJQdOWVAMNTpLdKaT9S/H/KraP1Y6P7A+05bxmSAiw2oCiBxoDtoA==}
+  '@cocalc/gcloud-pricing-calculator@1.17.0':
+    resolution: {integrity: sha512-sQ/76dIdQZMhth+4H8l8+BwkgsFMxb+Lxgpz7gqK0y3whQhkUpEltoZCrc0bHNacy3uxZMOVJhEmT4iZ0pmaBg==}
     engines: {node: '>=0.18.0'}
 
   '@cocalc/local-storage-lru@2.5.0':
@@ -12793,7 +12793,7 @@ snapshots:
     dependencies:
       printable-characters: 1.0.42
 
-  '@cocalc/gcloud-pricing-calculator@1.16.0':
+  '@cocalc/gcloud-pricing-calculator@1.17.0':
     dependencies:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
