@@ -16,7 +16,7 @@ import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import { ProcessStats } from "@cocalc/backend/process-stats";
-import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
+import { pidToPath as terminalPidToPath } from "@cocalc/project/conat/terminal/manager";
 import type {
   CGroup,
   CoCalcInfo,

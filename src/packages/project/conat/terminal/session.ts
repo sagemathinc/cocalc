@@ -64,6 +64,7 @@ export class Session {
   private clientSizes: {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
+  public pid: number;
 
   constructor({ termPath, options }) {
     logger.debug("create session ", { termPath, options });
@@ -175,6 +176,7 @@ export class Session {
       rows: this.size?.rows,
       cols: this.size?.cols,
     });
+    this.pid = this.pty.pid;
     if (command.endsWith("bash")) {
       if (compute_server_id) {
         // set the prompt to show the remote hostname explicitly,

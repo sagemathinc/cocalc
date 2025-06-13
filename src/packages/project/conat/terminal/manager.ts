@@ -27,6 +27,10 @@ export const createTerminalService = async (
   return await manager.createTerminalService(termPath, opts);
 };
 
+export function pidToPath(pid: number): string | undefined {
+  return manager?.pidToPath(pid);
+}
+
 export class TerminalManager {
   private services: { [termPath: string]: ConatService } = {};
   private sessions: { [termPath: string]: Session } = {};
@@ -221,4 +225,13 @@ export class TerminalManager {
       },
     },
   );
+
+  pidToPath = (pid: number): string | undefined => {
+    for (const termPath in this.sessions) {
+      const s = this.sessions[termPath];
+      if (s.pid == pid) {
+        return s.options.path;
+      }
+    }
+  };
 }

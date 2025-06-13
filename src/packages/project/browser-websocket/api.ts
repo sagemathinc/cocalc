@@ -20,7 +20,6 @@ import { run_formatter, run_formatter_string } from "../formatters";
 import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
-import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "@cocalc/backend/files/delete-files";
@@ -152,9 +151,6 @@ export async function handleApiCall({
     // todo: why?
     case "eval_code":
       return await eval_code(data.code);
-
-    case "terminal":
-      return await terminal(primus, data.path, data.options);
 
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);

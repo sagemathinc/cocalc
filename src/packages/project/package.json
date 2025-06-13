@@ -31,7 +31,6 @@
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/sync-fs": "workspace:*",
-    "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@lydell/node-pty": "^1.1.0",
     "@types/jest": "^29.5.14",

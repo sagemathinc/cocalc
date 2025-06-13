@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
-import type { PrimusWithChannels } from "@cocalc/terminal";
 import initConat from "@cocalc/project/conat";
 
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
@@ -29,7 +28,7 @@ export default function init(server: Server, basePath: string): Router {
     transformer: "websockets",
   } as const;
   winston.info(`Initializing primus websocket server at "${opts.pathname}"...`);
-  const primus = new Primus(server, opts) as PrimusWithChannels;
+  const primus = new Primus(server, opts);
 
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("@cocalc/primus-multiplex"));

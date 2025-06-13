@@ -1104,9 +1104,6 @@ importers:
       '@cocalc/sync-fs':
         specifier: workspace:*
         version: link:../sync-fs
-      '@cocalc/terminal':
-        specifier: workspace:*
-        version: link:../terminal
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -1794,52 +1791,6 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.111
-
-  terminal:
-    dependencies:
-      '@cocalc/api-client':
-        specifier: workspace:*
-        version: link:../api-client
-      '@cocalc/backend':
-        specifier: workspace:*
-        version: link:../backend
-      '@cocalc/comm':
-        specifier: workspace:*
-        version: link:../comm
-      '@cocalc/primus-multiplex':
-        specifier: ^1.1.0
-        version: 1.1.0
-      '@cocalc/primus-responder':
-        specifier: ^1.0.5
-        version: 1.0.5
-      '@cocalc/util':
-        specifier: workspace:*
-        version: link:../util
-      '@lydell/node-pty':
-        specifier: ^1.1.0
-        version: 1.1.0
-      awaiting:
-        specifier: ^3.0.0
-        version: 3.0.0
-      debug:
-        specifier: ^4.4.0
-        version: 4.4.1
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      primus:
-        specifier: ^8.0.9
-        version: 8.0.9
-    devDependencies:
-      '@types/lodash':
-        specifier: ^4.14.202
-        version: 4.17.17
-      '@types/node':
-        specifier: ^18.16.14
-        version: 18.19.111
-      '@types/primus':
-        specifier: ^7.3.9
-        version: 7.3.9
 
   util:
     dependencies:
