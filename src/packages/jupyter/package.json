@@ -22,26 +22,18 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest",
+    "depcheck": "pnpx depcheck --ignores execa",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
-    "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
     "awaiting": "^3.0.0",
