@@ -35,7 +35,11 @@ import { Configuration } from "./core-stream";
 import { conat } from "@cocalc/conat/client";
 import { delay, map as awaitMap } from "awaiting";
 import { asyncThrottle, until } from "@cocalc/util/async-utils";
-import { inventory, type Inventory, INVENTORY_UPDATE_INTERVAL } from "./inventory";
+import {
+  inventory,
+  type Inventory,
+  INVENTORY_UPDATE_INTERVAL,
+} from "./inventory";
 
 export interface DStreamOptions {
   // what it's called by us
@@ -457,9 +461,11 @@ export class DStream<T = any> extends EventEmitter {
         };
         inv.set(status);
       } catch (err) {
-        console.log(
-          `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
-        );
+        if (!process.env.COCALC_TEST_MODE) {
+          console.log(
+            `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
+          );
+        }
       } finally {
         // @ts-ignore
         inv?.close();

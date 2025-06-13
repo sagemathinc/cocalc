@@ -782,9 +782,11 @@ export class DKV<T = any> extends EventEmitter {
         };
         inv.set(status);
       } catch (err) {
-        console.log(
-          `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
-        );
+        if (!process.env.COCALC_TEST_MODE) {
+          console.log(
+            `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
+          );
+        }
       } finally {
         // @ts-ignore
         inv?.close();
