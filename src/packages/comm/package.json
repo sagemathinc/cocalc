@@ -12,24 +12,20 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
   "keywords": ["cocalc"],
   "license": "SEE LICENSE.md",
-  "dependencies": {},
+  "dependencies": {
+    "@cocalc/comm": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*"
+  },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/comm",
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
-  },
-  "dependencies": {
-    "@cocalc/comm": "workspace:*",
-    "@cocalc/jupyter": "workspace:*",
-    "@cocalc/sync": "workspace:*",
-    "@cocalc/util": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^18.16.14"
   }
 }
