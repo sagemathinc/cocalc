@@ -30,7 +30,6 @@ import {
   decode,
 } from "@cocalc/conat/core/client";
 import { isNumericString } from "@cocalc/util/misc";
-import type { JSONValue } from "@cocalc/util/types";
 import refCache from "@cocalc/util/refcache";
 import { conat } from "@cocalc/conat/client";
 import type { Client } from "@cocalc/conat/core/client";
@@ -51,6 +50,7 @@ import {
 } from "@cocalc/conat/persist/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { until } from "@cocalc/util/async-utils";
+import { type InventoryItem } from "@cocalc/conat/sync/inventory";
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
 
@@ -104,7 +104,6 @@ export interface CoreStreamOptions {
   config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
-  desc?: JSONValue;
 
   ephemeral?: boolean;
 
@@ -136,6 +135,7 @@ export function storagePath({
 
 export class CoreStream<T = any> extends EventEmitter {
   public readonly name: string;
+
   private configOptions?: Partial<Configuration>;
   private _start_seq?: number;
 
@@ -264,6 +264,10 @@ export class CoreStream<T = any> extends EventEmitter {
     delete this.msgIDs;
     // @ts-ignore
     delete this.storage;
+  };
+
+  inventory = async (): Promise<Partial<InventoryItem>> => {
+    return await this.persistClient.inventory();
   };
 
   // NOTE: It's assumed elsewhere that getAllFromPersist will not throw,

@@ -19,6 +19,7 @@ import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
+import { type InventoryItem } from "@cocalc/conat/sync/inventory";
 
 const logger = getLogger("persist:client");
 
@@ -217,6 +218,17 @@ class PersistStreamClient extends EventEmitter {
           cmd: "config",
           config,
           timeout,
+        } as any,
+        timeout,
+      }),
+    );
+  };
+
+  inventory = async (timeout?): Promise<Partial<InventoryItem>> => {
+    return this.checkForError(
+      await this.socket.request(null, {
+        headers: {
+          cmd: "inventory",
         } as any,
         timeout,
       }),

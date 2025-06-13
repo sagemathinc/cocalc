@@ -89,3 +89,4 @@ export async function getStream({
   await ensureContainingDirectoryExists(path);
   return pstream({ ...storage, path });
 }
+

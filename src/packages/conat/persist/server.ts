@@ -51,13 +51,7 @@ import type {
   PersistentStream,
   StorageOptions,
 } from "./storage";
-import {
-  getStream,
-  SERVICE,
-  MAX_PER_USER,
-  MAX_GLOBAL,
-  RESOURCE,
-} from "./util";
+import { getStream, SERVICE, MAX_PER_USER, MAX_GLOBAL, RESOURCE } from "./util";
 import { throttle } from "lodash";
 import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
@@ -214,6 +208,8 @@ export function server({
           mesg.respondSync(stream.delete(request));
         } else if (request.cmd == "config") {
           mesg.respondSync(stream.config(request.config));
+        } else if (request.cmd == "inventory") {
+          mesg.respondSync(stream.inventory());
         } else if (request.cmd == "get") {
           const resp = stream.get({ key: request.key, seq: request.seq });
           //console.log("got resp = ", resp);

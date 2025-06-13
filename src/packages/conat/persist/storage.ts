@@ -56,6 +56,7 @@ import {
   ConatError,
 } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
+import { type InventoryItem } from "@cocalc/conat/sync/inventory";
 
 export interface Configuration {
   // How many messages may be in a Stream, oldest messages will be removed
@@ -465,6 +466,29 @@ export class PersistentStream extends EventEmitter {
     return length;
   }
 
+  totalSize = (): number => {
+    return (
+      (this.db.prepare(`SELECT SUM(size) AS sum FROM messages`).get() as any)
+        .sum ?? 0
+    );
+  };
+
+  seq = (): number => {
+    return (
+      (this.db.prepare(`SELECT MAX(seq) AS seq FROM messages`).get() as any)
+        .seq ?? 0
+    );
+  };
+
+  inventory = (): Partial<InventoryItem> => {
+    return {
+      bytes: this.totalSize(),
+      count: this.length,
+      limits: this.config(),
+      seq: this.seq(),
+    };
+  };
+
   keys = (): string[] => {
     const v = this.db
       .prepare("SELECT key FROM messages WHERE key IS NOT NULL")
@@ -609,15 +633,11 @@ export class PersistentStream extends EventEmitter {
           this.delete({ all: true });
         }
       } else {
-        // delete all the earliest (in terms of seq number) messages so that the sum of the remaining
+        // delete all the earliest (in terms of seq number) messages
+        // so that the sum of the remaining
         // sizes along with the new size is <= max_bytes.
         // Only enforce if actually inserting, or if current sum is over
-        const totalSize =
-          (
-            this.db
-              .prepare(`SELECT SUM(size) AS sum FROM messages`)
-              .get() as any
-          ).sum ?? 0;
+        const totalSize = this.totalSize();
         const newTotal = totalSize + size;
         if (newTotal > this.conf.max_bytes) {
           const bytesToFree = newTotal - this.conf.max_bytes;

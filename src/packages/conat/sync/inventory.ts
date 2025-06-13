@@ -18,10 +18,9 @@ import {
   human_readable_size as humanReadableSize,
   trunc_middle,
 } from "@cocalc/util/misc";
-import { type KVLimits } from "./limits";
-import { type FilteredStreamLimitOptions } from "./limits";
 import { DKO_PREFIX } from "./dko";
 import { waitUntilTimeAvailable } from "@cocalc/conat/time";
+import { type Configuration } from "@cocalc/conat/persist/storage";
 
 export const THROTTLE_MS = 10000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
@@ -45,35 +44,35 @@ interface Location {
   project_id?: string;
 }
 
-type StoreType = "kv" | "stream";
+type StoreType = "stream" | "kv";
 
-interface Item {
+export interface InventoryItem {
   // when it was created
   created: number;
-  // last time this kv-store or stream was updated
+  // last time this stream was updated
   last: number;
-  // how much space is used by this kv-store or stream
+  // how much space is used by this stream
   bytes: number;
-  // number of keys or messages
+  // number of messages
   count: number;
-  // optional description, which can be anything
-  desc?: JSONValue;
-  // limits for purging old data
-  limits?: KVLimits | FilteredStreamLimitOptions;
   // for streams, the seq number up to which this data is valid, i.e.,
   // this data is for all elements of the stream with sequence
   // number <= seq.
   seq?: number;
+  // optional description, which can be anything
+  desc?: JSONValue;
+  // limits on size
+  limits?: Configuration;
 }
 
-interface FullItem extends Item {
+interface FullItem extends InventoryItem {
   type: StoreType;
   name: string;
 }
 
 export class Inventory {
   public location: Location;
-  private dkv?: DKV<Item>;
+  private dkv?: DKV<InventoryItem>;
 
   constructor(location: { account_id?: string; project_id?: string }) {
     this.location = location;
@@ -102,7 +101,7 @@ export class Inventory {
     bytes: number;
     count: number;
     desc?: JSONValue;
-    limits?: KVLimits | FilteredStreamLimitOptions;
+    limits?: Configuration;
     seq?: number;
   }) => {
     if (this.dkv == null) {
@@ -137,7 +136,7 @@ export class Inventory {
 
   get = (
     x: { name: string; type: StoreType } | string,
-  ): (Item & { type: StoreType; name: string }) | undefined => {
+  ): (InventoryItem & { type: StoreType; name: string }) | undefined => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
@@ -347,4 +346,3 @@ export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
 export async function inventory(options: Location = {}): Promise<Inventory> {
   return await cache(options);
 }
-
