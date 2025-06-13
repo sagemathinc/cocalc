@@ -3,7 +3,7 @@ Test LLM NATS streaming.
 
 DEVELOPMENT:
 
-   pnpm exec jest --watch --forceExit --detectOpenHandles "llm.test.ts"
+   pnpm test llm.test.ts
 
 */
 

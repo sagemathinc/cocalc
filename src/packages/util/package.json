@@ -20,6 +20,7 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
+    "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
@@ -35,6 +36,7 @@
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.11",
     "decimal.js-light": "^2.5.1",
+    "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^4.3.0",
     "js-base64": "^3.7.7",
