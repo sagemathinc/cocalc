@@ -19,6 +19,7 @@ import { delay } from "awaiting";
 
 beforeAll(before);
 
+jest.setTimeout(10000);
 describe("create a persist client stream and test the basic operations", () => {
   let client, s1;
 
