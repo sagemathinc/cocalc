@@ -760,7 +760,7 @@ export class DKV<T = any> extends EventEmitter {
 
   private updateInventory = asyncThrottle(
     async () => {
-      if (this.opts.noInventory) {
+      if (this.opts == null || this.opts.noInventory) {
         return;
       }
       await delay(500);
