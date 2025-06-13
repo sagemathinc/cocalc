@@ -12,6 +12,7 @@ import type {
   SetOperation,
   DeleteOperation,
   StoredMessage,
+  PartialInventory,
 } from "./storage";
 export { StoredMessage, StorageOptions };
 import { persistSubject, type User } from "./util";
@@ -19,7 +20,6 @@ import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
-import { type InventoryItem } from "@cocalc/conat/sync/inventory";
 
 const logger = getLogger("persist:client");
 
@@ -224,7 +224,7 @@ class PersistStreamClient extends EventEmitter {
     );
   };
 
-  inventory = async (timeout?): Promise<Partial<InventoryItem>> => {
+  inventory = async (timeout?): Promise<PartialInventory> => {
     return this.checkForError(
       await this.socket.request(null, {
         headers: {

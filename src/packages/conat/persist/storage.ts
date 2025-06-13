@@ -56,7 +56,18 @@ import {
   ConatError,
 } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
-import { type InventoryItem } from "@cocalc/conat/sync/inventory";
+
+export interface PartialInventory {
+  // how much space is used by this stream
+  bytes: number;
+  limits: Configuration;
+  // number of messages
+  count: number;
+  // for streams, the seq number up to which this data is valid, i.e.,
+  // this data is for all elements of the stream with sequence
+  // number <= seq.
+  seq: number;
+}
 
 export interface Configuration {
   // How many messages may be in a Stream, oldest messages will be removed
@@ -480,7 +491,7 @@ export class PersistentStream extends EventEmitter {
     );
   };
 
-  inventory = (): Partial<InventoryItem> => {
+  inventory = (): PartialInventory => {
     return {
       bytes: this.totalSize(),
       count: this.length,

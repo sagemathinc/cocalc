@@ -20,8 +20,12 @@ import {
 } from "@cocalc/util/misc";
 import { DKO_PREFIX } from "./dko";
 import { waitUntilTimeAvailable } from "@cocalc/conat/time";
-import { type Configuration } from "@cocalc/conat/persist/storage";
+import {
+  type Configuration,
+  type PartialInventory,
+} from "@cocalc/conat/persist/storage";
 
+export const INVENTORY_UPDATE_INTERVAL = 30000;
 export const THROTTLE_MS = 10000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
 
@@ -46,23 +50,13 @@ interface Location {
 
 type StoreType = "stream" | "kv";
 
-export interface InventoryItem {
+export interface InventoryItem extends PartialInventory {
   // when it was created
   created: number;
   // last time this stream was updated
   last: number;
-  // how much space is used by this stream
-  bytes: number;
-  // number of messages
-  count: number;
-  // for streams, the seq number up to which this data is valid, i.e.,
-  // this data is for all elements of the stream with sequence
-  // number <= seq.
-  seq?: number;
   // optional description, which can be anything
   desc?: JSONValue;
-  // limits on size
-  limits?: Configuration;
 }
 
 interface FullItem extends InventoryItem {
@@ -100,9 +94,9 @@ export class Inventory {
     name: string;
     bytes: number;
     count: number;
+    limits: Configuration;
     desc?: JSONValue;
-    limits?: Configuration;
-    seq?: number;
+    seq: number;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
@@ -176,20 +170,6 @@ export class Inventory {
       }
     }
     return v;
-  };
-
-  needsUpdate = (x: { name: string; type: StoreType }): boolean => {
-    if (this.dkv == null) {
-      return false;
-    }
-    const cur = this.dkv.get(this.encodeKey(x));
-    if (cur == null) {
-      return true;
-    }
-    //     if (getTime() - cur.last >= 0.9 * THROTTLE_MS) {
-    //       return true;
-    //     }
-    return true;
   };
 
   getAll = ({ filter }: { filter?: string } = {}): FullItem[] => {

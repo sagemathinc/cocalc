@@ -33,8 +33,9 @@ import jsonStableStringify from "json-stable-stringify";
 import type { JSONValue } from "@cocalc/util/types";
 import { Configuration } from "./core-stream";
 import { conat } from "@cocalc/conat/client";
-import { map as awaitMap } from "awaiting";
-import { until } from "@cocalc/util/async-utils";
+import { delay, map as awaitMap } from "awaiting";
+import { asyncThrottle, until } from "@cocalc/util/async-utils";
+import { inventory, type Inventory, INVENTORY_UPDATE_INTERVAL } from "./inventory";
 
 export interface DStreamOptions {
   // what it's called by us
@@ -66,12 +67,14 @@ export class DStream<T = any> extends EventEmitter {
     [id: string]: { headers?: Headers };
   } = {};
   private saved: { [seq: number]: T } = {};
+  private opts: DStreamOptions;
 
   constructor(opts: DStreamOptions) {
     super();
     if (opts.client == null) {
       throw Error("client must be specified");
     }
+    this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
     this.stream = new CoreStream(opts);
@@ -154,6 +157,8 @@ export class DStream<T = any> extends EventEmitter {
     delete this.messages;
     // @ts-ignore
     delete this.raw;
+    // @ts-ignore
+    delete this.opts;
   };
 
   get = (n?): T | T[] => {
@@ -233,6 +238,7 @@ export class DStream<T = any> extends EventEmitter {
     if (!this.noAutosave) {
       this.save();
     }
+    this.updateInventory();
   };
 
   headers = (n) => {
@@ -427,90 +433,41 @@ export class DStream<T = any> extends EventEmitter {
     return await this.stream.config(config);
   };
 
-  /*
-    // returns largest sequence number known to this client.
-  // not optimized to be super fast.
-  private getCurSeq = (): number | undefined => {
-    let s = 0;
-    if (this.raw.length > 0) {
-      s = Math.max(s, this.seq(this.raw.length - 1)!);
-    }
-    for (const t in this.saved) {
-      const x = parseInt(t);
-      if (x > s) {
-        s = x;
-      }
-    }
-    return s ? s : undefined;
-  };
-
-  // [ ] TODO: this will be moved to persistence server, which is where it belongs.
   private updateInventory = asyncThrottle(
     async () => {
-      if (this.isClosed() || this.opts.noInventory) {
+      if (this.opts.noInventory) {
         return;
       }
       await delay(500);
       if (this.isClosed()) {
         return;
       }
-      const name = this.name;
-      const { valueType } = this.opts;
-      let inv: null | Inventory = null;
+      let inv: Inventory | undefined = undefined;
       try {
-        const curSeq = this.getCurSeq();
-        if (!curSeq) {
-          // we know nothing
-          return;
-        }
-        const { account_id, project_id, desc, limits } = this.opts;
-        inv = await inventory({ account_id, project_id });
+        const { account_id, project_id, desc } = this.opts;
+        const inv = await inventory({ account_id, project_id });
         if (this.isClosed()) {
           return;
         }
-        if (!inv.needsUpdate({ name, type: "stream", valueType })) {
-          return;
-        }
-
-        const cur = inv.get({ type: "stream", name, valueType });
-        // last update gave info for everything up to and including seq.
-        const seq = cur?.seq ?? 0;
-        if (seq + 1 < (this.start_seq ?? 1)) {
-          // We know data starting at start_seq, but this is strictly
-          // too far along the sequence.
-          throw Error("not enough sequence data to update inventory");
-        }
-
-        // [ ] TODO: need to take into account cur.seq in computing stats!
-
-        const stats = this.stream?.stats({ start_seq: seq + 1 });
-        if (stats == null) {
-          return;
-        }
-        const { count, bytes } = stats;
-
-        inv.set({
-          type: "stream",
-          name,
-          valueType,
-          count: count + (cur?.count ?? 0),
-          bytes: bytes + (cur?.bytes ?? 0),
+        const status = {
+          type: "stream" as "stream",
+          name: this.opts.name,
           desc,
-          limits,
-          seq: curSeq,
-        });
+          ...(await this.stream.inventory()),
+        };
+        inv.set(status);
       } catch (err) {
-        logger.debug(
+        console.log(
           `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
         );
       } finally {
-        await inv?.close();
+        // @ts-ignore
+        inv?.close();
       }
     },
-    THROTTLE_MS,
+    INVENTORY_UPDATE_INTERVAL,
     { leading: true, trailing: true },
   );
-  */
 }
 
 export const cache = refCache<DStreamOptions, DStream>({

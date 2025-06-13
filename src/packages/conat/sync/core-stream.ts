@@ -50,7 +50,7 @@ import {
 } from "@cocalc/conat/persist/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { until } from "@cocalc/util/async-utils";
-import { type InventoryItem } from "@cocalc/conat/sync/inventory";
+import { type PartialInventory } from "@cocalc/conat/persist/storage";
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
 
@@ -266,7 +266,7 @@ export class CoreStream<T = any> extends EventEmitter {
     delete this.storage;
   };
 
-  inventory = async (): Promise<Partial<InventoryItem>> => {
+  inventory = async (): Promise<PartialInventory> => {
     return await this.persistClient.inventory();
   };
 

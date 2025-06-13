@@ -75,7 +75,7 @@ import {
 } from "./core-stream";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
-import { map as awaitMap } from "awaiting";
+import { delay, map as awaitMap } from "awaiting";
 import {
   type Client,
   ConatError,
@@ -84,7 +84,12 @@ import {
 import refCache from "@cocalc/util/refcache";
 import { type JSONValue } from "@cocalc/util/types";
 import { conat } from "@cocalc/conat/client";
-import { until } from "@cocalc/util/async-utils";
+import { asyncThrottle, until } from "@cocalc/util/async-utils";
+import {
+  inventory,
+  type Inventory,
+  INVENTORY_UPDATE_INTERVAL,
+} from "./inventory";
 
 export const TOMBSTONE = Symbol("tombstone");
 const MAX_PARALLEL = 250;
@@ -124,6 +129,7 @@ export interface DKVOptions {
   ephemeral?: boolean;
 
   noCache?: boolean;
+  noInventory?: boolean;
 }
 
 export class DKV<T = any> extends EventEmitter {
@@ -138,22 +144,25 @@ export class DKV<T = any> extends EventEmitter {
   public readonly desc?: JSONValue;
   private saveErrors: boolean = false;
   private invalidSeq = new Set<number>();
+  private opts: DKVOptions;
 
-  constructor({
-    name,
-    project_id,
-    account_id,
-    desc,
-    client,
-    merge,
-    config,
-    noAutosave,
-    ephemeral = false,
-  }: DKVOptions) {
+  constructor(opts: DKVOptions) {
     super();
-    if (client == null) {
+    if (opts.client == null) {
       throw Error("client must be specified");
     }
+    this.opts = opts;
+    const {
+      name,
+      project_id,
+      account_id,
+      desc,
+      client,
+      merge,
+      config,
+      noAutosave,
+      ephemeral = false,
+    } = opts;
     this.name = name;
     this.desc = desc;
     this.merge = merge;
@@ -191,6 +200,7 @@ export class DKV<T = any> extends EventEmitter {
       },
     });
   }
+
   private initialized = false;
   init = async () => {
     if (this.initialized) {
@@ -207,14 +217,20 @@ export class DKV<T = any> extends EventEmitter {
     this.emit("connected");
   };
 
+  isClosed = () => {
+    return this.kv == null;
+  };
+
   close = () => {
-    if (this.kv == null) {
+    if (this.isClosed()) {
       return;
     }
     const kv = this.kv;
     delete this.kv;
-    kv.removeListener("change", this.handleRemoteChange);
-    kv.close();
+    if (kv != null) {
+      kv.removeListener("change", this.handleRemoteChange);
+      kv.close();
+    }
     this.emit("closed");
     this.removeAllListeners();
     // @ts-ignore
@@ -224,6 +240,8 @@ export class DKV<T = any> extends EventEmitter {
     // @ts-ignore
     delete this.changed;
     delete this.merge;
+    // @ts-ignore
+    delete this.opts;
   };
 
   private discardLocalState = (key: string) => {
@@ -420,6 +438,7 @@ export class DKV<T = any> extends EventEmitter {
     if (!this.noAutosave) {
       this.save();
     }
+    this.updateInventory();
   };
 
   setMany = (obj) => {
@@ -430,6 +449,7 @@ export class DKV<T = any> extends EventEmitter {
     if (!this.noAutosave) {
       this.save();
     }
+    this.updateInventory();
   };
 
   hasUnsavedChanges = () => {
@@ -737,6 +757,42 @@ export class DKV<T = any> extends EventEmitter {
     }
     return await this.kv.config(config);
   };
+
+  private updateInventory = asyncThrottle(
+    async () => {
+      if (this.opts.noInventory) {
+        return;
+      }
+      await delay(500);
+      if (this.isClosed() || this.kv == null) {
+        return;
+      }
+      let inv: Inventory | undefined = undefined;
+      try {
+        const { account_id, project_id, desc } = this.opts;
+        const inv = await inventory({ account_id, project_id });
+        if (this.isClosed()) {
+          return;
+        }
+        const status = {
+          type: "kv" as "kv",
+          name: this.opts.name,
+          desc,
+          ...(await this.kv.inventory()),
+        };
+        inv.set(status);
+      } catch (err) {
+        console.log(
+          `WARNING: unable to update inventory.  name='${this.opts.name} -- ${err}'`,
+        );
+      } finally {
+        // @ts-ignore
+        inv?.close();
+      }
+    },
+    INVENTORY_UPDATE_INTERVAL,
+    { leading: true, trailing: true },
+  );
 }
 
 export const cache = refCache<DKVOptions, DKV>({
