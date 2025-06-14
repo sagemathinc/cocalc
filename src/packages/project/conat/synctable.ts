@@ -11,7 +11,7 @@ const synctable: ConatSyncTableFunction = async (
   options?,
 ): Promise<ConatSyncTable> => {
   const { query, table } = parseQueryWithOptions(query0, options);
-  const client = await connectToConat();
+  const client = connectToConat();
   query[table][0].project_id = project_id;
   return await client.sync.synctable({
     project_id,

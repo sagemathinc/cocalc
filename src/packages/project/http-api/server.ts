@@ -22,8 +22,7 @@ import RateLimit from "express-rate-limit";
 import { writeFile } from "node:fs";
 import { getOptions } from "@cocalc/project/init-program";
 import { getClient } from "@cocalc/project/client";
-import { apiServerPortFile } from "@cocalc/project/data";
-import { getSecretToken } from "@cocalc/project/servers/secret-token";
+import { apiServerPortFile, secretToken } from "@cocalc/project/data";
 import { once } from "@cocalc/util/async-utils";
 import { split } from "@cocalc/util/misc";
 import readTextFile from "./read-text-file";
@@ -53,7 +52,9 @@ export default async function init(): Promise<void> {
   dbg(`writing port to file "${apiServerPortFile}"`);
   await callback(writeFile, apiServerPortFile, `${port}`);
 
-  dbg(`express server successfully listening at http://${options.hostname}:${port}`);
+  dbg(
+    `express server successfully listening at http://${options.hostname}:${port}`,
+  );
 }
 
 function configure(server: express.Application, dbg: Function): void {
@@ -107,9 +108,6 @@ function handleAuth(req): void {
     default:
       throw Error(`unknown authorization type '${type}'`);
   }
-
-  // could throw if not initialized yet -- done in ./init.ts via initSecretToken()
-  const secretToken = getSecretToken();
 
   // now check auth
   if (secretToken != providedToken) {

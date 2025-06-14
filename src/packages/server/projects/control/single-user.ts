@@ -14,6 +14,17 @@ This is useful for:
   - development of cocalc from inside of a CoCalc project
   - non-collaborative use of cocalc on your own
     laptop, e.g., when you're on an airplane.
+    
+    
+DEVELOPMENT:
+
+
+~/cocalc/src/packages/server/projects/control$ COCALC_MODE='single-user' node
+Welcome to Node.js v20.19.1.
+Type ".help" for more information.
+> a = require('@cocalc/server/projects/control'); 
+> p = a.getProject('8a840733-93b6-415c-83d4-7e5712a6266b')
+> await p.start()
 */
 
 import { kill } from "process";
@@ -38,7 +49,12 @@ import {
   launchProjectDaemon,
   mkdir,
   setupDataPath,
+  writeSecretToken,
 } from "./util";
+import {
+  getProjectSecretToken,
+  deleteProjectSecretToken,
+} from "./secret-token";
 
 const logger = getLogger("project-control:single-user");
 
@@ -100,6 +116,11 @@ class Project extends BaseProject {
       // Setup files
       await setupDataPath(HOME);
 
+      await writeSecretToken(
+        HOME,
+        await getProjectSecretToken(this.project_id),
+      );
+
       // Fork and launch project server
       await launchProjectDaemon(env);
 
@@ -143,6 +164,7 @@ class Project extends BaseProject {
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
       });
+      await deleteProjectSecretToken(this.project_id);
       logger.debug("stop: project is not running");
     } finally {
       this.stateChanging = undefined;

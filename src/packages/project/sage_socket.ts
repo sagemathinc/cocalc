@@ -4,6 +4,7 @@
  */
 
 import { getLogger } from "@cocalc/backend/logger";
+import { secretToken } from "@cocalc/project/data";
 import { enable_mesg } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
@@ -15,7 +16,6 @@ import {
   SAGE_SERVER_MAX_STARTUP_TIME_S,
   restart_sage_server,
 } from "./sage_restart";
-import { getSecretToken } from "./servers/secret-token";
 import { CB } from "@cocalc/util/types/callback";
 
 const winston = getLogger("sage-socket");
@@ -79,7 +79,7 @@ async function _get_sage_socket(): Promise<CoCalcSocket> {
   try {
     const sage_socket: CoCalcSocket | undefined = await connectToLockedSocket({
       port,
-      token: getSecretToken(),
+      token: secretToken,
     });
     winston.debug("Successfully unlocked a sage session connection.");
 

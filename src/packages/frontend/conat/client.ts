@@ -147,7 +147,7 @@ export class ConatClient extends EventEmitter {
   private initConatClient = async () => {
     setConatClient({
       account_id: this.client.account_id,
-      conat: async () => this.conat(),
+      conat: this.conat,
       reconnect: async () => this.reconnect(),
       getLogger:
         false && DEBUG

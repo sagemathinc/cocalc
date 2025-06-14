@@ -16,7 +16,7 @@ import { getProject } from ".";
 import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
-import { getProjectSecretToken } from "./secret-token";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const logger = getLogger("project-control:util");
 
@@ -101,6 +101,21 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   }
 }
 
+// see also packages/project/secret-token.ts
+export function secretTokenPath(HOME: string) {
+  const data = dataPath(HOME);
+  return join(data, "secrets", "secret-token");
+}
+
+export async function writeSecretToken(
+  HOME: string,
+  secretToken: string,
+): Promise<void> {
+  const path = secretTokenPath(HOME);
+  await ensureContainingDirectoryExists(path);
+  await writeFile(path, secretToken);
+}
+
 async function logLaunchParams(params): Promise<void> {
   const data = dataPath(params.env.HOME);
   const path = join(data, "launch-params.json");
@@ -148,7 +163,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       cb(err);
     });
     child.on("exit", async (code) => {
-      logger.debug("project daemon exited with code", code);
+      logger.debug("project daemon exited", { code, stdout, stderr });
       if (code != 0) {
         try {
           const s = (await readFile(env.LOGS)).toString();
@@ -288,7 +303,7 @@ export async function getEnvironment(
       HOME,
       BASE_PATH: base_path,
       DATA,
-      LOGS: join(DATA, "logs"),
+      LOGS: DATA,
       DEBUG: "cocalc:*,-cocalc:silly:*", // so interesting stuff gets logged, but not too much unless we really need it.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
@@ -297,7 +312,7 @@ export async function getEnvironment(
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
-      COCALC_SECRET_TOKEN_VALUE: await getProjectSecretToken(project_id),
+      COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     },
   };
 }

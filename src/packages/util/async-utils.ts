@@ -59,6 +59,7 @@ export async function until(
     log?.(`will retry in ${Math.round(d / 1000)} seconds`);
     await awaiting.delay(d);
   }
+  log?.("FAILED: timeout");
   throw Error("timeout");
 }
 

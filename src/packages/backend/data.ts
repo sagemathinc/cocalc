@@ -26,11 +26,10 @@ const DEFINITION = `CoCalc Environment Variables:
 
 import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
-import { secureRandomStringSync } from "@cocalc/backend/misc";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -217,22 +216,12 @@ export function setConatServer(server: string) {
   conatServer = server;
 }
 
-// Password used by hub (not users!) to connect to a Conat server:
+// Password used by hub (not users or projects) to connect to a Conat server:
 export let conatPassword = "";
 export const conatPasswordPath = join(secrets, "conat-password");
 try {
   conatPassword = readFileSync(conatPasswordPath).toString().trim();
-} catch (err) {
-  if (err.code != "EACCES") {
-    // probably just isn't there yet.
-    // generate something at random
-    conatPassword = secureRandomStringSync(64);
-    try {
-      // try to write -- we might not have write access
-      writeFileSync(conatPasswordPath, conatPassword);
-    } catch {}
-  }
-}
+} catch {}
 export function setConatPassword(password: string) {
   conatPassword = password;
 }
@@ -246,7 +235,6 @@ const valkeyPasswordPath = join(secrets, "valkey-password");
 try {
   valkeyPassword = readFileSync(valkeyPasswordPath).toString().trim();
 } catch {}
-
 
 export let conatSocketioCount = parseInt(
   process.env.CONAT_SOCKETIO_COUNT ?? "1",

@@ -189,7 +189,7 @@ export async function init() {
     formatter,
     terminate,
     computeServers,
-    cc: await connectToConat(),
+    cc: connectToConat(),
   };
 }
 

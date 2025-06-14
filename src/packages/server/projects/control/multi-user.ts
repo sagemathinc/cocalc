@@ -31,6 +31,7 @@ import {
   mkdir,
   setupDataPath,
   stopProjectProcesses,
+  writeSecretToken,
 } from "./util";
 import {
   BaseProject,
@@ -41,6 +42,10 @@ import {
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
+import {
+  deleteProjectSecretToken,
+  getProjectSecretToken,
+} from "./secret-token";
 
 const winston = getLogger("project-control:multi-user");
 
@@ -107,6 +112,11 @@ class Project extends BaseProject {
       // Setup files
       await setupDataPath(HOME, this.uid);
 
+      await writeSecretToken(
+        HOME,
+        await getProjectSecretToken(this.project_id),
+      );
+
       // Fork and launch project server daemon
       await launchProjectDaemon(env, this.uid);
 
@@ -143,6 +153,7 @@ class Project extends BaseProject {
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
       });
+      await deleteProjectSecretToken(this.project_id);
     } finally {
       this.stateChanging = undefined;
       // ensure state valid in database

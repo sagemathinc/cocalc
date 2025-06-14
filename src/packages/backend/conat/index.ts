@@ -5,6 +5,6 @@ import { conat } from "./conat";
 export { conat };
 
 export function init() {
-  setConatClient({ conat: async (opts?) => conat(opts), getLogger });
+  setConatClient({ conat, getLogger });
 }
 init();

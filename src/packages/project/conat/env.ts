@@ -5,7 +5,7 @@ import { getLogger } from "@cocalc/project/logger";
 
 export function init() {
   setConatClient({
-    conat: async () => await connectToConat(),
+    conat: () => connectToConat(),
     project_id,
     compute_server_id,
     getLogger,

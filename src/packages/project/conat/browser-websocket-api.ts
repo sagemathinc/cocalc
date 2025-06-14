@@ -45,7 +45,7 @@ import { getSubject } from "./names";
 const logger = getLogger("project:conat:browser-websocket-api");
 
 export async function init() {
-  const client = await connectToConat();
+  const client = connectToConat();
   const subject = getSubject({
     service: "browser-api",
   });

@@ -14,13 +14,8 @@ To use this script:
 
     ./run-project.py /path/to/launch-params.json
 
-DO NOT expect to interact with a project running this way from your
-frontend browser client.  That's not going to work, because the hub
-will try to start the project again (thus deleting and recreating ~/.smc).
 The purpose of this script is just to help in figuring out why a project
 starts up and then JUST CRASHES for mysterious reasons.
-
-   **It won't help with anything else yet.**
 """
 
 import json, subprocess, os, sys
@@ -37,17 +32,21 @@ def run_command_with_params(params):
     # Get the command, args, and cwd from the params
     cmd = params["cmd"]
     args = params["args"]
-    args = [x for x in args if 'daemon' not in x]
+    #args = [x for x in args if 'daemon' not in x]
     cwd = params["cwd"]
 
     # Get the environment variables from the params
     env = params["env"]
-    env['DEBUG'] = 'cocalc:*'
+    if 'DEBUG' not in env:
+        env['DEBUG'] = 'cocalc:*'
     env['DEBUG_CONSOLE'] = 'yes'
 
     # Convert the environment dictionary to a list of key=value strings
     env_list = [f"{key}={value}" for key, value in env.items()]
 
+    print(
+        "Running the following command with the environment setup for the project:\n"
+    )
     print(" ".join([cmd] + args))
     try:
         # Run the command with the specified arguments and environment in the given cwd
@@ -71,6 +70,6 @@ if __name__ == "__main__":
             params = json.load(file)
         run_command_with_params(params)
     except FileNotFoundError:
-        print("File 'sys.argv[1]' not found.")
+        print(f"File '{sys.argv[1]}' not found.")
     except json.JSONDecodeError:
         print("Error parsing JSON data from the file.")

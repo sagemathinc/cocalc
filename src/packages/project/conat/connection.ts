@@ -4,7 +4,7 @@ server, via an api key or the project secret token.
 */
 
 import { apiKey, conatServer } from "@cocalc/backend/data";
-import secretToken from "@cocalc/project/servers/secret-token";
+import { secretToken } from "@cocalc/project/data";
 import { connect, type Client } from "@cocalc/conat/core/client";
 import {
   API_COOKIE_NAME,
@@ -24,7 +24,7 @@ const logger = getLogger("conat:connection");
 const VERSION_CHECK_INTERVAL = 2 * 60000;
 
 let cache: Client | null = null;
-export async function connectToConat(options?): Promise<Client> {
+export function connectToConat(options?): Client {
   if (cache != null) {
     return cache;
   }
@@ -32,7 +32,7 @@ export async function connectToConat(options?): Promise<Client> {
   if (apiKey) {
     Cookie = `${API_COOKIE_NAME}=${apiKey}`;
   } else {
-    Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${await secretToken()}; ${PROJECT_ID_COOKIE_NAME}=${project_id}`;
+    Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${secretToken}; ${PROJECT_ID_COOKIE_NAME}=${project_id}`;
   }
   cache = connect({
     address: conatServer,

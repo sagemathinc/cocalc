@@ -499,7 +499,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
-  conat = async () => await connectToConat();
+  conat = () => connectToConat();
 
   synctable_conat: ConatSyncTableFunction = async (query, options?) => {
     return await synctable_conat(query, options);

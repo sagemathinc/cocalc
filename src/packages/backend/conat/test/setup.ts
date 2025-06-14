@@ -68,7 +68,7 @@ export async function before() {
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
   setConatClient({
-    conat: async () => connect(),
+    conat: connect,
     getLogger,
   });
 }

@@ -69,7 +69,7 @@ export function init() {
 let terminate = false;
 async function serve() {
   logger.debug("serve: create project conat api service");
-  const cn = await connectToConat();
+  const cn = connectToConat();
   const subject = getSubject({ service: "api" });
   // @ts-ignore
   const name = `project-${project_id}`;

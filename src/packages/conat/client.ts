@@ -9,11 +9,10 @@ DEVELOPMENT:
 
 import { init } from "./time";
 import { EventEmitter } from "events";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
 interface Client {
-  conat: (opts?) => Promise<ConatClient>;
+  conat: (opts?) => ConatClient;
   account_id?: string;
   project_id?: string;
   compute_server_id?: number;
@@ -45,23 +44,23 @@ export class ClientWithState extends EventEmitter {
   state: State = "disconnected";
   _getLogger?: (name) => Logger;
   _reconnect?: () => Promise<void>;
-  conat: () => Promise<ConatClient>;
+  conat: () => ConatClient;
 
   constructor(client: Client) {
     super();
     // many things potentially listen for these events -- way more than 10 things.
     this.setMaxListeners(100);
     // this.conat only ever returns *ONE* connection
-    this.conat = reuseInFlight(async () => {
+    this.conat = () => {
       if (this.state == "closed") {
         throw Error("client already closed");
       }
       if (this.conatClient) {
         return this.conatClient;
       }
-      this.conatClient = await client.conat();
+      this.conatClient = client.conat();
       return this.conatClient;
-    });
+    };
     this.account_id = client.account_id;
     this.project_id = client.project_id;
     this.compute_server_id = client.compute_server_id;
@@ -122,13 +121,13 @@ export async function reconnect() {
   await globalClient?.reconnect();
 }
 
-export const conat: () => Promise<ConatClient> = reuseInFlight(async () => {
+export const conat: () => ConatClient = () => {
   if (globalClient == null) {
     throw Error("must set the global Conat client");
   }
   initTime();
-  return await globalClient.conat();
-});
+  return globalClient.conat();
+};
 
 export function getClient(): ClientWithState {
   if (globalClient == null) {
