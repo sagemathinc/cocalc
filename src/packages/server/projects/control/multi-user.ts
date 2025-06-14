@@ -115,6 +115,7 @@ class Project extends BaseProject {
       await writeSecretToken(
         HOME,
         await getProjectSecretToken(this.project_id),
+        this.uid,
       );
 
       // Fork and launch project server daemon

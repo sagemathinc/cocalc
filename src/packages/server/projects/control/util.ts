@@ -104,16 +104,20 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 // see also packages/project/secret-token.ts
 export function secretTokenPath(HOME: string) {
   const data = dataPath(HOME);
-  return join(data, "secrets", "secret-token");
+  return join(data, "secret-token");
 }
 
 export async function writeSecretToken(
   HOME: string,
   secretToken: string,
+  uid?: number,
 ): Promise<void> {
   const path = secretTokenPath(HOME);
   await ensureContainingDirectoryExists(path);
   await writeFile(path, secretToken);
+  if (uid) {
+    await chown(path, uid);
+  }
 }
 
 async function logLaunchParams(params): Promise<void> {
