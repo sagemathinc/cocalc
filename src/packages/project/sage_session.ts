@@ -27,7 +27,7 @@ import {
 import { CB } from "@cocalc/util/types/callback";
 import { ISageSession, SageCallOpts } from "@cocalc/util/types/sage";
 import { Client } from "./client";
-import { get_sage_socket } from "./sage_socket";
+import { getSageSocket } from "./sage_socket";
 
 // import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 
@@ -121,7 +121,7 @@ class SageSession implements ISageSession {
     const dbg = this.dbg("init_socket()");
     dbg();
     try {
-      const socket: CoCalcSocket = await get_sage_socket();
+      const socket: CoCalcSocket = await getSageSocket();
 
       dbg("successfully opened a sage session");
       this._socket = socket;
