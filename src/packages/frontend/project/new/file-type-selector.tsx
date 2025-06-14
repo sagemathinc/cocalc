@@ -3,11 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex, Modal, Row, Tag } from "antd";
+import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Available } from "@cocalc/comm/project-configuration";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
