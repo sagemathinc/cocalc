@@ -439,7 +439,7 @@ export class DStream<T = any> extends EventEmitter {
 
   private updateInventory = asyncThrottle(
     async () => {
-      if (this.opts.noInventory) {
+      if (this.isClosed() || this.opts == null || this.opts.noInventory) {
         return;
       }
       await delay(500);
