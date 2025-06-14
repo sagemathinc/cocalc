@@ -67,10 +67,12 @@ export async function getUser(
     if ((await getProjectSecretToken(project_id)) == secret) {
       return { project_id: project_id! };
     } else {
+      throw Error("invalid secret token for project");
+      // ONLY ENABLE THIS WHEN DOING DANGEROUS DEBUGGING
       // TODO -- this is NOT secure!
-      throw Error(
-        `invalid secret token for project: ${JSON.stringify({ correct: await getProjectSecretToken(project_id), secret })}`,
-      );
+      //       throw Error(
+      //         `invalid secret token for project: ${JSON.stringify({ correct: await getProjectSecretToken(project_id), secret })}`,
+      //       );
     }
   }
 
