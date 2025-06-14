@@ -31,7 +31,7 @@ export async function getSageSocket(): Promise<CoCalcSocket> {
         return true;
       } catch (err) {
         logger.debug(
-          `error getting sage socket so restarting sage server -- ${err}`,
+          `unable to get sage socket, so restarting sage server - ${err}`,
         );
         // Failed for some reason: try to restart one time, then try again.
         // We do this because the Sage server can easily get killed due to out of memory conditions.
@@ -39,18 +39,22 @@ export async function getSageSocket(): Promise<CoCalcSocket> {
         // there is something wrong with a local Sage install.
         // Note that restarting the sage server doesn't impact currently running worksheets (they
         // have their own process that isn't killed).
-        await restartSageServer();
         try {
+          // starting the sage server can also easily fail, so must be in the try
+          await restartSageServer();
+          // get socket immediately -- don't want to wait up to ~5s!
           socket = await _getSageSocket();
           return true;
         } catch (err) {
-          logger.debug(err);
+          logger.debug(
+            `error restarting sage server or getting socket -- ${err}`,
+          );
         }
         return false;
       }
     },
     {
-      start: 250,
+      start: 1000,
       max: 5000,
       decay: 1.5,
       timeout: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,

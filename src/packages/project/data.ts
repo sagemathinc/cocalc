@@ -23,6 +23,11 @@ export const rootSymlink = join(data, "root");
 export const SSH_LOG = join(data, "sshd.log");
 export const SSH_ERR = join(data, "sshd.err");
 export const compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0");
+export const sageServerPaths = {
+  log: join(data, "sage_server", "sage_server.log"),
+  pid: join(data, "sage_server", "sage_server.pid"),
+  port: join(data, "sage_server", "sage_server.port"),
+} as const;
 
 // secret token must be after compute_server_id is set, since it uses it.
 export { secretToken } from "./secret-token";
