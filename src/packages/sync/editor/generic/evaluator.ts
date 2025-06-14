@@ -57,10 +57,7 @@ export class Evaluator {
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
-    if (this.syncdoc.data_server == "project") {
-      // options only supported for project...
-      this.table_options = [{ ephemeral: true, persistent: true }];
-    }
+    this.table_options = [{ ephemeral: true, persistent: true }];
   }
 
   public async init(): Promise<void> {

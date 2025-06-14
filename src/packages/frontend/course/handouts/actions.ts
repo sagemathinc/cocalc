@@ -260,7 +260,7 @@ export class HandoutsActions {
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       };
       await webapp_client.project_client.copy_path_between_projects(opts);
 

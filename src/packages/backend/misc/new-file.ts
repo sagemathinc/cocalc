@@ -10,6 +10,9 @@ export async function newFile(path: string) {
   if (!process.env.HOME) {
     throw Error("HOME must be set");
   }
+  if (!path) {
+    return;
+  }
   path = path.startsWith("/") ? path : join(process.env.HOME, path);
 
   if (await exists(path)) {

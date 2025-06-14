@@ -4,104 +4,96 @@
  */
 
 import { getLogger } from "@cocalc/backend/logger";
+import { secretToken } from "@cocalc/project/data";
 import { enable_mesg } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 import * as message from "@cocalc/util/message";
-import { retry_until_success } from "@cocalc/util/misc";
 import * as common from "./common";
 import { forget_port, get_port } from "./port_manager";
 import {
   SAGE_SERVER_MAX_STARTUP_TIME_S,
-  restart_sage_server,
+  restartSageServer,
 } from "./sage_restart";
-import { getSecretToken } from "./servers/secret-token";
-import { CB } from "@cocalc/util/types/callback";
+import { until, once } from "@cocalc/util/async-utils";
 
-const winston = getLogger("sage-socket");
+const logger = getLogger("get-sage-socket");
 
 // Get a new connection to the Sage server.  If the server
 // isn't running, e.g., it was killed due to running out of memory,
 // attempt to restart it and try to connect.
-export async function get_sage_socket(): Promise<CoCalcSocket> {
-  let socket: CoCalcSocket | undefined;
-  const try_to_connect = async (cb: CB) => {
-    try {
-      socket = await _get_sage_socket();
-      cb();
-    } catch (err) {
-      // Failed for some reason: try to restart one time, then try again.
-      // We do this because the Sage server can easily get killed due to out of memory conditions.
-      // But we don't constantly try to restart the server, since it can easily fail to start if
-      // there is something wrong with a local Sage install.
-      // Note that restarting the sage server doesn't impact currently running worksheets (they
-      // have their own process that isn't killed).
+export async function getSageSocket(): Promise<CoCalcSocket> {
+  let socket: CoCalcSocket | undefined = undefined;
+  await until(
+    async () => {
       try {
-        await restart_sage_server();
-        // success at restarting sage server: *IMMEDIATELY* try to connect
-        socket = await _get_sage_socket();
-        cb();
+        socket = await _getSageSocket();
+        return true;
       } catch (err) {
-        // won't actually try to restart if called recently.
-        cb(err);
-      }
-    }
-  };
-
-  return new Promise((resolve, reject) => {
-    retry_until_success({
-      f: try_to_connect,
-      start_delay: 50,
-      max_delay: 5000,
-      factor: 1.5,
-      max_time: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,
-      log(m) {
-        winston.debug(`get_sage_socket: ${m}`);
-      },
-      cb(err) {
-        if (socket == null) {
-          reject("failed to get sage socket");
-        } else if (err) {
-          reject(err);
-        } else {
-          resolve(socket);
+        logger.debug(
+          `unable to get sage socket, so restarting sage server - ${err}`,
+        );
+        // Failed for some reason: try to restart one time, then try again.
+        // We do this because the Sage server can easily get killed due to out of memory conditions.
+        // But we don't constantly try to restart the server, since it can easily fail to start if
+        // there is something wrong with a local Sage install.
+        // Note that restarting the sage server doesn't impact currently running worksheets (they
+        // have their own process that isn't killed).
+        try {
+          // starting the sage server can also easily fail, so must be in the try
+          await restartSageServer();
+          // get socket immediately -- don't want to wait up to ~5s!
+          socket = await _getSageSocket();
+          return true;
+        } catch (err) {
+          logger.debug(
+            `error restarting sage server or getting socket -- ${err}`,
+          );
         }
-      },
-    });
-  });
+        return false;
+      }
+    },
+    {
+      start: 1000,
+      max: 5000,
+      decay: 1.5,
+      timeout: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,
+    },
+  );
+  if (socket === undefined) {
+    throw Error("bug");
+  }
+  return socket;
 }
 
-async function _get_sage_socket(): Promise<CoCalcSocket> {
-  winston.debug("get sage server port");
+async function _getSageSocket(): Promise<CoCalcSocket> {
+  logger.debug("get sage server port");
   const port = await get_port("sage");
-  winston.debug("get and unlock socket");
-  if (port == null) throw new Error("port is null");
+  logger.debug(`get and unlock socket on port ${port}`);
+  if (!port) {
+    throw new Error("port is not set");
+  }
   try {
-    const sage_socket: CoCalcSocket | undefined = await connectToLockedSocket({
+    const sage_socket: CoCalcSocket = await connectToLockedSocket({
       port,
-      token: getSecretToken(),
+      token: secretToken,
     });
-    winston.debug("Successfully unlocked a sage session connection.");
+    logger.debug("Successfully unlocked a sage session connection.");
 
-    winston.debug("request sage session from server.");
+    logger.debug("request sage session from server.");
     enable_mesg(sage_socket);
     sage_socket.write_mesg("json", message.start_session({ type: "sage" }));
-    winston.debug(
+    logger.debug(
       "Waiting to read one JSON message back, which will describe the session....",
     );
-    // TODO: couldn't this just hang forever :-(
-    return new Promise<CoCalcSocket>((resolve) => {
-      sage_socket.once("mesg", (_type, desc) => {
-        winston.debug(
-          `Got message back from Sage server: ${common.json(desc)}`,
-        );
-        sage_socket.pid = desc.pid;
-        resolve(sage_socket);
-      });
-    });
-  } catch (err2) {
+    const [_type, desc] = await once(sage_socket, "mesg", 30000);
+    logger.debug(`Got message back from Sage server: ${common.json(desc)}`);
+    sage_socket.pid = desc.pid;
+    return sage_socket;
+  } catch (err) {
     forget_port("sage");
-    const msg = `_new_session: sage session denied connection: ${err2}`;
-    throw new Error(msg);
+    const msg = `_new_session: sage session denied connection: ${err}`;
+    logger.debug(`Failed to connect -- ${msg}`);
+    throw Error(msg);
   }
 }

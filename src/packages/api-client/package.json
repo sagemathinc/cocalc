@@ -6,19 +6,12 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "depcheck": "pnpx depcheck --ignores @cocalc/api-client "
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",

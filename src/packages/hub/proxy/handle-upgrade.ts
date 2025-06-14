@@ -3,18 +3,17 @@
 import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
-
 import getLogger from "@cocalc/hub/logger";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { getTarget } from "./target";
 import { stripBasePath } from "./util";
 import { versionCheckFails } from "./version";
-import { proxyNatsWebsocket } from "@cocalc/hub/servers/nats";
+import { proxyConatWebsocket } from "./proxy-conat";
 
 const logger = getLogger("proxy:handle-upgrade");
 
 export default function init(
-  { projectControl, isPersonal, httpServer, listenersHack },
+  { projectControl, isPersonal, httpServer, listenersHack, proxyConat },
   proxy_regexp: string,
 ) {
   const cache = new LRU<string, ProxyServer>({
@@ -25,24 +24,26 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
-    socket.on("error", (err) => {
-      // server will crash sometimes without this:
-      logger.debug("WARNING -- websocket socket error", err);
-    });
-    const dbg = (...args) => {
-      logger.silly(req.url, ...args);
-    };
-    dbg("got upgrade request from url=", req.url);
-    const url = stripBasePath(req.url);
-
-    if (url == "/nats") {
-      proxyNatsWebsocket(req, socket, head);
+    if (proxyConat && req.url.split("?")[0].endsWith("/conat/")) {
+      proxyConatWebsocket(req, socket, head);
       return;
     }
 
     if (!req.url.match(re)) {
-      throw Error(`url=${req.url} does not support upgrade`);
+      // something else (e.g., the socket.io server) is handling this websocket;
+      // we do NOT mess with anything in this case
+      return;
     }
+
+    socket.on("error", (err) => {
+      // server will crash sometimes without this:
+      logger.debug("WARNING -- websocket socket error", err);
+    });
+
+    const dbg = (...args) => {
+      logger.silly(req.url, ...args);
+    };
+    dbg("got upgrade request from url=", req.url);
 
     // Check that minimum version requirement is satisfied (this is in the header).
     // This is to have a way to stop buggy clients from causing trouble.  It's a purely
@@ -62,6 +63,7 @@ export default function init(
     }
 
     dbg("calling getTarget");
+    const url = stripBasePath(req.url);
     const { host, port, internal_url } = await getTarget({
       url,
       isPersonal,
@@ -146,6 +148,10 @@ export default function init(
 
     // NOTE: I had to do something similar that is in packages/next/lib/init.js,
     // and is NOT a hack.  That technique could probably be used to fix this properly.
+    // NOTE2: It's May 2025, and I basically don't use HMR anymore and just refresh
+    // my page, since dealing with this is so painful.  Also rspack is superfast and
+    // refresh is fast, so HMR feels less necessary.  Finally, frequently any dev work
+    // I do requires a page refresh anyways.
 
     let listeners: any[] = [];
     handler = async (req, socket, head) => {

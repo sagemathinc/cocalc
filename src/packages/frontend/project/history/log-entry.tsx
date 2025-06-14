@@ -109,7 +109,7 @@ function TookTime({
   }
   let description = `${ms}ms`;
 
-  if (display == "seconds") {
+  if (display == "seconds" && ms >= 1000) {
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 
@@ -149,7 +149,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_open_file(event: OpenFile): JSX.Element {
       return (
         <span>
-          opened
+          Opened
           <Gap />
           <PathLink
             path={event.filename}

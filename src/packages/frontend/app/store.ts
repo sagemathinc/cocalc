@@ -6,6 +6,7 @@
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
 import { parse_target } from "../history";
+import type { ConatConnectionStatus } from "@cocalc/frontend/conat/client";
 
 type TopTab =
   | "about" // the "/help" page
@@ -52,16 +53,7 @@ export interface PageState {
   };
 
   settingsModal?: string;
-  nats?: TypedMap<{
-    state: ConnectionStatus;
-    data: {
-      inBytes?: number;
-      inMsgs?: number;
-      outBytes?: number;
-      outMsgs?: number;
-    };
-    numConnections: number;
-  }>;
+  conat?: TypedMap<ConatConnectionStatus>;
 }
 
 export class PageStore extends Store<PageState> {}

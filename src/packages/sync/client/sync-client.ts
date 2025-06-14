@@ -8,7 +8,7 @@ Functionality related to Sync.
 */
 
 import { once } from "@cocalc/util/async-utils";
-import { defaults, is_valid_uuid_string, required } from "@cocalc/util/misc";
+import { defaults, required } from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
 import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -19,10 +19,8 @@ import {
   QueryOptions,
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
-import synctable_project from "./synctable-project";
-import type { Channel, AppClient } from "./types";
-import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
-// import { refCacheSync } from "@cocalc/util/refcache";
+import type { AppClient } from "./types";
+import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {
   noCache?: boolean;
@@ -70,36 +68,6 @@ export class SyncClient {
       options ?? [],
       this.client,
       throttle_changes,
-    );
-  }
-
-  public async synctable_project(
-    project_id: string,
-    query: Query,
-    options?: QueryOptions,
-    throttle_changes?: number,
-    id: string = "",
-  ): Promise<SyncTable> {
-    return await synctable_project({
-      project_id,
-      query,
-      options: options ?? [],
-      client: this.client,
-      throttle_changes,
-      id,
-    });
-  }
-
-  // NOT currently used.
-  public async symmetric_channel(
-    name: string,
-    project_id: string,
-  ): Promise<Channel> {
-    if (!is_valid_uuid_string(project_id) || typeof name !== "string") {
-      throw Error("project_id must be a valid uuid and name must be a string");
-    }
-    return (await this.client.project_client.api(project_id)).symmetric_channel(
-      name,
     );
   }
 

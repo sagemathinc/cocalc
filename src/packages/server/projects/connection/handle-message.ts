@@ -9,7 +9,6 @@ import getLogger from "@cocalc/backend/logger";
 import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import { error, pong } from "@cocalc/util/message";
 import handleQuery from "./handle-query";
-import handleSyncdoc from "./handle-syncdoc";
 import handleVersion from "./handle-version";
 
 const logger = getLogger("project-connection:handle-message");
@@ -61,9 +60,6 @@ export default async function handleMessage({
       case "query":
       case "query_cancel":
         await handleQuery({ project_id, mesg, sendResponse });
-        return;
-      case "get_syncdoc_history":
-        await handleSyncdoc({ project_id, mesg, sendResponse });
         return;
       case "file_written_to_project":
       case "file_read_from_project":

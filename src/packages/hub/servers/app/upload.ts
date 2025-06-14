@@ -25,7 +25,7 @@ import getAccount from "@cocalc/server/auth/get-account";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import formidable from "formidable";
 import { PassThrough } from "node:stream";
-import { writeFile as writeFileToProject } from "@cocalc/nats/files/write";
+import { writeFile as writeFileToProject } from "@cocalc/conat/files/write";
 import { join } from "path";
 import { callback } from "awaiting";
 

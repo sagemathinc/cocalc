@@ -7,6 +7,8 @@ import { deep_copy, uuid } from "../misc";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
 
+const DEFAULT_LIMIT = 750;
+
 Table({
   name: "project_log",
   rules: {
@@ -22,7 +24,7 @@ Table({
       get: {
         pg_where: ["time >= NOW() - interval '2 months'", "projects"],
         pg_changefeed: "projects",
-        options: [{ order_by: "-time" }, { limit: 300 }],
+        options: [{ order_by: "-time" }, { limit: DEFAULT_LIMIT }],
         throttle_changes: 2000,
         fields: {
           id: null,

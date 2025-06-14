@@ -11,7 +11,6 @@ A single tab in a project.
 import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { defineMessage, useIntl } from "react-intl";
-
 import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
   CSS,

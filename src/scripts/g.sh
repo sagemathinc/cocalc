@@ -4,9 +4,8 @@ export LOGS=`pwd`/logs
 rm -f $LOGS/log
 unset INIT_CWD
 unset PGHOST
-export DEBUG="cocalc:*"
-#export DEBUG_CONSOLE="yes"
-unset DEBUG_CONSOLE
+export DEBUG="cocalc:*,-cocalc:silly:*"
+export DEBUG_CONSOLE="no"
 
 # Set this COCALC_DISABLE_NEXT to something nonempty to disable nextjs entirely
 # which is very helpful when doing development.

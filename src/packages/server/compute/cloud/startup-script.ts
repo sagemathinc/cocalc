@@ -18,6 +18,7 @@ import {
   CHECK_IN_PATH,
   CHECK_IN_PERIOD_S,
 } from "@cocalc/util/db-schema/compute-servers";
+import basePath from "@cocalc/backend/base-path";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
@@ -98,6 +99,9 @@ async function getApiServer() {
   if (!apiServer.includes("://")) {
     apiServer = `https://${apiServer}`;
   }
+  if (basePath.length > 1) {
+    apiServer += basePath;
+  }
   return apiServer;
 }
 
@@ -154,6 +158,7 @@ set -v
 export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
 export COCALC_LOCAL_SSD=${local_ssd ?? ""}
+export CONAT_SERVER=${apiServer}
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 

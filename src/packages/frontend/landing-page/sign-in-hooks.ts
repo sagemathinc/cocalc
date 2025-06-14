@@ -41,7 +41,7 @@ async function analytics_send(mesg: SignedIn): Promise<void> {
     })
     // .then(response => console.log("Success:", response))
     .catch((error) =>
-      console.error("sign-in-hooks::analytics_send error:", error)
+      console.log("WARNING: sign-in-hooks::analytics_send error:", error),
     );
 }
 

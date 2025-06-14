@@ -109,7 +109,7 @@ def all_packages() -> List[str]:
         'packages/sync',
         'packages/sync-client',
         'packages/sync-fs',
-        'packages/nats',
+        'packages/conat',
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
@@ -120,6 +120,7 @@ def all_packages() -> List[str]:
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
+        'packages/file-server',
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
     ]

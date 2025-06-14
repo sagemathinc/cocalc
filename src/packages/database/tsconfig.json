@@ -8,7 +8,7 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../backend" },
-    { "path": "../nats" },
+    { "path": "../conat" },
     { "path": "../util" }
   ]
 }

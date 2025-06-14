@@ -7,7 +7,7 @@
 Our predefined terminal color themes.
 */
 
-import { ITheme, Terminal } from "xterm";
+import { ITheme, Terminal } from "@xterm/xterm";
 import { color_themes } from "./theme-data";
 
 export function background_color(theme_name: string): string {

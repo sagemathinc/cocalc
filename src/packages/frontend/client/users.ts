@@ -50,7 +50,7 @@ export class UsersClient {
       admin?: boolean; // admins can do an admin version of the query, which also does substring searches on email address (not just name)
       only_email?: boolean; // search only via email address
     }): Promise<User[]> => {
-      return await this.client.nats_client.hub.system.userSearch({
+      return await this.client.conat_client.hub.system.userSearch({
         query,
         limit,
         admin,
@@ -99,7 +99,7 @@ export class UsersClient {
       }
     }
     if (v.length > 0) {
-      const names = await this.client.nats_client.hub.system.getNames(v);
+      const names = await this.client.conat_client.hub.system.getNames(v);
       for (const account_id of v) {
         // iterate over v to record accounts that don't exist too
         x[account_id] = names[account_id];

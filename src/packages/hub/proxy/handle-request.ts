@@ -10,7 +10,7 @@ import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
-import { readFile as readProjectFile } from "@cocalc/nats/files/read";
+import { readFile as readProjectFile } from "@cocalc/conat/files/read";
 import { path_split } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";
@@ -84,7 +84,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     // TODO: parseReq is called again in getTarget so need to refactor...
     const { type, project_id } = parsed;
     if (type == "files") {
-      dbg("handling the request via nats");
+      dbg("handling the request via conat file streaming");
       if (
         !(await hasAccess({
           project_id,
@@ -103,7 +103,7 @@ export default function init({ projectControl, isPersonal }: Options) {
         j = url.length;
       }
       const path = decodeURIComponent(url.slice(i + "files/".length, j));
-      dbg("NATs: get", { project_id, path, compute_server_id, url });
+      dbg("conat: get file", { project_id, path, compute_server_id, url });
       const fileName = path_split(path).tail;
       const contentType = mime.lookup(fileName);
       if (

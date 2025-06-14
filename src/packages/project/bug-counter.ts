@@ -25,6 +25,7 @@ export function init() {
     const border = `BUG (count=${bugCount}) ${STARS}`;
     log.error(border);
     log.error(`Uncaught exception: ${err}`);
+    console.warn(err);
     log.error(err.stack);
     log.error(border);
   };
