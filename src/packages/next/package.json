@@ -27,6 +27,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm patch-openapi && pnpm exec next telemetry disable && rm -rf .next && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' next build && pnpm generate-openapi",
     "build-dev": "pnpm patch-openapi && pnpm exec next telemetry disable && rm -rf dist && pnpm software && ../node_modules/.bin/tsc --build tsconfig-dist.json && pnpm generate-openapi",
+    "ts-build": "../node_modules/.bin/tsc --build tsconfig-dist.json",
     "tsc": "../node_modules/.bin/tsc --build tsconfig-dist.json -w --pretty --preserveWatchOutput ",
     "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && pnpm build && cd ../util && pnpm build",
