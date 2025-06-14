@@ -37,7 +37,7 @@ Or from cocalc/src
 
 */
 
-import type { ServerConnectionStats, ServerInfo } from "./types";
+import type { ConnectionStats, ServerInfo } from "./types";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
@@ -126,7 +126,7 @@ export class ConatServer {
     [id: string]: ReturnType<typeof setTimeout>;
   } = {};
 
-  private stats: { [id: string]: ServerConnectionStats } = {};
+  private stats: { [id: string]: ConnectionStats } = {};
   private usage: UsageMonitor;
   private state: State = "ready";
 
@@ -572,6 +572,7 @@ export class ConatServer {
 
     this.stats[socket.id] = {
       send: { messages: 0, bytes: 0 },
+      recv: { messages: 0, bytes: 0 },
       subs: 0,
       connected: Date.now(),
       address: getAddress(socket),
@@ -602,6 +603,12 @@ export class ConatServer {
     }
 
     socket.emit("info", { ...this.info(), user });
+
+    socket.on("stats", ({ recv0 }) => {
+      const s = this.stats[socket.id];
+      if (s == null) return;
+      s.recv = recv0;
+    });
 
     socket.on("publish", async ([subject, ...data], respond) => {
       if (data?.[2]) {

@@ -69,7 +69,7 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
   const data = await sys.stats();
 
   const rows: any[] = [];
-  const cols = 8;
+  const cols = 10;
   const totals = Array(cols).fill(0);
   for await (const X of data) {
     for (const server in X) {
@@ -89,11 +89,15 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
           server,
           x.address,
           uptime,
+          x.recv.messages,
           x.send.messages,
+          human_readable_size(x.recv.bytes),
           human_readable_size(x.send.bytes),
           x.subs,
         ]);
-        totals[cols - 3] += x.send.messages;
+        totals[cols - 5] += x.recv.messages;
+        totals[cols - 4] += x.send.messages;
+        totals[cols - 3] += x.recv.bytes;
         totals[cols - 2] += x.send.bytes;
         totals[cols - 1] += x.subs;
       }
@@ -104,8 +108,10 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
   rows.push([
     "TOTALS",
     `Total for ${rows.length - 1} connections:`,
-    ...Array(cols - 5).fill(""),
-    totals[cols - 3],
+    ...Array(cols - 7).fill(""),
+    totals[cols - 5],
+    totals[cols - 4],
+    human_readable_size(totals[cols - 3]),
     human_readable_size(totals[cols - 2]),
     totals[cols - 1],
   ]);
@@ -117,7 +123,9 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
       "Server",
       "Address",
       "Uptime",
+      "In Msgs",
       "Out Msgs",
+      "In Bytes",
       "Out Bytes",
       "Subs",
     )

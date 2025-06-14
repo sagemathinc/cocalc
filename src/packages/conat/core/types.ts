@@ -11,16 +11,13 @@ export interface ServerInfo {
   user?: User;
 }
 
-export interface ServerConnectionStats {
+export interface ConnectionStats {
   user?: User;
   send: { messages: number; bytes: number };
+  recv: { messages: number; bytes: number };
   subs: number;
   connected?: number; // time connected
   active?: number;
   // ip address
   address?: string;
-}
-
-export interface ConnectionStats extends ServerConnectionStats {
-  recv: { messages: number; bytes: number };
 }

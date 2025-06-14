@@ -274,6 +274,8 @@ const INBOX_PREFIX = "_INBOX";
 const REPLY_HEADER = "CN-Reply";
 const MAX_HEADER_SIZE = 100000;
 
+const STATS_LOOP = 5000;
+
 export let DEFAULT_REQUEST_TIMEOUT = 7500;
 export let DEFAULT_PUBLISH_TIMEOUT = 7500;
 
@@ -369,11 +371,17 @@ export class Client extends EventEmitter {
     sub: new TTL<string, string>({ ttl: 1000 * 60 }),
   };
   public info: ServerInfo | undefined = undefined;
-  public readonly stats: ConnectionStats = {
+  // total number of
+  public readonly stats: ConnectionStats & {
+    recv0: { messages: number; bytes: number };
+  } = {
     send: { messages: 0, bytes: 0 },
     recv: { messages: 0, bytes: 0 },
+    // recv0 = count since last connect
+    recv0: { messages: 0, bytes: 0 },
     subs: 0,
   };
+
   public readonly id: string = randomId();
   public state: State = "disconnected";
 
@@ -430,10 +438,12 @@ export class Client extends EventEmitter {
       );
     });
     this.conn.on("disconnect", () => {
+      this.stats.recv0 = { messages: 0, bytes: 0 }; // reset on disconnect
       this.setState("disconnected");
       this.disconnectAllSockets();
     });
     this.initInbox();
+    this.statsLoop();
   }
 
   disconnect = () => {
@@ -447,6 +457,32 @@ export class Client extends EventEmitter {
       await once(this, "info");
     }
   });
+
+  private statsLoop = async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) {
+          return true;
+        }
+        try {
+          await this.waitUntilConnected();
+          if (this.isClosed()) {
+            return true;
+          }
+          this.conn.emit("stats", { recv0: this.stats.recv0 });
+        } catch {}
+        return false;
+      },
+      { start: STATS_LOOP, max: STATS_LOOP },
+    );
+  };
+
+  recvStats = (bytes: number) => {
+    this.stats.recv.messages += 1;
+    this.stats.recv.bytes += bytes;
+    this.stats.recv0.messages += 1;
+    this.stats.recv0.bytes += bytes;
+  };
 
   // There should usually be no reason to call this because socket.io
   // is so good at abstracting this away. It's useful for unit testing.
@@ -1501,8 +1537,7 @@ class SubscriptionEmitter extends EventEmitter {
         subject,
       });
       this.emit("message", mesg);
-      this.client.stats.recv.messages += 1;
-      this.client.stats.recv.bytes += raw.byteLength;
+      this.client.recvStats(raw.byteLength);
     }
   };
 
