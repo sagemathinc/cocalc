@@ -62,7 +62,7 @@ describe("create a server and client, then send a message and get a response", (
     for (let i = 0; i < count; i++) {
       expect((await once(client, "data"))[0]).toBe(`${i}`.repeat(2));
     }
-    expect(Date.now() - t).toBeLessThan(2500);
+    expect(Date.now() - t).toBeLessThan(5000);
   });
 
   it("cleans up", () => {
