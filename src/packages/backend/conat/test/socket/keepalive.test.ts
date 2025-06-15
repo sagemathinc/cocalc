@@ -2,7 +2,7 @@
 pnpm test ./keepalive.test.ts
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
 import { delay } from "awaiting";
 
 beforeAll(before);
@@ -91,7 +91,7 @@ describe.only("test a client with a short keepalive time", () => {
   it("breaks the server side of the socket and observes the client automatically disconnects quickly", async () => {
     // hack to make server /dev/null any command from client
     server.handleCommandFromClient = () => {};
-    await delay(1.2 * (keepAlive + keepAliveTimeout));
+    await wait({ until: () => client.state == "disconnected" });
     expect(client.state).toBe("disconnected");
   });
 });
