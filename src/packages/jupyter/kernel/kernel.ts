@@ -31,7 +31,7 @@ if (DEBUG) {
 import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 import {
   createMainChannel,
   closeSockets,
@@ -50,7 +50,7 @@ import {
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { retry_until_success } from "@cocalc/util/async-utils";
+import { retry_until_success, until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
 import {
@@ -382,7 +382,7 @@ export class JupyterKernel
         this._kernel = await launchJupyterKernelNoPool(this.name, opts);
       }
       dbg("finishing kernel setup");
-      await this.finish_spawn();
+      await this.finishSpawningKernel();
     } catch (err) {
       dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
       // @ts-ignore
@@ -406,8 +406,8 @@ export class JupyterKernel
     return this._kernel?.connectionFile;
   };
 
-  private finish_spawn = async () => {
-    const dbg = this.dbg("finish_spawn");
+  private finishSpawningKernel = async () => {
+    const dbg = this.dbg("finishSpawningKernel");
     dbg("now finishing spawn of kernel...");
 
     if (DEBUG) {
@@ -453,22 +453,40 @@ export class JupyterKernel
     // Thus we do some tests, waiting for at least 2 seconds for there
     // to be a pid.  This is complicated and ugly, and I'm sorry about that,
     // but sometimes that's life.
-    let i = 0;
-    while (i < 20 && this._state == "spawning" && !this._kernel?.spawn?.pid) {
-      i += 1;
-      await delay(100);
-    }
-    if (this._state != "spawning" || !this._kernel?.spawn?.pid) {
-      if (this._state == "spawning") {
-        this.emit("kernel_error", "Failed to start kernel process.");
-        this._set_state("off");
-      }
+    try {
+      await until(
+        () => {
+          if (this._state != "spawning") {
+            // gave up
+            return true;
+          }
+          if (this.pid()) {
+            // there's a process :-)
+            return true;
+          }
+          return false;
+        },
+        { start: 100, max: 100, timeout: 3000 },
+      );
+    } catch (err) {
+      // timed out
+      this.emit("kernel_error", `Failed to start kernel process. ${err}`);
+      this._set_state("off");
       return;
     }
-    const local = { success: false, gaveUp: false };
+    if (this._state != "spawning") {
+      // got canceled
+      return;
+    }
+    const pid = this.pid();
+    if (!pid) {
+      throw Error("bug");
+    }
+    let success = false;
+    let gaveUp = false;
     setTimeout(() => {
-      if (!local.success) {
-        local.gaveUp = true;
+      if (!success) {
+        gaveUp = true;
         // it's been 30s and the channels didn't work.  Let's give up.
         // probably the kernel process just failed.
         this.emit("kernel_error", "Failed to start kernel process.");
@@ -480,11 +498,12 @@ export class JupyterKernel
       }
     }, MAX_KERNEL_SPAWN_TIME);
     const channel = await createMainChannel(this._kernel.config, this.identity);
-    if (local.gaveUp) {
+    if (gaveUp) {
+      process.kill(-pid, 9);
       return;
     }
     this.channel = channel;
-    local.success = true;
+    success = true;
     dbg("created main channel");
 
     this.channel?.subscribe((mesg) => {
@@ -518,7 +537,7 @@ export class JupyterKernel
       }
     });
 
-    this._kernel.spawn.on("exit", (exit_code, signal) => {
+    this._kernel.spawn.once("exit", (exit_code, signal) => {
       if (this._state === "closed") {
         return;
       }
@@ -544,14 +563,17 @@ export class JupyterKernel
     this._set_state("starting");
   };
 
+  pid = (): number | undefined => {
+    return this._kernel?.spawn?.pid;
+  };
+
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
   signal = (signal: string): void => {
     const dbg = this.dbg("signal");
-    const spawn = this._kernel != null ? this._kernel.spawn : undefined;
-    const pid = spawn?.pid;
+    const pid = this.pid();
     dbg(`pid=${pid}, signal=${signal}`);
-    if (pid == null) {
+    if (!pid) {
       return;
     }
     try {
@@ -957,7 +979,6 @@ export class JupyterKernel
     },
   );
 
-  // TODO: double check that this actually returns sha1
   load_attachment = async (path: string): Promise<string> => {
     const dbg = this.dbg("load_attachment");
     dbg(`path='${path}'`);

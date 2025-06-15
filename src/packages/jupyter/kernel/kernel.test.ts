@@ -14,12 +14,18 @@ import { kernel, type JupyterKernel } from "./kernel";
 import { getPythonKernelName } from "./kernel-data";
 
 const usedNames = new Set<string>();
-export async function getPythonKernel(path: string): Promise<JupyterKernel> {
-  if (usedNames.has(path)) {
+const kernels: JupyterKernel[] = [];
+export async function getPythonKernel(
+  path: string,
+  noCheck = false,
+): Promise<JupyterKernel> {
+  if (!noCheck && usedNames.has(path)) {
     throw Error(`do not reuse names as that is very confusing -- ${path}`);
   }
   usedNames.add(path);
-  return kernel({ name: await getPythonKernelName(), path });
+  const k = kernel({ name: await getPythonKernelName(), path });
+  kernels.push(k);
+  return k;
 }
 
 describe("test trying to use a kernel that doesn't exist", () => {
@@ -117,7 +123,42 @@ describe("start computation then immediately close the kernel should not crash",
     }
   });
 
+  it("closes during computation", () => {
+    k.close();
+  });
+
+  it("starts and closes another kernel with the same path", async () => {
+    const k2 = await getPythonKernel("python-4.ipynb", true);
+    k2.close();
+  });
+});
+
+describe("a kernel implicitly spawns when you execute code", () => {
+  let k;
+  it("get and do NOT spawn a python kernel", async () => {
+    k = await getPythonKernel("python-spawn.ipynb");
+  });
+
+  it("start some code running and see spawning is automatic", async () => {
+    const code = "import os; os.getpid()";
+    const output = k.execute_code({ code });
+    for await (const out of output.iter()) {
+      if (out.content?.code) {
+        expect(out.content.code).toBe(code);
+      }
+      if (out.content?.data) {
+        const pid = out.content?.data["text/plain"];
+        expect(parseInt(pid)).toEqual(k.pid());
+        break;
+      }
+    }
+  });
+
   it("cleans up", () => {
     k.close();
   });
+});
+
+afterAll(() => {
+  kernels.map((k) => k.close());
 });
