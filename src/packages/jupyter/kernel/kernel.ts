@@ -256,6 +256,7 @@ export class JupyterKernel
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public channel?: Channels;
   private has_ensured_running: boolean = false;
+  private failedError: string = "";
 
   constructor(
     name: string | undefined,
@@ -275,7 +276,7 @@ export class JupyterKernel
     const { head, tail } = path_split(getAbsolutePathFromHome(this._path));
     this._directory = head;
     this._filename = tail;
-    this._set_state("off");
+    this.setState("off");
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.
@@ -293,13 +294,19 @@ export class JupyterKernel
   };
 
   // no-op if calling it doesn't change the state.
-  private _set_state = (state: State): void => {
+  private setState = (state: State): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     //             'failed'
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
+  };
+
+  private setFailed = (error: string): void => {
+    this.failedError = error;
+    this.emit("kernel_error", error);
+    this.setState("failed");
   };
 
   get_state = (): string => {
@@ -328,7 +335,7 @@ export class JupyterKernel
     }
     this.spawnedAlready = true;
 
-    this._set_state("spawning");
+    this.setState("spawning");
     const dbg = this.dbg("spawn");
     dbg("spawning kernel...");
 
@@ -387,14 +394,11 @@ export class JupyterKernel
       dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
       // @ts-ignore
       if (this._state == "closed") {
-        throw Error("closed -- kernel spawn later");
+        throw Error("closed");
       }
-      this._set_state("failed");
-      this.emit(
-        "kernel_error",
+      this.setFailed(
         `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
       );
-      throw err;
     }
   };
 
@@ -420,8 +424,7 @@ export class JupyterKernel
     this._kernel.spawn.on("error", (err) => {
       const error = `${err}\n${this.stderr}`;
       dbg("kernel error", error);
-      this.emit("kernel_error", error);
-      this._set_state("off");
+      this.setFailed(error);
     });
 
     // Track stderr from the subprocess itself (the kernel).
@@ -470,8 +473,7 @@ export class JupyterKernel
       );
     } catch (err) {
       // timed out
-      this.emit("kernel_error", `Failed to start kernel process. ${err}`);
-      this._set_state("off");
+      this.setFailed(`Failed to start kernel process. ${err}`);
       return;
     }
     if (this._state != "spawning") {
@@ -489,8 +491,7 @@ export class JupyterKernel
         gaveUp = true;
         // it's been 30s and the channels didn't work.  Let's give up.
         // probably the kernel process just failed.
-        this.emit("kernel_error", "Failed to start kernel process.");
-        this._set_state("off");
+        this.setFailed("Failed to start kernel process -- timeout");
         // We can't yet "cancel" createMainChannel itself -- that will require
         // rewriting that dependency.
         //      https://github.com/sagemathinc/cocalc/issues/7040
@@ -509,14 +510,14 @@ export class JupyterKernel
     this.channel?.subscribe((mesg) => {
       switch (mesg.channel) {
         case "shell":
-          this._set_state("running");
+          this.setState("running");
           this.emit("shell", mesg);
           break;
         case "stdin":
           this.emit("stdin", mesg);
           break;
         case "iopub":
-          this._set_state("running");
+          this.setState("running");
           if (mesg.content != null && mesg.content.execution_state != null) {
             this.emit("execution_state", mesg.content.execution_state);
           }
@@ -546,21 +547,15 @@ export class JupyterKernel
       );
       const stderr = this.stderr ? `\n...\n${this.stderr}` : "";
       if (signal != null) {
-        this.emit(
-          "kernel_error",
-          `Kernel last terminated by signal ${signal}.${stderr}`,
-        );
+        this.setFailed(`Kernel last terminated by signal ${signal}.${stderr}`);
       } else if (exit_code != null) {
-        this.emit(
-          "kernel_error",
-          `Kernel last exited with code ${exit_code}.${stderr}`,
-        );
+        this.setFailed(`Kernel last exited with code ${exit_code}.${stderr}`);
       }
       this.close();
     });
 
     // so we can start sending code execution to the kernel, etc.
-    this._set_state("starting");
+    this.setState("starting");
   };
 
   pid = (): number | undefined => {
@@ -590,7 +585,7 @@ export class JupyterKernel
       return;
     }
     closeSockets(this.identity);
-    this._set_state("closed");
+    this.setState("closed");
     if (this.store != null) {
       this.store.close();
       delete this.store;
@@ -606,8 +601,8 @@ export class JupyterKernel
       delete this.channel;
     }
     if (this._execute_code_queue != null) {
-      for (const code_snippet of this._execute_code_queue) {
-        code_snippet.close();
+      for (const runningCode of this._execute_code_queue) {
+        runningCode.close();
       }
       this._execute_code_queue = [];
     }
@@ -772,20 +767,27 @@ export class JupyterKernel
     this._execute_code_queue = [];
   };
 
-  // This is like execute_code, but async and returns all the results,
-  // and does not use the internal execution queue.
-  // This is used for unit testing and interactive work at the terminal and nbgrader and the stateless api.
+  // This is like execute_code, but async and returns all the results.
+  // This is used for unit testing and interactive work at
+  // the terminal and nbgrader and the stateless api.
   execute_code_now = async (opts: ExecOpts): Promise<object[]> => {
     this.dbg("execute_code_now")();
-    if (this._state === "closed") {
-      throw Error("closed -- kernel -- execute_code_now");
+    if (this._state == "closed") {
+      throw Error("closed");
     }
-    if (opts.halt_on_error === undefined) {
-      // if not specified, default to true.
-      opts.halt_on_error = true;
+    if (this.failedError) {
+      throw Error(this.failedError);
     }
-    await this.ensure_running();
-    return await new CodeExecutionEmitter(this, opts).go();
+    const output = this.execute_code({ halt_on_error: true, ...opts });
+    const v: object[] = [];
+    for await (const mesg of output.iter()) {
+      v.push(mesg);
+    }
+    if (this.failedError) {
+      // kernel failed during call
+      throw Error(this.failedError);
+    }
+    return v;
   };
 
   private saveBlob = (data: string, type: string) => {
@@ -1142,8 +1144,8 @@ export class JupyterKernel
 
     const absPath = getAbsolutePathFromHome(path);
     const code = createChdirCommand(lang, absPath);
+    // code = '' if no command needed, e.g., for sparql.
     if (code) {
-      // returns '' if no command needed, e.g., for sparql.
       await this.execute_code_now({ code });
     }
   };

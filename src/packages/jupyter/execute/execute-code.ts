@@ -14,8 +14,9 @@ import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import type { MessageType } from "@nteract/messaging";
 import { copy_with, deep_copy, uuid } from "@cocalc/util/misc";
-import {
+import type {
   CodeExecutionEmitterInterface,
+  OutputMessage,
   ExecOpts,
   StdinFunction,
 } from "@cocalc/jupyter/types/project-interface";
@@ -25,8 +26,6 @@ import { once } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const log = getLogger("jupyter:execute-code");
-
-type Output = object; // todo
 
 type State = "init" | "running" | "done" | "closed";
 
@@ -45,13 +44,12 @@ export class CodeExecutionEmitter
   private iopub_done: boolean = false;
   private shell_done: boolean = false;
   private state: State = "init";
-  private all_output: Output[] = [];
   private _message: any;
   private _go_cb: Function | undefined = undefined;
   private timeout_ms?: number;
   private timer?: any;
   private killing: string = "";
-  private _iter?: EventIterator<Output>;
+  private _iter?: EventIterator<OutputMessage>;
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -84,12 +82,12 @@ export class CodeExecutionEmitter
   }
 
   // async interface:
-  iter = (): EventIterator<Output> => {
+  iter = (): EventIterator<OutputMessage> => {
     if (this.state == "closed") {
       throw Error("closed");
     }
     if (this._iter == null) {
-      this._iter = new EventIterator<Output>(this, "output", {
+      this._iter = new EventIterator<OutputMessage>(this, "output", {
         map: (args) => {
           if (args[0]?.done) {
             setTimeout(() => this._iter?.close(), 1);
@@ -117,8 +115,7 @@ export class CodeExecutionEmitter
   // Emits a valid result, which is
   //    https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
   // Or an array of those when this.all is true
-  emit_output = (output: Output): void => {
-    this.all_output.push(output);
+  emit_output = (output: OutputMessage): void => {
     this.emit("output", output);
     if (output["done"]) {
       this.setState("done");
@@ -145,6 +142,8 @@ export class CodeExecutionEmitter
     }
     this._iter?.close();
     delete this._iter;
+    // @ts-ignore
+    delete this._go_cb;
     this.emit("closed");
     this.removeAllListeners();
   };
@@ -264,8 +263,8 @@ export class CodeExecutionEmitter
   };
 
   // Called if the kernel is closed for some reason, e.g., crashing.
-  private handle_closed = (): void => {
-    log.debug("CodeExecutionEmitter.handle_closed: kernel closed");
+  private handleClosed = (): void => {
+    log.debug("CodeExecutionEmitter.handleClosed: kernel closed");
     this.killing = "kernel crashed";
     this._finish();
   };
@@ -283,7 +282,8 @@ export class CodeExecutionEmitter
       this.kernel._execute_code_queue.shift(); // finished
       this.kernel._process_execute_code_queue(); // start next exec
     }
-    this.kernel.removeListener("close", this.handle_closed);
+    this.kernel.removeListener("closed", this.handleClosed);
+    this.kernel.removeListener("failed", this.handleClosed);
     this._push_mesg({ done: true });
     this.close();
 
@@ -311,9 +311,8 @@ export class CodeExecutionEmitter
     this.emit_output(mesg);
   };
 
-  go = async (): Promise<Output[]> => {
+  go = async (): Promise<void> => {
     await callback(this._go);
-    return this.all_output;
   };
 
   private _go = (cb: Function): void => {
@@ -323,10 +322,12 @@ export class CodeExecutionEmitter
     }
     this.state = "running";
     log.silly("_execute_code", this.code);
-    if (this.kernel.get_state() === "closed") {
-      log.silly("_execute_code", "kernel.get_state() is closed");
-      this.close();
-      cb("closed - jupyter - execute_code");
+    const kernelState = this.kernel.get_state();
+    if (kernelState == "closed" || kernelState == "failed") {
+      log.silly("_execute_code", "kernel.get_state() is ", kernelState);
+      this.killing = kernelState;
+      this._finish();
+      cb(kernelState);
       return;
     }
 
@@ -341,7 +342,8 @@ export class CodeExecutionEmitter
     log.debug("_execute_code: send the message to get things rolling");
     this.kernel.channel?.next(this._message);
 
-    this.kernel.on("closed", this.handle_closed);
+    this.kernel.once("closed", this.handleClosed);
+    this.kernel.once("failed", this.handleClosed);
 
     if (this.timeout_ms) {
       // setup a timeout at which point things will get killed if they don't finish

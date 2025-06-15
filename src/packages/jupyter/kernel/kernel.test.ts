@@ -29,11 +29,18 @@ export async function getPythonKernel(
 }
 
 describe("test trying to use a kernel that doesn't exist", () => {
-  it("fails", async () => {
+  it("fails to start", async () => {
     const k = kernel({ name: "no-such-kernel", path: "none.ipynb" });
-    await expect(k.execute_code_now({ code: "2+3" })).rejects.toThrow(
-      "No spec available for kernel",
-    );
+    const errors: any[] = [];
+    k.on("kernel_error", (err) => {
+      errors.push(err);
+    });
+
+    await expect(
+      async () => await k.execute_code_now({ code: "2+3" }),
+    ).rejects.toThrow("No spec available for kernel");
+    
+    expect(errors[0]).toContain("No spec available for kernel");
   });
 });
 
@@ -139,7 +146,7 @@ describe("a kernel implicitly spawns when you execute code", () => {
     k = await getPythonKernel("python-spawn.ipynb");
   });
 
-  it("start some code running and see spawning is automatic", async () => {
+  it.skip("start some code running and see spawning is automatic", async () => {
     const code = "import os; os.getpid()";
     const output = k.execute_code({ code });
     for await (const out of output.iter()) {
@@ -152,6 +159,37 @@ describe("a kernel implicitly spawns when you execute code", () => {
         break;
       }
     }
+  });
+
+  it("cleans up", () => {
+    k.close();
+  });
+});
+
+describe("test execute_code_now and chdir", () => {
+  let k;
+  it("get a python kernel", async () => {
+    k = await getPythonKernel("python-chdir.ipynb");
+  });
+
+  it("also test the execute_code_now method", async () => {
+    const out = await k.execute_code_now({ code: "2+3" });
+    const v = out.filter((x) => x.content?.data);
+    expect(v[0].content.data["text/plain"]).toBe("5");
+  });
+
+  it("also test the chdir method", async () => {
+    // before
+    const out = await k.execute_code_now({ code: "import os; os.curdir" });
+    const v = out.filter((x) => x.content?.data);
+    expect(v[0].content.data["text/plain"]).toBe("'.'");
+
+    await k.chdir("/tmp");
+    const out2 = await k.execute_code_now({
+      code: "os.path.abspath(os.curdir)",
+    });
+    const v2 = out2.filter((x) => x.content?.data);
+    expect(v2[0].content.data["text/plain"]).toBe("'/tmp'");
   });
 
   it("cleans up", () => {

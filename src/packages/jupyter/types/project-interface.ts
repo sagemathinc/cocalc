@@ -14,6 +14,7 @@ so that Typescript can meaningfully type check everything.
 import type { Channels } from "@nteract/messaging";
 import type { KernelInfo } from "@cocalc/util/jupyter/types";
 export type { KernelInfo };
+import type { EventIterator } from "@cocalc/util/event-iterator";
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -75,12 +76,16 @@ export interface ExecOpts {
   timeout_ms?: number;
 }
 
+export type OutputMessage = object; // todo
+
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
-  emit_output(result: object): void;
+  emit_output(result: OutputMessage): void;
   cancel(): void;
   close(): void;
   throw_error(err): void;
-  go(): Promise<object[]>;
+  go(): Promise<void>;
+  iter(): EventIterator<OutputMessage>;
+  waitUntilDone: () => Promise<void>;
 }
 
 interface JupyterKernelInterfaceSpawnOpts {
