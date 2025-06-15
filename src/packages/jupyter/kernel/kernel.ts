@@ -35,7 +35,7 @@ import { callback, delay } from "awaiting";
 import {
   createMainChannel,
   closeSockets,
-} from "@cocalc/jupyter/zmq/enchannel-zmq-backend";
+} from "@cocalc/jupyter/zmq/jupyter-channels";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";

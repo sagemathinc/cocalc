@@ -1,5 +1,6 @@
 /*
-This is from https://github.com/nteract/enchannel-zmq-backend
+This is adapted from https://github.com/nteract/enchannel-zmq-backend but with
+significant rewriting, bug fixing, etc.
 
 The original and all modifications in CoCalc of the code in THIS DIRECTORY
 are: * BSD 3-Clause License *
