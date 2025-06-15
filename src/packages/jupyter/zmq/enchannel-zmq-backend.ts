@@ -129,6 +129,7 @@ export const getUsername = () =>
  */
 export const createMainChannel = async (
   config: JupyterConnectionInfo,
+  identity: string,
   subscription: string = "",
   header: HeaderFiller = {
     session: uuid(),
@@ -137,9 +138,22 @@ export const createMainChannel = async (
   jmp = moduleJMP,
 ): Promise<Channels> => {
   const sockets = await createSockets(config, subscription, jmp);
+  allSockets[identity] = sockets;
   const main = createMainChannelFromSockets(sockets, header, jmp);
   return main;
 };
+
+const allSockets: { [identity: string]: any } = {};
+
+export function closeSockets(identity: string) {
+  const x = allSockets[identity];
+  if (x != null) {
+    for (const name in x) {
+      x[name].close();
+    }
+  }
+  delete allSockets[identity];
+}
 
 /**
  * Sets up the sockets for each of the jupyter channels.

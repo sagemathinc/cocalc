@@ -15,7 +15,7 @@ How to do development (so in a dev project doing cc-in-cc dev).
     export HOME="/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/src/data/projects/$COCALC_PROJECT_ID"
     export DATA=$HOME/.smc
 
-    # optional for more flexibility
+    # CRITICAL: make sure to create and set an api key!  Otherwise you will be blocked:
     export API_KEY=sk-OUwxAN8d0n7Ecd48000055
     export COMPUTE_SERVER_ID=0
 

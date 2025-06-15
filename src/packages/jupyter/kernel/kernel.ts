@@ -29,7 +29,10 @@ import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
-import { createMainChannel } from "@cocalc/jupyter/zmq/enchannel-zmq-backend";
+import {
+  createMainChannel,
+  closeSockets,
+} from "@cocalc/jupyter/zmq/enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
@@ -63,11 +66,18 @@ import {
   getLanguage,
   get_kernel_data_by_name,
 } from "@cocalc/jupyter/kernel/kernel-data";
+
+// POOL VERSION - faster to restart but possible subtle issues
+const USE_KERNEL_POOL = true;
+
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
 } from "@cocalc/jupyter/pool/pool";
+// non-pool version
+import launchJupyterKernelNoPool from "@cocalc/jupyter/kernel/launch-kernel";
+
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
@@ -220,7 +230,10 @@ nodeCleanup(() => {
 
 // NOTE: keep JupyterKernel implementation private -- use the kernel function
 // above, and the interface defined in types.
-class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
+export class JupyterKernel
+  extends EventEmitter
+  implements JupyterKernelInterface
+{
   // name -- if undefined that means "no actual Jupyter kernel" (i.e., this JupyterKernel exists
   // here, but there is no actual separate real Jupyter kernel process and one won't be created).
   // Everything should work, except you can't *spawn* such a kernel.
@@ -353,8 +366,14 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       // and launchJupyterKernel is NOT smart enough to deal with anything else!
 
       try {
-        dbg("launching kernel interface...");
-        this._kernel = await launchJupyterKernel(this.name, opts);
+        if (USE_KERNEL_POOL) {
+          dbg("launching Jupyter kernel, possibly from pool");
+          this._kernel = await launchJupyterKernel(this.name, opts);
+        } else {
+          dbg("launching Jupyter kernel, NOT using pool");
+          this._kernel = await launchJupyterKernelNoPool(this.name, opts);
+        }
+        dbg("finishing kernel setup");
         await this.finish_spawn();
       } catch (err) {
         dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
@@ -456,12 +475,13 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         // probably the kernel process just failed.
         this.emit("kernel_error", "Failed to start kernel process.");
         this._set_state("off");
-        // We can't "cancel" createMainChannel itself -- that will require
+        // We can't yet "cancel" createMainChannel itself -- that will require
         // rewriting that dependency.
         //      https://github.com/sagemathinc/cocalc/issues/7040
+        // I did rewrite that -- so let's revisit this!
       }
     }, MAX_KERNEL_SPAWN_TIME);
-    const channel = await createMainChannel(this._kernel.config);
+    const channel = await createMainChannel(this._kernel.config, this.identity);
     if (local.gaveUp) {
       return;
     }
@@ -544,14 +564,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
   };
 
-  // This is async, but the process.kill happens *before*
-  // anything async. That's important for cleaning these
-  // up when the project terminates.
-  close = async (): Promise<void> => {
+  close = (): void => {
     this.dbg("close")();
     if (this._state === "closed") {
       return;
     }
+    closeSockets(this.identity);
     this._set_state("closed");
     if (this.store != null) {
       this.store.close();

@@ -14,7 +14,7 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 This is supposed to be basically the same as "jupyter kernelspec list --json", but it is NOT always.
 E.g., on my dev system the "ptyhon3" system-wide kernel is just completely missed.  Also,
 "jupyter kernelspec list --json" is MUCH slower, taking almost a second, versus only
-a few ms for this.  We stick with this for now, but may need to improve upstream.
+a few ms for this.  We stick with this for now, but may need to improve.
 */
 
 import { findAll } from "kernelspecs";
@@ -105,4 +105,16 @@ export async function get_kernel_data_by_name(
     }
   }
   throw Error(`no such kernel '${name}'`);
+}
+
+// return the name of a python kernel -- very useful for unit testing.
+export async function getPythonKernelName() {
+  const kernels = await get_kernel_data();
+  for (const x of kernels) {
+    const name = x.name.toLowerCase();
+    if (name.includes("python") && !name.includes("python2")) {
+      return x.name;
+    }
+  }
+  throw Error("no python kernels");
 }

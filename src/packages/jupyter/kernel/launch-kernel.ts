@@ -1,5 +1,5 @@
 // This file allows you to run a jupyter kernel via `launch_jupyter_kernel`.
-// You have to provide the kernel name and (optionally) launch options for execa [1].
+// You have to provide the kernel name and (optionally) launch options.
 //
 // Example:
 // import launchJupyterKernel from "./launch-jupyter-kernel";
@@ -8,9 +8,6 @@
 // * shell channel: `${kernel.config.ip}:${kernel.config.shell_port}`
 // * `kernel.spawn` holds the process and you have to close it when finished.
 // * Unless  `cleanupConnectionFile` is false, the connection file will be deleted when finished.
-//
-// Ref:
-// [1] execa: https://github.com/sindresorhus/execa#readme
 //
 // History:
 // This is a port of https://github.com/nteract/spawnteract/ to TypeScript (with minor changes).
@@ -23,10 +20,9 @@ import * as fs from "fs";
 import * as uuid from "uuid";
 import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
-
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
-
+import { executeCode } from "@cocalc/backend/execute-code";
 import getPorts from "./get-ports";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
@@ -35,11 +31,6 @@ import { envForSpawn } from "@cocalc/backend/misc";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("launch-kernel");
-
-// This is temporary hack to import the latest execa, which is only
-// available as an ES Module now.  We will of course eventually switch
-// to using esm modules instead of commonjs, but that's a big project.
-import { dynamicImport } from "tsimportlib";
 
 // this is passed to "execa", there are more options
 // https://github.com/sindresorhus/execa#options
@@ -161,11 +152,6 @@ async function launchKernelSpec(
     ...spawn_options.env,
   };
 
-  const { execaCommand } = (await dynamicImport(
-    "execa",
-    module,
-  )) as typeof import("execa");
-
   let running_kernel;
 
   if (full_spawn_options.cwd != null) {
@@ -183,17 +169,12 @@ async function launchKernelSpec(
     const bashCmd = `${ulimitCmd} && ${escapedCmd}`;
 
     // Execute the command with ulimit
-    running_kernel = execaCommand(bashCmd, {
+    running_kernel = executeCode({
+      command: bashCmd,
       ...full_spawn_options,
-      shell: true,
+      bash: true,
     });
   } else {
-    // CRITICAL: I am *NOT* using execa, but instead spawn, because
-    // I hit bugs in execa.  Namely, when argv[0] is a path that doesn't exist,
-    // no matter what, there is an uncaught exception emitted later.  The exact
-    // same situation with execaCommand or node's spawn does NOT have an uncaught
-    // exception, so it's a bug.
-    //running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);  // NO!
     running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
 

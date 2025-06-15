@@ -178,7 +178,7 @@ export class ConatServer {
     this.id = id;
     this.logger = logger;
     if (valkey) {
-      this.log("Using Valkey for clustering");
+      this.log(`Using Valkey for clustering -- ${valkey}`);
       this.valkey = {
         adapter: new Valkey(valkey),
         pub: new Valkey(valkey),
@@ -286,7 +286,7 @@ export class ConatServer {
         "interest",
         lastId,
       );
-      // console.log("got ", results);
+      // console.log("valkey interest -- got: ", results);
       if (results == null) {
         d = Math.min(1000, d * 1.2);
         await delay(d);
