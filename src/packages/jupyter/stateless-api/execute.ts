@@ -2,7 +2,7 @@
 ~/cocalc/src/packages/project$ node
 Welcome to Node.js v16.19.1.
 Type ".help" for more information.
-> e = require('./dist/jupyter/stateless-api/kernel').default; z = await e.getFromPool('python3'); await z.execute("2+3")
+> e = require('@cocalc/jupyter/stateless-api/kernel').default; z = await e.getFromPool('python3'); await z.execute("2+3")
 [ { data: { 'text/plain': '5' } } ]
 >
 */

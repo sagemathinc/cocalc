@@ -9,7 +9,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const log = getLogger("jupyter:stateless-api:kernel");
 
-const DEFAULT_POOL_SIZE = 2;
+export const DEFAULT_POOL_SIZE = 2;
 const DEFAULT_POOL_TIMEOUT_S = 3600;
 
 // When we idle timeout we always keep at least this many kernels around.  We don't go to 0.
@@ -22,9 +22,7 @@ export default class Kernel {
   private kernel?: JupyterKernelInterface;
   private tempDir: string;
 
-  constructor(private kernelName: string) {
-    this.init = reuseInFlight(this.init.bind(this));
-  }
+  constructor(private kernelName: string) {}
 
   private static getPool(kernelName: string) {
     let pool = Kernel.pools[kernelName];
@@ -43,28 +41,31 @@ export default class Kernel {
     }
     const now = Date.now();
     Kernel.last_active[kernelName] = now;
-    setTimeout(() => {
-      if (Kernel.last_active[kernelName] > now) {
-        // kernel was requested after now.
-        return;
-      }
-      // No recent request for kernelName.
-      // Keep at least MIN_POOL_SIZE in Kernel.pools[kernelName]. I.e.,
-      // instead of closing and deleting everything, we just want to
-      // shrink the pool to MIN_POOL_SIZE.
-      // no request for kernelName, so we clear them from the pool
-      const poolToShrink = Kernel.pools[kernelName] ?? [];
-      if (poolToShrink.length > MIN_POOL_SIZE) {
-        // check if pool needs shrinking
-        // calculate how many to close
-        const numToClose = poolToShrink.length - MIN_POOL_SIZE;
-        for (let i = 0; i < numToClose; i++) {
-          poolToShrink[i].close(); // close oldest kernels first
+    setTimeout(
+      () => {
+        if (Kernel.last_active[kernelName] > now) {
+          // kernel was requested after now.
+          return;
         }
-        // update pool to have only the most recent kernels
-        Kernel.pools[kernelName] = poolToShrink.slice(numToClose);
-      }
-    }, (timeout_s ?? DEFAULT_POOL_TIMEOUT_S) * 1000);
+        // No recent request for kernelName.
+        // Keep at least MIN_POOL_SIZE in Kernel.pools[kernelName]. I.e.,
+        // instead of closing and deleting everything, we just want to
+        // shrink the pool to MIN_POOL_SIZE.
+        // no request for kernelName, so we clear them from the pool
+        const poolToShrink = Kernel.pools[kernelName] ?? [];
+        if (poolToShrink.length > MIN_POOL_SIZE) {
+          // check if pool needs shrinking
+          // calculate how many to close
+          const numToClose = poolToShrink.length - MIN_POOL_SIZE;
+          for (let i = 0; i < numToClose; i++) {
+            poolToShrink[i].close(); // close oldest kernels first
+          }
+          // update pool to have only the most recent kernels
+          Kernel.pools[kernelName] = poolToShrink.slice(numToClose);
+        }
+      },
+      (timeout_s ?? DEFAULT_POOL_TIMEOUT_S) * 1000,
+    );
   }
 
   static async getFromPool(
@@ -72,7 +73,7 @@ export default class Kernel {
     {
       size = DEFAULT_POOL_SIZE,
       timeout_s = DEFAULT_POOL_TIMEOUT_S,
-    }: { size?: number; timeout_s?: number } = {}
+    }: { size?: number; timeout_s?: number } = {},
   ): Promise<Kernel> {
     this.setIdleTimeout(kernelName, timeout_s);
     const pool = Kernel.getPool(kernelName);
@@ -99,7 +100,7 @@ export default class Kernel {
     return k;
   }
 
-  private async init() {
+  private init = reuseInFlight(async () => {
     if (this.kernel != null) {
       // already initialized
       return;
@@ -119,9 +120,20 @@ export default class Kernel {
     });
     await this.kernel.ensure_running();
     await this.kernel.execute_code_now({ code: "" });
+  });
+
+  // empty all pools and do not refill
+  static closeAll() {
+    for (const kernelName in Kernel.pools) {
+      for (const kernel of Kernel.pools[kernelName]) {
+        kernel.close();
+      }
+    }
+    Kernel.pools = {};
+    Kernel.last_active = {};
   }
 
-  async execute(
+  execute = async (
     code: string,
     limits: Limits = {
       timeout_ms: 30000,
@@ -130,8 +142,8 @@ export default class Kernel {
       max_output_per_cell: 1000000,
       start_time: Date.now(),
       total_output: 0,
-    }
-  ) {
+    },
+  ) => {
     if (this.kernel == null) {
       throw Error("kernel already closed");
     }
@@ -142,22 +154,23 @@ export default class Kernel {
     const cell = { cell_type: "code", source: [code], outputs: [] };
     await run_cell(this.kernel, limits, cell);
     return cell.outputs;
-  }
+  };
 
-  async chdir(path: string) {
+  chdir = async (path: string) => {
     if (this.kernel == null) return;
     await this.kernel.chdir(path);
-  }
+  };
 
-  async returnToPool(): Promise<void> {
+  // this is not used anywhere
+  returnToPool = async (): Promise<void> => {
     if (this.kernel == null) {
       throw Error("kernel already closed");
     }
     const pool = Kernel.getPool(this.kernelName);
     pool.push(this);
-  }
+  };
 
-  async close() {
+  close = async () => {
     if (this.kernel == null) return;
     try {
       await this.kernel.close();
@@ -171,5 +184,5 @@ export default class Kernel {
     } catch (err) {
       log.warn("Error cleaning up temporary directory", err);
     }
-  }
+  };
 }
