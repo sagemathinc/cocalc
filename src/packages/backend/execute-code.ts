@@ -176,6 +176,9 @@ async function executeCodeNoAggregate(
   } else if (opts.path[0] !== "/") {
     opts.path = opts.home + "/" + opts.path;
   }
+  if (opts.cwd) {
+    opts.path = opts.cwd;
+  }
 
   let tempDir: string | undefined = undefined;
 

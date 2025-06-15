@@ -14,7 +14,7 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
+import { exec, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient, { type Role } from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -198,7 +198,7 @@ export class SyncFS {
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
     try {
-      await execa("fusermount", args);
+      await exec("fusermount", args);
     } catch (err) {
       log("fusermount fail -- ", err);
     }
@@ -357,7 +357,7 @@ export class SyncFS {
     // NOTE: allow_other is essential to allow bind mounted as root
     // of fast scratch directories into HOME!
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
-    await execa("unionfs-fuse", [
+    await exec("unionfs-fuse", [
       "-o",
       "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
       `${this.upper}=RW:${this.lower}=RO`,
@@ -381,7 +381,7 @@ export class SyncFS {
         try {
           const target = join(this.mount, path);
           log("unmountExcludes -- unmounting", { target });
-          await execa("sudo", ["umount", target]);
+          await exec("sudo", ["umount", target]);
         } catch (err) {
           log("unmountExcludes -- warning ", err);
         }
@@ -403,7 +403,7 @@ export class SyncFS {
         // Yes, we have to mkdir in the upper level of the unionfs, because
         // we excluded this path from the websocketfs metadataFile caching.
         await mkdirp(upper);
-        await execa("sudo", ["mount", "--bind", source, target]);
+        await exec("sudo", ["mount", "--bind", source, target]);
       } else {
         log("bindMountExcludes -- skipping", { path });
       }
@@ -419,7 +419,7 @@ export class SyncFS {
       log("bindMountExcludes -- explicit hidden path", { source, target });
       await mkdirp(source);
       await mkdirp(upper);
-      await execa("sudo", ["mount", "--bind", source, target]);
+      await exec("sudo", ["mount", "--bind", source, target]);
     }
   };
 

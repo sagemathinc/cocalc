@@ -22,7 +22,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit",
-    "depcheck": "pnpx depcheck --ignores execa",
+    "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
@@ -59,7 +59,6 @@
     "node-cleanup": "^2.1.2",
     "rxjs": "^6.6.7",
     "shell-escape": "^0.2.0",
-    "tsimportlib": "^0.0.5",
     "uuid": "^8.3.2",
     "zeromq": "^6.4.2"
   },
